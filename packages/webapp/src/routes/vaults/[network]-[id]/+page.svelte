@@ -15,10 +15,10 @@
 
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const network = $page.params.network;
-	const subgraphUrl = $settings?.subgraphs?.[network] || '';
-	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-	const orderbookAddress = $settings?.orderbooks?.[network]?.address as Hex;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const subgraphUrl = $settings.orderbook.subgraphs[network]?.url || '';
+	const chainId = $settings.orderbook.networks[network]?.chainId || 0;
+	const orderbookAddress = $settings.orderbook.orderbooks[network]?.address as Hex;
+	const rpcUrl = $settings.orderbook.networks[network]?.rpc || '';
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();

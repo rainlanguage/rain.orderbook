@@ -99,9 +99,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
-        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(networks.keys().cloned().collect())
+        Ok(self.get_networks()?.keys().cloned().collect())
     }
     pub fn get_networks(&self) -> Result<HashMap<String, NetworkCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -118,9 +116,11 @@ impl OrderbookYaml {
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_tokens()?.keys().cloned().collect())
+    }
+    pub fn get_tokens(&self) -> Result<HashMap<String, TokenCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
-        let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(tokens.keys().cloned().collect())
+        TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -137,17 +137,22 @@ impl OrderbookYaml {
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_subgraphs()?.keys().cloned().collect())
+    }
+    pub fn get_subgraphs(&self) -> Result<HashMap<String, SubgraphCfg>, YamlError> {
         let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(subgraphs.keys().cloned().collect())
+        Ok(subgraphs)
     }
     pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
         SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_orderbooks()?.keys().cloned().collect())
+    }
+    pub fn get_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(orderbooks.keys().cloned().collect())
+        OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -164,8 +169,11 @@ impl OrderbookYaml {
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_metaboards()?.keys().cloned().collect())
+    }
+    pub fn get_metaboards(&self) -> Result<HashMap<String, MetaboardCfg>, YamlError> {
         let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(metaboards.keys().cloned().collect())
+        Ok(metaboards)
     }
     pub fn get_metaboard(&self, key: &str) -> Result<MetaboardCfg, YamlError> {
         MetaboardCfg::parse_from_yaml(self.documents.clone(), key, None)
@@ -175,18 +183,35 @@ impl OrderbookYaml {
     }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_deployers()?.keys().cloned().collect())
+    }
+    pub fn get_deployers(&self) -> Result<HashMap<String, DeployerCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
-        let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(deployers.keys().cloned().collect())
+        DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
         DeployerCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
-    pub fn get_sentry(&self) -> Result<bool, YamlError> {
-        let value = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
-        Ok(value.map_or(false, |v| v == "true"))
+    pub fn get_sentry(&self) -> Result<Option<bool>, YamlError> {
+        let value_opt_str = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
+
+        let res = value_opt_str
+            .map(|v| v.to_ascii_lowercase())
+            .map(|v| match v.as_str() {
+                "true" | "1" => Ok(true),
+                "false" | "0" => Ok(false),
+                _ => Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "sentry".to_string(),
+                        expected: "a boolean".to_string(),
+                    },
+                    location: "root".to_string(),
+                }),
+            });
+
+        res.transpose()
     }
 
     pub fn get_spec_version(&self) -> Result<String, YamlError> {
@@ -270,6 +295,7 @@ mod tests {
     use url::Url;
 
     const FULL_YAML: &str = r#"
+    version: 1
     networks:
         mainnet:
             rpc: https://mainnet.infura.io
@@ -308,7 +334,6 @@ mod tests {
         admin: 0x0000000000000000000000000000000000000001
         user: 0x0000000000000000000000000000000000000002
     sentry: true
-    version: 1
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
@@ -421,9 +446,9 @@ mod tests {
             "mainnet"
         );
 
-        assert!(ob_yaml.get_sentry().unwrap());
+        assert_eq!(ob_yaml.get_sentry().unwrap(), Some(true));
 
-        assert_eq!(ob_yaml.get_spec_version().unwrap(), "1".to_string());
+        assert_eq!(ob_yaml.get_spec_version().unwrap(), SpecVersion::current());
 
         assert_eq!(ob_yaml.get_account_keys().unwrap().len(), 2);
         assert_eq!(

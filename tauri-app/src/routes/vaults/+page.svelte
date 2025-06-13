@@ -5,7 +5,6 @@
 
   import {
     activeOrderbook,
-    subgraphUrl,
     orderHash,
     accounts,
     activeAccountsItems,
@@ -40,7 +39,6 @@
 <VaultsListTable
   {activeAccounts}
   {activeOrderbook}
-  {subgraphUrl}
   {orderHash}
   {accounts}
   {activeAccountsItems}

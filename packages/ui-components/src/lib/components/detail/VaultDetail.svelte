@@ -21,6 +21,7 @@
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownToBracketOutline, ArrowUpFromBracketOutline } from 'flowbite-svelte-icons';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
+
 	export let id: string;
 	export let network: string;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
@@ -40,7 +41,7 @@
 	 */
 	export let onWithdraw: (vault: SgVault) => void;
 
-	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const subgraphUrl = $settings.orderbook.subgraphs[network].url || '';
 	const queryClient = useQueryClient();
 	const { matchesAccount } = useAccount();
 	const { errToast } = useToasts();
