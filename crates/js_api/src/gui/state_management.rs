@@ -1,4 +1,5 @@
 use super::*;
+use futures;
 use rain_orderbook_app_settings::{gui::GuiDepositCfg, order::OrderIOCfg, token::TokenCfg};
 use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};

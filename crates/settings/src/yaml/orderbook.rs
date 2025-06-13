@@ -362,6 +362,7 @@ mod tests {
             Url::parse("https://chainid.network/v2/chains.json").unwrap()
         );
 
+        assert_eq!(ob_yaml.get_tokens().unwrap().len(), 1);
         assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
         let token = ob_yaml.get_token("token1").unwrap();
         assert_eq!(

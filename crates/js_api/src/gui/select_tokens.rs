@@ -177,7 +177,7 @@ impl DotrainOrderGui {
         let fetched_results = futures::future::try_join_all(fetch_futures).await?;
         results.extend(fetched_results);
 
-        results.sort_by(|a, b| a.name.cmp(&b.name));
+        results.sort_by_key(|t| t.name.to_lowercase());
         Ok(results)
     }
 }
