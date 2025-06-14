@@ -94,6 +94,9 @@ error UnsupportedCalculateInputs(uint256 inputs);
 /// @param outputs The outputs the expression offers.
 error UnsupportedCalculateOutputs(uint256 outputs);
 
+/// Thrown when clear output amounts are both zero.
+error ClearZeroAmount();
+
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
 uint256 constant ORDER_LIVE = 1;
@@ -680,6 +683,10 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         );
         ClearStateChange memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
+
+        if (clearStateChange.aliceOutput == 0 && clearStateChange.bobOutput == 0) {
+            revert ClearZeroAmount();
+        }
 
         recordVaultIO(clearStateChange.aliceInput, clearStateChange.aliceOutput, aliceOrderIOCalculation);
         recordVaultIO(clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);
