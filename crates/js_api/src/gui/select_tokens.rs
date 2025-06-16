@@ -349,6 +349,12 @@ impl DotrainOrderGui {
 
         let fetched_results: Vec<TokenInfo> = futures::stream::iter(fetch_futures)
             .buffer_unordered(MAX_CONCURRENT_FETCHES)
+            .filter_map(|res| async {
+                match res {
+                    Ok(info) => Some(info),
+                    Err(_) => None,
+                }
+            })
             .try_collect()
             .await?;
         results.extend(fetched_results);
