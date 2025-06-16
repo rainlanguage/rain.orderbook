@@ -22,7 +22,7 @@ impl OrderbookYaml {
     /// This constructor parses one or more YAML configuration strings to create an OrderbookYaml
     /// instance that provides access to orderbook configurations, network settings, tokens, and
     /// other deployment metadata. The YAML sources are merged and validated according to the
-    /// orderbook specification.
+    /// [orderbook specification](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md).
     ///
     /// # Parameters
     ///

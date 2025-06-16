@@ -26,8 +26,8 @@ use wasm_bindgen_utils::prelude::*;
 /// - YAML frontmatter defining networks, tokens, orders, scenarios, and deployments
 /// - Rainlang code sections for order evaluation logic
 ///
-/// This struct provides methods to compile scenarios and deployments into executable
-/// Rainlang code with scenario-specific bindings applied.
+/// This struct provides methods to compose scenarios and deployments into Rainlang code
+/// with scenario-specific bindings applied.
 ///
 /// # Examples
 ///
@@ -365,17 +365,17 @@ impl DotrainOrder {
         Ok(self.dotrain.clone())
     }
 
-    /// Compiles a specific scenario into executable Rainlang code for order evaluation.
+    /// Composes a specific scenario into Rainlang code.
     ///
-    /// Takes a scenario name from the dotrain configuration and compiles the Rainlang
+    /// Takes a scenario name from the dotrain configuration and composes the Rainlang
     /// code with that scenario's bindings applied.
     ///
     /// # Parameters
     /// * `scenario` - Name of the scenario defined in the dotrain YAML frontmatter
     ///
     /// # Returns
-    /// * `Ok(String)` - Compiled Rainlang code with scenario bindings applied
-    /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang compilation failed
+    /// * `Ok(String)` - Composed Rainlang code with scenario bindings applied
+    /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang composition failed
     ///
     /// # Examples
 
@@ -406,9 +406,10 @@ impl DotrainOrder {
         )?)
     }
 
-    /// Compiles a specific scenario into Rainlang code for post-task execution.
+    /// Composes handle-add-order entrypoint for a specific scenario into Rainlang code
+    /// for immediate execution after an order is added.
     ///
-    /// Post-task Rainlang code runs after an order is successfully added to the orderbook.
+    /// This is useful for scenarios that need to perform actions immediately after an order is added.
     ///
     /// # Parameters
     ///
@@ -416,14 +417,13 @@ impl DotrainOrder {
     ///
     /// # Returns
     ///
-    /// * `Ok(String)` - Compiled post-task Rainlang code with scenario bindings applied
-    /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang compilation failed
+    /// * `Ok(String)` - Composed handle-add-order Rainlang code with scenario bindings applied
+    /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang composition failed
     ///
     /// # Examples
     ///
     /// ```javascript
-    /// // Compile post-task logic for notifications
-    /// const result = await dotrainOrder.composeScenarioToPostTaskRainlang("notification-scenario");
+    /// const result = await dotrainOrder.composeScenarioToPostTaskRainlang("scenario");
     /// if (result.error) {
     ///   console.error('Failed:', result.error.readableMsg);
     /// } else {
@@ -448,11 +448,11 @@ impl DotrainOrder {
         )?)
     }
 
-    /// Compiles a specific deployment configuration into executable Rainlang code.
+    /// Composes a specific deployment configuration into Rainlang code.
     ///
     /// A deployment combines an order definition with a scenario to create a complete
-    /// configuration ready for execution. This method resolves the deployment's scenario
-    /// and compiles the Rainlang code with the appropriate bindings.
+    /// configuration ready for deployment. This method resolves the deployment's scenario
+    /// and composes the Rainlang code with the appropriate bindings.
     ///
     /// # Parameters
     ///
@@ -460,13 +460,13 @@ impl DotrainOrder {
     ///
     /// # Returns
     ///
-    /// * `Ok(String)` - Compiled Rainlang code for the deployment's scenario
-    /// * `Err(DotrainOrderError)` - Deployment not found or Rainlang compilation failed
+    /// * `Ok(String)` - Composed Rainlang code for the deployment's scenario
+    /// * `Err(DotrainOrderError)` - Deployment not found or Rainlang composition failed
     ///
     /// # Examples
     ///
     /// ```javascript
-    /// // Compile a production deployment
+    /// // Compose a production deployment
     /// const result = await dotrainOrder.composeDeploymentToRainlang("production");
     /// if (result.error) {
     ///   console.error('Failed:', result.error.readableMsg);

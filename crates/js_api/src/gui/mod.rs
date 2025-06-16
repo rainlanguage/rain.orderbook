@@ -62,9 +62,9 @@ impl Default for DotrainOrderGui {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    /// Lists all available deployment configurations from a dotrain YAML file.
+    /// Lists all available gui deployment keys from a dotrain YAML file.
     ///
-    /// This function parses the YAML frontmatter to extract deployment keys that can be used
+    /// This function parses the gui section of the YAML frontmatter to extract deployment keys that can be used
     /// to initialize a GUI instance. Use this to build deployment selectors in your UI.
     ///
     /// # Parameters
@@ -114,7 +114,9 @@ impl DotrainOrderGui {
     ///
     /// - `dotrain` - Complete dotrain YAML content with all configurations
     /// - `selected_deployment` - Key of the deployment to activate (must exist in YAML)
-    /// - `state_update_callback` - Optional JavaScript function called on state changes
+    /// - `state_update_callback` - Optional JavaScript function called on state changes.
+    /// After a state change (deposit, field value, vault id, select token, etc.),
+    /// the callback is called with the new state. This is useful for auto-saving the state of the GUI across sessions.
     ///
     /// # Returns
     ///
@@ -443,8 +445,19 @@ impl DotrainOrderGui {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
     /// }
-    /// const deployments = result.value;
-    /// // Do something with the deployments
+    ///
+    /// // key is the deployment key
+    /// // value is the deployment metadata
+    /// for (const [key, value] of result.value) {
+    ///   const {
+    ///     // name is the deployment name
+    ///     // description is the deployment description
+    ///     name,
+    ///     description,
+    ///     // short_description is the deployment short description (optional)
+    ///     short_description,
+    ///   } = value;
+    /// }
     /// ```
     #[wasm_export(
         js_name = "getDeploymentDetails",
@@ -581,10 +594,10 @@ impl DotrainOrderGui {
         Ok(dotrain)
     }
 
-    /// Generates the final Rainlang code with all bindings and scenarios applied.
+    /// Composes the final Rainlang code with all bindings and scenarios applied.
     ///
-    /// This method updates scenario bindings from current field values and produces
-    /// the composed Rainlang ready for deployment.
+    /// This method updates scenario bindings from current field values and composes
+    /// the Rainlang code ready to be displayed on the UI.
     ///
     /// # Side Effects
     ///

@@ -237,7 +237,7 @@ pub async fn get_vault_deposit_calldata(
 /// # Parameters
 ///
 /// * `vault` - Source vault object
-/// * `withdraw_amount` - Amount to withdraw in token's smallest unit
+/// * `withdraw_amount` - Amount to withdraw
 ///
 /// # Returns
 ///

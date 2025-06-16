@@ -67,7 +67,7 @@ impl DotrainOrderGui {
     /// The function checks if the value matches any preset in the field definition.
     /// If it matches, it stores the preset index; otherwise, stores the raw value.
     ///
-    /// # Examples
+    /// # JavaScript Examples
     ///
     /// ```javascript
     /// // Save a custom value
@@ -119,7 +119,7 @@ impl DotrainOrderGui {
     /// - `Ok(())` - All values saved successfully
     /// - `Err(GuiError)` - If any binding is invalid (partial save may occur)
     ///
-    /// # Examples
+    /// # JavaScript Examples
     ///
     /// ```javascript
     /// const fields = [
@@ -144,8 +144,7 @@ impl DotrainOrderGui {
 
     /// Removes a previously saved field value.
     ///
-    /// Use this to clear a field value, returning it to an unset state. This is
-    /// different from setting an empty string value - it completely removes the binding.
+    /// Use this to clear a field value, returning it to an unset state.
     ///
     /// # Parameters
     ///
@@ -155,7 +154,7 @@ impl DotrainOrderGui {
     ///
     /// - `Ok(())` - Value removed and state callback triggered
     ///
-    /// # Examples
+    /// # JavaScript Examples
     ///
     /// ```javascript
     /// // Clear a field value
@@ -186,7 +185,7 @@ impl DotrainOrderGui {
     /// - `Err(FieldBindingNotFound)` - If no value has been saved for this binding
     /// - `Err(InvalidPreset)` - If saved preset index is invalid
     ///
-    /// # Examples
+    /// # JavaScript Examples
     ///
     /// ```javascript
     /// const result = gui.getFieldValue("max-price");
@@ -195,8 +194,10 @@ impl DotrainOrderGui {
     ///   return;
     /// }
     ///
-    /// const fieldValue = result.value;
-    /// // Do something with the fieldValue
+    /// const { binding, value, isPreset } = result.value;
+    /// // binding is the field binding identifier
+    /// // value is the field value
+    /// // isPreset is a boolean indicating if the value is a preset
     /// ```
     #[wasm_export(js_name = "getFieldValue", unchecked_return_type = "FieldValue")]
     pub fn get_field_value(&self, binding: String) -> Result<FieldValue, GuiError> {
@@ -238,7 +239,7 @@ impl DotrainOrderGui {
     /// - `Ok(Vec<FieldValue>)` - Array of all configured field values
     /// - `Err(GuiError)` - If any field value retrieval fails
     ///
-    /// # Examples
+    /// # JavaScript Examples
     ///
     /// ```javascript
     /// const result = gui.getAllFieldValues();
@@ -247,8 +248,15 @@ impl DotrainOrderGui {
     ///   return;
     /// }
     ///
-    /// const allValues = result.value;
-    /// // Do something with the allValues
+    /// const [fieldValue1, fieldValue2, ...] = result.value;
+    /// const {
+    ///   // binding is the field binding identifier
+    ///   binding,
+    ///   // value is the field value
+    ///   value,
+    ///   // isPreset is a boolean indicating if the value is a preset
+    ///   isPreset
+    /// } = fieldValue1;
     /// ```
     #[wasm_export(js_name = "getAllFieldValues", unchecked_return_type = "FieldValue[]")]
     pub fn get_all_field_values(&self) -> Result<Vec<FieldValue>, GuiError> {
@@ -274,15 +282,7 @@ impl DotrainOrderGui {
     /// - `Ok(GuiFieldDefinitionCfg)` - Complete field configuration
     /// - `Err(FieldBindingNotFound)` - If binding doesn't exist in deployment
     ///
-    /// # Field Configuration
-    ///
-    /// - `name` - Display name for the field
-    /// - `description` - Help text for users
-    /// - `presets` - Available preset options with names and values
-    /// - `default` - Default value to use if not set
-    /// - `showCustomField` - Whether to allow custom input alongside presets
-    ///
-    /// # Examples
+    /// # JavaScript Examples
     ///
     /// ```javascript
     /// const result = gui.getFieldDefinition("max-price");
@@ -291,8 +291,20 @@ impl DotrainOrderGui {
     ///   return;
     /// }
     ///
-    /// const definition = result.value;
-    /// // Do something with the definition
+    /// const {
+    ///   // binding is the field binding identifier
+    ///   binding,
+    ///   // name is the display name for the field
+    ///   name,
+    ///   // description is the help text for the field
+    ///   description,
+    ///   // presets are the available preset options for the field
+    ///   presets,
+    ///   // default is the default value for the field if no value is set by the user
+    ///   default,
+    ///   // showCustomField is a boolean indicating if the field allows custom input
+    ///   showCustomField
+    /// } = result.value;
     /// ```
     #[wasm_export(
         js_name = "getFieldDefinition",
@@ -326,7 +338,7 @@ impl DotrainOrderGui {
     /// - `Ok(Vec<GuiFieldDefinitionCfg>)` - Filtered field definitions
     /// - `Err(GuiError)` - If deployment configuration is invalid
     ///
-    /// # Examples
+    /// # JavaScript Examples
     ///
     /// ```javascript
     /// // Get all fields
@@ -387,7 +399,7 @@ impl DotrainOrderGui {
     /// This returns field names (e.g., "Maximum Price") not bindings (e.g., "max-price")
     /// for better user experience.
     ///
-    /// # Examples
+    /// # JavaScript Examples
     ///
     /// ```javascript
     /// const result = gui.getMissingFieldValues();

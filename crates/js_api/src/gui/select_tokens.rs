@@ -147,11 +147,10 @@ impl DotrainOrderGui {
         Ok(network_key)
     }
 
-    /// Configures a user-selected token by fetching its details from the blockchain.
+    /// Sets a custom token address to be used in the order.
     ///
     /// Takes a token address provided by the user and queries the blockchain to get
-    /// the token's name, symbol, and decimals. This information is then cached in
-    /// the configuration for efficient access.
+    /// the token's name, symbol, and decimals. This information is then cached for efficient access.
     ///
     /// # Parameters
     ///
@@ -237,7 +236,7 @@ impl DotrainOrderGui {
     /// Removes a previously selected token configuration.
     ///
     /// Clears the address and cached information for a select-token, returning it
-    /// to an unselected state. Use this when users want to choose a different token.
+    /// to an unselected state.
     ///
     /// # Parameters
     ///

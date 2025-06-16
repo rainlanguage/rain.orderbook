@@ -129,10 +129,10 @@ pub async fn get_sg_order_by_hash(url: &str, hash: &str) -> Result<SgOrder, Subg
     Ok(order)
 }
 
-/// Fetches a specific order by its hash with organized vault information.
+/// Fetches a specific order by its hash including its vaults ordered by their type.
 ///
 /// Retrieves complete order details and organizes its vaults into logical categories
-/// (inputs, outputs, inputs_outputs) for easier consumption.
+/// (inputs, outputs, inputs and outputs) for easier consumption.
 ///
 /// # Parameters
 ///

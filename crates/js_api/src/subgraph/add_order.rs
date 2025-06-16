@@ -37,8 +37,13 @@ impl_wasm_traits!(GetTransactionAddOrdersResult);
 ///   console.error("Cannot fetch added orders:", result.error.readableMsg);
 ///   return;
 /// }
-/// const addedOrders = result.value;
-/// // Do something with the addedOrders
+/// const [addOrder1, addOrder2, ...] = result.value;
+/// const {
+///   // transaction is the transaction that added the order
+///   transaction,
+///   // order is the order that was added
+///   order
+/// } = addOrder1;
 /// ```
 #[wasm_export(
     js_name = "getTransactionAddOrders",

@@ -17,6 +17,7 @@ pub struct TakeOrdersCalldata(#[tsify(type = "string")] Bytes);
 impl_wasm_traits!(TakeOrdersCalldata);
 
 /// Generates a unique keccak256 hash for an order, used for on-chain identification and verification.
+/// This generated hash is used as the onchain order hash.
 ///
 /// # Parameters
 ///

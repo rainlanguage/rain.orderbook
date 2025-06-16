@@ -64,8 +64,14 @@ impl DotrainOrderGui {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
     /// }
-    /// const deposits = result.value;
-    /// // Do something with the deposits
+    /// const [deposit1, deposit2, ...] = result.value;
+    /// const {
+    ///   // token is the token address
+    ///   token,
+    ///   // amount is the deposit amount
+    ///   amount,
+    ///   // address is the token address
+    /// } = deposit1;
     /// ```
     #[wasm_export(js_name = "getDeposits", unchecked_return_type = "TokenDeposit[]")]
     pub fn get_deposits(&self) -> Result<Vec<TokenDeposit>, GuiError> {
@@ -106,7 +112,7 @@ impl DotrainOrderGui {
     /// Saves a deposit amount for a specific token.
     ///
     /// Sets the deposit amount for a token, automatically detecting if the amount
-    /// matches a preset value. Use an empty string to remove a deposit.
+    /// matches a preset value.
     ///
     /// # Parameters
     ///
@@ -167,7 +173,6 @@ impl DotrainOrderGui {
 
     /// Removes a deposit for a specific token.
     ///
-    /// This is equivalent to calling saveDeposit with an empty amount string.
     /// Use this to clear a deposit that's no longer needed.
     ///
     /// # Parameters
@@ -217,9 +222,8 @@ impl DotrainOrderGui {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
     /// }
-    ///
-    /// const presets = result.value;
-    /// // Do something with the presets
+    /// // items are preset amounts
+    /// const [preset1, preset2, ...] = result.value;
     /// ```
     #[wasm_export(js_name = "getDepositPresets", unchecked_return_type = "string[]")]
     pub fn get_deposit_presets(&self, key: String) -> Result<Vec<String>, GuiError> {
@@ -245,9 +249,10 @@ impl DotrainOrderGui {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
     /// }
-    /// const missing = result.value;
+    /// // items are token keys
+    /// const [missing1, missing2, ...] = result.value;
     /// if (missing.length > 0) {
-    ///   // Do something with the missing
+    ///   // Do something with the missing tokens
     /// }
     /// ```
     #[wasm_export(js_name = "getMissingDeposits", unchecked_return_type = "string[]")]
