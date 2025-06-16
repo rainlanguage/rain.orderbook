@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, chainId, subgraphUrl } from '$lib/stores/settings';
+import { rpcUrl, orderbookAddress, chainId, subgraph } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 
@@ -18,6 +18,10 @@ export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
 }
 
 export async function orderRemove(id: string) {
+  const value = get(subgraph);
+  if (!value) {
+    throw new Error('Subgraph not found');
+  }
   await invoke('order_remove', {
     id,
     transactionArgs: {
@@ -27,7 +31,7 @@ export async function orderRemove(id: string) {
       chain_id: get(chainId),
     },
     subgraphArgs: {
-      url: get(subgraphUrl),
+      url: value.url,
     },
   });
 }
@@ -46,10 +50,14 @@ export async function orderAddCalldata(dotrain: string, deployment: DeploymentCf
 }
 
 export async function orderRemoveCalldata(id: string) {
+  const value = get(subgraph);
+  if (!value) {
+    throw new Error('Subgraph not found');
+  }
   return await invoke('order_remove_calldata', {
     id,
     subgraphArgs: {
-      url: get(subgraphUrl),
+      url: value.url,
     },
   });
 }

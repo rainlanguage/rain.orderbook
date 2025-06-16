@@ -1,12 +1,10 @@
 <script lang="ts" generics="T">
+	import { getMultiSubgraphArgs } from '$lib/utils/configHelpers';
+
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import {
-		getOrders,
-		type MultiSubgraphArgs,
-		type SgOrderWithSubgraphName
-	} from '@rainlanguage/orderbook';
+	import { getOrders, type SgOrderWithSubgraphName } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
@@ -30,7 +28,7 @@
 
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 	export let settings: AppStoresInterface['settings'];
-	export let accounts: AppStoresInterface['accounts'] | undefined;
+	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -41,12 +39,9 @@
 
 	const { matchesAccount, account } = useAccount();
 
-	$: multiSubgraphArgs = Object.entries(
-		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
-	).map(([name, url]) => ({
-		name,
-		url
-	})) as MultiSubgraphArgs[];
+	$: multiSubgraphArgs = getMultiSubgraphArgs(
+		Object.keys($activeSubgraphs).length > 0 ? $activeSubgraphs : $settings.orderbook.subgraphs
+	);
 
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
