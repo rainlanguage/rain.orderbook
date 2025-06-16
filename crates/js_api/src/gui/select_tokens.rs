@@ -6,6 +6,8 @@ use rain_orderbook_app_settings::{
 };
 use std::str::FromStr;
 
+const MAX_CONCURRENT_FETCHES: usize = 5;
+
 #[wasm_export]
 impl DotrainOrderGui {
     #[wasm_export(
@@ -174,7 +176,7 @@ impl DotrainOrderGui {
         }
 
         let fetched_results: Vec<TokenInfo> = futures::stream::iter(fetch_futures)
-            .buffer_unordered(5)
+            .buffer_unordered(MAX_CONCURRENT_FETCHES)
             .try_collect()
             .await?;
         results.extend(fetched_results);
