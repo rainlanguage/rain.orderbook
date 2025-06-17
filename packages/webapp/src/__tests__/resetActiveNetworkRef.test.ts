@@ -9,7 +9,7 @@ describe('resetActiveNetworkRef', () => {
 
 	const createMockNetworkConfigSource = (label?: string): NetworkCfg => ({
 		key: 'network1',
-		rpc: 'http://localhost:8545',
+		rpcs: ['http://localhost:8545'],
 		chainId: 1337,
 		label,
 		networkId: undefined,

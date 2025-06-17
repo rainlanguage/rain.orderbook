@@ -521,7 +521,8 @@ test: test
                 r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 test: test
 "#,
@@ -546,7 +547,8 @@ test: test
                 r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     token1:
@@ -573,7 +575,8 @@ tokens:
                 r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     token1:
@@ -604,7 +607,8 @@ tokens:
                 r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     token1:
@@ -631,7 +635,8 @@ tokens:
                 r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     token1:
@@ -658,7 +663,8 @@ tokens:
                 r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     token1:
@@ -687,7 +693,8 @@ tokens:
         let yaml_one = r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     dai:
@@ -744,7 +751,8 @@ tokens:
         let yaml_one = r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     dai:

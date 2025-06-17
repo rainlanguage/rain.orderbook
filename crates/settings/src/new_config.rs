@@ -547,8 +547,8 @@ mod tests {
         let mainnet_network = config.get_network("mainnet").unwrap();
         assert_eq!(mainnet_network.key, "mainnet");
         assert_eq!(
-            mainnet_network.rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            mainnet_network.rpcs,
+            vec![Url::parse("https://mainnet.infura.io").unwrap()]
         );
         assert_eq!(mainnet_network.chain_id, 1);
         assert!(mainnet_network.label.is_none());
@@ -557,8 +557,8 @@ mod tests {
         let testnet_network = config.get_network("testnet").unwrap();
         assert_eq!(testnet_network.key, "testnet");
         assert_eq!(
-            testnet_network.rpc,
-            Url::parse("https://testnet.infura.io").unwrap()
+            testnet_network.rpcs,
+            vec![Url::parse("https://testnet.infura.io").unwrap()]
         );
         assert_eq!(testnet_network.chain_id, 1337);
         assert!(testnet_network.label.is_none());

@@ -46,7 +46,7 @@ describe('ModalExecute', () => {
           isSubmitting: false,
           overrideNetwork: {
             key: 'test',
-            rpc: 'https://test.com',
+            rpcs: ['https://test.com'],
             chainId: 2,
           },
         },
@@ -67,7 +67,7 @@ describe('ModalExecute', () => {
             mainnet: {
               key: 'mainnet',
               chainId: 1,
-              rpc: 'https://mainnet.com',
+              rpcs: ['https://mainnet.com'],
             },
           },
         },
@@ -83,7 +83,7 @@ describe('ModalExecute', () => {
           isSubmitting: false,
           overrideNetwork: {
             key: 'test',
-            rpc: 'https://test.com',
+            rpcs: ['https://test.com'],
             chainId: 2,
           },
         },

@@ -97,7 +97,7 @@ mod tests {
                 orderbook_address: Address::random(),
                 derivation_index: None,
                 chain_id: Some(123),
-                rpc_url: "https://some-rpc.com".to_string(),
+                rpcs: vec!["https://some-rpc.com".to_string()],
                 max_fee_per_gas: None,
                 max_priority_fee_per_gas: None,
                 gas_fee_speed: None,
@@ -132,7 +132,8 @@ mod tests {
 version: {}
 networks:
     some-network:
-        rpc: https://some-rpc.com
+        rpcs:
+            - https://some-rpc.com
         chain-id: 123
         network-id: 123
         currency: ETH

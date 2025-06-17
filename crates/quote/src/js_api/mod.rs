@@ -140,7 +140,7 @@ pub fn get_id(orderbook: &str, order_hash: &str) -> Result<String, QuoteBindings
 )]
 pub async fn do_quote_targets(
     quote_targets: BatchQuoteTarget,
-    rpc_url: String,
+    rpcs: Vec<String>,
     block_number: Option<u64>,
     gas: Option<String>,
     multicall_address: Option<String>,
@@ -152,7 +152,7 @@ pub async fn do_quote_targets(
     let batch_quote_target = BatchQuoteTarget(quote_targets);
 
     let quotes = batch_quote_target
-        .do_quote(&rpc_url, block_number, gas_value, multicall_address)
+        .do_quote(rpcs, block_number, gas_value, multicall_address)
         .await?;
 
     let res = quotes
@@ -219,7 +219,7 @@ pub async fn do_quote_targets(
 pub async fn do_quote_specs(
     quote_specs: BatchQuoteSpec,
     subgraph_url: String,
-    rpc_url: String,
+    rpcs: Vec<String>,
     block_number: Option<u64>,
     gas: Option<String>,
     multicall_address: Option<String>,
@@ -232,7 +232,7 @@ pub async fn do_quote_specs(
     let quotes = batch_quote_spec
         .do_quote(
             &subgraph_url,
-            &rpc_url,
+            rpcs,
             block_number,
             gas_value,
             multicall_address,
@@ -359,12 +359,12 @@ pub async fn get_batch_quote_target_from_subgraph(
 )]
 pub async fn get_order_quote(
     order: Vec<SgOrder>,
-    rpc_url: String,
+    rpcs: Vec<String>,
     block_number: Option<u64>,
     gas: Option<String>,
 ) -> Result<DoOrderQuoteResult, QuoteBindingsError> {
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let order_quotes = get_order_quotes(order, block_number, rpc_url, gas_value).await?;
+    let order_quotes = get_order_quotes(order, block_number, rpcs, gas_value).await?;
     Ok(DoOrderQuoteResult(order_quotes))
 }
 
@@ -713,7 +713,7 @@ mod tests {
 
             let res = do_quote_targets(
                 get_batch_quote_targets(),
-                rpc_server.url("/rpc"),
+                vec![rpc_server.url("/rpc")],
                 None,
                 None,
                 None,
@@ -750,7 +750,7 @@ mod tests {
         async fn test_do_quote_targets_invalid_values() {
             let err = do_quote_targets(
                 get_batch_quote_targets(),
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 None,
                 Some("invalid-address".to_string()),
@@ -765,7 +765,7 @@ mod tests {
 
             let err = do_quote_targets(
                 get_batch_quote_targets(),
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 Some("invalid-gas".to_string()),
                 None,
@@ -817,7 +817,7 @@ mod tests {
             let res = do_quote_specs(
                 get_batch_quote_specs(),
                 subgraph_server.url("/subgraph"),
-                rpc_server.url("/rpc"),
+                vec![rpc_server.url("/rpc")],
                 None,
                 None,
                 None,
@@ -855,7 +855,7 @@ mod tests {
             let err = do_quote_specs(
                 get_batch_quote_specs(),
                 "some-url".to_string(),
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 None,
                 Some("invalid-address".to_string()),
@@ -871,7 +871,7 @@ mod tests {
             let err = do_quote_specs(
                 get_batch_quote_specs(),
                 "some-url".to_string(),
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 Some("invalid-gas".to_string()),
                 None,
@@ -1031,7 +1031,7 @@ mod tests {
                 );
             });
 
-            let res = get_order_quote(vec![order], rpc_server.url("/rpc"), None, None)
+            let res = get_order_quote(vec![order], vec![rpc_server.url("/rpc")], None, None)
                 .await
                 .unwrap();
             assert_eq!(res.0.len(), 1);
@@ -1048,7 +1048,7 @@ mod tests {
         async fn test_get_order_quote_invalid_values() {
             let err = get_order_quote(
                 vec![],
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 Some("invalid-gas".to_string()),
             )

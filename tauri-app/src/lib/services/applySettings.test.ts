@@ -27,7 +27,7 @@ describe('applySettings service', () => {
     const parsedConfig: NewConfig = {
       orderbook: {
         version: '1',
-        networks: { mainnet: { key: 'mainnet', chainId: 1, rpc: 'rpc' } },
+        networks: { mainnet: { key: 'mainnet', chainId: 1, rpcs: ['rpc'] } },
       },
     } as unknown as NewConfig;
     mockParseConfigSourceFn = vi.fn().mockResolvedValue(parsedConfig);

@@ -54,7 +54,7 @@ describe('TanstackOrderQuote component', () => {
 			props: {
 				id: '0x123',
 				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
+				rpcUrls: ['https://example.com'],
 				orderbookAddress: '0x123',
 				handleQuoteDebugModal: vi.fn()
 			},
@@ -122,7 +122,7 @@ describe('TanstackOrderQuote component', () => {
 			props: {
 				id: '0x123',
 				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
+				rpcUrls: ['https://example.com'],
 				orderbookAddress: '0x123',
 				handleQuoteDebugModal: vi.fn()
 			},
@@ -176,7 +176,7 @@ describe('TanstackOrderQuote component', () => {
 			props: {
 				id: '0x123',
 				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
+				rpcUrls: ['https://example.com'],
 				orderbookAddress: '0x123',
 				handleQuoteDebugModal: vi.fn()
 			},
@@ -208,7 +208,7 @@ describe('TanstackOrderQuote component', () => {
 			props: {
 				id: '0x123',
 				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
+				rpcUrls: ['https://example.com'],
 				orderbookAddress: '0x123',
 				handleQuoteDebugModal: vi.fn()
 			},
@@ -251,7 +251,7 @@ describe('TanstackOrderQuote component', () => {
 			props: {
 				id: '0x123',
 				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
+				rpcUrls: ['https://example.com'],
 				orderbookAddress: '0x123',
 				handleQuoteDebugModal: vi.fn()
 			},
