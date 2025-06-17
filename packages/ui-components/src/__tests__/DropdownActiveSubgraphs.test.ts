@@ -2,18 +2,31 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import DropdownActiveSubgraphs from '../lib/components/dropdown/DropdownActiveSubgraphs.svelte';
-import { mockConfigSource } from '../lib/__mocks__/settings';
+import { mockConfig } from '../lib/__mocks__/settings';
+import type { NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
 
 describe('DropdownActiveSubgraphs', () => {
 	const mockSettings = {
-		...mockConfigSource,
-		subgraphs: {
-			mainnet: 'mainnet',
-			testnet: 'testnet',
-			local: 'local'
+		...mockConfig,
+		orderbook: {
+			...mockConfig.orderbook,
+			subgraphs: {
+				mainnet: {
+					key: 'mainnet',
+					url: 'mainnet'
+				},
+				testnet: {
+					key: 'testnet',
+					url: 'testnet'
+				},
+				local: {
+					key: 'local',
+					url: 'local'
+				}
+			}
 		}
-	};
-	let activeSubgraphsStore: Writable<Record<string, string>>;
+	} as unknown as NewConfig;
+	let activeSubgraphsStore: Writable<Record<string, SubgraphCfg>>;
 
 	beforeEach(() => {
 		activeSubgraphsStore = writable({});
@@ -56,20 +69,23 @@ describe('DropdownActiveSubgraphs', () => {
 		await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
 		await fireEvent.click(screen.getByText('mainnet'));
 		await waitFor(() => {
-			expect(get(activeSubgraphsStore)).toEqual({ mainnet: 'mainnet' });
+			expect(get(activeSubgraphsStore)).toEqual({ mainnet: { key: 'mainnet', url: 'mainnet' } });
 		});
 
 		await fireEvent.click(screen.getByText('testnet'));
 		await waitFor(() => {
-			expect(get(activeSubgraphsStore)).toEqual({ mainnet: 'mainnet', testnet: 'testnet' });
+			expect(get(activeSubgraphsStore)).toEqual({
+				mainnet: { key: 'mainnet', url: 'mainnet' },
+				testnet: { key: 'testnet', url: 'testnet' }
+			});
 		});
 
 		await fireEvent.click(screen.getByText('local'));
 		await waitFor(() => {
 			expect(get(activeSubgraphsStore)).toEqual({
-				mainnet: 'mainnet',
-				testnet: 'testnet',
-				local: 'local'
+				mainnet: { key: 'mainnet', url: 'mainnet' },
+				testnet: { key: 'testnet', url: 'testnet' },
+				local: { key: 'local', url: 'local' }
 			});
 		});
 	});

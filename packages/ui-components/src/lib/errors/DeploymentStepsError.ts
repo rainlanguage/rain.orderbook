@@ -16,7 +16,8 @@ export enum DeploymentStepsErrorCode {
 	NO_AVAILABLE_TOKENS = 'Error loading available tokens',
 	SERIALIZE_ERROR = 'Error serializing state',
 	ADD_ORDER_FAILED = 'Failed to add order',
-	NO_WALLET = 'No account address found'
+	NO_WALLET = 'No account address found',
+	NO_GUI_CONFIG = 'Error getting GUI configuration'
 }
 
 export class DeploymentStepsError extends Error {
