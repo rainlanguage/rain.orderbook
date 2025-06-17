@@ -19,7 +19,7 @@ pub struct CliTransactionArgs {
     #[arg(short, long, help = "Chain ID of the network")]
     pub chain_id: Option<u64>,
 
-    #[arg(short, long, help = "RPC URLs")]
+    #[arg(short, long, help = "RPC URLs", num_args = 1..)]
     pub rpcs: Vec<String>,
 
     #[arg(

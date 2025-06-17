@@ -12,6 +12,9 @@ pub async fn get_address_from_ledger(
     rpcs: Vec<String>,
 ) -> CommandResult<Address> {
     let mut err: Option<CommandError> = None;
+    if rpcs.is_empty() {
+        return Err(CommandError::MissingRpcs);
+    }
     for rpc in rpcs {
         let ledger_client = LedgerClient::new(
             derivation_index.map(HDPath::LedgerLive),

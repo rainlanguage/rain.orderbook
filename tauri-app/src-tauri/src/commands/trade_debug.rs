@@ -21,6 +21,8 @@ pub async fn debug_trade(
         {
             Ok(res) => {
                 replayer = Some(res);
+                err = None;
+                break;
             }
             Err(e) => {
                 err = Some(CommandError::TradeReplayerError(e));

@@ -227,6 +227,7 @@ mod fork_parse {
             };
             match forker.add_or_select(args, None).await {
                 Ok(_) => {
+                    err = None;
                     break;
                 }
                 Err(e) => {

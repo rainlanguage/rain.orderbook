@@ -351,7 +351,7 @@ impl AddOrderArgs {
                             true,
                         )
                         .await?;
-                    break;
+                    return Ok(());
                 }
                 Err(e) => {
                     err = Some(AddOrderArgsError::ForkCallError(e));

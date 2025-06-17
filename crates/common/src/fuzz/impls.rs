@@ -95,6 +95,8 @@ pub enum FuzzRunnerError {
     YamlError(#[from] YamlError),
     #[error("Spec version mismatch: expected {0} but got {1}")]
     SpecVersionMismatch(String, String),
+    #[error("Invalid input args: {0}")]
+    InvalidArgs(String),
 }
 
 #[derive(Debug, Clone)]
@@ -186,9 +188,9 @@ impl FuzzRunner {
             }
         }
         if !fork_success {
-            return Err(FuzzRunnerError::ForkCallError(
-                last_err.expect("At least one RPC should have been tried"),
-            ));
+            return Err(FuzzRunnerError::InvalidArgs(format!(
+                "Failed to create fork: {last_err:?}"
+            )));
         }
         Ok(())
     }

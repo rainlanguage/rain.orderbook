@@ -58,7 +58,7 @@
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
 
-{#if rpcUrls && subgraphUrl && orderbookAddress}
+{#if rpcUrls?.length && subgraphUrl && orderbookAddress}
   <div data-testid="order-detail">
     <OrderDetail
       {orderHash}

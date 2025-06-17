@@ -138,7 +138,7 @@
 										on:click={() =>
 											handleQuoteDebugModal(
 												orderModalArg,
-												rpcUrls || [],
+												rpcUrls,
 												orderbookAddress || '',
 												item.pair.inputIndex,
 												item.pair.outputIndex,
@@ -173,7 +173,7 @@
 										on:click={() =>
 											handleQuoteDebugModal(
 												order,
-												rpcUrls || [],
+												rpcUrls,
 												orderbookAddress || '',
 												item.pair.inputIndex,
 												item.pair.outputIndex,

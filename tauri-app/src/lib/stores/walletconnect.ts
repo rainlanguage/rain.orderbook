@@ -84,7 +84,7 @@ export async function walletconnectConnect(priorityChainIds: number[]) {
             chains.push(chainId);
             break;
           } catch {
-            continue;
+            // ignore
           }
         }
       }

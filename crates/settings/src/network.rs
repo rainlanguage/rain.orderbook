@@ -63,7 +63,7 @@ impl NetworkCfg {
             .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)
     }
 
-    pub fn update_rpc(&mut self, rpcs: Vec<String>) -> Result<Self, YamlError> {
+    pub fn update_rpcs(&mut self, rpcs: Vec<String>) -> Result<Self, YamlError> {
         let mut rpc_vec = Vec::new();
         for rpc in rpcs {
             rpc_vec.push(NetworkCfg::validate_rpc(&rpc)?);

@@ -35,6 +35,8 @@ pub async fn debug_order_quote(
         {
             Ok(res) => {
                 debugger = Some(res);
+                err = None;
+                break;
             }
             Err(e) => {
                 err = Some(CommandError::QuoteDebuggerError(e));

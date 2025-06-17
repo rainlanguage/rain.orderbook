@@ -38,6 +38,8 @@ pub enum TransactionArgsError {
     #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
     LedgerClient(#[from] LedgerClientError),
+    #[error("Invalid input args: {0}")]
+    InvalidArgs(String),
 }
 
 #[derive(Clone, Serialize, Deserialize, Default)]
@@ -85,6 +87,11 @@ impl TransactionArgs {
         match self.chain_id {
             Some(chain_id) => {
                 let mut err: Option<TransactionArgsError> = None;
+                if self.rpcs.is_empty() {
+                    return Err(TransactionArgsError::InvalidArgs(
+                        "rpcs cannot be empty".into(),
+                    ));
+                }
                 for rpc in self.rpcs.clone() {
                     let client = LedgerClient::new(
                         self.derivation_index

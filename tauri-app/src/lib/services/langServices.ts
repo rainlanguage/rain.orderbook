@@ -23,7 +23,7 @@ export async function problemsCallback(
   try {
     return await invoke('call_lsp_problems', {
       textDocument,
-      rpcs: get(rpcUrls),
+      rpcs: get(rpcUrls) ?? [],
       blockNumber: get(forkBlockNumber).value,
       bindings,
       deployer: deployerAddress,

@@ -301,7 +301,7 @@ describe('Network and Orderbook Management', () => {
         ...mockConfig.orderbook,
         networks: {
           mainnet: { key: 'mainnet', rpcs: ['mainnet.rpc'], chainId: 1 },
-          testnet: { key: 'mainnet', rpcs: ['testnet.rpc'], chainId: 5 },
+          testnet: { key: 'testnet', rpcs: ['testnet.rpc'], chainId: 5 },
         },
         orderbooks: {
           orderbook1: {

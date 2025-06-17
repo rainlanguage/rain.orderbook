@@ -488,7 +488,7 @@ mod tests {
         );
 
         let network = network
-            .update_rpc(vec![
+            .update_rpcs(vec![
                 "https://some-random-rpc-address.com".to_string(),
                 "https://some-other-random-rpc-address.com".to_string(),
             ])

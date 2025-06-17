@@ -63,6 +63,8 @@ pub enum TestRunnerError {
     ComposeError(#[from] ComposeError),
     #[error(transparent)]
     RainEvalResultError(#[from] RainEvalResultError),
+    #[error("Invalid input args: {0}")]
+    InvalidArgs(String),
 }
 
 impl TestRunner {
@@ -347,9 +349,9 @@ impl TestRunner {
             }
         }
         if !fork_success {
-            return Err(TestRunnerError::ForkCallError(
-                last_err.expect("At least one RPC should have been tried"),
-            ));
+            return Err(TestRunnerError::InvalidArgs(format!(
+                "Failed to create fork: {last_err:?}"
+            )));
         }
         Ok(())
     }
