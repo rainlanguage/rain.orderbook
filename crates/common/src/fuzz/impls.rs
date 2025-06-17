@@ -563,7 +563,7 @@ impl FuzzRunner {
                 *cached_block_number
             } else {
                 // Fetch the latest block number, if failed, record the error and continue to next deployment key
-                match ReadableClientHttp::new_from_url(scenario.deployer.network.rpc.to_string()) {
+                match ReadableClient::new_from_url(scenario.deployer.network.rpc.to_string()) {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,
                         Err(e) => {
