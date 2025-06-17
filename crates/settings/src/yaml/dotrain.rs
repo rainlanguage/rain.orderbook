@@ -89,11 +89,28 @@ impl DotrainYaml {
         let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(orders)
     }
-    pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
+    pub fn get_order(
+        &self,
+        key: &str,
+        current_deployment: Option<String>,
+    ) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
         self.expand_context_with_current_order(&mut context, Some(key.to_string()));
         self.expand_context_with_remote_networks(&mut context);
         self.expand_context_with_remote_tokens(&mut context);
+
+        if let Some(current_deployment) = current_deployment {
+            if let Some(select_tokens) =
+                GuiCfg::parse_select_tokens(self.documents.clone(), &current_deployment)?
+            {
+                context.add_select_tokens(
+                    select_tokens
+                        .iter()
+                        .map(|select_token| select_token.key.clone())
+                        .collect::<Vec<_>>(),
+                );
+            }
+        }
 
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
@@ -419,7 +436,7 @@ mod tests {
         let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
 
         assert_eq!(dotrain_yaml.get_order_keys().unwrap().len(), 1);
-        let order = dotrain_yaml.get_order("order1").unwrap();
+        let order = dotrain_yaml.get_order("order1", None).unwrap();
         assert_eq!(order.inputs.len(), 1);
         let input = order.inputs.first().unwrap();
         assert_eq!(
@@ -474,7 +491,7 @@ mod tests {
         let deployment = dotrain_yaml.get_deployment("deployment1").unwrap();
         assert_eq!(
             deployment.order,
-            dotrain_yaml.get_order("order1").unwrap().into()
+            dotrain_yaml.get_order("order1", None).unwrap().into()
         );
         assert_eq!(
             deployment.scenario,
@@ -486,7 +503,7 @@ mod tests {
         let deployment = dotrain_yaml.get_deployment("deployment2").unwrap();
         assert_eq!(
             deployment.order,
-            dotrain_yaml.get_order("order1").unwrap().into()
+            dotrain_yaml.get_order("order1", None).unwrap().into()
         );
         assert_eq!(
             deployment.scenario,
@@ -685,7 +702,7 @@ mod tests {
         "#;
         let dotrain_yaml = DotrainYaml::new(vec![yaml.to_string()], false).unwrap();
 
-        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        let mut order = dotrain_yaml.get_order("order1", None).unwrap();
 
         assert!(order.inputs[0].vault_id.is_none());
         assert!(order.outputs[0].vault_id.is_none());
@@ -700,7 +717,7 @@ mod tests {
             updated_order.outputs[0].vault_id
         );
 
-        let order_after = dotrain_yaml.get_order("order1").unwrap();
+        let order_after = dotrain_yaml.get_order("order1", None).unwrap();
         assert_eq!(
             order_after.inputs[0].vault_id,
             updated_order.inputs[0].vault_id
@@ -712,7 +729,7 @@ mod tests {
 
         // Populate vault IDs should not change if the vault IDs are already set
         let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
-        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        let mut order = dotrain_yaml.get_order("order1", None).unwrap();
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
         order.populate_vault_ids().unwrap();
@@ -751,7 +768,7 @@ mod tests {
                     - token: token2
         "#;
         let dotrain_yaml = DotrainYaml::new(vec![yaml.to_string()], false).unwrap();
-        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        let mut order = dotrain_yaml.get_order("order1", None).unwrap();
 
         assert!(order.inputs[0].vault_id.is_none());
         assert!(order.outputs[0].vault_id.is_none());
@@ -766,7 +783,7 @@ mod tests {
         assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(1)));
         assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(11)));
 
-        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        let mut order = dotrain_yaml.get_order("order1", None).unwrap();
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(11)));
 
@@ -779,7 +796,7 @@ mod tests {
         assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(3)));
         assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(33)));
 
-        let order = dotrain_yaml.get_order("order1").unwrap();
+        let order = dotrain_yaml.get_order("order1", None).unwrap();
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(3)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(33)));
     }

@@ -235,7 +235,7 @@ impl DotrainOrderGui {
             dotrain_order_gui
                 .dotrain_order
                 .dotrain_yaml()
-                .get_order(&order_key)
+                .get_order(&order_key, Some(state.selected_deployment.clone()))
                 .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
         }
 
