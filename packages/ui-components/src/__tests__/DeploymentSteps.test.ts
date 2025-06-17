@@ -90,7 +90,6 @@ const defaultProps: DeploymentStepsProps = {
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
 	settings: writable(mockConfig),
-	registryUrl: 'https://registry.reown.xyz',
 	account: readable('0x123')
 } as DeploymentStepsProps;
 

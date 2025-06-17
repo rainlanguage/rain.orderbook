@@ -85,7 +85,6 @@ const defaultProps: OrdersListTableProps = {
 	orderHash: mockOrderHashStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	showMyItemsOnly: mockShowMyItemsOnlyStore,
-	currentRoute: '/orders',
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore
 } as unknown as OrdersListTableProps;

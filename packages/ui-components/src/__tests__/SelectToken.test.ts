@@ -207,7 +207,7 @@ describe('SelectToken', () => {
 		});
 	});
 
-	describe.only('Dropdown Mode', () => {
+	describe('Dropdown Mode', () => {
 		beforeEach(() => {
 			(useGui as Mock).mockReturnValue(mockGui);
 		});
@@ -258,6 +258,13 @@ describe('SelectToken', () => {
 
 		it('clears state when switching from dropdown to custom mode', async () => {
 			const user = userEvent.setup();
+			const mockGuiNoToken = {
+				...mockGui,
+				getTokenInfo: vi.fn().mockResolvedValue({ value: null })
+			} as unknown as DotrainOrderGui;
+
+			(useGui as Mock).mockReturnValue(mockGuiNoToken);
+
 			render(SelectToken, {
 				...mockProps,
 				availableTokens: [
@@ -282,7 +289,7 @@ describe('SelectToken', () => {
 			const customInput = screen.getByPlaceholderText('Enter token address (0x...)');
 			expect(customInput).toHaveValue('');
 
-			expect(mockGui.removeSelectToken).toHaveBeenCalledWith('input');
+			expect(mockGuiNoToken.removeSelectToken).toHaveBeenCalledWith('input');
 		});
 
 		it('clears state when switching from custom to dropdown mode', async () => {
@@ -303,6 +310,13 @@ describe('SelectToken', () => {
 
 		it('handles token selection from dropdown', async () => {
 			const user = userEvent.setup();
+			const mockGuiNoToken = {
+				...mockGui,
+				getTokenInfo: vi.fn().mockResolvedValue({ value: null })
+			} as unknown as DotrainOrderGui;
+
+			(useGui as Mock).mockReturnValue(mockGuiNoToken);
+
 			render(SelectToken, {
 				...mockProps,
 				availableTokens: [
@@ -327,7 +341,7 @@ describe('SelectToken', () => {
 			const secondToken = screen.getByText('Test Token 2');
 			await user.click(secondToken);
 
-			expect(mockGui.saveSelectToken).toHaveBeenCalledWith('input', '0x789');
+			expect(mockGuiNoToken.saveSelectToken).toHaveBeenCalledWith('input', '0x789');
 		});
 
 		it('shows loading state when tokens are loading', () => {

@@ -2031,7 +2031,7 @@ ${dotrainWithoutVaultIds}`;
 						patch: 0
 					},
 					tokens: [],
-					logoUri: 'http://localhost.com'
+					logoURI: 'http://localhost.com'
 				});
 
 			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
@@ -2131,7 +2131,7 @@ ${dotrainWithoutVaultIds}`;
 						patch: 0
 					},
 					tokens: [],
-					logoUri: 'http://localhost.com'
+					logoURI: 'http://localhost.com'
 				});
 
 			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
@@ -2187,7 +2187,7 @@ ${dotrainWithoutVaultIds}`;
 							decimals: 18
 						}
 					],
-					logoUri: 'http://localhost.com'
+					logoURI: 'http://localhost.com'
 				});
 
 			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
@@ -2243,7 +2243,7 @@ ${dotrainWithoutVaultIds}`;
 							decimals: 18
 						}
 					],
-					logoUri: 'http://localhost.com'
+					logoURI: 'http://localhost.com'
 				});
 
 			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
@@ -2297,7 +2297,7 @@ ${dotrainWithoutVaultIds}`;
 							decimals: 18
 						}
 					],
-					logoUri: 'http://localhost.com'
+					logoURI: 'http://localhost.com'
 				});
 
 			const guiResult = await DotrainOrderGui.newWithDeployment(
