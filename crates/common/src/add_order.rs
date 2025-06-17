@@ -349,8 +349,14 @@ impl AddOrderArgs {
             .await
             {
                 Ok(mut forker) => {
-                    let call = self.try_into_call(vec![rpc.clone()]).await?;
-                    forker
+                    let call = match self.try_into_call(vec![rpc.clone()]).await {
+                        Ok(c) => c,
+                        Err(e) => {
+                            err = Some(e);
+                            continue;
+                        }
+                    };
+                    match forker
                         .alloy_call_committing(
                             Address::from(from_address),
                             transaction_args.orderbook_address,
@@ -358,8 +364,14 @@ impl AddOrderArgs {
                             U256::ZERO,
                             true,
                         )
-                        .await?;
-                    return Ok(());
+                        .await
+                    {
+                        Ok(_) => return Ok(()),
+                        Err(e) => {
+                            err = Some(AddOrderArgsError::ForkCallError(e));
+                            continue;
+                        }
+                    }
                 }
                 Err(e) => {
                     err = Some(AddOrderArgsError::ForkCallError(e));
