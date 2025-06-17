@@ -1,6 +1,10 @@
 [workspace]
 members = ["crates/*"]
-exclude = ["tauri-app/src-tauri", "lib/rain.interpreter", "lib/rain.metadata"]
+exclude = [
+    "tauri-app/src-tauri",
+    "lib/rain.interpreter",
+    "lib/rain.orderbook.interface",
+]
 resolver = "2"
 
 [workspace.package]
@@ -51,6 +55,7 @@ thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "1014cbd72fab790b4ab1f5aab3e6780f13cd8efb" }
+rain-math-float = { path = "lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.math.float/crates/float" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "bf08b5ab305287fc49408a441d6375f35dc280db" }
 wasm-bindgen-utils = "0.0.10"
 tempfile = "3.20.0"

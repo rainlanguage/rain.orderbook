@@ -1,15 +1,17 @@
 {
-  "editor.rulers": [80],
+  "editor.rulers": [
+    80
+  ],
   "svelte.enable-ts-plugin": true,
-   
-  "rust-analyzer.linkedProjects": ["./Cargo.toml", "tauri-app/src-tauri/Cargo.toml"],
-
+  "rust-analyzer.linkedProjects": [
+    "./Cargo.toml",
+    "tauri-app/src-tauri/Cargo.toml"
+  ],
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file"
   },
-
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": true,
@@ -31,7 +33,6 @@
       "source.fixAll.eslint": "explicit"
     }
   },
-
   "eslint.validate": [
     "javascript",
     "javascriptreact",
@@ -53,5 +54,7 @@
   },
   "rust-analyzer.check.extraEnv": {
     "COMMIT_SHA": ""
-  }
+  },
+  "solidity.compileUsingRemoteVersion": "v0.8.25+commit.b61c2a91",
+  "solidity.formatter": "forge"
 }
