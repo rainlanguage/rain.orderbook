@@ -332,7 +332,7 @@ impl AddOrderArgs {
         for rpc in transaction_args.rpcs.clone() {
             match Forker::new_with_fork(
                 NewForkedEvm {
-                    fork_url: rpc,
+                    fork_url: rpc.clone(),
                     fork_block_number: None,
                 },
                 None,
@@ -341,7 +341,7 @@ impl AddOrderArgs {
             .await
             {
                 Ok(mut forker) => {
-                    let call = self.try_into_call(transaction_args.clone().rpcs).await?;
+                    let call = self.try_into_call(vec![rpc.clone()]).await?;
                     forker
                         .alloy_call_committing(
                             Address::from(from_address),

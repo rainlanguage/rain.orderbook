@@ -259,7 +259,7 @@ describe('Network and Orderbook Management', () => {
             address: '0xOrderbookAddress1',
             network: {
               key: 'mainnet',
-              rpc: 'mainnet.rpc',
+              rpcs: ['mainnet.rpc'],
               chainId: 1,
             },
             subgraph: {
@@ -272,7 +272,7 @@ describe('Network and Orderbook Management', () => {
             address: '0xOrderbookAddress2',
             network: {
               key: 'testnet',
-              rpc: 'testnet.rpc',
+              rpcs: ['testnet.rpc'],
               chainId: 5,
             },
             subgraph: {

@@ -189,6 +189,8 @@ mod fork_parse {
         ReadableClientError(#[from] ReadableClientError),
         #[error("Failed to read Parser address from deployer")]
         ReadParserAddressFailed,
+        #[error("Invalid input args: {0}")]
+        InvalidArgs(String),
     }
 
     impl From<ForkCallError> for ForkParseError {
@@ -220,6 +222,11 @@ mod fork_parse {
 
         let mut forker = FORKER.lock().await;
         let mut err: Option<ForkParseError> = None;
+
+        if rpcs.is_empty() {
+            return Err(ForkParseError::InvalidArgs("rpcs cannot be empty".into()));
+        }
+
         for rpc in rpcs {
             let args = NewForkedEvm {
                 fork_url: rpc.to_owned(),

@@ -76,16 +76,14 @@ export async function walletconnectConnect(priorityChainIds: number[]) {
       for (const network of Object.values($settings.orderbook.networks)) {
         const chainId = network.chainId;
         // Try all RPCs until we find a working one
-        for (const rpc of network.rpcs) {
-          try {
-            // Simple test to verify RPC connection
-            await getChainIdFromRpc([rpc]);
-            rpcMap[chainId] = rpc;
-            chains.push(chainId);
-            break;
-          } catch {
-            // ignore
-          }
+        try {
+          const workingRpc = await Promise.any(
+            network.rpcs.map((rpc) => getChainIdFromRpc([rpc]).then(() => rpc)),
+          );
+          rpcMap[chainId] = workingRpc;
+          chains.push(chainId);
+        } catch {
+          /* all RPCs failed – skip this chain */
         }
       }
       try {

@@ -13,6 +13,11 @@ pub async fn debug_trade(
 ) -> CommandResult<RainEvalResultsTable> {
     let mut replayer: Option<TradeReplayer> = None;
     let mut err: Option<CommandError> = None;
+
+    if rpcs.is_empty() {
+        return Err(CommandError::MissingRpcs);
+    }
+
     for rpc in rpcs {
         match TradeReplayer::new(NewTradeReplayer {
             fork_url: rpc.parse()?,

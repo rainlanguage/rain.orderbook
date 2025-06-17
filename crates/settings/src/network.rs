@@ -277,7 +277,7 @@ impl PartialEq for NetworkCfg {
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseNetworkConfigSourceError {
-    #[error("Failed to parse rpc: {0}")]
+    #[error("Failed to parse rpcs: {0}")]
     RpcParseError(ParseError),
     #[error("Failed to parse chain_id: {0}")]
     ChainIdParseError(ParseIntError),
@@ -424,7 +424,7 @@ networks:
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Network configuration error in your YAML: Failed to parse rpc: relative URL without a base"
+            "Network configuration error in your YAML: Failed to parse rpcs: relative URL without a base"
         );
 
         let yaml = r#"
