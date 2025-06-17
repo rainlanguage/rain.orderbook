@@ -92,7 +92,7 @@ impl DotrainYaml {
     pub fn get_order(
         &self,
         key: &str,
-        current_deployment: Option<String>,
+        current_deployment: Option<&str>,
     ) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
         self.expand_context_with_current_order(&mut context, Some(key.to_string()));
@@ -101,7 +101,7 @@ impl DotrainYaml {
 
         if let Some(current_deployment) = current_deployment {
             if let Some(select_tokens) =
-                GuiCfg::parse_select_tokens(self.documents.clone(), &current_deployment)?
+                GuiCfg::parse_select_tokens(self.documents.clone(), current_deployment)?
             {
                 context.add_select_tokens(
                     select_tokens

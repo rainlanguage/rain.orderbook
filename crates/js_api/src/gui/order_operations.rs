@@ -282,7 +282,10 @@ impl DotrainOrderGui {
     fn populate_vault_ids(&mut self, deployment: &GuiDeploymentCfg) -> Result<(), GuiError> {
         self.dotrain_order
             .dotrain_yaml()
-            .get_order(&deployment.deployment.order.key, None)?
+            .get_order(
+                &deployment.deployment.order.key,
+                Some(&deployment.deployment.key),
+            )?
             .populate_vault_ids()?;
         Ok(())
     }
@@ -407,7 +410,10 @@ impl DotrainOrderGui {
         let deployment = self.get_current_deployment()?;
         self.dotrain_order
             .dotrain_yaml()
-            .get_order(&deployment.deployment.order.key, None)?
+            .get_order(
+                &deployment.deployment.order.key,
+                Some(&deployment.deployment.key),
+            )?
             .update_vault_id(is_input, index, vault_id)?;
 
         self.execute_state_update_callback()?;
