@@ -65,6 +65,8 @@ pub enum AddOrderArgsError {
     InputTokenNotFound(String),
     #[error("Output token not found for index: {0}")]
     OutputTokenNotFound(String),
+    #[error("Invalid input args: {0}")]
+    InvalidArgs(String),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -329,6 +331,12 @@ impl AddOrderArgs {
         };
 
         let mut err: Option<AddOrderArgsError> = None;
+
+        if transaction_args.rpcs.is_empty() {
+            return Err(AddOrderArgsError::InvalidArgs(
+                "rpcs cannot be empty".into(),
+            ));
+        }
         for rpc in transaction_args.rpcs.clone() {
             match Forker::new_with_fork(
                 NewForkedEvm {
