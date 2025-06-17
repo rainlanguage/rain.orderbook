@@ -1,9 +1,12 @@
 use super::*;
+use futures::StreamExt;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
 };
 use std::str::FromStr;
+
+const MAX_CONCURRENT_FETCHES: usize = 5;
 
 #[wasm_export]
 impl DotrainOrderGui {
@@ -306,6 +309,63 @@ impl DotrainOrderGui {
         }
         Ok(true)
     }
+
+    #[wasm_export(js_name = "getAllTokens", unchecked_return_type = "TokenInfo[]")]
+    pub async fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
+        let network_key = self.get_network_key()?;
+        let tokens = self.dotrain_order.orderbook_yaml().get_tokens()?;
+        let network = self
+            .dotrain_order
+            .orderbook_yaml()
+            .get_network(&network_key)?;
+
+        let mut fetch_futures = Vec::new();
+        let mut results = Vec::new();
+
+        for (_, token) in tokens
+            .into_iter()
+            .filter(|(_, token)| token.network.key == network_key)
+        {
+            if token.decimals.is_none() || token.label.is_none() || token.symbol.is_none() {
+                let erc20 = ERC20::new(network.rpc.clone(), token.address);
+                fetch_futures.push(async move {
+                    let token_info = erc20.token_info(None).await?;
+                    Ok::<TokenInfo, GuiError>(TokenInfo {
+                        address: token.address,
+                        decimals: token_info.decimals,
+                        name: token_info.name,
+                        symbol: token_info.symbol,
+                    })
+                });
+            } else {
+                results.push(TokenInfo {
+                    address: token.address,
+                    decimals: token.decimals.unwrap(),
+                    name: token.label.unwrap(),
+                    symbol: token.symbol.unwrap(),
+                });
+            }
+        }
+
+        let fetched_results: Vec<TokenInfo> = futures::stream::iter(fetch_futures)
+            .buffer_unordered(MAX_CONCURRENT_FETCHES)
+            .filter_map(|res| async {
+                match res {
+                    Ok(info) => Some(info),
+                    Err(_) => None,
+                }
+            })
+            .collect()
+            .await;
+        results.extend(fetched_results);
+        results.sort_by(|a, b| {
+            let na = a.name.to_lowercase();
+            let nb = b.name.to_lowercase();
+            na.cmp(&nb).then_with(|| a.address.cmp(&b.address))
+        });
+
+        Ok(results)
+    }
 }
 
 #[cfg(test)]
@@ -515,6 +575,61 @@ mod tests {
 
             let are_all_tokens_selected = gui.are_all_tokens_selected().unwrap();
             assert!(are_all_tokens_selected);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_tokens() {
+            let gui = initialize_gui_with_select_tokens().await;
+
+            gui.add_record_to_yaml(
+                "token3".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+                "18".to_string(),
+                "Token 3".to_string(),
+                "T3".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token4".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+                "6".to_string(),
+                "Token 4".to_string(),
+                "T4".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token-other".to_string(),
+                "other-network".to_string(),
+                "0x0000000000000000000000000000000000000003".to_string(),
+                "8".to_string(),
+                "Token Other".to_string(),
+                "TO".to_string(),
+            );
+
+            let tokens = gui.get_all_tokens().await.unwrap();
+            assert_eq!(tokens.len(), 4);
+            assert_eq!(
+                tokens[0].address.to_string(),
+                "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+            );
+            assert_eq!(
+                tokens[1].address.to_string(),
+                "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
+            );
+            assert_eq!(
+                tokens[2].address.to_string(),
+                "0x0000000000000000000000000000000000000001"
+            );
+            assert_eq!(tokens[2].decimals, 18);
+            assert_eq!(tokens[2].name, "Token 3");
+            assert_eq!(tokens[2].symbol, "T3");
+            assert_eq!(
+                tokens[3].address.to_string(),
+                "0x0000000000000000000000000000000000000002"
+            );
+            assert_eq!(tokens[3].decimals, 6);
+            assert_eq!(tokens[3].name, "Token 4");
+            assert_eq!(tokens[3].symbol, "T4");
         }
     }
 
