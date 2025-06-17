@@ -15,11 +15,12 @@
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
 	const { orderHash, network } = $page.params;
+
 	const { settings } = $page.data.stores;
-	const orderbookAddress = $settings?.orderbooks[network]?.address;
-	const subgraphUrl = $settings?.subgraphs?.[network] || '';
-	const rpcUrls = $settings?.networks?.[network]?.['rpcs'] || [];
-	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+	const orderbookAddress = $settings.orderbook.orderbooks[network]?.address || '';
+	const subgraphUrl = $settings.orderbook.subgraphs[network]?.url || '';
+	const rpcUrls = $settings.orderbook.networks[network]?.rpcs || [];
+	const chainId = $settings.orderbook.networks[network]?.chainId || 0;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();

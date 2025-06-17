@@ -8,8 +8,8 @@ import type { AppKit } from '@reown/appkit';
 import type { GuiDeploymentCfg } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
+import { mockConfig } from '../lib/__mocks__/settings';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import { mockConfigSource } from '../lib/__mocks__/settings';
 import type { Account } from '$lib/types/account';
 
 vi.mock('@rainlanguage/orderbook', () => ({
@@ -89,7 +89,7 @@ const defaultProps: DeploymentStepsProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
-	settings: writable(mockConfigSource),
+	settings: writable(mockConfig),
 	registryUrl: 'https://registry.reown.xyz',
 	account: readable('0x123')
 } as DeploymentStepsProps;
@@ -395,7 +395,7 @@ describe('DeploymentSteps', () => {
 			const [guiArg, subgraphUrlArg] = mockOnDeploy.mock.calls[0];
 
 			expect(guiArg).toBe(mockGui);
-			const expectedSubgraphUrl = mockConfigSource.subgraphs?.flare;
+			const expectedSubgraphUrl = mockConfig.orderbook.subgraphs.flare.url;
 			expect(subgraphUrlArg).toBe(expectedSubgraphUrl);
 		});
 	});

@@ -42,8 +42,13 @@ vi.mock('$lib/providers/toasts/useToasts', () => ({
 const mockErrToast = vi.fn();
 
 const mockSettings = readable({
-	subgraphs: {
-		mainnet: 'https://example.com'
+	orderbook: {
+		subgraphs: {
+			mainnet: {
+				key: 'mainnet',
+				url: 'https://example.com'
+			}
+		}
 	}
 });
 

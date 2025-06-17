@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { ConfigSource } from '@rainlanguage/orderbook';
+	import type { NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '$lib/types/appStores';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
 
-	export let settings: ConfigSource | undefined;
+	export let settings: NewConfig;
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 
-	$: dropdownOptions = Object.keys(settings?.subgraphs ?? {}).reduce(
+	$: dropdownOptions = Object.keys(settings.orderbook.subgraphs ?? {}).reduce(
 		(acc, key) => ({
 			...acc,
 			[key]: key
@@ -18,8 +18,8 @@
 		let items = Object.keys(event.detail);
 		activeSubgraphs.set(
 			Object.values(items).reduce(
-				(acc, key) => ({ ...acc, [key]: (settings?.subgraphs ?? {})[key] }),
-				{} as Record<string, string>
+				(acc, key) => ({ ...acc, [key]: (settings.orderbook.subgraphs ?? {})[key] }),
+				{} as Record<string, SubgraphCfg>
 			)
 		);
 	}

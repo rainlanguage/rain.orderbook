@@ -72,9 +72,9 @@ export async function walletconnectConnect(priorityChainIds: number[]) {
 
     const $settings = get(settings);
 
-    if ($settings?.networks) {
-      for (const network of Object.values($settings.networks)) {
-        const chainId = network['chain-id'];
+    if ($settings?.orderbook.networks) {
+      for (const network of Object.values($settings.orderbook.networks)) {
+        const chainId = network.chainId;
         // Try all RPCs until we find a working one
         for (const rpc of network.rpcs) {
           try {

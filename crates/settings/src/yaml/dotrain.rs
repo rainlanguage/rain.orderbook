@@ -83,8 +83,11 @@ impl ContextProvider for DotrainYaml {
 
 impl DotrainYaml {
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_orders()?.keys().cloned().collect())
+    }
+    pub fn get_orders(&self) -> Result<HashMap<String, OrderCfg>, YamlError> {
         let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(orders.keys().cloned().collect())
+        Ok(orders)
     }
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
@@ -96,16 +99,22 @@ impl DotrainYaml {
     }
 
     pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_scenarios()?.keys().cloned().collect())
+    }
+    pub fn get_scenarios(&self) -> Result<HashMap<String, ScenarioCfg>, YamlError> {
         let scenarios = ScenarioCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(scenarios.keys().cloned().collect())
+        Ok(scenarios)
     }
     pub fn get_scenario(&self, key: &str) -> Result<ScenarioCfg, YamlError> {
         ScenarioCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_deployments()?.keys().cloned().collect())
+    }
+    pub fn get_deployments(&self) -> Result<HashMap<String, DeploymentCfg>, YamlError> {
         let deployments = DeploymentCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(deployments.keys().cloned().collect())
+        Ok(deployments)
     }
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
@@ -126,8 +135,7 @@ impl DotrainYaml {
     }
 
     pub fn get_chart_keys(&self) -> Result<Vec<String>, YamlError> {
-        let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(charts.keys().cloned().collect())
+        Ok(self.get_charts()?.keys().cloned().collect())
     }
     pub fn get_charts(&self) -> Result<HashMap<String, ChartCfg>, YamlError> {
         let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;

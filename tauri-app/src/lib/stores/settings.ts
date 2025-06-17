@@ -4,11 +4,31 @@ import find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import {
-  type ConfigSource,
-  type OrderbookCfgRef,
-  type OrderbookConfigSource,
+  parseYaml,
+  type NewConfig,
+  type OrderbookCfg,
+  type SubgraphCfg,
 } from '@rainlanguage/orderbook';
 import { pickBy } from 'lodash';
+
+export const EMPTY_SETTINGS: NewConfig = {
+  orderbook: {
+    version: '1',
+    networks: {},
+    subgraphs: {},
+    metaboards: {},
+    orderbooks: {},
+    accounts: {},
+    tokens: {},
+    deployers: {},
+  },
+  dotrainOrder: {
+    orders: {},
+    scenarios: {},
+    charts: {},
+    deployments: {},
+  },
+};
 
 // general
 export const settingsText = cachedWritableStore<string>(
@@ -22,20 +42,25 @@ export const settingsFile = textFileStore(
   ['yml', 'yaml'],
   get(settingsText),
 );
-export const settings = cachedWritableStore<ConfigSource | undefined>(
+export const settings = cachedWritableStore<NewConfig>(
   'settings',
-  undefined,
+  EMPTY_SETTINGS,
   (value) => JSON.stringify(value),
-  (str) => {
+  () => {
     try {
-      return JSON.parse(str) as ConfigSource;
+      const text = get(settingsText);
+      const res = parseYaml([text]);
+      if (res.error) {
+        throw new Error(res.error.readableMsg);
+      }
+      return res.value;
     } catch {
-      return undefined;
+      return EMPTY_SETTINGS;
     }
   },
 );
 export const enableSentry = derived(settings, ($settings) =>
-  $settings?.sentry !== undefined ? $settings.sentry : true,
+  $settings.orderbook.sentry !== undefined ? $settings.orderbook.sentry : true,
 );
 
 // networks
@@ -43,13 +68,13 @@ export const activeNetworkRef = cachedWritableStringOptional('settings.activeNet
 export const activeNetwork = asyncDerived(
   [settings, activeNetworkRef],
   async ([$settings, $activeNetworkRef]) => {
-    return $activeNetworkRef !== undefined && $settings?.networks !== undefined
-      ? $settings.networks[$activeNetworkRef]
+    return $activeNetworkRef !== undefined && $settings?.orderbook.networks !== undefined
+      ? $settings.orderbook.networks[$activeNetworkRef]
       : undefined;
   },
 );
 export const rpcUrls = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.rpcs);
-export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.['chain-id']);
+export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.chainId);
 export const activeChain = derived(chainId, ($activeChainId) =>
   find(Object.values(chains), (c) => c.id === $activeChainId),
 );
@@ -62,23 +87,23 @@ export const activeOrderbookRef = cachedWritableStringOptional('settings.activeO
 export const activeNetworkOrderbooks = derived(
   [settings, activeNetworkRef],
   ([$settings, $activeNetworkRef]) =>
-    $settings?.orderbooks
+    $settings.orderbook.orderbooks
       ? (pickBy(
-          $settings.orderbooks,
-          (orderbook) => orderbook.network === $activeNetworkRef,
-        ) as Record<OrderbookCfgRef, OrderbookConfigSource>)
-      : ({} as Record<OrderbookCfgRef, OrderbookConfigSource>),
+          $settings.orderbook.orderbooks,
+          (orderbook) => orderbook.network.key === $activeNetworkRef,
+        ) as Record<string, OrderbookCfg>)
+      : ({} as Record<string, OrderbookCfg>),
 );
 export const activeOrderbook = derived(
   [settings, activeOrderbookRef],
   ([$settings, $activeOrderbookRef]) =>
-    $settings?.orderbooks !== undefined && $activeOrderbookRef !== undefined
-      ? $settings.orderbooks[$activeOrderbookRef]
+    $settings?.orderbook.orderbooks !== undefined && $activeOrderbookRef !== undefined
+      ? $settings.orderbook.orderbooks[$activeOrderbookRef]
       : undefined,
 );
-export const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
-  $settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
-    ? $settings.subgraphs[$activeOrderbook.subgraph]
+export const subgraph = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
+  Object.keys($settings.orderbook.subgraphs).length > 0 && $activeOrderbook?.subgraph !== undefined
+    ? $settings.orderbook.subgraphs[$activeOrderbook.subgraph.key]
     : undefined,
 );
 export const orderbookAddress = derived(
@@ -93,7 +118,7 @@ export const hasRequiredSettings = derived(
 );
 
 // accounts
-export const accounts = derived(settings, ($settings) => $settings?.accounts ?? {});
+export const accounts = derived(settings, ($settings) => $settings.orderbook.accounts ?? {});
 export const activeAccountsItems = cachedWritableStore<Record<string, string>>(
   'settings.activeAccountsItems',
   {},
@@ -117,10 +142,10 @@ export const activeAccounts = derived(
 );
 
 // subgraphs
-export const subgraph = derived(settings, ($settings) =>
-  $settings?.subgraphs !== undefined ? Object.entries($settings.subgraphs) : [],
+export const subgraphs = derived(settings, ($settings) =>
+  $settings?.orderbook.subgraphs !== undefined ? Object.entries($settings.orderbook.subgraphs) : [],
 );
-export const activeSubgraphs = cachedWritableStore<Record<string, string>>(
+export const activeSubgraphs = cachedWritableStore<Record<string, SubgraphCfg>>(
   'settings.activeSubgraphs',
   {},
   JSON.stringify,
@@ -140,50 +165,52 @@ settings.subscribe(async () => {
   const $activeOrderbookRef = get(activeOrderbookRef);
 
   if (
-    $settings?.networks === undefined ||
+    Object.keys($settings.orderbook.networks).length === 0 ||
     $activeNetworkRef === undefined ||
-    ($settings?.networks !== undefined &&
+    (Object.keys($settings.orderbook.networks).length > 0 &&
       $activeNetworkRef !== undefined &&
-      !Object.keys($settings.networks).includes($activeNetworkRef))
+      !Object.keys($settings.orderbook.networks).includes($activeNetworkRef))
   ) {
     resetActiveNetworkRef();
   }
 
   if (
-    !$settings?.orderbooks === undefined ||
+    Object.keys($settings.orderbook.orderbooks).length === 0 ||
     $activeOrderbookRef === undefined ||
-    ($settings?.orderbooks !== undefined &&
+    (Object.keys($settings.orderbook.orderbooks).length > 0 &&
       $activeOrderbookRef !== undefined &&
-      !Object.keys($settings.orderbooks).includes($activeOrderbookRef))
+      !Object.keys($settings.orderbook.orderbooks).includes($activeOrderbookRef))
   ) {
     resetActiveOrderbookRef();
   }
 
   // Reset active account items if accounts have changed
-  if ($settings?.accounts === undefined) {
+  if (Object.keys($settings.orderbook.accounts ?? {}).length === 0) {
     activeAccountsItems.set({});
   } else {
     const currentActiveAccounts = get(activeAccountsItems);
     const updatedActiveAccounts = Object.fromEntries(
-      Object.entries($settings.accounts ?? {}).filter(([key, value]) => {
-        if (key in currentActiveAccounts) {
-          return currentActiveAccounts[key] === value;
-        }
-        return false;
-      }),
+      Object.entries($settings.orderbook.accounts ?? {})
+        .filter(([key, value]) => {
+          if (key in currentActiveAccounts) {
+            return currentActiveAccounts[key] === value.address;
+          }
+          return false;
+        })
+        .map(([key, value]) => [key, value.address]),
     );
     activeAccountsItems.set(updatedActiveAccounts);
   }
 
   // Reset active subgraphs if subgraphs have changed
-  if ($settings?.subgraphs === undefined) {
+  if (Object.keys($settings.orderbook.subgraphs).length === 0) {
     activeSubgraphs.set({});
   } else {
     const currentActiveSubgraphs = get(activeSubgraphs);
     const updatedActiveSubgraphs = Object.fromEntries(
-      Object.entries($settings.subgraphs).filter(([key, value]) => {
+      Object.entries($settings.orderbook.subgraphs).filter(([key, value]) => {
         if (key in currentActiveSubgraphs) {
-          return currentActiveSubgraphs[key] === value;
+          return JSON.stringify(currentActiveSubgraphs[key]) === JSON.stringify(value);
         }
         return false;
       }),
@@ -225,9 +252,9 @@ export function resetActiveOrderbookRef() {
 
 // reset active orderbook to first available, otherwise undefined
 export async function resetActiveNetworkRef() {
-  const $networks = get(settings)?.networks;
+  const $networks = get(settings).orderbook.networks;
 
-  if ($networks !== undefined && Object.keys($networks).length > 0) {
+  if (Object.keys($networks).length > 0) {
     activeNetworkRef.set(Object.keys($networks)[0]);
   } else {
     activeNetworkRef.set(undefined);

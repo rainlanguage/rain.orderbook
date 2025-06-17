@@ -24,16 +24,14 @@ vi.mock('$lib/stores/settings', async (importOriginal) => ({
 
 // Import components and stores after mocks
 import ModalExecute from './ModalExecute.svelte';
-import { settings } from '$lib/stores/settings';
+import { EMPTY_SETTINGS, settings } from '$lib/stores/settings';
+import type { NewConfig } from '@rainlanguage/orderbook';
 
 describe('ModalExecute', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset settings store before each test
-    settings.set({
-      version: '1',
-      networks: {},
-    });
+    settings.set(EMPTY_SETTINGS);
   });
 
   describe('network connection error', () => {
@@ -62,14 +60,18 @@ describe('ModalExecute', () => {
 
     it('should show current connected network name when network is in settings', () => {
       settings.set({
-        version: '1',
-        networks: {
-          mainnet: {
-            'chain-id': 1,
-            rpcs: ['https://mainnet.com'],
+        orderbook: {
+          ...EMPTY_SETTINGS.orderbook,
+          version: '1',
+          networks: {
+            mainnet: {
+              key: 'mainnet',
+              chainId: 1,
+              rpcs: ['https://mainnet.com'],
+            },
           },
         },
-      });
+      } as unknown as NewConfig);
 
       render(ModalExecute, {
         props: {
