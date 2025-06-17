@@ -1,5 +1,5 @@
 use super::*;
-use futures::{StreamExt, TryStreamExt};
+use futures::StreamExt;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
@@ -355,8 +355,8 @@ impl DotrainOrderGui {
                     Err(_) => None,
                 }
             })
-            .try_collect()
-            .await?;
+            .collect()
+            .await;
         results.extend(fetched_results);
         results.sort_by(|a, b| {
             let na = a.name.to_lowercase();
