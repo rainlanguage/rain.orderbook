@@ -173,6 +173,9 @@ pub enum YamlError {
     #[error("Invalid trait function")]
     InvalidTraitFunction,
 
+    #[error("{0} not found")]
+    NotFound(String),
+
     #[error(transparent)]
     ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
     #[error(transparent)]
@@ -245,6 +248,7 @@ impl PartialEq for YamlError {
                 Self::ParseDeploymentConfigSourceError(e2),
             ) => e1 == e2,
             (Self::ContextError(e1), Self::ContextError(e2)) => e1.to_string() == e2.to_string(),
+            (Self::NotFound(s1), Self::NotFound(s2)) => s1 == s2,
             _ => false,
         }
     }
@@ -276,6 +280,9 @@ impl YamlError {
                     field, location, reason
                 ),
             },
+            YamlError::NotFound(msg) => {
+                format!("{} not found", msg)
+            }
             YamlError::ParseError(msg) => {
                 format!("Failed to parse your YAML configuration: {}", msg)
             }
