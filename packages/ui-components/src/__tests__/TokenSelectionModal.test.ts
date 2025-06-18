@@ -1,11 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import TokenDropdown from '../lib/components/deployment/TokenDropdown.svelte';
+import TokenSelectionModal from '../lib/components/deployment/TokenSelectionModal.svelte';
 import type { ComponentProps } from 'svelte';
 import type { TokenInfo } from '@rainlanguage/orderbook';
 
-type TokenDropdownProps = ComponentProps<TokenDropdown>;
+type TokenSelectionModalProps = ComponentProps<TokenSelectionModal>;
 
 const mockTokens: TokenInfo[] = [
 	{
@@ -28,11 +28,11 @@ const mockTokens: TokenInfo[] = [
 	}
 ];
 
-describe('TokenDropdown', () => {
+describe('TokenSelectionModal', () => {
 	let mockOnSelect: ReturnType<typeof vi.fn>;
 	let mockOnSearch: ReturnType<typeof vi.fn>;
 
-	const defaultProps: TokenDropdownProps = {
+	const defaultProps: TokenSelectionModalProps = {
 		tokens: mockTokens,
 		selectedToken: null,
 		onSelect: vi.fn(),
@@ -46,8 +46,8 @@ describe('TokenDropdown', () => {
 		vi.clearAllMocks();
 	});
 
-	it('renders dropdown button with default text when no token is selected', () => {
-		render(TokenDropdown, {
+	it('renders modal button with default text when no token is selected', () => {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			onSelect: mockOnSelect,
 			onSearch: mockOnSearch
@@ -56,9 +56,9 @@ describe('TokenDropdown', () => {
 		expect(screen.getByText('Select a token...')).toBeInTheDocument();
 	});
 
-	it('renders dropdown button with selected token info when token is selected', () => {
+	it('renders modal button with selected token info when token is selected', () => {
 		const selectedToken = mockTokens[0];
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			selectedToken,
 			onSelect: mockOnSelect,
@@ -68,9 +68,9 @@ describe('TokenDropdown', () => {
 		expect(screen.getByText('Test Token 1 (TEST1)')).toBeInTheDocument();
 	});
 
-	it('opens dropdown when button is clicked', async () => {
+	it('opens modal when button is clicked', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			onSelect: mockOnSelect,
 			onSearch: mockOnSearch
@@ -82,9 +82,9 @@ describe('TokenDropdown', () => {
 		expect(screen.getByPlaceholderText('Search tokens...')).toBeInTheDocument();
 	});
 
-	it('displays all tokens in the dropdown list', async () => {
+	it('displays all tokens in the modal list', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			onSelect: mockOnSelect,
 			onSearch: mockOnSearch
@@ -103,7 +103,7 @@ describe('TokenDropdown', () => {
 
 	it('displays formatted addresses in token list', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			onSelect: mockOnSelect,
 			onSearch: mockOnSearch
@@ -120,7 +120,7 @@ describe('TokenDropdown', () => {
 	it('highlights selected token in the list', async () => {
 		const user = userEvent.setup();
 		const selectedToken = mockTokens[1];
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			selectedToken,
 			onSelect: mockOnSelect,
@@ -138,7 +138,7 @@ describe('TokenDropdown', () => {
 
 	it('calls onSelect when token is clicked', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			onSelect: mockOnSelect,
 			onSearch: mockOnSearch
@@ -157,9 +157,9 @@ describe('TokenDropdown', () => {
 		expect(mockOnSelect).toHaveBeenCalledWith(mockTokens[0]);
 	});
 
-	it('closes dropdown after token selection', async () => {
+	it('closes modal after token selection', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			onSelect: mockOnSelect,
 			onSearch: mockOnSearch
@@ -182,7 +182,7 @@ describe('TokenDropdown', () => {
 
 	it('filters tokens based on search input', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			searchValue: 'test',
 			onSelect: mockOnSelect,
@@ -199,7 +199,7 @@ describe('TokenDropdown', () => {
 
 	it('calls onSearch when search input changes', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			onSelect: mockOnSelect,
 			onSearch: mockOnSearch
@@ -216,7 +216,7 @@ describe('TokenDropdown', () => {
 
 	it('filters tokens by symbol', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			searchValue: 'ANOTHER',
 			onSelect: mockOnSelect,
@@ -233,7 +233,7 @@ describe('TokenDropdown', () => {
 
 	it('filters tokens by address', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			searchValue: '0x1234',
 			onSelect: mockOnSelect,
@@ -250,7 +250,7 @@ describe('TokenDropdown', () => {
 
 	it('shows "no results" message when no tokens match search', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			searchValue: 'nonexistent',
 			onSelect: mockOnSelect,
@@ -266,7 +266,7 @@ describe('TokenDropdown', () => {
 
 	it('clears search when "Clear search" button is clicked', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			searchValue: 'nonexistent',
 			onSelect: mockOnSelect,
@@ -284,7 +284,7 @@ describe('TokenDropdown', () => {
 
 	it('handles token selection via keyboard (Enter key)', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			onSelect: mockOnSelect,
 			onSearch: mockOnSearch
@@ -304,7 +304,7 @@ describe('TokenDropdown', () => {
 
 	it('displays empty state when no tokens are provided', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			tokens: [],
 			onSelect: mockOnSelect,
@@ -319,7 +319,7 @@ describe('TokenDropdown', () => {
 
 	it('maintains search value in input field', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			searchValue: 'initial search',
 			onSelect: mockOnSelect,
@@ -335,7 +335,7 @@ describe('TokenDropdown', () => {
 
 	it('search is case insensitive', async () => {
 		const user = userEvent.setup();
-		render(TokenDropdown, {
+		render(TokenSelectionModal, {
 			...defaultProps,
 			searchValue: 'TEST',
 			onSelect: mockOnSelect,

@@ -240,7 +240,7 @@ describe('SelectToken', () => {
 			expect(screen.getByTestId('dropdown-mode-button')).not.toHaveClass('border-blue-300');
 		});
 
-		it('shows TokenDropdown component in dropdown mode', () => {
+		it('shows TokenSelectionModal component in dropdown mode', () => {
 			render(SelectToken, mockProps);
 
 			expect(screen.getByText('Select a token...')).toBeInTheDocument();
