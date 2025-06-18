@@ -6,7 +6,7 @@ use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::WritableClientError;
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
-use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
+use rain_orderbook_bindings::IOrderBookV5::removeOrder3Call;
 use rain_orderbook_subgraph_client::types::{
     common::SgOrder, order_detail_traits::OrderDetailError,
 };
@@ -36,11 +36,11 @@ impl From<SgOrder> for RemoveOrderArgs {
     }
 }
 
-impl TryInto<removeOrder2Call> for RemoveOrderArgs {
+impl TryInto<removeOrder3Call> for RemoveOrderArgs {
     type Error = OrderDetailError;
 
-    fn try_into(self) -> Result<removeOrder2Call, OrderDetailError> {
-        Ok(removeOrder2Call {
+    fn try_into(self) -> Result<removeOrder3Call, OrderDetailError> {
+        Ok(removeOrder3Call {
             order: self.order.try_into()?,
             tasks: vec![],
         })
@@ -49,20 +49,20 @@ impl TryInto<removeOrder2Call> for RemoveOrderArgs {
 
 impl RemoveOrderArgs {
     #[cfg(not(target_family = "wasm"))]
-    pub async fn execute<S: Fn(WriteTransactionStatus<removeOrder2Call>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<removeOrder3Call>)>(
         self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), RemoveOrderArgsError> {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
-        let remove_order_call: removeOrder2Call = self.try_into()?;
+        let remove_order_call: removeOrder3Call = self.try_into()?;
         let params = transaction_args.try_into_write_contract_parameters(
             remove_order_call,
             transaction_args.orderbook_address,
         )?;
 
-        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+        WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
             .execute()
             .await?;
 
@@ -70,7 +70,7 @@ impl RemoveOrderArgs {
     }
 
     pub async fn get_rm_order_calldata(self) -> Result<Vec<u8>, RemoveOrderArgsError> {
-        let remove_order_call: removeOrder2Call = self.try_into()?;
+        let remove_order_call: removeOrder3Call = self.try_into()?;
         Ok(remove_order_call.abi_encode())
     }
 }

@@ -2,10 +2,10 @@ use super::common::*;
 use alloy::primitives::{
     hex::{decode, FromHexError},
     ruint::ParseError,
-    Address, U256,
+    Address, B256,
 };
 use alloy::sol_types::SolValue;
-use rain_orderbook_bindings::IOrderBookV4::{OrderV3, IO};
+use rain_orderbook_bindings::IOrderBookV5::{OrderV4, IOV2};
 use std::{num::TryFromIntError, str::FromStr};
 use thiserror::Error;
 
@@ -25,45 +25,65 @@ pub enum OrderDetailError {
     AbiDecode(#[from] alloy::sol_types::Error),
 }
 
-impl TryInto<IO> for SgVault {
+impl TryInto<IOV2> for SgVault {
     type Error = OrderDetailError;
 
-    fn try_into(self) -> Result<IO, OrderDetailError> {
-        Ok(IO {
+    fn try_into(self) -> Result<IOV2, OrderDetailError> {
+        Ok(IOV2 {
             token: self.token.address.0.parse::<Address>()?,
-            decimals: self
-                .token
-                .decimals
-                .unwrap_or(SgBigInt("0".into()))
-                .0
-                .parse::<u8>()?,
-            vaultId: U256::from_str(self.vault_id.0.as_str())?,
+            vaultId: B256::from_str(self.vault_id.0.as_str())?,
         })
     }
 }
 
-impl TryInto<OrderV3> for SgOrder {
+impl TryFrom<SgOrder> for OrderV4 {
     type Error = OrderDetailError;
 
-    fn try_into(self) -> Result<OrderV3, Self::Error> {
-        let order = rain_orderbook_bindings::IOrderBookV4::OrderV3::abi_decode(
-            &decode(self.order_bytes.0)?
-        )?;
+    fn try_from(value: SgOrder) -> Result<Self, Self::Error> {
+        let order = OrderV4::abi_decode(&decode(value.order_bytes.0)?)?;
         Ok(order)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use alloy::hex;
+    use alloy::primitives::{bytes, B256};
+    use rain_orderbook_bindings::IOrderBookV5::EvaluableV4;
     use std::vec;
-
-    use alloy::primitives::U256;
 
     use super::*;
     use crate::types::common::{SgBigInt, SgBytes};
 
     #[test]
     fn test_try_into_call() {
+        let owner_address = Address::random();
+        let input_token_address = Address::random();
+        let input_vault_id = B256::random();
+        let output_token_address = Address::random();
+        let output_vault_id = B256::random();
+
+        let order = OrderV4 {
+            owner: owner_address,
+            evaluable: EvaluableV4 {
+                interpreter: Address::random(),
+                store: Address::random(),
+                bytecode: bytes!("fefefefefe"),
+            },
+            validInputs: vec![IOV2 {
+                token: input_token_address,
+                vaultId: input_vault_id,
+            }],
+            validOutputs: vec![IOV2 {
+                token: output_token_address,
+                vaultId: output_vault_id,
+            }],
+            nonce: B256::random(),
+        };
+
+        let order_bytes = order.abi_encode();
+        let order_bytes = SgBytes(hex::encode(order_bytes));
+
         let order_detail = SgOrder {
             // This is a dummy order detail object
             // All of these values are actually ignored by the conversion
@@ -80,37 +100,17 @@ mod tests {
                 id: SgBytes("1".into()),
             },
             // Only the order_bytes field is used for the conversion
-            order_bytes: SgBytes("0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000006171c21b2e553c59a64d1337211b77c367cefe5d00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000379b966dc6b117dd47b5fc5308534256a4ab1bcc0000000000000000000000006e4b01603edbda617002a077420e98c86595748e000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000950000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c020200020110000001100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000050c5725949a6f0c72e6c4a641f24049a917db0cb000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000001".into()),
+            order_bytes,
             trades: vec![],
             remove_events: vec![],
         };
 
-        let order_v3: OrderV3 = order_detail.try_into().unwrap();
+        let order_v4: OrderV4 = order_detail.try_into().unwrap();
 
-        assert_eq!(
-            order_v3.owner,
-            "0x6171c21b2e553c59a64d1337211b77c367cefe5d"
-                .parse::<Address>()
-                .unwrap()
-        );
-
-        assert_eq!(
-            order_v3.validInputs[0].token,
-            "0x50c5725949a6f0c72e6c4a641f24049a917db0cb"
-                .parse::<Address>()
-                .unwrap()
-        );
-        assert_eq!(order_v3.validInputs[0].decimals, 18);
-        assert_eq!(order_v3.validInputs[0].vaultId, U256::from(1));
-
-        assert_eq!(
-            order_v3.validOutputs[0].token,
-            "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
-                .parse::<Address>()
-                .unwrap()
-        );
-
-        assert_eq!(order_v3.validOutputs[0].decimals, 6);
-        assert_eq!(order_v3.validOutputs[0].vaultId, U256::from(1));
+        assert_eq!(order_v4.owner, owner_address);
+        assert_eq!(order_v4.validInputs[0].token, input_token_address);
+        assert_eq!(order_v4.validInputs[0].vaultId, input_vault_id);
+        assert_eq!(order_v4.validOutputs[0].token, output_token_address);
+        assert_eq!(order_v4.validOutputs[0].vaultId, output_vault_id);
     }
 }

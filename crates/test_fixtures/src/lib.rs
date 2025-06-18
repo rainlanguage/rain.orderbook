@@ -201,7 +201,7 @@ impl LocalEvm {
             .await
     }
 
-    /// Sends (write call) a raw transaction request to the blockchain and returns the tx receipt
+    /// Sends (write call) a transaction request to the blockchain and returns the tx receipt
     pub async fn send_transaction(
         &self,
         tx: WithOtherFields<TransactionRequest>,
@@ -330,18 +330,6 @@ impl LocalEvm {
     ) -> Result<Result<T::Return, alloy::sol_types::Error>, RpcError<TransportErrorKind>> {
         let returns = self.provider.call(tx_req).await?;
         Ok(T::abi_decode_returns(&returns))
-    }
-
-    /// Sends the contract call transaction, ie commiting a transction (write call) and returns the tx receipt
-    pub async fn send_tx(
-        &self,
-        tx_req: WithOtherFields<TransactionRequest>,
-    ) -> Result<AnyTransactionReceipt, PendingTransactionError> {
-        self.provider
-            .send_transaction(tx_req)
-            .await?
-            .get_receipt()
-            .await
     }
 }
 

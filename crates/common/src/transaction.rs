@@ -1,13 +1,19 @@
 use alloy::primitives::{ruint::FromUintError, Address, U256};
 use alloy::sol_types::SolCall;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::client::{LedgerClient, LedgerClientError};
+use alloy::{
+    networks::AnyNetwork,
+    providers::{Provider, ProviderBuilder, WalletProvider},
+    signers::ledger::{HDPath, LedgerError, LedgerSigner},
+};
+#[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
     WriteContractParametersBuilder, WriteContractParametersBuilderError,
 };
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum WritableTransactionExecuteError {
@@ -17,7 +23,7 @@ pub enum WritableTransactionExecuteError {
     TransactionArgs(#[from] TransactionArgsError),
     #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
-    LedgerClient(#[from] LedgerClientError),
+    Ledger(#[from] LedgerError),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
 }
@@ -34,7 +40,10 @@ pub enum TransactionArgsError {
     ReadableClient(#[from] ReadableClientError),
     #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
-    LedgerClient(#[from] LedgerClientError),
+    Ledger(#[from] LedgerError),
+    #[cfg(not(target_family = "wasm"))]
+    #[error(transparent)]
+    Url(#[from] url::ParseError),
 }
 
 #[derive(Clone, Serialize, Deserialize, Default)]
@@ -69,31 +78,24 @@ impl TransactionArgs {
                 .await?
                 .get_chainid()
                 .await?;
-            let chain_id_u64: u64 = chain_id.try_into()?;
 
-            self.chain_id = Some(chain_id_u64);
+            self.chain_id = Some(chain_id);
         }
 
         Ok(())
     }
 
     #[cfg(not(target_family = "wasm"))]
-    pub async fn try_into_ledger_client(self) -> Result<LedgerClient, TransactionArgsError> {
-        match self.chain_id {
-            Some(chain_id) => {
-                let client = LedgerClient::new(
-                    self.derivation_index
-                        .map(alloy_ethers_typecast::client::HDPath::LedgerLive),
-                    chain_id,
-                    self.rpc_url.clone(),
-                    self.gas_fee_speed,
-                )
-                .await?;
+    pub async fn try_into_ledger_client(
+        self,
+    ) -> Result<impl Provider<AnyNetwork> + WalletProvider<AnyNetwork> + Clone, TransactionArgsError>
+    {
+        let signer = LedgerSigner::new(HDPath::LedgerLive(0), self.chain_id).await?;
 
-                Ok(client)
-            }
-            None => Err(TransactionArgsError::ChainIdNone),
-        }
+        let url: url::Url = self.rpc_url.parse()?;
+        let provider = ProviderBuilder::new().wallet(signer).connect_http(url);
+
+        Ok(provider)
     }
 }
 
@@ -239,7 +241,6 @@ mod tests {
             rpc_url: server.url("/rpc"),
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
-            gas_fee_speed: None,
         };
 
         let err = args.clone().try_into_ledger_client().await;

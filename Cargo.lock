@@ -110,6 +110,7 @@ dependencies = [
  "alloy-rpc-types",
  "alloy-serde",
  "alloy-signer",
+ "alloy-signer-ledger",
  "alloy-signer-local",
  "alloy-transport",
  "alloy-transport-http",
@@ -6539,6 +6540,7 @@ dependencies = [
  "alloy",
  "getrandom 0.2.16",
  "revm 25.0.0",
+ "serde",
  "thiserror 2.0.12",
 ]
 
@@ -6747,6 +6749,7 @@ dependencies = [
  "proptest",
  "rain-error-decoding",
  "rain-interpreter-eval",
+ "rain-math-float",
  "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
  "rain-metadata-bindings",

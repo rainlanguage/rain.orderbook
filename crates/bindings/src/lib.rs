@@ -3,7 +3,7 @@ use alloy::sol;
 sol!(
     #![sol(all_derives = true)]
     #[derive(serde::Serialize, serde::Deserialize)]
-    IOrderBookV4, "../../out/IOrderBookV4.sol/IOrderBookV4.json"
+    IOrderBookV5, "../../out/IOrderBookV5.sol/IOrderBookV5.json"
 );
 
 sol!(

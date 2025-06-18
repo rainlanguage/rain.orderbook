@@ -168,11 +168,15 @@ amount price: 2 1;
         let order = logs[0].0.order.clone();
 
         // approve and deposit Token1
-        token1
-            .approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .do_send(&local_evm)
+        local_evm
+            .send_transaction(
+                token1
+                    .approve(*orderbook.address(), parse_ether("1000").unwrap())
+                    .into_transaction_request(),
+            )
             .await
             .unwrap();
+
         orderbook
             .deposit2(
                 *token1.address(),

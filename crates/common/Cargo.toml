@@ -42,10 +42,12 @@ rain-error-decoding = { workspace = true }
 rain-interpreter-eval = { workspace = true }
 wasm-bindgen-utils = { workspace = true }
 eyre.workspace = true
+rain-math-float.workspace = true
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
 proptest = { workspace = true }
+alloy = { workspace = true, features = ["signer-ledger"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 tokio = { workspace = true, features = [

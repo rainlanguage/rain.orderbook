@@ -25,7 +25,7 @@ use rain_metadata::{
 };
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
 use rain_orderbook_bindings::{
-    IOrderBookV4::{addOrder2Call, EvaluableV3, OrderConfigV3, TaskV1, IO},
+    IOrderBookV5::{addOrder3Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2},
     ERC20::decimalsCall,
 };
 use serde::{Deserialize, Serialize};
