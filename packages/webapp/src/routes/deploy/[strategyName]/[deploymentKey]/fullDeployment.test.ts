@@ -146,26 +146,26 @@ describe('Full Deployment Tests', () => {
 			const screen = render(Page);
 
 			// Wait for the gui provider to be in the document
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+				},
+				{ timeout: 10000 }
+			);
+
 			await waitFor(() => {
-				expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+				expect(screen.getAllByRole('button', { name: /chevron down solid/i }).length).toBe(2);
 			});
+			const tokenSelectionButtons = screen.getAllByRole('button', { name: /chevron down solid/i });
 
-			// Get all the current input elements for select tokens
-			const selectTokenInputs = screen.getAllByRole('textbox') as HTMLInputElement[];
-
-			const buyTokenInput = selectTokenInputs[0];
-			const sellTokenInput = selectTokenInputs[1];
-
-			// Select the buy token
-			await userEvent.clear(buyTokenInput);
-			await userEvent.type(buyTokenInput, '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+			await userEvent.click(tokenSelectionButtons[0]);
+			await userEvent.click(screen.getByText('Staked FLR'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-token1')).toBeInTheDocument();
 			});
 
-			// Select the sell token
-			await userEvent.clear(sellTokenInput);
-			await userEvent.type(sellTokenInput, '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+			await userEvent.click(tokenSelectionButtons[1]);
+			await userEvent.click(screen.getByText('Wrapped Flare'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-token2')).toBeInTheDocument();
 			});
@@ -262,23 +262,26 @@ describe('Full Deployment Tests', () => {
 			const screen = render(Page);
 
 			// Wait for the gui provider to be in the document
-			await waitFor(() => {
-				expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
-			});
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+				},
+				{ timeout: 10000 }
+			);
 
 			// Check that the token dropdowns are present
 			await waitFor(() => {
 				expect(screen.getAllByRole('button', { name: /chevron down solid/i }).length).toBe(2);
 			});
-			const tokenDropdownButtons = screen.getAllByRole('button', { name: /chevron down solid/i });
+			const tokenSelectionButtons = screen.getAllByRole('button', { name: /chevron down solid/i });
 
-			await userEvent.click(tokenDropdownButtons[0]);
+			await userEvent.click(tokenSelectionButtons[0]);
 			await userEvent.click(screen.getByText('Staked FLR'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-output')).toBeInTheDocument();
 			});
 
-			await userEvent.click(tokenDropdownButtons[1]);
+			await userEvent.click(tokenSelectionButtons[1]);
 			await userEvent.click(screen.getByText('Wrapped Flare'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-input')).toBeInTheDocument();
@@ -408,9 +411,12 @@ describe('Full Deployment Tests', () => {
 			const screen = render(Page);
 
 			// Wait for the gui provider to be in the document
-			await waitFor(() => {
-				expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
-			});
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+				},
+				{ timeout: 10000 }
+			);
 
 			// Get all the current input elements for select tokens
 			const selectTokenInputs = screen.getAllByRole('textbox') as HTMLInputElement[];

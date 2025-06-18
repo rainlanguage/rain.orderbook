@@ -6,7 +6,7 @@
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
-	import TokenDropdown from './TokenDropdown.svelte';
+	import TokenSelectionModal from './TokenSelectionModal.svelte';
 
 	export let token: GuiSelectTokensCfg;
 	export let onSelectTokenSelect: () => void;
@@ -188,7 +188,7 @@
 	{/if}
 
 	{#if selectionMode === 'dropdown' && availableTokens.length > 0 && !loading}
-		<TokenDropdown
+		<TokenSelectionModal
 			tokens={availableTokens}
 			{selectedToken}
 			onSelect={handleTokenSelect}
