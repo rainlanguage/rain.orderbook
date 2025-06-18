@@ -626,7 +626,7 @@ test: test
         );
         assert_eq!(
             error.to_readable_msg(),
-            "network with chain-id: 999 not found"
+            "The requested item \"network with chain-id: 999\" could not be found in the YAML configuration."
         );
     }
 
@@ -653,7 +653,7 @@ test: test
         );
         assert_eq!(
             error.to_readable_msg(),
-            "orderbook with network key: nonexistent not found"
+            "The requested item \"orderbook with network key: nonexistent\" could not be found in the YAML configuration."
         );
     }
 

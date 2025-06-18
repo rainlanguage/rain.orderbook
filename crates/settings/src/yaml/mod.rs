@@ -282,7 +282,7 @@ impl YamlError {
             },
             YamlError::NotFound(msg) => {
                 format!(
-                    "The requested item ({}) could not be found in the YAML configuration.",
+                    "The requested item \"{}\" could not be found in the YAML configuration.",
                     msg
                 )
             }

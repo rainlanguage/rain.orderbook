@@ -43,7 +43,7 @@ impl RaindexClient {
     /// const result = await RaindexClient.new([networksYaml, orderbooksYaml, tokensYaml]);
     /// ```
     #[wasm_export(js_name = "new", preserve_js_class)]
-    pub async fn new(sources: Vec<String>) -> Result<RaindexClient, RaindexError> {
+    pub fn new(sources: Vec<String>) -> Result<RaindexClient, RaindexError> {
         let orderbook_yaml = OrderbookYaml::new(sources, true)?;
         Ok(RaindexClient { orderbook_yaml })
     }
@@ -235,16 +235,14 @@ orderbooks:
     }
 
     #[wasm_bindgen_test]
-    async fn test_raindex_client_new_success() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).await.unwrap();
+    fn test_raindex_client_new_success() {
+        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
         assert!(!client.orderbook_yaml.documents.is_empty());
     }
 
     #[wasm_bindgen_test]
-    async fn test_raindex_client_new_invalid_yaml() {
-        let err = RaindexClient::new(vec![get_invalid_yaml()])
-            .await
-            .unwrap_err();
+    fn test_raindex_client_new_invalid_yaml() {
+        let err = RaindexClient::new(vec![get_invalid_yaml()]).unwrap_err();
         assert!(matches!(
             err,
             RaindexError::YamlError(YamlError::Field { .. })
@@ -253,14 +251,14 @@ orderbooks:
     }
 
     #[wasm_bindgen_test]
-    async fn test_raindex_client_new_empty_yaml() {
-        let err = RaindexClient::new(vec!["".to_string()]).await.unwrap_err();
+    fn test_raindex_client_new_empty_yaml() {
+        let err = RaindexClient::new(vec!["".to_string()]).unwrap_err();
         assert!(matches!(err, RaindexError::YamlError(YamlError::EmptyFile)));
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_subgraph_url_for_chain_success() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).await.unwrap();
+    fn test_get_subgraph_url_for_chain_success() {
+        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
 
         let url = client.get_subgraph_url_for_chain(1).unwrap();
         assert_eq!(url, "https://api.thegraph.com/subgraphs/name/xyz");
@@ -270,8 +268,8 @@ orderbooks:
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_subgraph_url_for_chain_not_found() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).await.unwrap();
+    fn test_get_subgraph_url_for_chain_not_found() {
+        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
 
         let err = client.get_subgraph_url_for_chain(999).unwrap_err();
         assert!(
@@ -281,8 +279,8 @@ orderbooks:
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_multi_subgraph_args_single_chain() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).await.unwrap();
+    fn test_get_multi_subgraph_args_single_chain() {
+        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
 
         let args = client.get_multi_subgraph_args(Some(1)).unwrap();
         assert_eq!(args.len(), 1);
@@ -294,8 +292,8 @@ orderbooks:
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_multi_subgraph_args_all_chains() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).await.unwrap();
+    fn test_get_multi_subgraph_args_all_chains() {
+        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
 
         let args = client.get_multi_subgraph_args(None).unwrap();
         assert_eq!(args.len(), 2);
@@ -310,8 +308,8 @@ orderbooks:
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_multi_subgraph_args_invalid_chain() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).await.unwrap();
+    fn test_get_multi_subgraph_args_invalid_chain() {
+        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
 
         let err = client.get_multi_subgraph_args(Some(999)).unwrap_err();
         assert!(
@@ -320,7 +318,7 @@ orderbooks:
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_multi_subgraph_args_no_networks() {
+    fn test_get_multi_subgraph_args_no_networks() {
         let yaml = format!(
             r#"
 version: {spec_version}
@@ -354,7 +352,7 @@ orderbooks:
             spec_version = SpecVersion::current()
         );
 
-        let client = RaindexClient::new(vec![yaml]).await.unwrap();
+        let client = RaindexClient::new(vec![yaml]).unwrap();
 
         let err = client.get_multi_subgraph_args(None).unwrap_err();
         assert!(matches!(
