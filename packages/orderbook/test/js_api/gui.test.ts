@@ -1986,14 +1986,14 @@ ${dotrainWithoutVaultIds}`;
 
 			const allTokens = extractWasmEncodedData<TokenInfo[]>(await gui.getAllTokens());
 			assert.equal(allTokens.length, 2);
-			assert.equal(allTokens[0].address, '0x8888888888888888888888888888888888888888');
-			assert.equal(allTokens[0].name, 'Teken 2');
-			assert.equal(allTokens[0].symbol, 'T2');
-			assert.equal(allTokens[0].decimals, 18);
-			assert.equal(allTokens[1].address, '0x6666666666666666666666666666666666666666');
-			assert.equal(allTokens[1].name, 'Token 1');
-			assert.equal(allTokens[1].symbol, 'T1');
-			assert.equal(allTokens[1].decimals, 6);
+			assert.equal(allTokens[0].address, '0x6666666666666666666666666666666666666666');
+			assert.equal(allTokens[0].name, 'Token 1');
+			assert.equal(allTokens[0].symbol, 'T1');
+			assert.equal(allTokens[0].decimals, 6);
+			assert.equal(allTokens[1].address, '0x8888888888888888888888888888888888888888');
+			assert.equal(allTokens[1].name, 'Teken 2');
+			assert.equal(allTokens[1].symbol, 'T2');
+			assert.equal(allTokens[1].decimals, 18);
 		});
 	});
 
