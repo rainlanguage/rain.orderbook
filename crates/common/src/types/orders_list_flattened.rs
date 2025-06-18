@@ -2,7 +2,7 @@ use crate::types::vault::NO_SYMBOL;
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use alloy::dyn_abi::SolType;
 use alloy::primitives::hex::{decode, encode};
-use rain_orderbook_bindings::IOrderBookV4::OrderV3;
+use rain_orderbook_bindings::IOrderBookV5::OrderV4;
 use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +31,7 @@ impl TryFrom<SgOrder> for OrderFlattened {
     type Error = FlattenError;
 
     fn try_from(val: SgOrder) -> Result<Self, Self::Error> {
-        let order = OrderV3::abi_decode(&decode(&val.order_bytes.0)?)?;
+        let order = OrderV4::abi_decode(&decode(&val.order_bytes.0)?)?;
         Ok(Self {
             id: val.id.0,
             timestamp: val.timestamp_added.clone(),

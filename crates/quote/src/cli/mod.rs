@@ -9,7 +9,7 @@ mod input;
 pub use input::*;
 
 /// Rain orderbook Quoter CLI app entrypoint sruct
-#[derive(Parser, Debug, Clone, PartialEq)]
+#[derive(Parser, Debug, Clone)]
 #[command(author, version, about = "Rain Orderbook Quote CLI", long_about = None)]
 pub struct Quoter {
     // input group, only one of which can be specified at a time
@@ -56,7 +56,7 @@ pub struct Quoter {
 /// A serializable/deserializable struct that bridges [QuoteResult] for cli
 /// output by implementing `From` trait for it.
 /// This is is needed since [crate::error::FailedQuote] does not impl ser/deser.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "status", content = "message")]
 pub enum QuoterResultInner {
@@ -74,8 +74,8 @@ impl From<QuoteResult> for QuoterResultInner {
     }
 }
 
-/// Wrapper struct for arrya of [QuoterResultInner]
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// Wrapper struct for array of [QuoterResultInner]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct QuoterResult(pub Vec<QuoterResultInner>);
 

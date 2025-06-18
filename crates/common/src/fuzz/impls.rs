@@ -2,6 +2,7 @@ use super::*;
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use alloy::primitives::private::rand;
 use alloy::primitives::Address;
+use alloy::primitives::B256;
 use alloy::primitives::U256;
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
@@ -10,15 +11,16 @@ use futures::TryFutureExt;
 use proptest::prelude::RngCore;
 use proptest::test_runner::{RngAlgorithm, TestRng};
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
+use rain_interpreter_bindings::IInterpreterStoreV3::FullyQualifiedNamespace;
+use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_interpreter_bindings::{
     DeployerISP::{iInterpreterCall, iStoreCall},
-    IInterpreterV3::eval3Call,
+    IInterpreterV4::eval4Call,
 };
 use rain_interpreter_eval::eval::ForkParseArgs;
 use rain_interpreter_eval::fork::{Forker, NewForkedEvm};
-pub use rain_interpreter_eval::trace::{RainEvalResultError, RainEvalResults, TraceSearchError};
-use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs, trace::RainEvalResult};
+pub use rain_interpreter_eval::trace::{RainEvalResult, TraceSearchError};
+use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs};
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
 use rain_orderbook_app_settings::spec_version::SpecVersion;
@@ -35,15 +37,69 @@ use thiserror::Error;
 #[derive(Debug)]
 pub struct FuzzResult {
     pub scenario: String,
-    pub runs: RainEvalResults,
+    pub runs: Vec<RainEvalResult>,
 }
+
+fn flattened_trace_path_names(traces: &[RainSourceTrace]) -> Vec<String> {
+    let mut path_names: Vec<String> = vec![];
+    let mut source_paths: Vec<String> = vec![];
+
+    for trace in traces.iter() {
+        let current_path = if trace.parent_source_index == trace.source_index {
+            format!("{}", trace.source_index)
+        } else {
+            source_paths
+                .iter()
+                .rev()
+                .find_map(|recent_path| {
+                    recent_path.split('.').last().and_then(|last_part| {
+                        if last_part == trace.parent_source_index.to_string() {
+                            Some(format!("{}.{}", recent_path, trace.source_index))
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .unwrap_or(format!(
+                    "{}?.{}",
+                    trace.parent_source_index, trace.source_index
+                ))
+        };
+
+        for (index, _) in trace.stack.iter().enumerate() {
+            path_names.push(format!("{}.{}", current_path, index));
+        }
+
+        source_paths.push(current_path);
+    }
+
+    path_names
+}
+
 impl FuzzResult {
     pub fn flatten_traces(&self) -> Result<FuzzResultFlat, FuzzRunnerError> {
-        let result_table = self.runs.into_flattened_table()?;
+        let column_names = flattened_trace_path_names(&self.runs[0].traces);
+
+        let rows = self
+            .runs
+            .iter()
+            .map(|result| {
+                result
+                    .traces
+                    .iter()
+                    .flat_map(|trace| trace.stack.iter().rev().map(|item| *item))
+                    .collect()
+            })
+            .collect();
+
+        let data = RainEvalResultsTable {
+            column_names: column_names.to_vec(),
+            rows,
+        };
 
         Ok(FuzzResultFlat {
             scenario: self.scenario.clone(),
-            data: result_table,
+            data,
         })
     }
 }
@@ -86,8 +142,6 @@ pub enum FuzzRunnerError {
     #[error(transparent)]
     BlockError(#[from] BlockError),
     #[error(transparent)]
-    RainEvalResultError(#[from] RainEvalResultError),
-    #[error(transparent)]
     AbiDecodedErrorType(#[from] AbiDecodedErrorType),
     #[error(transparent)]
     AbiDecodeFailedErrors(#[from] AbiDecodeFailedErrors),
@@ -97,6 +151,8 @@ pub enum FuzzRunnerError {
     SpecVersionMismatch(String, String),
     #[error(transparent)]
     Eyre(#[from] eyre::Report),
+    #[error(transparent)]
+    RainEvalResultConversion(#[from] RainEvalResultFromRawCallResultError),
 }
 
 #[derive(Debug, Clone)]
@@ -271,6 +327,8 @@ impl FuzzRunner {
                         namespace: FullyQualifiedNamespace::default(),
                         context,
                         decode_errors: true,
+                        inputs: vec![],
+                        state_overlay: vec![],
                     };
                     fork_clone
                         .fork_eval(args)
@@ -413,29 +471,29 @@ impl FuzzRunner {
 
         // Create a 5x5 grid of zero values for context - later we'll
         // replace these with sane values based on Orderbook context
-        let mut context = vec![vec![U256::from(0); 5]; 5];
+        let mut context = vec![vec![B256::ZERO; 5]; 5];
         // set random hash for context order hash cell
         context[1][0] = rand::random();
 
         // set input values in context
         // input token
-        context[3][0] = U256::from_be_slice(input_token.address.0.as_slice());
+        context[3][0] = U256::from_be_slice(input_token.address.0.as_slice()).into();
         // input decimals
-        context[3][1] = U256::from(input_token.decimals.unwrap_or(18));
+        context[3][1] = U256::from(input_token.decimals.unwrap_or(18)).into();
         // input vault id
-        context[3][2] = input.vault_id.unwrap_or(U256::from(0));
+        context[3][2] = input.vault_id.unwrap_or(B256::ZERO);
         // input vault balance before
-        context[3][3] = U256::from(0);
+        context[3][3] = B256::ZERO;
 
         // set output values in context
         // output token
-        context[4][0] = U256::from_be_slice(output_token.address.0.as_slice());
+        context[4][0] = U256::from_be_slice(output_token.address.0.as_slice()).into();
         // output decimals
-        context[4][1] = U256::from(output_token.decimals.unwrap_or(18));
+        context[4][1] = U256::from(output_token.decimals.unwrap_or(18)).into();
         // output vault id
-        context[4][2] = output.vault_id.unwrap_or(U256::from(0));
+        context[4][2] = output.vault_id.unwrap_or(B256::ZERO);
         // output vault balance before
-        context[4][3] = U256::from(0);
+        context[4][3] = B256::ZERO;
 
         let parse_result = self
             .forker
@@ -464,30 +522,33 @@ impl FuzzRunner {
             .await?
             .typed_return;
 
+        let eval = EvalV4 {
+            bytecode: parse_result.typed_return,
+            sourceIndex: U256::from(0),
+            store,
+            namespace: FullyQualifiedNamespace::default().into(),
+            context,
+            inputs: vec![],
+            stateOverlay: vec![],
+        };
+
         let res = self.forker.call(
             Address::default().as_slice(),
             interpreter.as_slice(),
-            &eval3Call {
-                bytecode: parse_result.typed_return,
-                sourceIndex: U256::from(0),
-                store,
-                namespace: FullyQualifiedNamespace::default().into(),
-                context,
-                inputs: vec![],
-            }
-            .abi_encode(),
+            &eval4Call { eval }.abi_encode(),
         )?;
 
         let mut error = None;
         if res.exit_reason.is_revert() {
             error = Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
         }
+        let run = res.try_into()?;
 
         Ok((
             pair_symbols,
             FuzzResult {
                 scenario: scenario.key.clone(),
-                runs: vec![res.into()].into(),
+                runs: vec![run].into(),
             },
             error,
         ))
@@ -563,7 +624,8 @@ impl FuzzRunner {
                 *cached_block_number
             } else {
                 // Fetch the latest block number, if failed, record the error and continue to next deployment key
-                match ReadableClient::new_from_url(scenario.deployer.network.rpc.to_string()) {
+                match ReadableClient::new_from_url(scenario.deployer.network.rpc.to_string()).await
+                {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,
                         Err(e) => {

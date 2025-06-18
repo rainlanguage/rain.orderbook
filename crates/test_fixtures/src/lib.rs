@@ -308,11 +308,10 @@ impl LocalEvm {
             .from(from)
             .into_transaction_request();
 
-        self.send_tx(tx).await.unwrap();
+        self.send_transaction(tx).await.unwrap();
 
-        let raw_deposit_amount: B256 = Float::from_fixed_decimal(deposit_amount, decimals)
-            .unwrap()
-            .into();
+        let Float(raw_deposit_amount) =
+            Float::from_fixed_decimal(deposit_amount, decimals).unwrap();
 
         let tx = self
             .orderbook
@@ -320,7 +319,7 @@ impl LocalEvm {
             .from(from)
             .into_transaction_request();
 
-        self.send_tx(tx).await.unwrap()
+        self.send_transaction(tx).await.unwrap()
     }
 
     /// Calls the contract without commiting a transction (readonly call) and returns the result

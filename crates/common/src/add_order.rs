@@ -3,11 +3,12 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
-use alloy::primitives::{hex::FromHexError, private::rand, Address, U256};
+#[cfg(not(target_family = "wasm"))]
+use alloy::primitives::FixedBytes;
+use alloy::primitives::{hex::FromHexError, Address, B256, U256};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
-    ReadContractParameters, ReadableClient, ReadableClientError, WritableClientError,
-    WriteContractParameters,
+    ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
 };
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
@@ -24,9 +25,8 @@ use rain_metadata::{
     RainMetaDocumentV1Item,
 };
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
-use rain_orderbook_bindings::{
-    IOrderBookV5::{addOrder3Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2},
-    ERC20::decimalsCall,
+use rain_orderbook_bindings::IOrderBookV5::{
+    addOrder3Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -71,8 +71,8 @@ pub enum AddOrderArgsError {
 #[serde(rename = "kebab-case")]
 pub struct AddOrderArgs {
     pub dotrain: String,
-    pub inputs: Vec<IO>,
-    pub outputs: Vec<IO>,
+    pub inputs: Vec<IOV2>,
+    pub outputs: Vec<IOV2>,
     pub deployer: Address,
     pub bindings: HashMap<String, String>,
 }
@@ -83,7 +83,7 @@ impl AddOrderArgs {
         dotrain: String,
         deployment: DeploymentCfg,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
-        let random_vault_id: U256 = rand::random();
+        let random_vault_id = B256::random();
         let mut inputs = vec![];
         for (i, input) in deployment.order.inputs.iter().enumerate() {
             let input_token = input
@@ -91,28 +91,10 @@ impl AddOrderArgs {
                 .as_ref()
                 .ok_or_else(|| AddOrderArgsError::InputTokenNotFound(i.to_string()))?;
 
-            if let Some(decimals) = input_token.decimals {
-                inputs.push(IO {
-                    token: input_token.address,
-                    vaultId: input.vault_id.unwrap_or(random_vault_id),
-                    decimals,
-                });
-            } else {
-                let client =
-                    ReadableClient::new_from_url(input_token.network.rpc.to_string()).await?;
-                let parameters = ReadContractParameters {
-                    address: input_token.address,
-                    call: decimalsCall {},
-                    block_number: None,
-                    gas: None,
-                };
-                let decimals = client.read(parameters).await?;
-                inputs.push(IO {
-                    token: input_token.address,
-                    vaultId: input.vault_id.unwrap_or(random_vault_id),
-                    decimals,
-                });
-            }
+            inputs.push(IOV2 {
+                token: input_token.address,
+                vaultId: input.vault_id.unwrap_or(random_vault_id),
+            });
         }
 
         let mut outputs = vec![];
@@ -122,28 +104,10 @@ impl AddOrderArgs {
                 .as_ref()
                 .ok_or_else(|| AddOrderArgsError::OutputTokenNotFound(i.to_string()))?;
 
-            if let Some(decimals) = output_token.decimals {
-                outputs.push(IO {
-                    token: output_token.address,
-                    vaultId: output.vault_id.unwrap_or(random_vault_id),
-                    decimals,
-                });
-            } else {
-                let client =
-                    ReadableClient::new_from_url(output_token.network.rpc.to_string()).await?;
-                let parameters = ReadContractParameters {
-                    address: output_token.address,
-                    call: decimalsCall {},
-                    block_number: None,
-                    gas: None,
-                };
-                let decimals = client.read(parameters).await?._0;
-                outputs.push(IO {
-                    token: output_token.address,
-                    vaultId: output.vault_id.unwrap_or(random_vault_id),
-                    decimals,
-                });
-            }
+            outputs.push(IOV2 {
+                token: output_token.address,
+                vaultId: output.vault_id.unwrap_or(random_vault_id),
+            });
         }
 
         Ok(AddOrderArgs {
@@ -161,13 +125,16 @@ impl AddOrderArgs {
         rpc_url: String,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClient::new_from_url(rpc_url)
+        let client = ReadableClient::new_from_url(rpc_url.clone())
             .await
             .map_err(AddOrderArgsError::ReadableClientError)?;
-        let dispair = DISPair::from_deployer(self.deployer, client.clone())
+        let dispair = DISPair::from_deployer(self.deployer, client)
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
 
+        let client = ReadableClient::new_from_url(rpc_url)
+            .await
+            .map_err(AddOrderArgsError::ReadableClientError)?;
         let parser: ParserV2 = dispair.clone().into();
         let rainlang_parsed = parser
             .parse_text(rainlang.as_str(), client)
@@ -216,7 +183,7 @@ impl AddOrderArgs {
     }
 
     /// Generate an addOrder call from given dotrain
-    pub async fn try_into_call(&self, rpc_url: String) -> Result<addOrder2Call, AddOrderArgsError> {
+    pub async fn try_into_call(&self, rpc_url: String) -> Result<addOrder3Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpc_url.clone(), rainlang.clone())
@@ -225,9 +192,8 @@ impl AddOrderArgs {
         let meta = self.try_generate_meta(rainlang)?;
 
         let deployer = self.deployer;
-        let dispair =
-            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_url(rpc_url.clone())?)
-                .await?;
+        let client = ReadableClient::new_from_url(rpc_url.clone()).await?;
+        let dispair = DISPair::from_deployer(deployer, client).await?;
 
         // get the evaluable for the post action
         let post_rainlang = self.compose_addorder_post_task()?;
@@ -235,29 +201,29 @@ impl AddOrderArgs {
             .try_parse_rainlang(rpc_url.clone(), post_rainlang.clone())
             .await?;
 
-        let post_evaluable = EvaluableV3 {
+        let post_evaluable = EvaluableV4 {
             interpreter: dispair.interpreter,
             store: dispair.store,
             bytecode: post_bytecode.into(),
         };
 
-        let post_task = TaskV1 {
+        let post_task = TaskV2 {
             evaluable: post_evaluable,
             signedContext: vec![],
         };
 
-        Ok(addOrder2Call {
-            config: OrderConfigV3 {
+        Ok(addOrder3Call {
+            config: OrderConfigV4 {
                 validInputs: self.inputs.clone(),
                 validOutputs: self.outputs.clone(),
-                evaluable: EvaluableV3 {
+                evaluable: EvaluableV4 {
                     interpreter: dispair.interpreter,
                     store: dispair.store,
                     bytecode: bytecode.into(),
                 },
                 meta: meta.into(),
-                nonce: alloy::primitives::private::rand::random::<U256>().into(),
-                secret: alloy::primitives::private::rand::random::<U256>().into(),
+                nonce: B256::random(),
+                secret: B256::random(),
             },
             tasks: vec![post_task],
         })
@@ -266,7 +232,7 @@ impl AddOrderArgs {
     pub async fn get_add_order_call_parameters(
         &self,
         transaction_args: TransactionArgs,
-    ) -> Result<WriteContractParameters<addOrder2Call>, AddOrderArgsError> {
+    ) -> Result<WriteContractParameters<addOrder3Call>, AddOrderArgsError> {
         let add_order_call = self.try_into_call(transaction_args.clone().rpc_url).await?;
         let params = transaction_args.try_into_write_contract_parameters(
             add_order_call,
@@ -276,16 +242,16 @@ impl AddOrderArgs {
     }
 
     #[cfg(not(target_family = "wasm"))]
-    pub async fn execute<S: Fn(WriteTransactionStatus<addOrder2Call>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<addOrder3Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), AddOrderArgsError> {
-        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
+        let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
         let params = self.get_add_order_call_parameters(transaction_args).await?;
 
-        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+        WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
             .execute()
             .await?;
 
@@ -311,13 +277,9 @@ impl AddOrderArgs {
         let from_address = if let Some(v) = from {
             v.0 .0
         } else {
-            transaction_args
-                .clone()
-                .try_into_ledger_client()
-                .await?
-                .client
-                .address()
-                .0
+            let (_, Address(FixedBytes(address))) =
+                transaction_args.clone().try_into_ledger_client().await?;
+            address
         };
         let mut forker = Forker::new_with_fork(
             NewForkedEvm {

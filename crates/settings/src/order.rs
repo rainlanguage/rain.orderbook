@@ -1,5 +1,5 @@
 use crate::{yaml::FieldErrorKind, *};
-use alloy::primitives::{private::rand, U256};
+use alloy::primitives::{private::rand, B256};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeSet, HashMap},
@@ -26,7 +26,7 @@ pub struct OrderIOCfg {
         serde(rename = "vaultId"),
         tsify(optional, type = "string")
     )]
-    pub vault_id: Option<U256>,
+    pub vault_id: Option<B256>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderIOCfg);
@@ -50,8 +50,8 @@ pub struct OrderCfg {
 impl_wasm_traits!(OrderCfg);
 
 impl OrderCfg {
-    pub fn validate_vault_id(value: &str) -> Result<U256, ParseOrderConfigSourceError> {
-        U256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)
+    pub fn validate_vault_id(value: &str) -> Result<B256, ParseOrderConfigSourceError> {
+        B256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)
     }
 
     pub fn update_vault_id(
@@ -171,7 +171,7 @@ impl OrderCfg {
     }
 
     pub fn populate_vault_ids(&mut self) -> Result<Self, YamlError> {
-        let vault_id: U256 = rand::random();
+        let vault_id: B256 = rand::random();
 
         let mut document = self
             .document
@@ -830,8 +830,8 @@ pub enum ParseOrderConfigSourceError {
         expected: String,
         found: String,
     },
-    #[error("Failed to parse vault id")]
-    VaultParseError(#[from] alloy::primitives::ruint::ParseError),
+    #[error("Failed to parse vault id: {0}")]
+    VaultParseError(#[from] alloy::hex::FromHexError),
 }
 
 impl ParseOrderConfigSourceError {

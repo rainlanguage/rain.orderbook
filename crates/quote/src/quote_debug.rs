@@ -5,9 +5,9 @@ use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_interpreter_eval::{
     error::ForkCallError,
     fork::{Forker, NewForkedEvm},
-    trace::RainEvalResult,
+    trace::{RainEvalResult, RainEvalResultFromRawCallResultError},
 };
-use rain_orderbook_bindings::IOrderBookV4::quoteCall;
+use rain_orderbook_bindings::IOrderBookV5::quote2Call;
 use url::Url;
 
 pub struct NewQuoteDebugger {
@@ -24,6 +24,8 @@ pub enum QuoteDebuggerError {
     ForkerError(#[from] ForkCallError),
     #[error("Quote error: {0}")]
     QuoteError(#[from] crate::error::Error),
+    #[error(transparent)]
+    RainEvalResultConversion(#[from] RainEvalResultFromRawCallResultError),
 }
 
 impl QuoteDebugger {
@@ -53,7 +55,7 @@ impl QuoteDebugger {
     > {
         quote_target.validate()?;
 
-        let quote_call = quoteCall {
+        let quote_call = quote2Call {
             quoteConfig: quote_target.quote_config.clone(),
         };
 
@@ -69,15 +71,7 @@ impl QuoteDebugger {
                 Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
         }
 
-        Ok((
-            RainEvalResult {
-                // reverted: bool,
-                // stack: Vec<U256>,
-                // writes: Vec<U256>,
-                // traces: Vec<RainSourceTrace>,
-        },
-            abi_decoded_error,
-        ))
+        Ok((res.try_into()?, abi_decoded_error))
     }
 }
 

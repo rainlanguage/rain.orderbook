@@ -1,21 +1,20 @@
 use crate::transaction::{TransactionArgs, TransactionArgsError, WritableTransactionExecuteError};
-use alloy::primitives::{Address, U256};
+use alloy::primitives::{Address, B256, U256};
 use alloy::sol_types::SolCall;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
 use alloy_ethers_typecast::transaction::{
     ReadContractParametersBuilder, ReadContractParametersBuilderError, ReadableClient,
     ReadableClientError, WritableClientError,
 };
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::{
-    ethers_address_to_alloy,
-    transaction::{WriteTransaction, WriteTransactionStatus},
-};
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use rain_math_float::{Float, FloatError};
 use rain_orderbook_bindings::{
-    IOrderBookV4::deposit2Call,
+    IOrderBookV5::deposit3Call,
     IERC20::{allowanceCall, approveCall},
 };
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum DepositError {
@@ -33,23 +32,33 @@ pub enum DepositError {
 
     #[error(transparent)]
     TransactionArgsError(#[from] TransactionArgsError),
+
+    #[error(transparent)]
+    FloatError(#[from] FloatError),
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DepositArgs {
     pub token: Address,
-    pub vault_id: U256,
+    pub vault_id: B256,
     pub amount: U256,
+    pub decimals: u8,
 }
 
-impl From<DepositArgs> for deposit2Call {
-    fn from(val: DepositArgs) -> Self {
-        deposit2Call {
+impl TryFrom<DepositArgs> for deposit3Call {
+    type Error = FloatError;
+
+    fn try_from(val: DepositArgs) -> Result<Self, Self::Error> {
+        let Float(amount) = Float::from_fixed_decimal(val.amount, val.decimals)?;
+
+        let call = deposit3Call {
             token: val.token,
             vaultId: val.vault_id,
-            amount: val.amount,
+            depositAmount: amount,
             tasks: vec![],
-        }
+        };
+
+        Ok(call)
     }
 }
 
@@ -81,14 +90,11 @@ impl DepositArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), DepositError> {
-        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
+        let (ledger_client, address) = transaction_args.clone().try_into_ledger_client().await?;
 
         // Check allowance already granted for this token and contract
         let current_allowance = self
-            .read_allowance(
-                ethers_address_to_alloy(ledger_client.client.address()),
-                transaction_args.clone(),
-            )
+            .read_allowance(address, transaction_args.clone())
             .await?;
 
         // If more allowance is required, then call approve for the difference
@@ -100,7 +106,7 @@ impl DepositArgs {
             let params =
                 transaction_args.try_into_write_contract_parameters(approve_call, self.token)?;
 
-            WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+            WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
                 .execute()
                 .await?;
         }
@@ -121,18 +127,18 @@ impl DepositArgs {
 
     /// Execute OrderbookV3 deposit call
     #[cfg(not(target_family = "wasm"))]
-    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<deposit2Call>)>(
+    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<deposit3Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), DepositError> {
-        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
+        let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
-        let deposit_call: deposit2Call = self.clone().into();
+        let deposit_call: deposit3Call = self.clone().try_into()?;
         let params = transaction_args
             .try_into_write_contract_parameters(deposit_call, transaction_args.orderbook_address)?;
 
-        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+        WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
             .execute()
             .await?;
 
@@ -140,7 +146,7 @@ impl DepositArgs {
     }
 
     pub async fn get_deposit_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
-        let deposit_call: deposit2Call = self.clone().into();
+        let deposit_call: deposit3Call = self.clone().try_into()?;
         Ok(deposit_call.abi_encode())
     }
 }

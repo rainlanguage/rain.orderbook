@@ -1,11 +1,12 @@
-use alloy::primitives::{ruint::FromUintError, Address, U256};
+use alloy::primitives::{ruint::FromUintError, Address};
 use alloy::sol_types::SolCall;
+use rain_math_float::FloatError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[cfg(not(target_family = "wasm"))]
 use alloy::{
-    networks::AnyNetwork,
+    network::AnyNetwork,
     providers::{Provider, ProviderBuilder, WalletProvider},
     signers::ledger::{HDPath, LedgerError, LedgerSigner},
 };
@@ -26,6 +27,8 @@ pub enum WritableTransactionExecuteError {
     Ledger(#[from] LedgerError),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
+    #[error(transparent)]
+    FloatError(#[from] FloatError),
 }
 
 #[derive(Error, Debug)]
@@ -88,14 +91,22 @@ impl TransactionArgs {
     #[cfg(not(target_family = "wasm"))]
     pub async fn try_into_ledger_client(
         self,
-    ) -> Result<impl Provider<AnyNetwork> + WalletProvider<AnyNetwork> + Clone, TransactionArgsError>
-    {
+    ) -> Result<
+        (
+            impl Provider<AnyNetwork> + WalletProvider<AnyNetwork> + Clone,
+            Address,
+        ),
+        TransactionArgsError,
+    > {
         let signer = LedgerSigner::new(HDPath::LedgerLive(0), self.chain_id).await?;
+        let address = signer.get_address().await?;
 
         let url: url::Url = self.rpc_url.parse()?;
-        let provider = ProviderBuilder::new().wallet(signer).connect_http(url);
+        let provider = ProviderBuilder::new_with_network::<AnyNetwork>()
+            .wallet(signer)
+            .connect_http(url);
 
-        Ok(provider)
+        Ok((provider, address))
     }
 }
 
@@ -105,7 +116,7 @@ mod tests {
     use httpmock::MockServer;
 
     use super::*;
-    use rain_orderbook_bindings::IOrderBookV4::vaultBalanceCall;
+    use rain_orderbook_bindings::IOrderBookV5::vaultBalanceCall;
 
     #[test]
     fn test_try_into_write_contract_parameters_ok() {

@@ -6834,6 +6834,7 @@ dependencies = [
  "once_cell",
  "rain-error-decoding",
  "rain-interpreter-eval",
+ "rain-math-float",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",

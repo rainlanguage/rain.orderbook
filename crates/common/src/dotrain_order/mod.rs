@@ -365,10 +365,12 @@ impl DotrainOrder {
 
         let rpc = &network.rpc;
         let metaboard = self.orderbook_yaml().get_metaboard(&network.key)?.url;
-        Ok(
-            AuthoringMetaV2::fetch_for_contract(address, rpc.to_string(), metaboard.to_string())
-                .await?,
+        Ok(AuthoringMetaV2::fetch_for_contract(
+            address,
+            vec![rpc.to_string()],
+            metaboard.to_string(),
         )
+        .await?)
     }
 
     pub async fn get_deployer_words_for_scenario(

@@ -12,10 +12,11 @@ homepage.workspace = true
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+rain-math-float.workspace = true
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain-error-decoding = { workspace = true }
-alloy = { workspace = true, features = ["sol-types"]}
+alloy = { workspace = true, features = ["sol-types"] }
 alloy-ethers-typecast = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -25,7 +26,7 @@ once_cell = { workspace = true }
 url = { workspace = true }
 anyhow = { workspace = true }
 reqwest = { workspace = true }
-clap = { workspace = true, features = ["env"]}
+clap = { workspace = true, features = ["env"] }
 tracing-subscriber = { workspace = true, features = ['env-filter'] }
 wasm-bindgen-utils = { workspace = true }
 
@@ -34,7 +35,13 @@ tokio = { workspace = true, features = ["full"] }
 rain-interpreter-eval = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
+tokio = { workspace = true, features = [
+    "sync",
+    "macros",
+    "io-util",
+    "rt",
+    "time",
+] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"

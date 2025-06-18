@@ -2,7 +2,7 @@ use alloy::primitives::B256;
 use rain_interpreter_eval::{
     error::ForkCallError,
     fork::{Forker, NewForkedEvm},
-    trace::RainEvalResult,
+    trace::{RainEvalResult, RainEvalResultFromRawCallResultError},
 };
 use url::Url;
 
@@ -17,6 +17,8 @@ pub struct TradeReplayer {
 pub enum TradeReplayerError {
     #[error("Forker error: {0}")]
     ForkerError(#[from] ForkCallError),
+    #[error(transparent)]
+    RainEvalResultConversion(#[from] RainEvalResultFromRawCallResultError),
 }
 
 impl TradeReplayer {
@@ -36,7 +38,7 @@ impl TradeReplayer {
 
     pub async fn replay_tx(&mut self, tx_hash: B256) -> Result<RainEvalResult, TradeReplayerError> {
         let res = self.forker.replay_transaction(tx_hash).await?;
-        Ok(res.into())
+        Ok(res.try_into()?)
     }
 }
 

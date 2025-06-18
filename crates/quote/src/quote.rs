@@ -7,48 +7,50 @@ use alloy::primitives::{
     keccak256, Address, B256, U256,
 };
 use alloy::sol_types::SolValue;
-use rain_orderbook_bindings::IOrderBookV4::{quoteReturn, OrderV3, Quote, SignedContextV1};
-use rain_orderbook_subgraph_client::{
-    types::{common::SgBytes, Id},
-    utils::make_order_id,
-    OrderbookSubgraphClient,
-};
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, str::FromStr};
 use url::Url;
 use wasm_bindgen_utils::{add_ts_content, impl_wasm_traits, prelude::*};
 
+use rain_math_float::Float;
+use rain_orderbook_bindings::IOrderBookV5::{quote2Return, OrderV4, QuoteV2, SignedContextV1};
+use rain_orderbook_subgraph_client::{
+    types::{common::SgBytes, Id},
+    utils::make_order_id,
+    OrderbookSubgraphClient,
+};
+
 pub type QuoteResult = Result<OrderQuoteValue, FailedQuote>;
 add_ts_content!("export type QuoteResult = OrderQuoteValue | string");
 
 /// Holds quoted order max output and ratio
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderQuoteValue {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub max_output: U256,
+    pub max_output: Float,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub ratio: U256,
+    pub ratio: Float,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderQuoteValue);
 
-impl From<quoteReturn> for OrderQuoteValue {
-    fn from(v: quoteReturn) -> Self {
+impl From<quote2Return> for OrderQuoteValue {
+    fn from(v: quote2Return) -> Self {
         Self {
-            max_output: v.outputMax,
-            ratio: v.ioRatio,
+            max_output: Float(v.outputMax),
+            ratio: Float(v.ioRatio),
         }
     }
 }
 
 /// A quote target
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct QuoteTarget {
-    pub quote_config: Quote,
+    pub quote_config: QuoteV2,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub orderbook: Address,
 }
@@ -72,7 +74,7 @@ impl QuoteTarget {
         &self,
         rpc_url: &str,
         block_number: Option<u64>,
-        gas: Option<U256>,
+        gas: Option<u64>,
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
         Ok(batch_quote(
@@ -103,7 +105,7 @@ impl QuoteTarget {
 }
 
 /// Specifies a batch of [QuoteTarget]s
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, Tsify)]
 #[serde(transparent)]
 #[serde(rename_all = "camelCase")]
 pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
@@ -115,7 +117,7 @@ impl BatchQuoteTarget {
         &self,
         rpc_url: &str,
         block_number: Option<u64>,
-        gas: Option<U256>,
+        gas: Option<u64>,
         multicall_address: Option<Address>,
     ) -> Result<Vec<QuoteResult>, Error> {
         batch_quote(&self.0, rpc_url, block_number, gas, multicall_address).await
@@ -162,11 +164,11 @@ impl QuoteSpec {
 
         Ok(QuoteTarget {
             orderbook: self.orderbook,
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 inputIOIndex: U256::from(self.input_io_index),
                 outputIOIndex: U256::from(self.output_io_index),
                 signedContext: self.signed_context.clone(),
-                order: OrderV3::abi_decode(
+                order: OrderV4::abi_decode(
                     decode(order_detail.order_bytes.0.as_str())?.as_slice(),
                 )?,
             },
@@ -234,13 +236,12 @@ impl BatchQuoteSpec {
                     .and_then(|order_detail| {
                         Some(QuoteTarget {
                             orderbook: target.orderbook,
-                            quote_config: Quote {
+                            quote_config: QuoteV2 {
                                 inputIOIndex: U256::from(target.input_io_index),
                                 outputIOIndex: U256::from(target.output_io_index),
                                 signedContext: target.signed_context.clone(),
-                                order: OrderV3::abi_decode(
+                                order: OrderV4::abi_decode(
                                     decode(order_detail.order_bytes.0.as_str()).ok()?.as_slice(),
-                                    true,
                                 )
                                 .ok()?,
                             },
@@ -259,7 +260,7 @@ impl BatchQuoteSpec {
         subgraph_url: &str,
         rpc_url: &str,
         block_number: Option<u64>,
-        gas: Option<U256>,
+        gas: Option<u64>,
         multicall_address: Option<Address>,
     ) -> Result<Vec<QuoteResult>, Error> {
         let opts_quote_targets = self

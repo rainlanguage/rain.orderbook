@@ -1,7 +1,7 @@
 use alloy::sol_types::SolCall;
 use alloy::{hex::FromHex, primitives::Address};
 use alloy_ethers_typecast::transaction::{
-    ReadContractParameters, ReadableClientError, ReadableClientHttp,
+    ReadContractParameters, ReadableClient, ReadableClientError,
 };
 use alloy_ethers_typecast::{
     multicall::{
@@ -39,13 +39,13 @@ impl ERC20 {
         Self { rpc_url, address }
     }
 
-    async fn get_client(&self) -> Result<ReadableClientHttp, Error> {
-        ReadableClientHttp::new_from_url(self.rpc_url.to_string()).map_err(|err| {
-            Error::ReadableClientError {
+    async fn get_client(&self) -> Result<ReadableClient, Error> {
+        ReadableClient::new_from_url(self.rpc_url.to_string())
+            .await
+            .map_err(|err| Error::ReadableClientError {
                 msg: format!("rpc url: {}", self.rpc_url),
                 source: err,
-            }
-        })
+            })
     }
 
     pub async fn decimals(&self) -> Result<u8, Error> {
@@ -62,8 +62,7 @@ impl ERC20 {
             .map_err(|err| Error::ReadableClientError {
                 msg: format!("address: {}", self.address),
                 source: err,
-            })?
-            ._0)
+            })?)
     }
 
     pub async fn name(&self) -> Result<String, Error> {
@@ -80,8 +79,7 @@ impl ERC20 {
             .map_err(|err| Error::ReadableClientError {
                 msg: format!("address: {}", self.address),
                 source: err,
-            })?
-            ._0)
+            })?)
     }
 
     pub async fn symbol(&self) -> Result<String, Error> {
@@ -98,8 +96,7 @@ impl ERC20 {
             .map_err(|err| Error::ReadableClientError {
                 msg: format!("address: {}", self.address),
                 source: err,
-            })?
-            ._0)
+            })?)
     }
 
     pub async fn token_info(&self, multicall_address: Option<String>) -> Result<TokenInfo, Error> {

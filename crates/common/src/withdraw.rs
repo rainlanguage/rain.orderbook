@@ -1,7 +1,7 @@
 #[cfg(not(target_family = "wasm"))]
 use crate::transaction::TransactionArgs;
 use crate::transaction::WritableTransactionExecuteError;
-use alloy::primitives::{Address, B256, U256};
+use alloy::primitives::{Address, B256};
 use alloy::sol_types::SolCall;
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
@@ -22,7 +22,7 @@ impl From<WithdrawArgs> for withdraw3Call {
         withdraw3Call {
             token: val.token,
             vaultId: val.vault_id,
-            targetAmount: val.target_amount.into(),
+            targetAmount: val.target_amount.0,
             tasks: vec![],
         }
     }
@@ -36,7 +36,7 @@ impl WithdrawArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), WritableTransactionExecuteError> {
-        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
+        let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
         let withdraw_call: withdraw3Call = self.clone().into();
         let params = transaction_args.try_into_write_contract_parameters(

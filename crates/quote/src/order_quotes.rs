@@ -12,7 +12,7 @@ use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct BatchOrderQuotesResponse {
@@ -42,7 +42,7 @@ pub async fn get_order_quotes(
     orders: Vec<SgOrder>,
     block_number: Option<u64>,
     rpc_url: String,
-    gas: Option<U256>,
+    gas: Option<u64>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
