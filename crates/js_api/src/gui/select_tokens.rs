@@ -179,9 +179,13 @@ impl DotrainOrderGui {
             .await?;
         results.extend(fetched_results);
         results.sort_by(|a, b| {
-            let na = a.name.to_lowercase();
-            let nb = b.name.to_lowercase();
-            na.cmp(&nb).then_with(|| a.address.cmp(&b.address))
+            a.address
+                .to_string()
+                .to_lowercase()
+                .cmp(&b.address.to_string().to_lowercase())
+        });
+        results.dedup_by(|a, b| {
+            a.address.to_string().to_lowercase() == b.address.to_string().to_lowercase()
         });
 
         Ok(results)

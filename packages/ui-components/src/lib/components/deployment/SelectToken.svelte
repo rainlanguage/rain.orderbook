@@ -43,18 +43,14 @@
 			(t) => t.address.toLowerCase() === tokenInfo?.address.toLowerCase()
 		);
 		selectedToken = foundToken || null;
-	}
 
-	$: if (availableTokens.length > 0 && tokenInfo?.address && selectionMode === 'dropdown') {
-		const foundToken = availableTokens.find(
-			(t) => t.address.toLowerCase() === tokenInfo?.address.toLowerCase()
-		);
-		if (!foundToken) {
+		if (inputValue === null) {
+			inputValue = tokenInfo.address;
+		}
+		if (!foundToken && selectionMode === 'dropdown') {
 			selectionMode = 'custom';
 		}
-	}
-
-	$: if (tokenInfo?.address && inputValue === null) {
+	} else if (tokenInfo?.address && inputValue === null) {
 		inputValue = tokenInfo.address;
 	}
 
@@ -191,7 +187,7 @@
 		</div>
 	{/if}
 
-	{#if selectionMode === 'dropdown' && availableTokens.length > 0}
+	{#if selectionMode === 'dropdown' && availableTokens.length > 0 && !loading}
 		<TokenDropdown
 			tokens={availableTokens}
 			{selectedToken}
