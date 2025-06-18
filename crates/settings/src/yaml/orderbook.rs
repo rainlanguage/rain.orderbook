@@ -622,7 +622,7 @@ test: test
         let error = ob_yaml.get_network_by_chain_id(999).unwrap_err();
         assert_eq!(
             error,
-            YamlError::NotFound(format!("network with chain-id: 999"))
+            YamlError::NotFound("network with chain-id: 999".to_string())
         );
         assert_eq!(
             error.to_readable_msg(),
@@ -649,7 +649,7 @@ test: test
             .unwrap_err();
         assert_eq!(
             error,
-            YamlError::NotFound(format!("orderbook with network key: nonexistent"))
+            YamlError::NotFound("orderbook with network key: nonexistent".to_string())
         );
         assert_eq!(
             error.to_readable_msg(),
@@ -726,7 +726,7 @@ test: test
             .unwrap_err();
         assert_eq!(
             error,
-            YamlError::NotFound(format!("orderbook with network key: arbitrum"))
+            YamlError::NotFound("orderbook with network key: arbitrum".to_string())
         );
     }
 }

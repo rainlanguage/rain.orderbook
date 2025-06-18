@@ -281,7 +281,10 @@ impl YamlError {
                 ),
             },
             YamlError::NotFound(msg) => {
-                format!("{} not found", msg)
+                format!(
+                    "The requested item ({}) could not be found in the YAML configuration.",
+                    msg
+                )
             }
             YamlError::ParseError(msg) => {
                 format!("Failed to parse your YAML configuration: {}", msg)

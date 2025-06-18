@@ -1,9 +1,6 @@
-// Order-related methods for RaindexClient
-// This module will contain order query methods like getOrders, getOrderByHash, etc.
-// Implementation is pending per user request - only scaffolding created.
-
 use super::{RaindexClient, RaindexError};
 
+// TODO: Implement order methods
 impl RaindexClient {
     // Future order methods will be implemented here:
     // - get_orders
