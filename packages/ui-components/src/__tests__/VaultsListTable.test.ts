@@ -66,7 +66,6 @@ const {
 
 const defaultProps = {
 	activeOrderbook: mockActiveOrderbookRefStore,
-	subgraphUrl: readable('https://api.thegraph.com/subgraphs/name/test'),
 	orderHash: mockOrderHashStore,
 	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
@@ -76,8 +75,7 @@ const defaultProps = {
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
-	activeAccounts: mockActiveAccountsStore,
-	currentRoute: '/vaults'
+	activeAccounts: mockActiveAccountsStore
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
