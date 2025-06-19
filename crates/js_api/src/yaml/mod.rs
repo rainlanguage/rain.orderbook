@@ -228,11 +228,11 @@ mod tests {
         assert_eq!(orderbook.is_err(), true);
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_string(),
-            "Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
+            "Orderbook yaml error: orderbook with address: 0x0000000000000000000000000000000000000000 not found"
         );
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_readable_msg(),
-            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Key '0x0000000000000000000000000000000000000000' not found\""
+            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"orderbook with address: 0x0000000000000000000000000000000000000000 not found\""
         );
     }
 

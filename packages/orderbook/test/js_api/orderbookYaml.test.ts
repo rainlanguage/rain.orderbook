@@ -115,10 +115,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			result = orderbookYaml.getOrderbookByAddress('0x0000000000000000000000000000000000000000');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
-				"Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
+				'Orderbook yaml error: orderbook with address: 0x0000000000000000000000000000000000000000 not found'
 			);
 			expect(result.error.readableMsg).toBe(
-				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "Key \'0x0000000000000000000000000000000000000000\' not found"'
+				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "orderbook with address: 0x0000000000000000000000000000000000000000 not found"'
 			);
 		});
 	});
