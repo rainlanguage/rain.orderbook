@@ -5,7 +5,7 @@ use crate::{
 };
 use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::transaction::ReadableClient;
-use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
+use rain_orderbook_bindings::IOrderBookV5::{OrderV4, QuoteV2};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -49,7 +49,7 @@ pub async fn get_order_quotes(
     for order in &orders {
         let mut pairs: Vec<Pair> = Vec::new();
         let mut quote_targets: Vec<QuoteTarget> = Vec::new();
-        let order_struct: OrderV3 = order.clone().try_into()?;
+        let order_struct: OrderV4 = order.clone().try_into()?;
         let orderbook = Address::from_str(&order.orderbook.id.0)?;
 
         for (input_index, input) in order_struct.validInputs.iter().enumerate() {
@@ -82,7 +82,7 @@ pub async fn get_order_quotes(
 
                 let quote_target = QuoteTarget {
                     orderbook,
-                    quote_config: Quote {
+                    quote_config: QuoteV2 {
                         order: order_struct.clone(),
                         inputIOIndex: U256::from(input_index),
                         outputIOIndex: U256::from(output_index),

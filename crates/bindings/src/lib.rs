@@ -1,7 +1,7 @@
 use alloy::sol;
 
 sol!(
-    #![sol(all_derives = true)]
+    #![sol(all_derives = true, rpc)]
     #![sol(extra_derives(serde::Serialize, serde::Deserialize))]
     IOrderBookV5, "../../out/IOrderBookV5.sol/IOrderBookV5.json"
 );

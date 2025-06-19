@@ -41,20 +41,32 @@ impl ERC20 {
 
     pub async fn decimals(&self) -> Result<u8, Error> {
         let erc20 = self.get_instance()?;
-        let decimals = erc20.decimals().call().await?;
-        Ok(decimals)
+        let decimals = erc20.decimals().call().await;
+
+        match decimals {
+            Ok(decimals) => Ok(decimals),
+            Err(err) => Err(handle_alloy_err(err).await),
+        }
     }
 
     pub async fn name(&self) -> Result<String, Error> {
         let erc20 = self.get_instance()?;
-        let name = erc20.name().call().await?;
-        Ok(name)
+        let name = erc20.name().call().await;
+
+        match name {
+            Ok(name) => Ok(name),
+            Err(err) => Err(handle_alloy_err(err).await),
+        }
     }
 
     pub async fn symbol(&self) -> Result<String, Error> {
         let erc20 = self.get_instance()?;
-        let symbol = erc20.symbol().call().await?;
-        Ok(symbol)
+        let symbol = erc20.symbol().call().await;
+
+        match symbol {
+            Ok(symbol) => Ok(symbol),
+            Err(err) => Err(handle_alloy_err(err).await),
+        }
     }
 
     pub async fn token_info(&self, multicall_address: Option<Address>) -> Result<TokenInfo, Error> {
@@ -115,6 +127,29 @@ pub enum Error {
     ContractCallError(#[from] alloy::contract::Error),
     #[error("Multicall failed: {0}")]
     MulticallError(#[from] MulticallError),
+}
+
+async fn handle_alloy_err(err: alloy::contract::Error) -> Error {
+    if let Some(revert_data) = err.as_revert_data() {
+        let err = AbiDecodedErrorType::selector_registry_abi_decode(revert_data.as_ref()).await;
+
+        match err {
+            Ok(err) => {
+                return Error::AbiDecodedErrorType {
+                    msg: "Decimals reverted".to_string(),
+                    source: err,
+                };
+            }
+            Err(e) => {
+                return Error::AbiDecodeError {
+                    msg: "Decimals reverted".to_string(),
+                    source: e,
+                };
+            }
+        }
+    }
+
+    Error::ContractCallError(err)
 }
 
 #[cfg(test)]

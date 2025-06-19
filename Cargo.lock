@@ -6714,6 +6714,7 @@ dependencies = [
  "comfy-table",
  "csv",
  "httpmock",
+ "rain-math-float",
  "rain-metadata 0.0.2-alpha.6",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",

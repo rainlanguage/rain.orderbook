@@ -1,5 +1,4 @@
-use alloy::primitives::{Address, U256};
-use alloy_ethers_typecast::transaction::gas_fee_middleware::GasFeeSpeed;
+use alloy::primitives::Address;
 use clap::Args;
 use rain_orderbook_common::transaction::TransactionArgs;
 
@@ -28,7 +27,7 @@ pub struct CliTransactionArgs {
         help = "Max priority fee per gas (in wei)",
         conflicts_with("gas_fee_speed")
     )]
-    pub max_priority_fee_per_gas: Option<U256>,
+    pub max_priority_fee_per_gas: Option<u128>,
 
     #[arg(
         short,
@@ -36,15 +35,7 @@ pub struct CliTransactionArgs {
         help = "Max fee per gas (in wei)",
         conflicts_with("gas_fee_speed")
     )]
-    pub max_fee_per_gas: Option<U256>,
-
-    #[arg(
-        short,
-        long,
-        help = "Chooses sensible gas fees for a desired transaction speed.",
-        default_value = "medium"
-    )]
-    pub gas_fee_speed: Option<CliGasFeeSpeed>,
+    pub max_fee_per_gas: Option<u128>,
 }
 
 impl From<CliTransactionArgs> for TransactionArgs {
@@ -56,26 +47,6 @@ impl From<CliTransactionArgs> for TransactionArgs {
             rpc_url: val.rpc_url,
             max_priority_fee_per_gas: val.max_priority_fee_per_gas,
             max_fee_per_gas: val.max_fee_per_gas,
-            gas_fee_speed: val.gas_fee_speed.map(|g| g.into()),
-        }
-    }
-}
-
-#[derive(clap::ValueEnum, Clone)]
-pub enum CliGasFeeSpeed {
-    Slow,
-    Medium,
-    Fast,
-    Fastest,
-}
-
-impl From<CliGasFeeSpeed> for GasFeeSpeed {
-    fn from(val: CliGasFeeSpeed) -> Self {
-        match val {
-            CliGasFeeSpeed::Slow => GasFeeSpeed::Slow,
-            CliGasFeeSpeed::Medium => GasFeeSpeed::Medium,
-            CliGasFeeSpeed::Fast => GasFeeSpeed::Fast,
-            CliGasFeeSpeed::Fastest => GasFeeSpeed::Fastest,
         }
     }
 }
@@ -94,7 +65,6 @@ mod tests {
             rpc_url: "http://localhost:8545".to_string(),
             max_priority_fee_per_gas: Some(U256::from(100)),
             max_fee_per_gas: Some(U256::from(1000)),
-            gas_fee_speed: Some(CliGasFeeSpeed::Fast),
         };
 
         let transaction_args: TransactionArgs = cli_args.into();

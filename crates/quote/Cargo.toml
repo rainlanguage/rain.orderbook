@@ -29,6 +29,7 @@ reqwest = { workspace = true }
 clap = { workspace = true, features = ["env"] }
 tracing-subscriber = { workspace = true, features = ['env-filter'] }
 wasm-bindgen-utils = { workspace = true }
+rain_orderbook_common = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
@@ -48,6 +49,5 @@ httpmock = "0.7.0"
 
 [dev-dependencies]
 rain_orderbook_test_fixtures = { workspace = true }
-rain_orderbook_common = { workspace = true }
 wasm-bindgen-test = "0.3"
 rain_orderbook_app_settings = { workspace = true }
