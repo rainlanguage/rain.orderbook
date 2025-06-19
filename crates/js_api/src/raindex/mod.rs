@@ -43,8 +43,11 @@ impl RaindexClient {
     /// const result = await RaindexClient.new([networksYaml, orderbooksYaml, tokensYaml]);
     /// ```
     #[wasm_export(js_name = "new", preserve_js_class)]
-    pub fn new(sources: Vec<String>) -> Result<RaindexClient, RaindexError> {
-        let orderbook_yaml = OrderbookYaml::new(sources, true)?;
+    pub fn new(
+        sources: Vec<String>,
+        validate: Option<bool>,
+    ) -> Result<RaindexClient, RaindexError> {
+        let orderbook_yaml = OrderbookYaml::new(sources, validate.unwrap_or(false))?;
         Ok(RaindexClient { orderbook_yaml })
     }
 
@@ -236,13 +239,13 @@ orderbooks:
 
     #[wasm_bindgen_test]
     fn test_raindex_client_new_success() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
+        let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
         assert!(!client.orderbook_yaml.documents.is_empty());
     }
 
     #[wasm_bindgen_test]
     fn test_raindex_client_new_invalid_yaml() {
-        let err = RaindexClient::new(vec![get_invalid_yaml()]).unwrap_err();
+        let err = RaindexClient::new(vec![get_invalid_yaml()], Some(true)).unwrap_err();
         assert!(matches!(
             err,
             RaindexError::YamlError(YamlError::Field { .. })
@@ -252,13 +255,13 @@ orderbooks:
 
     #[wasm_bindgen_test]
     fn test_raindex_client_new_empty_yaml() {
-        let err = RaindexClient::new(vec!["".to_string()]).unwrap_err();
+        let err = RaindexClient::new(vec!["".to_string()], None).unwrap_err();
         assert!(matches!(err, RaindexError::YamlError(YamlError::EmptyFile)));
     }
 
     #[wasm_bindgen_test]
     fn test_get_subgraph_url_for_chain_success() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
+        let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
 
         let url = client.get_subgraph_url_for_chain(1).unwrap();
         assert_eq!(url, "https://api.thegraph.com/subgraphs/name/xyz");
@@ -269,7 +272,7 @@ orderbooks:
 
     #[wasm_bindgen_test]
     fn test_get_subgraph_url_for_chain_not_found() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
+        let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
 
         let err = client.get_subgraph_url_for_chain(999).unwrap_err();
         assert!(
@@ -280,7 +283,7 @@ orderbooks:
 
     #[wasm_bindgen_test]
     fn test_get_multi_subgraph_args_single_chain() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
+        let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
 
         let args = client.get_multi_subgraph_args(Some(1)).unwrap();
         assert_eq!(args.len(), 1);
@@ -293,7 +296,7 @@ orderbooks:
 
     #[wasm_bindgen_test]
     fn test_get_multi_subgraph_args_all_chains() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
+        let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
 
         let args = client.get_multi_subgraph_args(None).unwrap();
         assert_eq!(args.len(), 2);
@@ -309,7 +312,7 @@ orderbooks:
 
     #[wasm_bindgen_test]
     fn test_get_multi_subgraph_args_invalid_chain() {
-        let client = RaindexClient::new(vec![get_test_yaml()]).unwrap();
+        let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
 
         let err = client.get_multi_subgraph_args(Some(999)).unwrap_err();
         assert!(
@@ -352,7 +355,7 @@ orderbooks:
             spec_version = SpecVersion::current()
         );
 
-        let client = RaindexClient::new(vec![yaml]).unwrap();
+        let client = RaindexClient::new(vec![yaml], None).unwrap();
 
         let err = client.get_multi_subgraph_args(None).unwrap_err();
         assert!(matches!(
