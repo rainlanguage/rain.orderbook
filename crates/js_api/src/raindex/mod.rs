@@ -4,7 +4,7 @@ use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_subgraph_client::MultiSubgraphArgs;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
+use wasm_bindgen_utils::{prelude::*, wasm_export};
 
 pub mod orders;
 pub mod vaults;
