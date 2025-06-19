@@ -296,7 +296,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy_ethers_typecast::transaction::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_bindings::IERC20::approveCall;
         use serde_json::{json, Value};

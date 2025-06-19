@@ -62,7 +62,7 @@ mod tests {
     use super::*;
     use alloy::primitives::{hex::encode_prefixed, Address, Bytes, B256};
     use alloy::sol_types::SolValue;
-    use alloy_ethers_typecast::rpc::Response;
+    use alloy_ethers_typecast::transaction::rpc::Response;
     use clap::CommandFactory;
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;

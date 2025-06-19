@@ -3,9 +3,9 @@ use crate::transaction::TransactionArgs;
 use crate::transaction::TransactionArgsError;
 use alloy::primitives::hex::FromHexError;
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::WritableClientError;
+use alloy_ethers_typecast::transaction::WritableClientError;
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use rain_orderbook_bindings::IOrderBookV5::removeOrder3Call;
 use rain_orderbook_subgraph_client::types::{
     common::SgOrder, order_detail_traits::OrderDetailError,
@@ -79,7 +79,7 @@ impl RemoveOrderArgs {
 mod tests {
     use super::*;
     use alloy::primitives::{Address, U256};
-    use alloy_ethers_typecast::gas_fee_middleware::GasFeeSpeed;
+    use alloy_ethers_typecast::transaction::gas_fee_middleware::GasFeeSpeed;
     use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
     use rain_orderbook_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,

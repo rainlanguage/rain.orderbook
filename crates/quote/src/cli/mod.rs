@@ -149,7 +149,7 @@ mod tests {
     use crate::{error::FailedQuote, BatchQuoteSpec, QuoteSpec};
     use alloy::primitives::{hex::encode_prefixed, keccak256, B256, U256};
     use alloy::sol_types::{SolCall, SolValue};
-    use alloy_ethers_typecast::{multicall::IMulticall3::Result as MulticallResult, rpc::Response};
+    use alloy_ethers_typecast::transaction::{multicall::IMulticall3::Result as MulticallResult, rpc::Response};
     use clap::CommandFactory;
     use httpmock::{Method::POST, MockServer};
     use rain_orderbook_bindings::IOrderBookV4::{quoteCall, OrderV3, IO};

@@ -186,7 +186,7 @@ mod tests {
             primitives::{Address, B256, U256},
             sol_types::SolValue,
         };
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy_ethers_typecast::transaction::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
         use rain_orderbook_bindings::IOrderBookV4::IO;

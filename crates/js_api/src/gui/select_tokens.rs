@@ -350,7 +350,7 @@ mod tests {
     mod non_wasm_tests {
         use crate::gui::{DotrainOrderGui, GuiError};
         use alloy::primitives::Address;
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy_ethers_typecast::transaction::rpc::Response;
         use httpmock::MockServer;
         use std::str::FromStr;
 

@@ -7,11 +7,11 @@ use crate::{
 use alloy::primitives::FixedBytes;
 use alloy::primitives::{hex::FromHexError, Address, B256, U256};
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::{
+use alloy_ethers_typecast::transaction::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
 };
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use dotrain::error::ComposeError;
 use rain_interpreter_dispair::{DISPair, DISPairError};
 #[cfg(not(target_family = "wasm"))]
@@ -128,10 +128,13 @@ impl AddOrderArgs {
         let client = ReadableClient::new_from_url(rpc_url.clone())
             .await
             .map_err(AddOrderArgsError::ReadableClientError)?;
-        let dispair = DISPair::from_deployer(self.deployer, client.clone())
+        let dispair = DISPair::from_deployer(self.deployer, client)
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
 
+        let client = ReadableClient::new_from_url(rpc_url.clone())
+            .await
+            .map_err(AddOrderArgsError::ReadableClientError)?;
         let parser: ParserV2 = dispair.clone().into();
         let rainlang_parsed = parser
             .parse_text(rainlang.as_str(), client)

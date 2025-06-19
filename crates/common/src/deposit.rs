@@ -4,12 +4,12 @@ use alloy::sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use alloy_ethers_typecast::{
+use alloy_ethers_typecast::transaction::{
     ReadContractParametersBuilder, ReadContractParametersBuilderError, ReadableClient,
     ReadableClientError, WritableClientError,
 };
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use rain_math_float::{Float, FloatError};
 use rain_orderbook_bindings::{
     IOrderBookV5::deposit3Call,
@@ -155,7 +155,7 @@ impl DepositArgs {
 mod tests {
     use super::*;
     use alloy::primitives::{Address, B256};
-    use alloy_ethers_typecast::{gas_fee_middleware::GasFeeSpeed, rpc::Response};
+    use alloy_ethers_typecast::transaction::{gas_fee_middleware::GasFeeSpeed, rpc::Response};
     use httpmock::MockServer;
     use std::str::FromStr;
 

@@ -4,7 +4,7 @@ use crate::{
     OrderQuoteValue,
 };
 use alloy::primitives::{Address, U256};
-use alloy_ethers_typecast::ReadableClient;
+use alloy_ethers_typecast::transaction::ReadableClient;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
@@ -160,7 +160,7 @@ mod tests {
         providers::Provider,
         sol_types::{SolCall, SolValue},
     };
-    use alloy_ethers_typecast::ReadableClientError;
+    use alloy_ethers_typecast::transaction::ReadableClientError;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_subgraph_client::types::{

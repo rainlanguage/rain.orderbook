@@ -265,7 +265,7 @@ mod tests {
         use super::*;
         use alloy::primitives::{Bytes, FixedBytes};
         use alloy::{sol, sol_types::SolValue};
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy_ethers_typecast::transaction::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_bindings::IOrderBookV4::{EvaluableV3, OrderV3, Quote, IO};
         use rain_orderbook_subgraph_client::types::common::{

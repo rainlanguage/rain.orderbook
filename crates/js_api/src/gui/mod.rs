@@ -1,5 +1,5 @@
 use alloy::primitives::Address;
-use alloy_ethers_typecast::ReadableClientError;
+use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
@@ -332,7 +332,7 @@ pub enum GuiError {
     ParseError(#[from] alloy::primitives::ruint::ParseError),
     #[error(transparent)]
     ReadContractParametersBuilderError(
-        #[from] alloy_ethers_typecast::ReadContractParametersBuilderError,
+        #[from] alloy_ethers_typecast::transaction::ReadContractParametersBuilderError,
     ),
     #[error(transparent)]
     UnitsError(#[from] alloy::primitives::utils::UnitsError),
@@ -1298,7 +1298,7 @@ _ _: 0 0;
     #[cfg(not(target_family = "wasm"))]
     mod select_token_tests {
         use super::*;
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy_ethers_typecast::transaction::rpc::Response;
         use httpmock::MockServer;
 
         pub const SELECT_TOKEN_YAML: &str = r#"

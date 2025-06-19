@@ -3,7 +3,7 @@ use crate::{
     rainlang::compose_to_rainlang,
 };
 use alloy::primitives::Address;
-use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
+use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
@@ -470,7 +470,7 @@ impl DotrainOrder {
 mod tests {
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
-    use alloy_ethers_typecast::rpc::Response;
+    use alloy_ethers_typecast::transaction::rpc::Response;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
     use rain_orderbook_app_settings::yaml::FieldErrorKind;

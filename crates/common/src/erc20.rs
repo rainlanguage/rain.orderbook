@@ -1,7 +1,7 @@
 use alloy::network::AnyNetwork;
 use alloy::primitives::Address;
 use alloy::providers::{MulticallError, Provider};
-use alloy_ethers_typecast::ReadContractParametersBuilderError;
+use alloy_ethers_typecast::transaction::ReadContractParametersBuilderError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_bindings::IERC20::IERC20Instance;
 use serde::{Deserialize, Serialize};
@@ -121,7 +121,7 @@ pub enum Error {
 mod tests {
     use super::*;
     use alloy::{hex, sol_types::SolValue};
-    use alloy_ethers_typecast::rpc::Response;
+    use alloy_ethers_typecast::transaction::rpc::Response;
     use httpmock::MockServer;
 
     #[tokio::test]

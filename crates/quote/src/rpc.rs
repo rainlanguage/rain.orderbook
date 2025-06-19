@@ -4,7 +4,7 @@ use crate::{
 };
 use alloy::primitives::{hex::FromHex, Address, U256, U64};
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::{
+use alloy_ethers_typecast::transaction::{
     multicall::{
         IMulticall3::{aggregate3Call, Call3},
         MULTICALL3_ADDRESS,
@@ -74,9 +74,9 @@ mod tests {
     use crate::quote::OrderQuoteValue;
     use alloy::primitives::hex::encode_prefixed;
     use alloy::sol_types::SolValue;
-    use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
-    use alloy_ethers_typecast::ReadableClientError;
-    use alloy_ethers_typecast::{
+    use alloy_ethers_typecast::transaction::multicall::IMulticall3::Result as MulticallResult;
+    use alloy_ethers_typecast::transaction::ReadableClientError;
+    use alloy_ethers_typecast::transaction::{
         request_shim::{AlloyTransactionRequest, TransactionRequestShim},
         rpc::{eip2718::TypedTransaction, BlockNumber, Request, Response},
     };
