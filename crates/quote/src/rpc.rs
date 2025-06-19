@@ -75,7 +75,7 @@ mod tests {
     use alloy::primitives::hex::encode_prefixed;
     use alloy::sol_types::SolValue;
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
-    use alloy_ethers_typecast::transaction::ReadableClientError;
+    use alloy_ethers_typecast::ReadableClientError;
     use alloy_ethers_typecast::{
         request_shim::{AlloyTransactionRequest, TransactionRequestShim},
         rpc::{eip2718::TypedTransaction, BlockNumber, Request, Response},

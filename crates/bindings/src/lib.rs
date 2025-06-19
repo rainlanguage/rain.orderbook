@@ -13,7 +13,7 @@ sol!(
 );
 
 sol!(
-    #![sol(all_derives = true)]
+    #![sol(all_derives = true, rpc)]
     IERC20, "../../out/IERC20.sol/IERC20.json"
 );
 

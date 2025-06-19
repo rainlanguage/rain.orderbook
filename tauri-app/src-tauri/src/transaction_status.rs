@@ -1,6 +1,6 @@
 use crate::types::{TransactionStatus, TransactionStatusNotice};
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::WriteTransactionStatus;
+use alloy_ethers_typecast::WriteTransactionStatus;
 use chrono::Utc;
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager, Runtime};
@@ -71,7 +71,7 @@ impl TransactionStatusNoticeRwLock {
 mod tests {
     use super::*;
     use alloy::primitives::{Address, U256};
-    use alloy_ethers_typecast::transaction::WriteContractParameters;
+    use alloy_ethers_typecast::WriteContractParameters;
     use rain_orderbook_bindings::IOrderBookV4::deposit2Call;
 
     #[test]

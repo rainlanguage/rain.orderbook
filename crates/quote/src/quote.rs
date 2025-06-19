@@ -313,7 +313,7 @@ mod tests {
     use alloy::sol_types::{SolCall, SolValue};
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
     use alloy_ethers_typecast::rpc::Response;
-    use alloy_ethers_typecast::transaction::ReadableClientError;
+    use alloy_ethers_typecast::ReadableClientError;
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_orderbook_bindings::IOrderBookV4::{quoteCall, Quote, IO};

@@ -3,9 +3,9 @@ use crate::transaction::TransactionArgs;
 use crate::transaction::TransactionArgsError;
 use alloy::primitives::hex::FromHexError;
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::WritableClientError;
+use alloy_ethers_typecast::WritableClientError;
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use rain_orderbook_bindings::IOrderBookV5::removeOrder3Call;
 use rain_orderbook_subgraph_client::types::{
     common::SgOrder, order_detail_traits::OrderDetailError,

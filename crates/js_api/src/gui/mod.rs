@@ -1,5 +1,5 @@
 use alloy::primitives::Address;
-use alloy_ethers_typecast::transaction::ReadableClientError;
+use alloy_ethers_typecast::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
@@ -332,7 +332,7 @@ pub enum GuiError {
     ParseError(#[from] alloy::primitives::ruint::ParseError),
     #[error(transparent)]
     ReadContractParametersBuilderError(
-        #[from] alloy_ethers_typecast::transaction::ReadContractParametersBuilderError,
+        #[from] alloy_ethers_typecast::ReadContractParametersBuilderError,
     ),
     #[error(transparent)]
     UnitsError(#[from] alloy::primitives::utils::UnitsError),

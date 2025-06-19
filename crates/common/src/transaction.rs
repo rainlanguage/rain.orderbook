@@ -11,7 +11,7 @@ use alloy::{
     signers::ledger::{HDPath, LedgerError, LedgerSigner},
 };
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::transaction::{
+use alloy_ethers_typecast::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
     WriteContractParametersBuilder, WriteContractParametersBuilderError,
 };

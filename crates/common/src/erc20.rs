@@ -1,23 +1,16 @@
-use alloy::sol_types::SolCall;
-use alloy::{hex::FromHex, primitives::Address};
-use alloy_ethers_typecast::transaction::{
-    ReadContractParameters, ReadableClient, ReadableClientError,
-};
-use alloy_ethers_typecast::{
-    multicall::{
-        IMulticall3::{aggregate3Call, Call3},
-        MULTICALL3_ADDRESS,
-    },
-    transaction::ReadContractParametersBuilderError,
-};
+use alloy::network::AnyNetwork;
+use alloy::primitives::Address;
+use alloy::providers::{MulticallError, Provider};
+use alloy_ethers_typecast::ReadContractParametersBuilderError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_orderbook_bindings::IERC20::{decimalsCall, nameCall, symbolCall};
+use rain_orderbook_bindings::IERC20::IERC20Instance;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use thiserror::Error;
 use url::Url;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
+
+use crate::provider::{mk_read_provider, ReadProvider, ReadProviderError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -34,127 +27,56 @@ pub struct ERC20 {
     pub rpc_url: Url,
     pub address: Address,
 }
+
 impl ERC20 {
     pub fn new(rpc_url: Url, address: Address) -> Self {
         Self { rpc_url, address }
     }
 
-    async fn get_client(&self) -> Result<ReadableClient, Error> {
-        ReadableClient::new_from_url(self.rpc_url.to_string())
-            .await
-            .map_err(|err| Error::ReadableClientError {
-                msg: format!("rpc url: {}", self.rpc_url),
-                source: err,
-            })
+    fn get_instance(&self) -> Result<IERC20Instance<ReadProvider, AnyNetwork>, Error> {
+        let provider = mk_read_provider(&[self.rpc_url.as_str()])?;
+        let erc20 = IERC20Instance::new(self.address, provider);
+        Ok(erc20)
     }
 
     pub async fn decimals(&self) -> Result<u8, Error> {
-        let client = self.get_client().await?;
-        let parameters = ReadContractParameters {
-            address: self.address,
-            call: decimalsCall {},
-            block_number: None,
-            gas: None,
-        };
-        Ok(client
-            .read(parameters)
-            .await
-            .map_err(|err| Error::ReadableClientError {
-                msg: format!("address: {}", self.address),
-                source: err,
-            })?)
+        let erc20 = self.get_instance()?;
+        let decimals = erc20.decimals().call().await?;
+        Ok(decimals)
     }
 
     pub async fn name(&self) -> Result<String, Error> {
-        let client = self.get_client().await?;
-        let parameters = ReadContractParameters {
-            address: self.address,
-            call: nameCall {},
-            block_number: None,
-            gas: None,
-        };
-        Ok(client
-            .read(parameters)
-            .await
-            .map_err(|err| Error::ReadableClientError {
-                msg: format!("address: {}", self.address),
-                source: err,
-            })?)
+        let erc20 = self.get_instance()?;
+        let name = erc20.name().call().await?;
+        Ok(name)
     }
 
     pub async fn symbol(&self) -> Result<String, Error> {
-        let client = self.get_client().await?;
-        let parameters = ReadContractParameters {
-            address: self.address,
-            call: symbolCall {},
-            block_number: None,
-            gas: None,
-        };
-        Ok(client
-            .read(parameters)
-            .await
-            .map_err(|err| Error::ReadableClientError {
-                msg: format!("address: {}", self.address),
-                source: err,
-            })?)
+        let erc20 = self.get_instance()?;
+        let symbol = erc20.symbol().call().await?;
+        Ok(symbol)
     }
 
-    pub async fn token_info(&self, multicall_address: Option<String>) -> Result<TokenInfo, Error> {
-        let client = self.get_client().await?;
+    pub async fn token_info(&self, multicall_address: Option<Address>) -> Result<TokenInfo, Error> {
+        let erc20 = self.get_instance()?;
 
-        let results = client
-            .read(ReadContractParameters {
-                gas: None,
-                address: multicall_address
-                    .map_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap(), |s| {
-                        Address::from_str(&s).unwrap_or(Address::default())
-                    }),
-                call: aggregate3Call {
-                    calls: vec![
-                        Call3 {
-                            target: self.address,
-                            allowFailure: false,
-                            callData: decimalsCall {}.abi_encode().into(),
-                        },
-                        Call3 {
-                            target: self.address,
-                            allowFailure: false,
-                            callData: nameCall {}.abi_encode().into(),
-                        },
-                        Call3 {
-                            target: self.address,
-                            allowFailure: false,
-                            callData: symbolCall {}.abi_encode().into(),
-                        },
-                    ],
-                },
-                block_number: None,
-            })
-            .await
-            .map_err(|err| Error::ReadableClientError {
-                msg: format!("address: {}", self.address),
-                source: err,
-            })?;
+        let multicaller = if let Some(address) = multicall_address {
+            erc20.provider().multicall().address(address)
+        } else {
+            erc20.provider().multicall()
+        };
+
+        let multicall = multicaller
+            .add(erc20.decimals())
+            .add(erc20.name())
+            .add(erc20.symbol());
+
+        let (decimals, name, symbol) = multicall.aggregate().await?;
 
         Ok(TokenInfo {
-            decimals: decimalsCall::abi_decode_returns(&results.returnData[0].returnData).map_err(
-                |err| Error::SolTypesError {
-                    msg: format!("address: {}", self.address),
-                    source: err,
-                },
-            )?,
-            name: nameCall::abi_decode_returns(&results.returnData[1].returnData).map_err(
-                |err| Error::SolTypesError {
-                    msg: format!("address: {}", self.address),
-                    source: err,
-                },
-            )?,
-            symbol: symbolCall::abi_decode_returns(&results.returnData[2].returnData).map_err(
-                |err| Error::SolTypesError {
-                    msg: format!("address: {}", self.address),
-                    source: err,
-                },
-            )?,
+            decimals,
+            name,
+            symbol,
         })
     }
 }
@@ -168,12 +90,6 @@ pub enum Error {
         msg: String,
         #[source]
         source: ReadContractParametersBuilderError,
-    },
-    #[error("{ERROR_MESSAGE} {msg} - {source}")]
-    ReadableClientError {
-        msg: String,
-        #[source]
-        source: ReadableClientError,
     },
     #[error("{ERROR_MESSAGE} {msg} - {source}")]
     AbiDecodedErrorType {
@@ -193,6 +109,12 @@ pub enum Error {
         #[source]
         source: alloy::sol_types::Error,
     },
+    #[error(transparent)]
+    ReadProviderError(#[from] ReadProviderError),
+    #[error("Contract call failed: {0}")]
+    ContractCallError(#[from] alloy::contract::Error),
+    #[error("Multicall failed: {0}")]
+    MulticallError(#[from] MulticallError),
 }
 
 #[cfg(test)]

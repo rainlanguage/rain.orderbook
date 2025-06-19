@@ -5,7 +5,7 @@ use alloy::primitives::Address;
 use alloy::primitives::B256;
 use alloy::primitives::U256;
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
+use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::prelude::RngCore;

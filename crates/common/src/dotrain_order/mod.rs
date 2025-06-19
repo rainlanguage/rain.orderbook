@@ -3,7 +3,7 @@ use crate::{
     rainlang::compose_to_rainlang,
 };
 use alloy::primitives::Address;
-use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
+use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};

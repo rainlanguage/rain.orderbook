@@ -378,7 +378,7 @@ charts:
         assert!(matches!(
             err,
             CommandError::FuzzRunnerError(FuzzRunnerError::ReadableClientHttpError(
-                alloy_ethers_typecast::transaction::ReadableClientError::ReadBlockNumberError(_)
+                alloy_ethers_typecast::ReadableClientError::ReadBlockNumberError(_)
             ))
         ));
     }
