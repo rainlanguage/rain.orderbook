@@ -1,7 +1,7 @@
 use crate::blocks::BlocksCfg;
 use crate::remote::chains::{chainid::ChainIdError, RemoteNetworkError, RemoteNetworks};
 use crate::{GuiConfigSourceCfg, MetricCfg, PlotCfg};
-use alloy::primitives::{Address, B256};
+use alloy::primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
@@ -226,7 +226,7 @@ pub struct IOStringConfigSource {
     pub token: TokenCfgRef,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_family = "wasm", tsify(optional, type = "string"))]
-    pub vault_id: Option<B256>,
+    pub vault_id: Option<U256>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(IOStringConfigSource);
@@ -724,9 +724,7 @@ gui:
             ],
             outputs: vec![IOStringConfigSource {
                 token: "dai".to_string(),
-                vault_id: Some(fixed_bytes!(
-                    "0000000000000000000000000000000000000000000000000000000000000003"
-                )),
+                vault_id: Some(U256::from(3)),
             }],
             deployer: Some("mainDeployer".to_string()),
             orderbook: Some("mainnetOrderbook".to_string()),
