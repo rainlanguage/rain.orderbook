@@ -20,22 +20,7 @@ impl_wasm_traits!(GetOrderTradesCountResult);
 /// Retrieves a chronological list of trades executed by an order within
 /// an optional time range.
 ///
-/// # Parameters
-///
-/// * `url` - Subgraph endpoint URL for the target network
-/// * `order_id` - Unique order identifier (order hash)
-/// * `pagination_args` - Pagination configuration:
-///   - `page`: Page number (1-based)
-///   - `page_size`: Number of trades per page
-/// * `start_timestamp` - Optional start time filter (Unix timestamp in seconds)
-/// * `end_timestamp` - Optional end time filter (Unix timestamp in seconds)
-///
-/// # Returns
-///
-/// * `Ok(GetOrderTradesListResult)` - Array of trade records with complete details
-/// * `Err(SubgraphError)` - Network errors, invalid parameters, or query failures
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getOrderTradesList(
@@ -52,13 +37,17 @@ impl_wasm_traits!(GetOrderTradesCountResult);
 /// ```
 #[wasm_export(
     js_name = "getOrderTradesList",
-    unchecked_return_type = "GetOrderTradesListResult"
+    unchecked_return_type = "GetOrderTradesListResult",
+    return_description = "Array of trade records with complete details"
 )]
 pub async fn get_order_trades_list(
-    url: &str,
-    order_id: &str,
+    #[wasm_export(param_description = "Subgraph endpoint URL for the target network")] url: &str,
+    #[wasm_export(param_description = "Unique order identifier (order hash)")] order_id: &str,
+    #[wasm_export(param_description = "Pagination configuration with page number and page_size")]
     pagination_args: SgPaginationArgs,
+    #[wasm_export(param_description = "Optional start time filter (Unix timestamp in seconds)")]
     start_timestamp: Option<u64>,
+    #[wasm_export(param_description = "Optional end time filter (Unix timestamp in seconds)")]
     end_timestamp: Option<u64>,
 ) -> Result<GetOrderTradesListResult, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
@@ -78,17 +67,7 @@ pub async fn get_order_trades_list(
 /// Retrieves complete information about a single trade including vault changes
 /// and transaction details.
 ///
-/// # Parameters
-///
-/// * `url` - Subgraph endpoint URL
-/// * `trade_id` - Unique trade identifier
-///
-/// # Returns
-///
-/// * `Ok(SgTrade)` - Complete trade information
-/// * `Err(SubgraphError)` - Trade not found or network errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getOrderTradeDetail(
@@ -102,8 +81,15 @@ pub async fn get_order_trades_list(
 /// const trade = result.value;
 /// // Do something with the trade
 /// ```
-#[wasm_export(js_name = "getOrderTradeDetail", unchecked_return_type = "SgTrade")]
-pub async fn get_order_trade_detail(url: &str, trade_id: &str) -> Result<SgTrade, SubgraphError> {
+#[wasm_export(
+    js_name = "getOrderTradeDetail",
+    unchecked_return_type = "SgTrade",
+    return_description = "Complete trade information"
+)]
+pub async fn get_order_trade_detail(
+    #[wasm_export(param_description = "Subgraph endpoint URL")] url: &str,
+    #[wasm_export(param_description = "Unique trade identifier")] trade_id: &str,
+) -> Result<SgTrade, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let trade = client.order_trade_detail(Id::new(trade_id)).await?;
     Ok(trade)
@@ -114,19 +100,7 @@ pub async fn get_order_trade_detail(url: &str, trade_id: &str) -> Result<SgTrade
 /// Efficiently counts the total number of trades executed by an order without
 /// fetching all trade details.
 ///
-/// # Parameters
-///
-/// * `url` - Subgraph endpoint URL
-/// * `order_id` - Order identifier
-/// * `start_timestamp` - Optional start time filter (Unix timestamp in seconds)
-/// * `end_timestamp` - Optional end time filter (Unix timestamp in seconds)
-///
-/// # Returns
-///
-/// * `Ok(GetOrderTradesCountResult)` - Total trade count as number
-/// * `Err(SubgraphError)` - Network or query errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getOrderTradesCount(
@@ -142,12 +116,15 @@ pub async fn get_order_trade_detail(url: &str, trade_id: &str) -> Result<SgTrade
 /// ```
 #[wasm_export(
     js_name = "getOrderTradesCount",
-    unchecked_return_type = "GetOrderTradesCountResult"
+    unchecked_return_type = "GetOrderTradesCountResult",
+    return_description = "Total trade count as number"
 )]
 pub async fn get_order_trades_count(
-    url: &str,
-    order_id: &str,
+    #[wasm_export(param_description = "Subgraph endpoint URL")] url: &str,
+    #[wasm_export(param_description = "Order identifier")] order_id: &str,
+    #[wasm_export(param_description = "Optional start time filter (Unix timestamp in seconds)")]
     start_timestamp: Option<u64>,
+    #[wasm_export(param_description = "Optional end time filter (Unix timestamp in seconds)")]
     end_timestamp: Option<u64>,
 ) -> Result<GetOrderTradesCountResult, SubgraphError> {
     // Create the subgraph client using the provided URL

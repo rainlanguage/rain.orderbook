@@ -52,22 +52,12 @@ impl DotrainOrderGui {
     /// a preset from the field definition. Preset detection enables the UI to show
     /// whether a standard option or custom value is being used.
     ///
-    /// # Parameters
-    ///
-    /// - `binding` - Field binding identifier from the YAML configuration
-    /// - `value` - Value to save (can be a preset value or custom input)
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())` - Value saved successfully and state callback triggered
-    /// - `Err(FieldBindingNotFound)` - If the binding doesn't exist in the deployment
-    ///
-    /// # Preset Detection
+    /// ## Preset Detection
     ///
     /// The function checks if the value matches any preset in the field definition.
     /// If it matches, it stores the preset index; otherwise, stores the raw value.
     ///
-    /// # JavaScript Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Save a custom value
@@ -78,7 +68,13 @@ impl DotrainOrderGui {
     /// }
     /// ```
     #[wasm_export(js_name = "saveFieldValue", unchecked_return_type = "void")]
-    pub fn save_field_value(&mut self, binding: String, value: String) -> Result<(), GuiError> {
+    pub fn save_field_value(
+        &mut self,
+        #[wasm_export(param_description = "Field binding identifier from the YAML configuration")]
+        binding: String,
+        #[wasm_export(param_description = "Value to save (can be a preset value or custom input)")]
+        value: String,
+    ) -> Result<(), GuiError> {
         let field_definition = self.get_field_definition(&binding)?;
 
         let value = match field_definition.presets.as_ref() {
@@ -110,16 +106,7 @@ impl DotrainOrderGui {
     /// when loading saved configurations or applying templates. Each value is processed
     /// with the same preset detection as individual saves.
     ///
-    /// # Parameters
-    ///
-    /// - `field_values` - Array of field-value pairs to save
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())` - All values saved successfully
-    /// - `Err(GuiError)` - If any binding is invalid (partial save may occur)
-    ///
-    /// # JavaScript Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const fields = [
@@ -135,7 +122,12 @@ impl DotrainOrderGui {
     /// }
     /// ```
     #[wasm_export(js_name = "saveFieldValues", unchecked_return_type = "void")]
-    pub fn save_field_values(&mut self, field_values: Vec<FieldValuePair>) -> Result<(), GuiError> {
+    pub fn save_field_values(
+        &mut self,
+        #[wasm_export(param_description = "Array of field-value pairs to save")] field_values: Vec<
+            FieldValuePair,
+        >,
+    ) -> Result<(), GuiError> {
         for field_value in field_values {
             self.save_field_value(field_value.binding, field_value.value)?;
         }
@@ -146,15 +138,7 @@ impl DotrainOrderGui {
     ///
     /// Use this to clear a field value, returning it to an unset state.
     ///
-    /// # Parameters
-    ///
-    /// - `binding` - Field binding identifier to remove
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())` - Value removed and state callback triggered
-    ///
-    /// # JavaScript Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Clear a field value
@@ -165,7 +149,10 @@ impl DotrainOrderGui {
     /// }
     /// ```
     #[wasm_export(js_name = "removeFieldValue", unchecked_return_type = "void")]
-    pub fn remove_field_value(&mut self, binding: String) -> Result<(), GuiError> {
+    pub fn remove_field_value(
+        &mut self,
+        #[wasm_export(param_description = "Field binding identifier to remove")] binding: String,
+    ) -> Result<(), GuiError> {
         self.field_values.remove(&binding);
         self.execute_state_update_callback()?;
         Ok(())
@@ -175,17 +162,7 @@ impl DotrainOrderGui {
     ///
     /// This function returns the saved value along with information about whether it's a preset.
     ///
-    /// # Parameters
-    ///
-    /// - `binding` - Field binding identifier to retrieve
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(FieldValue)` - Field value with binding, value, and preset flag
-    /// - `Err(FieldBindingNotFound)` - If no value has been saved for this binding
-    /// - `Err(InvalidPreset)` - If saved preset index is invalid
-    ///
-    /// # JavaScript Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getFieldValue("max-price");
@@ -199,8 +176,15 @@ impl DotrainOrderGui {
     /// // value is the field value
     /// // isPreset is a boolean indicating if the value is a preset
     /// ```
-    #[wasm_export(js_name = "getFieldValue", unchecked_return_type = "FieldValue")]
-    pub fn get_field_value(&self, binding: String) -> Result<FieldValue, GuiError> {
+    #[wasm_export(
+        js_name = "getFieldValue",
+        unchecked_return_type = "FieldValue",
+        return_description = "Field value with binding, value, and preset flag"
+    )]
+    pub fn get_field_value(
+        &self,
+        #[wasm_export(param_description = "Field binding identifier to retrieve")] binding: String,
+    ) -> Result<FieldValue, GuiError> {
         let field_value = self
             .field_values
             .get(&binding)
@@ -234,12 +218,7 @@ impl DotrainOrderGui {
     ///
     /// Returns all field values that have been set, with preset values expanded.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(Vec<FieldValue>)` - Array of all configured field values
-    /// - `Err(GuiError)` - If any field value retrieval fails
-    ///
-    /// # JavaScript Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getAllFieldValues();
@@ -258,7 +237,11 @@ impl DotrainOrderGui {
     ///   isPreset
     /// } = fieldValue1;
     /// ```
-    #[wasm_export(js_name = "getAllFieldValues", unchecked_return_type = "FieldValue[]")]
+    #[wasm_export(
+        js_name = "getAllFieldValues",
+        unchecked_return_type = "FieldValue[]",
+        return_description = "Array of all configured field values"
+    )]
     pub fn get_all_field_values(&self) -> Result<Vec<FieldValue>, GuiError> {
         let mut result = Vec::new();
         for (binding, _) in self.field_values.iter() {
@@ -273,16 +256,7 @@ impl DotrainOrderGui {
     /// Use this to build dynamic UIs that adapt to field configurations, showing
     /// appropriate input controls, preset options, and validation rules.
     ///
-    /// # Parameters
-    ///
-    /// - `binding` - Field binding identifier to look up
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(GuiFieldDefinitionCfg)` - Complete field configuration
-    /// - `Err(FieldBindingNotFound)` - If binding doesn't exist in deployment
-    ///
-    /// # JavaScript Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getFieldDefinition("max-price");
@@ -308,9 +282,13 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getFieldDefinition",
-        unchecked_return_type = "GuiFieldDefinitionCfg"
+        unchecked_return_type = "GuiFieldDefinitionCfg",
+        return_description = "Complete field configuration"
     )]
-    pub fn get_field_definition(&self, binding: &str) -> Result<GuiFieldDefinitionCfg, GuiError> {
+    pub fn get_field_definition(
+        &self,
+        #[wasm_export(param_description = "Field binding identifier to look up")] binding: &str,
+    ) -> Result<GuiFieldDefinitionCfg, GuiError> {
         let deployment = self.get_current_deployment()?;
         let field_definition = deployment
             .fields
@@ -326,19 +304,7 @@ impl DotrainOrderGui {
     /// at once. The filter option allows separating required fields (no default)
     /// from optional fields (with default).
     ///
-    /// # Parameters
-    ///
-    /// - `filter_defaults` - Optional filter:
-    ///   - `Some(true)` - Only fields with default values
-    ///   - `Some(false)` - Only fields without default values (required)
-    ///   - `None` - All fields
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(Vec<GuiFieldDefinitionCfg>)` - Filtered field definitions
-    /// - `Err(GuiError)` - If deployment configuration is invalid
-    ///
-    /// # JavaScript Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Get all fields
@@ -367,10 +333,14 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getAllFieldDefinitions",
-        unchecked_return_type = "GuiFieldDefinitionCfg[]"
+        unchecked_return_type = "GuiFieldDefinitionCfg[]",
+        return_description = "Filtered field definitions"
     )]
     pub fn get_all_field_definitions(
         &self,
+        #[wasm_export(
+            param_description = "Optional filter: **true** for fields with defaults, **false** for fields without defaults, **undefined** for all"
+        )]
         filter_defaults: Option<bool>,
     ) -> Result<Vec<GuiFieldDefinitionCfg>, GuiError> {
         let deployment = self.get_current_deployment()?;
@@ -389,17 +359,12 @@ impl DotrainOrderGui {
     /// Returns human-readable field names (not bindings) for fields that need values.
     /// Use this for validation and to guide users through required configurations.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(Vec<String>)` - Array of field names that need configuration
-    /// - `Err(GuiError)` - If deployment configuration is invalid
-    ///
-    /// # Note
+    /// ## Note
     ///
     /// This returns field names (e.g., "Maximum Price") not bindings (e.g., "max-price")
     /// for better user experience.
     ///
-    /// # JavaScript Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getMissingFieldValues();
@@ -410,7 +375,11 @@ impl DotrainOrderGui {
     /// const missing = result.value;
     /// // Do something with the missing
     /// ```
-    #[wasm_export(js_name = "getMissingFieldValues", unchecked_return_type = "string[]")]
+    #[wasm_export(
+        js_name = "getMissingFieldValues",
+        unchecked_return_type = "string[]",
+        return_description = "Array of field names that need configuration"
+    )]
     pub fn get_missing_field_values(&self) -> Result<Vec<String>, GuiError> {
         let deployment = self.get_current_deployment()?;
         let mut missing_field_values = Vec::new();
