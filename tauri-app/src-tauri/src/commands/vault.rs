@@ -104,11 +104,11 @@ pub async fn vault_deposit_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
-    let calldata = deposit_args.get_deposit_calldata().await.map_err(|e| {
+    let deposit_call: deposit3Call = deposit_args.try_into().map_err(|e| {
         toast_error(&app_handle, e.to_string());
         e
     })?;
-    Ok(Bytes::from(calldata))
+    Ok(Bytes::from(deposit_call.abi_encode()))
 }
 
 #[tauri::command]

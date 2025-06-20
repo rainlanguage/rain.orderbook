@@ -1,6 +1,5 @@
 use crate::transaction::{TransactionArgs, TransactionArgsError, WritableTransactionExecuteError};
 use alloy::primitives::{Address, B256, U256};
-use alloy::sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -133,11 +132,6 @@ impl DepositArgs {
 
         Ok(())
     }
-
-    pub async fn get_deposit_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
-        let deposit_call: deposit3Call = self.clone().try_into()?;
-        Ok(deposit_call.abi_encode())
-    }
 }
 
 #[cfg(test)]
@@ -201,29 +195,6 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res, U256::from(200));
-    }
-
-    #[tokio::test]
-    async fn test_get_deposit_calldata() {
-        let args = DepositArgs {
-            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
-            vault_id: B256::from(U256::from(42)),
-            amount: U256::from(100),
-            decimals: 4,
-        };
-        let calldata = args.get_deposit_calldata().await.unwrap();
-
-        let Float(amount) = Float::parse("0.01".to_string()).unwrap();
-        let deposit_call = deposit3Call {
-            token: address!("1234567890abcdef1234567890abcdef12345678"),
-            vaultId: B256::from(U256::from(42)),
-            depositAmount: amount,
-            tasks: vec![],
-        };
-        let expected_calldata = deposit_call.abi_encode();
-
-        assert_eq!(calldata, expected_calldata);
-        assert_eq!(calldata.len(), 164);
     }
 
     #[test]

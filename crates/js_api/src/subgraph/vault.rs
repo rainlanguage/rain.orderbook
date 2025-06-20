@@ -1,7 +1,9 @@
 use super::SubgraphError;
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, Bytes, B256, U256};
 use cynic::Id;
+use rain_orderbook_bindings::IOrderBookV5::deposit3Call;
 use rain_orderbook_common::deposit::DepositArgs;
+use rain_orderbook_common::erc20::ERC20;
 use rain_orderbook_common::transaction::TransactionArgs;
 use rain_orderbook_common::withdraw::WithdrawArgs;
 use rain_orderbook_subgraph_client::types::common::{
@@ -188,6 +190,7 @@ pub async fn get_vault_balance_changes(
 ///   - `vault_id`: Unique vault identifier
 ///   - `orderbook.id`: Orderbook contract address for transaction target
 /// * `deposit_amount` - Amount to deposit in token's smallest unit (e.g., "1000000000000000000" for 1 token with 18 decimals)
+/// * `decimals` - Number of decimals for the token
 ///
 /// # Returns
 ///
@@ -215,18 +218,22 @@ pub async fn get_vault_balance_changes(
 pub async fn get_vault_deposit_calldata(
     vault: &SgVault,
     deposit_amount: &str,
+    decimals: u8,
 ) -> Result<VaultCalldataResult, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
+    let token = Address::from_str(&vault.token.address.0)?;
+    let vault_id = B256::from(U256::from_str(&vault.vault_id.0)?);
 
-    let deposit_args = DepositArgs {
-        token: Address::from_str(&vault.token.address.0)?,
-        vault_id: U256::from_str(&vault.vault_id.0)?,
+    let deposit_call: deposit3Call = DepositArgs {
+        token,
+        vault_id,
         amount: deposit_amount,
-    };
+        decimals,
+    }
+    .try_into()?;
+    let calldata = deposit_call.abi_encode();
 
-    Ok(VaultCalldataResult(Bytes::copy_from_slice(
-        &deposit_args.get_deposit_calldata().await?,
-    )))
+    Ok(VaultCalldataResult(Bytes::copy_from_slice(&calldata)))
 }
 
 /// Generates transaction calldata for withdrawing tokens from a vault.

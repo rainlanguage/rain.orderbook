@@ -419,12 +419,14 @@ impl DotrainOrderGui {
                 continue;
             }
 
-            let deposit_args = DepositArgs {
+            let deposit_call: deposit3Call = DepositArgs {
                 token: token.address,
                 amount: deposit_amount,
                 vault_id,
-            };
-            let calldata = deposit_args.get_deposit_calldata().await?;
+            }
+            .try_into()?;
+            let calldata = deposit_call.abi_encode();
+
             calldatas.push(Bytes::copy_from_slice(&calldata));
         }
 

@@ -204,7 +204,7 @@ amount price: 2 1;
         local_evm.send_transaction(tx_req).await.unwrap();
 
         // take order from token2 holder
-        let Float(max_float) = Float::pack_lossless(I224::MAX, i32::MAX).unwrap();
+        let Float(max_float) = Float::pack_lossless(I224::MAX, 1).unwrap();
         let Float(one_float) = Float::parse("1".to_string()).unwrap();
         let config = Orderbook::TakeOrdersConfigV4 {
             orders: vec![Orderbook::TakeOrderConfigV4 {
@@ -234,7 +234,7 @@ amount price: 2 1;
 
         let res = replayer.replay_tx(tx.transaction_hash).await.unwrap();
 
-        let vec = vec![1000000000000000000u128, 2000000000000000000u128];
+        let vec = vec![1, 2];
 
         let expected_stack: Vec<U256> = vec.into_iter().map(U256::from).collect();
 

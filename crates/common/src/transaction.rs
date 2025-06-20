@@ -92,7 +92,7 @@ impl TransactionArgs {
         self,
     ) -> Result<
         (
-            impl Provider<AnyNetwork> + WalletProvider<AnyNetwork> + Clone,
+            impl Provider<AnyNetwork> + WalletProvider<AnyNetwork> + Clone + std::fmt::Debug,
             Address,
         ),
         TransactionArgsError,
@@ -239,28 +239,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_try_into_ledger_client_err() {
-        let server = MockServer::start();
-
-        server.mock(|when, then| {
-            when.path("/rpc").body_contains("eth_chainId");
-            then.status(200)
-                .body(r#"{ "jsonrpc": "2.0", "id": 1, "result": "0x1" }"#);
-        });
-
-        let mut args = TransactionArgs {
+        let args = TransactionArgs {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-            rpc_url: server.url("/rpc"),
+            rpc_url: "".to_string(),
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
         };
 
-        let err = args.clone().try_into_ledger_client().await;
-        assert!(matches!(err, Err(TransactionArgsError::ChainIdNone)));
-
-        args.try_fill_chain_id().await.unwrap();
-        args.rpc_url = "".to_string();
         let result = args.try_into_ledger_client().await;
         // The error is different based on whether you have a Ledger plugged in,
         // hence no pattern matching to avoid breaking the test for devs

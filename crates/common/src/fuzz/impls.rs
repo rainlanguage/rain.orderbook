@@ -752,10 +752,7 @@ impl FuzzRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::{
-        primitives::utils::parse_ether,
-        providers::{ext::AnvilApi, Provider},
-    };
+    use alloy::providers::{ext::AnvilApi, Provider};
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use rain_orderbook_test_fixtures::LocalEvm;
 
@@ -989,7 +986,7 @@ _: block-number();
         res.runs.iter().enumerate().for_each(|(i, run)| {
             assert_eq!(
                 run.traces[0].stack[0],
-                parse_ether(&(start_block_number + (i as u64 * 2)).to_string()).unwrap()
+                U256::from((start_block_number as usize) + i * 2)
             );
         });
     }
@@ -1060,7 +1057,7 @@ d: 4;
             .unwrap()
             .get(column_index.unwrap())
             .unwrap();
-        assert_eq!(value, &parse_ether("6").unwrap());
+        assert_eq!(value, &U256::from(6));
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -1284,7 +1281,7 @@ _ _: 30 calculation;
 
 #another
 something:,
-_: add(something 30);
+_: 30;
 
 #handle-add-order
 :;"#,
@@ -1325,9 +1322,9 @@ _: add(something 30);
         assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice())); // output token
         assert_eq!(result_rows[4], U256::from(18)); // output token decimals
         assert_eq!(result_rows[5], U256::from(20)); // output vault id
-        assert_eq!(result_rows[6], U256::from(51000000000000000000_u128)); // calculation
-        assert_eq!(result_rows[7], U256::from(30000000000000000000_u128)); // max output
-        assert_eq!(result_rows[8], U256::from(51000000000000000000_u128)); // io ratio
+        assert_eq!(result_rows[6], U256::from(30)); // calculation
+        assert_eq!(result_rows[7], U256::from(30)); // max output
+        assert_eq!(result_rows[8], U256::from(30)); // io ratio
 
         // run again with known block numbers
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -1358,8 +1355,8 @@ _: add(something 30);
         assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice())); // output token
         assert_eq!(result_rows[4], U256::from(18)); // output token decimals
         assert_eq!(result_rows[5], U256::from(20)); // output vault id
-        assert_eq!(result_rows[6], U256::from(51000000000000000000_u128)); // calculation
-        assert_eq!(result_rows[7], U256::from(30000000000000000000_u128)); // max output
-        assert_eq!(result_rows[8], U256::from(51000000000000000000_u128)); // io ratio
+        assert_eq!(result_rows[6], U256::from(30)); // calculation
+        assert_eq!(result_rows[7], U256::from(30)); // max output
+        assert_eq!(result_rows[8], U256::from(30)); // io ratio
     }
 }

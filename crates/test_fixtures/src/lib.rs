@@ -154,7 +154,7 @@ impl LocalEvm {
             local_evm
                 .deploy_new_token(
                     &format!("Token{i}"),
-                    &format!("Token{i}"),
+                    &format!("TOKEN{i}"),
                     18,
                     parse_units("1_000_000", 18).unwrap().into(),
                     local_evm.anvil.addresses()[0],
