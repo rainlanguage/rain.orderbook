@@ -114,7 +114,7 @@ impl Execute for Words {
 
             AuthoringMetaV2::fetch_for_contract(
                 deployer.address,
-                deployer.network.rpc.to_string(),
+                vec![deployer.network.rpc.to_string()],
                 metaboard_url,
             )
             .await?

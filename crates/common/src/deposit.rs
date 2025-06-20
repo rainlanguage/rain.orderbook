@@ -42,7 +42,7 @@ pub struct DepositArgs {
     pub token: Address,
     pub vault_id: B256,
     pub amount: U256,
-    pub decimals: Option<u8>,
+    pub decimals: u8,
 }
 
 impl TryFrom<DepositArgs> for deposit3Call {
