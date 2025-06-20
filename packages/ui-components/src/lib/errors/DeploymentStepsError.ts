@@ -15,7 +15,8 @@ export enum DeploymentStepsErrorCode {
 	NO_NETWORK_KEY = 'No network key found',
 	SERIALIZE_ERROR = 'Error serializing state',
 	ADD_ORDER_FAILED = 'Failed to add order',
-	NO_WALLET = 'No account address found'
+	NO_WALLET = 'No account address found',
+	NO_GUI_CONFIG = 'Error getting GUI configuration'
 }
 
 export class DeploymentStepsError extends Error {

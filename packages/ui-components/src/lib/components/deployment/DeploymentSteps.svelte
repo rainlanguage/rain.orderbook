@@ -3,13 +3,14 @@
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import {
-		type ConfigSource,
 		type GuiSelectTokensCfg,
 		type TokenInfo,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
-		type OrderIOCfg
+		type OrderIOCfg,
+		type NewConfig,
+		DotrainOrderGui
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
@@ -22,8 +23,6 @@
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	import { handleDeployment } from './handleDeployment';
-	import { type DeploymentArgs } from '$lib/types/transaction';
 	import { fade } from 'svelte/transition';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { useRegistry } from '$lib/providers/registry/useRegistry';
@@ -40,14 +39,15 @@
 	/** Strategy details containing name and description configuration */
 	export let strategyDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
-	export let onDeploy: (deploymentArgs: DeploymentArgs) => void;
+	export let onDeploy: (gui: DotrainOrderGui, subgraphUrl?: string) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let settings: Writable<ConfigSource>;
+	export let settings: Writable<NewConfig>;
 	export let account: Account;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
+	let allTokenInputs: OrderIOCfg[] = [];
 	let allFieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] = [];
 	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
@@ -72,80 +72,35 @@
 		if (error) {
 			DeploymentStepsError.catch(error, DeploymentStepsErrorCode.NO_NETWORK_KEY);
 		} else if (value) {
-			subgraphUrl = $settings?.subgraphs?.[value];
+			subgraphUrl = $settings.orderbook.subgraphs[value].url;
 		}
 		await areAllTokensSelected();
 	});
-
-	function getAllFieldDefinitions() {
-		try {
-			const allFieldDefinitionsResult = gui.getAllFieldDefinitions(false);
-			if (allFieldDefinitionsResult.error) {
-				throw new Error(allFieldDefinitionsResult.error.msg);
-			}
-			allFieldDefinitionsWithoutDefaults = allFieldDefinitionsResult.value;
-
-			const allFieldDefinitionsWithDefaultsResult = gui.getAllFieldDefinitions(true);
-			if (allFieldDefinitionsWithDefaultsResult.error) {
-				throw new Error(allFieldDefinitionsWithDefaultsResult.error.msg);
-			}
-			allFieldDefinitionsWithDefaults = allFieldDefinitionsWithDefaultsResult.value;
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_FIELD_DEFINITIONS);
-		}
-	}
-
-	async function getAllDepositFields() {
-		try {
-			let result = gui.getCurrentDeployment();
-			if (result.error) {
-				throw new Error(result.error.msg);
-			}
-			let depositFields = result.value.deposits;
-
-			allDepositFields = depositFields;
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_DEPOSITS);
-		}
-	}
-
-	let allTokenInputs: OrderIOCfg[] = [];
-	function getAllTokenInputs() {
-		try {
-			let result = gui.getCurrentDeployment();
-			if (result.error) {
-				throw new Error(result.error.msg);
-			}
-			allTokenInputs = result.value.deployment.order.inputs;
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_TOKEN_INPUTS);
-		}
-	}
-
-	function getAllTokenOutputs() {
-		try {
-			let result = gui.getCurrentDeployment();
-			if (result.error) {
-				throw new Error(result.error.msg);
-			}
-			allTokenOutputs = result.value.deployment.order.outputs;
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
-		}
-	}
 
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
 		updateFields();
 	}
 
-	async function updateFields() {
+	function getAllGuiConfig() {
+		try {
+			let result = gui.getAllGuiConfig();
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			allFieldDefinitionsWithoutDefaults = result.value.fieldDefinitionsWithoutDefaults;
+			allFieldDefinitionsWithDefaults = result.value.fieldDefinitionsWithDefaults;
+			allDepositFields = result.value.deposits;
+			allTokenOutputs = result.value.orderOutputs;
+			allTokenInputs = result.value.orderInputs;
+		} catch (e) {
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_GUI_CONFIG);
+		}
+	}
+
+	function updateFields() {
 		try {
 			DeploymentStepsError.clear();
-
-			getAllDepositFields();
-			getAllFieldDefinitions();
-			getAllTokenInputs();
-			getAllTokenOutputs();
+			getAllGuiConfig();
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_GUI);
 		}
@@ -166,8 +121,7 @@
 			let newAllTokenInfos = result.value;
 			if (allTokenInfos !== newAllTokenInfos) {
 				allTokenInfos = newAllTokenInfos;
-				getAllDepositFields();
-				getAllFieldDefinitions();
+				getAllGuiConfig();
 			}
 		}
 	}
@@ -218,8 +172,8 @@
 				return;
 			}
 			DeploymentStepsError.clear();
-			const deploymentArgs: DeploymentArgs = await handleDeployment(gui, $account, subgraphUrl);
-			return onDeploy(deploymentArgs);
+
+			return onDeploy(gui, subgraphUrl);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {

@@ -230,10 +230,10 @@ impl FuzzRunner {
         let deployer = scenario.deployer.clone();
 
         // Fetch the latest block number
-        let block_number = ReadableClient::new_from_url(deployer.network.rpc.to_string())
-            .await?
-            .get_block_number()
-            .await?;
+        let block_number =
+            ReadableClientHttp::new_from_http_urls(vec![deployer.network.rpc.to_string()])?
+                .get_block_number()
+                .await?;
 
         let blocks = scenario
             .blocks
@@ -624,7 +624,11 @@ impl FuzzRunner {
                 *cached_block_number
             } else {
                 // Fetch the latest block number, if failed, record the error and continue to next deployment key
-                match ReadableClient::new_from_url(scenario.deployer.network.rpc.to_string()).await
+                match ReadableClientHttp::new_from_http_urls(vec![scenario
+                    .deployer
+                    .network
+                    .rpc
+                    .to_string()])
                 {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,

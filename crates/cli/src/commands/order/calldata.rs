@@ -536,6 +536,6 @@ _ _: 0 0;
         let err = add_order_calldata.execute().await.unwrap_err();
         assert!(err
             .to_string()
-            .contains("Execution reverted with unknown error"));
+            .contains("all providers failed to handle the request"));
     }
 }

@@ -1,12 +1,38 @@
 use super::*;
+use futures::StreamExt;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
 };
 use std::str::FromStr;
 
+const MAX_CONCURRENT_FETCHES: usize = 5;
+
 #[wasm_export]
 impl DotrainOrderGui {
+    /// Gets tokens that need user selection for the current deployment.
+    ///
+    /// Returns tokens defined in the select-tokens section that require user input
+    /// to specify contract addresses. This enables generic strategies that work
+    /// with user-chosen tokens.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Vec<GuiSelectTokensCfg>)` - Array of selectable token configurations
+    /// - `Err(GuiError)` - If deployment configuration is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getSelectTokens();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const selectableTokens = result.value;
+    /// // Do something with the selectable tokens
+    /// ```
     #[wasm_export(
         js_name = "getSelectTokens",
         unchecked_return_type = "GuiSelectTokensCfg[]"
@@ -19,11 +45,55 @@ impl DotrainOrderGui {
         Ok(select_tokens.unwrap_or(vec![]))
     }
 
+    /// Checks if a selectable token has been configured with an address.
+    ///
+    /// Use this to determine if a user has provided an address for a select-token,
+    /// enabling progressive UI updates and validation.
+    ///
+    /// # Parameters
+    ///
+    /// - `key` - Token key from select-tokens configuration
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(bool)` - True if token address has been set
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.isSelectTokenSet("stable-token");
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const isSelectTokenSet = result.value;
+    /// // Do something
+    /// ```
     #[wasm_export(js_name = "isSelectTokenSet", unchecked_return_type = "boolean")]
     pub fn is_select_token_set(&self, key: String) -> Result<bool, GuiError> {
         Ok(self.dotrain_order.orderbook_yaml().get_token(&key).is_ok())
     }
 
+    /// Validates that all required tokens have been selected.
+    ///
+    /// Checks if all tokens in the select-tokens configuration have been given
+    /// addresses. Use this before generating transactions to ensure completeness.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - All required tokens are configured
+    /// - `Err(TokenMustBeSelected)` - A specific token still needs selection
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.checkSelectTokens();
+    /// if (result.error) {
+    ///   console.error("Selection incomplete:", result.error.readableMsg);
+    ///   return;
+    /// // Do something
+    /// ```
     #[wasm_export(js_name = "checkSelectTokens", unchecked_return_type = "void")]
     pub fn check_select_tokens(&self) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
@@ -47,6 +117,28 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Gets the network identifier for the current deployment.
+    ///
+    /// Returns the network key used by the deployment's order configuration.
+    /// This determines which blockchain network to query for token information.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(String)` - Network key from the configuration
+    /// - `Err(GuiError)` - If order or network configuration is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getNetworkKey();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const networkKey = result.value;
+    /// // Do something with the network key
+    /// ```
     #[wasm_export(js_name = "getNetworkKey", unchecked_return_type = "string")]
     pub fn get_network_key(&self) -> Result<String, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
@@ -58,6 +150,43 @@ impl DotrainOrderGui {
         Ok(network_key)
     }
 
+    /// Sets a custom token address to be used in the order.
+    ///
+    /// Takes a token address provided by the user and queries the blockchain to get
+    /// the token's name, symbol, and decimals. This information is then cached for efficient access.
+    ///
+    /// # Parameters
+    ///
+    /// - `key` - Token key from select-tokens configuration
+    /// - `address` - Token contract address provided by user
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Token configured successfully
+    /// - `Err(TokenNotFound)` - Key not in select-tokens list
+    /// - `Err(ReadableClientError)` - Blockchain query failed
+    /// - `Err(FromHexError)` - Invalid address format
+    ///
+    /// # Network Usage
+    ///
+    /// The function uses the deployment's network configuration to determine the
+    /// RPC endpoint for querying token information.
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // User selects token
+    /// const result = await gui.saveSelectToken(
+    ///   "stable-token",
+    ///   "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    /// );
+    ///
+    /// if (result.error) {
+    ///   console.error("Selection failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// // Do something with the token
+    /// ```
     #[wasm_export(js_name = "saveSelectToken", unchecked_return_type = "void")]
     pub async fn save_select_token(
         &mut self,
@@ -107,6 +236,31 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Removes a previously selected token configuration.
+    ///
+    /// Clears the address and cached information for a select-token, returning it
+    /// to an unselected state.
+    ///
+    /// # Parameters
+    ///
+    /// - `key` - Token key to clear
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Token configuration removed
+    /// - `Err(TokenNotFound)` - Key not in select-tokens list
+    /// - `Err(SelectTokensNotSet)` - No select-tokens configured for deployment
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Remove token selection
+    /// const result = gui.removeSelectToken("stable-token");
+    /// if (result.error) {
+    ///   console.error("Remove failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// ```
     #[wasm_export(js_name = "removeSelectToken", unchecked_return_type = "void")]
     pub fn remove_select_token(&mut self, key: String) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
@@ -124,6 +278,27 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Checks if all required tokens have been selected and configured.
+    ///
+    /// Validates that every token in the select-tokens configuration has been
+    /// given an address. Use this for overall validation and progress tracking.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(bool)` - True if all tokens are configured
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.areAllTokensSelected();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const allSelected = result.value;
+    /// // Do something
+    /// ```
     #[wasm_export(js_name = "areAllTokensSelected", unchecked_return_type = "boolean")]
     pub fn are_all_tokens_selected(&self) -> Result<bool, GuiError> {
         let select_tokens = self.get_select_tokens()?;
@@ -133,6 +308,63 @@ impl DotrainOrderGui {
             }
         }
         Ok(true)
+    }
+
+    #[wasm_export(js_name = "getAllTokens", unchecked_return_type = "TokenInfo[]")]
+    pub async fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
+        let network_key = self.get_network_key()?;
+        let tokens = self.dotrain_order.orderbook_yaml().get_tokens()?;
+        let network = self
+            .dotrain_order
+            .orderbook_yaml()
+            .get_network(&network_key)?;
+
+        let mut fetch_futures = Vec::new();
+        let mut results = Vec::new();
+
+        for (_, token) in tokens
+            .into_iter()
+            .filter(|(_, token)| token.network.key == network_key)
+        {
+            if token.decimals.is_none() || token.label.is_none() || token.symbol.is_none() {
+                let erc20 = ERC20::new(network.rpc.clone(), token.address);
+                fetch_futures.push(async move {
+                    let token_info = erc20.token_info(None).await?;
+                    Ok::<TokenInfo, GuiError>(TokenInfo {
+                        address: token.address,
+                        decimals: token_info.decimals,
+                        name: token_info.name,
+                        symbol: token_info.symbol,
+                    })
+                });
+            } else {
+                results.push(TokenInfo {
+                    address: token.address,
+                    decimals: token.decimals.unwrap(),
+                    name: token.label.unwrap(),
+                    symbol: token.symbol.unwrap(),
+                });
+            }
+        }
+
+        let fetched_results: Vec<TokenInfo> = futures::stream::iter(fetch_futures)
+            .buffer_unordered(MAX_CONCURRENT_FETCHES)
+            .filter_map(|res| async {
+                match res {
+                    Ok(info) => Some(info),
+                    Err(_) => None,
+                }
+            })
+            .collect()
+            .await;
+        results.extend(fetched_results);
+        results.sort_by(|a, b| {
+            let na = a.name.to_lowercase();
+            let nb = b.name.to_lowercase();
+            na.cmp(&nb).then_with(|| a.address.cmp(&b.address))
+        });
+
+        Ok(results)
     }
 }
 
@@ -343,6 +575,61 @@ mod tests {
 
             let are_all_tokens_selected = gui.are_all_tokens_selected().unwrap();
             assert!(are_all_tokens_selected);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_tokens() {
+            let gui = initialize_gui_with_select_tokens().await;
+
+            gui.add_record_to_yaml(
+                "token3".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+                "18".to_string(),
+                "Token 3".to_string(),
+                "T3".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token4".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+                "6".to_string(),
+                "Token 4".to_string(),
+                "T4".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token-other".to_string(),
+                "other-network".to_string(),
+                "0x0000000000000000000000000000000000000003".to_string(),
+                "8".to_string(),
+                "Token Other".to_string(),
+                "TO".to_string(),
+            );
+
+            let tokens = gui.get_all_tokens().await.unwrap();
+            assert_eq!(tokens.len(), 4);
+            assert_eq!(
+                tokens[0].address.to_string(),
+                "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+            );
+            assert_eq!(
+                tokens[1].address.to_string(),
+                "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
+            );
+            assert_eq!(
+                tokens[2].address.to_string(),
+                "0x0000000000000000000000000000000000000001"
+            );
+            assert_eq!(tokens[2].decimals, 18);
+            assert_eq!(tokens[2].name, "Token 3");
+            assert_eq!(tokens[2].symbol, "T3");
+            assert_eq!(
+                tokens[3].address.to_string(),
+                "0x0000000000000000000000000000000000000002"
+            );
+            assert_eq!(tokens[3].decimals, 6);
+            assert_eq!(tokens[3].name, "Token 4");
+            assert_eq!(tokens[3].symbol, "T4");
         }
     }
 

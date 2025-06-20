@@ -186,11 +186,14 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(msg))
-            if msg == "relative URL without a base"
-        ));
+        assert!(
+            matches!(
+                err,
+                Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(ref msg))
+                if msg.contains("No valid providers could be created from the given URLs")
+            ),
+            "unexpected error: {err}"
+        );
 
         rpc_server.mock(|when, then| {
             when.path("/rpc");
@@ -214,11 +217,17 @@ mod tests {
         .await
         .unwrap_err();
 
-        assert!(matches!(
-            err,
-            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
-                AbiDecodedErrorType::Unknown(bytestring)
-            )) if bytestring.is_empty()
-        ));
+        assert!(
+            matches!(
+                err,
+                Error::RpcCallError(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(rpc_server.url("/rpc").as_str()).is_some()
+                    && matches!(
+                        msg.get(rpc_server.url("/rpc").as_str()).unwrap(),
+                        ReadableClientError::RpcProviderError(_, _)
+                    )
+            ),
+            "unexpected error: {err}"
+        );
     }
 }
