@@ -1,17 +1,17 @@
 use alloy::primitives::U256;
-use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
+use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::{
     prelude::RngCore,
     test_runner::{RngAlgorithm, TestRng},
 };
-use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
+use rain_interpreter_bindings::IInterpreterStoreV3::FullyQualifiedNamespace;
 use rain_interpreter_eval::{
     error::ForkCallError,
     eval::ForkEvalArgs,
     fork::{Forker, NewForkedEvm},
-    trace::{RainEvalResultError, RainEvalResults},
+    trace::RainEvalResult,
 };
 use rain_orderbook_app_settings::{
     blocks::BlockError, config::*, deployer::DeployerCfg, unit_test::TestConfig,
@@ -61,8 +61,6 @@ pub enum TestRunnerError {
     JoinError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-    #[error(transparent)]
-    RainEvalResultError(#[from] RainEvalResultError),
 }
 
 impl TestRunner {
@@ -74,7 +72,7 @@ impl TestRunner {
         seed: Option<[u8; 32]>,
     ) -> Self {
         Self {
-            forker: Forker::new(),
+            forker: Forker::new().unwrap(),
             dotrains: Dotrains {
                 main_dotrain: dotrain.into(),
                 test_dotrain: test_dotrain.into(),
@@ -135,7 +133,7 @@ impl TestRunner {
         final_bindings
     }
 
-    async fn run_pre_entrypoint(&mut self) -> Result<RainEvalResults, TestRunnerError> {
+    async fn run_pre_entrypoint(&mut self) -> Result<Vec<RainEvalResult>, TestRunnerError> {
         let final_bindings = self.get_final_bindings(true);
 
         let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
@@ -157,6 +155,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context: vec![vec![U256::from(0); 1]; 1],
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -164,16 +164,16 @@ impl TestRunner {
                 .await
         });
 
-        Ok(vec![handle.await??.into()].into())
+        Ok(vec![handle.await??.into()])
     }
 
     async fn run_calculate_entrypoint(
         &mut self,
-        pre_stack: RainEvalResults,
-    ) -> Result<RainEvalResults, TestRunnerError> {
-        let input_token = pre_stack.results[0].stack[2];
-        let output_token = pre_stack.results[0].stack[1];
-        let output_cap = pre_stack.results[0].stack[0];
+        pre_stack: Vec<RainEvalResult>,
+    ) -> Result<Vec<RainEvalResult>, TestRunnerError> {
+        let input_token = pre_stack[0].stack[2];
+        let output_token = pre_stack[0].stack[1];
+        let output_cap = pre_stack[0].stack[0];
 
         let final_bindings = self.get_final_bindings(false);
 
@@ -208,6 +208,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -220,12 +222,12 @@ impl TestRunner {
 
     async fn run_handle_entrypoint(
         &mut self,
-        pre_stack: RainEvalResults,
-        calculate_stack: RainEvalResults,
-    ) -> Result<RainEvalResults, TestRunnerError> {
-        let output_cap = pre_stack.results[0].stack[0];
-        let max_output = calculate_stack.results[0].stack[1];
-        let _io_ratio = calculate_stack.results[0].stack[0];
+        pre_stack: Vec<RainEvalResult>,
+        calculate_stack: Vec<RainEvalResult>,
+    ) -> Result<Vec<RainEvalResult>, TestRunnerError> {
+        let output_cap = pre_stack[0].stack[0];
+        let max_output = calculate_stack[0].stack[1];
+        let _io_ratio = calculate_stack[0].stack[0];
 
         let final_bindings = self.get_final_bindings(false);
 
@@ -253,6 +255,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -265,14 +269,14 @@ impl TestRunner {
 
     async fn run_post_entrypoint(
         &mut self,
-        pre_stack: RainEvalResults,
-        calculate_stack: RainEvalResults,
-    ) -> Result<RainEvalResults, TestRunnerError> {
-        let input_token = pre_stack.results[0].stack[2];
-        let output_token = pre_stack.results[0].stack[1];
-        let output_cap = pre_stack.results[0].stack[0];
-        let max_output = calculate_stack.results[0].stack[1];
-        let io_ratio = calculate_stack.results[0].stack[0];
+        pre_stack: Vec<RainEvalResult>,
+        calculate_stack: Vec<RainEvalResult>,
+    ) -> Result<Vec<RainEvalResult>, TestRunnerError> {
+        let input_token = pre_stack[0].stack[2];
+        let output_token = pre_stack[0].stack[1];
+        let output_cap = pre_stack[0].stack[0];
+        let max_output = calculate_stack[0].stack[1];
+        let io_ratio = calculate_stack[0].stack[0];
 
         let final_bindings = self.get_final_bindings(true);
 
@@ -308,6 +312,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -318,7 +324,7 @@ impl TestRunner {
         Ok(vec![handle.await??.into()].into())
     }
 
-    pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
+    pub async fn run_unit_test(&mut self) -> Result<Vec<RainEvalResult>, TestRunnerError> {
         self.test_setup.deployer = self
             .settings
             .main_config
@@ -330,7 +336,7 @@ impl TestRunner {
             .clone();
 
         // Fetch the latest block number
-        let block_number = ReadableClientHttp::new_from_urls(vec![self
+        let block_number = ReadableClient::new_from_http_urls(vec![self
             .test_setup
             .deployer
             .network

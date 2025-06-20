@@ -79,7 +79,10 @@ pub struct LocalEvm {
 impl LocalEvm {
     /// Instantiates this struct with rain contracts deployed and no ERC20 tokens
     pub async fn new() -> Self {
-        let anvil = Anvil::new().try_spawn().unwrap();
+        let anvil = Anvil::new()
+            .arg("--disable-code-size-limit")
+            .try_spawn()
+            .unwrap();
 
         // set up signers from anvil accounts
         let mut signer_wallets = vec![];

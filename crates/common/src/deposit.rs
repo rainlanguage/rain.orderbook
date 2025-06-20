@@ -114,17 +114,6 @@ impl DepositArgs {
         Ok(())
     }
 
-    pub async fn get_approve_calldata(
-        &self,
-        transaction_args: TransactionArgs,
-    ) -> Result<Vec<u8>, WritableTransactionExecuteError> {
-        let approve_call = approveCall {
-            spender: transaction_args.orderbook_address,
-            amount: self.amount,
-        };
-        Ok(approve_call.abi_encode())
-    }
-
     /// Execute OrderbookV3 deposit call
     #[cfg(not(target_family = "wasm"))]
     pub async fn execute_deposit<S: Fn(WriteTransactionStatus<deposit3Call>)>(
@@ -154,31 +143,29 @@ impl DepositArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, B256};
-    use alloy_ethers_typecast::transaction::{gas_fee_middleware::GasFeeSpeed, rpc::Response};
+    use alloy::primitives::{address, Address, B256};
     use httpmock::MockServer;
+    use serde_json::json;
     use std::str::FromStr;
 
     #[test]
     fn test_deposit_args_into() {
         let args = DepositArgs {
-            token: "0x1234567890abcdef1234567890abcdef12345678"
-                .parse::<Address>()
-                .unwrap(),
-            vault_id: U256::from(42),
-            amount: U256::from(100),
+            token: address!("1234567890abcdef1234567890abcdef12345678"),
+            vault_id: B256::from(U256::from(42)),
+            amount: U256::from(123),
+            decimals: 6,
         };
 
-        let deposit_call: deposit2Call = args.into();
+        let deposit_call: deposit3Call = args.try_into().unwrap();
 
         assert_eq!(
             deposit_call.token,
-            "0x1234567890abcdef1234567890abcdef12345678"
-                .parse::<Address>()
-                .unwrap()
+            address!("1234567890abcdef1234567890abcdef12345678")
         );
-        assert_eq!(deposit_call.vaultId, U256::from(42));
-        assert_eq!(deposit_call.amount, U256::from(100));
+        assert_eq!(deposit_call.vaultId, B256::from(U256::from(42)));
+        let Float(amount) = Float::parse("0.000123".to_string()).unwrap();
+        assert_eq!(deposit_call.depositAmount, amount);
     }
 
     #[tokio::test]
@@ -187,17 +174,19 @@ mod tests {
 
         rpc_server.mock(|when, then| {
             when.path("/rpc").body_contains("0xdd62ed3e");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[200u8]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            let value = B256::left_padding_from(&[200u8]).to_string();
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": value,
+            }));
         });
 
         let args = DepositArgs {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
-            vault_id: U256::from(42),
+            vault_id: B256::from(U256::from(42)),
             amount: U256::from(100),
+            decimals: 18,
         };
 
         let res = args
@@ -218,15 +207,17 @@ mod tests {
     async fn test_get_deposit_calldata() {
         let args = DepositArgs {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
-            vault_id: U256::from(42),
+            vault_id: B256::from(U256::from(42)),
             amount: U256::from(100),
+            decimals: 4,
         };
         let calldata = args.get_deposit_calldata().await.unwrap();
 
-        let deposit_call = deposit2Call {
-            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
-            vaultId: U256::from(42),
-            amount: U256::from(100),
+        let Float(amount) = Float::parse("0.01".to_string()).unwrap();
+        let deposit_call = deposit3Call {
+            token: address!("1234567890abcdef1234567890abcdef12345678"),
+            vaultId: B256::from(U256::from(42)),
+            depositAmount: amount,
             tasks: vec![],
         };
         let expected_calldata = deposit_call.abi_encode();
@@ -242,14 +233,15 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),
-            max_priority_fee_per_gas: Some(U256::from(200)),
-            max_fee_per_gas: Some(U256::from(100)),
-            gas_fee_speed: Some(GasFeeSpeed::Fast),
+            max_priority_fee_per_gas: Some(200),
+            max_fee_per_gas: Some(100),
         };
-        let deposit_call = deposit2Call {
+
+        let Float(amount) = Float::parse("100".to_string()).unwrap();
+        let deposit_call = deposit3Call {
             token: Address::ZERO,
-            vaultId: U256::from(42),
-            amount: U256::from(100),
+            vaultId: B256::from(U256::from(42)),
+            depositAmount: amount,
             tasks: vec![],
         };
         let params = args
@@ -257,34 +249,8 @@ mod tests {
             .unwrap();
         assert_eq!(params.address, Address::ZERO);
         assert_eq!(params.call, deposit_call);
-        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(200)));
-        assert_eq!(params.max_fee_per_gas, Some(U256::from(100)));
-    }
-
-    #[tokio::test]
-    async fn test_get_approve_calldata() {
-        let args = DepositArgs {
-            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
-            vault_id: U256::from(42),
-            amount: U256::from(100),
-        };
-        let calldata = args
-            .get_approve_calldata(TransactionArgs {
-                rpc_url: "https://mainnet.infura.io/v3/".to_string(),
-                orderbook_address: Address::ZERO,
-                ..Default::default()
-            })
-            .await
-            .unwrap();
-
-        let approve_call = approveCall {
-            spender: Address::ZERO,
-            amount: U256::from(100),
-        };
-        let expected_calldata = approve_call.abi_encode();
-
-        assert_eq!(calldata, expected_calldata);
-        assert_eq!(calldata.len(), 68);
+        assert_eq!(params.max_priority_fee_per_gas, Some(200));
+        assert_eq!(params.max_fee_per_gas, Some(100));
     }
 
     #[test]
@@ -294,9 +260,8 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),
-            max_priority_fee_per_gas: Some(U256::from(200)),
-            max_fee_per_gas: Some(U256::from(100)),
-            gas_fee_speed: Some(GasFeeSpeed::Fast),
+            max_priority_fee_per_gas: Some(200),
+            max_fee_per_gas: Some(100),
         };
         let approve_call = approveCall {
             spender: Address::ZERO,
@@ -307,7 +272,7 @@ mod tests {
             .unwrap();
         assert_eq!(params.address, Address::ZERO);
         assert_eq!(params.call, approve_call);
-        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(200)));
-        assert_eq!(params.max_fee_per_gas, Some(U256::from(100)));
+        assert_eq!(params.max_priority_fee_per_gas, Some(200));
+        assert_eq!(params.max_fee_per_gas, Some(100));
     }
 }

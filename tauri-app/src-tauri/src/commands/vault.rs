@@ -90,13 +90,12 @@ pub async fn vault_deposit_approve_calldata<R: Runtime>(
     deposit_args: DepositArgs,
     transaction_args: TransactionArgs,
 ) -> CommandResult<Bytes> {
-    let calldata = deposit_args
-        .get_approve_calldata(transaction_args)
-        .await
-        .map_err(|e| {
-            toast_error(&app_handle, e.to_string());
-            e
-        })?;
+    let calldata = approveCall {
+        spender: transaction_args.orderbook_address,
+        amount: deposit_args.amount,
+    }
+    .abi_encode();
+
     Ok(Bytes::from(calldata))
 }
 

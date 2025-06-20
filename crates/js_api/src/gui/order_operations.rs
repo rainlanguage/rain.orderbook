@@ -324,9 +324,11 @@ impl DotrainOrderGui {
 
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
             if token_allowance.allowance < deposit_amount {
-                let approve_call = deposit_args
-                    .get_approve_calldata(transaction_args.clone())
-                    .await?;
+                let approve_call = approveCall {
+                    spender: transaction_args.orderbook_address,
+                    amount: deposit_amount,
+                }
+                .abi_encode();
                 calldatas.push(ApprovalCalldata {
                     token: token_address,
                     calldata: Bytes::copy_from_slice(&approve_call),

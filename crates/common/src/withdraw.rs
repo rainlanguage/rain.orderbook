@@ -60,43 +60,43 @@ impl WithdrawArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_ethers_typecast::transaction::gas_fee_middleware::GasFeeSpeed;
+    use alloy::primitives::{address, U256};
     use std::str::FromStr;
 
     #[test]
     fn test_withdraw_args_into() {
+        let amount = Float::parse("100".to_string()).unwrap();
         let args = WithdrawArgs {
             token: "0x1234567890abcdef1234567890abcdef12345678"
                 .parse::<Address>()
                 .unwrap(),
-            vault_id: U256::from(42),
-            target_amount: U256::from(100),
+            vault_id: B256::from(U256::from(42)),
+            target_amount: amount,
         };
 
-        let withdraw_call: withdraw2Call = args.into();
+        let withdraw_call: withdraw3Call = args.into();
         assert_eq!(
             withdraw_call.token,
-            "0x1234567890abcdef1234567890abcdef12345678"
-                .parse::<Address>()
-                .unwrap()
+            address!("1234567890abcdef1234567890abcdef12345678")
         );
-        assert_eq!(withdraw_call.vaultId, U256::from(42));
-        assert_eq!(withdraw_call.targetAmount, U256::from(100));
+        assert_eq!(withdraw_call.vaultId, B256::from(U256::from(42)));
+        assert_eq!(withdraw_call.targetAmount, amount.0);
     }
 
     #[tokio::test]
     async fn test_get_withdraw_calldata() {
+        let amount = Float::parse("100".to_string()).unwrap();
         let args = WithdrawArgs {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
-            vault_id: U256::from(42),
-            target_amount: U256::from(100),
+            vault_id: B256::from(U256::from(42)),
+            target_amount: amount,
         };
         let calldata = args.get_withdraw_calldata().await.unwrap();
 
-        let expected_calldata = withdraw2Call {
+        let expected_calldata = withdraw3Call {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
-            vaultId: U256::from(42),
-            targetAmount: U256::from(100),
+            vaultId: B256::from(U256::from(42)),
+            targetAmount: amount.0,
             tasks: vec![],
         }
         .abi_encode();
@@ -112,14 +112,15 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),
-            max_priority_fee_per_gas: Some(U256::from(200)),
-            max_fee_per_gas: Some(U256::from(100)),
-            gas_fee_speed: Some(GasFeeSpeed::Fast),
+            max_priority_fee_per_gas: Some(200),
+            max_fee_per_gas: Some(100),
         };
-        let withdraw_call = withdraw2Call {
+
+        let Float(amount) = Float::parse("456".to_string()).unwrap();
+        let withdraw_call = withdraw3Call {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
-            vaultId: U256::from(123),
-            targetAmount: U256::from(456),
+            vaultId: B256::from(U256::from(123)),
+            targetAmount: amount,
             tasks: vec![],
         };
         let params = args
@@ -127,7 +128,7 @@ mod tests {
             .unwrap();
         assert_eq!(params.address, Address::ZERO);
         assert_eq!(params.call, withdraw_call);
-        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(200)));
-        assert_eq!(params.max_fee_per_gas, Some(U256::from(100)));
+        assert_eq!(params.max_priority_fee_per_gas, Some(200));
+        assert_eq!(params.max_fee_per_gas, Some(100));
     }
 }

@@ -78,9 +78,8 @@ impl RemoveOrderArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
-    use alloy_ethers_typecast::transaction::gas_fee_middleware::GasFeeSpeed;
-    use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
+    use alloy::primitives::Address;
+    use rain_orderbook_bindings::IOrderBookV5::removeOrder3Call;
     use rain_orderbook_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
     };
@@ -136,19 +135,18 @@ mod tests {
         let remove_order_args = RemoveOrderArgs { order: get_order() };
         let calldata = remove_order_args.get_rm_order_calldata().await.unwrap();
 
-        let remove_order_call = removeOrder2Call {
+        let remove_order_call = removeOrder3Call {
             order: get_order().try_into().unwrap(),
             tasks: vec![],
         };
         let expected_calldata = remove_order_call.abi_encode();
 
         assert_eq!(calldata, expected_calldata);
-        assert_eq!(calldata.len(), 836);
     }
 
     #[test]
     fn test_try_into_remove_order_call() {
-        let remove_order_call = removeOrder2Call {
+        let remove_order_call = removeOrder3Call {
             order: get_order().try_into().unwrap(),
             tasks: vec![],
         };
@@ -158,9 +156,8 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),
-            max_priority_fee_per_gas: Some(U256::from(200)),
-            max_fee_per_gas: Some(U256::from(100)),
-            gas_fee_speed: Some(GasFeeSpeed::Fast),
+            max_priority_fee_per_gas: Some(200),
+            max_fee_per_gas: Some(100),
         };
 
         let params = args
@@ -168,7 +165,7 @@ mod tests {
             .unwrap();
         assert_eq!(params.address, args.orderbook_address);
         assert_eq!(params.call, remove_order_call);
-        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(200)));
-        assert_eq!(params.max_fee_per_gas, Some(U256::from(100)));
+        assert_eq!(params.max_priority_fee_per_gas, Some(200));
+        assert_eq!(params.max_fee_per_gas, Some(100));
     }
 }

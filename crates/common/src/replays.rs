@@ -49,14 +49,17 @@ mod tests {
     use alloy::{
         network::TransactionBuilder,
         primitives::{
+            aliases::I224,
             utils::{parse_ether, parse_units},
             Bytes, U256,
         },
         rpc::types::TransactionRequest,
+        serde::WithOtherFields,
         sol_types::SolCall,
     };
+    use rain_math_float::Float;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook};
+    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_trade_replayer_ok() {
@@ -163,9 +166,12 @@ amount price: 2 1;
             .with_input(calldata)
             .with_to(*orderbook.address())
             .with_from(token1_holder);
-        local_evm.send_transaction(tx).await.unwrap();
+        local_evm
+            .send_transaction(WithOtherFields::new(tx))
+            .await
+            .unwrap();
 
-        let filter = orderbook.AddOrderV2_filter();
+        let filter = orderbook.AddOrderV3_filter();
         let logs = filter.query().await.unwrap();
         let order = logs[0].0.order.clone();
 
@@ -179,43 +185,46 @@ amount price: 2 1;
             .await
             .unwrap();
 
-        orderbook
-            .deposit2(
+        let Float(amount) = Float::parse("10".to_string()).unwrap();
+        let tx_req = orderbook
+            .deposit3(
                 *token1.address(),
-                U256::from(0x01),
-                parse_ether("10").unwrap(),
+                B256::from(U256::from(0x01)),
+                amount,
                 vec![],
             )
-            .do_send(&local_evm)
-            .await
-            .unwrap();
+            .into_transaction_request();
+        local_evm.send_transaction(tx_req).await.unwrap();
 
         // approve T2 spending for token2 holder for orderbook
-        token2
+        let tx_req = token2
             .approve(*orderbook.address(), parse_ether("1000").unwrap())
             .from(token2_holder)
-            .do_send(&local_evm)
-            .await
-            .unwrap();
+            .into_transaction_request();
+        local_evm.send_transaction(tx_req).await.unwrap();
+
         // take order from token2 holder
-        let config = Orderbook::TakeOrdersConfigV3 {
-            orders: vec![Orderbook::TakeOrderConfigV3 {
+        let Float(max_float) = Float::pack_lossless(I224::MAX, i32::MAX).unwrap();
+        let Float(one_float) = Float::parse("1".to_string()).unwrap();
+        let config = Orderbook::TakeOrdersConfigV4 {
+            orders: vec![Orderbook::TakeOrderConfigV4 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
                 signedContext: vec![],
             }],
-            maximumIORatio: U256::MAX,
-            maximumInput: U256::MAX,
-            minimumInput: U256::from(1),
+            maximumIORatio: max_float,
+            maximumInput: max_float,
+            minimumInput: one_float,
             data: Bytes::new(),
         };
-        let tx = orderbook
-            .takeOrders2(config)
+
+        let tx_req = orderbook
+            .takeOrders3(config)
             .from(token2_holder)
-            .do_send(&local_evm)
-            .await
-            .unwrap();
+            .into_transaction_request();
+
+        let tx = local_evm.send_transaction(tx_req).await.unwrap();
 
         let mut replayer = TradeReplayer::new(NewTradeReplayer {
             fork_url: local_evm.url().as_str().try_into().unwrap(),

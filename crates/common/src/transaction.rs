@@ -77,7 +77,7 @@ impl TransactionArgs {
 
     pub async fn try_fill_chain_id(&mut self) -> Result<(), TransactionArgsError> {
         if self.chain_id.is_none() {
-            let chain_id = ReadableClientHttp::new_from_http_urls(vec![self.rpc_url.clone()])?
+            let chain_id = ReadableClient::new_from_http_urls(vec![self.rpc_url.clone()])?
                 .get_chainid()
                 .await?;
 
@@ -111,11 +111,11 @@ impl TransactionArgs {
 
 #[cfg(test)]
 mod tests {
-    use alloy::primitives::address;
+    use alloy::primitives::{address, B256, U256};
     use httpmock::MockServer;
 
     use super::*;
-    use rain_orderbook_bindings::IOrderBookV5::vaultBalanceCall;
+    use rain_orderbook_bindings::IOrderBookV5::vaultBalance2Call;
 
     #[test]
     fn test_try_into_write_contract_parameters_ok() {
@@ -126,13 +126,12 @@ mod tests {
             rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
-            gas_fee_speed: None,
         };
 
-        let call = vaultBalanceCall {
+        let call = vaultBalance2Call {
             owner: Address::ZERO,
             token: Address::ZERO,
-            vaultId: U256::ZERO,
+            vaultId: B256::ZERO,
         };
 
         let params = args
@@ -149,15 +148,14 @@ mod tests {
             derivation_index: Some(0),
             chain_id: Some(1),
             rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
-            max_priority_fee_per_gas: Some(U256::from(100)),
-            max_fee_per_gas: Some(U256::from(200)),
-            gas_fee_speed: Some(GasFeeSpeed::Fast),
+            max_priority_fee_per_gas: Some(100),
+            max_fee_per_gas: Some(200),
         };
 
-        let call = vaultBalanceCall {
+        let call = vaultBalance2Call {
             owner: address!("b20a608c624Ca5003905aA834De7156C68b2E1d0"),
             token: address!("00000000219ab540356cBB839Cbe05303d7705Fa"),
-            vaultId: U256::from(123456),
+            vaultId: B256::from(U256::from(123456)),
         };
 
         let params = args
@@ -172,8 +170,8 @@ mod tests {
             address!("0000000000000000000000000123456789abcdef")
         );
         assert_eq!(params.call, call);
-        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(100)));
-        assert_eq!(params.max_fee_per_gas, Some(U256::from(200)));
+        assert_eq!(params.max_priority_fee_per_gas, Some(100));
+        assert_eq!(params.max_fee_per_gas, Some(200));
     }
 
     #[tokio::test]
@@ -195,7 +193,6 @@ mod tests {
             rpc_url: server.url("/rpc"),
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
-            gas_fee_speed: None,
         };
 
         args.try_fill_chain_id().await.unwrap();
@@ -223,7 +220,6 @@ mod tests {
             rpc_url: server.url("/rpc"),
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
-            gas_fee_speed: None,
         };
 
         let err = args.try_fill_chain_id().await.unwrap_err();

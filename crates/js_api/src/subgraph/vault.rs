@@ -333,7 +333,11 @@ pub async fn get_vault_approval_calldata(
     }
 
     Ok(VaultCalldataResult(Bytes::copy_from_slice(
-        &deposit_args.get_approve_calldata(transaction_args).await?,
+        approveCall {
+            spender: transaction_args.orderbook_address,
+            amount: deposit_args.amount,
+        }
+        .abi_encode(),
     )))
 }
 

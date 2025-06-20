@@ -231,7 +231,7 @@ impl FuzzRunner {
 
         // Fetch the latest block number
         let block_number =
-            ReadableClientHttp::new_from_http_urls(vec![deployer.network.rpc.to_string()])?
+            ReadableClient::new_from_http_urls(vec![deployer.network.rpc.to_string()])?
                 .get_block_number()
                 .await?;
 
@@ -481,7 +481,7 @@ impl FuzzRunner {
         // input decimals
         context[3][1] = U256::from(input_token.decimals.unwrap_or(18)).into();
         // input vault id
-        context[3][2] = input.vault_id.unwrap_or(B256::ZERO);
+        context[3][2] = input.vault_id.unwrap_or(U256::ZERO).into();
         // input vault balance before
         context[3][3] = B256::ZERO;
 
@@ -491,7 +491,7 @@ impl FuzzRunner {
         // output decimals
         context[4][1] = U256::from(output_token.decimals.unwrap_or(18)).into();
         // output vault id
-        context[4][2] = output.vault_id.unwrap_or(B256::ZERO);
+        context[4][2] = output.vault_id.unwrap_or(U256::ZERO).into();
         // output vault balance before
         context[4][3] = B256::ZERO;
 
@@ -624,7 +624,7 @@ impl FuzzRunner {
                 *cached_block_number
             } else {
                 // Fetch the latest block number, if failed, record the error and continue to next deployment key
-                match ReadableClientHttp::new_from_http_urls(vec![scenario
+                match ReadableClient::new_from_http_urls(vec![scenario
                     .deployer
                     .network
                     .rpc
@@ -927,7 +927,7 @@ b: fuzzed;
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -945,11 +945,7 @@ b: fuzzed;
 
         let start_block_number = local_evm.provider.get_block_number().await.unwrap();
         let last_block_number = start_block_number + 10;
-        local_evm
-            .provider
-            .anvil_mine(Some(U256::from(10)), None)
-            .await
-            .unwrap();
+        local_evm.provider.anvil_mine(Some(10), None).await.unwrap();
 
         let dotrain = format!(
             r#"
@@ -979,7 +975,7 @@ _: block-number();
             start_block = start_block_number,
             end_block = last_block_number
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -1039,7 +1035,7 @@ d: 4;
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -1095,7 +1091,7 @@ _: context<4 4>();
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -1141,7 +1137,7 @@ _: context<50 50>();
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner.run_scenario_by_key(&mut context, "some-key").await;
@@ -1178,7 +1174,7 @@ _: context<1 0>();
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -1299,7 +1295,7 @@ _: add(something 30);
             usdce_address = usdce_address,
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner

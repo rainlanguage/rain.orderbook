@@ -512,7 +512,7 @@ impl DotrainOrder {
             .compose_scenario_to_rainlang(scenario.to_string())
             .await?;
 
-        let client = ReadableClient::new_from_urls(vec![deployer.network.rpc.to_string()])?;
+        let client = ReadableClient::new_from_http_urls(vec![deployer.network.rpc.to_string()])?;
         let pragmas = parser.parse_pragma_text(&rainlang, client).await?;
         Ok(pragmas)
     }
@@ -631,11 +631,11 @@ impl DotrainOrder {
 mod tests {
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
-    use alloy_ethers_typecast::transaction::rpc::Response;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use serde_bytes::ByteBuf;
+    use serde_json::json;
 
     sol!(
         struct AuthoringMetaV2Sol {
@@ -1235,49 +1235,43 @@ _ _: 0 0;
         // mock contract calls
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7ffffffff");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[0]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::left_padding_from(&[0]).to_string()
+            }));
         });
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::left_padding_from(&[1]).to_string()
+            }));
         });
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x6f5aa28d");
-            then.body(
-                Response::new_success(1, &B256::random().to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::random().to_string()
+            }));
         });
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x5514ca20");
-            then.body(
-                Response::new_success(
-                    1,
-                    &encode_prefixed(
-                        PragmaV1 {
-                            usingWordsFrom: with_pragma_addresses,
-                        }
-                        .abi_encode(),
-                    ),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(PragmaV1 {
+                    usingWordsFrom: with_pragma_addresses,
+                }.abi_encode())
+            }));
         });
 
         // mock sg query
         server.mock(|when, then| {
             when.path("/sg");
-            then.status(200).json_body_obj(&serde_json::json!({
+            then.status(200).json_body_obj(&json!({
                 "data": {
                     "metaV1S": [{
                         "meta": encode_prefixed(
