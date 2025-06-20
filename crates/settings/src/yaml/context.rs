@@ -306,7 +306,7 @@ mod tests {
     use crate::yaml::RwLock;
     use crate::OrderCfg;
     use crate::{test::*, yaml::default_document};
-    use alloy::primitives::{Address, U256};
+    use alloy::primitives::{Address, B256, U256};
     use strict_yaml_rust::StrictYaml;
 
     fn setup_test_order_with_vault_id() -> Arc<OrderCfg> {
@@ -325,7 +325,7 @@ mod tests {
             key: "test_order".to_string(),
             inputs: vec![OrderIOCfg {
                 token: Some(Arc::new(token.clone())),
-                vault_id: Some(U256::from(42)),
+                vault_id: Some(B256::from(U256::from(42))),
             }],
             outputs: vec![OrderIOCfg {
                 token: Some(Arc::new(token.clone())),
@@ -425,7 +425,7 @@ mod tests {
             key: "test_order".to_string(),
             inputs: vec![OrderIOCfg {
                 token: Some(mock_token("token1")),
-                vault_id: Some(U256::from(10)),
+                vault_id: Some(B256::from(U256::from(10))),
             }],
             outputs: vec![OrderIOCfg {
                 token: Some(mock_token("token2")),
@@ -442,7 +442,10 @@ mod tests {
         assert_eq!(context_order.key, "test_order");
         assert_eq!(context_order.inputs.len(), 1);
         assert_eq!(context_order.inputs[0].token, Some(mock_token("token1")));
-        assert_eq!(context_order.inputs[0].vault_id, Some(U256::from(10)));
+        assert_eq!(
+            context_order.inputs[0].vault_id,
+            Some(B256::from(U256::from(10)))
+        );
         assert_eq!(context_order.outputs.len(), 1);
         assert_eq!(context_order.outputs[0].token, Some(mock_token("token2")));
         assert_eq!(context_order.outputs[0].vault_id, None);

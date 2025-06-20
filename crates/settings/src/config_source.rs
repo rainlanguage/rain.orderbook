@@ -724,7 +724,9 @@ gui:
             ],
             outputs: vec![IOStringConfigSource {
                 token: "dai".to_string(),
-                vault_id: Some(U256::from(3)),
+                vault_id: Some(fixed_bytes!(
+                    "0000000000000000000000000000000000000000000000000000000000000003"
+                )),
             }],
             deployer: Some("mainDeployer".to_string()),
             orderbook: Some("mainnetOrderbook".to_string()),

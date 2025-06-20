@@ -1,5 +1,5 @@
 use crate::{yaml::FieldErrorKind, *};
-use alloy::primitives::{private::rand, B256};
+use alloy::primitives::{private::rand, B256, U256};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeSet, HashMap},
@@ -51,7 +51,10 @@ impl_wasm_traits!(OrderCfg);
 
 impl OrderCfg {
     pub fn validate_vault_id(value: &str) -> Result<B256, ParseOrderConfigSourceError> {
-        B256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)
+        // first parsing U256 to maintain support for existing vault ids.
+        // B256::from_str expects a hex string. U256 can handle multiple formats
+        let num = U256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)?;
+        Ok(B256::from(num))
     }
 
     pub fn update_vault_id(
@@ -831,7 +834,7 @@ pub enum ParseOrderConfigSourceError {
         found: String,
     },
     #[error("Failed to parse vault id: {0}")]
-    VaultParseError(#[from] alloy::hex::FromHexError),
+    VaultParseError(#[from] alloy::primitives::ruint::ParseError),
 }
 
 impl ParseOrderConfigSourceError {
@@ -994,6 +997,7 @@ impl OrderConfigSource {
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::{fixed_bytes, U256};
     use yaml::tests::get_document;
 
     use super::*;
@@ -1024,11 +1028,15 @@ mod tests {
             orderbook: Some("Orderbook1".to_string()),
             inputs: vec![IOStringConfigSource {
                 token: "Token1".to_string(),
-                vault_id: Some(U256::from(1)),
+                vault_id: Some(fixed_bytes!(
+                    "0000000000000000000000000000000000000000000000000000000000000001"
+                )),
             }],
             outputs: vec![IOStringConfigSource {
                 token: "Token2".to_string(),
-                vault_id: Some(U256::from(2)),
+                vault_id: Some(fixed_bytes!(
+                    "0000000000000000000000000000000000000000000000000000000000000002"
+                )),
             }],
         };
 
@@ -1122,7 +1130,9 @@ mod tests {
             orderbook: None,
             inputs: vec![IOStringConfigSource {
                 token: "Nonexistent Token".to_string(),
-                vault_id: Some(U256::from(1)),
+                vault_id: Some(fixed_bytes!(
+                    "0000000000000000000000000000000000000000000000000000000000000001"
+                )),
             }],
             outputs: vec![],
         };

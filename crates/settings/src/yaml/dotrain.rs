@@ -200,7 +200,7 @@ mod tests {
         HexBinTransformCfg, LineOptionsCfg, MarkCfg, RectYOptionsCfg, TransformCfg,
         TransformOutputsCfg,
     };
-    use alloy::primitives::U256;
+    use alloy::primitives::{fixed_bytes, B256, U256};
     use orderbook::OrderbookYaml;
 
     use super::*;
@@ -418,13 +418,13 @@ mod tests {
             *input.token.clone().as_ref().unwrap(),
             ob_yaml.get_token("token1").unwrap().into()
         );
-        assert_eq!(input.vault_id, Some(U256::from(1)));
+        assert_eq!(input.vault_id, Some(B256::from(U256::from(1))));
         let output = order.outputs.first().unwrap();
         assert_eq!(
             *output.token.as_ref().unwrap(),
             ob_yaml.get_token("token2").unwrap().into()
         );
-        assert_eq!(output.vault_id, Some(U256::from(2)));
+        assert_eq!(output.vault_id, Some(B256::from(U256::from(2))));
         assert_eq!(
             *order.network.as_ref(),
             ob_yaml.get_network("mainnet").unwrap()
@@ -705,11 +705,11 @@ mod tests {
         // Populate vault IDs should not change if the vault IDs are already set
         let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
         let mut order = dotrain_yaml.get_order("order1").unwrap();
-        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
-        assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
+        assert_eq!(order.inputs[0].vault_id, Some(B256::from(U256::from(1))));
+        assert_eq!(order.outputs[0].vault_id, Some(B256::from(U256::from(2))));
         order.populate_vault_ids().unwrap();
-        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
-        assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
+        assert_eq!(order.inputs[0].vault_id, Some(B256::from(U256::from(1))));
+        assert_eq!(order.outputs[0].vault_id, Some(B256::from(U256::from(2))));
     }
 
     #[test]
@@ -755,12 +755,18 @@ mod tests {
             .update_vault_id(false, 0, Some("11".to_string()))
             .unwrap();
 
-        assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(1)));
-        assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(11)));
+        assert_eq!(
+            updated_order.inputs[0].vault_id,
+            Some(B256::from(U256::from(1)))
+        );
+        assert_eq!(
+            updated_order.outputs[0].vault_id,
+            Some(B256::from(U256::from(11)))
+        );
 
         let mut order = dotrain_yaml.get_order("order1").unwrap();
-        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
-        assert_eq!(order.outputs[0].vault_id, Some(U256::from(11)));
+        assert_eq!(order.inputs[0].vault_id, Some(B256::from(U256::from(1))));
+        assert_eq!(order.outputs[0].vault_id, Some(B256::from(U256::from(11))));
 
         let mut updated_order = order
             .update_vault_id(true, 0, Some("3".to_string()))
@@ -768,12 +774,22 @@ mod tests {
         let updated_order = updated_order
             .update_vault_id(false, 0, Some("33".to_string()))
             .unwrap();
-        assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(3)));
-        assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(33)));
+        assert_eq!(
+            updated_order.inputs[0].vault_id,
+            Some(fixed_bytes!(
+                "0000000000000000000000000000000000000000000000000000000000000003"
+            ))
+        );
+        assert_eq!(
+            updated_order.outputs[0].vault_id,
+            Some(fixed_bytes!(
+                "0000000000000000000000000000000000000000000000000000000000000021"
+            ))
+        );
 
         let order = dotrain_yaml.get_order("order1").unwrap();
-        assert_eq!(order.inputs[0].vault_id, Some(U256::from(3)));
-        assert_eq!(order.outputs[0].vault_id, Some(U256::from(33)));
+        assert_eq!(order.inputs[0].vault_id, Some(B256::from(U256::from(3))));
+        assert_eq!(order.outputs[0].vault_id, Some(B256::from(U256::from(33))));
     }
 
     #[test]
