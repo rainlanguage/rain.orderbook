@@ -191,7 +191,7 @@ impl DotrainOrderGui {
     /// // Do something with the config
     /// ```
     #[wasm_export(
-        js_name = "getGuiConfig", 
+        js_name = "getGuiConfig",
         unchecked_return_type = "GuiCfg",
         return_description = "Complete GUI configuration with name, description, and deployments"
     )]
@@ -270,14 +270,14 @@ impl DotrainOrderGui {
     /// // Do something with the tokenInfo
     /// ```
     #[wasm_export(
-        js_name = "getTokenInfo", 
+        js_name = "getTokenInfo",
         unchecked_return_type = "TokenInfo",
         return_description = "Complete token details including address, decimals, name, and symbol"
     )]
     pub async fn get_token_info(
-        &self, 
+        &self,
         #[wasm_export(param_description = "Token identifier from the YAML tokens section")]
-        key: String
+        key: String,
     ) -> Result<TokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
@@ -340,7 +340,7 @@ impl DotrainOrderGui {
     /// // Do something with the tokens
     /// ```
     #[wasm_export(
-        js_name = "getAllTokenInfos", 
+        js_name = "getAllTokenInfos",
         unchecked_return_type = "TokenInfo[]",
         return_description = "Array of complete token information"
     )]
@@ -400,8 +400,7 @@ impl DotrainOrderGui {
         return_description = "Strategy name, description, and optional short description"
     )]
     pub async fn get_strategy_details(
-        #[wasm_export(param_description = "Complete dotrain YAML content")]
-        dotrain: String
+        #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         let details =
@@ -442,8 +441,7 @@ impl DotrainOrderGui {
         return_description = "Map of deployment key to metadata"
     )]
     pub async fn get_deployment_details(
-        #[wasm_export(param_description = "Complete dotrain YAML content")]
-        dotrain: String,
+        #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<HashMap<String, NameAndDescriptionCfg>, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         Ok(GuiCfg::parse_deployment_details(
@@ -473,10 +471,8 @@ impl DotrainOrderGui {
         return_description = "Deployment name and description"
     )]
     pub async fn get_deployment_detail(
-        #[wasm_export(param_description = "Complete dotrain YAML content")]
-        dotrain: String,
-        #[wasm_export(param_description = "Deployment identifier to look up")]
-        key: String,
+        #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
+        #[wasm_export(param_description = "Deployment identifier to look up")] key: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
         let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
         let deployment_detail = deployment_details
@@ -546,7 +542,7 @@ impl DotrainOrderGui {
     /// // Do something with the dotrain
     /// ```
     #[wasm_export(
-        js_name = "generateDotrainText", 
+        js_name = "generateDotrainText",
         unchecked_return_type = "string",
         return_description = "Complete dotrain content with YAML frontmatter separator"
     )]
@@ -582,7 +578,7 @@ impl DotrainOrderGui {
     /// // Do something with the rainlang
     /// ```
     #[wasm_export(
-        js_name = "getComposedRainlang", 
+        js_name = "getComposedRainlang",
         unchecked_return_type = "string",
         return_description = "Composed Rainlang code with comments for each entrypoint"
     )]
