@@ -3,7 +3,7 @@ use crate::subgraph::vault::{
     GetVaultBalanceChangesResult, GetVaultsResult, VaultAllowanceResult, VaultCalldataResult,
 };
 use rain_orderbook_subgraph_client::types::common::{
-    SgVault, SgVaultsListFilterArgs, SgVaultWithSubgraphName,
+    SgVault, SgVaultWithSubgraphName, SgVaultsListFilterArgs,
 };
 use rain_orderbook_subgraph_client::SgPaginationArgs;
 use wasm_bindgen_utils::wasm_export;
@@ -39,9 +39,9 @@ impl RaindexClient {
     /// const polygonVaults = await client.getVaults(137);
     ///
     /// // With filtering
-    /// const myVaults = await client.getVaults(137, { 
+    /// const myVaults = await client.getVaults(137, {
     ///   owners: ["0x1234..."],
-    ///   hide_zero_balance: true 
+    ///   hide_zero_balance: true
     /// });
     /// ```
     #[wasm_export(js_name = "getVaults", unchecked_return_type = "GetVaultsResult")]
@@ -248,7 +248,10 @@ impl RaindexClient {
         vault: &SgVault,
         deposit_amount: &str,
     ) -> Result<VaultCalldataResult, RaindexError> {
-        Ok(crate::subgraph::vault::get_vault_approval_calldata(rpc_url, vault, deposit_amount).await?)
+        Ok(
+            crate::subgraph::vault::get_vault_approval_calldata(rpc_url, vault, deposit_amount)
+                .await?,
+        )
     }
 
     /// Checks current ERC20 allowance for a vault.
