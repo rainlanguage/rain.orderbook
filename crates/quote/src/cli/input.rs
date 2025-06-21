@@ -210,7 +210,7 @@ mod tests {
     use super::*;
     use alloy::primitives::hex::encode_prefixed;
     use alloy::sol_types::SolValue;
-    use rain_orderbook_bindings::IOrderBookV4::EvaluableV3;
+    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4};
 
     #[test]
     fn test_parse_input() {
@@ -271,15 +271,15 @@ mod tests {
         let output_index = 9u8;
         let orderbook1 = Address::random();
         let orderbook2 = Address::random();
-        let order1 = OrderV3 {
-            evaluable: EvaluableV3 {
+        let order1 = OrderV4 {
+            evaluable: EvaluableV4 {
                 bytecode: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0].into(),
                 ..Default::default()
             },
             ..Default::default()
         };
-        let order2 = OrderV3 {
-            evaluable: EvaluableV3 {
+        let order2 = OrderV4 {
+            evaluable: EvaluableV4 {
                 bytecode: vec![0xa, 0xb, 0xc, 0xd, 0xe, 0xf].into(),
                 ..Default::default()
             },
@@ -303,7 +303,7 @@ mod tests {
         let expected = BatchQuoteTarget(vec![
             QuoteTarget {
                 orderbook: orderbook1,
-                quote_config: Quote {
+                quote_config: QuoteV2 {
                     inputIOIndex: U256::from(input_index),
                     outputIOIndex: U256::from(output_index),
                     signedContext: vec![],
@@ -312,7 +312,7 @@ mod tests {
             },
             QuoteTarget {
                 orderbook: orderbook2,
-                quote_config: Quote {
+                quote_config: QuoteV2 {
                     inputIOIndex: U256::from(input_index),
                     outputIOIndex: U256::from(output_index),
                     signedContext: vec![],
@@ -431,7 +431,7 @@ mod tests {
             encode_prefixed(orderbook.0),
             input_io_index.to_string(),
             output_io_index.to_string(),
-            encode_prefixed(OrderV3::default().abi_encode()),
+            encode_prefixed(OrderV4::default().abi_encode()),
         ];
         let input = Input {
             input: None,

@@ -65,23 +65,25 @@ pub async fn batch_quote(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::quote::OrderQuoteValue;
-    use alloy::primitives::hex::encode_prefixed;
+    use alloy::providers::bindings::IMulticall3::Result as MulticallResult;
+    use alloy::providers::MulticallError;
+    use alloy::sol_types::SolCall;
     use alloy::sol_types::SolValue;
-    use alloy_ethers_typecast::transaction::multicall::IMulticall3::Result as MulticallResult;
+    use alloy::transports::TransportError;
     use alloy_ethers_typecast::transaction::ReadableClientError;
-    use alloy_ethers_typecast::transaction::{
-        request_shim::{AlloyTransactionRequest, TransactionRequestShim},
-        rpc::{eip2718::TypedTransaction, BlockNumber, Request, Response},
-    };
     use httpmock::{Method::POST, MockServer};
-    use serde_json::{from_str, Value};
+    use rain_math_float::Float;
+    use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return};
+    use rain_orderbook_common::provider::ReadProviderError;
+    use serde_json::json;
 
     #[tokio::test]
     async fn test_batch_quote_ok() {
         let rpc_server = MockServer::start_async().await;
 
-        let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
+        let zero = Float::parse("0".to_string()).unwrap();
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
 
         // build call data
         let quote_targets = vec![
@@ -89,31 +91,26 @@ mod tests {
             QuoteTarget::default(),
             QuoteTarget::default(),
         ];
-        let call = aggregate3Call {
-            calls: quote_targets
-                .iter()
-                .map(|quote_target| Call3 {
-                    allowFailure: true,
-                    target: quote_target.orderbook,
-                    callData: quoteCall {
-                        quoteConfig: quote_target.quote_config.clone(),
-                    }
-                    .abi_encode()
-                    .into(),
-                })
-                .collect(),
-        };
 
         // build response data
         let response_data = vec![
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2)))
-                    .into(),
+                returnData: quote2Call::abi_encode_returns(&quote2Return {
+                    exists: true,
+                    outputMax: one.0,
+                    ioRatio: two.0,
+                })
+                .into(),
             },
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)).into(),
+                returnData: quote2Call::abi_encode_returns(&quote2Return {
+                    exists: false,
+                    outputMax: zero.0,
+                    ioRatio: zero.0,
+                })
+                .into(),
             },
             MulticallResult {
                 success: false,
@@ -124,28 +121,12 @@ mod tests {
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
-            when.method(POST).path("/").json_body_partial(
-                Request::<(TypedTransaction, BlockNumber)>::eth_call_request(
-                    1,
-                    TypedTransaction::Eip1559(
-                        AlloyTransactionRequest::new()
-                            .with_to(Some(multicall))
-                            .with_data(Some(call.abi_encode()))
-                            .to_eip1559(),
-                    ),
-                    None,
-                )
-                .to_json_string()
-                .unwrap(),
-            );
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            when.method(POST).path("/");
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": alloy::hex::encode_prefixed(response_data).as_str(),
+            }));
         });
 
         let result = batch_quote(
@@ -157,24 +138,17 @@ mod tests {
         )
         .await
         .unwrap();
-        let mut iter_result = result.into_iter();
 
-        assert_eq!(
-            iter_result.next().unwrap().unwrap(),
-            OrderQuoteValue {
-                max_output: U256::from(1),
-                ratio: U256::from(2),
-            }
-        );
-        matches!(
-            iter_result.next().unwrap(),
-            Result::Err(FailedQuote::NonExistent)
-        );
-        matches!(
-            iter_result.next().unwrap(),
-            Result::Err(FailedQuote::RevertErrorDecodeFailed(_))
-        );
-        assert!(iter_result.next().is_none());
+        assert_eq!(result.len(), 3);
+
+        assert!(result[0].as_ref().unwrap().max_output.eq(one).unwrap());
+        assert!(result[0].as_ref().unwrap().ratio.eq(two).unwrap());
+
+        assert!(matches!(result[1], Err(FailedQuote::NonExistent)));
+        assert!(matches!(
+            result[2],
+            Err(FailedQuote::RevertErrorDecodeFailed(_))
+        ));
     }
 
     #[tokio::test]
@@ -189,22 +163,23 @@ mod tests {
         assert!(
             matches!(
                 err,
-                Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(ref msg))
-                if msg.contains("No valid providers could be created from the given URLs")
+                Error::ReadProviderError(ReadProviderError::UrlParse(
+                    url::ParseError::RelativeUrlWithoutBase
+                ))
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
 
         rpc_server.mock(|when, then| {
             when.path("/rpc");
-            then.status(500).json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_error(1, -32000, "Internal error", None)
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.status(500).json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error"
+                }
+            }));
         });
 
         let err = batch_quote(
@@ -220,14 +195,9 @@ mod tests {
         assert!(
             matches!(
                 err,
-                Error::RpcCallError(ReadableClientError::AllProvidersFailed(ref msg))
-                if msg.get(rpc_server.url("/rpc").as_str()).is_some()
-                    && matches!(
-                        msg.get(rpc_server.url("/rpc").as_str()).unwrap(),
-                        ReadableClientError::RpcProviderError(_, _)
-                    )
+                Error::MulticallError(MulticallError::TransportError(TransportError::Transport(_)))
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
     }
 }

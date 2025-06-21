@@ -24,7 +24,7 @@ pub type QuoteResult = Result<OrderQuoteValue, FailedQuote>;
 add_ts_content!("export type QuoteResult = OrderQuoteValue | string");
 
 /// Holds quoted order max output and ratio
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderQuoteValue {
@@ -307,25 +307,26 @@ impl BatchQuoteSpec {
 mod tests {
     use super::*;
     use alloy::hex;
-    use alloy::hex::ToHex;
+    use alloy::hex::ToHexExt;
     use alloy::primitives::{address, keccak256};
     use alloy::primitives::{hex::encode_prefixed, U256};
+    use alloy::providers::bindings::IMulticall3::Result as MulticallResult;
+    use alloy::providers::MulticallError;
     use alloy::sol_types::{SolCall, SolValue};
-    use alloy_ethers_typecast::transaction::multicall::IMulticall3::Result as MulticallResult;
-    use alloy_ethers_typecast::transaction::rpc::Response;
+    use alloy::transports::TransportError;
     use alloy_ethers_typecast::transaction::ReadableClientError;
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::AbiDecodedErrorType;
-    use rain_orderbook_bindings::IOrderBookV4::{quoteCall, Quote, IO};
+    use rain_orderbook_bindings::IOrderBookV5::{quote2Call, QuoteV2, IOV2};
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
-    use serde_json::{from_str, json, Value};
+    use serde_json::{json, Value};
 
     // helper fn to build some test data
-    fn get_test_data(batch: bool) -> (Address, OrderV3, U256, Value) {
+    fn get_test_data(batch: bool) -> (Address, OrderV4, U256, Value) {
         let orderbook = Address::random();
-        let order = OrderV3 {
-            validInputs: vec![IO::default()],
-            validOutputs: vec![IO::default()],
+        let order = OrderV4 {
+            validInputs: vec![IOV2::default()],
+            validOutputs: vec![IOV2::default()],
             ..Default::default()
         };
         let order_hash_bytes = keccak256(order.abi_encode()).0;
@@ -348,7 +349,7 @@ mod tests {
                     "address": encode_prefixed(order.validOutputs[0].token.0.0),
                     "name": "T1",
                     "symbol": "T1",
-                    "decimals": order.validOutputs[0].decimals.to_string()
+                    "decimals": "0"
                 },
                 "balance": "0",
                 "vaultId": order.validOutputs[0].vaultId.to_string(),
@@ -377,7 +378,7 @@ mod tests {
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
                             "name": "T1",
                             "symbol": "T1",
-                            "decimals": order.validOutputs[0].decimals.to_string()
+                            "decimals": "0"
                         },
                     },
                     "timestamp": "0",
@@ -398,7 +399,7 @@ mod tests {
                     "address": encode_prefixed(order.validInputs[0].token.0.0),
                     "name": "T2",
                     "symbol": "T2",
-                    "decimals": order.validInputs[0].decimals.to_string()
+                    "decimals": "0"
                 },
                 "balance": "0",
                 "vaultId": order.validInputs[0].vaultId.to_string(),
@@ -427,7 +428,7 @@ mod tests {
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
                             "name": "T1",
                             "symbol": "T1",
-                            "decimals": order.validOutputs[0].decimals.to_string()
+                            "decimals": "0"
                         },
                     },
                     "timestamp": "0",
@@ -475,15 +476,15 @@ mod tests {
     fn test_quote_target_get_order_hash() {
         let (orderbook, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 ..Default::default()
             },
             orderbook,
         };
-        let actual = quote_target.get_order_hash().encode_hex::<String>();
+        let actual = quote_target.get_order_hash().encode_hex();
         let expected =
-            "8a3fbb9caf53f18f1f78d90c48dbe4612bcd93285ed0fc033009b4a96ea2aaed".to_string();
+            "89a108449cd7a8de4e7061645c1dc7ffe8ff2163eb6eff847efd9b1ad1f39934".to_string();
         assert_eq!(actual, expected);
     }
 
@@ -493,7 +494,7 @@ mod tests {
             quote_config: Default::default(),
             orderbook: Address::ZERO,
         };
-        let actual = quote_target.get_id().encode_hex::<String>();
+        let actual = quote_target.get_id().encode_hex();
         let expected =
             "3c220b0ff68b48f69ef802b5d39e6942218a1b843a1845ade53d1e2412135b63".to_string();
         assert_eq!(actual, expected);
@@ -508,7 +509,7 @@ mod tests {
             signed_context: Vec::new(),
             orderbook: Address::ZERO,
         };
-        let actual = quote_spec.get_id().encode_hex::<String>();
+        let actual = quote_spec.get_id().encode_hex();
         let expected =
             "a86d54e9aab41ae5e520ff0062ff1b4cbd0b2192bb01080a058bb170d84e6457".to_string();
         assert_eq!(actual, expected);
@@ -518,7 +519,7 @@ mod tests {
     fn test_validate_ok() {
         let (orderbook, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 ..Default::default()
             },
@@ -530,8 +531,8 @@ mod tests {
     #[test]
     fn test_validate_err() {
         let quote_target = QuoteTarget {
-            quote_config: Quote {
-                order: OrderV3::default(),
+            quote_config: QuoteV2 {
+                order: OrderV4::default(),
                 outputIOIndex: U256::from(1_u16),
                 ..Default::default()
             },
@@ -540,8 +541,8 @@ mod tests {
         assert!(quote_target.validate().is_err());
 
         let quote_target = QuoteTarget {
-            quote_config: Quote {
-                order: OrderV3::default(),
+            quote_config: QuoteV2 {
+                order: OrderV4::default(),
                 inputIOIndex: U256::from(1_u16),
                 ..Default::default()
             },
@@ -576,7 +577,7 @@ mod tests {
 
         let expected = QuoteTarget {
             orderbook,
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 inputIOIndex: U256::from(quote_target_specifier.input_io_index),
                 outputIOIndex: U256::from(quote_target_specifier.output_io_index),
@@ -653,7 +654,7 @@ mod tests {
 
         let expected = vec![Some(QuoteTarget {
             orderbook,
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 inputIOIndex: U256::from(batch_quote_targets_specifiers.0[0].input_io_index),
                 outputIOIndex: U256::from(batch_quote_targets_specifiers.0[0].output_io_index),
@@ -720,24 +721,29 @@ mod tests {
 
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(false);
 
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
+
         // build response data
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
+            returnData: quote2Call::abi_encode_returns(&quote2Return {
+                exists: true,
+                outputMax: one.0,
+                ioRatio: two.0,
+            })
+            .into(),
         }]
         .abi_encode();
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
             when.method(POST).path("/rpc");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(response_data).as_str(),
+            }));
         });
 
         // mock subgraph
@@ -765,13 +771,13 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(
-            result.unwrap(),
-            OrderQuoteValue {
-                max_output: U256::from(1),
-                ratio: U256::from(2),
-            }
-        );
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
+
+        let quote = result.unwrap();
+
+        assert!(quote.max_output.eq(one).unwrap());
+        assert!(quote.ratio.eq(two).unwrap());
     }
 
     #[tokio::test]
@@ -780,34 +786,36 @@ mod tests {
 
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(false);
 
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
+
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
+            returnData: quote2Call::abi_encode_returns(&quote2Return {
+                exists: true,
+                outputMax: one.0,
+                ioRatio: two.0,
+            })
+            .into(),
         }]
         .abi_encode();
 
         server.mock(|when, then| {
             when.method(POST).path("/rpc");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(response_data).as_str(),
+            }));
         });
 
         server.mock(|when, then| {
             when.method(POST).path("/bad-rpc");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, "not good data")
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": "not good data",
+            }));
         });
 
         server.mock(|when, then| {
@@ -839,15 +847,16 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            Error::RpcCallError(ReadableClientError::AllProvidersFailed(ref msg))
-            if msg.get(server.url("/bad-rpc").as_str()).is_some()
-                && matches!(
-                    msg.get(server.url("/bad-rpc").as_str()).unwrap(),
-                    ReadableClientError::ReadCallError(_)
-                )
-        ));
+        assert!(
+            matches!(
+                err,
+                Error::MulticallError(MulticallError::TransportError(TransportError::DeserError {
+                    err: _,
+                    text: _
+                }))
+            ),
+            "unexpected error: {err:?}"
+        );
 
         let err = quote_target_specifier
             .do_quote(
@@ -875,23 +884,28 @@ mod tests {
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(true);
 
         // build response data
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
+
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
+            returnData: quote2Call::abi_encode_returns(&quote2Return {
+                exists: true,
+                outputMax: one.0,
+                ioRatio: two.0,
+            })
+            .into(),
         }]
         .abi_encode();
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
             when.method(POST).path("/rpc");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(response_data).as_str(),
+            }));
         });
 
         // mock subgraph
@@ -944,21 +958,18 @@ mod tests {
             .await
             .unwrap();
 
-        let mut iter_result = result.into_iter();
-        assert_eq!(
-            iter_result.next().unwrap().unwrap(),
-            OrderQuoteValue {
-                max_output: U256::from(1),
-                ratio: U256::from(2),
-            }
-        );
+        assert_eq!(result.len(), 3);
+
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
+
+        let quote = result[0].as_ref().unwrap();
+        assert!(quote.max_output.eq(one).unwrap());
+        assert!(quote.ratio.eq(two).unwrap());
 
         // specifiers that were not present on subgraph were not quoted and are Err
-        assert!(iter_result.next().unwrap().is_err());
-        assert!(iter_result.next().unwrap().is_err());
-
-        // all results should have been consumed by now
-        assert!(iter_result.next().is_none());
+        assert!(result[1].is_err());
+        assert!(result[2].is_err());
     }
 
     #[tokio::test]
@@ -967,7 +978,7 @@ mod tests {
 
         let (orderbook, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 ..Default::default()
             },
@@ -975,37 +986,38 @@ mod tests {
         };
 
         // build response data
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
+
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
+            returnData: quote2Call::abi_encode_returns(&quote2Return {
+                exists: true,
+                outputMax: one.0,
+                ioRatio: two.0,
+            })
+            .into(),
         }]
         .abi_encode();
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
             when.method(POST).path("/rpc");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(response_data).as_str(),
+            }));
         });
 
         let result = quote_target
             .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
             .await
+            .unwrap()
             .unwrap();
 
-        assert_eq!(
-            result.unwrap(),
-            OrderQuoteValue {
-                max_output: U256::from(1),
-                ratio: U256::from(2),
-            }
-        );
+        assert!(result.max_output.eq(one).unwrap());
+        assert!(result.ratio.eq(two).unwrap());
     }
 
     #[tokio::test]
@@ -1014,7 +1026,7 @@ mod tests {
 
         let (orderbook, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 ..Default::default()
             },
@@ -1030,14 +1042,11 @@ mod tests {
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
             when.method(POST).path("/rpc");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(response_data).as_str(),
+            }));
         });
 
         let err = quote_target
@@ -1059,7 +1068,7 @@ mod tests {
 
         let (orderbook, order, _, _) = get_test_data(true);
         let quote_targets = BatchQuoteTarget(vec![QuoteTarget {
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 ..Default::default()
             },
@@ -1067,39 +1076,44 @@ mod tests {
         }]);
 
         // build response data
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
+
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
+            returnData: quote2Call::abi_encode_returns(&quote2Return {
+                exists: true,
+                outputMax: one.0,
+                ioRatio: two.0,
+            })
+            .into(),
         }]
         .abi_encode();
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
             when.method(POST).path("/rpc");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(response_data).as_str(),
+            }));
         });
 
         let result = quote_targets
             .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
             .await
             .unwrap();
-        let mut iter_result = result.into_iter();
 
-        assert_eq!(
-            iter_result.next().unwrap().unwrap(),
-            OrderQuoteValue {
-                max_output: U256::from(1),
-                ratio: U256::from(2),
-            }
-        );
-        assert!(iter_result.next().is_none());
+        assert_eq!(result.len(), 1);
+
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
+
+        let quote = result[0].as_ref().unwrap();
+
+        assert!(quote.max_output.eq(one).unwrap());
+        assert!(quote.ratio.eq(two).unwrap());
     }
 
     #[tokio::test]
@@ -1108,7 +1122,7 @@ mod tests {
 
         let (orderbook, order, _, _) = get_test_data(true);
         let quote_targets = BatchQuoteTarget(vec![QuoteTarget {
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 ..Default::default()
             },
@@ -1130,21 +1144,18 @@ mod tests {
             }]
             .abi_encode();
 
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(response_data).as_str(),
+            }));
         });
 
         let err = quote_targets
             .do_quote(
                 rpc_server.url("/error-rpc").as_str(),
                 Some(1),
-                Some(U256::from(1000000)),
+                Some(1000000),
                 Some(address!("aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd")),
             )
             .await

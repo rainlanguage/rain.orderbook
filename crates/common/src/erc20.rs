@@ -155,8 +155,9 @@ async fn handle_alloy_err(err: alloy::contract::Error) -> Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::{hex, sol_types::SolValue};
+    use alloy::{hex, primitives::fixed_bytes, sol_types::SolValue};
     use httpmock::MockServer;
+    use rain_math_float::Float;
     use rain_orderbook_test_fixtures::LocalEvm;
     use serde_json::json;
 

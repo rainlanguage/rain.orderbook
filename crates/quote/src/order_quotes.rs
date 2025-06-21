@@ -163,6 +163,7 @@ mod tests {
         sol_types::{SolCall, SolValue},
     };
     use alloy_ethers_typecast::transaction::ReadableClientError;
+    use rain_math_float::Float;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_subgraph_client::types::{
@@ -304,9 +305,9 @@ amount price: context<3 0>() context<4 0>();
         )
     }
 
-    fn create_vault(setup: &TestSetup, token: &SgErc20) -> SgVault {
+    fn create_vault(vault_id: B256, setup: &TestSetup, token: &SgErc20) -> SgVault {
         SgVault {
-            id: SgBytes(B256::random().to_string()),
+            id: SgBytes(vault_id.to_string()),
             token: token.clone(),
             balance: SgBigInt("123".to_string()),
             vault_id: SgBigInt(B256::random().to_string()),
@@ -349,14 +350,18 @@ amount price: context<3 0>() context<4 0>();
     async fn test_get_order_quotes_ok() {
         let setup = setup_test().await;
 
+        let vault_id1 = B256::random();
+        let vault_id2 = B256::random();
+
         // Deposit in token1 and token2 vaults
         setup
             .local_evm
             .deposit(
                 setup.owner,
                 Address::from_str(&setup.token1.address.0).unwrap(),
-                U256::MAX,
-                U256::from(1),
+                U256::from(1234567890),
+                18,
+                vault_id1,
             )
             .await;
         setup
@@ -364,16 +369,17 @@ amount price: context<3 0>() context<4 0>();
             .deposit(
                 setup.owner,
                 Address::from_str(&setup.token2.address.0).unwrap(),
-                U256::MAX,
-                U256::from(1),
+                U256::from(123456789),
+                18,
+                vault_id2,
             )
             .await;
 
         let dotrain = create_dotrain_config(&setup);
         let order = create_order(&setup, dotrain).await;
 
-        let vault1 = create_vault(&setup, &setup.token1);
-        let vault2 = create_vault(&setup, &setup.token2);
+        let vault1 = create_vault(vault_id1, &setup, &setup.token1);
+        let vault2 = create_vault(vault_id2, &setup, &setup.token2);
 
         // does not follow the actual original order's io order
         let inputs = vec![vault2.clone(), vault1.clone()];
@@ -385,8 +391,9 @@ amount price: context<3 0>() context<4 0>();
             .await
             .unwrap();
 
-        let token1_as_u256 = U256::from_str(&setup.token1.address.0).unwrap();
-        let token2_as_u256 = U256::from_str(&setup.token2.address.0).unwrap();
+        let token1_as_float = Float(B256::from(U256::from_str(&setup.token1.address.0).unwrap()));
+        let token2_as_float = Float(B256::from(U256::from_str(&setup.token2.address.0).unwrap()));
+
         let block_number = setup.local_evm.provider.get_block_number().await.unwrap();
         let expected = vec![
             BatchOrderQuotesResponse {
@@ -397,8 +404,8 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: token1_as_u256,
-                    ratio: token2_as_u256,
+                    max_output: token1_as_float,
+                    ratio: token2_as_float,
                 }),
                 success: true,
                 error: None,
@@ -411,14 +418,38 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: token2_as_u256,
-                    ratio: token1_as_u256,
+                    max_output: token2_as_float,
+                    ratio: token1_as_float,
                 }),
                 success: true,
                 error: None,
             },
         ];
-        assert_eq!(result, expected);
+
+        assert_eq!(result.len(), expected.len());
+
+        for (res, exp) in result.iter().zip(expected.iter()) {
+            assert_eq!(res.pair, exp.pair);
+            assert_eq!(res.block_number, exp.block_number);
+            assert_eq!(res.success, exp.success);
+            assert_eq!(res.error, exp.error);
+
+            let actual_data = res.data.unwrap();
+            let expected_data = exp.data.unwrap();
+
+            assert!(
+                actual_data.max_output.eq(expected_data.max_output).unwrap(),
+                "actual_data.max_output: {}, expected_data.max_output: {}",
+                actual_data.max_output.format().unwrap(),
+                expected_data.max_output.format().unwrap()
+            );
+            assert!(
+                actual_data.ratio.eq(expected_data.ratio).unwrap(),
+                "actual_data.ratio: {}, expected_data.ratio: {}",
+                actual_data.ratio.format().unwrap(),
+                expected_data.ratio.format().unwrap()
+            );
+        }
     }
 
     #[tokio::test]
