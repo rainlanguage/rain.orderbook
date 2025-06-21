@@ -79,7 +79,7 @@ impl QuoteDebugger {
 mod tests {
     use super::*;
     use alloy::primitives::utils::parse_ether;
-    use alloy::primitives::{fixed_bytes, B256, U256};
+    use alloy::primitives::{fixed_bytes, U256};
     use alloy::sol_types::{SolCall, SolValue};
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;

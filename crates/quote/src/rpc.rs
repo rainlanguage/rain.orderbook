@@ -70,7 +70,6 @@ mod tests {
     use alloy::sol_types::SolCall;
     use alloy::sol_types::SolValue;
     use alloy::transports::TransportError;
-    use alloy_ethers_typecast::transaction::ReadableClientError;
     use httpmock::{Method::POST, MockServer};
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return};

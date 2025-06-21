@@ -452,7 +452,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod quote_non_wasm_tests {
         use super::*;
-        use alloy::primitives::{address, Bytes, FixedBytes, B256};
+        use alloy::primitives::{address, fixed_bytes, Bytes, FixedBytes};
         use alloy::{sol, sol_types::SolValue};
         use httpmock::MockServer;
         use rain_math_float::Float;
@@ -487,11 +487,15 @@ mod tests {
                     },
                     validInputs: vec![IOV2 {
                         token: address!("0x0000000000000000000000000000000000000001"),
-                        vaultId: B256::from(U256::from(20)),
+                        vaultId: fixed_bytes!(
+                            "0x0000000000000000000000000000000000000000000000000000000000000006"
+                        ),
                     }],
                     validOutputs: vec![IOV2 {
                         token: address!("0x0000000000000000000000000000000000000002"),
-                        vaultId: B256::from(U256::from(100)),
+                        vaultId: fixed_bytes!(
+                            "0x0000000000000000000000000000000000000000000000000000000000000012"
+                        ),
                     }],
                     nonce: FixedBytes::from_str(
                         "0x1230000000000000000000000000000000000000000000000000000000000000",
@@ -756,10 +760,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "Odd number of digits");
+            assert_eq!(err.to_string(), "odd number of digits");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid address format: Odd number of digits"
+                "Invalid address format: odd number of digits"
             );
 
             let err = do_quote_targets(
@@ -771,10 +775,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
+            assert_eq!(err.to_string(), "invalid digit found in string");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid numeric value: digit 18 is out of range for base 10"
+                "Invalid numeric value: invalid digit found in string"
             );
         }
 
@@ -867,10 +871,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "Odd number of digits");
+            assert_eq!(err.to_string(), "odd number of digits");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid address format: Odd number of digits"
+                "Invalid address format: odd number of digits"
             );
 
             let err = do_quote_specs(
@@ -883,10 +887,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
+            assert_eq!(err.to_string(), "invalid digit found in string");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid numeric value: digit 18 is out of range for base 10"
+                "Invalid numeric value: invalid digit found in string"
             );
         }
 
@@ -914,7 +918,7 @@ mod tests {
                 }) => {
                     assert_eq!(
                         orderbook,
-                        &Address::from_str("0x1000000000000000000000000000000000000000").unwrap()
+                        &address!("0x1000000000000000000000000000000000000000")
                     );
                     assert_eq!(quote_config, &get_quote_config());
                 }
@@ -927,7 +931,7 @@ mod tests {
                 }) => {
                     assert_eq!(
                         orderbook,
-                        &Address::from_str("0x2000000000000000000000000000000000000000").unwrap()
+                        &address!("0x2000000000000000000000000000000000000000")
                     );
                     assert_eq!(
                         quote_config,
@@ -1070,10 +1074,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
+            assert_eq!(err.to_string(), "invalid digit found in string");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid numeric value: digit 18 is out of range for base 10"
+                "Invalid numeric value: invalid digit found in string"
             );
         }
     }

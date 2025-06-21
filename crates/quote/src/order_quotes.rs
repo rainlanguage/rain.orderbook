@@ -359,7 +359,7 @@ amount price: context<3 0>() context<4 0>();
             .deposit(
                 setup.owner,
                 Address::from_str(&setup.token1.address.0).unwrap(),
-                U256::from(1234567890),
+                U256::from(10).pow(U256::from(66)),
                 18,
                 vault_id1,
             )
@@ -369,7 +369,7 @@ amount price: context<3 0>() context<4 0>();
             .deposit(
                 setup.owner,
                 Address::from_str(&setup.token2.address.0).unwrap(),
-                U256::from(123456789),
+                U256::from(10).pow(U256::from(66)),
                 18,
                 vault_id2,
             )

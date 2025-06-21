@@ -314,10 +314,10 @@ mod tests {
     use alloy::providers::MulticallError;
     use alloy::sol_types::{SolCall, SolValue};
     use alloy::transports::TransportError;
-    use alloy_ethers_typecast::transaction::ReadableClientError;
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, QuoteV2, IOV2};
+    use rain_orderbook_common::provider::ReadProviderError;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{json, Value};
 
@@ -941,10 +941,11 @@ mod tests {
         assert!(
             matches!(
                 err,
-                Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(ref url_err))
-                if url_err.contains("No valid providers could be created from the given URLs")
+                Error::ReadProviderError(ReadProviderError::UrlParse(
+                    url::ParseError::RelativeUrlWithoutBase
+                ))
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
 
         let result = batch_quote_targets_specifiers
@@ -1049,16 +1050,15 @@ mod tests {
             }));
         });
 
-        let err = quote_target
+        let res = quote_target
             .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
-            .await
-            .unwrap()
-            .unwrap_err();
+            .await;
 
         assert!(matches!(
-            err,
-            FailedQuote::CorruptReturnData(msg)
-            if msg == *"buffer overrun while deserializing"
+            res,
+            Err(Error::MulticallError(MulticallError::DecodeError(
+                alloy::sol_types::Error::Overrun
+            )))
         ));
     }
 
@@ -1161,10 +1161,13 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            Error::RpcCallError(ReadableClientError::AllProvidersFailed(_))
-        ));
+        assert!(
+            matches!(
+                err,
+                Error::MulticallError(MulticallError::TransportError(TransportError::Transport(_)))
+            ),
+            "unexpected error: {err:?}"
+        );
 
         let results = quote_targets
             .do_quote(rpc_server.url("/reverted-rpc").as_str(), None, None, None)
