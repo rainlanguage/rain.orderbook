@@ -830,7 +830,7 @@ pub enum ParseOrderConfigSourceError {
         expected: String,
         found: String,
     },
-    #[error("Failed to parse vault id")]
+    #[error("Failed to parse vault id: {0}")]
     VaultParseError(#[from] alloy::primitives::ruint::ParseError),
 }
 

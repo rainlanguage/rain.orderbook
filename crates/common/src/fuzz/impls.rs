@@ -2,23 +2,25 @@ use super::*;
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use alloy::primitives::private::rand;
 use alloy::primitives::Address;
+use alloy::primitives::B256;
 use alloy::primitives::U256;
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
+use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::prelude::RngCore;
 use proptest::test_runner::{RngAlgorithm, TestRng};
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
+use rain_interpreter_bindings::IInterpreterStoreV3::FullyQualifiedNamespace;
+use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_interpreter_bindings::{
     DeployerISP::{iInterpreterCall, iStoreCall},
-    IInterpreterV3::eval3Call,
+    IInterpreterV4::eval4Call,
 };
 use rain_interpreter_eval::eval::ForkParseArgs;
 use rain_interpreter_eval::fork::{Forker, NewForkedEvm};
-pub use rain_interpreter_eval::trace::{RainEvalResultError, RainEvalResults, TraceSearchError};
-use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs, trace::RainEvalResult};
+pub use rain_interpreter_eval::trace::{RainEvalResult, TraceSearchError};
+use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs};
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
 use rain_orderbook_app_settings::spec_version::SpecVersion;
@@ -35,15 +37,69 @@ use thiserror::Error;
 #[derive(Debug)]
 pub struct FuzzResult {
     pub scenario: String,
-    pub runs: RainEvalResults,
+    pub runs: Vec<RainEvalResult>,
 }
+
+fn flattened_trace_path_names(traces: &[RainSourceTrace]) -> Vec<String> {
+    let mut path_names: Vec<String> = vec![];
+    let mut source_paths: Vec<String> = vec![];
+
+    for trace in traces.iter() {
+        let current_path = if trace.parent_source_index == trace.source_index {
+            format!("{}", trace.source_index)
+        } else {
+            source_paths
+                .iter()
+                .rev()
+                .find_map(|recent_path| {
+                    recent_path.split('.').last().and_then(|last_part| {
+                        if last_part == trace.parent_source_index.to_string() {
+                            Some(format!("{}.{}", recent_path, trace.source_index))
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .unwrap_or(format!(
+                    "{}?.{}",
+                    trace.parent_source_index, trace.source_index
+                ))
+        };
+
+        for (index, _) in trace.stack.iter().enumerate() {
+            path_names.push(format!("{}.{}", current_path, index));
+        }
+
+        source_paths.push(current_path);
+    }
+
+    path_names
+}
+
 impl FuzzResult {
     pub fn flatten_traces(&self) -> Result<FuzzResultFlat, FuzzRunnerError> {
-        let result_table = self.runs.into_flattened_table()?;
+        let column_names = flattened_trace_path_names(&self.runs[0].traces);
+
+        let rows = self
+            .runs
+            .iter()
+            .map(|result| {
+                result
+                    .traces
+                    .iter()
+                    .flat_map(|trace| trace.stack.iter().rev().map(|item| *item))
+                    .collect()
+            })
+            .collect();
+
+        let data = RainEvalResultsTable {
+            column_names: column_names.to_vec(),
+            rows,
+        };
 
         Ok(FuzzResultFlat {
             scenario: self.scenario.clone(),
-            data: result_table,
+            data,
         })
     }
 }
@@ -86,8 +142,6 @@ pub enum FuzzRunnerError {
     #[error(transparent)]
     BlockError(#[from] BlockError),
     #[error(transparent)]
-    RainEvalResultError(#[from] RainEvalResultError),
-    #[error(transparent)]
     AbiDecodedErrorType(#[from] AbiDecodedErrorType),
     #[error(transparent)]
     AbiDecodeFailedErrors(#[from] AbiDecodeFailedErrors),
@@ -95,6 +149,10 @@ pub enum FuzzRunnerError {
     YamlError(#[from] YamlError),
     #[error("Spec version mismatch: expected {0} but got {1}")]
     SpecVersionMismatch(String, String),
+    #[error(transparent)]
+    Eyre(#[from] eyre::Report),
+    #[error(transparent)]
+    RainEvalResultConversion(#[from] RainEvalResultFromRawCallResultError),
 }
 
 #[derive(Debug, Clone)]
@@ -142,10 +200,14 @@ impl FuzzRunnerContext {
 
 impl FuzzRunner {
     /// Creates a new instance optionally with the given [Forker] instance
-    pub fn new(forker: Option<Forker>) -> FuzzRunner {
-        Self {
-            forker: forker.unwrap_or_default(),
-        }
+    pub fn new(forker: Option<Forker>) -> Result<FuzzRunner, FuzzRunnerError> {
+        let forker = if let Some(forker) = forker {
+            forker
+        } else {
+            Forker::new()?
+        };
+
+        Ok(Self { forker })
     }
 
     pub async fn run_scenario_by_key(
@@ -168,9 +230,10 @@ impl FuzzRunner {
         let deployer = scenario.deployer.clone();
 
         // Fetch the latest block number
-        let block_number = ReadableClientHttp::new_from_url(deployer.network.rpc.to_string())?
-            .get_block_number()
-            .await?;
+        let block_number =
+            ReadableClient::new_from_http_urls(vec![deployer.network.rpc.to_string()])?
+                .get_block_number()
+                .await?;
 
         let blocks = scenario
             .blocks
@@ -264,6 +327,8 @@ impl FuzzRunner {
                         namespace: FullyQualifiedNamespace::default(),
                         context,
                         decode_errors: true,
+                        inputs: vec![],
+                        state_overlay: vec![],
                     };
                     fork_clone
                         .fork_eval(args)
@@ -391,7 +456,7 @@ impl FuzzRunner {
             .await?;
         let pair_symbols = format!(
             "{}/{}",
-            input_symbol_res.typed_return._0, output_symbol_res.typed_return._0
+            input_symbol_res.typed_return, output_symbol_res.typed_return
         );
 
         final_bindings.extend(scenario_bindings.clone());
@@ -406,29 +471,29 @@ impl FuzzRunner {
 
         // Create a 5x5 grid of zero values for context - later we'll
         // replace these with sane values based on Orderbook context
-        let mut context = vec![vec![U256::from(0); 5]; 5];
+        let mut context = vec![vec![B256::ZERO; 5]; 5];
         // set random hash for context order hash cell
         context[1][0] = rand::random();
 
         // set input values in context
         // input token
-        context[3][0] = U256::from_be_slice(input_token.address.0.as_slice());
+        context[3][0] = U256::from_be_slice(input_token.address.0.as_slice()).into();
         // input decimals
-        context[3][1] = U256::from(input_token.decimals.unwrap_or(18));
+        context[3][1] = U256::from(input_token.decimals.unwrap_or(18)).into();
         // input vault id
-        context[3][2] = input.vault_id.unwrap_or(U256::from(0));
+        context[3][2] = input.vault_id.unwrap_or(U256::ZERO).into();
         // input vault balance before
-        context[3][3] = U256::from(0);
+        context[3][3] = B256::ZERO;
 
         // set output values in context
         // output token
-        context[4][0] = U256::from_be_slice(output_token.address.0.as_slice());
+        context[4][0] = U256::from_be_slice(output_token.address.0.as_slice()).into();
         // output decimals
-        context[4][1] = U256::from(output_token.decimals.unwrap_or(18));
+        context[4][1] = U256::from(output_token.decimals.unwrap_or(18)).into();
         // output vault id
-        context[4][2] = output.vault_id.unwrap_or(U256::from(0));
+        context[4][2] = output.vault_id.unwrap_or(U256::ZERO).into();
         // output vault balance before
-        context[4][3] = U256::from(0);
+        context[4][3] = B256::ZERO;
 
         let parse_result = self
             .forker
@@ -439,13 +504,14 @@ impl FuzzRunner {
             })
             .await
             .map_err(FuzzRunnerError::ForkCallError)?;
+
         let store = self
             .forker
             .alloy_call(Address::default(), deployer.address, iStoreCall {}, true)
             .await?
-            .typed_return
-            ._0;
-        let interpreter = self
+            .typed_return;
+
+        let Address(interpreter) = self
             .forker
             .alloy_call(
                 Address::default(),
@@ -454,32 +520,35 @@ impl FuzzRunner {
                 true,
             )
             .await?
-            .typed_return
-            ._0;
+            .typed_return;
+
+        let eval = EvalV4 {
+            bytecode: parse_result.typed_return,
+            sourceIndex: U256::from(0),
+            store,
+            namespace: FullyQualifiedNamespace::default().into(),
+            context,
+            inputs: vec![],
+            stateOverlay: vec![],
+        };
+
         let res = self.forker.call(
             Address::default().as_slice(),
             interpreter.as_slice(),
-            &eval3Call {
-                bytecode: parse_result.typed_return.bytecode,
-                sourceIndex: U256::from(0),
-                store,
-                namespace: FullyQualifiedNamespace::default().into(),
-                context,
-                inputs: vec![],
-            }
-            .abi_encode(),
+            &eval4Call { eval }.abi_encode(),
         )?;
 
         let mut error = None;
         if res.exit_reason.is_revert() {
             error = Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
         }
+        let run = res.try_into()?;
 
         Ok((
             pair_symbols,
             FuzzResult {
                 scenario: scenario.key.clone(),
-                runs: vec![res.into()].into(),
+                runs: vec![run].into(),
             },
             error,
         ))
@@ -555,7 +624,12 @@ impl FuzzRunner {
                 *cached_block_number
             } else {
                 // Fetch the latest block number, if failed, record the error and continue to next deployment key
-                match ReadableClientHttp::new_from_url(scenario.deployer.network.rpc.to_string()) {
+                match ReadableClient::new_from_http_urls(vec![scenario
+                    .deployer
+                    .network
+                    .rpc
+                    .to_string()])
+                {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,
                         Err(e) => {
@@ -678,10 +752,7 @@ impl FuzzRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::{
-        primitives::utils::parse_ether,
-        providers::{ext::AnvilApi, Provider},
-    };
+    use alloy::providers::{ext::AnvilApi, Provider};
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use rain_orderbook_test_fixtures::LocalEvm;
 
@@ -853,7 +924,7 @@ b: fuzzed;
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -871,11 +942,7 @@ b: fuzzed;
 
         let start_block_number = local_evm.provider.get_block_number().await.unwrap();
         let last_block_number = start_block_number + 10;
-        local_evm
-            .provider
-            .anvil_mine(Some(U256::from(10)), None)
-            .await
-            .unwrap();
+        local_evm.provider.anvil_mine(Some(10), None).await.unwrap();
 
         let dotrain = format!(
             r#"
@@ -905,7 +972,7 @@ _: block-number();
             start_block = start_block_number,
             end_block = last_block_number
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -919,7 +986,7 @@ _: block-number();
         res.runs.iter().enumerate().for_each(|(i, run)| {
             assert_eq!(
                 run.traces[0].stack[0],
-                parse_ether(&(start_block_number + (i as u64 * 2)).to_string()).unwrap()
+                U256::from((start_block_number as usize) + i * 2)
             );
         });
     }
@@ -965,7 +1032,7 @@ d: 4;
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -990,7 +1057,7 @@ d: 4;
             .unwrap()
             .get(column_index.unwrap())
             .unwrap();
-        assert_eq!(value, &parse_ether("6").unwrap());
+        assert_eq!(value, &U256::from(6));
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -1021,7 +1088,7 @@ _: context<4 4>();
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -1067,7 +1134,7 @@ _: context<50 50>();
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner.run_scenario_by_key(&mut context, "some-key").await;
@@ -1104,7 +1171,7 @@ _: context<1 0>();
             deployer = local_evm.deployer.address(),
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -1214,7 +1281,7 @@ _ _: 30 calculation;
 
 #another
 something:,
-_: add(something 30);
+_: 30;
 
 #handle-add-order
 :;"#,
@@ -1225,7 +1292,7 @@ _: add(something 30);
             usdce_address = usdce_address,
             spec_version = SpecVersion::current()
         );
-        let mut runner = FuzzRunner::new(None);
+        let mut runner = FuzzRunner::new(None).unwrap();
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
@@ -1255,9 +1322,9 @@ _: add(something 30);
         assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice())); // output token
         assert_eq!(result_rows[4], U256::from(18)); // output token decimals
         assert_eq!(result_rows[5], U256::from(20)); // output vault id
-        assert_eq!(result_rows[6], U256::from(51000000000000000000_u128)); // calculation
-        assert_eq!(result_rows[7], U256::from(30000000000000000000_u128)); // max output
-        assert_eq!(result_rows[8], U256::from(51000000000000000000_u128)); // io ratio
+        assert_eq!(result_rows[6], U256::from(30)); // calculation
+        assert_eq!(result_rows[7], U256::from(30)); // max output
+        assert_eq!(result_rows[8], U256::from(30)); // io ratio
 
         // run again with known block numbers
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -1288,8 +1355,8 @@ _: add(something 30);
         assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice())); // output token
         assert_eq!(result_rows[4], U256::from(18)); // output token decimals
         assert_eq!(result_rows[5], U256::from(20)); // output vault id
-        assert_eq!(result_rows[6], U256::from(51000000000000000000_u128)); // calculation
-        assert_eq!(result_rows[7], U256::from(30000000000000000000_u128)); // max output
-        assert_eq!(result_rows[8], U256::from(51000000000000000000_u128)); // io ratio
+        assert_eq!(result_rows[6], U256::from(30)); // calculation
+        assert_eq!(result_rows[7], U256::from(30)); // max output
+        assert_eq!(result_rows[8], U256::from(30)); // io ratio
     }
 }

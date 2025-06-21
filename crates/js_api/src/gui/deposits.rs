@@ -44,6 +44,35 @@ impl DotrainOrderGui {
         Ok(gui_deposit.clone())
     }
 
+    /// Gets all configured deposit amounts with token information.
+    ///
+    /// Returns deposits as token deposits with human-readable amounts and addresses.
+    /// This combines the stored deposit amounts with token metadata for display and
+    /// transaction preparation.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Vec<TokenDeposit>)` - Array of deposits with token details and amounts
+    /// - `Err(TokenMustBeSelected)` - If a required token hasn't been selected
+    /// - `Err(InvalidPreset)` - If a preset index is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getDeposits();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const [deposit1, deposit2, ...] = result.value;
+    /// const {
+    ///   // token is the token address
+    ///   token,
+    ///   // amount is the deposit amount
+    ///   amount,
+    ///   // address is the token address
+    /// } = deposit1;
+    /// ```
     #[wasm_export(js_name = "getDeposits", unchecked_return_type = "TokenDeposit[]")]
     pub fn get_deposits(&self) -> Result<Vec<TokenDeposit>, GuiError> {
         self.deposits
@@ -80,6 +109,36 @@ impl DotrainOrderGui {
             .collect::<Result<Vec<TokenDeposit>, GuiError>>()
     }
 
+    /// Saves a deposit amount for a specific token.
+    ///
+    /// Sets the deposit amount for a token, automatically detecting if the amount
+    /// matches a preset value.
+    ///
+    /// # Parameters
+    ///
+    /// - `token` - Token key from the deposits configuration
+    /// - `amount` - Human-readable amount (e.g., "100.5") or empty string to remove
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Deposit saved successfully
+    /// - `Err(DepositTokenNotFound)` - If token is not in the deposits configuration
+    ///
+    /// # Preset Detection
+    ///
+    /// If the amount matches a preset value from the configuration, it's stored
+    /// as a preset reference for efficiency and consistency.
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Save a custom deposit amount
+    /// const result = gui.saveDeposit("usdc", "1000.50");
+    /// if (result.error) {
+    ///   console.error("Deposit error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// ```
     #[wasm_export(js_name = "saveDeposit", unchecked_return_type = "void")]
     pub fn save_deposit(&mut self, token: String, amount: String) -> Result<(), GuiError> {
         let gui_deposit = self.get_gui_deposit(&token)?;
@@ -112,6 +171,28 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Removes a deposit for a specific token.
+    ///
+    /// Use this to clear a deposit that's no longer needed.
+    ///
+    /// # Parameters
+    ///
+    /// - `token` - Token key to remove deposit for
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Deposit removed successfully
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Remove a specific token deposit
+    /// const result = gui.removeDeposit("usdc");
+    /// if (result.error) {
+    ///   console.error("Remove failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// ```
     #[wasm_export(js_name = "removeDeposit", unchecked_return_type = "void")]
     pub fn remove_deposit(&mut self, token: String) -> Result<(), GuiError> {
         self.deposits.remove(&token);
@@ -119,12 +200,61 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Gets preset amounts available for a specific deposit token.
+    ///
+    /// Returns the preset values configured for this token in the deployment,
+    /// useful for building quick-select interfaces.
+    ///
+    /// # Parameters
+    ///
+    /// - `key` - Token key from deposits configuration
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Vec<String>)` - Array of preset amounts, or empty if no presets
+    /// - `Err(DepositTokenNotFound)` - If token is not configured for deposits
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getDepositPresets("usdc");
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// // items are preset amounts
+    /// const [preset1, preset2, ...] = result.value;
+    /// ```
     #[wasm_export(js_name = "getDepositPresets", unchecked_return_type = "string[]")]
     pub fn get_deposit_presets(&self, key: String) -> Result<Vec<String>, GuiError> {
         let gui_deposit = self.get_gui_deposit(&key)?;
         Ok(gui_deposit.presets.clone().unwrap_or(vec![]))
     }
 
+    /// Lists tokens that require deposits but haven't been configured.
+    ///
+    /// Returns token keys for deposits that are required by the deployment
+    /// but haven't been set yet. Use this for validation and user guidance.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Vec<String>)` - Array of token keys needing deposits
+    /// - `Err(GuiError)` - If deployment configuration is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getMissingDeposits();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// // items are token keys
+    /// const [missing1, missing2, ...] = result.value;
+    /// if (missing.length > 0) {
+    ///   // Do something with the missing tokens
+    /// }
+    /// ```
     #[wasm_export(js_name = "getMissingDeposits", unchecked_return_type = "string[]")]
     pub fn get_missing_deposits(&self) -> Result<Vec<String>, GuiError> {
         let deployment = self.get_current_deployment()?;
@@ -140,6 +270,28 @@ impl DotrainOrderGui {
         Ok(missing_deposits)
     }
 
+    /// Checks if any deposits have been configured.
+    ///
+    /// Quick check to determine if the user has started configuring deposits.
+    /// Useful for showing different UI states or progress indicators.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(bool)` - True if at least one deposit exists
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.hasAnyDeposit();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const hasDeposits = result.value;
+    /// if (!hasDeposits) {
+    ///   // Do something
+    /// }
+    /// ```
     #[wasm_export(js_name = "hasAnyDeposit", unchecked_return_type = "boolean")]
     pub fn has_any_deposit(&self) -> Result<bool, GuiError> {
         Ok(!self.deposits.is_empty())

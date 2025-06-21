@@ -1,23 +1,41 @@
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import { type ConfigSource } from '@rainlanguage/orderbook';
+import { type NewConfig, type SubgraphCfg } from '@rainlanguage/orderbook';
+
+export const EMPTY_CONFIG: NewConfig = {
+	orderbook: {
+		version: '1',
+		subgraphs: {},
+		networks: {},
+		metaboards: {},
+		orderbooks: {},
+		tokens: {},
+		deployers: {}
+	},
+	dotrainOrder: {
+		deployments: {},
+		orders: {},
+		scenarios: {},
+		charts: {}
+	}
+};
 
 /**
  * A persistent store that holds the application configuration settings.
  *
  * This store is saved to local storage and persists between sessions.
  *
- * @default undefined - No configuration is set by default
+ * @default {} - No configuration is set by default
  * @returns A writable store containing the application configuration
  */
-export const settings = cachedWritableStore<ConfigSource | undefined>(
+export const settings = cachedWritableStore<NewConfig>(
 	'settings',
-	undefined,
+	EMPTY_CONFIG,
 	(value) => JSON.stringify(value),
 	(str) => {
 		try {
-			return JSON.parse(str) as ConfigSource;
+			return JSON.parse(str) as NewConfig;
 		} catch {
-			return undefined;
+			return EMPTY_CONFIG;
 		}
 	}
 );
@@ -75,7 +93,7 @@ export const showMyItemsOnly = cachedWritableStore<boolean>(
  * @default {} - Empty object by default
  * @returns A writable store containing a record of subgraph URLs
  */
-export const activeSubgraphs = cachedWritableStore<Record<string, string>>(
+export const activeSubgraphs = cachedWritableStore<Record<string, SubgraphCfg>>(
 	'settings.activeSubgraphs',
 	{},
 	JSON.stringify,

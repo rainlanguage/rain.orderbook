@@ -114,7 +114,7 @@ impl Execute for Words {
 
             AuthoringMetaV2::fetch_for_contract(
                 deployer.address,
-                deployer.network.rpc.to_string(),
+                vec![deployer.network.rpc.to_string()],
                 metaboard_url,
             )
             .await?
@@ -220,7 +220,7 @@ impl Execute for Words {
 mod tests {
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
-    use alloy_ethers_typecast::rpc::Response;
+    use alloy_ethers_typecast::transaction::rpc::Response;
     use clap::CommandFactory;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};

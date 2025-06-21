@@ -16,3 +16,8 @@ packages/orderbook/esm.js
 packages/orderbook/esm.d.ts
 tauri-app/src/lib/types
 .direnv/
+
+# AI Docs
+.claude/
+.ai_docs/
+.ai_spec/

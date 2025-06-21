@@ -12,16 +12,12 @@
 	import { bigintStringToHex } from '../../utils/hex';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
-	import {
-		getVaults,
-		type MultiSubgraphArgs,
-		type SgVaultWithSubgraphName
-	} from '@rainlanguage/orderbook';
+	import { getVaults, type SgVaultWithSubgraphName } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import { getMultiSubgraphArgs } from '$lib/utils/configHelpers';
 
 	export let activeOrderbook: AppStoresInterface['activeOrderbook'];
-	export let subgraphUrl: AppStoresInterface['subgraphUrl'];
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -42,12 +38,9 @@
 
 	const { account, matchesAccount } = useAccount();
 
-	$: multiSubgraphArgs = Object.entries(
-		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
-	).map(([name, url]) => ({
-		name,
-		url
-	})) as MultiSubgraphArgs[];
+	$: multiSubgraphArgs = getMultiSubgraphArgs(
+		Object.keys($activeSubgraphs).length > 0 ? $activeSubgraphs : $settings.orderbook.subgraphs
+	);
 
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
@@ -82,7 +75,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-		enabled: !!$subgraphUrl
+		enabled: true
 	});
 
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {

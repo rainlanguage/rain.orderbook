@@ -1,10 +1,17 @@
 use crate::error::CommandResult;
 use dotrain::RainDocument;
-use rain_orderbook_app_settings::{config::Config, config_source::ConfigSource};
+use rain_orderbook_app_settings::{
+    config::Config, config_source::ConfigSource, new_config::NewConfig,
+};
 
 #[tauri::command]
 pub async fn parse_configstring(text: String) -> CommandResult<ConfigSource> {
     Ok(ConfigSource::try_from_string(text, None).await?.0)
+}
+
+#[tauri::command]
+pub async fn parse_new_configstring(text: String, validate: bool) -> CommandResult<NewConfig> {
+    Ok(NewConfig::try_from_yaml(vec![text], validate)?)
 }
 
 #[tauri::command]

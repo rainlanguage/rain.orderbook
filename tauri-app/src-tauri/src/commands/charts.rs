@@ -28,6 +28,7 @@ mod tests {
     use super::*;
     use crate::error::CommandError;
     use alloy::primitives::U256;
+    use alloy_ethers_typecast::transaction::ReadableClientError;
     use rain_orderbook_app_settings::{
         plot_source::{
             DotOptionsCfg, HexBinOptionsCfg, HexBinTransformCfg, MarkCfg, TransformCfg,
@@ -361,8 +362,9 @@ charts:
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
 
+        let rpc_url = "https://random.url/".to_string();
         let settings = get_settings(
-            &"https://random.url",
+            &rpc_url,
             &orderbook.address().to_string(),
             &deployer.address().to_string(),
         );
@@ -375,11 +377,19 @@ charts:
         let dotrain = format!("{}\n{}\n---\n{}", dotrain_prefix, HAPPY_CHART, RAINLANG);
         let err = make_charts(dotrain, Some(settings)).await.unwrap_err();
 
-        assert!(matches!(
-            err,
-            CommandError::FuzzRunnerError(FuzzRunnerError::ReadableClientHttpError(
-                alloy_ethers_typecast::transaction::ReadableClientError::ReadBlockNumberError(_)
-            ))
-        ));
+        assert!(
+            matches!(
+                err,
+                CommandError::FuzzRunnerError(FuzzRunnerError::ReadableClientHttpError(
+                    ReadableClientError::AllProvidersFailed(ref msg)
+                ))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadBlockNumberError(_)
+                    )
+            ),
+            "unexpected error: {err}"
+        );
     }
 }

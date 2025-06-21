@@ -8,11 +8,8 @@ pub fn display_write_transaction_status<T: SolCall + Debug>(status: WriteTransac
         WriteTransactionStatus::PendingPrepare(_) => {
             info!("⏳  Preparing transaction. Please wait.");
         }
-        WriteTransactionStatus::PendingSign(_) => {
-            info!("🖋   Please sign the transaction on your Ledger device.");
-        }
-        WriteTransactionStatus::PendingSend(_) => {
-            info!("⏳  Awaiting transaction confirmation. Please wait.");
+        WriteTransactionStatus::PendingSignAndSend(_) => {
+            info!("🖋   Please sign the transaction on your Ledger device. Once signed, the transaction will be sent.");
         }
         WriteTransactionStatus::Confirmed(receipt) => {
             info!("✅  Transaction confirmed: {:?}", receipt.transaction_hash);

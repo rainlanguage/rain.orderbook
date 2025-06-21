@@ -1,10 +1,11 @@
 use alloy::hex::FromHexError;
 use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
-use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
+use alloy_ethers_typecast::transaction::{client::LedgerClientError, transaction::ReadableClientError};
 use dotrain::error::ComposeError;
 use rain_orderbook_app_settings::config::ParseConfigSourceError;
 use rain_orderbook_app_settings::config_source::ConfigSourceError;
 use rain_orderbook_app_settings::merge::MergeError;
+use rain_orderbook_app_settings::new_config::ParseConfigError;
 use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::remove_order::RemoveOrderArgsError;
@@ -109,6 +110,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     RainEvalResultError(#[from] rain_orderbook_common::fuzz::RainEvalResultError),
+
+    #[error(transparent)]
+    NewConfigError(#[from] ParseConfigError),
 }
 
 impl Serialize for CommandError {

@@ -31,7 +31,7 @@
 	class="grid w-full items-center gap-4 md:flex md:justify-end lg:min-w-[600px]"
 	style="grid-template-columns: repeat(2, minmax(0, 1fr));"
 >
-	{#if isEmpty($settings?.networks)}
+	{#if isEmpty($settings.orderbook.networks)}
 		<Alert color="gray" data-testid="no-networks-alert" class="w-full">
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>

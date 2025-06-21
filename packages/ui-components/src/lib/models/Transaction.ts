@@ -47,6 +47,7 @@ export class TransactionStore implements Transaction {
 	private name: string;
 	private config: Config;
 	private txHash: Hex;
+	private networkKey: string;
 	private links: {
 		link: string;
 		label: string;
@@ -71,6 +72,7 @@ export class TransactionStore implements Transaction {
 		this.config = args.config;
 		this.txHash = args.txHash;
 		this.name = args.name;
+		this.networkKey = args.networkKey;
 		this.links = args.toastLinks;
 		this.state = writable<TransactionStoreState>({
 			name: this.name,
@@ -157,6 +159,19 @@ export class TransactionStore implements Transaction {
 			this.updateState({
 				status: TransactionStatusMessage.SUCCESS
 			});
+			const newOrderHash = result.value.orderHash;
+
+			// If we have a new order hash, add the "View order" link
+			if (newOrderHash) {
+				const newLink = {
+					link: `/orders/${this.networkKey}-${newOrderHash}`,
+					label: 'View order'
+				};
+				this.updateState({
+					links: [newLink, ...this.links]
+				});
+			}
+
 			return this.onSuccess();
 		}
 

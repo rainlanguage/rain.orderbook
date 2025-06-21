@@ -1,6 +1,6 @@
 use crate::error::CommandResult;
 use alloy::primitives::Address;
-use alloy_ethers_typecast::{client::HDPath, client::LedgerClient, ethers_address_to_alloy};
+use alloy_ethers_typecast::transaction::{client::HDPath, client::LedgerClient, ethers_address_to_alloy};
 
 #[tauri::command]
 pub async fn get_address_from_ledger(
