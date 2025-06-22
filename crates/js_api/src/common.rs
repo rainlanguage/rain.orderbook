@@ -238,10 +238,10 @@ mod tests {
             primitives::{Address, B256, U256},
             sol_types::SolValue,
         };
-        use alloy_ethers_typecast::transaction::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_bindings::IOrderBookV4::IO;
+        use rain_orderbook_bindings::IOrderBookV5::IOV2;
+        use serde_json::json;
         use std::{collections::HashMap, str::FromStr};
 
         fn get_dotrain(rpc_url: &str) -> String {
@@ -322,75 +322,49 @@ _ _: 0 0;
 
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xf0cfdd37");
-                then.body(
-                    Response::new_success(
-                        1,
-                        &B256::left_padding_from(
-                            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
-                                .unwrap()
-                                .as_slice(),
-                        )
-                        .to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                }));
             });
+
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xc19423bc");
-                then.body(
-                    Response::new_success(
-                        2,
-                        &B256::left_padding_from(
-                            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
-                                .unwrap()
-                                .as_slice(),
-                        )
-                        .to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "result": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                }));
             });
+
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0x24376855");
-                then.body(
-                    Response::new_success(
-                        3,
-                        &B256::left_padding_from(
-                            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
-                                .unwrap()
-                                .as_slice(),
-                        )
-                        .to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 3,
+                    "result": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                }));
             });
+
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xa3869e14");
-                then.body(
-                    Response::new_success(
-                        4,
-                        &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 4,
+                    "result": encode_prefixed(Bytes::from(vec![1, 2]).abi_encode())
+                }));
             });
 
             let expected_calldata: Bytes = AddOrderArgs {
                 dotrain: dotrain.clone(),
-                inputs: vec![IO {
+                inputs: vec![IOV2 {
                     token: Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap(),
-                    decimals: 18,
-                    vaultId: U256::from(1),
+                    vaultId: B256::from(U256::from(1)),
                 }],
-                outputs: vec![IO {
+                outputs: vec![IOV2 {
                     token: Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap(),
-                    decimals: 6,
-                    vaultId: U256::from(2),
+                    vaultId: B256::from(U256::from(2)),
                 }],
                 deployer: Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap(),
                 bindings: HashMap::from([

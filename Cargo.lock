@@ -6781,6 +6781,7 @@ name = "rain_orderbook_integration_tests"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "rain-math-float",
  "rain_orderbook_app_settings",
  "rain_orderbook_common",
  "rain_orderbook_test_fixtures",
@@ -6800,6 +6801,7 @@ dependencies = [
  "flate2",
  "futures",
  "httpmock",
+ "rain-math-float",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",

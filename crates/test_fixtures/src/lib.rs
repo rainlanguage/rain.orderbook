@@ -219,7 +219,7 @@ impl LocalEvm {
     /// Calls (readonly call) contract method and returns the decoded result
     pub async fn call_contract<T: SolCall>(
         &self,
-        contract_call: SolCallBuilder<&LocalEvmProvider, PhantomData<T>, AnyNetwork>,
+        contract_call: SolCallBuilder<&LocalEvmProvider, T, AnyNetwork>,
     ) -> Result<Result<T::Return, alloy::sol_types::Error>, RpcError<TransportErrorKind>> {
         Ok(T::abi_decode_returns(
             &self
