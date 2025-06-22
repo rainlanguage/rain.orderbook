@@ -13,6 +13,7 @@ use alloy_ethers_typecast::transaction::{
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use dotrain::error::ComposeError;
+use rain_interpreter_bindings::IParserV2::parse2Return;
 use rain_interpreter_dispair::{DISPair, DISPairError};
 #[cfg(not(target_family = "wasm"))]
 use rain_interpreter_eval::{
@@ -133,7 +134,7 @@ impl AddOrderArgs {
 
         let client = ReadableClient::new_from_http_urls(vec![rpc_url])?;
         let parser: ParserV2 = dispair.clone().into();
-        let rainlang_parsed = parser
+        let rainlang_parsed: parse2Return = parser
             .parse_text(rainlang.as_str(), client)
             .await
             .map_err(AddOrderArgsError::ParserError)?;

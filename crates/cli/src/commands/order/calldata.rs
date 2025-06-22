@@ -44,9 +44,9 @@ impl Execute for AddOrderCalldata {
             .get_deployment(&self.deployment)?;
 
         let add_order_args =
-            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await;
+            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await?;
 
-        let add_order_calldata = add_order_args?
+        let add_order_calldata = add_order_args
             .try_into_call(config_deployment.scenario.deployer.network.rpc.to_string())
             .await?
             .abi_encode();
@@ -60,13 +60,13 @@ impl Execute for AddOrderCalldata {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{hex::encode_prefixed, Address, Bytes, B256};
+    use alloy::primitives::{hex::encode_prefixed, Address, Bytes};
     use alloy::sol_types::SolValue;
-    use alloy_ethers_typecast::transaction::rpc::Response;
     use clap::CommandFactory;
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
+    use serde_json::json;
     use std::io::Write;
     use std::str::FromStr;
     use tempfile::NamedTempFile;
@@ -121,56 +121,47 @@ mod tests {
             when.path("/rpc").body_contains("0xf0cfdd37");
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    Response::new_success(
-                        1,
-                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                .json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": Address::random().as_slice()
+                }));
         });
+
         // mock iStore() call
         rpc_server.mock(|when, then| {
             when.path("/rpc").body_contains("0xc19423bc");
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    Response::new_success(
-                        2,
-                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                .json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "result": Address::random().as_slice()
+                }));
         });
+
         // mock iParser() call
         rpc_server.mock(|when, then| {
             when.path("/rpc").body_contains("0x24376855");
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    Response::new_success(
-                        3,
-                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                .json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 3,
+                    "result": Address::random().as_slice()
+                }));
         });
+
         // mock parse2() call
         rpc_server.mock(|when, then| {
             when.path("/rpc").body_contains("0xa3869e14");
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    Response::new_success(
-                        4,
-                        &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                .json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 4,
+                    "result": encode_prefixed(Bytes::from(vec![1, 2]).abi_encode())
+                }));
         });
     }
 

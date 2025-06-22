@@ -63,6 +63,7 @@ impl Execute for Compose {
 #[cfg(test)]
 mod tests {
     use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use tempfile::NamedTempFile;
 
     use super::*;
 
@@ -70,8 +71,9 @@ mod tests {
     async fn test_execute_happy() {
         let dotrain = get_dotrain();
 
-        let dotrain_path = "./test_dotrain_compose_happy.rain";
-        std::fs::write(dotrain_path, dotrain).unwrap();
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain).unwrap();
 
         let compose = Compose {
             dotrain_file: dotrain_path.into(),
@@ -82,17 +84,15 @@ mod tests {
         };
 
         assert!(compose.execute().await.is_ok());
-
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     #[tokio::test]
     async fn test_execute_unhappy() {
         let dotrain = get_dotrain();
 
-        let dotrain_path = "./test_dotrain_compose_unhappy.rain";
-        std::fs::write(dotrain_path, dotrain).unwrap();
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain).unwrap();
 
         let compose = Compose {
             dotrain_file: dotrain_path.into(),
@@ -103,9 +103,6 @@ mod tests {
         };
 
         assert!(compose.execute().await.is_err());
-
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     fn get_dotrain() -> String {

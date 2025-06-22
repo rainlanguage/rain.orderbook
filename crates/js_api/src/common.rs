@@ -167,7 +167,7 @@ mod tests {
             primitives::{Address, FixedBytes, U256},
             sol_types::SolCall,
         };
-        use rain_orderbook_bindings::IOrderBookV4::{removeOrder2Call, EvaluableV3, OrderV3, IO};
+        use rain_orderbook_bindings::IOrderBookV5::{removeOrder2Call, EvaluableV4, OrderV4, IOV2};
         use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes, SgOrderbook};
         use std::str::FromStr;
         use wasm_bindgen_test::wasm_bindgen_test;
@@ -175,9 +175,9 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_get_remove_order_calldata() {
             let remove_order_call = removeOrder2Call {
-                order: OrderV3 {
+                order: OrderV4 {
                     owner: Address::from_str("0x6171c21b2e553c59a64d1337211b77c367cefe5d").unwrap(),
-                    evaluable: EvaluableV3 {
+                    evaluable: EvaluableV4 {
                         interpreter: Address::from_str(
                             "0x379b966dc6b117dd47b5fc5308534256a4ab1bcc",
                         )
@@ -187,17 +187,15 @@ mod tests {
                         bytecode: Bytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000100000000")
                             .unwrap(),
                     },
-                    validInputs: vec![IO {
+                    validInputs: vec![IOV2 {
                         token: Address::from_str("0x50c5725949a6f0c72e6c4a641f24049a917db0cb")
                             .unwrap(),
-                        decimals: 18,
-                        vaultId: U256::from(1),
+                        vaultId: B256::from(U256::from(1)),
                     }],
-                    validOutputs: vec![IO {
+                    validOutputs: vec![IOV2 {
                         token: Address::from_str("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913")
                             .unwrap(),
-                        decimals: 6,
-                        vaultId: U256::from(1),
+                        vaultId: B256::from(U256::from(1)),
                     }],
                     nonce: FixedBytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000001").unwrap()
                 },
@@ -320,6 +318,7 @@ _ _: 0 0;
             let rpc_server = MockServer::start_async().await;
             let dotrain = get_dotrain(&rpc_server.url("/rpc"));
 
+            // mock iInterpreter() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xf0cfdd37");
                 then.json_body(json!({
@@ -329,6 +328,7 @@ _ _: 0 0;
                 }));
             });
 
+            // mock iStore() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xc19423bc");
                 then.json_body(json!({
@@ -338,6 +338,7 @@ _ _: 0 0;
                 }));
             });
 
+            // mock iParser() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0x24376855");
                 then.json_body(json!({
@@ -347,6 +348,7 @@ _ _: 0 0;
                 }));
             });
 
+            // mock parse2() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xa3869e14");
                 then.json_body(json!({

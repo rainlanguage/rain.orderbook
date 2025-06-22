@@ -18,7 +18,7 @@ pub struct CliVaultDepositArgs {
     #[arg(short, long, help = "The amount to deposit")]
     amount: U256,
 
-    #[arg(short, long, help = "The decimals of the token")]
+    #[arg(long, help = "The decimals of the token")]
     decimals: Option<u8>,
 
     #[clap(flatten)]

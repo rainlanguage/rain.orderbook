@@ -21,20 +21,10 @@ pub struct CliTransactionArgs {
     #[arg(short, long, help = "RPC URL")]
     pub rpc_url: String,
 
-    #[arg(
-        short = 'p',
-        long,
-        help = "Max priority fee per gas (in wei)",
-        conflicts_with("gas_fee_speed")
-    )]
+    #[arg(short = 'p', long, help = "Max priority fee per gas (in wei)")]
     pub max_priority_fee_per_gas: Option<u128>,
 
-    #[arg(
-        short,
-        long,
-        help = "Max fee per gas (in wei)",
-        conflicts_with("gas_fee_speed")
-    )]
+    #[arg(short, long, help = "Max fee per gas (in wei)")]
     pub max_fee_per_gas: Option<u128>,
 }
 
@@ -54,7 +44,6 @@ impl From<CliTransactionArgs> for TransactionArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::U256;
 
     #[test]
     fn test_from_cli_transaction_args() {
@@ -63,8 +52,8 @@ mod tests {
             derivation_index: Some(1),
             chain_id: Some(2),
             rpc_url: "http://localhost:8545".to_string(),
-            max_priority_fee_per_gas: Some(U256::from(100)),
-            max_fee_per_gas: Some(U256::from(1000)),
+            max_priority_fee_per_gas: Some(100),
+            max_fee_per_gas: Some(1000),
         };
 
         let transaction_args: TransactionArgs = cli_args.into();
@@ -73,12 +62,8 @@ mod tests {
         assert_eq!(transaction_args.derivation_index, Some(1));
         assert_eq!(transaction_args.chain_id, Some(2));
         assert_eq!(transaction_args.rpc_url, "http://localhost:8545");
-        assert_eq!(
-            transaction_args.max_priority_fee_per_gas,
-            Some(U256::from(100))
-        );
-        assert_eq!(transaction_args.max_fee_per_gas, Some(U256::from(1000)));
-        assert_eq!(transaction_args.gas_fee_speed, Some(GasFeeSpeed::Fast));
+        assert_eq!(transaction_args.max_priority_fee_per_gas, Some(100));
+        assert_eq!(transaction_args.max_fee_per_gas, Some(1000));
 
         let orderbook_address = Address::random();
         let cli_args = CliTransactionArgs {
@@ -88,7 +73,6 @@ mod tests {
             rpc_url: "http://localhost:8545".to_string(),
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
-            gas_fee_speed: None,
         };
 
         let transaction_args: TransactionArgs = cli_args.into();
@@ -99,20 +83,5 @@ mod tests {
         assert_eq!(transaction_args.rpc_url, "http://localhost:8545");
         assert_eq!(transaction_args.max_priority_fee_per_gas, None);
         assert_eq!(transaction_args.max_fee_per_gas, None);
-        assert_eq!(transaction_args.gas_fee_speed, None);
-    }
-
-    #[test]
-    fn test_from_cli_gas_fee_speed() {
-        assert_eq!(GasFeeSpeed::from(CliGasFeeSpeed::Slow), GasFeeSpeed::Slow);
-        assert_eq!(
-            GasFeeSpeed::from(CliGasFeeSpeed::Medium),
-            GasFeeSpeed::Medium
-        );
-        assert_eq!(GasFeeSpeed::from(CliGasFeeSpeed::Fast), GasFeeSpeed::Fast);
-        assert_eq!(
-            GasFeeSpeed::from(CliGasFeeSpeed::Fastest),
-            GasFeeSpeed::Fastest
-        );
     }
 }

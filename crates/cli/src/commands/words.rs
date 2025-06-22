@@ -220,12 +220,13 @@ impl Execute for Words {
 mod tests {
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
-    use alloy_ethers_typecast::transaction::rpc::Response;
     use clap::CommandFactory;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use serde_bytes::ByteBuf;
+    use serde_json::json;
+    use tempfile::NamedTempFile;
 
     sol!(
         struct AuthoringMetaV2Sol {
@@ -269,8 +270,10 @@ deployers:
             server.url("/sg"),
             spec_version = SpecVersion::current()
         );
-        let dotrain_path = "./test_dotrain_words_happy.rain";
-        std::fs::write(dotrain_path, dotrain_content).unwrap();
+
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain_content).unwrap();
 
         let words = Words {
             input: Input {
@@ -292,9 +295,6 @@ deployers:
         // should execute successfully
         words.execute().await.unwrap();
         assert!(words.execute().await.is_ok());
-
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     #[tokio::test]
@@ -325,10 +325,14 @@ deployers:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba",
             server.url("/rpc")
         );
-        let settings_path = "./test_settings_words_happy_all.yml";
-        std::fs::write(settings_path, settings_content).unwrap();
-        let dotrain_path = "./test_dotrain_words_happy_all.rain";
-        std::fs::write(dotrain_path, dotrain_content).unwrap();
+
+        let settings_file = NamedTempFile::new().unwrap();
+        let settings_path = settings_file.path().to_path_buf();
+        std::fs::write(settings_path.clone(), settings_content).unwrap();
+
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain_content).unwrap();
 
         let words = Words {
             input: Input {
@@ -350,10 +354,6 @@ deployers:
         // should execute successfully
         words.execute().await.unwrap();
         assert!(words.execute().await.is_ok());
-
-        // remove test files
-        std::fs::remove_file(settings_path).unwrap();
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     #[tokio::test]
@@ -390,8 +390,10 @@ _ _: 1 2;
             server.url("/rpc"),
             spec_version = SpecVersion::current()
         );
-        let dotrain_path = "./test_dotrain_all_words_happy_all.rain";
-        std::fs::write(dotrain_path, dotrain_content).unwrap();
+
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain_content).unwrap();
 
         let words = Words {
             input: Input {
@@ -413,9 +415,6 @@ _ _: 1 2;
         // should execute successfully
         words.execute().await.unwrap();
         assert!(words.execute().await.is_ok());
-
-        // remove test files
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     #[tokio::test]
@@ -465,15 +464,19 @@ orders:
 ",
             server.url("/rpc"),
         );
-        let settings_path = "./test_settings_deployer_words_happy_all.yml";
-        std::fs::write(settings_path, settings_content).unwrap();
-        let dotrain_path = "./test_dotrain_deployer_words_happy_all.rain";
-        std::fs::write(dotrain_path, dotrain_content).unwrap();
+
+        let settings_file = NamedTempFile::new().unwrap();
+        let settings_path = settings_file.path().to_path_buf();
+        std::fs::write(settings_path.clone(), settings_content).unwrap();
+
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain_content).unwrap();
 
         let words = Words {
             input: Input {
-                settings_file: Some(settings_path.into()),
-                dotrain_file: Some(dotrain_path.into()),
+                settings_file: Some(settings_path),
+                dotrain_file: Some(dotrain_path),
             },
             source: Source {
                 deployer: None,
@@ -489,10 +492,6 @@ orders:
 
         // should execute successfully
         assert!(words.execute().await.is_ok());
-
-        // remove test files
-        std::fs::remove_file(settings_path).unwrap();
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     #[tokio::test]
@@ -569,8 +568,9 @@ _ _: 1 2;
             spec_version = SpecVersion::current()
         );
 
-        let dotrain_path = "./test_dotrain_deployment_happy.rain";
-        std::fs::write(dotrain_path, dotrain_content).unwrap();
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain_content).unwrap();
 
         let words = Words {
             input: Input {
@@ -592,9 +592,6 @@ _ _: 1 2;
         // should execute successfully
         words.execute().await.unwrap();
         assert!(words.execute().await.is_ok());
-
-        // remove test files
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     #[tokio::test]
@@ -603,11 +600,11 @@ _ _: 1 2;
         // mock contract calls that doesnt implement IDescribeByMetaV1
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a701ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[0]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::left_padding_from(&[0]).to_string()
+            }));
         });
 
         let dotrain_content = format!(
@@ -632,8 +629,10 @@ deployers:
             server.url("/rpc"),
             server.url("/sg")
         );
-        let dotrain_path = "./test_dotrain_words_unhappy.rain";
-        std::fs::write(dotrain_path, dotrain_content).unwrap();
+
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain_content).unwrap();
 
         let words = Words {
             input: Input {
@@ -654,54 +653,47 @@ deployers:
 
         // should fail
         assert!(words.execute().await.is_err());
-
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     // helper function to mock rpc and sg response
     fn mock_server() -> MockServer {
         let server = MockServer::start();
+
         // mock contract calls
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7ffffffff");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[0]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::left_padding_from(&[0]).to_string()
+            }));
         });
+
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::left_padding_from(&[1]).to_string()
+            }));
         });
+
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x6f5aa28d");
-            then.body(
-                Response::new_success(1, &B256::random().to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::random().to_string()
+            }));
         });
+
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x5514ca20");
-            then.body(
-                Response::new_success(
-                    1,
-                    &encode_prefixed(
-                        PragmaV1 {
-                            usingWordsFrom: vec![],
-                        }
-                        .abi_encode(),
-                    ),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(PragmaV1 { usingWordsFrom: vec![] }.abi_encode())
+            }));
         });
 
         // mock sg query

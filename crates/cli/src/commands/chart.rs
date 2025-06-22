@@ -172,14 +172,7 @@ charts:
 #calculate-io
 using-words-from raindex-subparser
 max-output: max-value(),
-io: if(
-  equal-to(
-    output-token()
-    fixed-io-output-token
-  )
-  fixed-io
-  inv(fixed-io)
-);
+io: fixed-io;
 #handle-io
 :;
 #handle-add-order
@@ -337,7 +330,7 @@ charts:
                 .err()
                 .unwrap()
                 .to_string()
-                .contains("error sending request for url (http://localhost:8545/)"),
+                .contains("error sending request"),
             "Expected execution to fail due to missing RPC response, got {:?}",
             result.err().unwrap()
         );
