@@ -130,11 +130,7 @@ impl TryFrom<&Vec<String>> for BatchQuoteTarget {
         let mut batch_quote_target = BatchQuoteTarget::default();
         let mut iter = value.iter();
 
-        loop {
-            let orderbook_str = match iter.next() {
-                Some(s) => s,
-                None => break,
-            };
+        while let Some(orderbook_str) = iter.next() {
             let input_io_index_str = match iter.next() {
                 Some(s) => s,
                 None => return Err(anyhow::anyhow!("missing input IO index")),
@@ -172,11 +168,7 @@ impl TryFrom<&Vec<String>> for BatchQuoteSpec {
     fn try_from(value: &Vec<String>) -> Result<Self, Self::Error> {
         let mut batch_quote_specs = BatchQuoteSpec::default();
         let mut iter = value.iter();
-        loop {
-            let orderbook_str = match iter.next() {
-                Some(s) => s,
-                None => break,
-            };
+        while let Some(orderbook_str) = iter.next() {
             let input_io_index_str = match iter.next() {
                 Some(s) => s,
                 None => return Err(anyhow::anyhow!("missing input IO index")),

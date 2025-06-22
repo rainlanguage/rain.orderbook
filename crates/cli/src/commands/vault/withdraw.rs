@@ -31,7 +31,7 @@ impl TryFrom<CliVaultWithdrawArgs> for WithdrawArgs {
         let args = WithdrawArgs {
             token: val.token,
             vault_id: val.vault_id,
-            target_amount: target_amount,
+            target_amount,
         };
         Ok(args)
     }

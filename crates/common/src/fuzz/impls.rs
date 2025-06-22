@@ -52,7 +52,7 @@ fn flattened_trace_path_names(traces: &[RainSourceTrace]) -> Vec<String> {
                 .iter()
                 .rev()
                 .find_map(|recent_path| {
-                    recent_path.split('.').last().and_then(|last_part| {
+                    recent_path.split('.').next_back().and_then(|last_part| {
                         if last_part == trace.parent_source_index.to_string() {
                             Some(format!("{}.{}", recent_path, trace.source_index))
                         } else {
@@ -87,7 +87,7 @@ impl FuzzResult {
                 result
                     .traces
                     .iter()
-                    .flat_map(|trace| trace.stack.iter().rev().map(|item| *item))
+                    .flat_map(|trace| trace.stack.iter().rev().copied())
                     .collect()
             })
             .collect();
@@ -348,7 +348,7 @@ impl FuzzRunner {
 
         Ok(FuzzResult {
             scenario: scenario.key.clone(),
-            runs: runs.into(),
+            runs,
         })
     }
 
@@ -548,7 +548,7 @@ impl FuzzRunner {
             pair_symbols,
             FuzzResult {
                 scenario: scenario.key.clone(),
-                runs: vec![run].into(),
+                runs: vec![run],
             },
             error,
         ))

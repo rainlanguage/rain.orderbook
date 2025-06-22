@@ -84,7 +84,7 @@ pub enum DotrainOrderError {
     AuthoringMetaV2Error(#[from] AuthoringMetaV2Error),
 
     #[error(transparent)]
-    FetchAuthoringMetaV2WordError(#[from] FetchAuthoringMetaV2WordError),
+    FetchAuthoringMetaV2WordError(#[from] Box<FetchAuthoringMetaV2WordError>),
 
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
@@ -129,67 +129,58 @@ impl DotrainOrderError {
                 "DotrainOrder is not initialized. Please call initialize() first.".to_string()
             }
             DotrainOrderError::ParseConfigSourceError(e) => {
-                format!("Error parsing the configuration source: {}", e)
+                format!("Error parsing the configuration source: {e}")
             }
             DotrainOrderError::ScenarioNotFound(name) => {
-                format!("Scenario '{}' is not defined in the configuration.", name)
+                format!("Scenario '{name}' is not defined in the configuration.")
             }
             DotrainOrderError::MetaboardNotFound(name) => {
-                format!("Metaboard configuration for network '{}' is missing.", name)
+                format!("Metaboard configuration for network '{name}' is missing.")
             }
             DotrainOrderError::ComposeError(e) => {
-                format!(
-                    "Error composing the Rainlang script from the .rain file: {}",
-                    e
-                )
+                format!("Error composing the Rainlang script from the .rain file: {e}")
             }
             DotrainOrderError::AuthoringMetaV2Error(e) => {
-                format!("Error processing contract authoring metadata: {}", e)
+                format!("Error processing contract authoring metadata: {e}")
             }
             DotrainOrderError::FetchAuthoringMetaV2WordError(e) => {
-                format!(
-                    "Error fetching words from contract authoring metadata: {}",
-                    e
-                )
+                format!("Error fetching words from contract authoring metadata: {e}")
             }
             DotrainOrderError::ReadableClientError(e) => {
-                format!("Problem communicating with the rpc: {}", e)
+                format!("Problem communicating with the rpc: {e}")
             }
             DotrainOrderError::ParserError(e) => {
-                format!("Error parsing the Rainlang script: {}", e)
+                format!("Error parsing the Rainlang script: {e}")
             }
             DotrainOrderError::CleanUnusedFrontmatterError(e) => {
-                format!("Internal configuration processing error: {}", e)
+                format!("Internal configuration processing error: {e}")
             }
             DotrainOrderError::SpecVersionMismatch(expected, got) => {
-                format!("Configuration version mismatch. Expected '{}', but found '{}'. Please update 'version'.", expected, got)
+                format!("Configuration version mismatch. Expected '{expected}', but found '{got}'. Please update 'version'.")
             }
             DotrainOrderError::MissingSpecVersion(expected) => {
-                format!(
-                    "The required 'version' field is missing. Please add it and set it to '{}'.",
-                    expected
-                )
+                format!("The required 'version' field is missing. Please add it and set it to '{expected}'.")
             }
             DotrainOrderError::DeploymentNotFound(name) => {
-                format!("Deployment '{}' is not defined in the configuration.", name)
+                format!("Deployment '{name}' is not defined in the configuration.")
             }
             DotrainOrderError::OrderNotFound(name) => {
-                format!("Order '{}' is not defined in the configuration.", name)
+                format!("Order '{name}' is not defined in the configuration.")
             }
             DotrainOrderError::TokenNotFound(name) => {
-                format!("Token '{}' is not defined in the configuration.", name)
+                format!("Token '{name}' is not defined in the configuration.")
             }
             DotrainOrderError::InvalidVaultIdIndex => {
                 "Internal error: Invalid index used for vault ID.".to_string()
             }
             DotrainOrderError::YamlError(e) => {
-                format!("Error parsing the YAML configuration: {}", e)
+                format!("Error parsing the YAML configuration: {e}")
             }
             DotrainOrderError::ParseRemoteNetworksError(e) => {
-                format!("Error parsing the remote networks configuration: {}", e)
+                format!("Error parsing the remote networks configuration: {e}")
             }
             DotrainOrderError::ParseRemoteTokensError(e) => {
-                format!("Error parsing the remote tokens configuration: {}", e)
+                format!("Error parsing the remote tokens configuration: {e}")
             }
         }
     }
@@ -378,7 +369,7 @@ impl DotrainOrder {
     /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang composition failed
     ///
     /// # Examples
-
+    ///
     /// ```javascript
     /// // Compile a trading scenario
     /// const result = await dotrainOrder.composeScenarioToRainlang("market-making");
@@ -526,12 +517,9 @@ impl DotrainOrder {
 
         let rpc = &network.rpc;
         let metaboard = self.orderbook_yaml().get_metaboard(&network.key)?.url;
-        Ok(AuthoringMetaV2::fetch_for_contract(
-            address,
-            vec![rpc.to_string()],
-            metaboard.to_string(),
-        )
-        .await?)
+        AuthoringMetaV2::fetch_for_contract(address, vec![rpc.to_string()], metaboard.to_string())
+            .await
+            .map_err(|e| DotrainOrderError::FetchAuthoringMetaV2WordError(Box::new(e)))
     }
 
     pub async fn get_deployer_words_for_scenario(
