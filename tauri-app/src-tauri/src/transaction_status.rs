@@ -69,9 +69,10 @@ impl TransactionStatusNoticeRwLock {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
+    use alloy::primitives::{Address, B256};
     use alloy_ethers_typecast::transaction::WriteContractParameters;
-    use rain_orderbook_bindings::IOrderBookV4::deposit2Call;
+    use rain_math_float::Float;
+    use rain_orderbook_bindings::IOrderBookV5::deposit3Call;
 
     #[test]
     fn test_new() {
@@ -88,13 +89,15 @@ mod tests {
         let app = tauri::test::mock_app();
         let notice = TransactionStatusNoticeRwLock::new("test".to_string());
 
+        let Float(zero) = Float::parse("0".to_string()).unwrap();
+
         notice.update_status_and_emit(
             &app.handle(),
             WriteTransactionStatus::PendingPrepare(Box::new(WriteContractParameters {
-                call: deposit2Call {
+                call: deposit3Call {
                     token: Address::ZERO,
-                    vaultId: U256::ZERO,
-                    amount: U256::ZERO,
+                    vaultId: B256::ZERO,
+                    depositAmount: zero,
                     tasks: Vec::new(),
                 },
                 address: Address::ZERO,

@@ -23,9 +23,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_address_from_ledger_err() {
         // NOTE: the error is different depending on whether a ledger is connected or not
-        let _ = get_address_from_ledger(None, 1, "this is a bad a url".to_string())
-            .await
-            .unwrap_err();
+        let _ = get_address_from_ledger(None, 1).await.unwrap_err();
     }
 
     // NOTE: we can't mock a ledger connection, so we can't test the ok case

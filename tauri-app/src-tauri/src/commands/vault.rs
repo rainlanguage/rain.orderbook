@@ -151,12 +151,13 @@ mod tests {
     use super::*;
     use crate::error::CommandError;
     use alloy::{
-        primitives::{Address, U256},
+        primitives::{Address, B256, U256},
         sol_types::SolCall,
     };
     use httpmock::MockServer;
+    use rain_math_float::Float;
     use rain_orderbook_bindings::{
-        IOrderBookV4::{deposit2Call, withdraw2Call},
+        IOrderBookV5::{deposit3Call, withdraw3Call},
         IERC20::approveCall,
     };
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
@@ -469,15 +470,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_vault_deposit_approve_calldata() {
-        let mock_app = tauri::test::mock_app();
-        let app_handle = mock_app.app_handle();
+        let amount = U256::from(50);
+        let decimals = 18;
 
         let res = vault_deposit_approve_calldata(
-            app_handle.clone(),
             DepositArgs {
                 token: Address::default(),
-                amount: U256::from(50),
-                vault_id: U256::from(1),
+                vault_id: B256::from(U256::from(1)),
+                amount,
+                decimals,
             },
             TransactionArgs {
                 orderbook_address: Address::default(),
@@ -489,7 +490,7 @@ mod tests {
 
         let expected: Bytes = approveCall {
             spender: Address::default(),
-            amount: U256::from(50),
+            amount,
         }
         .abi_encode()
         .into();
@@ -502,21 +503,27 @@ mod tests {
         let mock_app = tauri::test::mock_app();
         let app_handle = mock_app.app_handle();
 
+        let amount = U256::from(50);
+        let decimals = 18;
+
         let res = vault_deposit_calldata(
             app_handle.clone(),
             DepositArgs {
                 token: Address::default(),
-                amount: U256::from(50),
-                vault_id: U256::from(1),
+                vault_id: B256::from(U256::from(1)),
+                amount,
+                decimals,
             },
         )
         .await
         .unwrap();
 
-        let expected: Bytes = deposit2Call {
+        let Float(amount) = Float::from_fixed_decimal(amount, decimals).unwrap();
+
+        let expected: Bytes = deposit3Call {
             token: Address::default(),
-            amount: U256::from(50),
-            vaultId: U256::from(1),
+            depositAmount: amount,
+            vaultId: B256::from(U256::from(1)),
             tasks: vec![],
         }
         .abi_encode()
@@ -530,21 +537,27 @@ mod tests {
         let mock_app = tauri::test::mock_app();
         let app_handle = mock_app.app_handle();
 
+        let amount = U256::from(50);
+        let decimals = 18;
+        let target_amount = Float::from_fixed_decimal(amount, decimals).unwrap();
+
         let res = vault_withdraw_calldata(
             app_handle.clone(),
             WithdrawArgs {
                 token: Address::default(),
-                target_amount: U256::from(50),
-                vault_id: U256::from(1),
+                vault_id: B256::from(U256::from(1)),
+                target_amount,
             },
         )
         .await
         .unwrap();
 
-        let expected: Bytes = withdraw2Call {
+        let Float(target_amount_bytes) = target_amount;
+
+        let expected: Bytes = withdraw3Call {
             token: Address::default(),
-            targetAmount: U256::from(50),
-            vaultId: U256::from(1),
+            targetAmount: target_amount_bytes,
+            vaultId: B256::from(U256::from(1)),
             tasks: vec![],
         }
         .abi_encode()

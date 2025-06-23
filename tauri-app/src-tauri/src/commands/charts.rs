@@ -66,7 +66,6 @@ scenarios:
     runs: 1
     bindings:
       raindex-subparser: {subparser}
-      fixed-io-output-token: {token1}
 deployments:
   flare:
     order: flare
@@ -147,18 +146,10 @@ charts:
     const RAINLANG: &str = r#"
 #raindex-subparser !The subparser to use.
 #fixed-io !The io ratio for the limit order.
-#fixed-io-output-token !The output token that the fixed io is for. If this doesn't match the runtime output then the fixed-io will be inverted.
 #calculate-io
 using-words-from raindex-subparser
 max-output: max-value(),
-io: if(
-  equal-to(
-    output-token()
-    fixed-io-output-token
-  )
-  fixed-io
-  inv(fixed-io)
-);
+io: fixed-io;
 #handle-io
 :;
 #handle-add-order
@@ -210,7 +201,7 @@ deployers:
             &token2.address().to_string(),
         );
 
-        let dotrain = format!("{}\n{}\n---\n{}", dotrain_prefix, HAPPY_CHART, RAINLANG);
+        let dotrain = format!("{dotrain_prefix}\n{HAPPY_CHART}\n---\n{RAINLANG}");
         let res = make_charts(dotrain, Some(settings)).await.unwrap();
 
         assert_eq!(res.scenarios_data.len(), 1);
@@ -222,11 +213,17 @@ deployers:
         assert_eq!(
             scenario_data.data.rows[0][0],
             U256::from_str(
-                "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+                "57896044605178124378210172607010446383125176996001709808458505763404759695359"
             )
             .unwrap()
         );
-        assert_eq!(scenario_data.data.rows[0][1], U256::from(0));
+        assert_eq!(
+            scenario_data.data.rows[0][1],
+            U256::from_str(
+                "53699566664946318293293972793728208757831149923751404637753083708555281239495"
+            )
+            .unwrap()
+        );
 
         assert_eq!(res.charts.len(), 1);
         let chart = res.charts.get("flare-chart").unwrap();

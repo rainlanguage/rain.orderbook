@@ -62,7 +62,7 @@ custom-protocol = ["tauri/custom-protocol"]
 tauri-cli = "1.5"
 httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
-rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "fa0cc05a8dbf0f167a2392255a8b509309e9da46" }
+rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "bf08b5ab305287fc49408a441d6375f35dc280db" }
 rain-interpreter-eval.path = "../../lib/rain.interpreter/crates/eval"
 strict-yaml-rust = "0.1.2"
 tempfile = "3.20.0"

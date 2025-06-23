@@ -45,6 +45,7 @@ pub async fn debug_order_quote(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::B256;
     use alloy::{
         hex::encode_prefixed,
         primitives::utils::parse_ether,
@@ -143,7 +144,8 @@ amount price: 16 52;
                 token1_holder,
                 *token1.address(),
                 parse_ether("1000").unwrap(),
-                U256::from(1),
+                18,
+                B256::from(U256::from(1)),
             )
             .await
             .0
@@ -183,9 +185,6 @@ amount price: 16 52;
         .await;
 
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap().0.rows[0],
-            [parse_ether("16").unwrap(), parse_ether("52").unwrap()]
-        );
+        assert_eq!(result.unwrap().0.rows[0], [U256::from(16), U256::from(52)]);
     }
 }
