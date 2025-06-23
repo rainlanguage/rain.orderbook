@@ -10,7 +10,7 @@ export function getCalculator(): DecimalFloat {
 function getDecimalFloatAddress(): Address {
   let network = dataSource.network();
   if (network == "flare") {
-    return Address.fromString("0x0000000000000000000000000000000000000001");
+    return Address.fromString("0xDbcb964760d021e18A31C9A731d8589c361E0E20");
   } else if (network == "base") {
     return Address.fromString("0x83e4c7732e715b5E7310796A4A2a21d89f3FB59A");
   } else if (network == "bsc") {
