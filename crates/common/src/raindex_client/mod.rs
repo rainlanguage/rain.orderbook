@@ -9,6 +9,38 @@ use crate::dotrain_order::DotrainOrderError;
 pub mod orders;
 pub mod vaults;
 
+/// RaindexClient provides a simplified interface for querying orderbook data across
+/// multiple blockchain networks with automatic configuration management.
+///
+/// This client abstracts away complex network-specific configurations by parsing YAML
+/// configuration files that define networks, tokens, orderbooks, and subgraph endpoints.
+/// It enables querying orderbook data either from specific chains or across all
+/// configured networks with automatic fallback mechanisms.
+///
+/// The client handles:
+/// - YAML configuration parsing and validation
+/// - Network-to-subgraph URL mapping
+/// - Multi-network query coordination
+/// - Chain ID resolution to network configurations
+///
+/// ## Examples
+///
+/// ```javascript
+/// const result = await RaindexClient.new([yamlConfig]);
+/// if (result.error) {
+///   console.error('Failed to create client:', result.error.readableMsg);
+/// } else {
+///   const client = result.value;
+///   // Query orders across all networks or specific chains
+/// }
+///
+/// // Create client with multiple YAML files for modular configuration
+/// const result = await RaindexClient.new([
+///   yamlConfig1,
+///   yamlConfig2,
+///   yamlConfig3,
+/// ]);
+/// ```
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[wasm_bindgen]
 pub struct RaindexClient {
