@@ -1,4 +1,3 @@
-use alloy::primitives::U256;
 pub use rain_interpreter_eval::trace::*;
 use rain_orderbook_app_settings::chart::ChartCfg;
 use serde::{Deserialize, Serialize};
@@ -31,17 +30,6 @@ pub struct ChartData {
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ChartData);
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct RainEvalResultsTable {
-    pub column_names: Vec<String>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string[][]"))]
-    pub rows: Vec<Vec<U256>>,
-}
-#[cfg(target_family = "wasm")]
-impl_wasm_traits!(RainEvalResultsTable);
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]

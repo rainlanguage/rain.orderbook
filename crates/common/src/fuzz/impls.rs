@@ -19,7 +19,7 @@ use rain_interpreter_bindings::{
 };
 use rain_interpreter_eval::eval::ForkParseArgs;
 use rain_interpreter_eval::fork::{Forker, NewForkedEvm};
-pub use rain_interpreter_eval::trace::{RainEvalResult, TraceSearchError};
+pub use rain_interpreter_eval::trace::{RainEvalResult, RainEvalResults, TraceSearchError};
 use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs};
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
@@ -37,70 +37,17 @@ use thiserror::Error;
 #[derive(Debug)]
 pub struct FuzzResult {
     pub scenario: String,
-    pub runs: Vec<RainEvalResult>,
-}
-
-fn flattened_trace_path_names(traces: &[RainSourceTrace]) -> Vec<String> {
-    let mut path_names: Vec<String> = vec![];
-    let mut source_paths: Vec<String> = vec![];
-
-    for trace in traces.iter() {
-        let current_path = if trace.parent_source_index == trace.source_index {
-            format!("{}", trace.source_index)
-        } else {
-            source_paths
-                .iter()
-                .rev()
-                .find_map(|recent_path| {
-                    recent_path.split('.').next_back().and_then(|last_part| {
-                        if last_part == trace.parent_source_index.to_string() {
-                            Some(format!("{}.{}", recent_path, trace.source_index))
-                        } else {
-                            None
-                        }
-                    })
-                })
-                .unwrap_or(format!(
-                    "{}?.{}",
-                    trace.parent_source_index, trace.source_index
-                ))
-        };
-
-        for (index, _) in trace.stack.iter().enumerate() {
-            path_names.push(format!("{}.{}", current_path, index));
-        }
-
-        source_paths.push(current_path);
-    }
-
-    path_names
+    pub runs: RainEvalResults,
 }
 
 impl FuzzResult {
-    pub fn flatten_traces(&self) -> Result<FuzzResultFlat, FuzzRunnerError> {
-        let column_names = flattened_trace_path_names(&self.runs[0].traces);
+    pub fn flatten_traces(&self) -> FuzzResultFlat {
+        let result_table = self.runs.into_flattened_table();
 
-        let rows = self
-            .runs
-            .iter()
-            .map(|result| {
-                result
-                    .traces
-                    .iter()
-                    .flat_map(|trace| trace.stack.iter().rev().copied())
-                    .collect()
-            })
-            .collect();
-
-        let data = RainEvalResultsTable {
-            column_names: column_names.to_vec(),
-            rows,
-        };
-
-        Ok(FuzzResultFlat {
+        FuzzResultFlat {
             scenario: self.scenario.clone(),
-            data,
-        })
+            data: result_table,
+        }
     }
 }
 
@@ -348,7 +295,7 @@ impl FuzzRunner {
 
         Ok(FuzzResult {
             scenario: scenario.key.clone(),
-            runs,
+            runs: runs.into(),
         })
     }
 
@@ -548,7 +495,7 @@ impl FuzzRunner {
             pair_symbols,
             FuzzResult {
                 scenario: scenario.key.clone(),
-                runs: vec![run],
+                runs: vec![run].into(),
             },
             error,
         ))
@@ -568,7 +515,7 @@ impl FuzzRunner {
                 runner
                     .run_scenario_by_key(context, &scenario_key)
                     .await?
-                    .flatten_traces()?,
+                    .flatten_traces(),
             );
         }
 
@@ -720,20 +667,14 @@ impl FuzzRunner {
                             .await
                         {
                             Ok((pair_symbols, fuzz_result, eval_error)) => {
-                                match fuzz_result.flatten_traces() {
-                                    Ok(fuzz_result) => {
-                                        pair_data.pair = pair_symbols;
-                                        pair_data.result = Some(fuzz_result);
-                                        // store the abi decoded eval revert error
-                                        pair_data.error = eval_error.map(|v| match v {
-                                            Ok(abi_decoded_error) => abi_decoded_error.to_string(),
-                                            Err(e) => e.to_string(),
-                                        });
-                                    }
-                                    Err(e) => {
-                                        pair_data.error = Some(e.to_string());
-                                    }
-                                }
+                                let fuzz_result = fuzz_result.flatten_traces();
+                                pair_data.pair = pair_symbols;
+                                pair_data.result = Some(fuzz_result);
+                                // store the abi decoded eval revert error
+                                pair_data.error = eval_error.map(|v| match v {
+                                    Ok(abi_decoded_error) => abi_decoded_error.to_string(),
+                                    Err(e) => e.to_string(),
+                                });
                             }
                             Err(e) => {
                                 pair_data.error = Some(e.to_string());
@@ -933,7 +874,7 @@ b: fuzzed;
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        assert!(res.runs.len() == 50);
+        assert!(res.runs.results.len() == 50);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -981,9 +922,9 @@ _: block-number();
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        assert_eq!(res.runs.len(), 6);
+        assert_eq!(res.runs.results.len(), 6);
 
-        res.runs.iter().enumerate().for_each(|(i, run)| {
+        res.runs.results.iter().enumerate().for_each(|(i, run)| {
             assert_eq!(
                 run.traces[0].stack[0],
                 U256::from((start_block_number as usize) + i * 2)
@@ -1041,7 +982,7 @@ d: 4;
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        let flattened = res.flatten_traces().unwrap();
+        let flattened = res.flatten_traces();
 
         // find the column index of 0.2.3.0
         let column_index = flattened
@@ -1097,7 +1038,7 @@ _: context<4 4>();
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        let flattened = res.flatten_traces().unwrap();
+        let flattened = res.flatten_traces();
 
         for row in flattened.data.rows.iter() {
             for col in row.iter() {
@@ -1180,7 +1121,7 @@ _: context<1 0>();
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        let flattened = res.flatten_traces().unwrap();
+        let flattened = res.flatten_traces();
 
         // flatten the result and check all context order id hashes
         // dont match each oher, ie ensuring their randomness
