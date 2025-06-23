@@ -2,10 +2,12 @@ import { BigInt } from "@graphprotocol/graph-ts";
 import { Deposit as DepositEntity } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
-import { Deposit } from "../generated/OrderBook/OrderBook";
+import { DepositV2 } from "../generated/OrderBook/OrderBook";
+import { DecimalFloat } from "../generated/DecimalFloat/DecimalFloat";
+import { Float } from "./float";
 
-export function handleDeposit(event: Deposit): void {
-  let oldVaultBalance: BigInt = handleVaultBalanceChange(
+export function handleDeposit(event: DepositV2): void {
+  let oldVaultBalance: Float = handleVaultBalanceChange(
     event.address,
     event.params.vaultId,
     event.params.token,
@@ -14,6 +16,7 @@ export function handleDeposit(event: Deposit): void {
   );
   createDepositEntity(event, oldVaultBalance);
 }
+
 export function createDepositEntity(
   event: Deposit,
   oldVaultBalance: BigInt

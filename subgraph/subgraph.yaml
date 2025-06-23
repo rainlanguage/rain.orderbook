@@ -22,21 +22,23 @@ dataSources:
           file: ../out/OrderBook.sol/OrderBook.json
         - name: ERC20
           file: ../out/ERC20.sol/ERC20.json
+        - name: DecimalFloat
+          file: ../lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.math.float/out/DecimalFloat.sol/DecimalFloat.json
       eventHandlers:
-        - event: Deposit(address,address,uint256,uint256)
+        - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDeposit
-        - event: Withdraw(address,address,uint256,uint256,uint256)
+        - event: WithdrawV2(address,address,bytes32,bytes32,bytes32,uint256)
           handler: handleWithdraw
-        - event: AddOrderV2(address,bytes32,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32))
+        - event: AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))
           handler: handleAddOrder
-        - event: RemoveOrderV2(address,bytes32,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32))
+        - event: RemoveOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))
           handler: handleRemoveOrder
-        - event: TakeOrderV2(address,((address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),uint256,uint256,(address,uint256[],bytes)[]),uint256,uint256)
+        - event: TakeOrderV3(address,((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32[],bytes)[]),bytes32,bytes32)
           handler: handleTakeOrder
         - event: MetaV1_2(address,bytes32,bytes)
           handler: handleMeta
-        - event: ClearV2(address,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(uint256,uint256,uint256,uint256,uint256,uint256))
+        - event: ClearV3(address,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),(uint256,uint256,uint256,uint256,bytes32,bytes32))
           handler: handleClear
-        - event: AfterClear(address,(uint256,uint256,uint256,uint256))
+        - event: AfterClearV2(address,(bytes32,bytes32,bytes32,bytes32))
           handler: handleAfterClear
       file: ./src/handlers.ts

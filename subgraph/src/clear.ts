@@ -1,4 +1,4 @@
-import { AfterClear, ClearV2 } from "../generated/OrderBook/OrderBook";
+import { AfterClearV2, ClearV3 } from "../generated/OrderBook/OrderBook";
 import { Clear, ClearBounty, ClearTemporaryData } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { createTradeEntity } from "./trade";
@@ -19,7 +19,7 @@ export function makeClearEventId(event: ethereum.Event): Bytes {
   );
 }
 
-export function getOrdersHash(event: ClearV2): Bytes[] {
+export function getOrdersHash(event: ClearV3): Bytes[] {
   return [
     Bytes.fromByteArray(
       crypto.keccak256(ethereum.encode(event.parameters[1].value)!)
@@ -31,7 +31,7 @@ export function getOrdersHash(event: ClearV2): Bytes[] {
 }
 
 export function makeClearBountyId(
-  event: AfterClear,
+  event: AfterClearV2,
   vaultEntityId: Bytes
 ): Bytes {
   return Bytes.fromByteArray(
@@ -40,7 +40,7 @@ export function makeClearBountyId(
 }
 
 export function createTrade(
-  event: AfterClear,
+  event: AfterClearV2,
   owner: Bytes,
   orderHash: Bytes,
   inputToken: Bytes,
@@ -89,9 +89,9 @@ export function createTrade(
 }
 
 export function createClearEntity(
-  event: AfterClear,
-  aliceBountyAmount: BigInt,
-  bobBountyAmount: BigInt,
+  event: AfterClearV2,
+  aliceBountyAmount: Bytes,
+  bobBountyAmount: Bytes,
   aliceClearBounty: Bytes | null,
   bobClearBounty: Bytes | null
 ): void {
@@ -121,7 +121,7 @@ export function createClearEntity(
 }
 
 export function createClearBountyEntity(
-  event: AfterClear,
+  event: AfterClearV2,
   vaultEntityId: Bytes,
   oldVaultBalance: BigInt,
   amount: BigInt
@@ -140,7 +140,7 @@ export function createClearBountyEntity(
 }
 
 export function handleClearBounty(
-  event: AfterClear,
+  event: AfterClearV2,
   clearTemporaryData: ClearTemporaryData
 ): void {
   let aliceClearBounty: Bytes | null = null;
@@ -201,7 +201,7 @@ export function handleClearBounty(
   );
 }
 
-export function handleClear(event: ClearV2): void {
+export function handleClear(event: ClearV3): void {
   let clearTemporaryData = new ClearTemporaryData(makeClearEventId(event));
 
   let hashes = getOrdersHash(event);
@@ -247,7 +247,7 @@ export function handleClear(event: ClearV2): void {
   clearTemporaryData.save();
 }
 
-export function handleAfterClear(event: AfterClear): void {
+export function handleAfterClear(event: AfterClearV2): void {
   let clearTemporaryData = ClearTemporaryData.load(makeClearEventId(event));
   if (clearTemporaryData) {
     // alice
