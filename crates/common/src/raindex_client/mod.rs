@@ -114,9 +114,7 @@ impl RaindexClient {
                 }
 
                 if multi_subgraph_args.is_empty() {
-                    return Err(RaindexError::SubgraphNotConfigured(
-                        "no networks".to_string(),
-                    ));
+                    return Err(RaindexError::NoNetworksConfigured);
                 }
 
                 Ok(multi_subgraph_args)
@@ -140,6 +138,8 @@ pub enum RaindexError {
     InvalidYamlConfig,
     #[error("Chain ID not found: {0}")]
     ChainIdNotFound(u64),
+    #[error("No networks configured")]
+    NoNetworksConfigured,
     #[error("Subgraph not configured for chain ID: {0}")]
     SubgraphNotConfigured(String),
     #[error(transparent)]
@@ -160,6 +160,9 @@ impl RaindexError {
                 "The chain ID '{}' was not found in the configuration.",
                 chain_id
             ),
+            RaindexError::NoNetworksConfigured => {
+                "No networks configured. Please check your configuration.".to_string()
+            }
             RaindexError::SubgraphNotConfigured(chain_id) => {
                 format!("No subgraph is configured for chain ID '{}'.", chain_id)
             }
