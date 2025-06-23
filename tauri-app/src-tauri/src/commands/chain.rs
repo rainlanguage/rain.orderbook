@@ -1,20 +1,18 @@
 use crate::error::CommandResult;
-use alloy_ethers_typecast::transaction::ReadableClientHttp;
+use alloy_ethers_typecast::transaction::ReadableClient;
 
 #[tauri::command]
 pub async fn get_chainid(rpc_url: String) -> CommandResult<u64> {
-    let chain_id = ReadableClientHttp::new_from_urls(vec![rpc_url])?
+    let chain_id = ReadableClient::new_from_http_urls(vec![rpc_url])?
         .get_chainid()
         .await?;
 
-    let chain_id_u64: u64 = chain_id.try_into()?;
-
-    Ok(chain_id_u64)
+    Ok(chain_id)
 }
 
 #[tauri::command]
 pub async fn get_block_number(rpc_url: String) -> CommandResult<u64> {
-    let block_number = ReadableClientHttp::new_from_urls(vec![rpc_url])?
+    let block_number = ReadableClient::new_from_http_urls(vec![rpc_url])?
         .get_block_number()
         .await?;
     Ok(block_number)

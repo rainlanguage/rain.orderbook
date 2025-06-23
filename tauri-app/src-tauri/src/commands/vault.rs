@@ -1,7 +1,7 @@
-use crate::error::CommandResult;
-use crate::toast::toast_error;
-use crate::transaction_status::TransactionStatusNoticeRwLock;
 use alloy::primitives::Bytes;
+use alloy::sol_types::SolCall;
+use rain_math_float::FloatError;
+use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     deposit::DepositArgs,
@@ -13,6 +13,10 @@ use rain_orderbook_common::{
 use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Runtime};
+
+use crate::error::CommandResult;
+use crate::toast::toast_error;
+use crate::transaction_status::TransactionStatusNoticeRwLock;
 
 #[tauri::command]
 pub async fn vaults_list_write_csv(
@@ -85,8 +89,7 @@ pub async fn vault_deposit(
 }
 
 #[tauri::command]
-pub async fn vault_deposit_approve_calldata<R: Runtime>(
-    app_handle: AppHandle<R>,
+pub async fn vault_deposit_approve_calldata(
     deposit_args: DepositArgs,
     transaction_args: TransactionArgs,
 ) -> CommandResult<Bytes> {
@@ -104,7 +107,7 @@ pub async fn vault_deposit_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
-    let deposit_call: deposit3Call = deposit_args.try_into().map_err(|e| {
+    let deposit_call: deposit3Call = deposit_args.try_into().map_err(|e: FloatError| {
         toast_error(&app_handle, e.to_string());
         e
     })?;

@@ -14,7 +14,7 @@ pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<Rain
     .await?;
     let tx_hash = tx_hash.parse::<B256>()?;
     let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
-    Ok(res.into_flattened_table()?)
+    Ok(res.into_flattened_table())
 }
 
 #[cfg(test)]

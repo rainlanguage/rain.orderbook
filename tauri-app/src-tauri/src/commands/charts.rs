@@ -6,7 +6,7 @@ use tauri::State;
 
 #[tauri::command]
 pub async fn make_charts(dotrain: String, settings: Option<String>) -> CommandResult<ChartData> {
-    let runner = FuzzRunner::new(None);
+    let runner = FuzzRunner::new(None)?;
     let mut context = FuzzRunnerContext::new(&dotrain, settings, None)?;
     Ok(runner.make_chart_data(&mut context).await?)
 }

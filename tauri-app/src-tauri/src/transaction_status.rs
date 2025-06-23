@@ -10,8 +10,7 @@ impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
     fn from(val: WriteTransactionStatus<T>) -> Self {
         match val {
             WriteTransactionStatus::PendingPrepare(_) => TransactionStatus::PendingPrepare,
-            WriteTransactionStatus::PendingSign(_) => TransactionStatus::PendingSign,
-            WriteTransactionStatus::PendingSend(_) => TransactionStatus::PendingSend,
+            WriteTransactionStatus::PendingSignAndSend(_) => TransactionStatus::PendingSignAndSend,
             WriteTransactionStatus::Confirmed(receipt) => {
                 TransactionStatus::Confirmed(format!("{:?}", receipt.transaction_hash))
             }

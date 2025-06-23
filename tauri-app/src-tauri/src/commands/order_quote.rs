@@ -1,6 +1,6 @@
 use crate::error::CommandResult;
 use alloy::primitives::{Address, U256};
-use rain_orderbook_bindings::IOrderBookV4::Quote;
+use rain_orderbook_bindings::IOrderBookV5::QuoteV2;
 use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
 use rain_orderbook_quote::{NewQuoteDebugger, QuoteDebugger, QuoteTarget};
 use rain_orderbook_subgraph_client::types::common::*;
@@ -16,7 +16,7 @@ pub async fn debug_order_quote(
 ) -> CommandResult<(RainEvalResultsTable, Option<String>)> {
     let quote_target = QuoteTarget {
         orderbook,
-        quote_config: Quote {
+        quote_config: QuoteV2 {
             order: order.try_into()?,
             inputIOIndex: U256::from(input_io_index),
             outputIOIndex: U256::from(output_io_index),
@@ -34,7 +34,7 @@ pub async fn debug_order_quote(
     let eval_res: RainEvalResults = vec![res.0.clone()].into();
 
     Ok((
-        eval_res.into_flattened_table()?,
+        eval_res.into_flattened_table(),
         res.1.map(|v| match v {
             Ok(e) => e.to_string(),
             Err(e) => e.to_string(),
