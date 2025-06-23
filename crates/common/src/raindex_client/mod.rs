@@ -1,10 +1,10 @@
-use crate::subgraph::SubgraphError;
 use rain_orderbook_app_settings::yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable};
-use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_subgraph_client::MultiSubgraphArgs;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
+use wasm_bindgen_utils::{prelude::*, wasm_export};
+
+use crate::dotrain_order::DotrainOrderError;
 
 pub mod orders;
 pub mod vaults;
@@ -115,8 +115,6 @@ pub enum RaindexError {
     #[error(transparent)]
     SerdeError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
-    SubgraphError(#[from] SubgraphError),
-    #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
 }
 
@@ -135,7 +133,6 @@ impl RaindexError {
             }
             RaindexError::YamlError(err) => format!("YAML configuration error: {}", err),
             RaindexError::SerdeError(err) => format!("Data serialization error: {}", err),
-            RaindexError::SubgraphError(err) => format!("Subgraph query error: {}", err),
             RaindexError::DotrainOrderError(err) => format!("Order configuration error: {}", err),
         }
     }
@@ -156,7 +153,7 @@ impl From<RaindexError> for WasmEncodedError {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_family = "wasm"))]
 mod tests {
     use super::*;
     use rain_orderbook_app_settings::{spec_version::SpecVersion, yaml::YamlError};

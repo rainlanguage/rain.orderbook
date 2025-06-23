@@ -6,8 +6,6 @@ pub mod common;
 pub mod config;
 #[cfg(target_family = "wasm")]
 pub mod gui;
-#[cfg(target_family = "wasm")]
-pub mod raindex;
 #[cfg(any(target_family = "wasm", test))]
 pub mod subgraph;
 #[cfg(target_family = "wasm")]
