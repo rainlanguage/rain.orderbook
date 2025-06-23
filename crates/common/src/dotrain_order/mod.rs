@@ -625,7 +625,7 @@ impl DotrainOrder {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
