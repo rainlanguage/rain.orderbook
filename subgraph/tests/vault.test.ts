@@ -5,14 +5,23 @@ import {
   describe,
   afterEach,
   clearInBlockStore,
+  beforeEach,
 } from "matchstick-as";
 import { handleVaultBalanceChange, vaultEntityId } from "../src/vault";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import { createDepositEvent, createWithdrawEvent } from "./event-mocks.test";
 import { createMockERC20Functions } from "./erc20.test";
-import { FLOAT_100, FLOAT_ZERO } from "./float.test";
+import {
+  createMockDecimalFloatFunctions,
+  FLOAT_100,
+  FLOAT_200,
+  FLOAT_NEG_100,
+  FLOAT_0,
+} from "./float.test";
 
 describe("Vault balance changes", () => {
+  beforeEach(createMockDecimalFloatFunctions);
+
   afterEach(() => {
     clearStore();
     clearInBlockStore();
@@ -53,7 +62,7 @@ describe("Vault balance changes", () => {
       "Vault",
       vaultEId.toHexString(),
       "balance",
-      FLOAT_100.toString()
+      FLOAT_100.toHexString()
     );
     assert.fieldEquals("Vault", vaultEId.toHexString(), "token", token);
     assert.fieldEquals("Vault", vaultEId.toHexString(), "vaultId", vaultId);
@@ -61,16 +70,17 @@ describe("Vault balance changes", () => {
   });
 
   test("handleVaultDeposit()", () => {
-    createMockERC20Functions(
-      Address.fromString("0x1234567890123456789012345678901234567890")
-    );
+    let token = "0x1234567890123456789012345678901234567890";
+    createMockERC20Functions(Address.fromString(token));
+
+    let sender = "0x0987654321098765432109876543210987654321";
+    let vaultId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     let event = createDepositEvent(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
+      Address.fromString(sender),
+      Address.fromString(token),
+      Bytes.fromHexString(vaultId),
       BigInt.fromI32(100)
     );
     handleVaultBalanceChange(
@@ -81,54 +91,38 @@ describe("Vault balance changes", () => {
       event.params.sender
     );
 
-    let vaultId = vaultEntityId(
+    let vaultEId = vaultEntityId(
       event.address,
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Address.fromString("0x1234567890123456789012345678901234567890")
+      Address.fromString(sender),
+      Bytes.fromHexString(vaultId),
+      Address.fromString(token)
     );
 
     assert.entityCount("Vault", 1);
     assert.fieldEquals(
       "Vault",
-      vaultId.toHexString(),
+      vaultEId.toHexString(),
       "balance",
-      BigInt.fromI32(100).toString()
+      FLOAT_100.toHexString()
     );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "token",
-      "0x1234567890123456789012345678901234567890"
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "owner",
-      "0x0987654321098765432109876543210987654321"
-    );
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "token", token);
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "vaultId", vaultId);
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "owner", sender);
   });
 
   test("handleVaultWithdraw()", () => {
-    createMockERC20Functions(
-      Address.fromString("0x1234567890123456789012345678901234567890")
-    );
+    let token = "0x1234567890123456789012345678901234567890";
+    createMockERC20Functions(Address.fromString(token));
+
+    let sender = "0x0987654321098765432109876543210987654321";
+    let vaultId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     // first we need to deposit
     let depositEvent = createDepositEvent(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
+      Address.fromString(sender),
+      Address.fromString(token),
+      Bytes.fromHexString(vaultId),
       BigInt.fromI32(200)
     );
 
@@ -136,71 +130,44 @@ describe("Vault balance changes", () => {
       depositEvent.address,
       depositEvent.params.vaultId,
       depositEvent.params.token,
-      Bytes.fromHexString(
-        "0x00000000000000000000000000000000000000000000000000000000000000c8"
-      ),
+      FLOAT_200,
       depositEvent.params.sender
     );
 
     // then we withdraw
     let event = createWithdrawEvent(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Bytes.fromHexString(
-        "0x00000000000000000000000000000000000000000000000000000000000000c8"
-      ),
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      ),
+      Address.fromString(sender),
+      Address.fromString(token),
+      Bytes.fromHexString(vaultId),
+      FLOAT_200,
+      FLOAT_100,
       BigInt.fromI32(100)
     );
     handleVaultBalanceChange(
       event.address,
       event.params.vaultId,
       event.params.token,
-      Bytes.fromHexString(
-        "0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff9c"
-      ),
+      FLOAT_NEG_100,
       event.params.sender
     );
 
-    let vaultId = vaultEntityId(
+    let vaultEId = vaultEntityId(
       event.address,
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Address.fromString("0x1234567890123456789012345678901234567890")
+      Address.fromString(sender),
+      Bytes.fromHexString(vaultId),
+      Address.fromString(token)
     );
 
     assert.entityCount("Vault", 1);
     assert.fieldEquals(
       "Vault",
-      vaultId.toHexString(),
+      vaultEId.toHexString(),
       "balance",
-      BigInt.fromI32(100).toString()
+      FLOAT_100.toHexString()
     );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "token",
-      "0x1234567890123456789012345678901234567890"
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "owner",
-      "0x0987654321098765432109876543210987654321"
-    );
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "token", token);
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "vaultId", vaultId);
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "owner", sender);
   });
 
   test("If vault does not exist, create it", () => {
@@ -210,12 +177,15 @@ describe("Vault balance changes", () => {
       Address.fromString("0x1234567890123456789012345678901234567890")
     );
 
+    let sender = "0x0987654321098765432109876543210987654321";
+    let token = "0x1234567890123456789012345678901234567890";
+    let vaultHexId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
     let event = createDepositEvent(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
+      Address.fromString(sender),
+      Address.fromString(token),
+      Bytes.fromHexString(vaultHexId),
       BigInt.fromI32(100)
     );
 
@@ -223,19 +193,15 @@ describe("Vault balance changes", () => {
       event.address,
       event.params.vaultId,
       event.params.token,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      ),
+      FLOAT_100,
       event.params.sender
     );
 
     let vaultId = vaultEntityId(
       event.address,
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Address.fromString("0x1234567890123456789012345678901234567890")
+      Address.fromString(sender),
+      Bytes.fromHexString(vaultHexId),
+      Address.fromString(token)
     );
 
     assert.entityCount("Vault", 1);
@@ -243,45 +209,32 @@ describe("Vault balance changes", () => {
       "Vault",
       vaultId.toHexString(),
       "balance",
-      BigInt.fromI32(100).toString()
+      FLOAT_100.toHexString()
     );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "token",
-      "0x1234567890123456789012345678901234567890"
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "owner",
-      "0x0987654321098765432109876543210987654321"
-    );
+    assert.fieldEquals("Vault", vaultId.toHexString(), "token", token);
+    assert.fieldEquals("Vault", vaultId.toHexString(), "vaultId", vaultHexId);
+    assert.fieldEquals("Vault", vaultId.toHexString(), "owner", sender);
   });
+
   test("handleVaultBalanceChange returns 0 if vault doesn't exist yet", () => {
     createMockERC20Functions(
       Address.fromString("0x1234567890123456789012345678901234567890")
     );
 
+    let sender = "0x0987654321098765432109876543210987654321";
+    let token = "0x1234567890123456789012345678901234567890";
+    let vaultHexId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
     let balanceChange = handleVaultBalanceChange(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      ),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
+      Address.fromString(sender),
+      Bytes.fromHexString(vaultHexId),
+      Bytes.fromHexString(token),
+      FLOAT_100,
+      Bytes.fromHexString(sender)
     );
 
-    assert.bytesEquals(balanceChange.oldVaultBalance, FLOAT_ZERO);
+    assert.bytesEquals(balanceChange.oldVaultBalance, FLOAT_0);
   });
 
   test("handleVaultBalanceChange returns old balance if vault exists", () => {
@@ -289,35 +242,27 @@ describe("Vault balance changes", () => {
       Address.fromString("0x1234567890123456789012345678901234567890")
     );
 
+    let sender = "0x0987654321098765432109876543210987654321";
+    let token = "0x1234567890123456789012345678901234567890";
+    let vaultHexId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
     handleVaultBalanceChange(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      ),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
+      Address.fromString(sender),
+      Bytes.fromHexString(vaultHexId),
+      Bytes.fromHexString(token),
+      FLOAT_100,
+      Bytes.fromHexString(sender)
     );
 
     let balanceChange = handleVaultBalanceChange(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      ),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
+      Address.fromString(sender),
+      Bytes.fromHexString(vaultHexId),
+      Bytes.fromHexString(token),
+      FLOAT_100,
+      Bytes.fromHexString(sender)
     );
 
-    assert.bytesEquals(
-      balanceChange.oldVaultBalance,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      )
-    );
+    assert.bytesEquals(balanceChange.oldVaultBalance, FLOAT_100);
   });
 });

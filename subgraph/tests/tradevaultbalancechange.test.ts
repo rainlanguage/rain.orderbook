@@ -6,6 +6,7 @@ import {
   clearInBlockStore,
   newMockEvent,
   assert,
+  beforeEach,
 } from "matchstick-as";
 import { BigInt, Address, Bytes, crypto } from "@graphprotocol/graph-ts";
 import {
@@ -24,9 +25,18 @@ import { orderHashFromTakeOrderEvent } from "../src/takeorder";
 import { makeTradeId } from "../src/trade";
 import { createMockERC20Functions } from "./erc20.test";
 import { makeClearBountyId } from "../src/clear";
-import { FLOAT_10, FLOAT_15, FLOAT_20 } from "./float.test";
+import {
+  createMockDecimalFloatFunctions,
+  FLOAT_1,
+  FLOAT_10,
+  FLOAT_11,
+  FLOAT_15,
+  FLOAT_20,
+} from "./float.test";
 
 describe("Deposits", () => {
+  beforeEach(createMockDecimalFloatFunctions);
+
   afterEach(() => {
     clearStore();
     clearInBlockStore();
@@ -128,9 +138,24 @@ describe("Deposits", () => {
 
     let id = tradeVaultBalanceChangeId(event, _vaultEntityId).toHexString();
 
-    assert.fieldEquals("TradeVaultBalanceChange", id, "amount", "1");
-    assert.fieldEquals("TradeVaultBalanceChange", id, "oldVaultBalance", "10");
-    assert.fieldEquals("TradeVaultBalanceChange", id, "newVaultBalance", "11");
+    assert.fieldEquals(
+      "TradeVaultBalanceChange",
+      id,
+      "amount",
+      FLOAT_1.toHexString()
+    );
+    assert.fieldEquals(
+      "TradeVaultBalanceChange",
+      id,
+      "oldVaultBalance",
+      FLOAT_10.toHexString()
+    );
+    assert.fieldEquals(
+      "TradeVaultBalanceChange",
+      id,
+      "newVaultBalance",
+      FLOAT_11.toHexString()
+    );
     assert.fieldEquals(
       "TradeVaultBalanceChange",
       id,

@@ -5,6 +5,7 @@ import {
   describe,
   afterEach,
   clearInBlockStore,
+  beforeEach,
 } from "matchstick-as";
 import { BigInt, Address, crypto, Bytes } from "@graphprotocol/graph-ts";
 import { createWithdrawalEntity } from "../src/withdraw";
@@ -13,38 +14,40 @@ import { vaultEntityId } from "../src/vault";
 import { createMockERC20Functions } from "./erc20.test";
 import {
   createMockDecimalFloatFunctions,
-  FLOAT_1,
+  FLOAT_100,
   FLOAT_200,
   FLOAT_300,
+  FLOAT_NEG_100,
 } from "./float.test";
 import { getCalculator } from "../src/float";
 
 describe("Withdrawals", () => {
+  beforeEach(createMockDecimalFloatFunctions);
+
   afterEach(() => {
     clearStore();
     clearInBlockStore();
   });
 
   test("createWithdrawalEntity()", () => {
-    createMockDecimalFloatFunctions();
-    createMockERC20Functions(
-      Address.fromString("0x0987654321098765432109876543210987654321")
-    );
+    const token = "0x0987654321098765432109876543210987654321";
+    createMockERC20Functions(Address.fromString(token));
+
+    const sender = "0x1234567890123456789012345678901234567890";
+    const vaultId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     let event = createWithdrawEvent(
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      FLOAT_1,
+      Address.fromString(sender),
+      Address.fromString(token),
+      Bytes.fromHexString(vaultId),
       FLOAT_200,
+      FLOAT_100,
       BigInt.fromI32(100)
     );
 
-    let calculator = getCalculator();
-
     let oldVaultBalance = FLOAT_300;
+    let calculator = getCalculator();
     createWithdrawalEntity(calculator, event, oldVaultBalance);
 
     let id = crypto.keccak256(
@@ -52,29 +55,32 @@ describe("Withdrawals", () => {
         event.transaction.hash.concatI32(event.logIndex.toI32())
       )
     );
-    let vaultId = vaultEntityId(
+    let vaultEId = vaultEntityId(
       event.address,
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Address.fromString("0x0987654321098765432109876543210987654321")
+      Address.fromString(sender),
+      Bytes.fromHexString(vaultId),
+      Address.fromString(token)
     );
 
     assert.entityCount("Withdrawal", 1);
-    assert.fieldEquals("Withdrawal", id.toHexString(), "amount", "-100");
-    assert.fieldEquals("Withdrawal", id.toHexString(), "targetAmount", "200");
     assert.fieldEquals(
       "Withdrawal",
       id.toHexString(),
-      "sender",
-      "0x1234567890123456789012345678901234567890"
+      "amount",
+      FLOAT_NEG_100.toHexString()
     );
+    assert.fieldEquals(
+      "Withdrawal",
+      id.toHexString(),
+      "targetAmount",
+      FLOAT_200.toHexString()
+    );
+    assert.fieldEquals("Withdrawal", id.toHexString(), "sender", sender);
     assert.fieldEquals(
       "Withdrawal",
       id.toHexString(),
       "vault",
-      vaultId.toHexString()
+      vaultEId.toHexString()
     );
     assert.fieldEquals(
       "Withdrawal",
@@ -86,13 +92,13 @@ describe("Withdrawals", () => {
       "Withdrawal",
       id.toHexString(),
       "oldVaultBalance",
-      BigInt.fromI32(300).toString()
+      FLOAT_300.toHexString()
     );
     assert.fieldEquals(
       "Withdrawal",
       id.toHexString(),
       "newVaultBalance",
-      BigInt.fromI32(200).toString()
+      FLOAT_200.toHexString()
     );
     assert.fieldEquals(
       "Withdrawal",

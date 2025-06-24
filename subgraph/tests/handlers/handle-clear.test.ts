@@ -172,7 +172,7 @@ describe("Handle Clear", () => {
       "ClearTemporaryData",
       id,
       "bobBounty",
-      bobBountyVaultId.toString()
+      bobBountyVaultId.toHexString()
     );
   });
 });

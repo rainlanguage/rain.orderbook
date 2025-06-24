@@ -5,6 +5,7 @@ import {
   afterEach,
   clearInBlockStore,
   assert,
+  beforeEach,
 } from "matchstick-as";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import { Evaluable, IOV2, createTakeOrderEvent } from "../event-mocks.test";
@@ -13,13 +14,14 @@ import { handleTakeOrder } from "../../src/handlers";
 import { createMockDecimalFloatFunctions, FLOAT_1 } from "../float.test";
 
 describe("Add and remove orders", () => {
+  beforeEach(createMockDecimalFloatFunctions);
+
   afterEach(() => {
     clearStore();
     clearInBlockStore();
   });
 
   test("handleTakeOrder()", () => {
-    createMockDecimalFloatFunctions();
     createMockERC20Functions(
       Address.fromString("0x3333333333333333333333333333333333333333")
     );

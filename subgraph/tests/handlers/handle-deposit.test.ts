@@ -5,6 +5,7 @@ import {
   describe,
   afterEach,
   clearInBlockStore,
+  beforeEach,
 } from "matchstick-as";
 import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import { createDepositEvent } from "../event-mocks.test";
@@ -13,9 +14,17 @@ import { vaultEntityId } from "../../src/vault";
 import { Deposit, Vault } from "../../generated/schema";
 import { eventId } from "../../src/interfaces/event";
 import { createMockERC20Functions } from "../erc20.test";
-import { FLOAT_100, FLOAT_200, FLOAT_300, FLOAT_ZERO } from "../float.test";
+import {
+  createMockDecimalFloatFunctions,
+  FLOAT_100,
+  FLOAT_200,
+  FLOAT_300,
+  FLOAT_0,
+} from "../float.test";
 
 describe("Handle deposit", () => {
+  beforeEach(createMockDecimalFloatFunctions);
+
   afterEach(() => {
     clearStore();
     clearInBlockStore();
@@ -74,7 +83,7 @@ describe("Handle deposit", () => {
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
     assert.bytesEquals(deposit.amount, FLOAT_100);
-    assert.bytesEquals(deposit.oldVaultBalance, FLOAT_ZERO);
+    assert.bytesEquals(deposit.oldVaultBalance, FLOAT_0);
     assert.bytesEquals(deposit.newVaultBalance, FLOAT_100);
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
 
@@ -164,7 +173,7 @@ describe("Handle deposit", () => {
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
     assert.bytesEquals(deposit.amount, FLOAT_300);
-    assert.bytesEquals(deposit.oldVaultBalance, FLOAT_ZERO);
+    assert.bytesEquals(deposit.oldVaultBalance, FLOAT_0);
     assert.bytesEquals(deposit.newVaultBalance, FLOAT_300);
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
   });

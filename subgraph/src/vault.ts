@@ -26,7 +26,9 @@ export function createEmptyVault(
   vault.vaultId = vaultId;
   vault.token = getERC20Entity(token);
   vault.owner = owner;
-  vault.balance = Bytes.fromI32(0);
+  vault.balance = Bytes.fromHexString(
+    "0x0000000000000000000000000000000000000000000000000000000000000000"
+  );
   vault.save();
   return vault;
 }

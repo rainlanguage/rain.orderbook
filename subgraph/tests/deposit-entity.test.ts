@@ -11,7 +11,7 @@ import { createDepositEntity } from "../src/deposit";
 import { createDepositEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
 import { createMockERC20Functions } from "./erc20.test";
-import { FLOAT_100, FLOAT_ZERO } from "./float.test";
+import { FLOAT_100, FLOAT_0 } from "./float.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -20,43 +20,49 @@ describe("Deposits", () => {
   });
 
   test("createDepositEntity()", () => {
-    createMockERC20Functions(
-      Address.fromString("0x0987654321098765432109876543210987654321")
-    );
+    const sender = "0x1234567890123456789012345678901234567890";
+    const token = "0x0987654321098765432109876543210987654321";
+    const vaultId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-    let vaultId = Bytes.fromHexString(
-      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    );
+    createMockERC20Functions(Address.fromString(token));
 
-    let sender = Address.fromString(
-      "0x1234567890123456789012345678901234567890"
-    );
-    let token = Address.fromString(
-      "0x0987654321098765432109876543210987654321"
-    );
+    const senderAddr = Address.fromString(sender);
+    const tokenAddr = Address.fromString(token);
+    const vaultIdBytes = Bytes.fromHexString(vaultId);
 
-    let event = createDepositEvent(sender, token, vaultId, BigInt.fromI32(100));
-    createDepositEntity(event, FLOAT_ZERO, FLOAT_100, FLOAT_100);
+    const event = createDepositEvent(
+      senderAddr,
+      tokenAddr,
+      vaultIdBytes,
+      BigInt.fromI32(100)
+    );
+    createDepositEntity(event, FLOAT_0, FLOAT_100, FLOAT_100);
 
-    let id = crypto.keccak256(
+    const id = crypto.keccak256(
       event.address.concat(
         event.transaction.hash.concatI32(event.logIndex.toI32())
       )
     );
-    let vaultEId = vaultEntityId(event.address, sender, vaultId, token);
+    const vaultEId = vaultEntityId(
+      event.address,
+      senderAddr,
+      vaultIdBytes,
+      tokenAddr
+    );
 
     assert.entityCount("Deposit", 1);
     assert.fieldEquals(
       "Deposit",
       id.toHexString(),
       "amount",
-      BigInt.fromI32(100).toString()
+      FLOAT_100.toHexString()
     );
     assert.fieldEquals(
       "Deposit",
       id.toHexString(),
       "sender",
-      "0x1234567890123456789012345678901234567890"
+      sender.toLowerCase()
     );
     assert.fieldEquals(
       "Deposit",
@@ -74,13 +80,13 @@ describe("Deposits", () => {
       "Deposit",
       id.toHexString(),
       "oldVaultBalance",
-      BigInt.fromI32(0).toString()
+      FLOAT_0.toHexString()
     );
     assert.fieldEquals(
       "Deposit",
       id.toHexString(),
       "newVaultBalance",
-      BigInt.fromI32(100).toString()
+      FLOAT_100.toHexString()
     );
     assert.fieldEquals(
       "Deposit",

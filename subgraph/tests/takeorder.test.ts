@@ -176,8 +176,8 @@ describe("Deposits", () => {
       "sender",
       "0x1111111111111111111111111111111111111111"
     );
-    assert.fieldEquals("TakeOrder", id, "inputAmount", FLOAT_2.toString());
-    assert.fieldEquals("TakeOrder", id, "outputAmount", FLOAT_3.toString());
+    assert.fieldEquals("TakeOrder", id, "inputAmount", FLOAT_2.toHexString());
+    assert.fieldEquals("TakeOrder", id, "outputAmount", FLOAT_3.toHexString());
     assert.fieldEquals(
       "TakeOrder",
       id,
