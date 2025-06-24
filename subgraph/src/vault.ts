@@ -44,19 +44,27 @@ export function getVault(
   return vault;
 }
 
+export class VaultBalanceChange {
+  oldVaultBalance: Float;
+  newVaultBalance: Float;
+}
+
 export function handleVaultBalanceChange(
   orderbook: Bytes,
   vaultId: Bytes,
   token: Bytes,
   amount: Float,
   owner: Bytes
-): Float {
-  let calculator = getCalculator();
+): VaultBalanceChange {
+  const calculator = getCalculator();
 
   let vault = getVault(orderbook, owner, vaultId, token);
   let oldVaultBalance = vault.balance;
   vault.balance = calculator.add(oldVaultBalance, amount);
   vault.save();
 
-  return oldVaultBalance;
+  return {
+    oldVaultBalance,
+    newVaultBalance: vault.balance,
+  };
 }

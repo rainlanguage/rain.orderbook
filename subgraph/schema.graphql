@@ -83,7 +83,7 @@ type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
 type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
   "The amount that was being targeted to be withdrawn"
-  targetAmount: BigInt!
+  targetAmount: Bytes!
 
   # For VaultBalanceChange
   "The orderbook this balance change is for"
