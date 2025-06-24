@@ -1,16 +1,19 @@
-use std::collections::HashMap;
-
-use crate::{dotrain_order::DotrainOrderError, meta::TryDecodeRainlangSourceError};
+use crate::{
+    deposit::DepositError, dotrain_order::DotrainOrderError, meta::TryDecodeRainlangSourceError,
+    transaction::WritableTransactionExecuteError,
+};
 use alloy::{hex::FromHexError, primitives::ruint::ParseError};
 use rain_orderbook_app_settings::yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable};
 use rain_orderbook_subgraph_client::{MultiSubgraphArgs, OrderbookSubgraphClientError};
 use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashMap};
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod orders;
+pub mod transactions;
 pub mod vaults;
 
 /// RaindexClient provides a simplified interface for querying orderbook data across
@@ -91,20 +94,20 @@ impl RaindexClient {
     fn get_multi_subgraph_args(
         &self,
         chain_id: Option<u64>,
-    ) -> Result<HashMap<u64, MultiSubgraphArgs>, RaindexError> {
-        match chain_id {
+    ) -> Result<BTreeMap<u64, MultiSubgraphArgs>, RaindexError> {
+        let result = match chain_id {
             Some(id) => {
                 let network = self.orderbook_yaml.get_network_by_chain_id(id)?;
                 let orderbook = self
                     .orderbook_yaml
                     .get_orderbook_by_network_key(&network.key)?;
-                Ok(HashMap::from([(
+                HashMap::from([(
                     id,
                     MultiSubgraphArgs {
                         url: orderbook.subgraph.url.clone(),
                         name: network.label.clone().unwrap_or(network.key.clone()),
                     },
-                )]))
+                )])
             }
             None => {
                 let mut multi_subgraph_args = HashMap::new();
@@ -127,9 +130,15 @@ impl RaindexClient {
                     return Err(RaindexError::NoNetworksConfigured);
                 }
 
-                Ok(multi_subgraph_args)
+                multi_subgraph_args
             }
-        }
+        };
+
+        Ok(result
+            .into_iter()
+            .collect::<BTreeMap<_, _>>()
+            .into_iter()
+            .collect())
     }
 
     fn get_subgraph_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
@@ -139,6 +148,11 @@ impl RaindexClient {
             .get_orderbook_by_network_key(&network.key)?;
 
         Ok(orderbook.subgraph.url.clone())
+    }
+
+    fn get_rpc_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
+        let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
+        Ok(network.rpc.clone())
     }
 }
 
@@ -172,6 +186,14 @@ pub enum RaindexError {
     ReadLockError,
     #[error("Failed to acquire write lock")]
     WriteLockError,
+    #[error("Zero amount")]
+    ZeroAmount,
+    #[error("Existing allowance")]
+    ExistingAllowance,
+    #[error(transparent)]
+    WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
+    #[error(transparent)]
+    DepositArgsError(#[from] DepositError),
 }
 
 // TODO: Rethink about the error messages
@@ -228,6 +250,16 @@ impl RaindexError {
             RaindexError::WriteLockError => {
                 "Failed to modify the YAML configuration due to a lock error".to_string()
             }
+            RaindexError::ZeroAmount => "Amount cannot be zero".to_string(),
+            RaindexError::WritableTransactionExecuteError(err) => {
+                format!("Failed to execute transaction: {}", err)
+            }
+            RaindexError::ExistingAllowance => {
+                "There is already an allowance for this vault".to_string()
+            }
+            RaindexError::DepositArgsError(err) => {
+                format!("Failed to create deposit arguments: {}", err)
+            }
         }
     }
 }
@@ -252,26 +284,26 @@ mod tests {
     use super::*;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
 
-    fn get_test_yaml() -> String {
+    pub fn get_test_yaml(subgraph1: &str, subgraph2: &str, rpc1: &str, rpc2: &str) -> String {
         format!(
             r#"
 version: {spec_version}
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpc: {rpc1}
         chain-id: 1
         label: Ethereum Mainnet
         network-id: 1
         currency: ETH
     polygon:
-        rpc: https://polygon-rpc.com
+        rpc: {rpc2}
         chain-id: 137
         label: Polygon Mainnet
         network-id: 137
         currency: MATIC
 subgraphs:
-    mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    polygon: https://api.thegraph.com/subgraphs/name/polygon
+    mainnet: {subgraph1}
+    polygon: {subgraph2}
 metaboards:
     mainnet: https://api.thegraph.com/subgraphs/name/xyz
     polygon: https://api.thegraph.com/subgraphs/name/polygon
@@ -308,24 +340,6 @@ deployers:
         )
     }
 
-    fn get_invalid_yaml() -> String {
-        format!(
-            r#"
-version: {spec_version}
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: 1
-orderbooks:
-    invalid-orderbook:
-        address: 0x1234567890123456789012345678901234567890
-        network: nonexistent-network
-        subgraph: nonexistent-subgraph
-"#,
-            spec_version = SpecVersion::current()
-        )
-    }
-
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
@@ -333,9 +347,37 @@ orderbooks:
         use url::Url;
         use wasm_bindgen_test::wasm_bindgen_test;
 
+        fn get_invalid_yaml() -> String {
+            format!(
+                r#"
+    version: {spec_version}
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: 1
+    orderbooks:
+        invalid-orderbook:
+            address: 0x1234567890123456789012345678901234567890
+            network: nonexistent-network
+            subgraph: nonexistent-subgraph
+    "#,
+                spec_version = SpecVersion::current()
+            )
+        }
+
         #[wasm_bindgen_test]
         fn test_raindex_client_new_success() {
-            let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
             assert!(!client.orderbook_yaml.documents.is_empty());
         }
 
@@ -359,24 +401,38 @@ orderbooks:
 
         #[wasm_bindgen_test]
         fn test_get_subgraph_url_for_chain_success() {
-            let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
 
             let url = client.get_subgraph_url_for_chain(1).unwrap();
-            assert_eq!(
-                url,
-                Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
-            );
+            assert_eq!(url, Url::parse("http://localhost:3000/sg1").unwrap());
 
             let url = client.get_subgraph_url_for_chain(137).unwrap();
-            assert_eq!(
-                url,
-                Url::parse("https://api.thegraph.com/subgraphs/name/polygon").unwrap()
-            );
+            assert_eq!(url, Url::parse("http://localhost:3000/sg2").unwrap());
         }
 
         #[wasm_bindgen_test]
         fn test_get_subgraph_url_for_chain_not_found() {
-            let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
 
             let err = client.get_subgraph_url_for_chain(999).unwrap_err();
             assert!(
@@ -387,27 +443,47 @@ orderbooks:
 
         #[wasm_bindgen_test]
         fn test_get_multi_subgraph_args_single_chain() {
-            let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
 
             let args = client.get_multi_subgraph_args(Some(1)).unwrap();
             assert_eq!(args.len(), 1);
             assert_eq!(
                 args.get(&1).unwrap().url,
-                Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
+                Url::parse("http://localhost:3000/sg1").unwrap()
             );
             assert_eq!(args.get(&1).unwrap().name, "Ethereum Mainnet");
         }
 
         #[wasm_bindgen_test]
         fn test_get_multi_subgraph_args_all_chains() {
-            let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
 
             let args = client.get_multi_subgraph_args(None).unwrap();
             assert_eq!(args.len(), 2);
 
             let urls: Vec<&str> = args.iter().map(|(_, arg)| arg.url.as_str()).collect();
-            assert!(urls.contains(&"https://api.thegraph.com/subgraphs/name/xyz"));
-            assert!(urls.contains(&"https://api.thegraph.com/subgraphs/name/polygon"));
+            assert!(urls.contains(&"http://localhost:3000/sg1"));
+            assert!(urls.contains(&"http://localhost:3000/sg2"));
 
             let names: Vec<&str> = args.iter().map(|(_, arg)| arg.name.as_str()).collect();
             assert!(names.contains(&"Ethereum Mainnet"));
@@ -416,7 +492,17 @@ orderbooks:
 
         #[wasm_bindgen_test]
         fn test_get_multi_subgraph_args_invalid_chain() {
-            let client = RaindexClient::new(vec![get_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
 
             let err = client.get_multi_subgraph_args(Some(999)).unwrap_err();
             assert!(

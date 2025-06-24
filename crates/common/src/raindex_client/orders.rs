@@ -434,7 +434,7 @@ impl RaindexOrder {
             .map(|meta| meta.0.try_decode_rainlangsource())
             .transpose()?;
         Ok(Self {
-            raindex_client,
+            raindex_client: raindex_client.clone(),
             chain_id,
             id: order.id.0,
             order_bytes: order.order_bytes.0,
@@ -443,12 +443,26 @@ impl RaindexOrder {
             inputs: order
                 .inputs
                 .iter()
-                .map(|v| RaindexVault::try_from_sg_vault(v.clone(), RaindexVaultType::Input))
+                .map(|v| {
+                    RaindexVault::try_from_sg_vault(
+                        raindex_client.clone(),
+                        chain_id,
+                        v.clone(),
+                        Some(RaindexVaultType::Input),
+                    )
+                })
                 .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
             outputs: order
                 .outputs
                 .iter()
-                .map(|v| RaindexVault::try_from_sg_vault(v.clone(), RaindexVaultType::Output))
+                .map(|v| {
+                    RaindexVault::try_from_sg_vault(
+                        raindex_client.clone(),
+                        chain_id,
+                        v.clone(),
+                        Some(RaindexVaultType::Output),
+                    )
+                })
                 .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
@@ -462,67 +476,11 @@ impl RaindexOrder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-
-    fn get_test_yaml(subgraph1: &str, subgraph2: &str) -> String {
-        format!(
-            r#"
-version: {spec_version}
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: 1
-        label: Ethereum Mainnet
-        network-id: 1
-        currency: ETH
-    polygon:
-        rpc: https://polygon-rpc.com
-        chain-id: 137
-        label: Polygon Mainnet
-        network-id: 137
-        currency: MATIC
-subgraphs:
-    mainnet: {subgraph1}
-    polygon: {subgraph2}
-metaboards:
-    mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    polygon: https://api.thegraph.com/subgraphs/name/polygon
-orderbooks:
-    mainnet-orderbook:
-        address: 0x1234567890123456789012345678901234567890
-        network: mainnet
-        subgraph: mainnet
-        label: Primary Orderbook
-    polygon-orderbook:
-        address: 0x0987654321098765432109876543210987654321
-        network: polygon
-        subgraph: polygon
-        label: Polygon Orderbook
-tokens:
-    weth:
-        network: mainnet
-        address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-        decimals: 18
-        label: Wrapped Ether
-        symbol: WETH
-    usdc:
-        network: polygon
-        address: 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
-        decimals: 6
-        label: USD Coin
-        symbol: USDC
-deployers:
-    mainnet-deployer:
-        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-        network: mainnet
-"#,
-            spec_version = SpecVersion::current()
-        )
-    }
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
+        use crate::raindex_client::tests::get_test_yaml;
         use alloy::primitives::U256;
         use httpmock::MockServer;
         use rain_orderbook_subgraph_client::{
@@ -535,7 +493,6 @@ deployers:
             },
         };
         use serde_json::{json, Value};
-        // use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
         fn get_order1_json() -> Value {
             json!(                        {
@@ -1019,6 +976,9 @@ deployers:
                 vec![get_test_yaml(
                     &sg_server.url("/sg1"),
                     &sg_server.url("/sg2"),
+                    // not used
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
                 )],
                 None,
             )
@@ -1178,6 +1138,9 @@ deployers:
                 vec![get_test_yaml(
                     &sg_server.url("/sg1"),
                     &sg_server.url("/sg2"),
+                    // not used
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
                 )],
                 None,
             )
@@ -1227,6 +1190,9 @@ deployers:
                 vec![get_test_yaml(
                     &sg_server.url("/sg1"),
                     &sg_server.url("/sg2"),
+                    // not used
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
                 )],
                 None,
             )
@@ -1274,6 +1240,9 @@ deployers:
                 vec![get_test_yaml(
                     &sg_server.url("/sg1"),
                     &sg_server.url("/sg2"),
+                    // not used
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
                 )],
                 None,
             )
@@ -1547,6 +1516,9 @@ deployers:
                 vec![get_test_yaml(
                     &sg_server.url("/sg1"),
                     &sg_server.url("/sg2"),
+                    // not used
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
                 )],
                 None,
             )
