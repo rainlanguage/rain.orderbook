@@ -185,11 +185,13 @@ impl RaindexOrder {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<Vec<VaultVolume>, RaindexError> {
-        let raindex_client = self
-            .raindex_client
-            .read()
-            .map_err(|_| YamlError::ReadLockError)?;
-        let subgraph_url = raindex_client.get_subgraph_url_for_chain(self.chain_id)?;
+        let subgraph_url = {
+            let raindex_client = self
+                .raindex_client
+                .read()
+                .map_err(|_| YamlError::ReadLockError)?;
+            raindex_client.get_subgraph_url_for_chain(self.chain_id)?
+        };
         let client = OrderbookSubgraphClient::new(subgraph_url);
         let volumes = client
             .order_vaults_volume(Id::new(self.id.clone()), start_timestamp, end_timestamp)
@@ -231,11 +233,13 @@ impl RaindexOrder {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<OrderPerformance, RaindexError> {
-        let raindex_client = self
-            .raindex_client
-            .read()
-            .map_err(|_| YamlError::ReadLockError)?;
-        let subgraph_url = raindex_client.get_subgraph_url_for_chain(self.chain_id)?;
+        let subgraph_url = {
+            let raindex_client = self
+                .raindex_client
+                .read()
+                .map_err(|_| YamlError::ReadLockError)?;
+            raindex_client.get_subgraph_url_for_chain(self.chain_id)?
+        };
         let client = OrderbookSubgraphClient::new(subgraph_url);
         let performance = client
             .order_performance(Id::new(self.id.clone()), start_timestamp, end_timestamp)
@@ -413,7 +417,7 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                 .map(|owner| SgBytes(owner.to_string()))
                 .collect(),
             active: filters.active,
-            order_hash: filters.order_hash.map(|hash| SgBytes(hash)),
+            order_hash: filters.order_hash.map(SgBytes),
         })
     }
 }

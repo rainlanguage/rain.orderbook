@@ -2,6 +2,7 @@ use super::*;
 use alloy::primitives::{Address, U256};
 use rain_orderbook_subgraph_client::types::common::{SgErc20, SgVault};
 use std::str::FromStr;
+#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
