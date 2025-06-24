@@ -3,7 +3,7 @@ import { DecimalFloat } from "../generated/OrderBook/DecimalFloat";
 
 export type Float = Bytes;
 
-export const FALLBACK_DECIMAL_FLOAT_ADDRESS = Address.fromString(
+const FALLBACK_DECIMAL_FLOAT_ADDRESS = Address.fromString(
   "0x0000000000000000000000000000000000000001"
 );
 
@@ -11,7 +11,7 @@ export function getCalculator(): DecimalFloat {
   return DecimalFloat.bind(getDecimalFloatAddress());
 }
 
-function getDecimalFloatAddress(): Address {
+export function getDecimalFloatAddress(): Address {
   let network = dataSource.network();
   if (network == "flare") {
     return Address.fromString("0xDbcb964760d021e18A31C9A731d8589c361E0E20");

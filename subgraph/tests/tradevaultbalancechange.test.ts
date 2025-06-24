@@ -24,6 +24,7 @@ import { orderHashFromTakeOrderEvent } from "../src/takeorder";
 import { makeTradeId } from "../src/trade";
 import { createMockERC20Functions } from "./erc20.test";
 import { makeClearBountyId } from "../src/clear";
+import { FLOAT_10, FLOAT_15, FLOAT_20 } from "./float.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -160,18 +161,10 @@ describe("Deposits", () => {
     const alice = Address.fromString(
       "0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce"
     );
-    let aliceOutputAmount = Bytes.fromHexString(
-      "0x000000000000000000000000000000000000000000000000000000000000000a"
-    );
-    let bobOutputAmount = Bytes.fromHexString(
-      "0x0000000000000000000000000000000000000000000000000000000000000014"
-    );
-    let aliceInputAmount = Bytes.fromHexString(
-      "0x000000000000000000000000000000000000000000000000000000000000000f"
-    );
-    let bobInputAmount = Bytes.fromHexString(
-      "0x000000000000000000000000000000000000000000000000000000000000000a"
-    );
+    let aliceOutputAmount = FLOAT_10;
+    let bobOutputAmount = FLOAT_20;
+    let aliceInputAmount = FLOAT_15;
+    let bobInputAmount = FLOAT_10;
     let vaultEntityId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef12345678"
     );

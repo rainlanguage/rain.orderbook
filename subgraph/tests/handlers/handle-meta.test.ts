@@ -24,16 +24,17 @@ describe("Add and remove orders", () => {
   });
 
   test("handleMeta() should not error if there is no order", () => {
-    let event = createMetaEvent(
-      // sender
-      Address.fromString(
-        "0x1234567890abcdef1234567890abcdef12345678"
-      ) as Address,
-      // subject
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
-      // meta
-      Bytes.fromHexString("0x1234567890abcdef1234567890abcdef12345678")
+    let sender = Address.fromString(
+      "0x1234567890abcdef1234567890abcdef12345678"
     );
+    let subject = Bytes.fromHexString(
+      "0x0987654321098765432109876543210987654321"
+    );
+    let meta = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef12345678"
+    );
+
+    let event = createMetaEvent(sender, subject, meta);
 
     handleMeta(event);
   });
@@ -51,17 +52,15 @@ describe("Add and remove orders", () => {
       Address.fromString("0x1234567890123456789012345678901234567890"),
       orderHash,
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
         ),
       ],
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),

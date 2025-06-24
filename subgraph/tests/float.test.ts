@@ -1,12 +1,18 @@
 import { createMockedFunction } from "matchstick-as";
 import { Bytes, BigInt, ethereum } from "@graphprotocol/graph-ts";
-import { FALLBACK_DECIMAL_FLOAT_ADDRESS } from "../src/float";
+import { getDecimalFloatAddress } from "../src/float";
 
 export const FLOAT_ZERO = Bytes.fromHexString(
   "0x0000000000000000000000000000000000000000000000000000000000000000"
 );
 export const FLOAT_1 = Bytes.fromHexString(
   "0x0000000000000000000000000000000000000000000000000000000000000001"
+);
+export const FLOAT_2 = Bytes.fromHexString(
+  "0x0000000000000000000000000000000000000000000000000000000000000002"
+);
+export const FLOAT_3 = Bytes.fromHexString(
+  "0x0000000000000000000000000000000000000000000000000000000000000003"
 );
 export const FLOAT_5 = Bytes.fromHexString(
   "0x0000000000000000000000000000000000000000000000000000000000000005"
@@ -39,6 +45,9 @@ export const FLOAT_1000 = Bytes.fromHexString(
   "0x00000000000000000000000000000000000000000000000000000000000003e8"
 );
 
+export const FLOAT_NEG_1 = Bytes.fromHexString(
+  "0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+);
 export const FLOAT_NEG_10 = Bytes.fromHexString(
   "0x00000000fffffffffffffffffffffffffffffffffffffffffffffffffffffff6"
 );
@@ -54,7 +63,7 @@ export const FLOAT_NEG_200 = Bytes.fromHexString(
 
 export function createMockDecimalFloatFunctions(): void {
   createMockedFunction(
-    FALLBACK_DECIMAL_FLOAT_ADDRESS,
+    getDecimalFloatAddress(),
     "parse",
     "parse(string):(bytes4,bytes32)"
   )
@@ -66,7 +75,7 @@ export function createMockDecimalFloatFunctions(): void {
 
   function fromFixedDecimal(amount: BigInt, result: Bytes): void {
     createMockedFunction(
-      FALLBACK_DECIMAL_FLOAT_ADDRESS,
+      getDecimalFloatAddress(),
       "fromFixedDecimalLosslessPacked",
       "fromFixedDecimalLosslessPacked(uint256,uint8):(bytes32)"
     )
@@ -83,19 +92,20 @@ export function createMockDecimalFloatFunctions(): void {
 
   function minusMock(input: Bytes, output: Bytes): void {
     createMockedFunction(
-      FALLBACK_DECIMAL_FLOAT_ADDRESS,
+      getDecimalFloatAddress(),
       "minus",
       "minus(bytes32):(bytes32)"
     )
       .withArgs([ethereum.Value.fromFixedBytes(input)])
       .returns([ethereum.Value.fromFixedBytes(output)]);
   }
+  minusMock(FLOAT_1, FLOAT_NEG_1);
   minusMock(FLOAT_100, FLOAT_NEG_100);
   minusMock(FLOAT_200, FLOAT_NEG_200);
 
   function addMock(a: Bytes, b: Bytes, sum: Bytes): void {
     createMockedFunction(
-      FALLBACK_DECIMAL_FLOAT_ADDRESS,
+      getDecimalFloatAddress(),
       "add",
       "add(bytes32,bytes32):(bytes32)"
     )
@@ -112,7 +122,7 @@ export function createMockDecimalFloatFunctions(): void {
 
   function subMock(a: Bytes, b: Bytes, diff: Bytes): void {
     createMockedFunction(
-      FALLBACK_DECIMAL_FLOAT_ADDRESS,
+      getDecimalFloatAddress(),
       "sub",
       "sub(bytes32,bytes32):(bytes32)"
     )
@@ -130,7 +140,7 @@ export function createMockDecimalFloatFunctions(): void {
 
   function gtMock(a: Bytes, b: Bytes, result: boolean): void {
     createMockedFunction(
-      FALLBACK_DECIMAL_FLOAT_ADDRESS,
+      getDecimalFloatAddress(),
       "gt",
       "gt(bytes32,bytes32):(bool)"
     )

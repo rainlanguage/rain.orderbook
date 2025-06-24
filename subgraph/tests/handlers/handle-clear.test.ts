@@ -110,19 +110,19 @@ describe("Handle Clear", () => {
       "ClearTemporaryData",
       id,
       "aliceInputVaultId",
-      aliceVaultId.toString()
+      aliceVaultId.toHexString()
     );
     assert.fieldEquals(
       "ClearTemporaryData",
       id,
       "aliceOutputVaultId",
-      aliceVaultId.toString()
+      aliceVaultId.toHexString()
     );
     assert.fieldEquals(
       "ClearTemporaryData",
       id,
       "aliceBounty",
-      aliceBountyVaultId.toString()
+      aliceBountyVaultId.toHexString()
     );
 
     // bob
@@ -160,13 +160,13 @@ describe("Handle Clear", () => {
       "ClearTemporaryData",
       id,
       "bobInputVaultId",
-      bobVaultId.toString()
+      bobVaultId.toHexString()
     );
     assert.fieldEquals(
       "ClearTemporaryData",
       id,
       "bobOutputVaultId",
-      bobVaultId.toString()
+      bobVaultId.toHexString()
     );
     assert.fieldEquals(
       "ClearTemporaryData",

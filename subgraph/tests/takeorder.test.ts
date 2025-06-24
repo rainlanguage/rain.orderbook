@@ -11,6 +11,7 @@ import { Evaluable, IOV2, createTakeOrderEvent } from "./event-mocks.test";
 import { createTakeOrderEntity } from "../src/takeorder";
 import { eventId } from "../src/interfaces/event";
 import { createMockERC20Functions } from "./erc20.test";
+import { FLOAT_2, FLOAT_3 } from "./float.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -175,8 +176,8 @@ describe("Deposits", () => {
       "sender",
       "0x1111111111111111111111111111111111111111"
     );
-    assert.fieldEquals("TakeOrder", id, "inputAmount", "2");
-    assert.fieldEquals("TakeOrder", id, "outputAmount", "3");
+    assert.fieldEquals("TakeOrder", id, "inputAmount", FLOAT_2.toString());
+    assert.fieldEquals("TakeOrder", id, "outputAmount", FLOAT_3.toString());
     assert.fieldEquals(
       "TakeOrder",
       id,

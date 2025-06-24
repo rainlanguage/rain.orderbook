@@ -23,50 +23,41 @@ describe("Vault balance changes", () => {
       Address.fromString("0x1234567890123456789012345678901234567890")
     );
 
+    let owner = "0x0987654321098765432109876543210987654321";
+
+    let orderbook =
+      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+    let vaultId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    let token = "0x1234567890123456789012345678901234567890";
+
     handleVaultBalanceChange(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
+      Bytes.fromHexString(orderbook),
+      Bytes.fromHexString(vaultId),
+      Bytes.fromHexString(token),
       FLOAT_100,
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
+      Bytes.fromHexString(owner)
     );
 
-    let vaultId = vaultEntityId(
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      Bytes.fromHexString(
-        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      ),
-      Address.fromString("0x1234567890123456789012345678901234567890")
+    let vaultEId = vaultEntityId(
+      Bytes.fromHexString(orderbook),
+      Bytes.fromHexString(owner),
+      Bytes.fromHexString(vaultId),
+      Bytes.fromHexString(token)
     );
 
     assert.entityCount("Vault", 1);
     assert.fieldEquals(
       "Vault",
-      vaultId.toHexString(),
+      vaultEId.toHexString(),
       "balance",
-      BigInt.fromI32(100).toString()
+      FLOAT_100.toString()
     );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "token",
-      "0x1234567890123456789012345678901234567890"
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "owner",
-      "0x0987654321098765432109876543210987654321"
-    );
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "token", token);
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "vaultId", vaultId);
+    assert.fieldEquals("Vault", vaultEId.toHexString(), "owner", owner);
   });
 
   test("handleVaultDeposit()", () => {
