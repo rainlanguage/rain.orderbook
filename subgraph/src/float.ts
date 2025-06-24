@@ -3,6 +3,10 @@ import { DecimalFloat } from "../generated/OrderBook/DecimalFloat";
 
 export type Float = Bytes;
 
+export const FALLBACK_DECIMAL_FLOAT_ADDRESS = Address.fromString(
+  "0x0000000000000000000000000000000000000001"
+);
+
 export function getCalculator(): DecimalFloat {
   return DecimalFloat.bind(getDecimalFloatAddress());
 }
@@ -25,6 +29,5 @@ function getDecimalFloatAddress(): Address {
     return Address.fromString("0x83e4c7732e715b5E7310796A4A2a21d89f3FB59A");
   }
 
-  // Fallback
-  return Address.fromString("0x0000000000000000000000000000000000000001");
+  return FALLBACK_DECIMAL_FLOAT_ADDRESS;
 }

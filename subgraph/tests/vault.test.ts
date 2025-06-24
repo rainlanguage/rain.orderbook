@@ -10,6 +10,7 @@ import { handleVaultBalanceChange, vaultEntityId } from "../src/vault";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import { createDepositEvent, createWithdrawEvent } from "./event-mocks.test";
 import { createMockERC20Functions } from "./erc20.test";
+import { FLOAT_100, FLOAT_ZERO } from "./float.test";
 
 describe("Vault balance changes", () => {
   afterEach(() => {
@@ -18,10 +19,6 @@ describe("Vault balance changes", () => {
   });
 
   test("handleVaultBalanceChange()", () => {
-    const hundred = Bytes.fromHexString(
-      "0x0000000000000000000000000000000000000000000000000000000000000064"
-    );
-
     createMockERC20Functions(
       Address.fromString("0x1234567890123456789012345678901234567890")
     );
@@ -32,7 +29,7 @@ describe("Vault balance changes", () => {
         "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       ),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
-      hundred,
+      FLOAT_100,
       Bytes.fromHexString("0x0987654321098765432109876543210987654321")
     );
 
@@ -77,10 +74,6 @@ describe("Vault balance changes", () => {
       Address.fromString("0x1234567890123456789012345678901234567890")
     );
 
-    const hundred = Bytes.fromHexString(
-      "0x0000000000000000000000000000000000000000000000000000000000000064"
-    );
-
     let event = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
@@ -93,7 +86,7 @@ describe("Vault balance changes", () => {
       event.address,
       event.params.vaultId,
       event.params.token,
-      hundred,
+      FLOAT_100,
       event.params.sender
     );
 
@@ -297,12 +290,7 @@ describe("Vault balance changes", () => {
       Bytes.fromHexString("0x0987654321098765432109876543210987654321")
     );
 
-    assert.bytesEquals(
-      balanceChange.oldVaultBalance,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      )
-    );
+    assert.bytesEquals(balanceChange.oldVaultBalance, FLOAT_ZERO);
   });
 
   test("handleVaultBalanceChange returns old balance if vault exists", () => {

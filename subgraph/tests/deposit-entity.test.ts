@@ -6,11 +6,12 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, Address, crypto } from "@graphprotocol/graph-ts";
+import { BigInt, Address, crypto, Bytes } from "@graphprotocol/graph-ts";
 import { createDepositEntity } from "../src/deposit";
 import { createDepositEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
 import { createMockERC20Functions } from "./erc20.test";
+import { FLOAT_100, FLOAT_ZERO } from "./float.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -23,26 +24,26 @@ describe("Deposits", () => {
       Address.fromString("0x0987654321098765432109876543210987654321")
     );
 
-    let event = createDepositEvent(
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
-      BigInt.fromI32(100)
+    let vaultId = Bytes.fromHexString(
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     );
-    let newVaultBalance = BigInt.fromI32(0);
-    createDepositEntity(event, newVaultBalance);
+
+    let sender = Address.fromString(
+      "0x1234567890123456789012345678901234567890"
+    );
+    let token = Address.fromString(
+      "0x0987654321098765432109876543210987654321"
+    );
+
+    let event = createDepositEvent(sender, token, vaultId, BigInt.fromI32(100));
+    createDepositEntity(event, FLOAT_ZERO, FLOAT_100, FLOAT_100);
 
     let id = crypto.keccak256(
       event.address.concat(
         event.transaction.hash.concatI32(event.logIndex.toI32())
       )
     );
-    let vaultId = vaultEntityId(
-      event.address,
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(1),
-      Address.fromString("0x0987654321098765432109876543210987654321")
-    );
+    let vaultEId = vaultEntityId(event.address, sender, vaultId, token);
 
     assert.entityCount("Deposit", 1);
     assert.fieldEquals(
@@ -61,7 +62,7 @@ describe("Deposits", () => {
       "Deposit",
       id.toHexString(),
       "vault",
-      vaultId.toHexString()
+      vaultEId.toHexString()
     );
     assert.fieldEquals(
       "Deposit",

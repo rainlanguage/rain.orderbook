@@ -9,7 +9,7 @@ import {
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import {
   Evaluable,
-  IO,
+  IOV2,
   createAddOrderEvent,
   createMetaEvent,
 } from "../event-mocks.test";

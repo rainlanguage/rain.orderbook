@@ -1,7 +1,7 @@
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import { makeClearEventId, handleClear, getOrdersHash } from "../../src/clear";
 import {
-  IO,
+  IOV2,
   Evaluable,
   createOrder,
   createClearEvent,
@@ -18,10 +18,18 @@ import {
 const alice = Address.fromString("0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce");
 const bob = Address.fromString("0x813aef302Ebad333EDdef619C6f8eD7FeF51BA7c");
 
-const aliceVaultId = BigInt.fromI32(1);
-const bobVaultId = BigInt.fromI32(2);
-const aliceBountyVaultId = BigInt.fromI32(8);
-const bobBountyVaultId = BigInt.fromI32(9);
+const aliceVaultId = Bytes.fromHexString(
+  "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+);
+const bobVaultId = Bytes.fromHexString(
+  "0xb0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0"
+);
+const aliceBountyVaultId = Bytes.fromHexString(
+  "0xabababababababababababababababababababababababababababababababab"
+);
+const bobBountyVaultId = Bytes.fromHexString(
+  "0xabababababababababababababababababababababababababababababababab"
+);
 
 const token1 = Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB");
 const token2 = Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Bc");
@@ -48,18 +56,15 @@ describe("Handle Clear", () => {
       createOrder(
         alice,
         evaluable,
-        [new IO(token1, BigInt.fromI32(18), aliceVaultId)],
-        [new IO(token2, BigInt.fromI32(18), aliceVaultId)],
+        [new IOV2(token1, aliceVaultId)],
+        [new IOV2(token2, aliceVaultId)],
         nonce
       ),
       createOrder(
         bob,
         evaluable,
-        [new IO(token2, BigInt.fromI32(18), bobVaultId)],
-        [
-          new IO(token3, BigInt.fromI32(18), bobVaultId),
-          new IO(token1, BigInt.fromI32(18), bobVaultId),
-        ],
+        [new IOV2(token2, bobVaultId)],
+        [new IOV2(token3, bobVaultId), new IOV2(token1, bobVaultId)],
         nonce
       ),
       BigInt.fromI32(0),

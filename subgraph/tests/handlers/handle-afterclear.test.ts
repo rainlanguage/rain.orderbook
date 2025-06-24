@@ -27,6 +27,15 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
+import {
+  FLOAT_10,
+  FLOAT_15,
+  FLOAT_20,
+  FLOAT_5,
+  FLOAT_NEG_10,
+  FLOAT_NEG_20,
+  FLOAT_ZERO,
+} from "../float.test";
 
 const alice = Address.fromString("0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce");
 const bob = Address.fromString("0x813aef302Ebad333EDdef619C6f8eD7FeF51BA7c");
@@ -59,18 +68,10 @@ describe("Handle AfterClear", () => {
     createMockERC20Functions(token2);
     createMockERC20Functions(token3);
 
-    let aliceOutputAmount = Bytes.fromHexString(
-      "0x000000000000000000000000000000000000000000000000000000000000000a"
-    );
-    let bobOutputAmount = Bytes.fromHexString(
-      "0x0000000000000000000000000000000000000000000000000000000000000014"
-    );
-    let aliceInputAmount = Bytes.fromHexString(
-      "0x000000000000000000000000000000000000000000000000000000000000000f"
-    );
-    let bobInputAmount = Bytes.fromHexString(
-      "0x000000000000000000000000000000000000000000000000000000000000000a"
-    );
+    let aliceOutputAmount = FLOAT_10;
+    let bobOutputAmount = FLOAT_20;
+    let aliceInputAmount = FLOAT_15;
+    let bobInputAmount = FLOAT_10;
 
     let evaluable = new Evaluable(
       Address.fromString("0x5fB33D710F8B58DE4c9fDEC703B5c2487a5219d6"),
@@ -137,14 +138,8 @@ describe("Handle AfterClear", () => {
       "aliceOutputAmount",
       aliceOutputAmount.toString()
     );
-    assert.fieldEquals(
-      "Clear",
-      id,
-      "aliceBountyAmount",
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      ).toString()
-    );
+    assert.fieldEquals("Clear", id, "aliceBountyAmount", FLOAT_ZERO.toString());
+
     // bob
     assert.fieldEquals(
       "Clear",
@@ -158,14 +153,7 @@ describe("Handle AfterClear", () => {
       "bobOutputAmount",
       bobOutputAmount.toString()
     );
-    assert.fieldEquals(
-      "Clear",
-      id,
-      "bobBountyAmount",
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000005"
-      ).toString()
-    );
+    assert.fieldEquals("Clear", id, "bobBountyAmount", FLOAT_5.toString());
 
     // bounty
     let bountyVaultId = vaultEntityId(
@@ -201,13 +189,13 @@ describe("Handle AfterClear", () => {
       "ClearBounty",
       clearBountyId,
       "amount",
-      bobOutputAmount.minus(aliceInputAmount).toString()
+      "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     );
     assert.fieldEquals(
       "ClearBounty",
       clearBountyId,
       "newVaultBalance",
-      bobOutputAmount.minus(aliceInputAmount).toString()
+      FLOAT_5.toString()
     );
     assert.fieldEquals(
       "ClearBounty",
@@ -279,7 +267,7 @@ describe("Handle AfterClear", () => {
       "TradeVaultBalanceChange",
       aliceOutputVaultBalanceChangeId,
       "amount",
-      aliceOutputAmount.neg().toString()
+      FLOAT_NEG_10.toString()
     );
 
     // bob trade and balance change
@@ -332,7 +320,7 @@ describe("Handle AfterClear", () => {
       "TradeVaultBalanceChange",
       bobOutputVaultBalanceChangeId,
       "amount",
-      bobOutputAmount.neg().toString()
+      FLOAT_NEG_20.toString()
     );
   });
 });

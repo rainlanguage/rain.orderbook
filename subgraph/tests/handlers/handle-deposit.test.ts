@@ -13,6 +13,7 @@ import { vaultEntityId } from "../../src/vault";
 import { Deposit, Vault } from "../../generated/schema";
 import { eventId } from "../../src/interfaces/event";
 import { createMockERC20Functions } from "../erc20.test";
+import { FLOAT_100, FLOAT_200, FLOAT_300, FLOAT_ZERO } from "../float.test";
 
 describe("Handle deposit", () => {
   afterEach(() => {
@@ -29,7 +30,7 @@ describe("Handle deposit", () => {
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000001"
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       ),
       BigInt.fromI32(100)
     );
@@ -59,12 +60,7 @@ describe("Handle deposit", () => {
     if (vault == null) {
       return;
     }
-    assert.bytesEquals(
-      vault.balance,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      )
-    );
+    assert.bytesEquals(vault.balance, FLOAT_100);
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
     assert.bytesEquals(vault.vaultId, event.params.vaultId);
@@ -77,24 +73,9 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bytesEquals(
-      deposit.amount,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      )
-    );
-    assert.bytesEquals(
-      deposit.oldVaultBalance,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      )
-    );
-    assert.bytesEquals(
-      deposit.newVaultBalance,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      )
-    );
+    assert.bytesEquals(deposit.amount, FLOAT_100);
+    assert.bytesEquals(deposit.oldVaultBalance, FLOAT_ZERO);
+    assert.bytesEquals(deposit.newVaultBalance, FLOAT_100);
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
 
     // make another deposit, same token, same vaultId
@@ -122,12 +103,7 @@ describe("Handle deposit", () => {
     if (vault == null) {
       return;
     }
-    assert.bytesEquals(
-      vault.balance,
-      Bytes.fromHexString(
-        "0x000000000000000000000000000000000000000000000000000000000000012c"
-      )
-    );
+    assert.bytesEquals(vault.balance, FLOAT_300);
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
     assert.bytesEquals(vault.vaultId, event.params.vaultId);
@@ -140,24 +116,9 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bytesEquals(
-      deposit.amount,
-      Bytes.fromHexString(
-        "0x00000000000000000000000000000000000000000000000000000000000000c8"
-      )
-    );
-    assert.bytesEquals(
-      deposit.oldVaultBalance,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000064"
-      )
-    );
-    assert.bytesEquals(
-      deposit.newVaultBalance,
-      Bytes.fromHexString(
-        "0x000000000000000000000000000000000000000000000000000000000000012c"
-      )
-    );
+    assert.bytesEquals(deposit.amount, FLOAT_200);
+    assert.bytesEquals(deposit.oldVaultBalance, FLOAT_100);
+    assert.bytesEquals(deposit.newVaultBalance, FLOAT_300);
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
 
     // make another deposit, different token, same vaultId
@@ -189,12 +150,7 @@ describe("Handle deposit", () => {
     if (vault == null) {
       return;
     }
-    assert.bytesEquals(
-      vault.balance,
-      Bytes.fromHexString(
-        "0x000000000000000000000000000000000000000000000000000000000000012c"
-      )
-    );
+    assert.bytesEquals(vault.balance, FLOAT_300);
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
     assert.bytesEquals(vault.vaultId, event.params.vaultId);
@@ -207,24 +163,9 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bytesEquals(
-      deposit.amount,
-      Bytes.fromHexString(
-        "0x000000000000000000000000000000000000000000000000000000000000012c"
-      )
-    );
-    assert.bytesEquals(
-      deposit.oldVaultBalance,
-      Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      )
-    );
-    assert.bytesEquals(
-      deposit.newVaultBalance,
-      Bytes.fromHexString(
-        "0x000000000000000000000000000000000000000000000000000000000000012c"
-      )
-    );
+    assert.bytesEquals(deposit.amount, FLOAT_300);
+    assert.bytesEquals(deposit.oldVaultBalance, FLOAT_ZERO);
+    assert.bytesEquals(deposit.newVaultBalance, FLOAT_300);
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
   });
 });

@@ -134,17 +134,19 @@ describe("Deposits", () => {
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x3333333333333333333333333333333333333333"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x4444444444444444444444444444444444444444"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x5555555555555555555555555555555555555555"),
@@ -153,8 +155,12 @@ describe("Deposits", () => {
         Address.fromString("0x7777777777777777777777777777777777777777"),
         Bytes.fromHexString("0x8888888888888888888888888888888888888888")
       ),
-      BigInt.fromI32(2),
-      BigInt.fromI32(3)
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000002"
+      ),
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000003"
+      )
     );
 
     createTakeOrderEntity(event);

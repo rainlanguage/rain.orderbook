@@ -6,11 +6,18 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, Address, crypto } from "@graphprotocol/graph-ts";
+import { BigInt, Address, crypto, Bytes } from "@graphprotocol/graph-ts";
 import { createWithdrawalEntity } from "../src/withdraw";
 import { createWithdrawEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
 import { createMockERC20Functions } from "./erc20.test";
+import {
+  createMockDecimalFloatFunctions,
+  FLOAT_1,
+  FLOAT_200,
+  FLOAT_300,
+} from "./float.test";
+import { getCalculator } from "../src/float";
 
 describe("Withdrawals", () => {
   afterEach(() => {
@@ -19,6 +26,7 @@ describe("Withdrawals", () => {
   });
 
   test("createWithdrawalEntity()", () => {
+    createMockDecimalFloatFunctions();
     createMockERC20Functions(
       Address.fromString("0x0987654321098765432109876543210987654321")
     );
@@ -26,13 +34,18 @@ describe("Withdrawals", () => {
     let event = createWithdrawEvent(
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
-      BigInt.fromI32(200),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
+      FLOAT_1,
+      FLOAT_200,
       BigInt.fromI32(100)
     );
 
-    let oldVaultBalance = BigInt.fromI32(300);
-    createWithdrawalEntity(event, oldVaultBalance);
+    let calculator = getCalculator();
+
+    let oldVaultBalance = FLOAT_300;
+    createWithdrawalEntity(calculator, event, oldVaultBalance);
 
     let id = crypto.keccak256(
       event.address.concat(
@@ -42,7 +55,9 @@ describe("Withdrawals", () => {
     let vaultId = vaultEntityId(
       event.address,
       Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(1),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
       Address.fromString("0x0987654321098765432109876543210987654321")
     );
 
