@@ -99,9 +99,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
-        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(networks.keys().cloned().collect())
+        Ok(self.get_networks()?.keys().cloned().collect())
     }
     pub fn get_networks(&self) -> Result<HashMap<String, NetworkCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -111,6 +109,18 @@ impl OrderbookYaml {
         let context = self.initialize_context_and_expand_remote_data()?;
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
+    pub fn get_network_by_chain_id(&self, chain_id: u64) -> Result<NetworkCfg, YamlError> {
+        let networks = self.get_networks()?;
+        for network in networks.values() {
+            if network.chain_id == chain_id {
+                return Ok(network.clone());
+            }
+        }
+        Err(YamlError::NotFound(format!(
+            "network with chain-id: {}",
+            chain_id
+        )))
+    }
 
     pub fn get_remote_networks(&self) -> Result<HashMap<String, RemoteNetworksCfg>, YamlError> {
         let remote_networks = RemoteNetworksCfg::parse_all_from_yaml(self.documents.clone(), None)?;
@@ -118,9 +128,11 @@ impl OrderbookYaml {
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_tokens()?.keys().cloned().collect())
+    }
+    pub fn get_tokens(&self) -> Result<HashMap<String, TokenCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
-        let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(tokens.keys().cloned().collect())
+        TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -137,17 +149,22 @@ impl OrderbookYaml {
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_subgraphs()?.keys().cloned().collect())
+    }
+    pub fn get_subgraphs(&self) -> Result<HashMap<String, SubgraphCfg>, YamlError> {
         let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(subgraphs.keys().cloned().collect())
+        Ok(subgraphs)
     }
     pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
         SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_orderbooks()?.keys().cloned().collect())
+    }
+    pub fn get_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(orderbooks.keys().cloned().collect())
+        OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -160,12 +177,33 @@ impl OrderbookYaml {
                 return Ok(orderbook);
             }
         }
-        Err(YamlError::KeyNotFound(address.to_string()))
+        Err(YamlError::NotFound(format!(
+            "orderbook with address: {}",
+            address
+        )))
+    }
+    pub fn get_orderbook_by_network_key(
+        &self,
+        network_key: &str,
+    ) -> Result<OrderbookCfg, YamlError> {
+        let orderbooks = self.get_orderbooks()?;
+        for (_, orderbook) in orderbooks {
+            if orderbook.network.key == network_key {
+                return Ok(orderbook);
+            }
+        }
+        Err(YamlError::NotFound(format!(
+            "orderbook with network key: {}",
+            network_key
+        )))
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_metaboards()?.keys().cloned().collect())
+    }
+    pub fn get_metaboards(&self) -> Result<HashMap<String, MetaboardCfg>, YamlError> {
         let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(metaboards.keys().cloned().collect())
+        Ok(metaboards)
     }
     pub fn get_metaboard(&self, key: &str) -> Result<MetaboardCfg, YamlError> {
         MetaboardCfg::parse_from_yaml(self.documents.clone(), key, None)
@@ -175,18 +213,35 @@ impl OrderbookYaml {
     }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_deployers()?.keys().cloned().collect())
+    }
+    pub fn get_deployers(&self) -> Result<HashMap<String, DeployerCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
-        let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(deployers.keys().cloned().collect())
+        DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
         DeployerCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
-    pub fn get_sentry(&self) -> Result<bool, YamlError> {
-        let value = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
-        Ok(value.map_or(false, |v| v == "true"))
+    pub fn get_sentry(&self) -> Result<Option<bool>, YamlError> {
+        let value_opt_str = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
+
+        let res = value_opt_str
+            .map(|v| v.to_ascii_lowercase())
+            .map(|v| match v.as_str() {
+                "true" | "1" => Ok(true),
+                "false" | "0" => Ok(false),
+                _ => Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "sentry".to_string(),
+                        expected: "a boolean".to_string(),
+                    },
+                    location: "root".to_string(),
+                }),
+            });
+
+        res.transpose()
     }
 
     pub fn get_spec_version(&self) -> Result<String, YamlError> {
@@ -270,6 +325,7 @@ mod tests {
     use url::Url;
 
     const FULL_YAML: &str = r#"
+    version: 1
     networks:
         mainnet:
             rpc: https://mainnet.infura.io
@@ -308,7 +364,6 @@ mod tests {
         admin: 0x0000000000000000000000000000000000000001
         user: 0x0000000000000000000000000000000000000002
     sentry: true
-    version: 1
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
@@ -358,6 +413,7 @@ mod tests {
             Url::parse("https://chainid.network/v2/chains.json").unwrap()
         );
 
+        assert_eq!(ob_yaml.get_tokens().unwrap().len(), 1);
         assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
         let token = ob_yaml.get_token("token1").unwrap();
         assert_eq!(
@@ -421,9 +477,9 @@ mod tests {
             "mainnet"
         );
 
-        assert!(ob_yaml.get_sentry().unwrap());
+        assert_eq!(ob_yaml.get_sentry().unwrap(), Some(true));
 
-        assert_eq!(ob_yaml.get_spec_version().unwrap(), "1".to_string());
+        assert_eq!(ob_yaml.get_spec_version().unwrap(), SpecVersion::current());
 
         assert_eq!(ob_yaml.get_account_keys().unwrap().len(), 2);
         assert_eq!(
@@ -546,6 +602,131 @@ test: test
         assert_eq!(
             ob_yaml.get_metaboard("test-metaboard").unwrap().url,
             Url::parse("https://test-metaboard.com").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_get_network_by_chain_id() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+
+        // Test successful lookup
+        let network = ob_yaml.get_network_by_chain_id(1).unwrap();
+        assert_eq!(network.key, "mainnet");
+        assert_eq!(network.chain_id, 1);
+        assert_eq!(
+            network.rpc,
+            Url::parse("https://mainnet.infura.io").unwrap()
+        );
+
+        // Test error case - chain ID not found
+        let error = ob_yaml.get_network_by_chain_id(999).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::NotFound("network with chain-id: 999".to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The requested item \"network with chain-id: 999\" could not be found in the YAML configuration."
+        );
+    }
+
+    #[test]
+    fn test_get_orderbook_by_network_key() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+
+        // Test successful lookup
+        let orderbook = ob_yaml.get_orderbook_by_network_key("mainnet").unwrap();
+        assert_eq!(orderbook.key, "orderbook1");
+        assert_eq!(orderbook.network.key, "mainnet");
+        assert_eq!(
+            orderbook.address,
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
+        );
+
+        // Test error case - network key not found
+        let error = ob_yaml
+            .get_orderbook_by_network_key("nonexistent")
+            .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::NotFound("orderbook with network key: nonexistent".to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The requested item \"orderbook with network key: nonexistent\" could not be found in the YAML configuration."
+        );
+    }
+
+    #[test]
+    fn test_get_network_by_chain_id_with_multiple_networks() {
+        let yaml = format!(
+            r#"
+    version: {spec_version}
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: 1
+            label: Ethereum Mainnet
+            network-id: 1
+            currency: ETH
+        polygon:
+            rpc: https://polygon-rpc.com
+            chain-id: 137
+            label: Polygon Mainnet
+            network-id: 137
+            currency: MATIC
+        arbitrum:
+            rpc: https://arb1.arbitrum.io
+            chain-id: 42161
+            label: Arbitrum One
+            network-id: 42161
+            currency: ETH
+    subgraphs:
+        mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    orderbooks:
+        mainnet-orderbook:
+            address: 0x1234567890123456789012345678901234567890
+            network: mainnet
+            subgraph: mainnet
+        polygon-orderbook:
+            address: 0x0987654321098765432109876543210987654321
+            network: polygon
+            subgraph: mainnet
+    "#,
+            spec_version = SpecVersion::current()
+        );
+
+        let ob_yaml = OrderbookYaml::new(vec![yaml], false).unwrap();
+
+        // Test each network
+        let mainnet = ob_yaml.get_network_by_chain_id(1).unwrap();
+        assert_eq!(mainnet.key, "mainnet");
+        assert_eq!(mainnet.chain_id, 1);
+
+        let polygon = ob_yaml.get_network_by_chain_id(137).unwrap();
+        assert_eq!(polygon.key, "polygon");
+        assert_eq!(polygon.chain_id, 137);
+
+        let arbitrum = ob_yaml.get_network_by_chain_id(42161).unwrap();
+        assert_eq!(arbitrum.key, "arbitrum");
+        assert_eq!(arbitrum.chain_id, 42161);
+
+        // Test orderbook lookup by network key
+        let mainnet_orderbook = ob_yaml.get_orderbook_by_network_key("mainnet").unwrap();
+        assert_eq!(mainnet_orderbook.key, "mainnet-orderbook");
+        assert_eq!(mainnet_orderbook.network.key, "mainnet");
+
+        let polygon_orderbook = ob_yaml.get_orderbook_by_network_key("polygon").unwrap();
+        assert_eq!(polygon_orderbook.key, "polygon-orderbook");
+        assert_eq!(polygon_orderbook.network.key, "polygon");
+
+        // Test error for network without orderbook
+        let error = ob_yaml
+            .get_orderbook_by_network_key("arbitrum")
+            .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::NotFound("orderbook with network key: arbitrum".to_string())
         );
     }
 }

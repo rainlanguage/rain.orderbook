@@ -9,6 +9,7 @@ pub mod gui;
 pub mod merge;
 pub mod metaboard;
 pub mod network;
+pub mod new_config;
 pub mod order;
 pub mod orderbook;
 pub mod plot_source;

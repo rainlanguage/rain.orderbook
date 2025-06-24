@@ -277,7 +277,27 @@ dependencies = [
  "ethers",
  "getrandom 0.2.15",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=72d9577fdaf7135113847027ba951f9a43b41827)",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "alloy-ethers-typecast"
+version = "0.2.0"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4#adda117b1f43e1a4dfa012299e71f2b0e73f46f4"
+dependencies = [
+ "alloy",
+ "async-trait",
+ "derive_builder 0.12.0",
+ "ethers",
+ "getrandom 0.2.15",
+ "once_cell",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -2602,6 +2622,16 @@ dependencies = [
  "libc",
  "unicode-width",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "console_error_panic_hook"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
+dependencies = [
+ "cfg-if",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -8115,7 +8145,7 @@ version = "0.0.0"
 source = "git+https://github.com/rainlanguage/rain.erc?rev=0106e645ebd49334addc698c5aad9a85370eb54d#0106e645ebd49334addc698c5aad9a85370eb54d"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
  "thiserror",
 ]
 
@@ -8138,6 +8168,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain-error-decoding"
+version = "0.1.0"
+source = "git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46#fa0cc05a8dbf0f167a2392255a8b509309e9da46"
+dependencies = [
+ "alloy-dyn-abi 0.7.7",
+ "alloy-json-abi 0.7.7",
+ "alloy-primitives 0.7.7",
+ "alloy-sol-types 0.7.7",
+ "ethers",
+ "getrandom 0.2.15",
+ "once_cell",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "rain-interpreter-eval"
 version = "0.0.0-alpha.0"
 dependencies = [
@@ -8145,14 +8193,14 @@ dependencies = [
  "eyre",
  "foundry-evm",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "rain_interpreter_bindings",
  "reqwest 0.11.27",
  "revm",
  "serde",
  "serde_json",
  "thiserror",
- "wasm-bindgen-utils 0.0.8",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8172,7 +8220,7 @@ name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
  "anyhow",
  "clap",
  "deflate",
@@ -8198,7 +8246,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
- "wasm-bindgen-utils 0.0.8",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8251,7 +8299,7 @@ name = "rain_interpreter_dispair"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "ethers",
  "rain_interpreter_bindings",
  "serde",
@@ -8267,7 +8315,7 @@ name = "rain_interpreter_parser"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "ethers",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
@@ -8300,7 +8348,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "url",
- "wasm-bindgen-utils 0.0.10",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8309,7 +8357,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "serde",
- "wasm-bindgen-utils 0.0.10",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8317,7 +8365,7 @@ name = "rain_orderbook_common"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "chrono",
  "csv",
  "dotrain",
@@ -8325,7 +8373,7 @@ dependencies = [
  "futures",
  "once_cell",
  "proptest",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "rain-interpreter-eval",
  "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
@@ -8346,7 +8394,8 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils 0.0.10",
+ "wasm-bindgen-test",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8363,11 +8412,11 @@ name = "rain_orderbook_quote"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "anyhow",
  "clap",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "rain-interpreter-eval",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
@@ -8379,7 +8428,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wasm-bindgen-utils 0.0.10",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8400,7 +8449,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "url",
- "wasm-bindgen-utils 0.0.10",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -10505,13 +10554,13 @@ name = "tauri-app"
 version = "0.0.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "chrono",
  "dotrain",
  "futures",
  "httpmock",
  "rain-erc",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "rain-interpreter-eval",
  "rain-metadata 0.0.2-alpha.6",
  "rain_orderbook_app_settings",
@@ -10534,7 +10583,7 @@ dependencies = [
  "tokio",
  "url",
  "uuid 1.10.0",
- "wasm-bindgen-utils 0.0.10",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -11809,19 +11858,28 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasm-bindgen-utils"
-version = "0.0.8"
+name = "wasm-bindgen-test"
+version = "0.3.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6aecf1c1db3db8814f462fe89ace73ba8de1f27ee8394c58d74fc24dc7b6cfc"
+checksum = "d9bf62a58e0780af3e852044583deee40983e5886da43a271dd772379987667b"
 dependencies = [
+ "console_error_panic_hook",
  "js-sys",
- "paste",
- "serde",
- "serde-wasm-bindgen 0.6.5",
- "tsify",
+ "scoped-tls",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros 0.0.3",
+ "wasm-bindgen-test-macro",
+]
+
+[[package]]
+name = "wasm-bindgen-test-macro"
+version = "0.3.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7f89739351a2e03cb94beb799d47fb2cac01759b40ec441f7de39b00cbf7ef0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
 ]
 
 [[package]]
@@ -11837,18 +11895,7 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros 0.0.5",
-]
-
-[[package]]
-name = "wasm-bindgen-utils-macros"
-version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c58b27b0253678a6638beae169cb00dba24d96c5c45ae4bd03c2ba4ee94a5cc"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.74",
+ "wasm-bindgen-utils-macros",
 ]
 
 [[package]]
