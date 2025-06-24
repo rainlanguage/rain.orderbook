@@ -13,7 +13,7 @@ import {
   makeClearBountyId,
 } from "../../src/clear";
 import {
-  IO,
+  IOV2,
   Evaluable,
   createOrder,
   createClearEvent,
@@ -31,10 +31,18 @@ import {
 const alice = Address.fromString("0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce");
 const bob = Address.fromString("0x813aef302Ebad333EDdef619C6f8eD7FeF51BA7c");
 
-const aliceVaultId = BigInt.fromString("1");
-const bobVaultId = BigInt.fromString("2");
-const aliceBountyVaultId = BigInt.fromString("8");
-const bobBountyVaultId = BigInt.fromString("9");
+const aliceVaultId = Bytes.fromHexString(
+  "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+);
+const bobVaultId = Bytes.fromHexString(
+  "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+);
+const aliceBountyVaultId = Bytes.fromHexString(
+  "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+);
+const bobBountyVaultId = Bytes.fromHexString(
+  "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+);
 
 const token1 = Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB");
 const token2 = Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Bc");
@@ -51,10 +59,18 @@ describe("Handle AfterClear", () => {
     createMockERC20Functions(token2);
     createMockERC20Functions(token3);
 
-    let aliceOutputAmount = BigInt.fromString("10");
-    let bobOutputAmount = BigInt.fromString("20");
-    let aliceInputAmount = BigInt.fromString("15");
-    let bobInputAmount = BigInt.fromString("10");
+    let aliceOutputAmount = Bytes.fromHexString(
+      "0x000000000000000000000000000000000000000000000000000000000000000a"
+    );
+    let bobOutputAmount = Bytes.fromHexString(
+      "0x0000000000000000000000000000000000000000000000000000000000000014"
+    );
+    let aliceInputAmount = Bytes.fromHexString(
+      "0x000000000000000000000000000000000000000000000000000000000000000f"
+    );
+    let bobInputAmount = Bytes.fromHexString(
+      "0x000000000000000000000000000000000000000000000000000000000000000a"
+    );
 
     let evaluable = new Evaluable(
       Address.fromString("0x5fB33D710F8B58DE4c9fDEC703B5c2487a5219d6"),
@@ -70,18 +86,15 @@ describe("Handle AfterClear", () => {
       createOrder(
         alice,
         evaluable,
-        [new IO(token1, BigInt.fromString("18"), aliceVaultId)],
-        [new IO(token2, BigInt.fromString("18"), aliceVaultId)],
+        [new IOV2(token1, aliceVaultId)],
+        [new IOV2(token2, aliceVaultId)],
         nonce
       ),
       createOrder(
         bob,
         evaluable,
-        [new IO(token2, BigInt.fromString("18"), bobVaultId)],
-        [
-          new IO(token3, BigInt.fromString("18"), bobVaultId),
-          new IO(token1, BigInt.fromString("18"), bobVaultId),
-        ],
+        [new IOV2(token2, bobVaultId)],
+        [new IOV2(token3, bobVaultId), new IOV2(token1, bobVaultId)],
         nonce
       ),
       BigInt.fromString("0"),
@@ -128,7 +141,9 @@ describe("Handle AfterClear", () => {
       "Clear",
       id,
       "aliceBountyAmount",
-      aliceOutputAmount.minus(bobInputAmount).toString()
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ).toString()
     );
     // bob
     assert.fieldEquals(
@@ -147,7 +162,9 @@ describe("Handle AfterClear", () => {
       "Clear",
       id,
       "bobBountyAmount",
-      bobOutputAmount.minus(aliceInputAmount).toString()
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000005"
+      ).toString()
     );
 
     // bounty

@@ -10,7 +10,7 @@ import {
 import { BigInt, Address, Bytes, crypto } from "@graphprotocol/graph-ts";
 import {
   Evaluable,
-  IO,
+  IOV2,
   createAfterClearEvent,
   createTakeOrderEvent,
 } from "./event-mocks.test";
@@ -64,21 +64,24 @@ describe("Deposits", () => {
     let owner = Address.fromString(
       "0x1111111111111111111111111111111111111111"
     );
+
     let event = createTakeOrderEvent(
       owner,
       Address.fromString("0x2222222222222222222222222222222222222222"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x3333333333333333333333333333333333333333"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x4444444444444444444444444444444444444444"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x5555555555555555555555555555555555555555"),
@@ -87,16 +90,24 @@ describe("Deposits", () => {
         Address.fromString("0x7777777777777777777777777777777777777777"),
         Bytes.fromHexString("0x8888888888888888888888888888888888888888")
       ),
-      BigInt.fromI32(1),
-      BigInt.fromI32(1)
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      ),
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      )
     );
 
-    let oldVaultBalance = BigInt.fromI32(10);
+    let oldVaultBalance = Bytes.fromHexString(
+      "0x000000000000000000000000000000000000000000000000000000000000000a"
+    );
 
     let _vaultEntityId = vaultEntityId(
       event.address,
       owner,
-      BigInt.fromI32(1),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
       Address.fromString("0x3333333333333333333333333333333333333333")
     );
 
@@ -107,7 +118,9 @@ describe("Deposits", () => {
       orderHash,
       _vaultEntityId,
       oldVaultBalance,
-      BigInt.fromI32(1)
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      )
     );
 
     assert.entityCount("TradeVaultBalanceChange", 1);
@@ -147,13 +160,22 @@ describe("Deposits", () => {
     const alice = Address.fromString(
       "0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce"
     );
-    let aliceOutputAmount = BigInt.fromString("10");
-    let bobOutputAmount = BigInt.fromString("20");
-    let aliceInputAmount = BigInt.fromString("15");
-    let bobInputAmount = BigInt.fromString("10");
+    let aliceOutputAmount = Bytes.fromHexString(
+      "0x000000000000000000000000000000000000000000000000000000000000000a"
+    );
+    let bobOutputAmount = Bytes.fromHexString(
+      "0x0000000000000000000000000000000000000000000000000000000000000014"
+    );
+    let aliceInputAmount = Bytes.fromHexString(
+      "0x000000000000000000000000000000000000000000000000000000000000000f"
+    );
+    let bobInputAmount = Bytes.fromHexString(
+      "0x000000000000000000000000000000000000000000000000000000000000000a"
+    );
     let vaultEntityId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef12345678"
     );
+
     let event = createAfterClearEvent(
       alice,
       aliceOutputAmount,

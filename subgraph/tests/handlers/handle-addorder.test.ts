@@ -7,7 +7,7 @@ import {
   assert,
 } from "matchstick-as";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
-import { Evaluable, IO, createAddOrderEvent } from "../event-mocks.test";
+import { Evaluable, IOV2, createAddOrderEvent } from "../event-mocks.test";
 import { makeOrderId } from "../../src/order";
 import { vaultEntityId } from "../../src/vault";
 import { createMockERC20Functions } from "../erc20.test";
@@ -30,15 +30,17 @@ describe("Add and remove orders", () => {
     let owner = Address.fromString(
       "0x1234567890123456789012345678901234567890"
     );
-    let input = new IO(
+    let input = new IOV2(
       Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(18),
-      BigInt.fromI32(1)
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      )
     );
-    let output = new IO(
+    let output = new IOV2(
       Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(18),
-      BigInt.fromI32(1)
+      Bytes.fromHexString(
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      )
     );
 
     let event = createAddOrderEvent(

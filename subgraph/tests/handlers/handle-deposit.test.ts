@@ -6,7 +6,7 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import { createDepositEvent } from "../event-mocks.test";
 import { handleDeposit } from "../../src/handlers";
 import { vaultEntityId } from "../../src/vault";
@@ -28,7 +28,9 @@ describe("Handle deposit", () => {
     let event = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(1),
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      ),
       BigInt.fromI32(100)
     );
 
@@ -57,10 +59,15 @@ describe("Handle deposit", () => {
     if (vault == null) {
       return;
     }
-    assert.bigIntEquals(vault.balance, BigInt.fromI32(100));
+    assert.bytesEquals(
+      vault.balance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000064"
+      )
+    );
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
-    assert.bigIntEquals(vault.vaultId, event.params.vaultId);
+    assert.bytesEquals(vault.vaultId, event.params.vaultId);
 
     // check deposit entity
     let deposit = Deposit.load(eventId(event));
@@ -70,16 +77,33 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bigIntEquals(deposit.amount, BigInt.fromI32(100));
-    assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(0));
-    assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(100));
+    assert.bytesEquals(
+      deposit.amount,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000064"
+      )
+    );
+    assert.bytesEquals(
+      deposit.oldVaultBalance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      )
+    );
+    assert.bytesEquals(
+      deposit.newVaultBalance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000064"
+      )
+    );
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
 
     // make another deposit, same token, same vaultId
     event = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(1),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
       BigInt.fromI32(200)
     );
 
@@ -98,10 +122,15 @@ describe("Handle deposit", () => {
     if (vault == null) {
       return;
     }
-    assert.bigIntEquals(vault.balance, BigInt.fromI32(300));
+    assert.bytesEquals(
+      vault.balance,
+      Bytes.fromHexString(
+        "0x000000000000000000000000000000000000000000000000000000000000012c"
+      )
+    );
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
-    assert.bigIntEquals(vault.vaultId, event.params.vaultId);
+    assert.bytesEquals(vault.vaultId, event.params.vaultId);
 
     // check deposit entity
     deposit = Deposit.load(eventId(event));
@@ -111,9 +140,24 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bigIntEquals(deposit.amount, BigInt.fromI32(200));
-    assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(100));
-    assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(300));
+    assert.bytesEquals(
+      deposit.amount,
+      Bytes.fromHexString(
+        "0x00000000000000000000000000000000000000000000000000000000000000c8"
+      )
+    );
+    assert.bytesEquals(
+      deposit.oldVaultBalance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000064"
+      )
+    );
+    assert.bytesEquals(
+      deposit.newVaultBalance,
+      Bytes.fromHexString(
+        "0x000000000000000000000000000000000000000000000000000000000000012c"
+      )
+    );
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
 
     // make another deposit, different token, same vaultId
@@ -124,7 +168,9 @@ describe("Handle deposit", () => {
     event = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
       BigInt.fromI32(300)
     );
 
@@ -143,10 +189,15 @@ describe("Handle deposit", () => {
     if (vault == null) {
       return;
     }
-    assert.bigIntEquals(vault.balance, BigInt.fromI32(300));
+    assert.bytesEquals(
+      vault.balance,
+      Bytes.fromHexString(
+        "0x000000000000000000000000000000000000000000000000000000000000012c"
+      )
+    );
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
-    assert.bigIntEquals(vault.vaultId, event.params.vaultId);
+    assert.bytesEquals(vault.vaultId, event.params.vaultId);
 
     // check deposit entity
     deposit = Deposit.load(eventId(event));
@@ -156,9 +207,24 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bigIntEquals(deposit.amount, BigInt.fromI32(300));
-    assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(0));
-    assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(300));
+    assert.bytesEquals(
+      deposit.amount,
+      Bytes.fromHexString(
+        "0x000000000000000000000000000000000000000000000000000000000000012c"
+      )
+    );
+    assert.bytesEquals(
+      deposit.oldVaultBalance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      )
+    );
+    assert.bytesEquals(
+      deposit.newVaultBalance,
+      Bytes.fromHexString(
+        "0x000000000000000000000000000000000000000000000000000000000000012c"
+      )
+    );
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
   });
 });

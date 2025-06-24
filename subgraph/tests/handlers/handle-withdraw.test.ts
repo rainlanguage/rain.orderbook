@@ -6,7 +6,7 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import { createDepositEvent, createWithdrawEvent } from "../event-mocks.test";
 import { handleDeposit, handleWithdraw } from "../../src/handlers";
 import { vaultEntityId } from "../../src/vault";
@@ -29,7 +29,9 @@ describe("Handle withdraw", () => {
     let depositEvent = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(1),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
       BigInt.fromI32(1000)
     );
     handleDeposit(depositEvent);
@@ -38,8 +40,15 @@ describe("Handle withdraw", () => {
     let event = createWithdrawEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(1),
-      BigInt.fromI32(150),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000096"
+      ),
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000064"
+      ),
       BigInt.fromI32(100)
     );
 
@@ -67,10 +76,15 @@ describe("Handle withdraw", () => {
     if (vault == null) {
       return;
     }
-    assert.bigIntEquals(vault.balance, BigInt.fromI32(900));
+    assert.bytesEquals(
+      vault.balance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000384"
+      )
+    );
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
-    assert.bigIntEquals(vault.vaultId, event.params.vaultId);
+    assert.bytesEquals(vault.vaultId, event.params.vaultId);
 
     // check withdraw entity
     let withdraw = Withdrawal.load(eventId(event));
@@ -80,16 +94,38 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(-100));
-    assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(1000));
-    assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(900));
+    assert.bytesEquals(
+      withdraw.amount,
+      Bytes.fromHexString(
+        "0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff9c"
+      )
+    );
+    assert.bytesEquals(
+      withdraw.oldVaultBalance,
+      Bytes.fromHexString(
+        "0x00000000000000000000000000000000000000000000000000000000000003e8"
+      )
+    );
+    assert.bytesEquals(
+      withdraw.newVaultBalance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000384"
+      )
+    );
 
     // make another withdraw, same token, same vaultId
     event = createWithdrawEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(1),
-      BigInt.fromI32(200),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
+      Bytes.fromHexString(
+        "0x00000000000000000000000000000000000000000000000000000000000000c8"
+      ),
+      Bytes.fromHexString(
+        "0x00000000000000000000000000000000000000000000000000000000000000c8"
+      ),
       BigInt.fromI32(200)
     );
 
@@ -108,10 +144,15 @@ describe("Handle withdraw", () => {
     if (vault == null) {
       return;
     }
-    assert.bigIntEquals(vault.balance, BigInt.fromI32(700));
+    assert.bytesEquals(
+      vault.balance,
+      Bytes.fromHexString(
+        "0x00000000000000000000000000000000000000000000000000000000000002bc"
+      )
+    );
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
-    assert.bigIntEquals(vault.vaultId, event.params.vaultId);
+    assert.bytesEquals(vault.vaultId, event.params.vaultId);
 
     // check withdraw entity
     withdraw = Withdrawal.load(eventId(event));
@@ -121,9 +162,24 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(-200));
-    assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(900));
-    assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(700));
+    assert.bytesEquals(
+      withdraw.amount,
+      Bytes.fromHexString(
+        "0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff38"
+      )
+    );
+    assert.bytesEquals(
+      withdraw.oldVaultBalance,
+      Bytes.fromHexString(
+        "0x00000000000000000000000000000000000000000000000000000000000003e8"
+      )
+    );
+    assert.bytesEquals(
+      withdraw.newVaultBalance,
+      Bytes.fromHexString(
+        "0x00000000000000000000000000000000000000000000000000000000000002bc"
+      )
+    );
     assert.bigIntEquals(withdraw.timestamp, event.block.timestamp);
 
     createMockERC20Functions(
@@ -134,7 +190,9 @@ describe("Handle withdraw", () => {
     depositEvent = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
       BigInt.fromI32(300)
     );
 
@@ -144,8 +202,15 @@ describe("Handle withdraw", () => {
     event = createWithdrawEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
-      BigInt.fromI32(300),
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ),
+      Bytes.fromHexString(
+        "0x000000000000000000000000000000000000000000000000000000000000012c"
+      ),
+      Bytes.fromHexString(
+        "0x00000000000000000000000000000000000000000000000000000000000000c8"
+      ),
       BigInt.fromI32(200)
     );
 
@@ -164,10 +229,15 @@ describe("Handle withdraw", () => {
     if (vault == null) {
       return;
     }
-    assert.bigIntEquals(vault.balance, BigInt.fromI32(100));
+    assert.bytesEquals(
+      vault.balance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000064"
+      )
+    );
     assert.bytesEquals(vault.owner, event.params.sender);
     assert.bytesEquals(vault.token, event.params.token);
-    assert.bigIntEquals(vault.vaultId, event.params.vaultId);
+    assert.bytesEquals(vault.vaultId, event.params.vaultId);
 
     // check withdraw entity
     withdraw = Withdrawal.load(eventId(event));
@@ -177,9 +247,24 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(-200));
-    assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(300));
-    assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(100));
+    assert.bytesEquals(
+      withdraw.amount,
+      Bytes.fromHexString(
+        "0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff38"
+      )
+    );
+    assert.bytesEquals(
+      withdraw.oldVaultBalance,
+      Bytes.fromHexString(
+        "0x000000000000000000000000000000000000000000000000000000000000012c"
+      )
+    );
+    assert.bytesEquals(
+      withdraw.newVaultBalance,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000064"
+      )
+    );
     assert.bigIntEquals(withdraw.timestamp, event.block.timestamp);
   });
 });
