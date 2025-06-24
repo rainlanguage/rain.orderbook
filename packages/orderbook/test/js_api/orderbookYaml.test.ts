@@ -5,7 +5,8 @@ import { OrderbookYaml, OrderbookCfg, WasmEncodedResult } from '../../dist/cjs';
 const YAML_WITHOUT_ORDERBOOK = `
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH

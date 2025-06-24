@@ -9,7 +9,7 @@ pub fn mock_network() -> Arc<NetworkCfg> {
     Arc::new(NetworkCfg {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
         key: "local".into(),
-        rpc: ("http://127.0.0.1:8545").parse().unwrap(),
+        rpcs: vec![("http://127.0.0.1:8545").parse().unwrap()],
         chain_id: 1,
         label: Some("Local Testnet".into()),
         network_id: Some(1),
@@ -94,10 +94,12 @@ pub const MOCK_ORDERBOOK_YAML: &str = r#"
 version: 1
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
         chain-id: 1
     testnet:
-        rpc: https://testnet.infura.io
+        rpcs:
+            - https://testnet.infura.io
         chain-id: 1337
 subgraphs:
     mainnet: https://mainnet-subgraph.com

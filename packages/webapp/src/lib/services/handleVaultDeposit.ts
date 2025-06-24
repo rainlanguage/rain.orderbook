@@ -18,7 +18,7 @@ export interface VaultDepositHandlerDependencies {
 	subgraphUrl: string;
 	chainId: number;
 	account: Hex;
-	rpcUrl: string;
+	rpcUrls: string[];
 }
 
 export type DepositArgs = VaultDepositHandlerDependencies & { amount: bigint };
@@ -79,7 +79,7 @@ export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies):
 		subgraphUrl,
 		chainId,
 		account,
-		rpcUrl
+		rpcUrls
 	} = deps;
 
 	handleDepositModal({
@@ -87,13 +87,13 @@ export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies):
 		args: {
 			vault,
 			chainId,
-			rpcUrl,
+			rpcUrls,
 			subgraphUrl,
 			account
 		},
 		onSubmit: async (amount: bigint) => {
 			const depositArgs = { ...deps, amount };
-			const approvalResult = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
+			const approvalResult = await getVaultApprovalCalldata(rpcUrls, vault, amount.toString());
 			if (approvalResult.error) {
 				// If getting approval calldata fails, immediately invoke deposit
 				await executeDeposit(depositArgs);

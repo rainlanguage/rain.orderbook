@@ -7,13 +7,13 @@
 
   export let open: boolean;
   export let txHash: string;
-  export let rpcUrl: string;
+  export let rpcUrls: string[];
 
   $: debugQuery = createQuery(
     {
-      queryKey: [txHash + rpcUrl],
+      queryKey: [txHash + rpcUrls.join(',')],
       queryFn: () => {
-        return tradeDebug(txHash, rpcUrl);
+        return tradeDebug(txHash, rpcUrls);
       },
       retry: 0,
     },
@@ -24,7 +24,7 @@
 <Modal title="Debug trade" bind:open outsideclose size="lg">
   <div class="flex flex-col gap-y-2 text-sm">
     <span data-testid="modal-trade-debug-tx-hash">Trade transaction: {txHash}</span>
-    <span data-testid="modal-trade-debug-rpc-url">RPC: {rpcUrl}</span>
+    <span data-testid="modal-trade-debug-rpc-url">RPCs: {rpcUrls.join(', ')}</span>
   </div>
   {#if $debugQuery.isLoading}
     <div data-testid="modal-trade-debug-loading-message" class="flex items-center gap-x-2">

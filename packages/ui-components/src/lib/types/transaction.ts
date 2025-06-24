@@ -14,8 +14,8 @@ export type VaultActionArgs = {
 	vault: SgVault;
 	chainId: number;
 	onDeposit?: () => void;
-	// rpcUrl is used to check balances
-	rpcUrl: string;
+	// rpcUrls is used to check balances
+	rpcUrls: string[];
 	subgraphUrl: string;
 	account: Hex;
 };

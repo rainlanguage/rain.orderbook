@@ -31,21 +31,20 @@ impl_wasm_traits!(TokenInfo);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ERC20 {
-    pub rpc_url: Url,
+    pub rpcs: Vec<Url>,
     pub address: Address,
 }
 impl ERC20 {
-    pub fn new(rpc_url: Url, address: Address) -> Self {
-        Self { rpc_url, address }
+    pub fn new(rpcs: Vec<Url>, address: Address) -> Self {
+        Self { rpcs, address }
     }
 
     async fn get_client(&self) -> Result<ReadableClientHttp, Error> {
-        ReadableClientHttp::new_from_urls(vec![self.rpc_url.to_string()]).map_err(|err| {
-            Error::ReadableClientError {
-                msg: format!("rpc url: {}", self.rpc_url),
+        ReadableClientHttp::new_from_urls(self.rpcs.iter().map(|rpc| rpc.to_string()).collect())
+            .map_err(|err| Error::ReadableClientError {
+                msg: format!("rpcs: {:?}", self.rpcs),
                 source: err,
-            }
-        })
+            })
     }
 
     pub async fn decimals(&self) -> Result<u8, Error> {
@@ -221,7 +220,11 @@ mod tests {
             );
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
+
         let decimals = erc20.decimals().await.unwrap();
         assert_eq!(decimals, 18);
     }
@@ -235,7 +238,10 @@ mod tests {
             then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         assert!(erc20.decimals().await.is_err());
 
         server.mock(|when, then| {
@@ -268,7 +274,10 @@ mod tests {
             );
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         let name = erc20.name().await.unwrap();
         assert_eq!(name, "Test Token");
     }
@@ -282,7 +291,10 @@ mod tests {
             then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         assert!(erc20.name().await.is_err());
 
         server.mock(|when, then| {
@@ -315,7 +327,10 @@ mod tests {
             );
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         let symbol = erc20.symbol().await.unwrap();
         assert_eq!(symbol, "TEST");
     }
@@ -329,7 +344,10 @@ mod tests {
             then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         assert!(erc20.symbol().await.is_err());
 
         server.mock(|when, then| {
@@ -361,7 +379,10 @@ mod tests {
             );
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         let token_info = erc20.token_info(None).await.unwrap();
 
         assert_eq!(token_info.decimals, 6);
@@ -378,7 +399,10 @@ mod tests {
             then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         assert!(erc20.token_info(None).await.is_err());
 
         server.mock(|when, then| {

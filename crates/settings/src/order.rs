@@ -1191,7 +1191,8 @@ orders:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     eth:
@@ -1218,7 +1219,8 @@ orders:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 tokens:
     eth:
@@ -1250,7 +1252,8 @@ orders:
         let yaml_one = r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 deployers:
     mainnet:
@@ -1297,7 +1300,8 @@ orders:
         let yaml_one = r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 deployers:
     mainnet:

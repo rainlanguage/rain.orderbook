@@ -18,7 +18,7 @@ export interface VaultWithdrawHandlerDependencies {
 	subgraphUrl: string;
 	chainId: number;
 	account: Hex;
-	rpcUrl: string;
+	rpcUrls: string[];
 }
 
 export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies): Promise<void> {
@@ -33,14 +33,14 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 		subgraphUrl,
 		chainId,
 		account,
-		rpcUrl
+		rpcUrls
 	} = deps;
 	handleWithdrawModal({
 		open: true,
 		args: {
 			vault,
 			chainId,
-			rpcUrl,
+			rpcUrls,
 			subgraphUrl,
 			account
 		},

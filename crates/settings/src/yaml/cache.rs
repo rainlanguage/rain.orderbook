@@ -56,7 +56,7 @@ mod tests {
         NetworkCfg {
             document: default_document(),
             key: key.to_string(),
-            rpc: Url::parse(rpc_url_str).expect("Failed to parse RPC URL for test"),
+            rpcs: vec![Url::parse(rpc_url_str).expect("Failed to parse RPC URL for test")],
             chain_id,
             label: Some(format!("Test Label for {}", key)),
             network_id: Some(chain_id + 100), // Arbitrary distinct value

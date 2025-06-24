@@ -46,7 +46,8 @@ mod tests {
 version: {spec_version}
 networks:
     sepolia:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 0
 deployers:
     sepolia:
@@ -120,7 +121,8 @@ _ _: 0 0;
     version: {spec_version}
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -243,7 +245,8 @@ _ _: 0 0;
     version: {spec_version}
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -301,9 +304,9 @@ _ _: 0 0;
                 assert_eq!(
                     e,
                     &format!(
-                        "Error fetching authoring meta for contract {}, RPC URL {}, Metaboard URL {}: Subgraph query returned no data for metahash {}",
+                        "Error fetching authoring meta for contract {}, RPCs {:?}, Metaboard URL {}: Subgraph query returned no data for metahash {}",
                         pragma_addresses[0],
-                        server.url("/rpc"),
+                        vec![server.url("/rpc")],
                         server.url("/sg"),
                         pragma_meta_hash,
                     )
