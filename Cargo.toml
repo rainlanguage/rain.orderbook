@@ -12,7 +12,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 [workspace.dependencies]
 foundry-block-explorers = "0.2.6"
 alloy = { version = "0.1.4" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "65a68f207287d024cba934bf1e3c8b3f63d2834a" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "adda117b1f43e1a4dfa012299e71f2b0e73f46f4" }
 anyhow = "1.0.70"
 async-trait = "0.1.77"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
@@ -51,7 +51,7 @@ thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
-rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
+rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "fa0cc05a8dbf0f167a2392255a8b509309e9da46" }
 wasm-bindgen-utils = "0.0.10"
 tempfile = "3.20.0"
 

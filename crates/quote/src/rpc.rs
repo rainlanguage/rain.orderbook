@@ -22,7 +22,7 @@ pub async fn batch_quote(
     gas: Option<U256>,
     multicall_address: Option<Address>,
 ) -> Result<Vec<QuoteResult>, Error> {
-    let client = ReadableClient::new_from_url(rpc.to_string())?;
+    let client = ReadableClient::new_from_urls(vec![rpc.to_string()])?;
     let parameters = ReadContractParameters {
         gas,
         address: multicall_address.unwrap_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap()),
@@ -192,11 +192,14 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(msg))
-            if msg == "relative URL without a base"
-        ));
+        assert!(
+            matches!(
+                err,
+                Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(ref msg))
+                if msg.contains("No valid providers could be created from the given URLs")
+            ),
+            "unexpected error: {err}"
+        );
 
         rpc_server.mock(|when, then| {
             when.path("/rpc");
@@ -220,11 +223,17 @@ mod tests {
         .await
         .unwrap_err();
 
-        assert!(matches!(
-            err,
-            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
-                AbiDecodedErrorType::Unknown(bytestring)
-            )) if bytestring.is_empty()
-        ));
+        assert!(
+            matches!(
+                err,
+                Error::RpcCallError(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(rpc_server.url("/rpc").as_str()).is_some()
+                    && matches!(
+                        msg.get(rpc_server.url("/rpc").as_str()).unwrap(),
+                        ReadableClientError::RpcProviderError(_, _)
+                    )
+            ),
+            "unexpected error: {err}"
+        );
     }
 }

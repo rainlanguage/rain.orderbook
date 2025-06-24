@@ -15,9 +15,9 @@ export function resetActiveNetworkRef(
 ) {
 	try {
 		const $settings = get(settingsStore);
-		const networks = $settings?.networks;
+		const networks = $settings.orderbook.networks;
 
-		if (networks !== undefined && Object.keys(networks).length > 0) {
+		if (Object.keys(networks).length > 0) {
 			activeNetworkRef.set(Object.keys(networks)[0]);
 		} else {
 			activeNetworkRef.set(undefined);

@@ -32,8 +32,8 @@
   }
 
   const getNetworkName = (chainId: number) => {
-    const existingNetwork = Object.entries($settings?.networks || {}).find(
-      (entry) => entry[1]['chain-id'] === chainId,
+    const existingNetwork = Object.entries($settings?.orderbook.networks || {}).find(
+      (entry) => entry[1].chainId === chainId,
     );
 
     if (existingNetwork) {

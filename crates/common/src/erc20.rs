@@ -40,7 +40,7 @@ impl ERC20 {
     }
 
     async fn get_client(&self) -> Result<ReadableClientHttp, Error> {
-        ReadableClientHttp::new_from_url(self.rpc_url.to_string()).map_err(|err| {
+        ReadableClientHttp::new_from_urls(vec![self.rpc_url.to_string()]).map_err(|err| {
             Error::ReadableClientError {
                 msg: format!("rpc url: {}", self.rpc_url),
                 source: err,
@@ -198,7 +198,7 @@ pub enum Error {
     },
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use alloy::{hex, sol_types::SolValue};
