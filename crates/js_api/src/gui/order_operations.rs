@@ -205,9 +205,37 @@ impl DotrainOrderGui {
         self.get_current_deployment()
     }
 
-    /// Check allowances for all inputs and outputs of the order
+    /// Checks token allowances for all deposits against the orderbook contract.
     ///
-    /// Returns a vector of [`TokenAllowance`] objects
+    /// Queries the blockchain to determine current  allowances for each output token that
+    /// will be deposited. This helps determine which tokens need approval before
+    /// the order can be created.
+    ///
+    /// # Parameters
+    ///
+    /// - `owner` - Wallet address to check allowances for
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(AllowancesResult)` - Current allowances for all deposit tokens
+    /// - `Err(GuiError)` - If allowance check fails
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.checkAllowances(walletAddress);
+    /// if (result.error) {
+    ///   console.error("Allowance check failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const [allowance1, allowance2, ...] = result.value;
+    /// const {
+    ///   // token is the token address
+    ///   token,
+    ///   // allowance is the current allowance for the token
+    ///   allowance,
+    /// } = allowance1;
+    /// ```
     #[wasm_export(
         js_name = "checkAllowances",
         unchecked_return_type = "AllowancesResult"
@@ -244,9 +272,39 @@ impl DotrainOrderGui {
         Ok(AllowancesResult(results))
     }
 
-    /// Generate approval calldatas for deposits
+    /// Generates approval calldatas for tokens that need increased allowances.
     ///
-    /// Returns a vector of [`ApprovalCalldata`] objects
+    /// Automatically checks current allowances and generates approval calldata only
+    /// for tokens where the current allowance is insufficient for the planned deposits.
+    ///
+    /// # Parameters
+    ///
+    /// - `owner` - Wallet address that will approve the tokens
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(ApprovalCalldataResult::NoDeposits)` - No deposits configured
+    /// - `Ok(ApprovalCalldataResult::Calldatas(vec))` - Approval calldatas needed
+    /// - `Err(GuiError)` - If allowance checks or calldata generation fails
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.generateApprovalCalldatas(walletAddress);
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// // If there are approvals
+    /// const [approval1, approval2, ...] = result.value;
+    /// const {
+    ///   // token is the token address
+    ///   token,
+    ///   // calldata is the approval calldata
+    ///   calldata,
+    /// } = approval1;
+    /// ```
     #[wasm_export(
         js_name = "generateApprovalCalldatas",
         unchecked_return_type = "ApprovalCalldataResult"
@@ -308,9 +366,34 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    /// Generate deposit calldatas for all deposits
+    /// Generates calldata for depositing tokens into orderbook vaults.
     ///
-    /// Returns a vector of bytes
+    /// Creates deposit calldatas for all configured deposits, automatically
+    /// skipping zero amounts and ensuring vault IDs are properly assigned.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(DepositCalldataResult::NoDeposits)` - No deposits configured
+    /// - `Ok(DepositCalldataResult::Calldatas(vec))` - Deposit calldatas to execute
+    /// - `Err(SelectTokensNotSet)` - Required tokens haven't been selected
+    /// - `Err(VaultIdNotFound)` - Vault ID missing for output token
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.generateDepositCalldatas();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// // If there are deposits
+    /// const [depositCalldata1, depositCalldata2, ...] = result.value;
+    /// const {
+    ///   // calldata is the deposit calldata
+    ///   calldata,
+    /// } = depositCalldata1;
+    /// ```
     #[wasm_export(
         js_name = "generateDepositCalldatas",
         unchecked_return_type = "DepositCalldataResult"
@@ -354,7 +437,30 @@ impl DotrainOrderGui {
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
-    /// Generate add order calldata
+    /// Generates calldata for adding the order to the orderbook.
+    ///
+    /// Creates the addOrder calldata with all field values applied to the
+    /// Rainlang code and proper vault configurations.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(AddOrderCalldataResult)` - Encoded addOrder call ready for execution
+    /// - `Err(FieldValueNotSet)` - Required field value missing
+    /// - `Err(TokenMustBeSelected)` - Required token not selected
+    /// - `Err(GuiError)` - Configuration or compilation error
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.generateAddOrderCalldata();
+    /// if (result.error) {
+    ///   console.error("Cannot create order:", result.error.readableMsg);
+    ///   // Show user what needs to be fixed
+    ///   return;
+    /// }
+    /// const addOrderCalldata = result.value;
+    /// // Do something with the add order calldata
+    /// ```
     #[wasm_export(
         js_name = "generateAddOrderCalldata",
         unchecked_return_type = "AddOrderCalldataResult"
@@ -374,6 +480,33 @@ impl DotrainOrderGui {
         return Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)));
     }
 
+    /// Generates a multicall combining all deposits and add order in one calldata.
+    ///
+    /// This is the most efficient way to deploy an order, combining all necessary
+    /// operations into a single calldata to minimize gas costs and ensure atomicity.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(DepositAndAddOrderCalldataResult)` - Multicall calldata
+    /// - `Err(GuiError)` - If any component generation fails
+    ///
+    /// # Transaction Structure
+    ///
+    /// The multicall includes:
+    /// 1. AddOrder call (always first)
+    /// 2. All deposit calls for non-zero amounts
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.generateDepositAndAddOrderCalldatas();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const multicallData = result.value;
+    /// // Do something with the multicall data
+    /// ```
     #[wasm_export(
         js_name = "generateDepositAndAddOrderCalldatas",
         unchecked_return_type = "DepositAndAddOrderCalldataResult"
@@ -405,6 +538,33 @@ impl DotrainOrderGui {
         )))
     }
 
+    /// Configures vault IDs for order inputs or outputs.
+    ///
+    /// Sets the vault ID for a specific input or output token. Vault IDs determine
+    /// which vaults are used for the input or output tokens in the order.
+    ///
+    /// # Parameters
+    ///
+    /// - `is_input` - True for input vaults, false for output vaults
+    /// - `index` - Zero-based index in the inputs/outputs array
+    /// - `vault_id` - Vault ID number as string, or None to clear
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Vault ID set successfully
+    /// - `Err(GuiError)` - If order configuration is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result1 = gui.setVaultId(true, 0, "42");
+    /// if (result1.error) {
+    ///   console.error("Error:", result1.error.readableMsg);
+    ///   return;
+    /// }
+    /// const result2 = gui.setVaultId(false, 0, "43");
+    /// const result3 = gui.setVaultId(false, 0, undefined);
+    /// ```
     #[wasm_export(js_name = "setVaultId", unchecked_return_type = "void")]
     pub fn set_vault_id(
         &mut self,
@@ -422,6 +582,32 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Gets all configured vault IDs for inputs and outputs.
+    ///
+    /// Returns the current vault ID configuration showing which vaults are
+    /// assigned to each input and output token position.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(IOVaultIds)` - Map with 'input' and 'output' arrays of vault IDs
+    /// - `Err(GuiError)` - If deployment configuration is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getVaultIds();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// // key is either 'input' or 'output'
+    /// // value is either undefined or the vault ID
+    /// for (const [key, value] of result.value) {
+    ///   console.log("Key:", key);
+    ///   console.log("Value:", value);
+    /// }
+    /// ```
     #[wasm_export(js_name = "getVaultIds", unchecked_return_type = "IOVaultIds")]
     pub fn get_vault_ids(&self) -> Result<IOVaultIds, GuiError> {
         let deployment = self.get_current_deployment()?;
@@ -450,19 +636,84 @@ impl DotrainOrderGui {
         Ok(IOVaultIds(map))
     }
 
+    /// Checks if any vault IDs have been configured.
+    ///
+    /// Quick validation to determine if vault configuration has started.
+    /// Useful for UI state management and validation flows.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(bool)` - True if at least one vault ID is set
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.hasAnyVaultId();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const hasVaults = result.value;
+    /// // Do something with the has vaults
+    /// ```
     #[wasm_export(js_name = "hasAnyVaultId", unchecked_return_type = "boolean")]
     pub fn has_any_vault_id(&self) -> Result<bool, GuiError> {
         let map = self.get_vault_ids()?;
         Ok(map.0.values().any(|ids| ids.iter().any(|id| id.is_some())))
     }
 
-    #[wasm_export(js_name = "updateScenarioBindings", unchecked_return_type = "void")]
+    #[wasm_export(skip)]
     pub fn update_scenario_bindings(&mut self) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
         self.update_bindings(&deployment)?;
         Ok(())
     }
 
+    /// Gets transaction data for order deployment including approvals.
+    ///
+    /// This is the comprehensive function that provides everything needed to deploy
+    /// an order: approval calldatas, the main deployment transaction, and metadata.
+    /// Use this for full transaction orchestration.
+    ///
+    /// # Parameters
+    ///
+    /// - `owner` - Wallet address that will deploy the order
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(DeploymentTransactionArgs)` - Complete transaction package
+    /// - `Err(SelectTokensNotSet)` - Required tokens not selected
+    /// - `Err(GuiError)` - Configuration or generation error
+    ///
+    /// # Transaction Package
+    ///
+    /// - `approvals` - Token approval calldatas with symbols for UI
+    /// - `deploymentCalldata` - Main order deployment calldata
+    /// - `orderbookAddress` - Target contract address
+    /// - `chainId` - Network identifier
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.getDeploymentTransactionArgs(walletAddress);
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const {
+    ///   // approvals is an array of extended approval calldatas
+    ///   // extended approval calldata includes the token address, calldata, and symbol
+    ///   approvals,
+    ///   // deploymentCalldata is the multicall calldata for the order
+    ///   deploymentCalldata,
+    ///   // orderbookAddress is the address of the orderbook
+    ///   orderbookAddress,
+    ///   // chainId is the chain ID of the network
+    ///   chainId,
+    /// } = result.value;
+    /// ```
     #[wasm_export(
         js_name = "getDeploymentTransactionArgs",
         unchecked_return_type = "DeploymentTransactionArgs"

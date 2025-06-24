@@ -15,8 +15,41 @@ impl_wasm_traits!(GetOrderTradesListResult);
 pub struct GetOrderTradesCountResult(#[tsify(type = "number")] u64);
 impl_wasm_traits!(GetOrderTradesCountResult);
 
-/// Fetch trades for a specific order
-/// Returns a list of Trade structs
+/// Fetches trade history for a specific order with optional time filtering.
+///
+/// Retrieves a chronological list of trades executed by an order within
+/// an optional time range.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL for the target network
+/// * `order_id` - Unique order identifier (order hash)
+/// * `pagination_args` - Pagination configuration:
+///   - `page`: Page number (1-based)
+///   - `page_size`: Number of trades per page
+/// * `start_timestamp` - Optional start time filter (Unix timestamp in seconds)
+/// * `end_timestamp` - Optional end time filter (Unix timestamp in seconds)
+///
+/// # Returns
+///
+/// * `Ok(GetOrderTradesListResult)` - Array of trade records with complete details
+/// * `Err(SubgraphError)` - Network errors, invalid parameters, or query failures
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getOrderTradesList(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0x1234567890abcdef1234567890abcdef12345678",
+///   { page: 1, page_size: 50 }
+/// );
+/// if (result.error) {
+///   console.error("Cannot fetch trades:", result.error.readableMsg);
+///   return;
+/// }
+/// const trades = result.value;
+/// // Do something with the trades
+/// ```
 #[wasm_export(
     js_name = "getOrderTradesList",
     unchecked_return_type = "GetOrderTradesListResult"
@@ -40,8 +73,35 @@ pub async fn get_order_trades_list(
     Ok(GetOrderTradesListResult(trades))
 }
 
-/// Get details for a specific trade
-/// Returns a Trade struct
+/// Fetches detailed information for a specific trade.
+///
+/// Retrieves complete information about a single trade including vault changes
+/// and transaction details.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `trade_id` - Unique trade identifier
+///
+/// # Returns
+///
+/// * `Ok(SgTrade)` - Complete trade information
+/// * `Err(SubgraphError)` - Trade not found or network errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getOrderTradeDetail(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "trade_123456"
+/// );
+/// if (result.error) {
+///   console.error("Trade not found:", result.error.readableMsg);
+///   return;
+/// }
+/// const trade = result.value;
+/// // Do something with the trade
+/// ```
 #[wasm_export(js_name = "getOrderTradeDetail", unchecked_return_type = "SgTrade")]
 pub async fn get_order_trade_detail(url: &str, trade_id: &str) -> Result<SgTrade, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
@@ -49,8 +109,37 @@ pub async fn get_order_trade_detail(url: &str, trade_id: &str) -> Result<SgTrade
     Ok(trade)
 }
 
-/// Fetch the count of trades for a specific order
-/// Returns the count as a JavaScript-compatible number
+/// Counts total trades for an order within a time range.
+///
+/// Efficiently counts the total number of trades executed by an order without
+/// fetching all trade details.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `order_id` - Order identifier
+/// * `start_timestamp` - Optional start time filter (Unix timestamp in seconds)
+/// * `end_timestamp` - Optional end time filter (Unix timestamp in seconds)
+///
+/// # Returns
+///
+/// * `Ok(GetOrderTradesCountResult)` - Total trade count as number
+/// * `Err(SubgraphError)` - Network or query errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getOrderTradesCount(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0x1234567890abcdef1234567890abcdef12345678"
+/// );
+/// if (result.error) {
+///   console.error("Cannot count trades:", result.error.readableMsg);
+///   return;
+/// }
+/// const count = result.value;
+/// // Do something with the count
+/// ```
 #[wasm_export(
     js_name = "getOrderTradesCount",
     unchecked_return_type = "GetOrderTradesCountResult"
