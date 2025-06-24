@@ -43,8 +43,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
             vm.etch(outputToken, hex"fe");
             // Mock every call to output as a success, so the orderbook thinks it
             // is transferring tokens.
-            vm.mockCall(inputToken, "", abi.encode(true));
-            vm.mockCall(outputToken, "", abi.encode(true));
+            vm.mockCall(inputToken, bytes(""), abi.encode(true));
+            vm.mockCall(outputToken, bytes(""), abi.encode(true));
         }
 
         vm.prank(owner);
