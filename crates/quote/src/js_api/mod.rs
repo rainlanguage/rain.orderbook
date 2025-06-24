@@ -52,7 +52,39 @@ impl_wasm_traits!(QuoteTargetResult);
 pub struct DoOrderQuoteResult(pub Vec<BatchOrderQuotesResponse>);
 impl_wasm_traits!(DoOrderQuoteResult);
 
-/// Get subgraph represented "order_id" of a QuoteTarget
+/// Generates a standardized order ID for subgraph queries.
+///
+/// This function creates a unique identifier that the subgraph uses to index
+/// and identify orders. The ID is deterministically generated from the orderbook
+/// contract address and the order's hash, ensuring consistent identification
+/// across different systems and queries.
+///
+/// # Parameters
+///
+/// - `orderbook` - Ethereum address of the orderbook contract (hex string with or without "0x" prefix)
+/// - `order_hash` - Hash of the order as a string (decimal or hex format)
+///
+/// # Returns
+///
+/// - `Ok(String)` - Hex-encoded order ID with "0x" prefix for subgraph usage
+/// - `Err(FromHexError)` - If the orderbook address is malformed
+/// - `Err(U256ParseError)` - If the order hash cannot be parsed as a number
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = getId(
+///   "0x1234567890123456789012345678901234567890",
+///   "12345"
+/// );
+///
+/// if (result.error) {
+///   console.error("Error:", result.error.readableMsg);
+///   return;
+/// }
+/// const orderId = result.value;
+/// // Do something with the orderId
+/// ```
 #[wasm_export(js_name = "getId", unchecked_return_type = "string")]
 pub fn get_id(orderbook: &str, order_hash: &str) -> Result<String, QuoteBindingsError> {
     let orderbook = Address::from_hex(orderbook)?;
@@ -60,8 +92,48 @@ pub fn get_id(orderbook: &str, order_hash: &str) -> Result<String, QuoteBindings
     Ok(encode_prefixed(make_order_id(orderbook, order_hash)))
 }
 
-/// Quotes the target on the given rpc url
-/// Resolves with array of OrderQuoteValue object or a string error
+/// Executes batch quote operations directly against orderbook contracts.
+///
+/// This function performs on-chain quote calculations for the provided quote targets
+/// by making direct calls to orderbook contracts. Each quote target contains
+/// a complete order configuration including the orderbook address and quote parameters.
+/// The function processes all targets in a single batch operation for efficiency.
+///
+/// # Parameters
+///
+/// - `quote_targets` - Array of quote targets with the following structure:
+///   - `orderbook` - Ethereum address of the orderbook contract
+///   - `quote_config` - Quote configuration containing:
+///     - `order` - Complete order structure with owner, evaluable, validInputs, validOutputs, and nonce
+///     - `inputIOIndex` - Index of the input token in the order's IO configuration
+///     - `outputIOIndex` - Index of the output token in the order's IO configuration
+///     - `signedContext` - Additional context data for the quote calculation
+/// - `rpc_url` - Ethereum RPC endpoint URL for blockchain queries
+/// - `block_number` - Optional specific block number for historical quotes (uses latest if None)
+/// - `gas` - Optional gas limit as string for quote simulations (uses default if None)
+/// - `multicall_address` - Optional custom multicall contract address (uses default if None)
+///
+/// # Returns
+///
+/// - `Ok(DoQuoteTargetsResult)` - Array of quote results, each containing either success data or error
+/// - `Err(FromHexError)` - If multicall address format is invalid
+/// - `Err(U256ParseError)` - If gas value cannot be parsed
+/// - `Err(QuoteError)` - If RPC communication or contract execution fails
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await doQuoteTargets(
+///   targets,
+///   "https://some-rpc-url.com",
+/// );
+/// if (result.error) {
+///   console.error("Error:", result.error.readableMsg);
+///   return;
+/// }
+/// const quoteResults = result.value;
+/// // Do something with the quoteResults
+/// ```
 #[wasm_export(
     js_name = "doQuoteTargets",
     unchecked_return_type = "DoQuoteTargetsResult"
@@ -100,9 +172,49 @@ pub async fn do_quote_targets(
     Ok(DoQuoteTargetsResult(res))
 }
 
-/// Given a subgraph url, will fetch the order details from the subgraph and
-/// then quotes them using the given rpc url.
-/// Resolves with array of OrderQuoteValue object or a string error
+/// Executes quotes by first fetching order details from the subgraph, then quoting.
+///
+/// This function performs a two-step quote process: first it queries the subgraph
+/// to retrieve complete order configurations from lightweight quote specifications,
+/// then executes the actual quote calculations via blockchain calls. This approach
+/// is ideal when you have order identifiers but need to fetch the full order data.
+///
+/// # Parameters
+///
+/// - `quote_specs` - Array of quote specifications with the following structure:
+///   - `order_hash` - Unique identifier for the order in the subgraph
+///   - `input_io_index` - Index of the input token in the order's IO configuration
+///   - `output_io_index` - Index of the output token in the order's IO configuration
+///   - `orderbook` - Address of the orderbook contract containing the order
+///   - `signed_context` - Additional context data for the quote calculation
+/// - `subgraph_url` - GraphQL endpoint URL for the subgraph
+/// - `rpc_url` - Ethereum RPC endpoint URL for blockchain quote execution
+/// - `block_number` - Optional specific block number for historical quotes (uses latest if None)
+/// - `gas` - Optional gas limit as string for quote simulations (uses default if None)
+/// - `multicall_address` - Optional custom multicall contract address (uses default if None)
+///
+/// # Returns
+///
+/// - `Ok(DoQuoteSpecsResult)` - Array of quote results, each containing either success data or error
+/// - `Err(FromHexError)` - If multicall address format is invalid
+/// - `Err(U256ParseError)` - If gas value cannot be parsed
+/// - `Err(QuoteError)` - If subgraph query or RPC execution fails
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await doQuoteSpecs(
+///   specs,
+///   "https://some-subgraph-url.com",
+///   "https://some-rpc-url.com",
+/// );
+/// if (result.error) {
+///   console.error("Error:", result.error.readableMsg);
+///   return;
+/// }
+/// const quoteResults = result.value;
+/// // Do something with the quoteResults
+/// ```
 #[wasm_export(js_name = "doQuoteSpecs", unchecked_return_type = "DoQuoteSpecsResult")]
 pub async fn do_quote_specs(
     quote_specs: BatchQuoteSpec,
@@ -144,10 +256,42 @@ pub async fn do_quote_specs(
     Ok(DoQuoteSpecsResult(res))
 }
 
-/// Given a subgraph url, will fetch orders details and returns their
-/// respective quote targets.
-/// Resolves with array of QuoteTarget object or undefined if no result
-/// found on subgraph for a specific spec
+/// Fetches complete order configurations from the subgraph and converts them to quote targets.
+///
+/// This function performs the data retrieval phase of quote processing without executing
+/// the actual quotes. It queries the subgraph to fetch complete order details from
+/// lightweight quote specifications and converts them into quote target objects that
+/// can be used for subsequent quote operations or validation.
+///
+/// # Parameters
+///
+/// - `quote_specs` - Array of quote specifications with the following structure:
+///   - `order_hash` - Unique identifier for the order in the subgraph
+///   - `input_io_index` - Index of the input token in the order's IO configuration
+///   - `output_io_index` - Index of the output token in the order's IO configuration
+///   - `orderbook` - Address of the orderbook contract containing the order
+///   - `signed_context` - Additional context data for the quote calculation
+/// - `subgraph_url` - GraphQL endpoint URL for the subgraph
+///
+/// # Returns
+///
+/// - `Ok(QuoteTargetResult)` - Array of quote targets (Some) or None if order not found in subgraph
+/// - `Err(QuoteError)` - If subgraph communication fails or query is malformed
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getQuoteTargetFromSubgraph(
+///   specs,
+///   "https://some-subgraph-url.com"
+/// );
+/// if (result.error) {
+///   console.error("Error:", result.error.readableMsg);
+///   return;
+/// }
+/// const targets = result.value;
+/// // Do something with the targets
+/// ```
 #[wasm_export(
     js_name = "getQuoteTargetFromSubgraph",
     unchecked_return_type = "QuoteTargetResult"
@@ -165,8 +309,50 @@ pub async fn get_batch_quote_target_from_subgraph(
     Ok(QuoteTargetResult(quote_targets))
 }
 
-/// Get the quote for an order
-/// Resolves with a BatchOrderQuotesResponse object
+/// Executes quotes directly from complete order objects without additional data fetching.
+///
+/// This function performs quote calculations using complete order data structures
+/// that typically come from previous subgraph queries. It generates quotes for all
+/// possible input/output token pairs within each order, providing comprehensive
+/// trading information without requiring additional network calls for order data.
+///
+/// # Parameters
+///
+/// - `order` - Array of complete order objects with the following structure:
+///   - `id` - Unique identifier for the order
+///   - `order_bytes` - Complete order bytecode
+///   - `order_hash` - Hash of the order
+///   - `owner` - Ethereum address of the order owner
+///   - `inputs` - Array of input vault objects containing:
+///     - `token` - Token information with address, symbol, and decimals
+///     - `vault_id` - Vault identifier for the token
+///   - `outputs` - Array of output vault objects with same structure as inputs
+///   - `active` - Boolean indicating if the order is active
+///   - `orderbook` - Orderbook information containing the contract ID
+/// - `rpc_url` - Ethereum RPC endpoint URL for blockchain quote execution
+/// - `block_number` - Optional specific block number for historical quotes (uses latest if None)
+/// - `gas` - Optional gas limit as string for quote simulations (uses default if None)
+///
+/// # Returns
+///
+/// - `Ok(DoOrderQuoteResult)` - Array of batch quote responses with trading pair information
+/// - `Err(U256ParseError)` - If gas value cannot be parsed
+/// - `Err(QuoteError)` - If RPC communication or contract execution fails
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getOrderQuote(
+///   orders,
+///   "https://some-rpc-url.com",
+/// );
+/// if (result.error) {
+///   console.error("Error:", result.error.readableMsg);
+///   return;
+/// }
+/// const quoteResponses = result.value;
+/// // Do something with the quoteResponses
+/// ```
 #[wasm_export(
     js_name = "getOrderQuote",
     unchecked_return_type = "DoOrderQuoteResult"

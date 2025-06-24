@@ -17,6 +17,48 @@ pub struct OrderbookYaml {
 
 #[wasm_export]
 impl OrderbookYaml {
+    /// Creates a new OrderbookYaml instance from YAML configuration sources.
+    ///
+    /// This constructor parses one or more YAML configuration strings to create an OrderbookYaml
+    /// instance that provides access to orderbook configurations, network settings, tokens, and
+    /// other deployment metadata. The YAML sources are merged and validated according to the
+    /// [orderbook specification](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md).
+    ///
+    /// # Parameters
+    ///
+    /// * `sources` - Vector of YAML configuration strings to parse and merge
+    /// * `validate` - Optional boolean to enable strict validation (defaults to false)
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(OrderbookYaml)` - Successfully parsed and configured instance
+    /// * `Err(OrderbookYamlError)` - Error parsing or validating the YAML configuration
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Basic usage with single YAML source
+    /// const yamlConfig = `
+    /// version: "4"
+    /// networks:
+    ///   mainnet:
+    ///     rpc: https://mainnet.infura.io
+    ///     chain-id: 1
+    /// orderbooks:
+    ///   my-orderbook:
+    ///     address: 0x1234567890abcdef1234567890abcdef12345678
+    ///     network: mainnet
+    /// ...
+    /// `;
+    ///
+    /// const result = OrderbookYaml.new([yamlConfig], false);
+    /// if (result.error) {
+    ///   console.error("Configuration error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const orderbookYaml = result.value;
+    /// // Do something with the orderbookYaml
+    /// ```
     #[wasm_export(js_name = "new", preserve_js_class)]
     pub fn new(
         sources: Vec<String>,
@@ -26,6 +68,33 @@ impl OrderbookYaml {
         Ok(Self { yaml })
     }
 
+    /// Retrieves orderbook configuration by its contract address from a parsed YAML configuration.
+    ///
+    /// This function looks up a specific orderbook configuration within a YAML configuration file
+    /// using the orderbook's blockchain address. It's essential for accessing orderbook metadata
+    /// including network configuration, subgraph endpoints, and other deployment details.
+    ///
+    /// # Parameters
+    ///
+    /// * `orderbook_address` - The hexadecimal address of the orderbook contract
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(OrderbookCfg)` - Complete orderbook configuration
+    /// * `Err(OrderbookYamlError)` - Error parsing the YAML configuration
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Basic usage
+    /// const result = orderbookYaml.getOrderbookByAddress("0x1234567890abcdef1234567890abcdef12345678");
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const orderbook = result.value;
+    /// // Do something with the orderbook
+    /// ```
     #[wasm_export(
         js_name = "getOrderbookByAddress",
         unchecked_return_type = "OrderbookCfg"
@@ -159,11 +228,11 @@ mod tests {
         assert_eq!(orderbook.is_err(), true);
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_string(),
-            "Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
+            "Orderbook yaml error: orderbook with address: 0x0000000000000000000000000000000000000000 not found"
         );
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_readable_msg(),
-            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Key '0x0000000000000000000000000000000000000000' not found\""
+            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"orderbook with address: 0x0000000000000000000000000000000000000000 not found\""
         );
     }
 
