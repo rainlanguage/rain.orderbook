@@ -24,7 +24,7 @@ pub trait TryDecodeRainlangSource {
 impl TryDecodeRainlangSource for String {
     fn try_decode_rainlangsource(&self) -> Result<String, TryDecodeRainlangSourceError> {
         // Ensure meta has expected magic prefix
-        let meta_bytes = decode(self.clone())?;
+        let meta_bytes = decode(self)?;
         if !meta_bytes
             .clone()
             .starts_with(&KnownMagic::RainMetaDocumentV1.to_prefix_bytes())

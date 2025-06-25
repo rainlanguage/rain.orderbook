@@ -20,6 +20,8 @@ use std::{
     str::FromStr,
     sync::{Arc, RwLock},
 };
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
 

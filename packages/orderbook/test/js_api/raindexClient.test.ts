@@ -577,7 +577,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(order.vaults[2].token.decimals, '0');
 		});
 
-		it('should measure order performance given an order id and subgraph', async () => {
+		it('should get the get the total volume for an order', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
@@ -644,7 +644,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.deepEqual(result.value, expected);
 		});
 
-		it('should measure order performance given an order id and subgraph', async () => {
+		it('should calculate order performance metrics given an order id and subgraph', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
