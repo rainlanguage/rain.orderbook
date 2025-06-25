@@ -4,6 +4,9 @@ import pickBy from 'lodash/pickBy';
 import type { LayoutLoad } from './$types';
 import {
 	parseYaml,
+	RaindexClient,
+	type Address,
+	type NetworkCfg,
 	type NewConfig,
 	type OrderbookCfg,
 	type SubgraphCfg
@@ -12,11 +15,13 @@ import {
 export interface LayoutData {
 	errorMessage?: string;
 	stores: AppStoresInterface | null;
+	raindexClient: RaindexClient | null;
 }
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let config: NewConfig;
 	let errorMessage: string | undefined;
+	let settingsYamlText: string;
 
 	try {
 		const response = await fetch(
@@ -25,13 +30,14 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		if (!response.ok) {
 			throw new Error('Error status: ' + response.status.toString());
 		}
-		const settingsYamlText = await response.text();
+		settingsYamlText = await response.text();
 
 		const configRes = parseYaml([settingsYamlText]);
 		if (configRes.error) {
 			return {
 				errorMessage: configRes.error.readableMsg,
-				stores: null
+				stores: null,
+				raindexClient: null
 			};
 		}
 		config = configRes.value;
@@ -39,7 +45,28 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		errorMessage = 'Failed to get site config settings. ' + (error as Error).message;
 		return {
 			errorMessage,
-			stores: null
+			stores: null,
+			raindexClient: null
+		};
+	}
+
+	let raindexClient: RaindexClient | null = null;
+	try {
+		const raindexClientRes = RaindexClient.new([settingsYamlText]);
+		if (raindexClientRes.error) {
+			return {
+				errorMessage: raindexClientRes.error.readableMsg,
+				stores: null,
+				raindexClient: null
+			};
+		} else {
+			raindexClient = raindexClientRes.value;
+		}
+	} catch (error: unknown) {
+		return {
+			errorMessage: 'Error initializing RaindexClient: ' + (error as Error).message,
+			stores: null,
+			raindexClient: null
 		};
 	}
 
@@ -68,7 +95,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		}
 	);
 	const accounts = derived(settings, ($settings) => $settings.orderbook.accounts || {});
-	const activeAccountsItems = writable<Record<string, string>>({});
+	const activeAccountsItems = writable<Record<string, Address>>({});
 
 	const subgraph = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
 		$settings.orderbook.subgraphs !== undefined &&
@@ -91,6 +118,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		stores: {
 			settings,
 			activeSubgraphs: writable<Record<string, SubgraphCfg>>({}),
+			activeNetworks: writable<Record<string, NetworkCfg>>({}),
 			accounts,
 			activeAccountsItems,
 			activeAccounts,
@@ -104,7 +132,8 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			subgraph,
 			activeNetworkOrderbooks,
 			showMyItemsOnly: writable<boolean>(false)
-		}
+		},
+		raindexClient
 	};
 };
 
@@ -382,7 +411,7 @@ subgraphs:
 
 			if (!stores) throw new Error('Test setup error: stores should not be null');
 
-			stores.activeAccountsItems?.set({ account1: 'Account 1' });
+			stores.activeAccountsItems?.set({ account1: '0x1234567890123456789012345678901234567890' });
 
 			const accounts = get(stores.activeAccounts);
 			expect(accounts).toHaveProperty('account1');
@@ -517,7 +546,7 @@ subgraphs:
 
 			stores.activeNetworkRef.set('network1');
 			stores.activeOrderbookRef.set('orderbook1');
-			stores.activeAccountsItems?.set({ account1: 'Account 1' });
+			stores.activeAccountsItems?.set({ account1: '0x1234567890123456789012345678901234567890' });
 
 			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook1');
 			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
@@ -525,7 +554,10 @@ subgraphs:
 			expect(get(stores.activeAccounts)).toHaveProperty('account1');
 
 			stores.activeNetworkRef.set('network2');
-			stores.activeAccountsItems?.set({ account1: 'Account 1', account2: 'Account 2' });
+			stores.activeAccountsItems?.set({
+				account1: '0x1234567890123456789012345678901234567890',
+				account2: '0x1234567890123456789012345678901234567890'
+			});
 			stores.activeOrderbookRef.set('orderbook2');
 
 			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook2');

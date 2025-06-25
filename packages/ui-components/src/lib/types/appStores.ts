@@ -1,11 +1,19 @@
 import type { Readable, Writable } from 'svelte/store';
-import type { AccountCfg, NewConfig, OrderbookCfg, SubgraphCfg } from '@rainlanguage/orderbook';
+import type {
+	AccountCfg,
+	Address,
+	NetworkCfg,
+	NewConfig,
+	OrderbookCfg,
+	SubgraphCfg
+} from '@rainlanguage/orderbook';
 
 export interface AppStoresInterface {
 	settings: Writable<NewConfig>;
 	activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
+	activeNetworks: Writable<Record<string, NetworkCfg>>;
 	accounts: Readable<Record<string, AccountCfg>>;
-	activeAccountsItems: Writable<Record<string, string>> | undefined;
+	activeAccountsItems: Writable<Record<string, Address>> | undefined;
 	showInactiveOrders: Writable<boolean>;
 	orderHash: Writable<string>;
 	hideZeroBalanceVaults: Writable<boolean>;
