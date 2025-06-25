@@ -52,6 +52,7 @@ pub struct RaindexOrder {
     meta: Option<String>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
+    trades_count: u16,
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
@@ -130,6 +131,10 @@ impl RaindexOrder {
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()
     }
+    #[wasm_bindgen(getter = tradesCount)]
+    pub fn trades_count(&self) -> u16 {
+        self.trades_count
+    }
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexOrder {
@@ -174,6 +179,9 @@ impl RaindexOrder {
     }
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()
+    }
+    pub fn trades_count(&self) -> u16 {
+        self.trades_count
     }
 }
 
@@ -533,6 +541,7 @@ impl RaindexOrder {
             meta: order.meta.map(|meta| meta.0),
             rainlang,
             transaction,
+            trades_count: order.trades.len() as u16,
         })
     }
 }
