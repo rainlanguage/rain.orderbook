@@ -1,15 +1,27 @@
-import { Address, BigInt } from "@graphprotocol/graph-ts";
-import { Deposit as DepositEntity } from "../generated/schema";
+import {
+  Deposit as DepositEntity,
+  ERC20 as ERC20Entity,
+} from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { DepositV2 } from "../generated/OrderBook/OrderBook";
 import { Float, getCalculator } from "./float";
-import { ERC20 } from "../generated/OrderBook/ERC20";
+import { getERC20Entity } from "./erc20";
 
 export function handleDeposit(event: DepositV2): void {
-  let erc20 = ERC20.bind(Address.fromBytes(event.params.token));
-  let decimals = erc20.decimals();
+  let tokenEntityId = getERC20Entity(event.params.token);
+  let tokenEntity = ERC20Entity.load(tokenEntityId);
 
+  if (!tokenEntity) {
+    return;
+  }
+
+  let decimalsBigInt = tokenEntity.decimals;
+  if (!decimalsBigInt) {
+    return;
+  }
+
+  const decimals = decimalsBigInt.toI32();
   const calculator = getCalculator();
   let depositAmount = calculator.fromFixedDecimalLosslessPacked(
     event.params.depositAmountUint256,
