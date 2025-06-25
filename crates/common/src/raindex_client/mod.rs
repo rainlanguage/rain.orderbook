@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
 use crate::{dotrain_order::DotrainOrderError, meta::TryDecodeRainlangSourceError};
 use alloy::{hex::FromHexError, primitives::ruint::ParseError};
 use rain_orderbook_app_settings::yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable};
 use rain_orderbook_subgraph_client::{MultiSubgraphArgs, OrderbookSubgraphClientError};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
@@ -55,17 +54,16 @@ pub struct RaindexClient {
 impl RaindexClient {
     /// Constructor that creates and returns RaindexClient instance directly
     ///
-    /// # Parameters
+    /// ## Parameters
     ///
-    /// - `ob_yamls` - Vector of YAML configuration strings
-    /// The YAML files must match the orderbook yaml [spec]()
+    /// - `ob_yamls` - Vector of YAML configuration strings. The YAML files must match the [orderbook yaml spec](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md).
+    /// - `validate` - Optional boolean flag to enable validation of the YAML configuration. Defaults to false.
     ///
-    /// # Returns
+    /// ## Returns
     ///
-    /// - `Ok(RaindexClient)` - Initialized client instance for further operations
-    /// - `Err(RaindexError)` - For YAML parsing or initialization errors
+    /// - `RaindexClient` - Initialized client instance for further operations.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Single YAML file
@@ -176,7 +174,6 @@ pub enum RaindexError {
     SubgraphNotFound(String, String),
 }
 
-// TODO: Rethink about the error messages
 impl RaindexError {
     pub fn to_readable_msg(&self) -> String {
         match self {
