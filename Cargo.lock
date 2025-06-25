@@ -6546,9 +6546,11 @@ dependencies = [
  "rain_interpreter_bindings",
  "reqwest 0.11.27",
  "revm 24.0.1",
+ "revm 25.0.0",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]

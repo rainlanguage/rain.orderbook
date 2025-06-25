@@ -4,8 +4,8 @@ use crate::{
     transaction::{TransactionArgs, TransactionArgsError},
 };
 #[cfg(not(target_family = "wasm"))]
-use alloy::primitives::FixedBytes;
-use alloy::primitives::{hex::FromHexError, Address, B256, U256};
+use alloy::primitives::{FixedBytes, U256};
+use alloy::primitives::{hex::FromHexError, Address, B256};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
