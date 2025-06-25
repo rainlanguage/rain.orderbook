@@ -9,16 +9,16 @@ impl RaindexClient {
     ///
     /// Retrieves all orders cancelled or removed within a single blockchain transaction.
     ///
-    /// # Parameters
+    /// ## Parameters
     ///
     /// * `chain_id` - Chain ID for the network
     /// * `tx_hash` - Transaction hash
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// * `RaindexOrder[]` - Array of orders removed in the transaction
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await getRemoveOrdersForTransaction(1, "0x1234567890abcdef1234567890abcdef12345678");

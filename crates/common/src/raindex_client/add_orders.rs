@@ -10,16 +10,16 @@ impl RaindexClient {
     /// Retrieves all orders created within a single blockchain transaction, useful
     /// for tracking order deployment.
     ///
-    /// # Parameters
+    /// ## Parameters
     ///
     /// * `chain_id` - Chain ID for the network
     /// * `tx_hash` - Transaction hash
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// * `RaindexOrder[]` - Array of orders added in the transaction
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await getAddOrdersForTransaction(1, "0x1234567890abcdef1234567890abcdef12345678");

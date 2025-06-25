@@ -1511,4 +1511,24 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(res.error.msg, 'Existing allowance');
 		});
 	});
+
+	describe('Transactions', () => {
+		const transaction = {
+			id: 'tx1',
+			from: '0x1000000000000000000000000000000000000000',
+			blockNumber: '2356',
+			timestamp: '1734054063'
+		} as SgTransaction;
+
+		it('should get transaction', async () => {
+			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { transaction } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(await raindexClient.getTransaction(1, '0x123'));
+			assert.equal(result.id, transaction.id);
+			assert.equal(result.from, transaction.from);
+			assert.equal(result.blockNumber, BigInt(transaction.blockNumber));
+			assert.equal(result.timestamp, BigInt(transaction.timestamp));
+		});
+	});
 });
