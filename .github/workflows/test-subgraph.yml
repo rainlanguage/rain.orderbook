@@ -36,6 +36,10 @@ jobs:
           # 1G = 1073741824
           gc-max-store-size-linux: 1G
 
+      - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+
       - name: Build subgraph
         run: nix develop -c subgraph-build
 
