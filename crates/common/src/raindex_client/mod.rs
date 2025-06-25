@@ -134,11 +134,7 @@ impl RaindexClient {
             }
         };
 
-        Ok(result
-            .into_iter()
-            .collect::<BTreeMap<_, _>>()
-            .into_iter()
-            .collect())
+        Ok(result.into_iter().collect::<BTreeMap<_, _>>())
     }
 
     fn get_subgraph_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
@@ -196,7 +192,6 @@ pub enum RaindexError {
     DepositArgsError(#[from] DepositError),
 }
 
-// TODO: Rethink about the error messages
 impl RaindexError {
     pub fn to_readable_msg(&self) -> String {
         match self {

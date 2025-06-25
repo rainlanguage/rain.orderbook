@@ -56,6 +56,12 @@ pub struct RaindexVault {
 
 #[wasm_bindgen]
 impl RaindexVault {
+    #[cfg(target_family = "wasm")]
+    fn u256_to_bigint(value: U256) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&value.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    }
+
     #[wasm_bindgen(getter = vaultType)]
     pub fn vault_type(&self) -> Option<RaindexVaultType> {
         self.vault_type.clone()
@@ -71,8 +77,7 @@ impl RaindexVault {
     #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter = vaultId)]
     pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.vault_id.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+        Self::u256_to_bigint(self.vault_id)
     }
     #[cfg(not(target_family = "wasm"))]
     #[wasm_bindgen(getter = vaultId)]
@@ -82,8 +87,7 @@ impl RaindexVault {
     #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter)]
     pub fn balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.balance.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+        Self::u256_to_bigint(self.balance)
     }
     #[cfg(not(target_family = "wasm"))]
     #[wasm_bindgen(getter)]

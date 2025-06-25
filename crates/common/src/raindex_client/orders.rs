@@ -147,6 +147,14 @@ impl RaindexOrder {
 
 #[wasm_export]
 impl RaindexOrder {
+    fn get_subgraph_url(&self) -> Result<Url, RaindexError> {
+        let raindex_client = self
+            .raindex_client
+            .read()
+            .map_err(|_| YamlError::ReadLockError)?;
+        raindex_client.get_subgraph_url_for_chain(self.chain_id)
+    }
+
     /// Retrieves volume data for all vaults associated with this order over a specified time period.
     ///
     /// Queries historical volume information across all vaults that belong to this order,
@@ -185,13 +193,7 @@ impl RaindexOrder {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<Vec<VaultVolume>, RaindexError> {
-        let subgraph_url = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_subgraph_url_for_chain(self.chain_id)?
-        };
+        let subgraph_url = self.get_subgraph_url()?;
         let client = OrderbookSubgraphClient::new(subgraph_url);
         let volumes = client
             .order_vaults_volume(Id::new(self.id.clone()), start_timestamp, end_timestamp)
@@ -233,13 +235,7 @@ impl RaindexOrder {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<OrderPerformance, RaindexError> {
-        let subgraph_url = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_subgraph_url_for_chain(self.chain_id)?
-        };
+        let subgraph_url = self.get_subgraph_url()?;
         let client = OrderbookSubgraphClient::new(subgraph_url);
         let performance = client
             .order_performance(Id::new(self.id.clone()), start_timestamp, end_timestamp)
