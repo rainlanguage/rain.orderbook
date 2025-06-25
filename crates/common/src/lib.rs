@@ -8,6 +8,7 @@ pub mod frontmatter;
 pub mod fuzz;
 pub mod meta;
 pub mod provider;
+pub mod raindex_client;
 pub mod rainlang;
 pub mod remove_order;
 #[cfg(not(target_family = "wasm"))]

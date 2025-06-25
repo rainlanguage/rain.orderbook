@@ -152,7 +152,7 @@ async fn handle_alloy_err(err: alloy::contract::Error) -> Error {
     Error::ContractCallError(err)
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use alloy::{hex, sol_types::SolValue};

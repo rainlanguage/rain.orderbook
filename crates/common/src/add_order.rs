@@ -305,7 +305,7 @@ impl AddOrderArgs {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use crate::dotrain_order::DotrainOrder;

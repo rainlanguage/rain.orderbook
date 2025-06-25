@@ -58,7 +58,8 @@ tokio = { workspace = true, features = [
     "rt",
     "time",
 ] }
+wasm-bindgen-test = "0.3"
 
-[dev-dependencies]
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { workspace = true }

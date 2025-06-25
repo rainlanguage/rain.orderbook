@@ -50,7 +50,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
                 abi.encode(true)
             );
             vm.mockCall(outputToken, abi.encodeWithSelector(IERC20.transfer.selector, address(this)), abi.encode(true));
-            vm.mockCall(inputToken, "", abi.encode(true));
+            vm.mockCall(inputToken, bytes(""), abi.encode(true));
         }
         iOrderbook.deposit3(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0));
         assertTrue(
