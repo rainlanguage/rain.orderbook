@@ -9,7 +9,8 @@ import {
 	VaultVolume,
 	SgVault,
 	SgTransaction,
-	SgAddOrderWithOrder
+	SgAddOrderWithOrder,
+	SgRemoveOrderWithOrder
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
@@ -754,8 +755,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		});
 	});
 
-	describe('Add orders', async function () {
-		const mockAddOrder: SgAddOrderWithOrder = {
+	describe('Add and remove orders', async function () {
+		const mockOrder = {
 			transaction: {
 				id: '0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af',
 				from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
@@ -1102,6 +1103,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				removeEvents: []
 			}
 		};
+		const mockAddOrder = mockOrder as SgAddOrderWithOrder;
+		const mockRemoveOrder = mockOrder as SgRemoveOrderWithOrder;
 
 		it('should fetch add orders for a given transaction', async function () {
 			await mockServer
@@ -1116,6 +1119,21 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result[0].chain_id, 1);
 			assert.equal(result[0].orderbook, mockAddOrder.order.orderbook.id);
 			assert.equal(result[0].transaction?.id, mockAddOrder.transaction.id);
+		});
+
+		it('should fetch remove orders for a given transaction', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { removeOrders: [mockRemoveOrder] } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(
+				await raindexClient.getRemoveOrdersForTransaction(1, '0x123')
+			);
+			assert.equal(result[0].id, mockRemoveOrder.order.id);
+			assert.equal(result[0].chain_id, 1);
+			assert.equal(result[0].orderbook, mockRemoveOrder.order.orderbook.id);
+			assert.equal(result[0].transaction?.id, mockRemoveOrder.transaction.id);
 		});
 	});
 
