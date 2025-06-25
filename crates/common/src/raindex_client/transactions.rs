@@ -99,7 +99,7 @@ impl RaindexClient {
         let subgraph_url = self.get_subgraph_url_for_chain(chain_id as u64)?;
         let client = OrderbookSubgraphClient::new(subgraph_url);
         let transaction = client.transaction_detail(Id::new(tx_hash)).await?;
-        Ok(transaction.try_into()?)
+        transaction.try_into()
     }
 }
 

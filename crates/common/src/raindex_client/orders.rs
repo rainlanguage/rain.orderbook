@@ -6,7 +6,7 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
-use alloy::primitives::Address;
+use alloy::primitives::{Address, U256};
 use rain_orderbook_subgraph_client::{
     performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -46,43 +46,11 @@ pub struct RaindexOrder {
     outputs: Vec<RaindexVault>,
     orderbook: Address,
     active: bool,
-    timestamp_added: String,
+    timestamp_added: U256,
     meta: Option<String>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
 }
-
-fn get_vaults_with_type(
-    inputs: Vec<RaindexVault>,
-    outputs: Vec<RaindexVault>,
-) -> Vec<RaindexVault> {
-    let mut vaults: Vec<RaindexVault> = Vec::new();
-
-    let input_ids: HashSet<String> = inputs.iter().map(|v| v.id()).collect();
-    let output_ids: HashSet<String> = outputs.iter().map(|v| v.id()).collect();
-
-    // First add inputs (excluding input_outputs)
-    for vault in &inputs {
-        if !output_ids.contains(&vault.id()) {
-            vaults.push(vault.clone());
-        }
-    }
-    // Then add outputs (excluding input_outputs)
-    for vault in &outputs {
-        if !input_ids.contains(&vault.id()) {
-            vaults.push(vault.clone());
-        }
-    }
-    // Finally add input_outputs (only once for vaults that are both input and output)
-    for vault in &inputs {
-        if output_ids.contains(&vault.id()) {
-            let input_output_vault = vault.with_vault_type(RaindexVaultType::InputOutput);
-            vaults.push(input_output_vault);
-        }
-    }
-    vaults
-}
-
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexOrder {
@@ -144,8 +112,9 @@ impl RaindexOrder {
         self.active
     }
     #[wasm_bindgen(getter = timestampAdded)]
-    pub fn timestamp_added(&self) -> String {
-        self.timestamp_added.clone()
+    pub fn timestamp_added(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.timestamp_added.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
     #[wasm_bindgen(getter)]
     pub fn meta(&self) -> Option<String> {
@@ -192,8 +161,8 @@ impl RaindexOrder {
     pub fn active(&self) -> bool {
         self.active
     }
-    pub fn timestamp_added(&self) -> String {
-        self.timestamp_added.clone()
+    pub fn timestamp_added(&self) -> U256 {
+        self.timestamp_added
     }
     pub fn meta(&self) -> Option<String> {
         self.meta.clone()
@@ -204,6 +173,37 @@ impl RaindexOrder {
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()
     }
+}
+
+fn get_vaults_with_type(
+    inputs: Vec<RaindexVault>,
+    outputs: Vec<RaindexVault>,
+) -> Vec<RaindexVault> {
+    let mut vaults: Vec<RaindexVault> = Vec::new();
+
+    let input_ids: HashSet<String> = inputs.iter().map(|v| v.id()).collect();
+    let output_ids: HashSet<String> = outputs.iter().map(|v| v.id()).collect();
+
+    // First add inputs (excluding input_outputs)
+    for vault in &inputs {
+        if !output_ids.contains(&vault.id()) {
+            vaults.push(vault.clone());
+        }
+    }
+    // Then add outputs (excluding input_outputs)
+    for vault in &outputs {
+        if !input_ids.contains(&vault.id()) {
+            vaults.push(vault.clone());
+        }
+    }
+    // Finally add input_outputs (only once for vaults that are both input and output)
+    for vault in &inputs {
+        if output_ids.contains(&vault.id()) {
+            let input_output_vault = vault.with_vault_type(RaindexVaultType::InputOutput);
+            vaults.push(input_output_vault);
+        }
+    }
+    vaults
 }
 
 #[wasm_export]
@@ -527,7 +527,7 @@ impl RaindexOrder {
                 .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
-            timestamp_added: order.timestamp_added.0,
+            timestamp_added: U256::from_str(&order.timestamp_added.0)?,
             meta: order.meta.map(|meta| meta.0),
             rainlang,
             transaction,
@@ -1182,7 +1182,7 @@ mod tests {
                 order2.orderbook(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(order2.timestamp_added(), "0".to_string());
+            assert_eq!(order2.timestamp_added(), U256::from(0));
         }
 
         #[tokio::test]

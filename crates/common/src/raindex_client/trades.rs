@@ -134,7 +134,7 @@ impl RaindexOrder {
             .await?;
         let trades = trades
             .into_iter()
-            .map(|trade| RaindexTrade::try_from(trade))
+            .map(RaindexTrade::try_from)
             .collect::<Result<Vec<RaindexTrade>, RaindexError>>()?;
         Ok(trades)
     }
@@ -167,8 +167,7 @@ impl RaindexOrder {
     pub async fn get_trade_detail(&self, trade_id: String) -> Result<RaindexTrade, RaindexError> {
         let subgraph_url = self.get_subgraph_url()?;
         let client = OrderbookSubgraphClient::new(subgraph_url);
-        let trade = client.order_trade_detail(Id::new(trade_id.clone())).await?;
-        Ok(RaindexTrade::try_from(trade)?)
+        RaindexTrade::try_from(client.order_trade_detail(Id::new(trade_id.clone())).await?)
     }
 
     /// Counts total trades for an order within a time range.
