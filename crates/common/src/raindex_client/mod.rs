@@ -172,6 +172,8 @@ pub enum RaindexError {
     ReadLockError,
     #[error("Failed to acquire write lock")]
     WriteLockError,
+    #[error("Missing subgraph {0} for order {1}")]
+    SubgraphNotFound(String, String),
 }
 
 // TODO: Rethink about the error messages
@@ -227,6 +229,12 @@ impl RaindexError {
             }
             RaindexError::WriteLockError => {
                 "Failed to modify the YAML configuration due to a lock error".to_string()
+            }
+            RaindexError::SubgraphNotFound(subgraph, order) => {
+                format!(
+                    "Subgraph with name '{}' not found for the order with hash '{}'",
+                    subgraph, order
+                )
             }
         }
     }
