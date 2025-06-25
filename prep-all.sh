@@ -40,9 +40,9 @@ nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata
 
 echo "Setting up rain.math.float..."
 nix develop -i ${keep[@]} -c bash \
-  -c '(cd lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.math.float && rainix-sol-prelude)'
+  -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-sol-prelude)'
 nix develop -i ${keep[@]} -c bash \
-  -c '(cd lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.math.float && rainix-rs-prelude)'
+  -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-rs-prelude)'
 
 echo "Setting up main project dependencies..."
 nix develop -i ${keep[@]} -c rainix-sol-prelude

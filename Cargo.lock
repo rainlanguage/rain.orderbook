@@ -6791,6 +6791,7 @@ dependencies = [
  "tower",
  "tracing",
  "url",
+ "wasm-bindgen-test",
  "wasm-bindgen-utils",
 ]
 
