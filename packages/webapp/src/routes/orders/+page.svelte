@@ -3,10 +3,10 @@
 	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 	import {
-		activeSubgraphs,
 		orderHash,
 		showMyItemsOnly,
-		showInactiveOrders
+		showInactiveOrders,
+		activeNetworks
 	} from '$lib/stores/settings';
 
 	const {
@@ -24,7 +24,7 @@
 <OrdersListTable
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	{activeSubgraphs}
+	{activeNetworks}
 	{settings}
 	{accounts}
 	{activeAccountsItems}
