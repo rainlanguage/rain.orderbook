@@ -133,6 +133,7 @@ export { default as logoDark } from './assets/logo-dark.svg';
 
 // Providers
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
+export { default as RaindexClientProvider } from './providers/RaindexClientProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
 export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
