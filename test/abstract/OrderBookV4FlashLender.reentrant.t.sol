@@ -168,10 +168,10 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         vm.assume(alice != bob);
 
         LibTestAddOrder.conformConfig(aliceConfig, iInterpreter, iStore);
-        aliceConfig.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
+        aliceConfig.evaluable.bytecode = iParserV2.parse2("_ _:div(max-value() 10) 1;:;");
 
         LibTestAddOrder.conformConfig(bobConfig, iInterpreter, iStore);
-        bobConfig.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
+        bobConfig.evaluable.bytecode = iParserV2.parse2("_ _:div(max-value() 10) 1;:;");
 
         bobConfig.validInputs[0] = aliceConfig.validOutputs[0];
         bobConfig.validOutputs[0] = aliceConfig.validInputs[0];

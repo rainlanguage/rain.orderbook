@@ -684,10 +684,6 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         ClearStateChange memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
 
-        if (clearStateChange.aliceOutput == 0 && clearStateChange.bobOutput == 0) {
-            revert ClearZeroAmount();
-        }
-
         recordVaultIO(clearStateChange.aliceInput, clearStateChange.aliceOutput, aliceOrderIOCalculation);
         recordVaultIO(clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);
 
@@ -710,6 +706,11 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         handleIO(aliceOrderIOCalculation);
         handleIO(bobOrderIOCalculation);
+
+        // Do this last so we don't swallow errors from the handle IO.
+        if (clearStateChange.aliceOutput == 0 && clearStateChange.bobOutput == 0) {
+            revert ClearZeroAmount();
+        }
     }
 
     /// Main entrypoint into an order calculates the amount and IO ratio. Both
