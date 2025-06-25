@@ -15,6 +15,7 @@ pub struct RaindexTransaction {
     block_number: U256,
     timestamp: U256,
 }
+#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexTransaction {
     #[wasm_bindgen(getter)]
@@ -25,27 +26,30 @@ impl RaindexTransaction {
     pub fn from(&self) -> String {
         self.from.to_string()
     }
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter = blockNumber)]
     pub fn block_number(&self) -> Result<BigInt, RaindexError> {
         BigInt::from_str(&self.block_number.to_string())
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter = blockNumber)]
-    pub fn block_number(&self) -> String {
-        self.block_number.to_string()
-    }
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter)]
     pub fn timestamp(&self) -> Result<BigInt, RaindexError> {
         BigInt::from_str(&self.timestamp.to_string())
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter)]
-    pub fn timestamp(&self) -> String {
-        self.timestamp.to_string()
+}
+#[cfg(not(target_family = "wasm"))]
+impl RaindexTransaction {
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+    pub fn from(&self) -> Address {
+        self.from
+    }
+    pub fn block_number(&self) -> U256 {
+        self.block_number
+    }
+    pub fn timestamp(&self) -> U256 {
+        self.timestamp
     }
 }
 

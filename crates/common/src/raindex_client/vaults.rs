@@ -54,6 +54,7 @@ pub struct RaindexVault {
     orderbook: Address,
 }
 
+#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVault {
     #[cfg(target_family = "wasm")]
@@ -74,25 +75,13 @@ impl RaindexVault {
     pub fn owner(&self) -> String {
         self.owner.to_string()
     }
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter = vaultId)]
     pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
         Self::u256_to_bigint(self.vault_id)
     }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter = vaultId)]
-    pub fn vault_id(&self) -> String {
-        self.vault_id.to_string()
-    }
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter)]
     pub fn balance(&self) -> Result<BigInt, RaindexError> {
         Self::u256_to_bigint(self.balance)
-    }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter)]
-    pub fn balance(&self) -> String {
-        self.balance.to_string()
     }
     #[wasm_bindgen(getter)]
     pub fn token(&self) -> RaindexVaultToken {
@@ -101,6 +90,30 @@ impl RaindexVault {
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn orderbook(&self) -> String {
         self.orderbook.to_string()
+    }
+}
+#[cfg(not(target_family = "wasm"))]
+impl RaindexVault {
+    pub fn vault_type(&self) -> Option<RaindexVaultType> {
+        self.vault_type.clone()
+    }
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+    pub fn owner(&self) -> Address {
+        self.owner
+    }
+    pub fn vault_id(&self) -> U256 {
+        self.vault_id
+    }
+    pub fn balance(&self) -> U256 {
+        self.balance
+    }
+    pub fn token(&self) -> RaindexVaultToken {
+        self.token.clone()
+    }
+    pub fn orderbook(&self) -> Address {
+        self.orderbook
     }
 }
 
@@ -120,6 +133,7 @@ pub struct RaindexVaultToken {
     symbol: Option<String>,
     decimals: Option<U256>,
 }
+#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVaultToken {
     #[wasm_bindgen(getter)]
@@ -138,7 +152,6 @@ impl RaindexVaultToken {
     pub fn symbol(&self) -> Option<String> {
         self.symbol.clone()
     }
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter)]
     pub fn decimals(&self) -> Result<Option<BigInt>, RaindexError> {
         self.decimals
@@ -148,10 +161,23 @@ impl RaindexVaultToken {
             })
             .transpose()
     }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter)]
-    pub fn decimals(&self) -> Option<String> {
-        self.decimals.map(|decimals| decimals.to_string())
+}
+#[cfg(not(target_family = "wasm"))]
+impl RaindexVaultToken {
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+    pub fn address(&self) -> Address {
+        self.address
+    }
+    pub fn name(&self) -> Option<String> {
+        self.name.clone()
+    }
+    pub fn symbol(&self) -> Option<String> {
+        self.symbol.clone()
+    }
+    pub fn decimals(&self) -> Option<U256> {
+        self.decimals
     }
 }
 
@@ -965,10 +991,10 @@ mod tests {
             );
             assert_eq!(
                 result[0].transaction.from(),
-                "0x7177b9d00bB5dbcaaF069CC63190902763783b09".to_string()
+                Address::from_str("0x7177b9d00bB5dbcaaF069CC63190902763783b09").unwrap()
             );
-            assert_eq!(result[0].transaction.block_number(), "34407047".to_string());
-            assert_eq!(result[0].transaction.timestamp(), "1734054063".to_string());
+            assert_eq!(result[0].transaction.block_number(), U256::from(34407047));
+            assert_eq!(result[0].transaction.timestamp(), U256::from(1734054063));
             assert_eq!(
                 result[0].orderbook,
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
