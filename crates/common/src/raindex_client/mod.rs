@@ -2,7 +2,10 @@ use crate::{
     deposit::DepositError, dotrain_order::DotrainOrderError, meta::TryDecodeRainlangSourceError,
     transaction::WritableTransactionExecuteError,
 };
-use alloy::{hex::FromHexError, primitives::ruint::ParseError};
+use alloy::{
+    hex::FromHexError,
+    primitives::{ruint::ParseError, ParseSignedError},
+};
 use rain_orderbook_app_settings::yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable};
 use rain_orderbook_subgraph_client::{MultiSubgraphArgs, OrderbookSubgraphClientError};
 use serde::{Deserialize, Serialize};
@@ -15,6 +18,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 pub mod add_orders;
 pub mod orders;
 pub mod remove_orders;
+pub mod trades;
 pub mod transactions;
 pub mod vaults;
 
@@ -178,6 +182,8 @@ pub enum RaindexError {
     TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
     #[error(transparent)]
     U256ParseError(#[from] ParseError),
+    #[error(transparent)]
+    I256ParseError(#[from] ParseSignedError),
     #[error("JavaScript error: {0}")]
     JsError(String),
     #[error("Failed to acquire read lock")]
@@ -235,6 +241,12 @@ impl RaindexError {
                 format!("Failed to decode Rainlang source: {}. The source code may be corrupted or incompatible.", err)
             }
             RaindexError::U256ParseError(err) => {
+                format!(
+                    "Invalid number format: {}. Please provide a valid numeric value.",
+                    err
+                )
+            }
+            RaindexError::I256ParseError(err) => {
                 format!(
                     "Invalid number format: {}. Please provide a valid numeric value.",
                     err

@@ -3,11 +3,12 @@ use crate::{
     deposit::DepositArgs, raindex_client::transactions::RaindexTransaction,
     transaction::TransactionArgs, withdraw::WithdrawArgs,
 };
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, Bytes, I256, U256};
 use rain_orderbook_subgraph_client::{
     types::{
         common::{
-            SgBytes, SgErc20, SgVault, SgVaultBalanceChangeUnwrapped, SgVaultsListFilterArgs,
+            SgBytes, SgErc20, SgTradeVaultBalanceChange, SgVault, SgVaultBalanceChangeUnwrapped,
+            SgVaultsListFilterArgs,
         },
         Id,
     },
@@ -442,64 +443,51 @@ impl RaindexVault {
 #[wasm_bindgen]
 pub struct RaindexVaultBalanceChange {
     __typename: String,
-    amount: U256,
-    new_vault_balance: U256,
-    old_vault_balance: U256,
+    vault_id: U256,
+    token: RaindexVaultToken,
+    amount: I256,
+    new_balance: U256,
+    old_balance: U256,
     timestamp: U256,
     transaction: RaindexTransaction,
     orderbook: Address,
 }
+#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVaultBalanceChange {
     #[wasm_bindgen(getter)]
     pub fn __typename(&self) -> String {
         self.__typename.clone()
     }
-    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen(getter = vaultId)]
+    pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.vault_id.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    }
+    #[wasm_bindgen(getter)]
+    pub fn token(&self) -> RaindexVaultToken {
+        self.token.clone()
+    }
     #[wasm_bindgen(getter)]
     pub fn amount(&self) -> Result<BigInt, RaindexError> {
         BigInt::from_str(&self.amount.to_string())
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter)]
-    pub fn amount(&self) -> String {
-        self.amount.to_string()
-    }
-    #[cfg(target_family = "wasm")]
-    #[wasm_bindgen(getter = newVaultBalance)]
-    pub fn new_vault_balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.new_vault_balance.to_string())
+    #[wasm_bindgen(getter = newBalance)]
+    pub fn new_balance(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.new_balance.to_string())
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter = newVaultBalance)]
-    pub fn new_vault_balance(&self) -> String {
-        self.new_vault_balance.to_string()
-    }
-    #[cfg(target_family = "wasm")]
-    #[wasm_bindgen(getter = oldVaultBalance)]
-    pub fn old_vault_balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.old_vault_balance.to_string())
+    #[wasm_bindgen(getter = oldBalance)]
+    pub fn old_balance(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.old_balance.to_string())
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter = oldVaultBalance)]
-    pub fn old_vault_balance(&self) -> String {
-        self.old_vault_balance.to_string()
-    }
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter)]
     pub fn timestamp(&self) -> Result<BigInt, RaindexError> {
         BigInt::from_str(&self.timestamp.to_string())
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
-    #[cfg(not(target_family = "wasm"))]
-    #[wasm_bindgen(getter)]
-    pub fn timestamp(&self) -> String {
-        self.timestamp.to_string()
-    }
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter)]
     pub fn transaction(&self) -> RaindexTransaction {
         self.transaction.clone()
@@ -507,6 +495,36 @@ impl RaindexVaultBalanceChange {
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn orderbook(&self) -> String {
         self.orderbook.to_string()
+    }
+}
+#[cfg(not(target_family = "wasm"))]
+impl RaindexVaultBalanceChange {
+    pub fn __typename(&self) -> String {
+        self.__typename.clone()
+    }
+    pub fn vault_id(&self) -> U256 {
+        self.vault_id
+    }
+    pub fn token(&self) -> RaindexVaultToken {
+        self.token.clone()
+    }
+    pub fn amount(&self) -> I256 {
+        self.amount
+    }
+    pub fn new_balance(&self) -> U256 {
+        self.new_balance
+    }
+    pub fn old_balance(&self) -> U256 {
+        self.old_balance
+    }
+    pub fn timestamp(&self) -> U256 {
+        self.timestamp
+    }
+    pub fn transaction(&self) -> RaindexTransaction {
+        self.transaction.clone()
+    }
+    pub fn orderbook(&self) -> Address {
+        self.orderbook
     }
 }
 
@@ -519,9 +537,28 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
     fn try_from(balance_change: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
         Ok(Self {
             __typename: balance_change.__typename,
-            amount: U256::from_str(&balance_change.amount.0)?,
-            new_vault_balance: U256::from_str(&balance_change.new_vault_balance.0)?,
-            old_vault_balance: U256::from_str(&balance_change.old_vault_balance.0)?,
+            vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
+            token: RaindexVaultToken::try_from(balance_change.vault.token)?,
+            amount: I256::from_str(&balance_change.amount.0)?,
+            new_balance: U256::from_str(&balance_change.new_vault_balance.0)?,
+            old_balance: U256::from_str(&balance_change.old_vault_balance.0)?,
+            timestamp: U256::from_str(&balance_change.timestamp.0)?,
+            transaction: RaindexTransaction::try_from(balance_change.transaction)?,
+            orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
+        })
+    }
+}
+
+impl TryFrom<SgTradeVaultBalanceChange> for RaindexVaultBalanceChange {
+    type Error = RaindexError;
+    fn try_from(balance_change: SgTradeVaultBalanceChange) -> Result<Self, Self::Error> {
+        Ok(Self {
+            __typename: balance_change.__typename,
+            vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
+            token: RaindexVaultToken::try_from(balance_change.vault.token)?,
+            amount: I256::from_str(&balance_change.amount.0)?,
+            new_balance: U256::from_str(&balance_change.new_vault_balance.0)?,
+            old_balance: U256::from_str(&balance_change.old_vault_balance.0)?,
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
@@ -975,15 +1012,27 @@ mod tests {
             let result = vault.get_balance_changes(None).await.unwrap();
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].__typename, "Deposit");
+            assert_eq!(result[0].vault_id, U256::from_str("1").unwrap());
+            assert_eq!(
+                result[0].token.id,
+                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+            );
+            assert_eq!(
+                result[0].token.address,
+                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+            );
+            assert_eq!(result[0].token.name, Some("Wrapped Flare".to_string()));
+            assert_eq!(result[0].token.symbol, Some("WFLR".to_string()));
+            assert_eq!(result[0].token.decimals, Some(U256::from(18)));
             assert_eq!(
                 result[0].amount,
-                U256::from_str("5000000000000000000").unwrap()
+                I256::from_str("5000000000000000000").unwrap()
             );
             assert_eq!(
-                result[0].new_vault_balance,
+                result[0].new_balance,
                 U256::from_str("5000000000000000000").unwrap()
             );
-            assert_eq!(result[0].old_vault_balance, U256::from_str("0").unwrap());
+            assert_eq!(result[0].old_balance, U256::from_str("0").unwrap());
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
                 result[0].transaction.id(),

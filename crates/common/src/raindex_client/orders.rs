@@ -208,7 +208,8 @@ impl RaindexOrder {
 
 #[wasm_export]
 impl RaindexOrder {
-    fn get_subgraph_url(&self) -> Result<Url, RaindexError> {
+    #[wasm_export(skip)]
+    pub fn get_subgraph_url(&self) -> Result<Url, RaindexError> {
         let raindex_client = self
             .raindex_client
             .read()
