@@ -22,6 +22,10 @@ pub mod trades;
 pub mod transactions;
 pub mod vaults;
 
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u16>);
+impl_wasm_traits!(ChainIds);
+
 /// RaindexClient provides a simplified interface for querying orderbook data across
 /// multiple blockchain networks with automatic configuration management.
 ///
@@ -99,21 +103,25 @@ impl RaindexClient {
 
     fn get_multi_subgraph_args(
         &self,
-        chain_id: Option<u64>,
+        chain_ids: Option<Vec<u64>>,
     ) -> Result<BTreeMap<u64, MultiSubgraphArgs>, RaindexError> {
-        let result = match chain_id {
-            Some(id) => {
-                let network = self.orderbook_yaml.get_network_by_chain_id(id)?;
-                let orderbook = self
-                    .orderbook_yaml
-                    .get_orderbook_by_network_key(&network.key)?;
-                HashMap::from([(
-                    id,
-                    MultiSubgraphArgs {
-                        url: orderbook.subgraph.url.clone(),
-                        name: network.label.clone().unwrap_or(network.key.clone()),
-                    },
-                )])
+        let result = match chain_ids {
+            Some(ids) => {
+                let mut multi_subgraph_args = HashMap::new();
+                for id in ids {
+                    let network = self.orderbook_yaml.get_network_by_chain_id(id)?;
+                    let orderbook = self
+                        .orderbook_yaml
+                        .get_orderbook_by_network_key(&network.key)?;
+                    multi_subgraph_args.insert(
+                        id,
+                        MultiSubgraphArgs {
+                            url: orderbook.subgraph.url.clone(),
+                            name: network.label.clone().unwrap_or(network.key.clone()),
+                        },
+                    );
+                }
+                multi_subgraph_args
             }
             None => {
                 let mut multi_subgraph_args = HashMap::new();
@@ -464,7 +472,7 @@ deployers:
             )
             .unwrap();
 
-            let args = client.get_multi_subgraph_args(Some(1)).unwrap();
+            let args = client.get_multi_subgraph_args(Some(vec![1])).unwrap();
             assert_eq!(args.len(), 1);
             assert_eq!(
                 args.get(&1).unwrap().url,
@@ -500,6 +508,34 @@ deployers:
         }
 
         #[wasm_bindgen_test]
+        fn test_get_multi_subgraph_args_multiple_chains() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let args = client.get_multi_subgraph_args(Some(vec![1, 137])).unwrap();
+            assert_eq!(args.len(), 2);
+            assert_eq!(
+                args.get(&1).unwrap().url,
+                Url::parse("http://localhost:3000/sg1").unwrap()
+            );
+            assert_eq!(args.get(&1).unwrap().name, "Ethereum Mainnet");
+            assert_eq!(
+                args.get(&137).unwrap().url,
+                Url::parse("http://localhost:3000/sg2").unwrap()
+            );
+            assert_eq!(args.get(&137).unwrap().name, "Polygon Mainnet");
+        }
+
+        #[wasm_bindgen_test]
         fn test_get_multi_subgraph_args_invalid_chain() {
             let client = RaindexClient::new(
                 vec![get_test_yaml(
@@ -513,7 +549,7 @@ deployers:
             )
             .unwrap();
 
-            let err = client.get_multi_subgraph_args(Some(999)).unwrap_err();
+            let err = client.get_multi_subgraph_args(Some(vec![999])).unwrap_err();
             assert!(
                 matches!(err, RaindexError::YamlError(YamlError::NotFound(ref msg)) if msg.contains("network with chain-id: 999"))
             );

@@ -607,12 +607,14 @@ impl RaindexClient {
     )]
     pub async fn get_vaults(
         &self,
-        chain_id: Option<u16>,
+        chain_ids: Option<ChainIds>,
         filters: Option<GetVaultsFilters>,
         page: Option<u16>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let multi_subgraph_args = self.get_multi_subgraph_args(chain_id.map(|id| id as u64))?;
+        let multi_subgraph_args = self.get_multi_subgraph_args(
+            chain_ids.map(|ids| ids.0.iter().map(|id| *id as u64).collect()),
+        )?;
         let client =
             MultiOrderbookSubgraphClient::new(multi_subgraph_args.values().cloned().collect());
         let vaults = client

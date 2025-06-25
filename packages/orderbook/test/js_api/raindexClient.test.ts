@@ -522,7 +522,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(orders[0].id, order1.id);
 			assert.equal(orders[1].id, order2.id);
 
-			orders = extractWasmEncodedData(await raindexClient.getOrders(1));
+			orders = extractWasmEncodedData(await raindexClient.getOrders([1]));
 			assert.equal(orders.length, 1);
 			assert.equal(orders[0].id, order1.id);
 		});
