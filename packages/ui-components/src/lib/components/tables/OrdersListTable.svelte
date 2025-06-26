@@ -1,4 +1,5 @@
 <script lang="ts" generics="T">
+	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
@@ -46,7 +47,7 @@
 				? [$account]
 				: [];
 	$: chainIds = $activeNetworks
-		? Object.values($activeNetworks).map((network) => network.chainId)
+		? Object.values($activeNetworks).map((network) => BigInt(network.chainId))
 		: [];
 
 	$: query = createInfiniteQuery({
@@ -121,7 +122,7 @@
 
 	<svelte:fragment slot="bodyRow" let:item>
 		<TableBodyCell data-testid="orderListRowNetwork" tdClass="px-4 py-2">
-			{item.chain_id}
+			{getNetworkName(Number(item.chainId))}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowActive" tdClass="px-4 py-2">
 			{#if item.active}
