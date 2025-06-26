@@ -55,6 +55,7 @@ const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
+const mockSelectedChainIdsWritable = writable<number[]>([]);
 
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
@@ -147,6 +148,12 @@ export const mockShowMyItemsOnlyStore = {
 	subscribe: mockShowMyItemsOnlyWritable.subscribe,
 	set: mockShowMyItemsOnlyWritable.set,
 	mockSetSubscribeValue: (value: boolean): void => mockShowMyItemsOnlyWritable.set(value)
+};
+
+export const mockSelectedChainIdsStore = {
+	subscribe: mockSelectedChainIdsWritable.subscribe,
+	set: mockSelectedChainIdsWritable.set,
+	mockSetSubscribeValue: (value: number[]): void => mockSelectedChainIdsWritable.set(value)
 };
 
 export const mockPageStore = {

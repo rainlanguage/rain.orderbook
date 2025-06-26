@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
-import type { SgVaultWithSubgraphName } from '@rainlanguage/orderbook';
+import type { RaindexVault } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -19,34 +19,23 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
-const mockVaultWithSubgraph: SgVaultWithSubgraphName = {
-	vault: {
-		id: '0x1234567890abcdef1234567890abcdef12345678',
-		owner: '0xabcdef1234567890abcdef1234567890abcdef12',
-		vaultId: '42',
-		balance: '1000000000000000000', // 1 ETH in wei
-		token: {
-			id: '0x1111111111111111111111111111111111111111',
-			address: '0x1111111111111111111111111111111111111111',
-			name: 'Mock Token',
-			symbol: 'MTK',
-			decimals: '18'
-		},
-		orderbook: {
-			id: '0x2222222222222222222222222222222222222222'
-		},
-		ordersAsOutput: [
-			{
-				id: '0x3333333333333333333333333333333333333333',
-				orderHash: '0x4444444444444444444444444444444444444444',
-				active: true
-			}
-		],
-		ordersAsInput: [],
-		balanceChanges: []
+const mockVault = {
+	chainId: 1,
+	id: '0x1234567890abcdef1234567890abcdef12345678',
+	owner: '0xabcdef1234567890abcdef1234567890abcdef12',
+	vaultId: BigInt(42),
+	balance: BigInt(1000000000000000000),
+	token: {
+		id: '0x1111111111111111111111111111111111111111',
+		address: '0x1111111111111111111111111111111111111111',
+		name: 'Mock Token',
+		symbol: 'MTK',
+		decimals: '18'
 	},
-	subgraphName: 'mock-subgraph-mainnet'
-};
+	orderbook: '0x2222222222222222222222222222222222222222',
+	ordersAsInput: [],
+	ordersAsOutput: []
+} as unknown as RaindexVault;
 
 vi.mock('@tanstack/svelte-query');
 
@@ -59,9 +48,9 @@ const {
 	mockAccountsStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockActiveSubgraphsStore,
 	mockSettingsStore,
-	mockActiveAccountsStore
+	mockActiveAccountsStore,
+	mockSelectedChainIdsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 const defaultProps = {
@@ -70,14 +59,14 @@ const defaultProps = {
 	orderHash: mockOrderHashStore,
 	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
-	activeSubgraphs: mockActiveSubgraphsStore,
 	settings: mockSettingsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
 	activeAccounts: mockActiveAccountsStore,
-	currentRoute: '/vaults'
+	currentRoute: '/vaults',
+	selectedChainIds: mockSelectedChainIdsStore
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,7 +86,7 @@ describe('VaultsListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockVaultWithSubgraph]] },
+					data: { pages: [[mockVault]] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -106,7 +95,7 @@ describe('VaultsListTable', () => {
 			}
 		})) as Mock;
 		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
-		expect(screen.getByTestId('vault-network')).toHaveTextContent('mock-subgraph-mainnet');
+		expect(screen.getByTestId('vault-network')).toHaveTextContent('Ethereum');
 		expect(screen.getByTestId('vault-token')).toHaveTextContent('Mock Token');
 		expect(screen.getByTestId('vault-balance')).toHaveTextContent('1 MTK');
 	});
@@ -121,7 +110,7 @@ describe('VaultsListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockVaultWithSubgraph]] },
+					data: { pages: [[mockVault]] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -149,7 +138,7 @@ describe('VaultsListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockVaultWithSubgraph]] },
+					data: { pages: [[mockVault]] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -174,7 +163,7 @@ describe('VaultsListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockVaultWithSubgraph]] },
+					data: { pages: [[mockVault]] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -197,7 +186,7 @@ describe('VaultsListTable', () => {
 		const depositButton = screen.getByTestId('deposit-button');
 		await userEvent.click(depositButton);
 
-		expect(handleDepositModal).toHaveBeenCalledWith(mockVaultWithSubgraph.vault, undefined);
+		expect(handleDepositModal).toHaveBeenCalledWith(mockVault, undefined);
 	});
 
 	it('hides action buttons when user is not the vault owner', () => {

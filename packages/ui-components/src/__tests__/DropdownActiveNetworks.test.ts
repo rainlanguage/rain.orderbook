@@ -3,7 +3,7 @@ import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import DropdownActiveNetworks from '../lib/components/dropdown/DropdownActiveNetworks.svelte';
 import { mockConfig } from '../lib/__mocks__/settings';
-import type { NetworkCfg, NewConfig } from '@rainlanguage/orderbook';
+import type { NewConfig } from '@rainlanguage/orderbook';
 
 describe('DropdownActiveNetworks', () => {
 	const mockSettings = {
@@ -29,17 +29,17 @@ describe('DropdownActiveNetworks', () => {
 			}
 		}
 	} as unknown as NewConfig;
-	let activeNetworksStore: Writable<Record<string, NetworkCfg>>;
+	let selectedChainIdsStore: Writable<number[]>;
 
 	beforeEach(() => {
-		activeNetworksStore = writable({});
+		selectedChainIdsStore = writable([]);
 	});
 
 	test('renders correctly', () => {
 		render(DropdownActiveNetworks, {
 			props: {
 				settings: mockSettings,
-				activeNetworks: activeNetworksStore
+				selectedChainIds: selectedChainIdsStore
 			}
 		});
 		expect(screen.getByText('Networks')).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('DropdownActiveNetworks', () => {
 		render(DropdownActiveNetworks, {
 			props: {
 				settings: mockSettings,
-				activeNetworks: activeNetworksStore
+				selectedChainIds: selectedChainIdsStore
 			}
 		});
 
@@ -61,37 +61,28 @@ describe('DropdownActiveNetworks', () => {
 		});
 	});
 
-	test('updates active subgraphs when an option is selected', async () => {
+	test('updates selected chain ids when an option is selected', async () => {
 		render(DropdownActiveNetworks, {
 			props: {
 				settings: mockSettings,
-				activeNetworks: activeNetworksStore
+				selectedChainIds: selectedChainIdsStore
 			}
 		});
 
 		await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
-		await fireEvent.click(screen.getByText('mainnet'));
+		await fireEvent.click(screen.getByText('Ethereum'));
 		await waitFor(() => {
-			expect(get(activeNetworksStore)).toEqual({
-				mainnet: { key: 'mainnet', url: 'mainnet', chainId: 1 }
-			});
+			expect(get(selectedChainIdsStore)).toEqual([1]);
 		});
 
-		await fireEvent.click(screen.getByText('testnet'));
+		await fireEvent.click(screen.getByText('Expanse Network'));
 		await waitFor(() => {
-			expect(get(activeNetworksStore)).toEqual({
-				mainnet: { key: 'mainnet', url: 'mainnet', chainId: 1 },
-				testnet: { key: 'testnet', url: 'testnet', chainId: 2 }
-			});
+			expect(get(selectedChainIdsStore)).toEqual([1, 2]);
 		});
 
 		await fireEvent.click(screen.getByText('local'));
 		await waitFor(() => {
-			expect(get(activeNetworksStore)).toEqual({
-				mainnet: { key: 'mainnet', url: 'mainnet', chainId: 1 },
-				testnet: { key: 'testnet', url: 'testnet', chainId: 2 },
-				local: { key: 'local', url: 'local', chainId: 3 }
-			});
+			expect(get(selectedChainIdsStore)).toEqual([1, 2, 3]);
 		});
 	});
 });
