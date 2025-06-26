@@ -50,9 +50,9 @@ jobs:
           # 1G = 1073741824
           gc-max-store-size-linux: 1G
 
-      - run: ./prep-all.sh
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+      - run: >
+          nix develop -c bash \
+            -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-sol-prelude)'
 
       - run: nix develop -c graph codegen
         working-directory: subgraph
