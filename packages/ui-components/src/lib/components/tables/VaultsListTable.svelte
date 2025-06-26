@@ -98,7 +98,10 @@
 		queryKey={QKEY_VAULTS}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
-			const res = raindexClient.getSubgraphKeyForChainId(e.detail.item.chainId);
+			const res = raindexClient.getSubgraphKeyForChainId(
+				e.detail.item.chainId,
+				e.detail.item.orderbook
+			);
 			if (res.error) {
 				throw new Error(res.error.readableMsg);
 			}
@@ -164,7 +167,8 @@
 							<OrderOrVaultHash
 								type="orders"
 								orderOrVault={order}
-								network={raindexClient.getSubgraphKeyForChainId(item.chainId).value ?? ''}
+								network={raindexClient.getSubgraphKeyForChainId(item.chainId, item.orderbook)
+									.value ?? ''}
 								{updateActiveNetworkAndOrderbook}
 							/>
 						{/each}
@@ -179,7 +183,8 @@
 							<OrderOrVaultHash
 								type="orders"
 								orderOrVault={order}
-								network={raindexClient.getSubgraphKeyForChainId(item.chainId).value ?? ''}
+								network={raindexClient.getSubgraphKeyForChainId(item.chainId, item.orderbook)
+									.value ?? ''}
 								{updateActiveNetworkAndOrderbook}
 							/>
 						{/each}

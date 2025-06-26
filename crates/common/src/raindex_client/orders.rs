@@ -384,6 +384,7 @@ impl RaindexClient {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let multi_subgraph_args = self
             .get_multi_subgraph_args(chain_ids.map(|ids| ids.0.iter().map(|id| *id).collect()))?;
+
         let client = MultiOrderbookSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
         );
