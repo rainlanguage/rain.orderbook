@@ -612,9 +612,8 @@ impl RaindexClient {
         page: Option<u16>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let multi_subgraph_args = self.get_multi_subgraph_args(
-            chain_ids.map(|ids| ids.0.iter().map(|id| *id as u64).collect()),
-        )?;
+        let multi_subgraph_args = self
+            .get_multi_subgraph_args(chain_ids.map(|ids| ids.0.iter().map(|id| *id).collect()))?;
         let client =
             MultiOrderbookSubgraphClient::new(multi_subgraph_args.values().cloned().collect());
         let vaults = client
@@ -685,15 +684,15 @@ impl RaindexClient {
     )]
     pub async fn get_vault(
         &self,
-        chain_id: u16,
+        chain_id: u64,
         vault_id: String,
     ) -> Result<RaindexVault, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id as u64)?;
+        let subgraph_url = self.get_subgraph_url_for_chain(chain_id)?;
         let client = OrderbookSubgraphClient::new(subgraph_url);
         let vault = RaindexVault::try_from_sg_vault(
             raindex_client.clone(),
-            chain_id as u64,
+            chain_id,
             client.vault_detail(Id::new(vault_id)).await?,
             None,
         )?;

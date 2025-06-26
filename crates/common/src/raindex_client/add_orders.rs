@@ -37,11 +37,11 @@ impl RaindexClient {
     )]
     pub async fn get_add_orders_for_transaction(
         &self,
-        chain_id: u16,
+        chain_id: u64,
         tx_hash: String,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id as u64)?;
+        let subgraph_url = self.get_subgraph_url_for_chain(chain_id)?;
         let client = OrderbookSubgraphClient::new(subgraph_url);
         let orders = client.transaction_add_orders(Id::new(tx_hash)).await?;
         let orders = orders
@@ -49,7 +49,7 @@ impl RaindexClient {
             .map(|value| {
                 RaindexOrder::try_from_sg_order(
                     raindex_client.clone(),
-                    chain_id as u64,
+                    chain_id,
                     value.order,
                     Some(value.transaction.try_into()?),
                 )

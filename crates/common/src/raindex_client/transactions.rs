@@ -93,10 +93,10 @@ impl RaindexClient {
     )]
     pub async fn get_transaction(
         &self,
-        chain_id: u16,
+        chain_id: u64,
         tx_hash: String,
     ) -> Result<RaindexTransaction, RaindexError> {
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id as u64)?;
+        let subgraph_url = self.get_subgraph_url_for_chain(chain_id)?;
         let client = OrderbookSubgraphClient::new(subgraph_url);
         let transaction = client.transaction_detail(Id::new(tx_hash)).await?;
         transaction.try_into()

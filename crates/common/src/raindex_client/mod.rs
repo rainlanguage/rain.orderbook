@@ -23,7 +23,7 @@ pub mod transactions;
 pub mod vaults;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
-pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u16>);
+pub struct ChainIds(#[tsify(type = "bigint[]")] pub Vec<u64>);
 impl_wasm_traits!(ChainIds);
 
 /// RaindexClient provides a simplified interface for querying orderbook data across
