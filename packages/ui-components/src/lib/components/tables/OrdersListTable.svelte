@@ -51,7 +51,7 @@
 		queryKey: [QKEY_ORDERS, $selectedChainIds, $settings, owners, $showInactiveOrders, $orderHash],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getOrders(
-				$selectedChainIds.length > 0 ? $selectedChainIds.map(BigInt) : undefined,
+				$selectedChainIds.map(BigInt),
 				{
 					owners,
 					active: $showInactiveOrders ? undefined : true,
