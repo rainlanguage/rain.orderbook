@@ -6,7 +6,7 @@
 		orderHash,
 		showMyItemsOnly,
 		showInactiveOrders,
-		activeNetworks
+		selectedChainIds
 	} from '$lib/stores/settings';
 
 	const {
@@ -24,7 +24,7 @@
 <OrdersListTable
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	{activeNetworks}
+	{selectedChainIds}
 	{settings}
 	{accounts}
 	{activeAccountsItems}

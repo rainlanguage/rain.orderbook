@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { hideZeroBalanceVaults, showMyItemsOnly, orderHash } from '$lib/stores/settings';
-	import { activeSubgraphs } from '$lib/stores/settings';
+	import { selectedChainIds } from '$lib/stores/settings';
 	import { resetActiveNetworkRef } from '$lib/services/resetActiveNetworkRef';
 	import { resetActiveOrderbookRef } from '$lib/services/resetActiveOrderbookRef';
 
@@ -43,7 +43,6 @@
 	{activeOrderbook}
 	{orderHash}
 	{showMyItemsOnly}
-	{activeSubgraphs}
 	{settings}
 	{accounts}
 	{activeAccountsItems}
@@ -52,4 +51,5 @@
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{activeAccounts}
+	{selectedChainIds}
 />

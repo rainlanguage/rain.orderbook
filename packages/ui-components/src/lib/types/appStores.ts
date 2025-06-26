@@ -10,6 +10,7 @@ import type {
 
 export interface AppStoresInterface {
 	settings: Writable<NewConfig>;
+	selectedChainIds: Writable<number[]>;
 	activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
 	activeNetworks: Writable<Record<string, NetworkCfg>>;
 	accounts: Readable<Record<string, AccountCfg>>;

@@ -26,8 +26,8 @@
 	export let handleOrderRemoveModal: any = undefined;
 	// End of optional props
 
-	export let activeNetworks: AppStoresInterface['activeNetworks'];
 	export let settings: AppStoresInterface['settings'];
+	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
@@ -46,15 +46,12 @@
 			: $showMyItemsOnly && $account
 				? [$account]
 				: [];
-	$: chainIds = $activeNetworks
-		? Object.values($activeNetworks).map((network) => BigInt(network.chainId))
-		: [];
 
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_ORDERS, $activeNetworks, $settings, owners, $showInactiveOrders, $orderHash],
+		queryKey: [QKEY_ORDERS, $selectedChainIds, $settings, owners, $showInactiveOrders, $orderHash],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getOrders(
-				chainIds,
+				$selectedChainIds.length > 0 ? $selectedChainIds.map(BigInt) : undefined,
 				{
 					owners,
 					active: $showInactiveOrders ? undefined : true,
@@ -77,7 +74,7 @@
 </script>
 
 <ListViewOrderbookFilters
-	{activeNetworks}
+	{selectedChainIds}
 	{settings}
 	{accounts}
 	{activeAccountsItems}
@@ -92,9 +89,13 @@
 	queryKey={QKEY_ORDERS}
 	emptyMessage="No Orders Found"
 	on:clickRow={(e) => {
-		activeNetworkRef.set(e.detail.item.subgraphName);
-		activeOrderbookRef.set(e.detail.item.subgraphName);
-		goto(`/orders/${e.detail.item.subgraphName}-${e.detail.item.order.orderHash}`);
+		const res = raindexClient.getSubgraphKeyForChainId(e.detail.item.chainId);
+		if (res.error) {
+			throw new Error(res.error.readableMsg);
+		}
+		activeNetworkRef.set(res.value);
+		activeOrderbookRef.set(res.value);
+		goto(`/orders/${res.value}-${e.detail.item.orderHash}`);
 	}}
 >
 	<svelte:fragment slot="title">

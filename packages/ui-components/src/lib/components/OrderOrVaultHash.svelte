@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
 	import Hash, { HashType } from './Hash.svelte';
-	import type { SgOrderAsIO, SgOrder, SgVault } from '@rainlanguage/orderbook';
+	import type { RaindexOrder, RaindexOrderAsIO, RaindexVault } from '@rainlanguage/orderbook';
 	import {
 		constructHashLink,
 		isOrderOrVaultActive,
 		extractHash
 	} from '$lib/utils/constructHashLink';
 
-	type OrderOrVault = SgOrder | SgOrderAsIO | SgVault;
+	type OrderOrVault = RaindexOrder | RaindexOrderAsIO | RaindexVault;
 
 	export let orderOrVault: OrderOrVault;
 	export let type: 'orders' | 'vaults';

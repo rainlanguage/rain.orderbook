@@ -1,10 +1,10 @@
-import type { SgOrder, SgOrderAsIO, SgVault } from '@rainlanguage/orderbook';
+import type { RaindexOrder, RaindexOrderAsIO, RaindexVault } from '@rainlanguage/orderbook';
 import fc from 'fast-check';
 import { test } from '@fast-check/vitest';
 
-type OrderOrVault = SgOrder | SgOrderAsIO | SgVault;
+type OrderOrVault = RaindexOrder | RaindexOrderAsIO | RaindexVault;
 
-function isOrder(obj: OrderOrVault): obj is SgOrder | SgOrderAsIO {
+function isOrder(obj: OrderOrVault): obj is RaindexOrder | RaindexOrderAsIO {
 	return obj && 'orderHash' in obj;
 }
 /**
@@ -23,7 +23,7 @@ export function constructHashLink(
 		return `/${type}/${network}`;
 	}
 
-	const slug = isOrder(orderOrVault) ? orderOrVault.orderHash : (orderOrVault as SgVault)?.id;
+	const slug = isOrder(orderOrVault) ? orderOrVault.orderHash : (orderOrVault as RaindexVault)?.id;
 
 	return `/${type}/${network}-${slug || ''}`;
 }
@@ -35,7 +35,7 @@ export function constructHashLink(
  */
 export function isOrderOrVaultActive(orderOrVault: OrderOrVault): boolean {
 	const _isOrder = isOrder(orderOrVault);
-	return _isOrder ? (orderOrVault as SgOrderAsIO).active : false;
+	return _isOrder ? (orderOrVault as RaindexOrderAsIO).active : false;
 }
 
 /**
@@ -45,7 +45,9 @@ export function isOrderOrVaultActive(orderOrVault: OrderOrVault): boolean {
  */
 export function extractHash(orderOrVault: OrderOrVault): string {
 	const _isOrder = isOrder(orderOrVault);
-	return _isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id || '';
+	return _isOrder
+		? (orderOrVault as RaindexOrder).orderHash
+		: (orderOrVault as RaindexVault)?.id || '';
 }
 
 if (import.meta.vitest) {
@@ -60,7 +62,7 @@ if (import.meta.vitest) {
 			fc.oneof(fc.constant('orders'), fc.constant('vaults')),
 			fc.string()
 		])('constructs correct link for orders', (order, type, network) => {
-			const result = constructHashLink(order as SgOrder, type, network);
+			const result = constructHashLink(order as RaindexOrder, type, network);
 			expect(result).toBe(`/${type}/${network}-${order.orderHash}`);
 		});
 
@@ -72,7 +74,7 @@ if (import.meta.vitest) {
 			fc.oneof(fc.constant('orders'), fc.constant('vaults')),
 			fc.string()
 		])('constructs correct link for vaults', (vault, type, network) => {
-			const result = constructHashLink(vault as SgVault, type, network);
+			const result = constructHashLink(vault as RaindexVault, type, network);
 			expect(result).toBe(`/${type}/${network}-${vault.id}`);
 		});
 	});
@@ -84,7 +86,7 @@ if (import.meta.vitest) {
 				active: fc.boolean()
 			})
 		])('returns correct active status for orders', (order) => {
-			const result = isOrderOrVaultActive(order as SgOrderAsIO);
+			const result = isOrderOrVaultActive(order as RaindexOrderAsIO);
 			expect(result).toBe(order.active);
 		});
 
@@ -94,7 +96,7 @@ if (import.meta.vitest) {
 				owner: fc.string()
 			})
 		])('returns false for vaults', (vault) => {
-			const result = isOrderOrVaultActive(vault as SgVault);
+			const result = isOrderOrVaultActive(vault as RaindexVault);
 			expect(result).toBe(false);
 		});
 	});
@@ -106,7 +108,7 @@ if (import.meta.vitest) {
 				active: fc.boolean()
 			})
 		])('extracts hash from orders', (order) => {
-			const result = extractHash(order as SgOrder);
+			const result = extractHash(order as RaindexOrder);
 			expect(result).toBe(order.orderHash);
 		});
 
@@ -116,13 +118,13 @@ if (import.meta.vitest) {
 				owner: fc.string()
 			})
 		])('extracts hash from vaults', (vault) => {
-			const result = extractHash(vault as SgVault);
+			const result = extractHash(vault as RaindexVault);
 			expect(result).toBe(vault.id);
 		});
 
 		it('handles undefined vault id', () => {
 			// Create a partial vault object with undefined id
-			const vault = { id: undefined } as unknown as SgVault;
+			const vault = { id: undefined } as unknown as RaindexVault;
 			const result = extractHash(vault);
 			expect(result).toBe('');
 		});

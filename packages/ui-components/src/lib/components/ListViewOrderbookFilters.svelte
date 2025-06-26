@@ -18,7 +18,7 @@
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let activeNetworks: AppStoresInterface['activeNetworks'];
+	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 
@@ -60,6 +60,6 @@
 		{#if $accounts && Object.values($accounts).length > 0}
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
-		<DropdownActiveNetworks settings={$settings} {activeNetworks} />
+		<DropdownActiveNetworks settings={$settings} {selectedChainIds} />
 	{/if}
 </div>

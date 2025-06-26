@@ -1,5 +1,5 @@
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import { type NetworkCfg, type NewConfig, type SubgraphCfg } from '@rainlanguage/orderbook';
+import { type NewConfig, type SubgraphCfg } from '@rainlanguage/orderbook';
 
 export const EMPTY_CONFIG: NewConfig = {
 	orderbook: {
@@ -107,25 +107,18 @@ export const activeSubgraphs = cachedWritableStore<Record<string, SubgraphCfg>>(
 );
 
 /**
- * A persistent store that holds active network configurations for different networks/orderbooks.
+ * A persistent store that holds the currently selected chain IDs.
  *
- * This store maps network/orderbook identifiers to their corresponding network configurations.
- * The setting is saved to local storage and persists between sessions.
+ * This setting is saved to local storage and persists between sessions.
  *
- * @default {} - Empty object by default
- * @returns A writable store containing a record of network configurations
+ * @default [] - Empty array by default
+ * @returns A writable store containing an array of chain IDs
  */
-export const activeNetworks = cachedWritableStore<Record<string, NetworkCfg>>(
-	'settings.activeNetworks',
-	{},
-	JSON.stringify,
-	(s) => {
-		try {
-			return JSON.parse(s);
-		} catch {
-			return {};
-		}
-	}
+export const selectedChainIds = cachedWritableStore<number[]>(
+	'settings.selectedChainIds',
+	[],
+	(value) => JSON.stringify(value),
+	(str) => JSON.parse(str)
 );
 
 /**
