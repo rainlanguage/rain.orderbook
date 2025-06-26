@@ -64,6 +64,10 @@ impl RaindexVault {
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
 
+    #[wasm_bindgen(getter = chainId)]
+    pub fn chain_id(&self) -> u64 {
+        self.chain_id
+    }
     #[wasm_bindgen(getter = vaultType)]
     pub fn vault_type(&self) -> Option<RaindexVaultType> {
         self.vault_type.clone()
@@ -95,6 +99,9 @@ impl RaindexVault {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVault {
+    pub fn chain_id(&self) -> u64 {
+        self.chain_id
+    }
     pub fn vault_type(&self) -> Option<RaindexVaultType> {
         self.vault_type.clone()
     }
@@ -868,6 +875,7 @@ mod tests {
             assert_eq!(result.len(), 2);
 
             let vault1 = result[0].clone();
+            assert_eq!(vault1.chain_id, 1);
             assert_eq!(vault1.id, "vault1");
             assert_eq!(
                 vault1.owner,
@@ -882,6 +890,7 @@ mod tests {
             );
 
             let vault2 = result[1].clone();
+            assert_eq!(vault2.chain_id, 1);
             assert_eq!(vault2.id, "vault2");
             assert_eq!(
                 vault2.owner,
@@ -923,6 +932,7 @@ mod tests {
                 .get_vault(1, "vault1".to_string())
                 .await
                 .unwrap();
+            assert_eq!(vault.chain_id, 1);
             assert_eq!(vault.id, "vault1");
             assert_eq!(
                 vault.owner,
