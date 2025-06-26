@@ -57,14 +57,16 @@
 			$activeSubgraphs,
 			multiSubgraphArgs,
 			$settings,
-			owners
+			owners,
+			$activeTokens
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await getVaults(
 				multiSubgraphArgs,
 				{
 					owners,
-					hideZeroBalance: $hideZeroBalanceVaults
+					hideZeroBalance: $hideZeroBalanceVaults,
+					tokens: $activeTokens
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
@@ -89,8 +91,6 @@
 		enabled: Object.keys($activeSubgraphs).length > 0
 	});
 
-	$: availableTokens = $tokensQuery.data || [];
-
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
 		activeNetworkRef.set(subgraphName);
 		activeOrderbookRef.set(subgraphName);
@@ -109,7 +109,7 @@
 		{orderHash}
 		{hideZeroBalanceVaults}
 		{activeTokens}
-		{availableTokens}
+		{tokensQuery}
 	/>
 	<AppTable
 		{query}

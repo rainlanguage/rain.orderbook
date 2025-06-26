@@ -21,7 +21,7 @@
 	let filteredTokens: SgErc20WithSubgraphName[] = [];
 	let searchTerm: string = '';
 
-	$: availableTokens = ($tokensQuery.data as SgErc20WithSubgraphName[]) || [];
+	$: availableTokens = ($tokensQuery?.data as SgErc20WithSubgraphName[]) || [];
 
 	$: selectedCount = $activeTokens.length;
 	$: allSelected = selectedCount === filteredTokens.length && filteredTokens.length > 0;

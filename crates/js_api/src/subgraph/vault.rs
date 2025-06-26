@@ -595,6 +595,7 @@ mod tests {
                 SgVaultsListFilterArgs {
                     owners: vec![],
                     hide_zero_balance: false,
+                    tokens: vec![],
                 },
                 SgPaginationArgs {
                     page: 1,
