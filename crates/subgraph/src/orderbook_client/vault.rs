@@ -121,6 +121,46 @@ impl OrderbookSubgraphClient {
         }
         Ok(all_pages_merged)
     }
+
+    /// Fetch all tokens from vaults across all pages
+    pub async fn vault_tokens_list_all(
+        &self,
+    ) -> Result<Vec<SgErc20>, OrderbookSubgraphClientError> {
+        let mut all_tokens = vec![];
+        let mut page = 1;
+
+        loop {
+            let pagination_variables = Self::parse_pagination_args(SgPaginationArgs {
+                page,
+                page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+            });
+
+            let variables = SgPaginationQueryVariables {
+                first: pagination_variables.first,
+                skip: pagination_variables.skip,
+            };
+
+            let data = self
+                .query::<SgVaultTokensListQuery, SgPaginationQueryVariables>(variables)
+                .await?;
+
+            if data.vaults.is_empty() {
+                break;
+            }
+
+            // Extract unique tokens
+            for vault in data.vaults {
+                all_tokens.push(vault.token);
+            }
+            page += 1;
+        }
+
+        // Remove duplicates based on token id
+        all_tokens.sort_by(|a, b| a.id.0.cmp(&b.id.0));
+        all_tokens.dedup_by(|a, b| a.id.0 == b.id.0);
+
+        Ok(all_tokens)
+    }
 }
 
 #[cfg(test)]
@@ -130,6 +170,7 @@ mod tests {
         SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction, SgVault,
         SgVaultBalanceChangeUnwrapped, SgVaultBalanceChangeVault, SgVaultsListFilterArgs,
     };
+    use crate::types::vault::SgVaultTokenOnly;
     use cynic::Id;
     use httpmock::prelude::*;
     use reqwest::Url;
@@ -737,5 +778,189 @@ mod tests {
         let result = client.vault_balance_changes_list_all(vault_id).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_vault_tokens_list_all_multiple_pages_with_duplicates() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+
+        // Create different tokens for testing deduplication
+        let token1 = SgErc20 {
+            id: SgBytes("0xToken1".to_string()),
+            address: SgBytes("0xToken1Address".to_string()),
+            name: Some("Token 1".to_string()),
+            symbol: Some("TK1".to_string()),
+            decimals: Some(SgBigInt("18".to_string())),
+        };
+
+        let token2 = SgErc20 {
+            id: SgBytes("0xToken2".to_string()),
+            address: SgBytes("0xToken2Address".to_string()),
+            name: Some("Token 2".to_string()),
+            symbol: Some("TK2".to_string()),
+            decimals: Some(SgBigInt("6".to_string())),
+        };
+
+        // Page 1: Multiple vaults with some duplicate tokens
+        let vaults_page1 = vec![
+            SgVaultTokenOnly {
+                token: token1.clone(),
+            },
+            SgVaultTokenOnly {
+                token: token2.clone(),
+            },
+            SgVaultTokenOnly {
+                token: token1.clone(),
+            }, // Duplicate
+        ];
+
+        // Page 2: More vaults with one new token and one duplicate
+        let vaults_page2 = vec![
+            SgVaultTokenOnly {
+                token: token2.clone(),
+            }, // Duplicate
+            SgVaultTokenOnly {
+                token: SgErc20 {
+                    id: SgBytes("0xToken3".to_string()),
+                    address: SgBytes("0xToken3Address".to_string()),
+                    name: Some("Token 3".to_string()),
+                    symbol: Some("TK3".to_string()),
+                    decimals: Some(SgBigInt("8".to_string())),
+                },
+            },
+        ];
+
+        // Mock first page
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
+                .body_contains("\"skip\":0");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": vaults_page1}}));
+        });
+
+        // Mock second page
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
+                .body_contains(format!("\"skip\":{}", ALL_PAGES_QUERY_PAGE_SIZE));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": vaults_page2}}));
+        });
+
+        // Mock empty third page (end of pagination)
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
+                .body_contains(format!("\"skip\":{}", ALL_PAGES_QUERY_PAGE_SIZE * 2));
+            then.status(200).json_body(json!({"data": {"vaults": []}}));
+        });
+
+        let result = client.vault_tokens_list_all().await;
+        assert!(result.is_ok(), "Result was: {:?}", result.err());
+
+        let tokens = result.unwrap();
+        assert_eq!(
+            tokens.len(),
+            3,
+            "Should have 3 unique tokens after deduplication"
+        );
+
+        // Verify all unique tokens are present (sorted by id)
+        let token_ids: Vec<String> = tokens.iter().map(|t| t.id.0.clone()).collect();
+        assert!(token_ids.contains(&"0xToken1".to_string()));
+        assert!(token_ids.contains(&"0xToken2".to_string()));
+        assert!(token_ids.contains(&"0xToken3".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_vault_tokens_list_all_empty_result() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+
+        // Mock empty first page
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
+                .body_contains("\"skip\":0");
+            then.status(200).json_body(json!({"data": {"vaults": []}}));
+        });
+
+        let result = client.vault_tokens_list_all().await;
+        assert!(result.is_ok());
+        assert!(
+            result.unwrap().is_empty(),
+            "Should return empty list when no vaults exist"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_vault_tokens_list_all_network_error() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+
+        // Mock network error
+        sg_server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let result = client.vault_tokens_list_all().await;
+        assert!(
+            matches!(
+                result,
+                Err(OrderbookSubgraphClientError::CynicClientError(_))
+            ),
+            "Should return network error when GraphQL request fails"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_vault_tokens_list_all_single_page() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+
+        let token = default_sg_erc20();
+        let vaults = vec![
+            SgVaultTokenOnly {
+                token: token.clone(),
+            },
+            SgVaultTokenOnly {
+                token: token.clone(),
+            }, // Same token in different vault
+        ];
+
+        // Mock single page with data
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
+                .body_contains("\"skip\":0");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": vaults}}));
+        });
+
+        // Mock empty second page
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
+                .body_contains(format!("\"skip\":{}", ALL_PAGES_QUERY_PAGE_SIZE));
+            then.status(200).json_body(json!({"data": {"vaults": []}}));
+        });
+
+        let result = client.vault_tokens_list_all().await;
+        assert!(result.is_ok());
+
+        let tokens = result.unwrap();
+        assert_eq!(tokens.len(), 1, "Should deduplicate to single unique token");
+        assert_eq!(tokens[0].id, token.id);
+        assert_eq!(tokens[0].address, token.address);
+        assert_eq!(tokens[0].symbol, token.symbol);
     }
 }
