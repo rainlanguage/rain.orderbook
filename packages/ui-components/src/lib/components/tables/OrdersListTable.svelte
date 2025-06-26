@@ -67,9 +67,8 @@
 				{
 					owners,
 					active: $showInactiveOrders ? undefined : true,
-					orderHash: $orderHash || undefined
-					// TODO:
-					// tokens: $activeTokens.length > 0 ? $activeTokens : undefined
+					orderHash: $orderHash || undefined,
+					tokens: $activeTokens
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);

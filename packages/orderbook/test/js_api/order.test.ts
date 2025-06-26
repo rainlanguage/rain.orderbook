@@ -396,7 +396,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			{
 				owners: [],
 				active: undefined,
-				orderHash: undefined
+				orderHash: undefined,
+				tokens: [],
 			},
 			{
 				page: 1,

@@ -103,7 +103,8 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			activeOrderbook,
 			subgraph,
 			activeNetworkOrderbooks,
-			showMyItemsOnly: writable<boolean>(false)
+			showMyItemsOnly: writable<boolean>(false),
+			activeTokens: writable<string[]>([])
 		}
 	};
 };

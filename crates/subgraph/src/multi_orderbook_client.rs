@@ -1,6 +1,6 @@
 use crate::{
     types::common::{
-        SgErc20, SgErc20WithSubgraphName, SgOrderWithSubgraphName, SgOrdersListFilterArgs,
+        SgErc20WithSubgraphName, SgOrderWithSubgraphName, SgOrdersListFilterArgs,
         SgVaultWithSubgraphName, SgVaultsListFilterArgs,
     },
     OrderbookSubgraphClient, OrderbookSubgraphClientError, SgPaginationArgs,
@@ -168,6 +168,7 @@ mod tests {
             owners: vec![],
             active: None,
             order_hash: None,
+            tokens: vec![],
         }
     }
 
@@ -496,6 +497,7 @@ mod tests {
         SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         }
     }
 

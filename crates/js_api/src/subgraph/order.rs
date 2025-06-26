@@ -814,6 +814,7 @@ mod test_helpers {
                 owners: vec![],
                 active: None,
                 order_hash: None,
+                tokens: vec![],
             };
             let pagination_args = SgPaginationArgs {
                 page: 1,

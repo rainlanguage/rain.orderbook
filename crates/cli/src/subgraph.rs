@@ -90,6 +90,7 @@ impl From<CliFilterArgs> for SgOrdersListFilterArgs {
             owners: val.owners.into_iter().map(SgBytes).collect(),
             active: val.active,
             order_hash: val.order_hash.map(SgBytes),
+            tokens: vec![], // TODO
         }
     }
 }
@@ -99,6 +100,7 @@ impl From<CliFilterArgs> for SgVaultsListFilterArgs {
         Self {
             owners: val.owners.into_iter().map(SgBytes).collect(),
             hide_zero_balance: val.hide_zero_balance.unwrap_or(true),
+            tokens: vec![], // TODO
         }
     }
 }
