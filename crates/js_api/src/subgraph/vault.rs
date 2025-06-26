@@ -36,6 +36,13 @@ impl_wasm_traits!(GetVaultBalanceChangesResult);
 pub struct VaultAllowanceResult(#[tsify(type = "string")] U256);
 impl_wasm_traits!(VaultAllowanceResult);
 
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+pub struct GetVaultTokensResult(
+    #[tsify(type = "SgErc20WithSubgraphName[]")]
+    Vec<rain_orderbook_subgraph_client::types::common::SgErc20WithSubgraphName>,
+);
+impl_wasm_traits!(GetVaultTokensResult);
+
 /// Fetches vault data from multiple subgraphs across different networks.
 ///
 /// Queries multiple subgraphs simultaneously to retrieve vault information
@@ -154,6 +161,50 @@ pub async fn get_vault_balance_changes(
             .vault_balance_changes_list(Id::new(id), pagination_args)
             .await?,
     ))
+}
+
+/// Fetches all unique tokens that exist in vaults.
+///
+/// Retrieves all unique ERC20 tokens that have associated vaults by querying
+/// all vaults and extracting their token information, removing duplicates.
+///
+/// # Parameters
+///
+/// * `subgraphs` - Array of subgraph configurations, each containing:
+///   - `url`: Subgraph endpoint URL
+///   - `name`: Human-readable network name for identification
+///
+/// # Returns
+///
+/// * `Ok(Vec<SgErc20WithSubgraphName>)` - Array of token objects wrapped with subgraph names
+/// * `Err(SubgraphError)` - When the request fails or network error occurs
+///
+/// # JavaScript Example
+///
+/// ```javascript
+/// const result = await getVaultTokens(
+///   [
+///     { url: "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon", name: "polygon" },
+///     { url: "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-flare", name: "flare" }
+///   ],
+/// );
+/// if (result.error) {
+///   console.error("Error fetching tokens:", result.error.readableMsg);
+///   return;
+/// }
+/// const tokens = result.value;
+/// console.log(`Found ${tokens.length} unique tokens`);
+/// console.log(`Token ${tokens[0].token.name} in ${tokens[0].subgraph_name}`);
+/// ```
+#[wasm_export(
+    js_name = "getVaultTokens",
+    unchecked_return_type = "GetVaultTokensResult"
+)]
+pub async fn get_vault_tokens(
+    subgraphs: Vec<MultiSubgraphArgs>,
+) -> Result<GetVaultTokensResult, SubgraphError> {
+    let client = MultiOrderbookSubgraphClient::new(subgraphs);
+    Ok(GetVaultTokensResult(client.tokens_list().await))
 }
 
 /// Generates transaction calldata for depositing tokens into a vault.

@@ -2,7 +2,12 @@
 	import { PageHeader, VaultsListTable, useToasts } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { hideZeroBalanceVaults, showMyItemsOnly, orderHash } from '$lib/stores/settings';
+	import {
+		hideZeroBalanceVaults,
+		showMyItemsOnly,
+		orderHash,
+		activeTokens
+	} from '$lib/stores/settings';
 	import { activeSubgraphs } from '$lib/stores/settings';
 	import { resetActiveNetworkRef } from '$lib/services/resetActiveNetworkRef';
 	import { resetActiveOrderbookRef } from '$lib/services/resetActiveOrderbookRef';
@@ -52,4 +57,5 @@
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{activeAccounts}
+	{activeTokens}
 />

@@ -3,14 +3,14 @@
 
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { getOrders, type SgOrderWithSubgraphName } from '@rainlanguage/orderbook';
+	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
+	import { getOrders, type SgOrderWithSubgraphName, getVaultTokens } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { QKEY_ORDERS } from '../../queries/keys';
+	import { QKEY_ORDERS, QKEY_TOKENS } from '../../queries/keys';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import {
 		Badge,
@@ -36,6 +36,7 @@
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
+	export let activeTokens: AppStoresInterface['activeTokens'];
 
 	const { matchesAccount, account } = useAccount();
 
@@ -57,7 +58,8 @@
 			multiSubgraphArgs,
 			owners,
 			$showInactiveOrders,
-			$orderHash
+			$orderHash,
+			$activeTokens
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await getOrders(
@@ -66,6 +68,8 @@
 					owners,
 					active: $showInactiveOrders ? undefined : true,
 					orderHash: $orderHash || undefined
+					// TODO:
+					// tokens: $activeTokens.length > 0 ? $activeTokens : undefined
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
@@ -77,6 +81,16 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
+		enabled: true
+	});
+
+	$: tokensQuery = createQuery({
+		queryKey: [QKEY_TOKENS, $activeSubgraphs, multiSubgraphArgs],
+		queryFn: async () => {
+			const result = await getVaultTokens(multiSubgraphArgs);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value || [];
+		},
 		enabled: true
 	});
 
@@ -92,6 +106,8 @@
 	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
+	{tokensQuery}
+	{activeTokens}
 />
 
 <AppTable
