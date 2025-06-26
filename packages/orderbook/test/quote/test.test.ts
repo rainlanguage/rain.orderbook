@@ -50,7 +50,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 										decimals: '0'
 									},
 									balance: '0',
-									vaultId: '0',
+									vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000',
 									owner: '0x0000000000000000000000000000000000000000',
 									ordersAsOutput: [],
 									ordersAsInput: [],
@@ -71,7 +71,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 										decimals: '0'
 									},
 									balance: '0',
-									vaultId: '0',
+									vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000',
 									owner: '0x0000000000000000000000000000000000000000',
 									ordersAsOutput: [],
 									ordersAsInput: [],
@@ -112,44 +112,39 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 			inputIOIndex: 0,
 			signedContext: []
 		};
-		try {
-			const result = await getQuoteTargetFromSubgraph([quoteSpec], mockServer.url + '/sg-url');
-			if (!result.value) expect.fail('Expected value');
-			const expected: QuoteTarget = {
-				quoteConfig: {
-					order: {
-						owner: '0x0000000000000000000000000000000000000000',
-						evaluable: {
-							interpreter: '0x0000000000000000000000000000000000000000',
-							store: '0x0000000000000000000000000000000000000000',
-							bytecode: '0x'
-						},
-						validInputs: [
-							{
-								token: '0x0000000000000000000000000000000000000000',
-								decimals: 0,
-								vaultId: '0x0'
-							}
-						],
-						validOutputs: [
-							{
-								token: '0x0000000000000000000000000000000000000000',
-								decimals: 0,
-								vaultId: '0x0'
-							}
-						],
-						nonce: '0x0000000000000000000000000000000000000000000000000000000000000000'
+
+		const result = await getQuoteTargetFromSubgraph([quoteSpec], mockServer.url + '/sg-url');
+		if (!result.value) expect.fail('Expected value');
+		const expected: QuoteTarget = {
+			quoteConfig: {
+				order: {
+					owner: '0x0000000000000000000000000000000000000000',
+					evaluable: {
+						interpreter: '0x0000000000000000000000000000000000000000',
+						store: '0x0000000000000000000000000000000000000000',
+						bytecode: '0x'
 					},
-					inputIOIndex: '0x0',
-					outputIOIndex: '0x0',
-					signedContext: []
+					validInputs: [
+						{
+							token: '0x0000000000000000000000000000000000000000',
+							vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000'
+						}
+					],
+					validOutputs: [
+						{
+							token: '0x0000000000000000000000000000000000000000',
+							vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000'
+						}
+					],
+					nonce: '0x0000000000000000000000000000000000000000000000000000000000000000'
 				},
-				orderbook: '0x713180d188e1ff758f508d9f2e1d350d650fea5e'
-			};
-			expect(result.value[0]).toEqual(expected);
-		} catch (error) {
-			assert.fail('expected to resolve, but failed');
-		}
+				inputIOIndex: '0x0',
+				outputIOIndex: '0x0',
+				signedContext: []
+			},
+			orderbook: '0x713180d188e1ff758f508d9f2e1d350d650fea5e'
+		};
+		expect(result.value[0]).toEqual(expected);
 	});
 
 	it('should quote targets', async () => {
@@ -171,14 +166,12 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 					validInputs: [
 						{
 							token: '0x0000000000000000000000000000000000000000',
-							decimals: 0,
 							vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000'
 						}
 					],
 					validOutputs: [
 						{
 							token: '0x0000000000000000000000000000000000000000',
-							decimals: 0,
 							vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000'
 						}
 					],
@@ -222,7 +215,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 						decimals: '0'
 					},
 					balance: '0',
-					vaultId: '0',
+					vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
@@ -243,7 +236,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 						decimals: '0'
 					},
 					balance: '0',
-					vaultId: '0',
+					vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
@@ -311,14 +304,12 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 					validInputs: [
 						{
 							token: '0x0000000000000000000000000000000000000000',
-							decimals: 0,
 							vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000'
 						}
 					],
 					validOutputs: [
 						{
 							token: '0x0000000000000000000000000000000000000000',
-							decimals: 0,
 							vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000'
 						}
 					],

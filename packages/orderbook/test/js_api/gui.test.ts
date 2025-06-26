@@ -525,12 +525,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
 		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
-		assert.equal(entries[0][0], 'other-deployment');
-		assert.equal(entries[0][1].name, 'Test test');
-		assert.equal(entries[0][1].description, 'Test test test');
-		assert.equal(entries[1][0], 'some-deployment');
-		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
-		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
+		assert.equal(entries[0][0], 'some-deployment');
+		assert.equal(entries[0][1].name, 'Buy WETH with USDC on Base.');
+		assert.equal(entries[0][1].description, 'Buy WETH with USDC for fixed price on Base network.');
+		assert.equal(entries[1][0], 'other-deployment');
+		assert.equal(entries[1][1].name, 'Test test');
+		assert.equal(entries[1][1].description, 'Test test test');
 	});
 
 	it('should get deployment detail', async () => {
@@ -1241,7 +1241,7 @@ ${dotrain}`;
 			assert.equal(
 				// @ts-expect-error - result is valid
 				result.Calldatas[0],
-				'0x91337c0a0000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a063000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000010f0cf064dd5920000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000'
+				'0x7921a9620000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a0630000000000000000000000000000000000000000000000000000000000000001ffffffee000000000000000000000000000000000000010f0cf064dd5920000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000'
 			);
 
 			// Test no deposits case
@@ -1280,7 +1280,7 @@ ${dotrain}`;
 			gui.saveFieldValue('test-binding', '10');
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert.equal(addOrderCalldata.length, 2314);
+			assert.equal(addOrderCalldata.length, 2186);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1315,7 +1315,7 @@ ${dotrain}`;
 				);
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert.equal(addOrderCalldata.length, 2314);
+			assert.equal(addOrderCalldata.length, 2186);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1357,7 +1357,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3146);
+			assert.equal(calldata.length, 3018);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1400,7 +1400,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3146);
+			assert.equal(calldata.length, 3018);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1460,7 +1460,7 @@ ${dotrainWithoutVaultIds}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3146);
+			assert.equal(calldata.length, 3018);
 
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1628,8 +1628,14 @@ ${dotrainWithoutVaultIds}`;
 			);
 			assert.notEqual(newCurrentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.notEqual(newCurrentDeployment.deployment.order.outputs[0].vaultId, undefined);
-			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123');
-			assert.equal(newCurrentDeployment.deployment.order.outputs[0].vaultId, '0x234');
+			assert.equal(
+				newCurrentDeployment.deployment.order.inputs[0].vaultId,
+				'0x0000000000000000000000000000000000000000000000000000000000000123'
+			);
+			assert.equal(
+				newCurrentDeployment.deployment.order.outputs[0].vaultId,
+				'0x0000000000000000000000000000000000000000000000000000000000000234'
+			);
 
 			const vaultIds = extractWasmEncodedData<Map<string, (string | undefined)[]>>(
 				gui.getVaultIds()
@@ -1655,9 +1661,10 @@ ${dotrainWithoutVaultIds}`;
 
 			const result = gui.setVaultId(true, 0, 'test');
 			if (!result.error) expect.fail('Expected error');
-			expect(result.error.msg).toBe(
-				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
+			expect(result.error.msg).toContain(
+				"Invalid value for field 'vault-id': Failed to parse vault id"
 			);
+			expect(result.error.msg).toContain("index '0' of inputs");
 			expect(result.error.readableMsg).toBe(
 				"YAML configuration error: Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
 			);
@@ -1733,7 +1740,7 @@ ${dotrainWithoutVaultIds}`;
 				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
-			assert.equal(result.deploymentCalldata.length, 3146);
+			assert.equal(result.deploymentCalldata.length, 3018);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 
