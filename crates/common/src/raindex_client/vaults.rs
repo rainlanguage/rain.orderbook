@@ -920,7 +920,7 @@ mod tests {
             );
 
             let vault2 = result[1].clone();
-            assert_eq!(vault2.chain_id, 1);
+            assert_eq!(vault2.chain_id, 137);
             assert_eq!(vault2.id, "vault2");
             assert_eq!(
                 vault2.owner,

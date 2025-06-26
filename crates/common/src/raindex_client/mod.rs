@@ -110,7 +110,7 @@ impl RaindexClient {
         chain_ids: Option<Vec<u64>>,
     ) -> Result<BTreeMap<u64, MultiSubgraphArgs>, RaindexError> {
         let result = match chain_ids {
-            Some(ids) => {
+            Some(ids) if !ids.is_empty() => {
                 let mut multi_subgraph_args = HashMap::new();
                 for id in ids {
                     let network = self.orderbook_yaml.get_network_by_chain_id(id)?;
@@ -127,7 +127,7 @@ impl RaindexClient {
                 }
                 multi_subgraph_args
             }
-            None => {
+            Some(_) | None => {
                 let mut multi_subgraph_args = HashMap::new();
                 let networks = self.orderbook_yaml.get_networks()?;
 
