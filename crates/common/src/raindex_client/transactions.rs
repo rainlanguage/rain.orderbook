@@ -2,10 +2,7 @@ use std::str::FromStr;
 
 use super::*;
 use alloy::primitives::{Address, U256};
-use rain_orderbook_subgraph_client::{
-    types::{common::SgTransaction, Id},
-    OrderbookSubgraphClient,
-};
+use rain_orderbook_subgraph_client::types::{common::SgTransaction, Id};
 use serde::{Deserialize, Serialize};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -94,10 +91,10 @@ impl RaindexClient {
     pub async fn get_transaction(
         &self,
         chain_id: u64,
+        orderbook_address: String,
         tx_hash: String,
     ) -> Result<RaindexTransaction, RaindexError> {
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id)?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
         let transaction = client.transaction_detail(Id::new(tx_hash)).await?;
         transaction.try_into()
     }
@@ -122,7 +119,7 @@ mod test_helpers {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::get_test_yaml;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use httpmock::MockServer;
         use serde_json::json;
 
@@ -154,7 +151,11 @@ mod test_helpers {
             )
             .unwrap();
             let tx = raindex_client
-                .get_transaction(1, "0x123".to_string())
+                .get_transaction(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "0x123".to_string(),
+                )
                 .await
                 .unwrap();
             assert_eq!(tx.id(), "tx1".to_string());

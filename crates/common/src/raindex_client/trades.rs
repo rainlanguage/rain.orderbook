@@ -7,7 +7,7 @@ use crate::raindex_client::{
 use alloy::primitives::{Address, U256};
 use rain_orderbook_subgraph_client::{
     types::{common::SgTrade, Id},
-    OrderbookSubgraphClient, SgPaginationArgs,
+    SgPaginationArgs,
 };
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -119,8 +119,7 @@ impl RaindexOrder {
         end_timestamp: Option<u64>,
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
-        let subgraph_url = self.get_subgraph_url()?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         let trades = client
             .order_trades_list(
                 Id::new(self.id().clone()),
@@ -165,8 +164,7 @@ impl RaindexOrder {
     /// ```
     #[wasm_export(js_name = "getTradeDetail", unchecked_return_type = "RaindexTrade")]
     pub async fn get_trade_detail(&self, trade_id: String) -> Result<RaindexTrade, RaindexError> {
-        let subgraph_url = self.get_subgraph_url()?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         RaindexTrade::try_from(client.order_trade_detail(Id::new(trade_id.clone())).await?)
     }
 
@@ -201,8 +199,7 @@ impl RaindexOrder {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
-        let subgraph_url = self.get_subgraph_url()?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         let trades_count = client
             .order_trades_list_all(Id::new(self.id().clone()), start_timestamp, end_timestamp)
             .await?;
@@ -236,7 +233,7 @@ mod test_helpers {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::get_test_yaml;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::I256;
         use httpmock::MockServer;
         use serde_json::{json, Value};
@@ -340,7 +337,7 @@ mod test_helpers {
                   }
               ],
               "orderbook": {
-                "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
+                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
               },
               "active": true,
               "timestampAdded": "1739448802",
@@ -559,7 +556,11 @@ mod test_helpers {
             )
             .unwrap();
             let order = raindex_client
-                .get_order_by_hash(1, "order1".to_string())
+                .get_order_by_hash(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "order1".to_string(),
+                )
                 .await
                 .unwrap();
             let trades = order.get_trades_list(None, None, None).await.unwrap();
@@ -737,7 +738,11 @@ mod test_helpers {
             )
             .unwrap();
             let order = raindex_client
-                .get_order_by_hash(1, "order1".to_string())
+                .get_order_by_hash(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "order1".to_string(),
+                )
                 .await
                 .unwrap();
             let trade = order.get_trade_detail("trade1".to_string()).await.unwrap();
@@ -900,7 +905,11 @@ mod test_helpers {
             )
             .unwrap();
             let order = raindex_client
-                .get_order_by_hash(1, "order1".to_string())
+                .get_order_by_hash(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "order1".to_string(),
+                )
                 .await
                 .unwrap();
             let count = order.get_trade_count(None, None).await.unwrap();

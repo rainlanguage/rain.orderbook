@@ -219,12 +219,12 @@ fn get_vaults_with_type(
 #[wasm_export]
 impl RaindexOrder {
     #[wasm_export(skip)]
-    pub fn get_subgraph_url(&self) -> Result<Url, RaindexError> {
+    pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
         let raindex_client = self
             .raindex_client
             .read()
             .map_err(|_| YamlError::ReadLockError)?;
-        raindex_client.get_subgraph_url_for_chain(self.chain_id)
+        raindex_client.get_orderbook_client(self.chain_id, self.orderbook.to_string())
     }
 
     /// Retrieves volume data for all vaults associated with this order over a specified time period.
@@ -265,8 +265,7 @@ impl RaindexOrder {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<Vec<VaultVolume>, RaindexError> {
-        let subgraph_url = self.get_subgraph_url()?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         let volumes = client
             .order_vaults_volume(Id::new(self.id.clone()), start_timestamp, end_timestamp)
             .await?;
@@ -307,8 +306,7 @@ impl RaindexOrder {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<OrderPerformance, RaindexError> {
-        let subgraph_url = self.get_subgraph_url()?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         let performance = client
             .order_performance(Id::new(self.id.clone()), start_timestamp, end_timestamp)
             .await?;
@@ -386,8 +384,10 @@ impl RaindexClient {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let multi_subgraph_args = self
             .get_multi_subgraph_args(chain_ids.map(|ids| ids.0.iter().map(|id| *id).collect()))?;
-        let client =
-            MultiOrderbookSubgraphClient::new(multi_subgraph_args.values().cloned().collect());
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
         let orders = client
             .orders_list(
                 filters
@@ -408,7 +408,7 @@ impl RaindexClient {
             .map(|order| {
                 let chain_id = multi_subgraph_args
                     .iter()
-                    .find(|(_, subgraph)| subgraph.name == order.subgraph_name)
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
                     .map(|(chain_id, _)| *chain_id)
                     .unwrap();
                 let order = RaindexOrder::try_from_sg_order(
@@ -421,17 +421,6 @@ impl RaindexClient {
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
         Ok(orders)
-    }
-
-    async fn get_sg_order(
-        &self,
-        chain_id: u64,
-        order_hash: String,
-    ) -> Result<SgOrder, RaindexError> {
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id)?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
-        let order = client.order_detail_by_hash(SgBytes(order_hash)).await?;
-        Ok(order)
     }
 
     /// Retrieves a specific order by its hash from a particular blockchain network.
@@ -470,13 +459,15 @@ impl RaindexClient {
     pub async fn get_order_by_hash(
         &self,
         chain_id: u64,
+        orderbook_address: String,
         order_hash: String,
     ) -> Result<RaindexOrder, RaindexError> {
-        let raindex_client = Arc::new(RwLock::new(self.clone()));
+        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
+        let order = client.order_detail_by_hash(SgBytes(order_hash)).await?;
         let order = RaindexOrder::try_from_sg_order(
-            raindex_client,
+            Arc::new(RwLock::new(self.clone())),
             chain_id,
-            self.get_sg_order(chain_id, order_hash).await?,
+            order,
             None,
         )?;
         Ok(order)
@@ -571,7 +562,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::get_test_yaml;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::U256;
         use httpmock::MockServer;
         use rain_orderbook_subgraph_client::{
@@ -684,7 +675,7 @@ mod tests {
                   }
               ],
               "orderbook": {
-                "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
+                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
               },
               "active": true,
               "timestampAdded": "1739448802",
@@ -794,7 +785,7 @@ mod tests {
                 }
             }],
             orderbook: SgOrderbook {
-                id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
+                id: SgBytes(CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string()),
             },
             active: true,
             timestamp_added: SgBigInt("1739448802".to_string()),
@@ -849,7 +840,7 @@ mod tests {
                     "timestamp": "1700000000"
                   },
                   "orderbook": {
-                    "id": "ob1"
+                    "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
                   }
                 },
                 "order": {
@@ -881,12 +872,12 @@ mod tests {
                     "timestamp": "1700000000"
                   },
                   "orderbook": {
-                    "id": "ob1"
+                    "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
                   }
                 },
                 "timestamp": "0",
                 "orderbook": {
-                  "id": "ob1"
+                  "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
                 }
               },
               {
@@ -957,12 +948,12 @@ mod tests {
                     "timestamp": "1700086400"
                   },
                   "orderbook": {
-                    "id": "ob2"
+                    "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
                   }
                 },
                 "timestamp": "1700086400",
                 "orderbook": {
-                  "id": "ob2"
+                  "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
                 }
               }
             ])
@@ -1238,7 +1229,11 @@ mod tests {
             )
             .unwrap();
             let res = raindex_client
-                .get_order_by_hash(1, "hash".to_string())
+                .get_order_by_hash(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "hash".to_string(),
+                )
                 .await
                 .unwrap();
 
@@ -1291,7 +1286,11 @@ mod tests {
             )
             .unwrap();
             let res = raindex_client
-                .get_order_by_hash(1, "hash".to_string())
+                .get_order_by_hash(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "hash".to_string(),
+                )
                 .await
                 .unwrap();
 
@@ -1341,7 +1340,11 @@ mod tests {
             )
             .unwrap();
             let order = raindex_client
-                .get_order_by_hash(1, "hash".to_string())
+                .get_order_by_hash(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "hash".to_string(),
+                )
                 .await
                 .unwrap();
             let res = order.get_vaults_volume(None, None).await.unwrap();
@@ -1617,7 +1620,11 @@ mod tests {
             )
             .unwrap();
             let order = raindex_client
-                .get_order_by_hash(1, "hash".to_string())
+                .get_order_by_hash(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "hash".to_string(),
+                )
                 .await
                 .unwrap();
             let res = order

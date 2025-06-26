@@ -4,15 +4,17 @@ use crate::{
 };
 use alloy::{
     hex::FromHexError,
-    primitives::{ruint::ParseError, ParseSignedError},
+    primitives::{ruint::ParseError, Address, ParseSignedError},
 };
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
     yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable},
 };
-use rain_orderbook_subgraph_client::{MultiSubgraphArgs, OrderbookSubgraphClientError};
+use rain_orderbook_subgraph_client::{
+    MultiSubgraphArgs, OrderbookSubgraphClient, OrderbookSubgraphClientError,
+};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::{collections::BTreeMap, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
@@ -108,67 +110,82 @@ impl RaindexClient {
     fn get_multi_subgraph_args(
         &self,
         chain_ids: Option<Vec<u64>>,
-    ) -> Result<BTreeMap<u64, MultiSubgraphArgs>, RaindexError> {
+    ) -> Result<BTreeMap<u64, Vec<MultiSubgraphArgs>>, RaindexError> {
         let result = match chain_ids {
             Some(ids) if !ids.is_empty() => {
-                let mut multi_subgraph_args = HashMap::new();
+                let mut multi_subgraph_args = BTreeMap::new();
                 for id in ids {
                     let network = self.orderbook_yaml.get_network_by_chain_id(id)?;
-                    let orderbook = self
+                    let orderbooks = self
                         .orderbook_yaml
-                        .get_orderbook_by_network_key(&network.key)?;
-                    multi_subgraph_args.insert(
-                        id,
-                        MultiSubgraphArgs {
-                            url: orderbook.subgraph.url.clone(),
-                            name: network.label.clone().unwrap_or(network.key.clone()),
-                        },
-                    );
+                        .get_orderbooks_by_network_key(&network.key)?;
+                    for orderbook in orderbooks {
+                        multi_subgraph_args.entry(id).or_insert(Vec::new()).push(
+                            MultiSubgraphArgs {
+                                url: orderbook.subgraph.url.clone(),
+                                name: network.label.clone().unwrap_or(network.key.clone()),
+                            },
+                        );
+                    }
                 }
                 multi_subgraph_args
             }
             Some(_) | None => {
-                let mut multi_subgraph_args = HashMap::new();
+                let mut multi_subgraph_args = BTreeMap::new();
                 let networks = self.orderbook_yaml.get_networks()?;
 
                 for network in networks.values() {
-                    let orderbook = self
+                    let orderbooks = self
                         .orderbook_yaml
-                        .get_orderbook_by_network_key(&network.key)?;
-                    multi_subgraph_args.insert(
-                        network.chain_id,
-                        MultiSubgraphArgs {
-                            url: orderbook.subgraph.url.clone(),
-                            name: network.label.clone().unwrap_or(network.key.clone()),
-                        },
-                    );
+                        .get_orderbooks_by_network_key(&network.key)?;
+                    for orderbook in orderbooks {
+                        multi_subgraph_args
+                            .entry(network.chain_id)
+                            .or_insert(Vec::new())
+                            .push(MultiSubgraphArgs {
+                                url: orderbook.subgraph.url.clone(),
+                                name: network.label.clone().unwrap_or(network.key.clone()),
+                            });
+                    }
                 }
-
-                if multi_subgraph_args.is_empty() {
-                    return Err(RaindexError::NoNetworksConfigured);
-                }
-
                 multi_subgraph_args
             }
         };
 
-        Ok(result.into_iter().collect::<BTreeMap<_, _>>())
+        if result.is_empty() {
+            return Err(RaindexError::NoNetworksConfigured);
+        }
+        Ok(result)
     }
 
-    fn get_orderbook_for_chain_id(&self, chain_id: u64) -> Result<OrderbookCfg, RaindexError> {
+    #[wasm_export(skip)]
+    pub fn get_orderbook_client(
+        &self,
+        chain_id: u64,
+        orderbook_address: String,
+    ) -> Result<OrderbookSubgraphClient, RaindexError> {
+        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let orderbook = self.get_orderbook_for_chain_id(chain_id, orderbook_address)?;
+        Ok(OrderbookSubgraphClient::new(orderbook.subgraph.url.clone()))
+    }
+
+    fn get_orderbook_for_chain_id(
+        &self,
+        chain_id: u64,
+        orderbook_address: Address,
+    ) -> Result<OrderbookCfg, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
-        let orderbook = self
+        let orderbooks = self
             .orderbook_yaml
-            .get_orderbook_by_network_key(&network.key)?;
-        Ok(orderbook)
-    }
-    fn get_subgraph_key_for_chain_id(&self, chain_id: u64) -> Result<String, RaindexError> {
-        let orderbook = self.get_orderbook_for_chain_id(chain_id)?;
-        Ok(orderbook.subgraph.key.clone())
-    }
-    fn get_subgraph_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
-        let orderbook = self.get_orderbook_for_chain_id(chain_id)?;
-        Ok(orderbook.subgraph.url.clone())
+            .get_orderbooks_by_network_key(&network.key)?;
+        let orderbook = orderbooks
+            .iter()
+            .find(|orderbook| orderbook.address == orderbook_address)
+            .ok_or(RaindexError::OrderbookNotFound(
+                orderbook_address.to_string(),
+                chain_id,
+            ))?;
+        Ok(orderbook.clone())
     }
     fn get_rpc_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
@@ -216,6 +233,8 @@ pub enum RaindexError {
     WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
     #[error(transparent)]
     DepositArgsError(#[from] DepositError),
+    #[error("Orderbook not found for address: {0} on chain ID: {1}")]
+    OrderbookNotFound(String, u64),
 }
 
 impl RaindexError {
@@ -287,6 +306,12 @@ impl RaindexError {
             RaindexError::DepositArgsError(err) => {
                 format!("Failed to create deposit arguments: {}", err)
             }
+            RaindexError::OrderbookNotFound(address, chain_id) => {
+                format!(
+                    "Orderbook not found for address: {} on chain ID: {}",
+                    address, chain_id
+                )
+            }
         }
     }
 }
@@ -311,6 +336,7 @@ mod tests {
     use super::*;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
 
+    pub const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
     pub fn get_test_yaml(subgraph1: &str, subgraph2: &str, rpc1: &str, rpc2: &str) -> String {
         format!(
             r#"
@@ -441,7 +467,12 @@ deployers:
                 None,
             )
             .unwrap();
-            let orderbook = client.get_orderbook_for_chain_id(1).unwrap();
+            let orderbook = client
+                .get_orderbook_for_chain_id(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                )
+                .unwrap();
             assert_eq!(
                 orderbook.address,
                 Address::from_str("0x1234567890123456789012345678901234567890").unwrap()
@@ -463,51 +494,16 @@ deployers:
                 None,
             )
             .unwrap();
-            let err = client.get_orderbook_for_chain_id(999).unwrap_err();
+            let err = client
+                .get_orderbook_for_chain_id(
+                    999,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                )
+                .unwrap_err();
             assert!(
                 matches!(err, RaindexError::YamlError(YamlError::NotFound(ref msg)) if msg == "network with chain-id: 999")
             );
             assert!(err.to_readable_msg().contains("network with chain-id: 999"));
-        }
-
-        #[wasm_bindgen_test]
-        fn test_get_subgraph_key_for_chain_success() {
-            let client = RaindexClient::new(
-                vec![get_test_yaml(
-                    // not used
-                    "http://localhost:3000/sg1",
-                    "http://localhost:3000/sg2",
-                    "http://localhost:3000/rpc1",
-                    "http://localhost:3000/rpc2",
-                )],
-                None,
-            )
-            .unwrap();
-            let key = client.get_subgraph_key_for_chain_id(1).unwrap();
-            assert_eq!(key, "mainnet");
-            let key = client.get_subgraph_key_for_chain_id(137).unwrap();
-            assert_eq!(key, "polygon");
-        }
-
-        #[wasm_bindgen_test]
-        fn test_get_subgraph_url_for_chain_success() {
-            let client = RaindexClient::new(
-                vec![get_test_yaml(
-                    // not used
-                    "http://localhost:3000/sg1",
-                    "http://localhost:3000/sg2",
-                    "http://localhost:3000/rpc1",
-                    "http://localhost:3000/rpc2",
-                )],
-                None,
-            )
-            .unwrap();
-
-            let url = client.get_subgraph_url_for_chain(1).unwrap();
-            assert_eq!(url, Url::parse("http://localhost:3000/sg1").unwrap());
-
-            let url = client.get_subgraph_url_for_chain(137).unwrap();
-            assert_eq!(url, Url::parse("http://localhost:3000/sg2").unwrap());
         }
 
         #[wasm_bindgen_test]
@@ -527,10 +523,10 @@ deployers:
             let args = client.get_multi_subgraph_args(Some(vec![1])).unwrap();
             assert_eq!(args.len(), 1);
             assert_eq!(
-                args.get(&1).unwrap().url,
+                args.get(&1).unwrap()[0].url,
                 Url::parse("http://localhost:3000/sg1").unwrap()
             );
-            assert_eq!(args.get(&1).unwrap().name, "Ethereum Mainnet");
+            assert_eq!(args.get(&1).unwrap()[0].name, "Ethereum Mainnet");
         }
 
         #[wasm_bindgen_test]
@@ -550,11 +546,11 @@ deployers:
             let args = client.get_multi_subgraph_args(None).unwrap();
             assert_eq!(args.len(), 2);
 
-            let urls: Vec<&str> = args.iter().map(|(_, arg)| arg.url.as_str()).collect();
+            let urls: Vec<&str> = args.iter().map(|(_, arg)| arg[0].url.as_str()).collect();
             assert!(urls.contains(&"http://localhost:3000/sg1"));
             assert!(urls.contains(&"http://localhost:3000/sg2"));
 
-            let names: Vec<&str> = args.iter().map(|(_, arg)| arg.name.as_str()).collect();
+            let names: Vec<&str> = args.iter().map(|(_, arg)| arg[0].name.as_str()).collect();
             assert!(names.contains(&"Ethereum Mainnet"));
             assert!(names.contains(&"Polygon Mainnet"));
         }
@@ -575,16 +571,22 @@ deployers:
 
             let args = client.get_multi_subgraph_args(Some(vec![1, 137])).unwrap();
             assert_eq!(args.len(), 2);
+
+            let args1 = args.get(&1).unwrap();
+            assert_eq!(args1.len(), 1);
             assert_eq!(
-                args.get(&1).unwrap().url,
+                args1[0].url,
                 Url::parse("http://localhost:3000/sg1").unwrap()
             );
-            assert_eq!(args.get(&1).unwrap().name, "Ethereum Mainnet");
+            assert_eq!(args1[0].name, "Ethereum Mainnet");
+
+            let args2 = args.get(&137).unwrap();
+            assert_eq!(args2.len(), 1);
             assert_eq!(
-                args.get(&137).unwrap().url,
+                args2[0].url,
                 Url::parse("http://localhost:3000/sg2").unwrap()
             );
-            assert_eq!(args.get(&137).unwrap().name, "Polygon Mainnet");
+            assert_eq!(args2[0].name, "Polygon Mainnet");
         }
 
         #[wasm_bindgen_test]

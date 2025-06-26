@@ -1,6 +1,6 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
-use rain_orderbook_subgraph_client::{types::Id, OrderbookSubgraphClient};
+use rain_orderbook_subgraph_client::types::Id;
 use std::sync::{Arc, RwLock};
 
 #[wasm_export]
@@ -37,11 +37,12 @@ impl RaindexClient {
     pub async fn get_remove_orders_for_transaction(
         &self,
         chain_id: u64,
+        orderbook_address: String,
         tx_hash: String,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id)?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
+
         let orders = client.transaction_remove_orders(Id::new(tx_hash)).await?;
         let orders = orders
             .into_iter()
@@ -65,7 +66,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::get_test_yaml;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
         use serde_json::json;
@@ -181,7 +182,11 @@ mod tests {
             )
             .unwrap();
             let res = raindex_client
-                .get_remove_orders_for_transaction(1, "0x123".to_string())
+                .get_remove_orders_for_transaction(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "0x123".to_string(),
+                )
                 .await
                 .unwrap();
 

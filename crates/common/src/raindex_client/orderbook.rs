@@ -27,8 +27,11 @@ impl RaindexClient {
     pub fn get_subgraph_identifier_for_chain_id(
         &self,
         chain_id: u64,
+        orderbook_address: String,
     ) -> Result<String, RaindexError> {
-        self.get_subgraph_key_for_chain_id(chain_id)
+        let orderbook =
+            self.get_orderbook_for_chain_id(chain_id, Address::from_str(&orderbook_address)?)?;
+        Ok(orderbook.subgraph.key.clone())
     }
 }
 
@@ -39,7 +42,7 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod non_wasm_tests {
         use super::*;
-        use crate::raindex_client::tests::get_test_yaml;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
 
         #[test]
         fn test_get_subgraph_identifier_for_chain_id() {
@@ -54,7 +57,7 @@ mod tests {
             )
             .unwrap();
             let subgraph_key = raindex_client
-                .get_subgraph_identifier_for_chain_id(1)
+                .get_subgraph_identifier_for_chain_id(1, CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string())
                 .unwrap();
             assert_eq!(subgraph_key, "mainnet");
         }

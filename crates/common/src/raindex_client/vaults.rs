@@ -209,6 +209,17 @@ impl RaindexVaultToken {
 
 #[wasm_export]
 impl RaindexVault {
+    #[wasm_export(skip)]
+    pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
+        let raindex_client = self
+            .raindex_client
+            .read()
+            .map_err(|_| YamlError::ReadLockError)?;
+        println!("chain_id: {}", self.chain_id);
+        println!("orderbook: {}", self.orderbook.to_string());
+        raindex_client.get_orderbook_client(self.chain_id, self.orderbook.to_string())
+    }
+
     /// Fetches balance change history for a vault.
     ///
     /// Retrieves chronological list of deposits, withdrawals, and trades affecting
@@ -242,14 +253,7 @@ impl RaindexVault {
         &self,
         page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        let subgraph_url = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_subgraph_url_for_chain(self.chain_id)?
-        };
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         let balance_changes = client
             .vault_balance_changes_list(
                 Id::new(self.id.clone()),
@@ -639,8 +643,10 @@ impl RaindexClient {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let multi_subgraph_args = self
             .get_multi_subgraph_args(chain_ids.map(|ids| ids.0.iter().map(|id| *id).collect()))?;
-        let client =
-            MultiOrderbookSubgraphClient::new(multi_subgraph_args.values().cloned().collect());
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
         let vaults = client
             .vaults_list(
                 filters
@@ -660,7 +666,7 @@ impl RaindexClient {
             .map(|vault| {
                 let chain_id = multi_subgraph_args
                     .iter()
-                    .find(|(_, subgraph)| subgraph.name == vault.subgraph_name)
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
                     .map(|(chain_id, _)| *chain_id)
                     .unwrap();
                 let vault = RaindexVault::try_from_sg_vault(
@@ -710,13 +716,12 @@ impl RaindexClient {
     pub async fn get_vault(
         &self,
         chain_id: u64,
+        orderbook_address: String,
         vault_id: String,
     ) -> Result<RaindexVault, RaindexError> {
-        let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id)?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
         let vault = RaindexVault::try_from_sg_vault(
-            raindex_client.clone(),
+            Arc::new(RwLock::new(self.clone())),
             chain_id,
             client.vault_detail(Id::new(vault_id)).await?,
             None,
@@ -820,6 +825,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
+        use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
         use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_bindings::{
@@ -842,7 +848,7 @@ mod tests {
                 "decimals": "18"
               },
               "orderbook": {
-                "id": "0x0000000000000000000000000000000000000000"
+                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
               },
               "ordersAsOutput": [],
               "ordersAsInput": [],
@@ -916,7 +922,7 @@ mod tests {
             assert_eq!(vault1.token.id, "token1");
             assert_eq!(
                 vault1.orderbook,
-                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
+                Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap()
             );
 
             let vault2 = result[1].clone();
@@ -959,7 +965,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "vault1".to_string(),
+                )
                 .await
                 .unwrap();
             assert_eq!(vault.chain_id, 1);
@@ -973,7 +983,7 @@ mod tests {
             assert_eq!(vault.token.id, "token1");
             assert_eq!(
                 vault.orderbook,
-                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
+                Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap()
             );
         }
 
@@ -1047,7 +1057,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "vault1".to_string(),
+                )
                 .await
                 .unwrap();
             let result = vault.get_balance_changes(None).await.unwrap();
@@ -1115,7 +1129,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "vault1".to_string(),
+                )
                 .await
                 .unwrap();
             let result = vault.get_deposit_calldata("500".to_string()).await.unwrap();
@@ -1164,7 +1182,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "vault1".to_string(),
+                )
                 .await
                 .unwrap();
             let result = vault
@@ -1228,7 +1250,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "vault1".to_string(),
+                )
                 .await
                 .unwrap();
             let result = vault
@@ -1239,8 +1265,7 @@ mod tests {
                 result,
                 Bytes::copy_from_slice(
                     &approveCall {
-                        spender: Address::from_str("0x0000000000000000000000000000000000000000")
-                            .unwrap(),
+                        spender: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                         amount: U256::from(600),
                     }
                     .abi_encode(),
@@ -1302,7 +1327,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "vault1".to_string(),
+                )
                 .await
                 .unwrap();
             let result = vault.get_allowance().await.unwrap();
