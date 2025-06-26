@@ -10,10 +10,9 @@ use alloy_ethers_typecast::transaction::{
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use rain_math_float::{Float, FloatError};
-use rain_orderbook_bindings::{
-    IOrderBookV5::deposit3Call,
-    IERC20::{allowanceCall, approveCall},
-};
+#[cfg(not(target_family = "wasm"))]
+use rain_orderbook_bindings::IERC20::approveCall;
+use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::allowanceCall};
 
 #[derive(Error, Debug)]
 pub enum DepositError {

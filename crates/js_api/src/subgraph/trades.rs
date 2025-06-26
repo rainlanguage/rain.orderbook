@@ -163,11 +163,10 @@ pub async fn get_order_trades_count(
     Ok(GetOrderTradesCountResult(trades_count as u64))
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod test_helpers {
     use super::*;
 
-    #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
         use httpmock::MockServer;

@@ -216,11 +216,11 @@ mod tests {
         assert_eq!(orderbook.is_err(), true);
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_string(),
-            "Invalid address: Odd number of digits"
+            "Invalid address: odd number of digits"
         );
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_readable_msg(),
-            "The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: \"Odd number of digits\""
+            "The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: \"odd number of digits\""
         );
 
         let orderbook =

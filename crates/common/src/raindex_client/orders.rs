@@ -1,4 +1,4 @@
-use super::{RaindexClient, RaindexError};
+use super::RaindexClient;
 
 // TODO: Implement order methods
 impl RaindexClient {

@@ -1,5 +1,5 @@
 use alloy::network::AnyNetwork;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, U256};
 use alloy::providers::{MulticallError, Provider};
 use alloy_ethers_typecast::transaction::ReadContractParametersBuilderError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
@@ -45,7 +45,7 @@ impl ERC20 {
 
         match decimals {
             Ok(decimals) => Ok(decimals),
-            Err(err) => Err(handle_alloy_err(err).await),
+            Err(err) => Err(handle_alloy_err(err, "Decimals reverted").await),
         }
     }
 
@@ -55,7 +55,7 @@ impl ERC20 {
 
         match name {
             Ok(name) => Ok(name),
-            Err(err) => Err(handle_alloy_err(err).await),
+            Err(err) => Err(handle_alloy_err(err, "Name reverted").await),
         }
     }
 
@@ -65,7 +65,17 @@ impl ERC20 {
 
         match symbol {
             Ok(symbol) => Ok(symbol),
-            Err(err) => Err(handle_alloy_err(err).await),
+            Err(err) => Err(handle_alloy_err(err, "Symbol reverted").await),
+        }
+    }
+
+    pub async fn allowance(&self, owner: Address, spender: Address) -> Result<U256, Error> {
+        let erc20 = self.get_instance()?;
+        let allowance = erc20.allowance(owner, spender).call().await;
+
+        match allowance {
+            Ok(allowance) => Ok(allowance),
+            Err(err) => Err(handle_alloy_err(err, "Allowance reverted").await),
         }
     }
 
@@ -129,20 +139,20 @@ pub enum Error {
     MulticallError(#[from] MulticallError),
 }
 
-async fn handle_alloy_err(err: alloy::contract::Error) -> Error {
+async fn handle_alloy_err(err: alloy::contract::Error, msg: &str) -> Error {
     if let Some(revert_data) = err.as_revert_data() {
         let err = AbiDecodedErrorType::selector_registry_abi_decode(revert_data.as_ref()).await;
 
         match err {
             Ok(err) => {
                 return Error::AbiDecodedErrorType {
-                    msg: "Decimals reverted".to_string(),
+                    msg: msg.to_string(),
                     source: err,
                 };
             }
             Err(e) => {
                 return Error::AbiDecodeError {
-                    msg: "Decimals reverted".to_string(),
+                    msg: msg.to_string(),
                     source: e,
                 };
             }

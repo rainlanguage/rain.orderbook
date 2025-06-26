@@ -223,14 +223,14 @@ pub async fn get_vault_deposit_calldata(
     deposit_amount: &str,
     decimals: u8,
 ) -> Result<VaultCalldataResult, SubgraphError> {
-    let deposit_amount = validate_amount(deposit_amount)?;
+    let amount = validate_amount(deposit_amount)?;
     let token = Address::from_str(&vault.token.address.0)?;
     let vault_id = B256::from(U256::from_str(&vault.vault_id.0)?);
 
     let deposit_call: deposit3Call = DepositArgs {
         token,
         vault_id,
-        amount: deposit_amount,
+        amount,
         decimals,
     }
     .try_into()?;
@@ -482,29 +482,31 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm {
         use super::*;
-        use rain_orderbook_bindings::IOrderBookV4::{deposit2Call, withdraw2Call};
+        use rain_orderbook_bindings::IOrderBookV5::withdraw3Call;
         use wasm_bindgen_test::wasm_bindgen_test;
 
         #[wasm_bindgen_test]
         async fn test_get_vault_deposit_calldata() {
-            let result = get_vault_deposit_calldata(&get_vault1(), "500")
+            let result = get_vault_deposit_calldata(&get_vault1(), "500", 18)
                 .await
                 .unwrap();
+
+            let Float(amount) = Float::from_fixed_decimal(U256::from(500), 18).unwrap();
             assert_eq!(
                 result.0,
                 Bytes::copy_from_slice(
-                    &deposit2Call {
+                    &deposit3Call {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
-                        vaultId: U256::from_str("0x10").unwrap(),
-                        amount: U256::from_str("500").unwrap(),
+                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        depositAmount: amount,
                         tasks: vec![],
                     }
                     .abi_encode()
                 )
             );
 
-            let err = get_vault_deposit_calldata(&get_vault1(), "0")
+            let err = get_vault_deposit_calldata(&get_vault1(), "0", 18)
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
@@ -512,24 +514,26 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vault_withdraw_calldata() {
-            let result = get_vault_withdraw_calldata(&get_vault1(), "500")
+            let result = get_vault_withdraw_calldata(&get_vault1(), "500", 18)
                 .await
                 .unwrap();
+
+            let Float(amount) = Float::from_fixed_decimal(U256::from(500), 18).unwrap();
             assert_eq!(
                 result.0,
                 Bytes::copy_from_slice(
-                    &withdraw2Call {
+                    &withdraw3Call {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
-                        vaultId: U256::from_str("0x10").unwrap(),
-                        targetAmount: U256::from_str("500").unwrap(),
+                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        targetAmount: amount,
                         tasks: vec![],
                     }
                     .abi_encode()
                 )
             );
 
-            let err = get_vault_withdraw_calldata(&get_vault1(), "0")
+            let err = get_vault_withdraw_calldata(&get_vault1(), "0", 18)
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());

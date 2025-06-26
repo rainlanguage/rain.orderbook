@@ -42,6 +42,7 @@ rain-math-float.workspace = true
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 serde_json = { workspace = true }
+rain_interpreter_bindings = { path = "../../lib/rain.interpreter/crates/bindings" }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"

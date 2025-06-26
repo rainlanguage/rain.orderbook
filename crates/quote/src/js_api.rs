@@ -434,10 +434,10 @@ mod tests {
             assert_eq!(res, expected_id);
 
             let err = get_id("invalid-hex", &order_hash.to_string()).unwrap_err();
-            assert_eq!(err.to_string(), "Odd number of digits");
+            assert_eq!(err.to_string(), "odd number of digits");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid address format: Odd number of digits"
+                "Invalid address format: odd number of digits"
             );
 
             let err = get_id(&orderbook.to_string(), "invalid-hash").unwrap_err();

@@ -1,8 +1,10 @@
 use crate::execute::Execute;
 use crate::output::{output, SupportedOutputEncoding};
+use alloy::primitives::Bytes;
 use alloy::sol_types::SolCall;
 use anyhow::{anyhow, Result};
 use clap::Parser;
+use rain_interpreter_bindings::IParserV2::parse2Return;
 use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
@@ -160,7 +162,12 @@ mod tests {
                 .json_body(json!({
                     "jsonrpc": "2.0",
                     "id": 4,
-                    "result": encode_prefixed(Bytes::from(vec![1, 2]).abi_encode())
+                    "result": encode_prefixed(
+                        parse2Return {
+                            bytecode: Bytes::from(vec![1u8, 2u8]).into(),
+                        }
+                        .abi_encode(),
+                    )
                 }));
         });
     }
