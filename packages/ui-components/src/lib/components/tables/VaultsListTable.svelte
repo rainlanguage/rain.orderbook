@@ -2,7 +2,7 @@
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { createInfiniteQuery } from '@tanstack/svelte-query';
+	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
@@ -11,8 +11,8 @@
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
 	import { type SgVault } from '@rainlanguage/orderbook';
-	import { QKEY_VAULTS } from '../../queries/keys';
-	import { getVaults, type SgVaultWithSubgraphName } from '@rainlanguage/orderbook';
+	import { QKEY_VAULTS, QKEY_TOKENS } from '../../queries/keys';
+	import { getVaults, type SgVaultWithSubgraphName, getVaultTokens } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getMultiSubgraphArgs } from '$lib/utils/configHelpers';
@@ -35,6 +35,7 @@
 	export let handleWithdrawModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let activeTokens: AppStoresInterface['activeTokens'];
 
 	const { account, matchesAccount } = useAccount();
 
@@ -78,6 +79,18 @@
 		enabled: true
 	});
 
+	$: tokensQuery = createQuery({
+		queryKey: [QKEY_TOKENS, $activeSubgraphs, multiSubgraphArgs],
+		queryFn: async () => {
+			const result = await getVaultTokens(multiSubgraphArgs);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value || [];
+		},
+		enabled: Object.keys($activeSubgraphs).length > 0
+	});
+
+	$: availableTokens = $tokensQuery.data || [];
+
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
 		activeNetworkRef.set(subgraphName);
 		activeOrderbookRef.set(subgraphName);
@@ -95,6 +108,8 @@
 		{showInactiveOrders}
 		{orderHash}
 		{hideZeroBalanceVaults}
+		{activeTokens}
+		{availableTokens}
 	/>
 	<AppTable
 		{query}

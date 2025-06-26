@@ -1,11 +1,17 @@
 <script lang="ts" generics="T">
+	import type { QueryObserverResult } from '@tanstack/svelte-query';
+
+	import type { Readable } from 'svelte/store';
+
 	import { page } from '$app/stores';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
+	import type { SgErc20WithSubgraphName } from '@rainlanguage/orderbook';
 	import Tooltip from './Tooltip.svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
+	import DropDownTokensFilter from './dropdown/DropDownTokensFilter.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
@@ -20,6 +26,8 @@
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
+	export let activeTokens: AppStoresInterface['activeTokens'];
+	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName, Error>>;
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
 	$: isOrdersPage = $page.url.pathname === '/orders';
@@ -59,6 +67,7 @@
 		{#if $accounts && Object.values($accounts).length > 0}
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
+		<DropDownTokensFilter {tokensQuery} {activeTokens} label="Tokens" />
 		<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 	{/if}
 </div>

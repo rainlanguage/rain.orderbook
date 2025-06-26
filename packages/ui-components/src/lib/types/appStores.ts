@@ -1,5 +1,11 @@
 import type { Readable, Writable } from 'svelte/store';
-import type { AccountCfg, NewConfig, OrderbookCfg, SubgraphCfg } from '@rainlanguage/orderbook';
+import type {
+	AccountCfg,
+	NewConfig,
+	OrderbookCfg,
+	SubgraphCfg,
+	SgErc20WithSubgraphName
+} from '@rainlanguage/orderbook';
 
 export interface AppStoresInterface {
 	settings: Writable<NewConfig>;
@@ -18,4 +24,5 @@ export interface AppStoresInterface {
 	}>;
 	showMyItemsOnly: Writable<boolean>;
 	activeNetworkOrderbooks: Readable<Record<string, OrderbookCfg>>;
+	activeTokens: Writable<SgErc20WithSubgraphName['token']['address'][]>;
 }

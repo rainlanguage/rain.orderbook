@@ -322,6 +322,12 @@ pub struct SgErc20 {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub decimals: Option<SgBigInt>,
 }
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct SgErc20WithSubgraphName {
+    pub token: SgErc20,
+    pub subgraph_name: String,
+}
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
