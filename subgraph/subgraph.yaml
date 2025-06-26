@@ -23,7 +23,7 @@ dataSources:
         - name: ERC20
           file: ../out/ERC20.sol/ERC20.json
         - name: DecimalFloat
-          file: ../lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.math.float/out/DecimalFloat.sol/DecimalFloat.json
+          file: ../lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float/out/DecimalFloat.sol/DecimalFloat.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDeposit
