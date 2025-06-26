@@ -1,6 +1,9 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
-use rain_orderbook_subgraph_client::types::Id;
+use alloy::primitives::{hex::decode, Bytes};
+use alloy::sol_types::{SolCall, SolValue};
+use rain_orderbook_bindings::IOrderBookV4::{removeOrder2Call, OrderV3};
+use rain_orderbook_subgraph_client::types::{order_detail_traits::OrderDetailError, Id};
 use std::sync::{Arc, RwLock};
 
 #[wasm_export]
@@ -59,6 +62,49 @@ impl RaindexClient {
     }
 }
 
+#[wasm_export]
+impl RaindexOrder {
+    /// Generates ABI-encoded calldata for the `removeOrder2()` function on the orderbook contract.
+    ///
+    /// Takes an existing order from the subgraph and creates the transaction calldata needed
+    /// to remove it from the orderbook. The order must be active and owned by the caller.
+    ///
+    /// ## Returns
+    ///
+    /// * `Hex` - ABI-encoded calldata ready for blockchain submission
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// // Generate calldata for removing an order
+    /// const result = await order.getRemoveCalldata();
+    /// if (result.error) {
+    ///   console.error('Failed:', result.error.readableMsg);
+    /// } else {
+    ///   const calldata = result.value;
+    ///   // Do something with the calldata
+    /// }
+    /// ```
+    #[wasm_export(js_name = "getRemoveCalldata", unchecked_return_type = "Hex")]
+    pub fn get_remove_calldata(&self) -> Result<Bytes, RaindexError> {
+        let remove_order_call = removeOrder2Call {
+            order: self.try_into()?,
+            tasks: vec![],
+        };
+        Ok(Bytes::copy_from_slice(&remove_order_call.abi_encode()))
+    }
+}
+impl TryInto<OrderV3> for &RaindexOrder {
+    type Error = OrderDetailError;
+    fn try_into(self) -> Result<OrderV3, Self::Error> {
+        let order = rain_orderbook_bindings::IOrderBookV4::OrderV3::abi_decode(
+            &decode(self.order_bytes())?,
+            true,
+        )?;
+        Ok(order)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -69,7 +115,7 @@ mod tests {
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
-        use serde_json::json;
+        use serde_json::{json, Value};
         use std::str::FromStr;
 
         #[tokio::test]
@@ -364,6 +410,63 @@ mod tests {
 
             // assert!(order.trades.is_empty());
             // assert!(order.remove_events.is_empty());
+        }
+
+        fn get_order1_json() -> Value {
+            json!({
+              "id": "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1",
+              "orderBytes": "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000006171c21b2e553c59a64d1337211b77c367cefe5d00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000379b966dc6b117dd47b5fc5308534256a4ab1bcc0000000000000000000000006e4b01603edbda617002a077420e98c86595748e000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000950000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c020200020110000001100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000050c5725949a6f0c72e6c4a641f24049a917db0cb000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000001",
+              "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4",
+              "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
+              "outputs": [],
+              "inputs": [],
+              "orderbook": {
+                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
+              },
+              "active": true,
+              "timestampAdded": "1739448802",
+              "meta": null,
+              "addEvents": [],
+              "trades": [],
+              "removeEvents": []
+            })
+        }
+
+        #[tokio::test]
+        async fn test_get_remove_calldata() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg").to_string(),
+                    &sg_server.url("/sg").to_string(),
+                    "http://localhost:3000",
+                    "http://localhost:3000",
+                )],
+                None,
+            )
+            .unwrap();
+            let order = raindex_client
+                .get_order_by_hash(
+                    1,
+                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    "0x1".to_string(),
+                )
+                .await
+                .unwrap();
+            let calldata = order.get_remove_calldata().unwrap();
+            assert_eq!(
+                calldata,
+                Bytes::from_str("0x8d7b6beb000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000003000000000000000000000000006171c21b2e553c59a64d1337211b77c367cefe5d00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000379b966dc6b117dd47b5fc5308534256a4ab1bcc0000000000000000000000006e4b01603edbda617002a077420e98c86595748e000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000950000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c020200020110000001100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000050c5725949a6f0c72e6c4a641f24049a917db0cb000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000").unwrap()
+            );
         }
     }
 }

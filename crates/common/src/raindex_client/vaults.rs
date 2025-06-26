@@ -215,8 +215,6 @@ impl RaindexVault {
             .raindex_client
             .read()
             .map_err(|_| YamlError::ReadLockError)?;
-        println!("chain_id: {}", self.chain_id);
-        println!("orderbook: {}", self.orderbook.to_string());
         raindex_client.get_orderbook_client(self.chain_id, self.orderbook.to_string())
     }
 
@@ -641,8 +639,8 @@ impl RaindexClient {
         page: Option<u16>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let multi_subgraph_args = self
-            .get_multi_subgraph_args(chain_ids.map(|ids| ids.0.iter().map(|id| *id).collect()))?;
+        let multi_subgraph_args =
+            self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
         let client = MultiOrderbookSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
         );

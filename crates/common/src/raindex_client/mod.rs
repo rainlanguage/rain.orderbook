@@ -11,7 +11,8 @@ use rain_orderbook_app_settings::{
     yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable},
 };
 use rain_orderbook_subgraph_client::{
-    MultiSubgraphArgs, OrderbookSubgraphClient, OrderbookSubgraphClientError,
+    types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
+    OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, str::FromStr};
@@ -235,6 +236,8 @@ pub enum RaindexError {
     DepositArgsError(#[from] DepositError),
     #[error("Orderbook not found for address: {0} on chain ID: {1}")]
     OrderbookNotFound(String, u64),
+    #[error(transparent)]
+    OrderDetailError(#[from] OrderDetailError),
 }
 
 impl RaindexError {
@@ -311,6 +314,9 @@ impl RaindexError {
                     "Orderbook not found for address: {} on chain ID: {}",
                     address, chain_id
                 )
+            }
+            RaindexError::OrderDetailError(err) => {
+                format!("Failed to decode order detail: {}", err)
             }
         }
     }
