@@ -1,7 +1,9 @@
 use super::*;
 use crate::{
-    deposit::DepositArgs, raindex_client::transactions::RaindexTransaction,
-    transaction::TransactionArgs, withdraw::WithdrawArgs,
+    deposit::DepositArgs,
+    raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
+    transaction::TransactionArgs,
+    withdraw::WithdrawArgs,
 };
 use alloy::primitives::{Address, Bytes, I256, U256};
 use rain_orderbook_subgraph_client::{
@@ -53,6 +55,8 @@ pub struct RaindexVault {
     balance: U256,
     token: RaindexVaultToken,
     orderbook: Address,
+    orders_as_inputs: Vec<RaindexOrderAsIO>,
+    orders_as_outputs: Vec<RaindexOrderAsIO>,
 }
 
 #[cfg(target_family = "wasm")]
@@ -96,6 +100,14 @@ impl RaindexVault {
     pub fn orderbook(&self) -> String {
         self.orderbook.to_string()
     }
+    #[wasm_bindgen(getter = ordersAsInput)]
+    pub fn orders_as_inputs(&self) -> Vec<RaindexOrderAsIO> {
+        self.orders_as_inputs.clone()
+    }
+    #[wasm_bindgen(getter = ordersAsOutput)]
+    pub fn orders_as_outputs(&self) -> Vec<RaindexOrderAsIO> {
+        self.orders_as_outputs.clone()
+    }
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVault {
@@ -122,6 +134,12 @@ impl RaindexVault {
     }
     pub fn orderbook(&self) -> Address {
         self.orderbook
+    }
+    pub fn orders_as_inputs(&self) -> Vec<RaindexOrderAsIO> {
+        self.orders_as_inputs.clone()
+    }
+    pub fn orders_as_outputs(&self) -> Vec<RaindexOrderAsIO> {
+        self.orders_as_outputs.clone()
     }
 }
 
@@ -747,6 +765,16 @@ impl RaindexVault {
             balance: U256::from_str(&vault.balance.0)?,
             token: vault.token.try_into()?,
             orderbook: Address::from_str(&vault.orderbook.id.0)?,
+            orders_as_inputs: vault
+                .orders_as_input
+                .iter()
+                .map(|order| RaindexOrderAsIO::try_from(order.clone()))
+                .collect::<Result<Vec<RaindexOrderAsIO>, RaindexError>>()?,
+            orders_as_outputs: vault
+                .orders_as_output
+                .iter()
+                .map(|order| RaindexOrderAsIO::try_from(order.clone()))
+                .collect::<Result<Vec<RaindexOrderAsIO>, RaindexError>>()?,
         })
     }
 
@@ -761,6 +789,8 @@ impl RaindexVault {
             balance: self.balance,
             token: self.token.clone(),
             orderbook: self.orderbook,
+            orders_as_inputs: self.orders_as_inputs.clone(),
+            orders_as_outputs: self.orders_as_outputs.clone(),
         }
     }
 }

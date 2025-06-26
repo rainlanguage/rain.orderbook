@@ -6,7 +6,10 @@ use alloy::{
     hex::FromHexError,
     primitives::{ruint::ParseError, ParseSignedError},
 };
-use rain_orderbook_app_settings::yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable};
+use rain_orderbook_app_settings::{
+    orderbook::OrderbookCfg,
+    yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable},
+};
 use rain_orderbook_subgraph_client::{MultiSubgraphArgs, OrderbookSubgraphClientError};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -16,6 +19,7 @@ use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod orderbook;
 pub mod orders;
 pub mod remove_orders;
 pub mod trades;
@@ -151,15 +155,21 @@ impl RaindexClient {
         Ok(result.into_iter().collect::<BTreeMap<_, _>>())
     }
 
-    fn get_subgraph_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
+    fn get_orderbook_for_chain_id(&self, chain_id: u64) -> Result<OrderbookCfg, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         let orderbook = self
             .orderbook_yaml
             .get_orderbook_by_network_key(&network.key)?;
-
+        Ok(orderbook)
+    }
+    fn get_subgraph_key_for_chain_id(&self, chain_id: u64) -> Result<String, RaindexError> {
+        let orderbook = self.get_orderbook_for_chain_id(chain_id)?;
+        Ok(orderbook.subgraph.key.clone())
+    }
+    fn get_subgraph_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
+        let orderbook = self.get_orderbook_for_chain_id(chain_id)?;
         Ok(orderbook.subgraph.url.clone())
     }
-
     fn get_rpc_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpc.clone())
@@ -360,7 +370,9 @@ deployers:
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
+        use alloy::primitives::Address;
         use rain_orderbook_app_settings::yaml::YamlError;
+        use std::str::FromStr;
         use url::Url;
         use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -417,6 +429,67 @@ deployers:
         }
 
         #[wasm_bindgen_test]
+        fn test_get_orderbook_for_chain_success() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            let orderbook = client.get_orderbook_for_chain_id(1).unwrap();
+            assert_eq!(
+                orderbook.address,
+                Address::from_str("0x1234567890123456789012345678901234567890").unwrap()
+            );
+            assert_eq!(orderbook.network.key, "mainnet");
+            assert_eq!(orderbook.subgraph.key, "mainnet");
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_orderbook_for_chain_not_found() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            let err = client.get_orderbook_for_chain_id(999).unwrap_err();
+            assert!(
+                matches!(err, RaindexError::YamlError(YamlError::NotFound(ref msg)) if msg == "network with chain-id: 999")
+            );
+            assert!(err.to_readable_msg().contains("network with chain-id: 999"));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_subgraph_key_for_chain_success() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            let key = client.get_subgraph_key_for_chain_id(1).unwrap();
+            assert_eq!(key, "mainnet");
+            let key = client.get_subgraph_key_for_chain_id(137).unwrap();
+            assert_eq!(key, "polygon");
+        }
+
+        #[wasm_bindgen_test]
         fn test_get_subgraph_url_for_chain_success() {
             let client = RaindexClient::new(
                 vec![get_test_yaml(
@@ -435,27 +508,6 @@ deployers:
 
             let url = client.get_subgraph_url_for_chain(137).unwrap();
             assert_eq!(url, Url::parse("http://localhost:3000/sg2").unwrap());
-        }
-
-        #[wasm_bindgen_test]
-        fn test_get_subgraph_url_for_chain_not_found() {
-            let client = RaindexClient::new(
-                vec![get_test_yaml(
-                    // not used
-                    "http://localhost:3000/sg1",
-                    "http://localhost:3000/sg2",
-                    "http://localhost:3000/rpc1",
-                    "http://localhost:3000/rpc2",
-                )],
-                None,
-            )
-            .unwrap();
-
-            let err = client.get_subgraph_url_for_chain(999).unwrap_err();
-            assert!(
-                matches!(err, RaindexError::YamlError(YamlError::NotFound(ref msg)) if msg == "network with chain-id: 999")
-            );
-            assert!(err.to_readable_msg().contains("network with chain-id: 999"));
         }
 
         #[wasm_bindgen_test]

@@ -10,7 +10,7 @@ use alloy::primitives::{Address, U256};
 use rain_orderbook_subgraph_client::{
     performance::{vol::VaultVolume, OrderPerformance},
     types::{
-        common::{SgBytes, SgOrder, SgOrdersListFilterArgs},
+        common::{SgBytes, SgOrder, SgOrderAsIO, SgOrdersListFilterArgs},
         Id,
     },
     MultiOrderbookSubgraphClient, OrderbookSubgraphClient, SgPaginationArgs,
@@ -313,6 +313,23 @@ impl RaindexOrder {
             .order_performance(Id::new(self.id.clone()), start_timestamp, end_timestamp)
             .await?;
         Ok(performance)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RaindexOrderAsIO {
+    order_hash: String,
+    active: bool,
+}
+impl_wasm_traits!(RaindexOrderAsIO);
+impl TryFrom<SgOrderAsIO> for RaindexOrderAsIO {
+    type Error = RaindexError;
+    fn try_from(order: SgOrderAsIO) -> Result<Self, Self::Error> {
+        Ok(Self {
+            order_hash: order.order_hash.0,
+            active: order.active,
+        })
     }
 }
 
