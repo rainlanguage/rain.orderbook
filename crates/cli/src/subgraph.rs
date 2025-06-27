@@ -82,6 +82,13 @@ pub struct CliFilterArgs {
 
     #[arg(long, help = "Filter orders by order hash")]
     pub order_hash: Option<String>,
+
+    #[arg(
+        long,
+        help = "Filter orders and vaults by token addresses (comma-separated)",
+        value_delimiter = ','
+    )]
+    pub tokens: Vec<String>,
 }
 
 impl From<CliFilterArgs> for SgOrdersListFilterArgs {
@@ -90,7 +97,7 @@ impl From<CliFilterArgs> for SgOrdersListFilterArgs {
             owners: val.owners.into_iter().map(SgBytes).collect(),
             active: val.active,
             order_hash: val.order_hash.map(SgBytes),
-            tokens: vec![], // TODO
+            tokens: val.tokens,
         }
     }
 }
@@ -100,7 +107,7 @@ impl From<CliFilterArgs> for SgVaultsListFilterArgs {
         Self {
             owners: val.owners.into_iter().map(SgBytes).collect(),
             hide_zero_balance: val.hide_zero_balance.unwrap_or(true),
-            tokens: vec![], // TODO
+            tokens: val.tokens,
         }
     }
 }
@@ -133,11 +140,13 @@ mod tests {
     #[test]
     fn test_from_cli_filter_args_to_orders() {
         let owners = vec!["0x123".to_string(), "0x456".to_string()];
+        let tokens = vec!["0xabc".to_string()];
         let cli_args = CliFilterArgs {
             owners: owners.clone(),
             active: Some(true),
             hide_zero_balance: Some(false),
             order_hash: Some("0x789".to_string()),
+            tokens: tokens.clone(),
         };
         let filter_args: SgOrdersListFilterArgs = cli_args.into();
         assert_eq!(
@@ -146,16 +155,19 @@ mod tests {
         );
         assert_eq!(filter_args.active, Some(true));
         assert_eq!(filter_args.order_hash, Some(SgBytes("0x789".to_string())));
+        assert_eq!(filter_args.tokens, tokens);
     }
 
     #[test]
     fn test_from_cli_filter_args_to_vaults() {
         let owners = vec!["0x123".to_string(), "0x456".to_string()];
+        let tokens = vec!["0xabc".to_string()];
         let cli_args = CliFilterArgs {
             owners: owners.clone(),
             active: Some(true),
             hide_zero_balance: Some(false),
             order_hash: Some("0x789".to_string()),
+            tokens: tokens.clone(),
         };
         let filter_args: SgVaultsListFilterArgs = cli_args.into();
         assert_eq!(
@@ -163,5 +175,6 @@ mod tests {
             owners.into_iter().map(SgBytes).collect::<Vec<_>>()
         );
         assert!(!filter_args.hide_zero_balance);
+        assert_eq!(filter_args.tokens, tokens);
     }
 }
