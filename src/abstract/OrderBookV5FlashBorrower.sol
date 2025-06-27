@@ -13,13 +13,21 @@ import {
 } from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IOrderBookV4, TakeOrdersConfigV3, NoOrders, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {
+    IOrderBookV5,
+    TakeOrdersConfigV4,
+    NoOrders,
+    TaskV2,
+    Float
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {OrderBookV4ArbConfigV2, OrderBookV4ArbCommon} from "./OrderBookV4ArbCommon.sol";
-import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
+import {OrderBookV5ArbConfig, OrderBookV5ArbCommon} from "./OrderBookV5ArbCommon.sol";
+import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
+import {LibTOFUTokenDecimals, TOFUTokenDecimals} from "../lib/LibTOFUTokenDecimals.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -31,7 +39,7 @@ error FlashLoanFailed();
 /// Thrown when the swap fails.
 error SwapFailed();
 
-/// @title OrderBookV4FlashBorrower
+/// @title OrderBookV5FlashBorrower
 /// @notice Abstract contract that liq-source specifialized contracts can inherit
 /// to provide flash loan based arbitrage against external liquidity sources to
 /// fill orderbook orders.
@@ -61,11 +69,13 @@ error SwapFailed();
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV4ArbCommon {
+abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV5ArbCommon {
     using Address for address;
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4ArbCommon(config) {}
+    mapping(address token => TOFUTokenDecimals tofuTokenDecimals) internal sTOFUTokenDecimals;
+
+    constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -81,7 +91,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// @param takeOrders As per `arb`.
     /// @param exchangeData As per `arb`.
     //slither-disable-next-line dead-code
-    function _exchange(TakeOrdersConfigV3 memory takeOrders, bytes memory exchangeData) internal virtual {}
+    function _exchange(TakeOrdersConfigV4 memory takeOrders, bytes memory exchangeData) internal virtual {}
 
     /// @inheritdoc IERC3156FlashBorrower
     function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data)
@@ -93,8 +103,8 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
             revert BadInitiator(initiator);
         }
 
-        (TakeOrdersConfigV3 memory takeOrders, bytes memory exchangeData) =
-            abi.decode(data, (TakeOrdersConfigV3, bytes));
+        (TakeOrdersConfigV4 memory takeOrders, bytes memory exchangeData) =
+            abi.decode(data, (TakeOrdersConfigV4, bytes));
 
         // Dispatch the `_exchange` hook to ensure we have the correct asset
         // type and amount to fill the orders.
@@ -105,7 +115,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
         // keep anything left over according to active balances.
-        (uint256 totalInput, uint256 totalOutput) = IOrderBookV4(msg.sender).takeOrders2(takeOrders);
+        (Float totalInput, Float totalOutput) = IOrderBookV5(msg.sender).takeOrders3(takeOrders);
         (totalInput, totalOutput);
 
         return ON_FLASH_LOAN_CALLBACK_SUCCESS;
@@ -126,17 +136,17 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// Finally the orders are taken and the remaining assets are sent to the
     /// sender.
     ///
-    /// @param takeOrders As per `IOrderBookV4.takeOrders2`.
+    /// @param takeOrders As per `IOrderBookV5.takeOrders3`.
     /// @param exchangeData Arbitrary bytes that will be passed to `_exchange`
     /// after the flash loan is taken. The inheriting contract is responsible
     /// for decoding this data and defining how it controls interactions with
-    /// the external liquidity. For example, `GenericPoolOrderBookV4FlashBorrower`
+    /// the external liquidity. For example, `GenericPoolOrderBookV5FlashBorrower`
     /// uses this data as a literal encoded external call.
     function arb3(
-        IOrderBookV4 orderBook,
-        TakeOrdersConfigV3 calldata takeOrders,
+        IOrderBookV5 orderBook,
+        TakeOrdersConfigV4 calldata takeOrders,
         bytes calldata exchangeData,
-        TaskV1 calldata task
+        TaskV2 calldata task
     ) external payable nonReentrant onlyValidTask(task) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
@@ -150,9 +160,12 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
 
+        uint8 inputDecimals = LibTOFUTokenDecimals.safeDecimalsForToken(sTOFUTokenDecimals, ordersInputToken);
+        uint8 outputDecimals = LibTOFUTokenDecimals.safeDecimalsForToken(sTOFUTokenDecimals, ordersOutputToken);
+
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.
-        uint256 flashLoanAmount = takeOrders.minimumInput;
+        uint256 flashLoanAmount = LibDecimalFloat.toFixedDecimalLossless(takeOrders.minimumInput, inputDecimals);
 
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the
@@ -164,6 +177,6 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         }
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
-        LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken);
+        LibOrderBookArb.finalizeArb(task, ordersInputToken, inputDecimals, ordersOutputToken, outputDecimals);
     }
 }

@@ -2,13 +2,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrderBook} from "./LibOrderBook.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the stack is not empty after the access control dispatch.
 error NonZeroBeforeArbStack();
@@ -20,9 +20,15 @@ error BadLender(address badLender);
 library LibOrderBookArb {
     using SafeERC20 for IERC20;
 
-    function finalizeArb(TaskV1 memory task, address ordersInputToken, address ordersOutputToken) internal {
-        uint256[][] memory context = new uint256[][](1);
-        uint256[] memory col = new uint256[](3);
+    function finalizeArb(
+        TaskV2 memory task,
+        address ordersInputToken,
+        uint8 inputDecimals,
+        address ordersOutputToken,
+        uint8 outputDecimals
+    ) internal {
+        bytes32[][] memory context = new bytes32[][](1);
+        bytes32[] memory col = new bytes32[](3);
 
         {
             // Send all unspent input tokens to the sender.
@@ -30,14 +36,9 @@ library LibOrderBookArb {
             if (inputBalance > 0) {
                 IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
             }
-            uint256 inputDecimals = IERC20Metadata(ordersInputToken).decimals();
-            col[0] = LibFixedPointDecimalScale.scale18(
-                inputBalance,
-                inputDecimals,
-                // Error on overflow.
-                // Rounding down is the default.
-                0
-            );
+            (Float input, bool lossless) = LibDecimalFloat.fromFixedDecimalLossyPacked(inputBalance, inputDecimals);
+            (lossless);
+            col[0] = Float.unwrap(input);
         }
 
         {
@@ -47,14 +48,9 @@ library LibOrderBookArb {
                 IERC20(ordersOutputToken).safeTransfer(msg.sender, outputBalance);
             }
 
-            uint256 outputDecimals = IERC20Metadata(ordersOutputToken).decimals();
-            col[1] = LibFixedPointDecimalScale.scale18(
-                outputBalance,
-                outputDecimals,
-                // Error on overflow.
-                // Rounding down is the default.
-                0
-            );
+            (Float output, bool lossless) = LibDecimalFloat.fromFixedDecimalLossyPacked(outputBalance, outputDecimals);
+            (lossless);
+            col[1] = Float.unwrap(output);
         }
 
         {
@@ -66,12 +62,12 @@ library LibOrderBookArb {
             // See https://github.com/crytic/slither/issues/1658
             uint256 gasBalance = address(this).balance;
             Address.sendValue(payable(msg.sender), gasBalance);
-            col[2] = gasBalance;
+            col[2] = Float.unwrap(LibDecimalFloat.packLossless(int256(gasBalance), -18));
         }
 
         context[0] = col;
 
-        TaskV1[] memory post = new TaskV1[](1);
+        TaskV2[] memory post = new TaskV2[](1);
         post[0] = task;
         LibOrderBook.doPost(context, post);
     }

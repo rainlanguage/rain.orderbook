@@ -4,91 +4,124 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3, EvaluableV3, TaskV1, SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    OrderConfigV4,
+    EvaluableV4,
+    TaskV2,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
+
+import {console2} from "forge-std/Test.sol";
 
 contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
+    using LibDecimalFloat for Float;
+    using LibFormatDecimalFloat for Float;
 
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
         // 2 reads for deposit.
-        assert(reads.length == expectedReads);
-        assert(reads[0] == bytes32(uint256(0)));
-        assert(reads[1] == bytes32(uint256(0)));
-        assert(reads[reads.length - 1] == bytes32(uint256(0)));
+        assertEq(reads.length, expectedReads, "reads length");
+        assertEq(reads[0], bytes32(uint256(0)), "reads[0]");
+        assertEq(reads[1], bytes32(uint256(0)), "reads[1]");
+        assertEq(reads[reads.length - 1], bytes32(uint256(0)), "reads[reads.length - 1]");
         // 2 writes for reentrancy guard.
         // 1 write for deposit.
-        assert(writes.length == expectedWrites);
-        assert(writes[0] == bytes32(uint256(0)));
-        assert(writes[writes.length - 1] == bytes32(uint256(0)));
+        assertEq(writes.length, expectedWrites, "writes length");
+        assertEq(writes[0], bytes32(uint256(0)), "writes[0]");
+        assertEq(writes[writes.length - 1], bytes32(uint256(0)), "writes[writes.length - 1]");
     }
 
     function checkWithdraw(
         address owner,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 targetAmount,
+        bytes32 vaultId,
+        Float depositAmount,
+        Float targetAmount,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites
     ) internal {
-        vm.startPrank(owner);
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), depositAmount),
-            abi.encode(true)
-        );
-        if (depositAmount > 0) {
-            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
+        uint8 decimals = IERC20Metadata(address(iToken0)).decimals();
+
+        {
+            (uint256 depositAmountAbsolute, bool lossless) = depositAmount.toFixedDecimalLossy(decimals);
+            // Deposit roundings should round up the amount of token taken by the
+            // DEX.
+            if (!lossless) {
+                ++depositAmountAbsolute;
+            }
+
+            vm.mockCall(
+                address(iToken0),
+                abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), depositAmountAbsolute),
+                abi.encode(true)
+            );
+
+            vm.startPrank(owner);
+
+            if (depositAmountAbsolute > 0) {
+                iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
+            }
         }
 
-        TaskV1[] memory actions = new TaskV1[](evalStrings.length);
+        uint256 targetAmount18 = targetAmount.toFixedDecimalLossless(decimals);
+
+        TaskV2[] memory actions = new TaskV2[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
             actions[i] =
-                TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
+                TaskV2(EvaluableV4(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
-        uint256 withdrawAmount = depositAmount > targetAmount ? targetAmount : depositAmount;
+
+        uint256 depositAmount18 = depositAmount.toFixedDecimalLossless(decimals);
+        uint256 withdrawAmount18 = depositAmount18 > targetAmount18 ? targetAmount18 : depositAmount18;
         vm.mockCall(
-            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, owner, withdrawAmount), abi.encode(true)
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transfer.selector, owner, withdrawAmount18),
+            abi.encode(true)
         );
+
         vm.record();
-        iOrderbook.withdraw2(address(iToken0), vaultId, targetAmount, actions);
-        checkReentrancyRW(depositAmount > 0 ? 5 : 4, depositAmount > 0 ? 3 : 2);
+        iOrderbook.withdraw3(address(iToken0), vaultId, targetAmount, actions);
+        checkReentrancyRW(7, 3);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
-        assert(reads.length == expectedReads);
-        assert(writes.length == expectedWrites);
+        assertEq(reads.length, expectedReads);
+        assertEq(writes.length, expectedWrites);
         vm.stopPrank();
     }
 
     /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalEmptyNoop(
         address alice,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 withdrawAmount
+        bytes32 vaultId,
+        uint256 depositAmount18,
+        uint256 withdrawAmount18
     ) external {
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
-        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
-
+        depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
+        withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, new bytes[](0), 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalOneStateless(
         address alice,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 withdrawAmount
+        bytes32 vaultId,
+        uint256 depositAmount18,
+        uint256 withdrawAmount18
     ) external {
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
-        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+        depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
+        withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
+
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
@@ -98,12 +131,15 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalOneReadState(
         address alice,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 withdrawAmount
+        bytes32 vaultId,
+        uint256 depositAmount18,
+        uint256 withdrawAmount18
     ) external {
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
-        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+        depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
+        withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
+
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
@@ -114,12 +150,15 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalWriteStateSingle(
         address alice,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 withdrawAmount
+        bytes32 vaultId,
+        uint256 depositAmount18,
+        uint256 withdrawAmount18
     ) external {
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
-        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+        depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
+        withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
+
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
@@ -135,12 +174,15 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalWriteStateSequential(
         address alice,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 withdrawAmount
+        bytes32 vaultId,
+        uint256 depositAmount18,
+        uint256 withdrawAmount18
     ) external {
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
-        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+        depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
+        withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
+
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -165,13 +207,16 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     function testOrderBookWithdrawEvalWriteStateDifferentOwnersNamespaced(
         address alice,
         address bob,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 withdrawAmount
+        bytes32 vaultId,
+        uint256 depositAmount18,
+        uint256 withdrawAmount18
     ) external {
         vm.assume(alice != bob);
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
-        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+        depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
+        withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
+
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -204,60 +249,57 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(bob, vaultId, depositAmount, withdrawAmount, evals3, 4, 2);
     }
 
-    /// Evals DO NOT run if withdrawal amount ends up as 0.
-    /// No withdraw => no eval.
-    /// forge-config: default.fuzz.runs = 100
-    function testOrderBookWithdrawalEvalZeroAmountEvalNoop(address alice, uint256 vaultId, uint256 withdrawAmount)
-        external
-    {
-        withdrawAmount = bound(withdrawAmount, 1, type(uint128).max);
-        bytes[] memory evals = new bytes[](1);
-        evals[0] = bytes(":ensure(0 \"always fails\");");
-        checkWithdraw(alice, vaultId, 0, withdrawAmount, evals, 0, 0);
-    }
-
     /// A revert in the action prevents withdraw from being enacted.
     /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawalEvalRevertInAction(
         address alice,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 withdrawAmount
+        bytes32 vaultId,
+        uint256 depositAmount18,
+        uint256 withdrawAmount18
     ) external {
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
-        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+        depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
+        withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
+
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         vm.startPrank(alice);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount18),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
+        iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
 
         vm.mockCall(
-            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount), abi.encode(true)
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount18),
+            abi.encode(true)
         );
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"revert in action\");");
-        TaskV1[] memory actions = evalsToActions(evals);
+        TaskV2[] memory actions = evalsToActions(evals);
 
-        assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+        assertTrue(depositAmount.eq(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId)));
 
         vm.expectRevert("revert in action");
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, actions);
+        iOrderbook.withdraw3(address(iToken0), vaultId, withdrawAmount, actions);
 
-        assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+        assertTrue(depositAmount.eq(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId)));
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testOrderWithdrawContext(address alice, uint256 vaultId, uint256 depositAmount, uint256 targetAmount)
+    function testOrderWithdrawContext(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 targetAmount18)
         external
     {
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
-        targetAmount = bound(targetAmount, 1, type(uint128).max);
-        uint256 withdrawAmount = depositAmount > targetAmount ? targetAmount : depositAmount;
+        depositAmount18 = bound(depositAmount18, 1, uint256(int256(type(int128).max)));
+        targetAmount18 = bound(targetAmount18, 1, uint256(int256(type(int128).max)));
+        uint256 withdrawAmount18 = depositAmount18 > targetAmount18 ? targetAmount18 : depositAmount18;
+
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 6);
+        Float targetAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(targetAmount18, 6);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 6);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
@@ -287,24 +329,24 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-vault-id() ",
-                vaultId.toHexString(),
+                uint256(vaultId).toHexString(),
                 ") \"withdraw vaultId\");"
             )
         );
         evals[4] = bytes(
             string.concat(
                 usingWordsFrom,
-                ":ensure(equal-to(withdraw-vault-balance() ",
-                depositAmount.toString(),
-                "e-6) \"vault balance\");"
+                ":ensure(equal-to(withdraw-vault-before() ",
+                depositAmount.toDecimalString(),
+                ") \"vault before\");"
             )
         );
         evals[5] = bytes(
             string.concat(
                 usingWordsFrom,
-                ":ensure(equal-to(withdraw-amount() ",
-                withdrawAmount.toString(),
-                "e-6) \"withdraw amount\");"
+                ":ensure(equal-to(withdraw-vault-after() ",
+                depositAmount.sub(withdrawAmount).toDecimalString(),
+                ") \"balance after\");"
             )
         );
         // target amount
@@ -312,8 +354,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-target-amount() ",
-                targetAmount.toString(),
-                "e-6) \"target amount\");"
+                LibFormatDecimalFloat.toDecimalString(targetAmount),
+                ") \"target amount\");"
             )
         );
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
