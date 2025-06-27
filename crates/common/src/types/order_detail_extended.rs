@@ -22,7 +22,7 @@ impl TryFrom<SgOrder> for OrderDetailExtended {
         let rainlang = val
             .clone()
             .meta
-            .map(|meta| meta.try_decode_rainlangsource())
+            .map(|meta| meta.0.try_decode_rainlangsource())
             .transpose()?;
 
         Ok(Self {

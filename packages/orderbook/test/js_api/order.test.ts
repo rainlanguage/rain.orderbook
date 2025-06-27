@@ -10,9 +10,7 @@ import {
 	getOrderPerformance,
 	SgTrade,
 	SgOrder,
-	OrderPerformance,
-	SgOrderWithSubgraphName,
-	OrderWithSortedVaults
+	OrderPerformance
 } from '../../dist/cjs';
 
 const order1: SgOrder = {
