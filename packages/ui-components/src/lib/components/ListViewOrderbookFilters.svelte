@@ -27,7 +27,7 @@
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
-	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName, Error>>;
+	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName[], Error>>;
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
 	$: isOrdersPage = $page.url.pathname === '/orders';
