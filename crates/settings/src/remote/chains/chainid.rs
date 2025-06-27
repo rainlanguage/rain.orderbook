@@ -20,7 +20,7 @@ pub struct ChainId {
     #[serde(rename = "infoURL")]
     pub info_url: String,
     pub short_name: String,
-    pub chain_id: u64,
+    pub chain_id: u32,
     pub network_id: u64,
     pub slip44: Option<u64>,
     pub ens: Option<ENS>,
@@ -74,7 +74,7 @@ impl TryFrom<ChainId> for NetworkConfigSource {
         for rpc in &value.rpc {
             if !rpc.path().contains("API_KEY") && !rpc.scheme().starts_with("ws") {
                 return Ok(NetworkConfigSource {
-                    chain_id: value.chain_id,
+                    chain_id: value.chain_id as u64,
                     rpc: rpc.clone(),
                     network_id: Some(value.network_id),
                     currency: Some(value.native_currency.symbol),

@@ -39,7 +39,7 @@ const DEFAULT_PAGE_SIZE: u16 = 100;
 #[wasm_bindgen]
 pub struct RaindexOrder {
     raindex_client: Arc<RwLock<RaindexClient>>,
-    chain_id: u64,
+    chain_id: u32,
     id: String,
     order_bytes: String,
     order_hash: String,
@@ -58,7 +58,7 @@ pub struct RaindexOrder {
 #[wasm_bindgen]
 impl RaindexOrder {
     #[wasm_bindgen(getter = chainId)]
-    pub fn chain_id(&self) -> u64 {
+    pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
     #[wasm_bindgen(getter)]
@@ -138,7 +138,7 @@ impl RaindexOrder {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexOrder {
-    pub fn chain_id(&self) -> u64 {
+    pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
     pub fn id(&self) -> String {
@@ -262,8 +262,8 @@ impl RaindexOrder {
     )]
     pub async fn get_vaults_volume(
         &self,
-        start_timestamp: Option<u64>,
-        end_timestamp: Option<u64>,
+        #[wasm_export(js_name = "startTimestamp")] start_timestamp: Option<u64>,
+        #[wasm_export(js_name = "endTimestamp")] end_timestamp: Option<u64>,
     ) -> Result<Vec<VaultVolume>, RaindexError> {
         let client = self.get_orderbook_client()?;
         let volumes = client
@@ -303,8 +303,8 @@ impl RaindexOrder {
     #[wasm_export(js_name = "getPerformance", unchecked_return_type = "OrderPerformance")]
     pub async fn get_performance(
         &self,
-        start_timestamp: Option<u64>,
-        end_timestamp: Option<u64>,
+        #[wasm_export(js_name = "startTimestamp")] start_timestamp: Option<u64>,
+        #[wasm_export(js_name = "endTimestamp")] end_timestamp: Option<u64>,
     ) -> Result<OrderPerformance, RaindexError> {
         let client = self.get_orderbook_client()?;
         let performance = client
@@ -377,7 +377,7 @@ impl RaindexClient {
     )]
     pub async fn get_orders(
         &self,
-        chain_ids: Option<ChainIds>,
+        #[wasm_export(js_name = "chainIds")] chain_ids: Option<ChainIds>,
         filters: Option<GetOrdersFilters>,
         page: Option<u16>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
@@ -459,9 +459,9 @@ impl RaindexClient {
     )]
     pub async fn get_order_by_hash(
         &self,
-        chain_id: u64,
-        orderbook_address: String,
-        order_hash: String,
+        #[wasm_export(js_name = "chainId")] chain_id: u32,
+        #[wasm_export(js_name = "orderbookAddress")] orderbook_address: String,
+        #[wasm_export(js_name = "orderHash")] order_hash: String,
     ) -> Result<RaindexOrder, RaindexError> {
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
         let order = client.order_detail_by_hash(SgBytes(order_hash)).await?;
@@ -505,7 +505,7 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
 impl RaindexOrder {
     pub fn try_from_sg_order(
         raindex_client: Arc<RwLock<RaindexClient>>,
-        chain_id: u64,
+        chain_id: u32,
         order: SgOrder,
         transaction: Option<RaindexTransaction>,
     ) -> Result<Self, RaindexError> {

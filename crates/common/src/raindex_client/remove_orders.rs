@@ -39,9 +39,9 @@ impl RaindexClient {
     )]
     pub async fn get_remove_orders_for_transaction(
         &self,
-        chain_id: u64,
-        orderbook_address: String,
-        tx_hash: String,
+        #[wasm_export(js_name = "chainId")] chain_id: u32,
+        #[wasm_export(js_name = "orderbookAddress")] orderbook_address: String,
+        #[wasm_export(js_name = "txHash")] tx_hash: String,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;

@@ -30,7 +30,7 @@ pub mod transactions;
 pub mod vaults;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
-pub struct ChainIds(#[tsify(type = "bigint[]")] pub Vec<u64>);
+pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
 impl_wasm_traits!(ChainIds);
 
 /// RaindexClient provides a simplified interface for querying orderbook data across
@@ -101,7 +101,7 @@ impl RaindexClient {
     /// ```
     #[wasm_export(js_name = "new", preserve_js_class)]
     pub fn new(
-        ob_yamls: Vec<String>,
+        #[wasm_export(js_name = "obYamls")] ob_yamls: Vec<String>,
         validate: Option<bool>,
     ) -> Result<RaindexClient, RaindexError> {
         let orderbook_yaml = OrderbookYaml::new(ob_yamls, validate.unwrap_or(false))?;
@@ -110,8 +110,8 @@ impl RaindexClient {
 
     fn get_multi_subgraph_args(
         &self,
-        chain_ids: Option<Vec<u64>>,
-    ) -> Result<BTreeMap<u64, Vec<MultiSubgraphArgs>>, RaindexError> {
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
         let result = match chain_ids {
             Some(ids) if !ids.is_empty() => {
                 let mut multi_subgraph_args = BTreeMap::new();
@@ -162,7 +162,7 @@ impl RaindexClient {
     #[wasm_export(skip)]
     pub fn get_orderbook_client(
         &self,
-        chain_id: u64,
+        chain_id: u32,
         orderbook_address: String,
     ) -> Result<OrderbookSubgraphClient, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
@@ -172,7 +172,7 @@ impl RaindexClient {
 
     fn get_orderbook_for_chain_id(
         &self,
-        chain_id: u64,
+        chain_id: u32,
         orderbook_address: Address,
     ) -> Result<OrderbookCfg, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
@@ -188,7 +188,7 @@ impl RaindexClient {
             ))?;
         Ok(orderbook.clone())
     }
-    fn get_rpc_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
+    fn get_rpc_url_for_chain(&self, chain_id: u32) -> Result<Url, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpc.clone())
     }
@@ -199,7 +199,7 @@ pub enum RaindexError {
     #[error("Invalid yaml configuration")]
     InvalidYamlConfig,
     #[error("Chain ID not found: {0}")]
-    ChainIdNotFound(u64),
+    ChainIdNotFound(u32),
     #[error("No networks configured")]
     NoNetworksConfigured,
     #[error("Subgraph not configured for chain ID: {0}")]
@@ -235,7 +235,7 @@ pub enum RaindexError {
     #[error(transparent)]
     DepositArgsError(#[from] DepositError),
     #[error("Orderbook not found for address: {0} on chain ID: {1}")]
-    OrderbookNotFound(String, u64),
+    OrderbookNotFound(String, u32),
     #[error(transparent)]
     OrderDetailError(#[from] OrderDetailError),
 }

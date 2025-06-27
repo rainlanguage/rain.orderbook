@@ -115,9 +115,9 @@ impl RaindexOrder {
     #[wasm_export(js_name = "getTradesList", unchecked_return_type = "RaindexTrade[]")]
     pub async fn get_trades_list(
         &self,
-        start_timestamp: Option<u64>,
-        end_timestamp: Option<u64>,
-        page: Option<u16>,
+        #[wasm_export(js_name = "startTimestamp")] start_timestamp: Option<u64>,
+        #[wasm_export(js_name = "endTimestamp")] end_timestamp: Option<u64>,
+        #[wasm_export(js_name = "page")] page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let client = self.get_orderbook_client()?;
         let trades = client
@@ -163,7 +163,10 @@ impl RaindexOrder {
     /// // Do something with the trade
     /// ```
     #[wasm_export(js_name = "getTradeDetail", unchecked_return_type = "RaindexTrade")]
-    pub async fn get_trade_detail(&self, trade_id: String) -> Result<RaindexTrade, RaindexError> {
+    pub async fn get_trade_detail(
+        &self,
+        #[wasm_export(js_name = "tradeId")] trade_id: String,
+    ) -> Result<RaindexTrade, RaindexError> {
         let client = self.get_orderbook_client()?;
         RaindexTrade::try_from(client.order_trade_detail(Id::new(trade_id.clone())).await?)
     }
@@ -196,8 +199,8 @@ impl RaindexOrder {
     #[wasm_export(js_name = "getTradeCount", unchecked_return_type = "number")]
     pub async fn get_trade_count(
         &self,
-        start_timestamp: Option<u64>,
-        end_timestamp: Option<u64>,
+        #[wasm_export(js_name = "startTimestamp")] start_timestamp: Option<u64>,
+        #[wasm_export(js_name = "endTimestamp")] end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
         let client = self.get_orderbook_client()?;
         let trades_count = client

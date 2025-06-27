@@ -26,8 +26,8 @@ impl RaindexClient {
     #[wasm_export(js_name = "getSubgraphKeyForChainId", unchecked_return_type = "string")]
     pub fn get_subgraph_identifier_for_chain_id(
         &self,
-        chain_id: u64,
-        orderbook_address: String,
+        #[wasm_export(js_name = "chainId")] chain_id: u32,
+        #[wasm_export(js_name = "orderbookAddress")] orderbook_address: String,
     ) -> Result<String, RaindexError> {
         let orderbook =
             self.get_orderbook_for_chain_id(chain_id, Address::from_str(&orderbook_address)?)?;

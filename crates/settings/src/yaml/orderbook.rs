@@ -109,7 +109,7 @@ impl OrderbookYaml {
         let context = self.initialize_context_and_expand_remote_data()?;
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
-    pub fn get_network_by_chain_id(&self, chain_id: u64) -> Result<NetworkCfg, YamlError> {
+    pub fn get_network_by_chain_id(&self, chain_id: u32) -> Result<NetworkCfg, YamlError> {
         let networks = self.get_networks()?;
         for network in networks.values() {
             if network.chain_id == chain_id {

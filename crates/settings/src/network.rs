@@ -25,7 +25,7 @@ pub struct NetworkCfg {
     pub key: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub rpc: Url,
-    pub chain_id: u64,
+    pub chain_id: u32,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub label: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
@@ -171,7 +171,7 @@ impl YamlParsableHash for NetworkCfg {
                     let chain_id_str =
                         require_string(network_yaml, Some("chain-id"), Some(location.clone()))?;
 
-                    let chain_id = chain_id_str.parse::<u64>().map_err(|e| YamlError::Field {
+                    let chain_id = chain_id_str.parse::<u32>().map_err(|e| YamlError::Field {
                         kind: FieldErrorKind::InvalidValue {
                             field: "chain-id".to_string(),
                             reason: e.to_string(),
@@ -292,7 +292,7 @@ impl NetworkConfigSource {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key,
             rpc: self.rpc,
-            chain_id: self.chain_id,
+            chain_id: self.chain_id as u32,
             label: self.label,
             network_id: self.network_id,
             currency: self.currency,

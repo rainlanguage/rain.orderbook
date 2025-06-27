@@ -608,16 +608,6 @@ impl DotrainOrderGui {
     /// - `Ok(String)` - Composed Rainlang code with comments for each entrypoint
     /// - `Err(GuiError)` - If composition fails
     ///
-    /// # Output Format
-    ///
-    /// ```
-    /// /* 0. calculate-io */
-    /// _ _: 0 0;
-    ///
-    /// /* 1. handle-io */
-    /// :;
-    /// ```
-    ///
     /// # Examples
     ///
     /// ```javascript

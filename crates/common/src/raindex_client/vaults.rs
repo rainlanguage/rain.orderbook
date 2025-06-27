@@ -47,7 +47,7 @@ impl_wasm_traits!(RaindexVaultType);
 #[wasm_bindgen]
 pub struct RaindexVault {
     raindex_client: Arc<RwLock<RaindexClient>>,
-    chain_id: u64,
+    chain_id: u32,
     vault_type: Option<RaindexVaultType>,
     id: String,
     owner: Address,
@@ -69,7 +69,7 @@ impl RaindexVault {
     }
 
     #[wasm_bindgen(getter = chainId)]
-    pub fn chain_id(&self) -> u64 {
+    pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
     #[wasm_bindgen(getter = vaultType)]
@@ -111,7 +111,7 @@ impl RaindexVault {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVault {
-    pub fn chain_id(&self) -> u64 {
+    pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
     pub fn vault_type(&self) -> Option<RaindexVaultType> {
@@ -304,16 +304,13 @@ impl RaindexVault {
     /// // Do something with the calldata
     /// ```
     #[wasm_export(js_name = "getDepositCalldata", unchecked_return_type = "Hex")]
-    pub async fn get_deposit_calldata(
-        &self,
-        deposit_amount: String,
-    ) -> Result<Bytes, RaindexError> {
-        let deposit_amount = self.validate_amount(&deposit_amount)?;
+    pub async fn get_deposit_calldata(&self, amount: String) -> Result<Bytes, RaindexError> {
+        let amount = self.validate_amount(&amount)?;
         Ok(Bytes::copy_from_slice(
             &DepositArgs {
                 token: self.token.address,
                 vault_id: self.vault_id,
-                amount: deposit_amount,
+                amount,
             }
             .get_deposit_calldata()
             .await?,
@@ -347,16 +344,13 @@ impl RaindexVault {
     /// // Do something with the calldata
     /// ```
     #[wasm_export(js_name = "getWithdrawCalldata", unchecked_return_type = "Hex")]
-    pub async fn get_withdraw_calldata(
-        &self,
-        withdraw_amount: String,
-    ) -> Result<Bytes, RaindexError> {
-        let withdraw_amount = self.validate_amount(&withdraw_amount)?;
+    pub async fn get_withdraw_calldata(&self, amount: String) -> Result<Bytes, RaindexError> {
+        let amount = self.validate_amount(&amount)?;
         Ok(Bytes::copy_from_slice(
             &WithdrawArgs {
                 token: self.token.address,
                 vault_id: self.vault_id,
-                target_amount: withdraw_amount,
+                target_amount: amount,
             }
             .get_withdraw_calldata()
             .await?,
@@ -414,19 +408,15 @@ impl RaindexVault {
     /// // Do something with the calldata
     /// ```
     #[wasm_export(js_name = "getApprovalCalldata", unchecked_return_type = "Hex")]
-    pub async fn get_approval_calldata(
-        &self,
-        deposit_amount: String,
-    ) -> Result<Bytes, RaindexError> {
-        let deposit_amount = self.validate_amount(&deposit_amount)?;
+    pub async fn get_approval_calldata(&self, amount: String) -> Result<Bytes, RaindexError> {
+        let amount = self.validate_amount(&amount)?;
 
-        let (deposit_args, transaction_args) =
-            self.get_deposit_and_transaction_args(deposit_amount)?;
+        let (deposit_args, transaction_args) = self.get_deposit_and_transaction_args(amount)?;
 
         let allowance = deposit_args
             .read_allowance(self.owner, transaction_args.clone())
             .await?;
-        if allowance >= deposit_amount {
+        if allowance >= amount {
             return Err(RaindexError::ExistingAllowance);
         }
 
@@ -713,7 +703,7 @@ impl RaindexClient {
     )]
     pub async fn get_vault(
         &self,
-        chain_id: u64,
+        chain_id: u32,
         orderbook_address: String,
         vault_id: String,
     ) -> Result<RaindexVault, RaindexError> {
@@ -754,7 +744,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
 impl RaindexVault {
     pub fn try_from_sg_vault(
         raindex_client: Arc<RwLock<RaindexClient>>,
-        chain_id: u64,
+        chain_id: u32,
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
