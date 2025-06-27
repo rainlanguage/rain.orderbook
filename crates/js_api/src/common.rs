@@ -1,5 +1,5 @@
 use alloy::primitives::Bytes;
-use rain_interpreter_bindings::IParserV2::parse2Return;
+use alloy::{hex::encode_prefixed, sol, sol_types::SolType};
 use rain_orderbook_app_settings::{Config, ParseConfigSourceError};
 use rain_orderbook_common::{
     add_order::{AddOrderArgs, AddOrderArgsError},
@@ -167,7 +167,7 @@ mod tests {
         use alloy::{
             hex::encode_prefixed,
             primitives::{Address, FixedBytes, B256, U256},
-            sol_types::{SolCall, SolValue},
+            sol_types::SolCall,
         };
         use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, EvaluableV4, OrderV4, IOV2};
         use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes, SgOrderbook};
@@ -237,11 +237,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
         use super::*;
-        use alloy::{
-            hex::encode_prefixed,
-            primitives::{Address, B256, U256},
-            sol_types::SolValue,
-        };
+        use alloy::primitives::{Address, B256, U256};
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
         use rain_orderbook_bindings::IOrderBookV5::IOV2;
@@ -330,7 +326,7 @@ _ _: 0 0;
                 then.json_body(json!({
                     "jsonrpc": "2.0",
                     "id": 1,
-                    "result": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                    "result": "0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
                 }));
             });
 
@@ -340,7 +336,7 @@ _ _: 0 0;
                 then.json_body(json!({
                     "jsonrpc": "2.0",
                     "id": 2,
-                    "result": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                    "result": "0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
                 }));
             });
 
@@ -350,22 +346,20 @@ _ _: 0 0;
                 then.json_body(json!({
                     "jsonrpc": "2.0",
                     "id": 3,
-                    "result": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                    "result": "0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
                 }));
             });
 
             // mock parse2() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xa3869e14");
+
+                let encoded_ret = <sol!((bytes,))>::abi_encode(&(vec![0x01u8, 0x02u8],));
+
                 then.json_body(json!({
                     "jsonrpc": "2.0",
                     "id": 4,
-                    "result": encode_prefixed(
-                        parse2Return {
-                            bytecode: Bytes::from(vec![1u8, 2u8]).into(),
-                        }
-                        .abi_encode(),
-                    )
+                    "result": encode_prefixed(encoded_ret)
                 }));
             });
 
