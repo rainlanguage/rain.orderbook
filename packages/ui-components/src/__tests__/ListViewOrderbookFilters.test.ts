@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import { beforeEach, expect, test, describe, vi } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { NewConfig } from '@rainlanguage/orderbook';
+import type { NewConfig, SgErc20WithSubgraphName } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
+import type { QueryObserverResult } from '@tanstack/svelte-query';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores.ts'));
 
@@ -55,7 +56,14 @@ describe('ListViewOrderbookFilters', () => {
 		activeSubgraphs: writable({}),
 		showInactiveOrders: writable(true),
 		orderHash: writable(''),
-		showMyItemsOnly: writable(false)
+		showMyItemsOnly: writable(false),
+		activeTokens: writable([]),
+		tokensQuery: readable({
+			isLoading: false,
+			isError: false,
+			data: [] as SgErc20WithSubgraphName[],
+			error: null
+		} as QueryObserverResult<SgErc20WithSubgraphName[], Error>)
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
