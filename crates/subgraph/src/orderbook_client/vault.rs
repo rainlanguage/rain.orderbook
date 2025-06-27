@@ -131,7 +131,7 @@ impl OrderbookSubgraphClient {
     pub async fn vault_tokens_list_all(
         &self,
     ) -> Result<Vec<SgErc20>, OrderbookSubgraphClientError> {
-        let mut all_tokens = vec![];
+        let mut unique_tokens = std::collections::HashMap::new();
         let mut page = 1;
 
         loop {
@@ -153,18 +153,18 @@ impl OrderbookSubgraphClient {
                 break;
             }
 
-            // Extract unique tokens
+            // Insert tokens into HashMap, using id as key for deduplication
             for vault in data.vaults {
-                all_tokens.push(vault.token);
+                unique_tokens.insert(vault.token.id.0.clone(), vault.token);
             }
             page += 1;
         }
 
-        // Remove duplicates based on token id
-        all_tokens.sort_by(|a, b| a.id.0.cmp(&b.id.0));
-        all_tokens.dedup_by(|a, b| a.id.0 == b.id.0);
+        // Extract values and sort by id for consistent ordering
+        let mut tokens: Vec<SgErc20> = unique_tokens.into_values().collect();
+        tokens.sort_by(|a, b| a.id.0.cmp(&b.id.0));
 
-        Ok(all_tokens)
+        Ok(tokens)
     }
 }
 
