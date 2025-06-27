@@ -120,6 +120,7 @@ mod tests {
                 active: Some(true),
                 hide_zero_balance: Some(true),
                 order_hash: None,
+                tokens: vec![],
             },
         };
 
@@ -149,6 +150,7 @@ mod tests {
                 active: Some(true),
                 hide_zero_balance: Some(true),
                 order_hash: None,
+                tokens: vec![],
             },
         };
 
@@ -172,6 +174,7 @@ mod tests {
                 active: Some(true),
                 hide_zero_balance: Some(true),
                 order_hash: None,
+                tokens: vec![],
             },
         };
 
