@@ -11,7 +11,7 @@
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
-	import DropDownTokensFilter from './dropdown/DropDownTokensFilter.svelte';
+	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
@@ -68,7 +68,7 @@
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
 		{#if tokensQuery}
-			<DropDownTokensFilter {tokensQuery} {activeTokens} label="Tokens" />
+			<DropdownTokensFilter {tokensQuery} {activeTokens} label="Tokens" />
 		{/if}
 		<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 	{/if}
