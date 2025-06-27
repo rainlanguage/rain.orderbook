@@ -10,7 +10,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName, Error>>;
+	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName[], Error>>;
 	export let activeTokens: AppStoresInterface['activeTokens'];
 
 	export let label: string = 'Filter by tokens';
@@ -118,7 +118,9 @@
 			{#if $tokensQuery.isLoading}
 				<div class="ml-2 w-full rounded-lg p-3">{loadingMessage}</div>
 			{:else if $tokensQuery.isError}
-				<div class="ml-2 w-full rounded-lg p-3 text-red-500">Error: {$tokensQuery.error}</div>
+				<div class="ml-2 w-full rounded-lg p-3 text-red-500">
+					Cannot load tokens list: {$tokensQuery.error?.message || 'Unknown error'}
+				</div>
 			{:else if isEmpty(availableTokens)}
 				<div class="ml-2 w-full rounded-lg p-3">{emptyMessage}</div>
 			{:else}
