@@ -90,7 +90,8 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 				],
 				{
 					owners: [],
-					hideZeroBalance: false
+					hideZeroBalance: false,
+					tokens: [],
 				},
 				{
 					page: 1,

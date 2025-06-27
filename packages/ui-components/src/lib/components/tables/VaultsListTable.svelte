@@ -2,7 +2,7 @@
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { createInfiniteQuery } from '@tanstack/svelte-query';
+	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
@@ -11,8 +11,8 @@
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
 	import { type SgVault } from '@rainlanguage/orderbook';
-	import { QKEY_VAULTS } from '../../queries/keys';
-	import { getVaults, type SgVaultWithSubgraphName } from '@rainlanguage/orderbook';
+	import { QKEY_VAULTS, QKEY_TOKENS } from '../../queries/keys';
+	import { getVaults, type SgVaultWithSubgraphName, getVaultTokens } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getMultiSubgraphArgs } from '$lib/utils/configHelpers';
@@ -27,7 +27,6 @@
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
-	export let activeAccounts: AppStoresInterface['activeAccounts'];
 
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
@@ -35,6 +34,7 @@
 	export let handleWithdrawModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let activeTokens: AppStoresInterface['activeTokens'];
 
 	const { account, matchesAccount } = useAccount();
 
@@ -51,19 +51,20 @@
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
-			$activeAccounts,
 			$hideZeroBalanceVaults,
 			$activeSubgraphs,
 			multiSubgraphArgs,
 			$settings,
-			owners
+			owners,
+			$activeTokens
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await getVaults(
 				multiSubgraphArgs,
 				{
 					owners,
-					hideZeroBalance: $hideZeroBalanceVaults
+					hideZeroBalance: $hideZeroBalanceVaults,
+					tokens: $activeTokens
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
@@ -75,6 +76,16 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
+		enabled: true
+	});
+
+	$: tokensQuery = createQuery({
+		queryKey: [QKEY_TOKENS, $activeSubgraphs, multiSubgraphArgs],
+		queryFn: async () => {
+			const result = await getVaultTokens(multiSubgraphArgs);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value || [];
+		},
 		enabled: true
 	});
 
@@ -95,6 +106,8 @@
 		{showInactiveOrders}
 		{orderHash}
 		{hideZeroBalanceVaults}
+		{activeTokens}
+		{tokensQuery}
 	/>
 	<AppTable
 		{query}

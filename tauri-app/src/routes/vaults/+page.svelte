@@ -14,7 +14,7 @@
     hideZeroBalanceVaults,
     activeNetworkRef,
     activeOrderbookRef,
-    activeAccounts,
+    activeTokens,
     resetActiveNetworkRef,
     resetActiveOrderbookRef,
   } from '$lib/stores/settings';
@@ -37,7 +37,6 @@
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
 <VaultsListTable
-  {activeAccounts}
   {activeOrderbook}
   {orderHash}
   {accounts}
@@ -48,6 +47,7 @@
   {hideZeroBalanceVaults}
   {activeNetworkRef}
   {activeOrderbookRef}
+  {activeTokens}
   {handleDepositGenericModal}
   {handleDepositModal}
   {handleWithdrawModal}
