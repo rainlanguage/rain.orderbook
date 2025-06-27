@@ -14,7 +14,6 @@
     hideZeroBalanceVaults,
     activeNetworkRef,
     activeOrderbookRef,
-    activeAccounts,
     activeTokens,
     resetActiveNetworkRef,
     resetActiveOrderbookRef,
@@ -38,7 +37,6 @@
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
 <VaultsListTable
-  {activeAccounts}
   {activeOrderbook}
   {orderHash}
   {accounts}

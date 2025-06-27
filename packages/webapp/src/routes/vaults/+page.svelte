@@ -22,7 +22,6 @@
 		showInactiveOrders,
 		activeNetworkRef,
 		activeOrderbookRef,
-		activeAccounts,
 		activeNetworkOrderbooks
 	} = $page.data.stores;
 
@@ -56,6 +55,5 @@
 	{hideZeroBalanceVaults}
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	{activeAccounts}
 	{activeTokens}
 />

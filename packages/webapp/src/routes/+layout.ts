@@ -77,15 +77,6 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			? $settings.orderbook.subgraphs[$activeOrderbook.subgraph.key]
 			: undefined
 	);
-	const activeAccounts = derived(
-		[accounts, activeAccountsItems],
-		([$accounts, $activeAccountsItems]) =>
-			Object.keys($activeAccountsItems).length === 0
-				? {}
-				: Object.fromEntries(
-						Object.entries($accounts || {}).filter(([key]) => key in $activeAccountsItems)
-					)
-	);
 
 	return {
 		stores: {
@@ -93,7 +84,6 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			activeSubgraphs: writable<Record<string, SubgraphCfg>>({}),
 			accounts,
 			activeAccountsItems,
-			activeAccounts,
 			// Instantiate with false to show only active orders
 			showInactiveOrders: writable<boolean>(false),
 			orderHash: writable<string>(''),
@@ -258,7 +248,6 @@ subgraphs:
 			expect(stores).toHaveProperty('activeSubgraphs');
 			expect(stores).toHaveProperty('accounts');
 			expect(stores).toHaveProperty('activeAccountsItems');
-			expect(stores).toHaveProperty('activeAccounts');
 			expect(stores).toHaveProperty('showInactiveOrders');
 			expect(stores).toHaveProperty('orderHash');
 			expect(stores).toHaveProperty('hideZeroBalanceVaults');
@@ -346,48 +335,6 @@ subgraphs:
 			stores.activeOrderbookRef.set('orderbook1');
 
 			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph1);
-		});
-
-		it('should handle derived store: activeAccounts with empty activeAccountsItems', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeAccounts)).toEqual({});
-		});
-
-		it('should handle derived store: activeAccounts with filled activeAccountsItems', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			stores.activeAccountsItems?.set({ account1: 'Account 1' });
-
-			const accounts = get(stores.activeAccounts);
-			expect(accounts).toHaveProperty('account1');
-			expect(accounts).not.toHaveProperty('account2');
 		});
 
 		it('should return errorMessage if fetch fails with non-OK status', async () => {
@@ -523,7 +470,6 @@ subgraphs:
 			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook1');
 			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
 			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph1);
-			expect(get(stores.activeAccounts)).toHaveProperty('account1');
 
 			stores.activeNetworkRef.set('network2');
 			stores.activeAccountsItems?.set({ account1: 'Account 1', account2: 'Account 2' });
@@ -533,11 +479,6 @@ subgraphs:
 			expect(get(stores.activeNetworkOrderbooks)).not.toHaveProperty('orderbook1');
 			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook2);
 			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph2);
-
-			const finalAccounts = get(stores.activeAccounts);
-			expect(Object.keys(finalAccounts).length).toBe(2);
-			expect(finalAccounts).toHaveProperty('account1');
-			expect(finalAccounts).toHaveProperty('account2');
 		});
 	});
 }
