@@ -223,7 +223,7 @@ impl RaindexOrder {
         let raindex_client = self
             .raindex_client
             .read()
-            .map_err(|_| YamlError::ReadLockError)?;
+            .map_err(|_| RaindexError::ReadLockError)?;
         raindex_client.get_orderbook_client(self.chain_id, self.orderbook.to_string())
     }
 

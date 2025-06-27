@@ -21,7 +21,7 @@ pub struct ChainId {
     pub info_url: String,
     pub short_name: String,
     pub chain_id: u32,
-    pub network_id: u64,
+    pub network_id: u32,
     pub slip44: Option<u64>,
     pub ens: Option<ENS>,
     pub explorers: Option<Vec<Explorer>>,
@@ -76,7 +76,7 @@ impl TryFrom<ChainId> for NetworkConfigSource {
                 return Ok(NetworkConfigSource {
                     chain_id: value.chain_id as u64,
                     rpc: rpc.clone(),
-                    network_id: Some(value.network_id),
+                    network_id: Some(value.network_id as u64),
                     currency: Some(value.native_currency.symbol),
                     label: Some(value.name),
                 });

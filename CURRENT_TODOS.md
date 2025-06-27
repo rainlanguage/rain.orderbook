@@ -8,3 +8,4 @@
 8. Update all the inline documentations to use camel case for the function names.
 9. Convert all chain ids to u32.
 10. Make sure the wasm macro PR is merged and published. Use the latest version.
+11. Remove the old get add order calldata standalone wasm binding.

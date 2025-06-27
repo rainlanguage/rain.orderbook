@@ -1,12 +1,13 @@
 use crate::{
-    deposit::DepositError, dotrain_order::DotrainOrderError, meta::TryDecodeRainlangSourceError,
-    transaction::WritableTransactionExecuteError,
+    add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
+    meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
 };
 use alloy::{
     hex::FromHexError,
     primitives::{ruint::ParseError, Address, ParseSignedError},
 };
 use rain_orderbook_app_settings::{
+    new_config::ParseConfigError,
     orderbook::OrderbookCfg,
     yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable},
 };
@@ -238,6 +239,10 @@ pub enum RaindexError {
     OrderbookNotFound(String, u32),
     #[error(transparent)]
     OrderDetailError(#[from] OrderDetailError),
+    #[error(transparent)]
+    ParseConfigError(#[from] ParseConfigError),
+    #[error(transparent)]
+    AddOrderArgsError(#[from] AddOrderArgsError),
 }
 
 impl RaindexError {
@@ -317,6 +322,12 @@ impl RaindexError {
             }
             RaindexError::OrderDetailError(err) => {
                 format!("Failed to decode order detail: {}", err)
+            }
+            RaindexError::ParseConfigError(err) => {
+                format!("Failed to parse yaml sources for configuration: {}", err)
+            }
+            RaindexError::AddOrderArgsError(e) => {
+                format!("Failed to prepare the add order calldata: {}", e)
             }
         }
     }
