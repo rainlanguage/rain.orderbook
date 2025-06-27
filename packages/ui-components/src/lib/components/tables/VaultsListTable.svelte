@@ -86,7 +86,7 @@
 			if (result.error) throw new Error(result.error.msg);
 			return result.value || [];
 		},
-		enabled: Object.keys($activeSubgraphs).length > 0
+		enabled: true
 	});
 
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
