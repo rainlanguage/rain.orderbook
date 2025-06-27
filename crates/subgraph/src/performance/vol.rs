@@ -6,7 +6,6 @@ use alloy::primitives::U256;
 use rain_orderbook_math::{BigUintMath, MathError};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, str::FromStr};
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -23,20 +22,19 @@ pub struct VolumeDetails {
     pub net_vol: U256,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VaultVolume {
     pub id: String,
     pub token: SgErc20,
     pub vol_details: VolumeDetails,
 }
+impl_wasm_traits!(VaultVolume);
 
 #[cfg(target_family = "wasm")]
 mod impls {
     use super::*;
     impl_wasm_traits!(VolumeDetails);
-    impl_wasm_traits!(VaultVolume);
 }
 
 fn safe_add(a: U256, b: U256) -> Result<U256, PerformanceError> {
