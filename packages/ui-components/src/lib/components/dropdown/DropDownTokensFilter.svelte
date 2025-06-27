@@ -20,6 +20,7 @@
 
 	let filteredTokens: SgErc20WithSubgraphName[] = [];
 	let searchTerm: string = '';
+	let selectedIndex = 0; // Selected item index
 
 	$: availableTokens = ($tokensQuery?.data as SgErc20WithSubgraphName[]) || [];
 
@@ -44,6 +45,8 @@
 					token.token.name?.toLowerCase().includes(term) ||
 					token.token.address?.toLowerCase().includes(term)
 			);
+			// Select first element in the list automatically if there are any results
+			selectedIndex = filteredTokens.length > 0 ? 0 : -1;
 		}
 	}
 
@@ -62,6 +65,35 @@
 				: [...$activeTokens, token.address];
 
 		updateSelectedTokens(newSelection);
+	}
+
+	function handleKeyDown(event: KeyboardEvent) {
+		if (!filteredTokens.length) return;
+
+		switch (event.key) {
+			case 'Enter':
+				event.preventDefault();
+				if (filteredTokens.length > 0) {
+					const targetIndex = selectedIndex >= 0 ? selectedIndex : 0;
+					const tokenToToggle = filteredTokens[targetIndex];
+					if (tokenToToggle) {
+						toggleToken(tokenToToggle);
+					}
+				}
+				break;
+			case 'ArrowDown':
+				event.preventDefault();
+				selectedIndex = Math.min(selectedIndex + 1, filteredTokens.length - 1);
+				break;
+			case 'ArrowUp':
+				event.preventDefault();
+				selectedIndex = Math.max(selectedIndex - 1, 0);
+				break;
+			case 'Escape':
+				searchTerm = '';
+				selectedIndex = -1;
+				break;
+		}
 	}
 </script>
 
@@ -95,6 +127,8 @@
 					<Input
 						placeholder="Search tokens..."
 						bind:value={searchTerm}
+						autofocus
+						on:keydown={handleKeyDown}
 						data-testid="tokens-filter-search"
 					>
 						<SearchSolid slot="left" class="h-4 w-4 text-gray-500" />
@@ -104,10 +138,13 @@
 				{#if isEmpty(filteredTokens)}
 					<div class="ml-2 w-full rounded-lg p-3">No tokens match your search</div>
 				{:else}
-					{#each filteredTokens as token}
+					{#each filteredTokens as token, index}
 						<Checkbox
 							data-testid="dropdown-tokens-filter-option"
-							class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600"
+							class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600 {selectedIndex ===
+							index
+								? 'bg-blue-100 dark:bg-blue-900'
+								: ''}"
 							on:click={() => toggleToken(token)}
 							checked={!!(token.token.address && $activeTokens.indexOf(token.token.address) > -1)}
 						>
