@@ -44,15 +44,6 @@ pub struct SgOrdersListQueryFilters {
 }
 
 #[derive(cynic::InputObject, Debug, Clone, Tsify)]
-#[cynic(graphql_type = "Order_filter")]
-pub struct SgOrderTokenFilter {
-    #[cynic(rename = "inputs_", skip_serializing_if = "Option::is_none")]
-    pub inputs_: Option<SgVaultTokenFilter>,
-    #[cynic(rename = "outputs_", skip_serializing_if = "Option::is_none")]
-    pub outputs_: Option<SgVaultTokenFilter>,
-}
-
-#[derive(cynic::InputObject, Debug, Clone, Tsify)]
 #[cynic(graphql_type = "Vault_filter")]
 pub struct SgVaultTokenFilter {
     #[cynic(rename = "token_in")]
