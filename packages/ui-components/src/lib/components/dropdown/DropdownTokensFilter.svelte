@@ -104,6 +104,9 @@
 			color="alternative"
 			class="flex w-full justify-between overflow-hidden pl-2 pr-0 text-left"
 			data-testid="dropdown-tokens-filter-button"
+			aria-label="Select tokens to filter"
+			aria-expanded="false"
+			aria-haspopup="listbox"
 		>
 			<div class="w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">
 				{buttonText}
