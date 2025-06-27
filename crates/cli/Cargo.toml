@@ -48,4 +48,3 @@ serde_json = { workspace = true }
 rain-metadata = { workspace = true }
 tempfile.workspace = true
 rain_orderbook_test_fixtures = { workspace = true }
-rain_interpreter_bindings = { path = "../../lib/rain.interpreter/crates/bindings" }

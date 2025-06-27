@@ -310,7 +310,7 @@ amount price: context<3 0>() context<4 0>();
             id: SgBytes(vault_id.to_string()),
             token: token.clone(),
             balance: SgBigInt("123".to_string()),
-            vault_id: SgBigInt(B256::random().to_string()),
+            vault_id: SgBigInt(vault_id.to_string()),
             owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
             orderbook: SgOrderbook {
                 id: SgBytes(setup.orderbook.to_string()),
@@ -350,8 +350,9 @@ amount price: context<3 0>() context<4 0>();
     async fn test_get_order_quotes_ok() {
         let setup = setup_test().await;
 
-        let vault_id1 = B256::random();
-        let vault_id2 = B256::random();
+        let vault_id_const = B256::from(U256::from(1u64));
+        let vault_id1 = vault_id_const; // for token1
+        let vault_id2 = vault_id_const; // for token2
 
         // Deposit in token1 and token2 vaults
         setup

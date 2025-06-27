@@ -320,34 +320,33 @@ _ _: 0 0;
             let rpc_server = MockServer::start_async().await;
             let dotrain = get_dotrain(&rpc_server.url("/rpc"));
 
+            // Helper closure to build ABI-encoded single-address return values.
+            let build_address_return = |id: u64| {
+                let addr = Address::random();
+                let encoded_ret = <sol!((address,))>::abi_encode(&(addr,));
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "result": encode_prefixed(encoded_ret)
+                })
+            };
+
             // mock iInterpreter() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xf0cfdd37");
-                then.json_body(json!({
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "result": "0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
-                }));
+                then.json_body(build_address_return(1));
             });
 
             // mock iStore() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xc19423bc");
-                then.json_body(json!({
-                    "jsonrpc": "2.0",
-                    "id": 2,
-                    "result": "0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
-                }));
+                then.json_body(build_address_return(2));
             });
 
             // mock iParser() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0x24376855");
-                then.json_body(json!({
-                    "jsonrpc": "2.0",
-                    "id": 3,
-                    "result": "0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
-                }));
+                then.json_body(build_address_return(3));
             });
 
             // mock parse2() call
