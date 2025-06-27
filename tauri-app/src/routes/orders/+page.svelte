@@ -12,6 +12,7 @@
     showInactiveOrders,
     orderHash,
     hideZeroBalanceVaults,
+    activeTokens,
     resetActiveNetworkRef,
     resetActiveOrderbookRef,
     activeOrderbook,
@@ -42,5 +43,6 @@
   {showInactiveOrders}
   {orderHash}
   {hideZeroBalanceVaults}
+  {activeTokens}
   showMyItemsOnly={writable(false)}
 />

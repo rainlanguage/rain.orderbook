@@ -7,6 +7,7 @@ import {
   parseYaml,
   type NewConfig,
   type OrderbookCfg,
+  type SgErc20,
   type SubgraphCfg,
 } from '@rainlanguage/orderbook';
 import { pickBy } from 'lodash';
@@ -293,4 +294,23 @@ export const orderHash = cachedWritableStore<string>(
   '',
   (value) => value,
   (str) => str || '',
+);
+
+/**
+ * Store for managing selected token addresses for filtering
+ * Stores an array of token addresses that are currently selected for filtering
+ * @default [] - Empty array by default
+ * @returns A writable store containing selected tokens mapped by address
+ */
+export const activeTokens = cachedWritableStore<SgErc20['address'][]>(
+  'settings.selectedTokens',
+  [],
+  JSON.stringify,
+  (str) => {
+    try {
+      return JSON.parse(str);
+    } catch {
+      return [];
+    }
+  },
 );
