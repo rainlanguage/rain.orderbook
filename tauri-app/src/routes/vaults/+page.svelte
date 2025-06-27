@@ -15,6 +15,7 @@
     activeNetworkRef,
     activeOrderbookRef,
     activeAccounts,
+    activeTokens,
     resetActiveNetworkRef,
     resetActiveOrderbookRef,
   } from '$lib/stores/settings';
@@ -48,6 +49,7 @@
   {hideZeroBalanceVaults}
   {activeNetworkRef}
   {activeOrderbookRef}
+  {activeTokens}
   {handleDepositGenericModal}
   {handleDepositModal}
   {handleWithdrawModal}
