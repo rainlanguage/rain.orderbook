@@ -27,7 +27,6 @@
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
-	export let activeAccounts: AppStoresInterface['activeAccounts'];
 
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
@@ -52,7 +51,6 @@
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
-			$activeAccounts,
 			$hideZeroBalanceVaults,
 			$activeSubgraphs,
 			multiSubgraphArgs,

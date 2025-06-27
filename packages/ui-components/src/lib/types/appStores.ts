@@ -19,9 +19,6 @@ export interface AppStoresInterface {
 	activeOrderbookRef: Writable<string | undefined>;
 	activeOrderbook: Readable<OrderbookCfg | undefined>;
 	subgraph: Readable<SubgraphCfg | undefined>;
-	activeAccounts: Readable<{
-		[k: string]: AccountCfg;
-	}>;
 	showMyItemsOnly: Writable<boolean>;
 	activeNetworkOrderbooks: Readable<Record<string, OrderbookCfg>>;
 	activeTokens: Writable<SgErc20WithSubgraphName['token']['address'][]>;
