@@ -4,7 +4,7 @@ import type {
 	NewConfig,
 	OrderbookCfg,
 	SubgraphCfg,
-	SgErc20WithSubgraphName
+	SgTokenAddress
 } from '@rainlanguage/orderbook';
 
 export interface AppStoresInterface {
@@ -21,5 +21,5 @@ export interface AppStoresInterface {
 	subgraph: Readable<SubgraphCfg | undefined>;
 	showMyItemsOnly: Writable<boolean>;
 	activeNetworkOrderbooks: Readable<Record<string, OrderbookCfg>>;
-	activeTokens: Writable<SgErc20WithSubgraphName['token']['address'][]>;
+	activeTokens: Writable<SgTokenAddress[]>;
 }

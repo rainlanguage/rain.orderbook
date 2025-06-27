@@ -3,7 +3,7 @@
 	import { Button, Dropdown, Label, Checkbox, Input } from 'flowbite-svelte';
 	import { ChevronDownSolid, SearchSolid } from 'flowbite-svelte-icons';
 	import { isEmpty } from 'lodash';
-	import type { SgErc20WithSubgraphName } from '@rainlanguage/orderbook';
+	import type { SgErc20WithSubgraphName, SgTokenAddress } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import type { Readable } from 'svelte/store';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
@@ -50,7 +50,7 @@
 		}
 	}
 
-	function updateSelectedTokens(newSelection: SgErc20WithSubgraphName['token']['address'][]) {
+	function updateSelectedTokens(newSelection: SgTokenAddress[]) {
 		activeTokens.set(newSelection);
 		dispatch('change', activeTokens);
 	}
