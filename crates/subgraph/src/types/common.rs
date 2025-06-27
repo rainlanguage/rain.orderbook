@@ -334,11 +334,14 @@ pub struct SgOrderStructPartialTrade {
     pub id: SgBytes,
 }
 
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type SgTokenAddress = SgBytes;
+
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq, Eq, Hash, Tsify)]
 #[cynic(graphql_type = "ERC20")]
 pub struct SgErc20 {
     pub id: SgBytes,
-    pub address: SgBytes,
+    pub address: SgTokenAddress,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub name: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
