@@ -1,5 +1,4 @@
 use alloy::primitives::Bytes;
-use alloy::{hex::encode_prefixed, sol, sol_types::SolType};
 use rain_orderbook_app_settings::{Config, ParseConfigSourceError};
 use rain_orderbook_common::{
     add_order::{AddOrderArgs, AddOrderArgsError},
@@ -167,7 +166,7 @@ mod tests {
         use alloy::{
             hex::encode_prefixed,
             primitives::{Address, FixedBytes, B256, U256},
-            sol_types::SolCall,
+            sol_types::{SolCall, SolValue},
         };
         use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, EvaluableV4, OrderV4, IOV2};
         use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes, SgOrderbook};
@@ -238,6 +237,7 @@ mod tests {
     mod non_wasm_tests {
         use super::*;
         use alloy::primitives::{Address, B256, U256};
+        use alloy::{hex::encode_prefixed, sol, sol_types::SolType};
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
         use rain_orderbook_bindings::IOrderBookV5::IOV2;
