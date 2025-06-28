@@ -9,9 +9,7 @@ import {
 	getVaultWithdrawCalldata,
 	checkVaultAllowance,
 	getVaultApprovalCalldata,
-	SgVault,
-	SgVaultWithSubgraphName,
-	SgDeposit
+	SgVault
 } from '../../dist/cjs';
 
 const vault1: SgVault = {
