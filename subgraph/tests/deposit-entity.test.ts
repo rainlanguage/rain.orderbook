@@ -6,11 +6,12 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, Address, crypto } from "@graphprotocol/graph-ts";
+import { BigInt, Address, crypto, Bytes } from "@graphprotocol/graph-ts";
 import { createDepositEntity } from "../src/deposit";
 import { createDepositEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
 import { createMockERC20Functions } from "./erc20.test";
+import { FLOAT_100, FLOAT_0 } from "./float.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -19,29 +20,35 @@ describe("Deposits", () => {
   });
 
   test("createDepositEntity()", () => {
-    createMockERC20Functions(
-      Address.fromString("0x0987654321098765432109876543210987654321")
-    );
+    const sender = "0x1234567890123456789012345678901234567890";
+    const token = "0x0987654321098765432109876543210987654321";
+    const vaultId =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-    let event = createDepositEvent(
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
+    createMockERC20Functions(Address.fromString(token));
+
+    const senderAddr = Address.fromString(sender);
+    const tokenAddr = Address.fromString(token);
+    const vaultIdBytes = Bytes.fromHexString(vaultId);
+
+    const event = createDepositEvent(
+      senderAddr,
+      tokenAddr,
+      vaultIdBytes,
       BigInt.fromI32(100)
     );
-    let newVaultBalance = BigInt.fromI32(0);
-    createDepositEntity(event, newVaultBalance);
+    createDepositEntity(event, FLOAT_0, FLOAT_100, FLOAT_100);
 
-    let id = crypto.keccak256(
+    const id = crypto.keccak256(
       event.address.concat(
         event.transaction.hash.concatI32(event.logIndex.toI32())
       )
     );
-    let vaultId = vaultEntityId(
+    const vaultEId = vaultEntityId(
       event.address,
-      Address.fromString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(1),
-      Address.fromString("0x0987654321098765432109876543210987654321")
+      senderAddr,
+      vaultIdBytes,
+      tokenAddr
     );
 
     assert.entityCount("Deposit", 1);
@@ -49,19 +56,19 @@ describe("Deposits", () => {
       "Deposit",
       id.toHexString(),
       "amount",
-      BigInt.fromI32(100).toString()
+      FLOAT_100.toHexString()
     );
     assert.fieldEquals(
       "Deposit",
       id.toHexString(),
       "sender",
-      "0x1234567890123456789012345678901234567890"
+      sender.toLowerCase()
     );
     assert.fieldEquals(
       "Deposit",
       id.toHexString(),
       "vault",
-      vaultId.toHexString()
+      vaultEId.toHexString()
     );
     assert.fieldEquals(
       "Deposit",
@@ -73,13 +80,13 @@ describe("Deposits", () => {
       "Deposit",
       id.toHexString(),
       "oldVaultBalance",
-      BigInt.fromI32(0).toString()
+      FLOAT_0.toHexString()
     );
     assert.fieldEquals(
       "Deposit",
       id.toHexString(),
       "newVaultBalance",
-      BigInt.fromI32(100).toString()
+      FLOAT_100.toHexString()
     );
     assert.fieldEquals(
       "Deposit",

@@ -122,6 +122,7 @@ impl RaindexClient {
         }
     }
 
+    #[cfg(all(test, target_family = "wasm"))]
     fn get_subgraph_url_for_chain(&self, chain_id: u64) -> Result<String, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         let orderbook = self

@@ -77,17 +77,19 @@ impl Execute for CliOrderAddArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
+    use alloy::primitives::{address, Address, B256, U256};
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IOrderBookV4::IO;
+    use rain_orderbook_bindings::IOrderBookV5::IOV2;
     use std::{collections::HashMap, str::FromStr};
+    use tempfile::NamedTempFile;
 
     #[tokio::test]
     async fn test_to_add_order_args() {
         let dotrain = get_dotrain();
 
-        let dotrain_path = "./test_dotrain_add_order.rain";
-        std::fs::write(dotrain_path, dotrain).unwrap();
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain).unwrap();
 
         let cli_order_add_args = CliOrderAddArgs {
             no_broadcast: false,
@@ -100,30 +102,24 @@ mod tests {
                 rpc_url: "https://some-rpc.com".to_string(),
                 max_fee_per_gas: None,
                 max_priority_fee_per_gas: None,
-                gas_fee_speed: None,
             },
         };
 
         let result = cli_order_add_args.to_add_order_args().await.unwrap();
         let expected = AddOrderArgs {
             dotrain: get_dotrain(),
-            inputs: vec![IO {
-                token: Address::from_str("0xc2132d05d31c914a87c6611c10748aeb04b58e8f").unwrap(),
-                decimals: 6,
-                vaultId: U256::from(1),
+            inputs: vec![IOV2 {
+                token: address!("0xc2132d05d31c914a87c6611c10748aeb04b58e8f"),
+                vaultId: B256::from(U256::from(1)),
             }],
-            outputs: vec![IO {
-                token: Address::from_str("0x8f3cf7ad23cd3cadbd9735aff958023239c6a063").unwrap(),
-                decimals: 18,
-                vaultId: U256::from(1),
+            outputs: vec![IOV2 {
+                token: address!("0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"),
+                vaultId: B256::from(U256::from(1)),
             }],
             deployer: Address::from_str("0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba").unwrap(),
             bindings: HashMap::new(),
         };
         assert_eq!(result, expected);
-
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     fn get_dotrain() -> String {

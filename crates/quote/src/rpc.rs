@@ -2,92 +2,87 @@ use crate::{
     error::{Error, FailedQuote},
     quote::{QuoteResult, QuoteTarget},
 };
-use alloy::primitives::{hex::FromHex, Address, U256, U64};
-use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::{
-    multicall::{
-        IMulticall3::{aggregate3Call, Call3},
-        MULTICALL3_ADDRESS,
-    },
-    transaction::{ReadContractParameters, ReadableClient},
+use alloy::providers::{Failure, Provider};
+use alloy::{
+    eips::{BlockId, BlockNumberOrTag},
+    primitives::Address,
 };
 use rain_error_decoding::AbiDecodedErrorType;
-use rain_orderbook_bindings::IOrderBookV4::quoteCall;
+use rain_orderbook_bindings::IOrderBookV5::{quote2Return, IOrderBookV5Instance};
+use rain_orderbook_common::provider::mk_read_provider;
 
 /// Quotes array of given quote targets using the given rpc url
 pub async fn batch_quote(
     quote_targets: &[QuoteTarget],
     rpc: &str,
     block_number: Option<u64>,
-    gas: Option<U256>,
+    _gas: Option<u64>, // TODO: remove or use
     multicall_address: Option<Address>,
 ) -> Result<Vec<QuoteResult>, Error> {
-    let client = ReadableClient::new_from_urls(vec![rpc.to_string()])?;
-    let parameters = ReadContractParameters {
-        gas,
-        address: multicall_address.unwrap_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap()),
-        block_number: block_number.map(U64::from),
-        call: aggregate3Call {
-            calls: quote_targets
-                .iter()
-                .map(|quote_target| Call3 {
-                    allowFailure: true,
-                    target: quote_target.orderbook,
-                    callData: quoteCall {
-                        quoteConfig: quote_target.quote_config.clone(),
-                    }
-                    .abi_encode()
-                    .into(),
-                })
-                .collect(),
-        },
-    };
-    let multicall_result = client.read(parameters).await?;
+    let provider = mk_read_provider(&[rpc])?;
 
-    let mut result: Vec<QuoteResult> = vec![];
-    for res in multicall_result.returnData {
-        if res.success {
-            match quoteCall::abi_decode_returns(&res.returnData, true) {
-                Ok(v) => {
-                    if v.exists {
-                        result.push(Ok(v.into()));
-                    } else {
-                        result.push(Err(FailedQuote::NonExistent));
-                    }
+    let mut multicall = if let Some(addr) = multicall_address {
+        provider.multicall().address(addr).dynamic()
+    } else {
+        provider.multicall().dynamic()
+    };
+
+    if let Some(block_number) = block_number {
+        multicall = multicall.block(BlockId::Number(BlockNumberOrTag::Number(block_number)));
+    }
+
+    for quote_target in quote_targets {
+        let ob_instance = IOrderBookV5Instance::new(quote_target.orderbook, provider.clone());
+        multicall = multicall.add_dynamic(ob_instance.quote2(quote_target.quote_config.clone()));
+    }
+
+    let aggregate_res: Vec<Result<quote2Return, Failure>> = multicall.aggregate3().await?;
+
+    let mut results: Vec<QuoteResult> = Vec::with_capacity(aggregate_res.len());
+    for res in aggregate_res {
+        match res {
+            Ok(ret) => {
+                if ret.exists {
+                    results.push(Ok(ret.into()));
+                } else {
+                    results.push(Err(FailedQuote::NonExistent));
                 }
-                Err(e) => result.push(Err(FailedQuote::CorruptReturnData(e.to_string()))),
             }
-        } else {
-            match AbiDecodedErrorType::selector_registry_abi_decode(&res.returnData).await {
-                Ok(e) => result.push(Err(FailedQuote::RevertError(e))),
-                Err(e) => result.push(Err(FailedQuote::RevertErrorDecodeFailed(e))),
+            Err(failure) => {
+                match AbiDecodedErrorType::selector_registry_abi_decode(&failure.return_data).await
+                {
+                    Ok(e) => results.push(Err(FailedQuote::RevertError(e))),
+                    Err(e) => results.push(Err(FailedQuote::RevertErrorDecodeFailed(e))),
+                }
             }
         }
     }
-    Ok(result)
+
+    Ok(results)
 }
 
 #[cfg(not(target_family = "wasm"))]
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::quote::OrderQuoteValue;
-    use alloy::primitives::hex::encode_prefixed;
+    use alloy::providers::bindings::IMulticall3::Result as MulticallResult;
+    use alloy::providers::MulticallError;
+    use alloy::sol_types::SolCall;
     use alloy::sol_types::SolValue;
-    use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
-    use alloy_ethers_typecast::transaction::ReadableClientError;
-    use alloy_ethers_typecast::{
-        request_shim::{AlloyTransactionRequest, TransactionRequestShim},
-        rpc::{eip2718::TypedTransaction, BlockNumber, Request, Response},
-    };
+    use alloy::transports::TransportError;
     use httpmock::{Method::POST, MockServer};
-    use serde_json::{from_str, Value};
+    use rain_math_float::Float;
+    use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return};
+    use rain_orderbook_common::provider::ReadProviderError;
+    use serde_json::json;
 
     #[tokio::test]
     async fn test_batch_quote_ok() {
         let rpc_server = MockServer::start_async().await;
 
-        let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
+        let zero = Float::parse("0".to_string()).unwrap();
+        let one = Float::parse("1".to_string()).unwrap();
+        let two = Float::parse("2".to_string()).unwrap();
 
         // build call data
         let quote_targets = vec![
@@ -95,31 +90,26 @@ mod tests {
             QuoteTarget::default(),
             QuoteTarget::default(),
         ];
-        let call = aggregate3Call {
-            calls: quote_targets
-                .iter()
-                .map(|quote_target| Call3 {
-                    allowFailure: true,
-                    target: quote_target.orderbook,
-                    callData: quoteCall {
-                        quoteConfig: quote_target.quote_config.clone(),
-                    }
-                    .abi_encode()
-                    .into(),
-                })
-                .collect(),
-        };
 
         // build response data
         let response_data = vec![
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2)))
-                    .into(),
+                returnData: quote2Call::abi_encode_returns(&quote2Return {
+                    exists: true,
+                    outputMax: one.0,
+                    ioRatio: two.0,
+                })
+                .into(),
             },
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)).into(),
+                returnData: quote2Call::abi_encode_returns(&quote2Return {
+                    exists: false,
+                    outputMax: zero.0,
+                    ioRatio: zero.0,
+                })
+                .into(),
             },
             MulticallResult {
                 success: false,
@@ -130,28 +120,12 @@ mod tests {
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
-            when.method(POST).path("/").json_body_partial(
-                Request::<(TypedTransaction, BlockNumber)>::eth_call_request(
-                    1,
-                    TypedTransaction::Eip1559(
-                        AlloyTransactionRequest::new()
-                            .with_to(Some(multicall))
-                            .with_data(Some(call.abi_encode()))
-                            .to_eip1559(),
-                    ),
-                    None,
-                )
-                .to_json_string()
-                .unwrap(),
-            );
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(1, encode_prefixed(response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            when.method(POST).path("/");
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": alloy::hex::encode_prefixed(response_data).as_str(),
+            }));
         });
 
         let result = batch_quote(
@@ -163,24 +137,17 @@ mod tests {
         )
         .await
         .unwrap();
-        let mut iter_result = result.into_iter();
 
-        assert_eq!(
-            iter_result.next().unwrap().unwrap(),
-            OrderQuoteValue {
-                max_output: U256::from(1),
-                ratio: U256::from(2),
-            }
-        );
-        matches!(
-            iter_result.next().unwrap(),
-            Result::Err(FailedQuote::NonExistent)
-        );
-        matches!(
-            iter_result.next().unwrap(),
-            Result::Err(FailedQuote::RevertErrorDecodeFailed(_))
-        );
-        assert!(iter_result.next().is_none());
+        assert_eq!(result.len(), 3);
+
+        assert!(result[0].as_ref().unwrap().max_output.eq(one).unwrap());
+        assert!(result[0].as_ref().unwrap().ratio.eq(two).unwrap());
+
+        assert!(matches!(result[1], Err(FailedQuote::NonExistent)));
+        assert!(matches!(
+            result[2],
+            Err(FailedQuote::RevertErrorDecodeFailed(_))
+        ));
     }
 
     #[tokio::test]
@@ -195,22 +162,23 @@ mod tests {
         assert!(
             matches!(
                 err,
-                Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(ref msg))
-                if msg.contains("No valid providers could be created from the given URLs")
+                Error::ReadProviderError(ReadProviderError::UrlParse(
+                    url::ParseError::RelativeUrlWithoutBase
+                ))
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
 
         rpc_server.mock(|when, then| {
             when.path("/rpc");
-            then.status(500).json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_error(1, -32000, "Internal error", None)
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.status(500).json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error"
+                }
+            }));
         });
 
         let err = batch_quote(
@@ -226,14 +194,9 @@ mod tests {
         assert!(
             matches!(
                 err,
-                Error::RpcCallError(ReadableClientError::AllProvidersFailed(ref msg))
-                if msg.get(rpc_server.url("/rpc").as_str()).is_some()
-                    && matches!(
-                        msg.get(rpc_server.url("/rpc").as_str()).unwrap(),
-                        ReadableClientError::RpcProviderError(_, _)
-                    )
+                Error::MulticallError(MulticallError::TransportError(TransportError::Transport(_)))
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
     }
 }

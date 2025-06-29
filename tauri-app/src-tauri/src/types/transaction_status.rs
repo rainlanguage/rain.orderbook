@@ -10,8 +10,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 pub enum TransactionStatus {
     Initialized,
     PendingPrepare,
-    PendingSign,
-    PendingSend,
+    PendingSignAndSend,
     Confirmed(String),
     Failed(String),
 }

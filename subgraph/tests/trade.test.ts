@@ -14,7 +14,7 @@ import {
   ethereum,
   crypto,
 } from "@graphprotocol/graph-ts";
-import { Evaluable, IO, createTakeOrderEvent } from "./event-mocks.test";
+import { Evaluable, IOV2, createTakeOrderEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
 import { eventId } from "../src/interfaces/event";
 import { createTradeEntity, makeTradeId } from "../src/trade";
@@ -64,17 +64,19 @@ describe("Deposits", () => {
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x3333333333333333333333333333333333333333"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x4444444444444444444444444444444444444444"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x5555555555555555555555555555555555555555"),
@@ -83,8 +85,12 @@ describe("Deposits", () => {
         Address.fromString("0x7777777777777777777777777777777777777777"),
         Bytes.fromHexString("0x8888888888888888888888888888888888888888")
       ),
-      BigInt.fromI32(1),
-      BigInt.fromI32(1)
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      ),
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      )
     );
 
     let orderHash = Bytes.fromByteArray(
@@ -97,7 +103,9 @@ describe("Deposits", () => {
         vaultEntityId(
           event.address,
           Address.fromString("0x1111111111111111111111111111111111111111"),
-          BigInt.fromU32(1),
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ),
           Address.fromString("0x3333333333333333333333333333333333333333")
         )
       )
@@ -109,7 +117,9 @@ describe("Deposits", () => {
         vaultEntityId(
           event.address,
           Address.fromString("0x1111111111111111111111111111111111111111"),
-          BigInt.fromU32(1),
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          ),
           Address.fromString("0x4444444444444444444444444444444444444444")
         )
       )

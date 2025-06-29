@@ -39,11 +39,10 @@ pub async fn get_transaction(url: &str, tx_hash: &str) -> Result<SgTransaction, 
     Ok(client.transaction_detail(Id::new(tx_hash)).await?)
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod test_helpers {
     use super::*;
 
-    #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
         use httpmock::MockServer;

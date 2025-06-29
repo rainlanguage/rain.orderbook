@@ -59,11 +59,10 @@ pub async fn get_transaction_add_orders(
     ))
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
 
-    #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
         use httpmock::MockServer;
