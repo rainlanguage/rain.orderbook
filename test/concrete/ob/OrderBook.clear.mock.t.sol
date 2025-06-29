@@ -320,7 +320,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         // Expected input for Alice is aliceOutput * aliceIORatio
 
         Float aliceOutput = LibDecimalFloat.packLossless(1, 0);
-        checkClearStruct.expectedAliceInput = aliceIORatio.multiply(aliceOutput);
+        checkClearStruct.expectedAliceInput = aliceIORatio.mul(aliceOutput);
         // Expected input for Bob is Alice's output in entirety, because
         // alice IO * bob IO <= 1 and Bob is the larger ratio.
         // As Bob's ratio is >= 1 he will have his input shrunk to match

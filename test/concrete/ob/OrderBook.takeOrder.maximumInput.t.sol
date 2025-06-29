@@ -207,7 +207,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         Float maximumTakerInput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerInput18, 18);
 
         Float expectedTakerInput = LibDecimalFloat.packLossless(1, -15);
-        Float expectedTakerOutput = expectedTakerInput.multiply(LibDecimalFloat.packLossless(2, 0));
+        Float expectedTakerOutput = expectedTakerInput.mul(LibDecimalFloat.packLossless(2, 0));
 
         TestOrder[] memory testOrders = new TestOrder[](1);
         testOrders[0] = TestOrder(owner, "_ _:1e-15 2;:;");
@@ -233,7 +233,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         Float ownerDepositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerDepositAmount18, 18);
         Float maximumTakerInput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerInput18, 18);
         Float expectedTakerInput = ownerDepositAmount;
-        Float expectedTakerOutput = expectedTakerInput.multiply(LibDecimalFloat.packLossless(2, 0));
+        Float expectedTakerOutput = expectedTakerInput.mul(LibDecimalFloat.packLossless(2, 0));
 
         TestOrder[] memory testOrders = new TestOrder[](1);
         testOrders[0] = TestOrder(owner, "_ _:1e-15 2;:;");
