@@ -20,6 +20,16 @@ pub enum ReadProviderError {
     NoRpcs,
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError> {
+    let rpc = rpcs.first().ok_or(ReadProviderError::NoRpcs)?;
+    let transport = Http::new(Url::parse(rpc)?);
+    let client = RpcClient::builder().transport(transport, false);
+    let provider = ProviderBuilder::new_with_network::<AnyNetwork>().connect_client(client);
+    Ok(provider)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError> {
     let size = rpcs.len();
 

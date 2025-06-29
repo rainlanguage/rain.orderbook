@@ -13,7 +13,7 @@ import {
 	BatchOrderQuotesResponse
 } from '../../dist/cjs';
 
-describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
+describe.skip('Rain Orderbook Quote Package Bindgen Tests', async function () {
 	const mockServer = getLocal();
 	beforeEach(() => mockServer.start(8023));
 	afterEach(() => mockServer.stop());

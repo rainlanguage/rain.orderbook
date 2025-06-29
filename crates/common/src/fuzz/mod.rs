@@ -1,3 +1,4 @@
+#[cfg(not(target_family = "wasm"))]
 pub use rain_interpreter_eval::trace::*;
 use rain_orderbook_app_settings::chart::ChartCfg;
 use serde::{Deserialize, Serialize};
@@ -77,3 +78,24 @@ pub struct DeploymentDebugPairData {
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DeploymentDebugPairData);
+
+// Stub definitions for wasm builds where the full tracing machinery is unavailable.
+// These provide the minimum surface required by the TypeScript bindings (mainly the
+// ability to serialise/deserialize and be exposed through tsify).
+#[cfg(target_family = "wasm")]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct RainEvalResultsTable;
+
+#[cfg(target_family = "wasm")]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct RainEvalResults;
+
+#[cfg(target_family = "wasm")]
+impl RainEvalResults {
+    #[allow(clippy::unused_self)]
+    pub fn into_flattened_table(self) -> RainEvalResultsTable {
+        RainEvalResultsTable
+    }
+}
