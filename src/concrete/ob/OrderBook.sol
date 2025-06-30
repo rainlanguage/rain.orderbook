@@ -497,7 +497,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         // Can't exceed the remaining taker input.
                         Float takerInput = orderIOCalculation.outputMax.min(remainingTakerInput);
 
-                        Float takerOutput = orderIOCalculation.IORatio.multiply(takerInput);
+                        Float takerOutput = orderIOCalculation.IORatio.mul(takerInput);
 
                         remainingTakerInput = remainingTakerInput.sub(takerInput);
 
@@ -933,7 +933,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         OrderIOCalculationV4 memory bobOrderIOCalculation
     ) internal pure returns (Float aliceInput, Float aliceOutput) {
         // Alice's input is her output * her IO ratio.
-        aliceInput = aliceOrderIOCalculation.outputMax.multiply(aliceOrderIOCalculation.IORatio);
+        aliceInput = aliceOrderIOCalculation.outputMax.mul(aliceOrderIOCalculation.IORatio);
 
         aliceOutput = aliceOrderIOCalculation.outputMax;
 
@@ -943,7 +943,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             aliceInput = bobOrderIOCalculation.outputMax;
 
             // Alice's output is capped at her input / her IO ratio.
-            aliceOutput = aliceInput.divide(aliceOrderIOCalculation.IORatio);
+            aliceOutput = aliceInput.div(aliceOrderIOCalculation.IORatio);
         }
     }
 
