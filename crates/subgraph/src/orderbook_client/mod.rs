@@ -13,7 +13,7 @@ use crate::types::remove_order::{
     SgTransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables,
 };
 use crate::types::transaction::SgTransactionDetailQuery;
-use crate::types::vault::{SgVaultDetailQuery, SgVaultTokensListQuery, SgVaultsListQuery};
+use crate::types::vault::{SgVaultDetailQuery, SgVaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use cynic::Id;
 use reqwest::Url;
@@ -23,6 +23,7 @@ use wasm_bindgen_utils::prelude::*;
 mod order;
 mod order_trade;
 mod performance;
+mod token;
 mod transaction;
 mod vault;
 

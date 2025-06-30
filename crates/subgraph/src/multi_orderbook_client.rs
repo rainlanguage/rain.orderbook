@@ -109,7 +109,7 @@ impl MultiOrderbookSubgraphClient {
             let url = subgraph.url.clone();
             async move {
                 let client = self.get_orderbook_subgraph_client(url);
-                let tokens = client.vault_tokens_list_all().await?;
+                let tokens = client.tokens_list_all().await?;
                 let wrapped_tokens: Vec<SgErc20WithSubgraphName> = tokens
                     .into_iter()
                     .map(|token| SgErc20WithSubgraphName {

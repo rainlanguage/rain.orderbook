@@ -682,6 +682,14 @@ pub enum SgVaultOrderBy {
     BalanceChanges,
 }
 
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cynic(graphql_type = "Query")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgTokensListAllQuery {
+    #[cynic(rename = "erc20S")]
+    pub tokens: Vec<SgErc20>,
+}
+
 #[cfg(target_family = "wasm")]
 mod impls {
     use super::*;

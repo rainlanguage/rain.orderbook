@@ -29,18 +29,3 @@ pub struct SgVaultBalanceChangesListQuery {
     #[arguments(orderDirection: "desc", orderBy: "timestamp", where: { vault_: { id: $id } }, skip: $skip, first: $first)]
     pub vault_balance_changes: Vec<SgVaultBalanceChangeUnwrapped>,
 }
-
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "SgPaginationQueryVariables")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct SgVaultTokensListQuery {
-    #[arguments(orderBy: "id", orderDirection: "desc", skip: $skip, first: $first)]
-    pub vaults: Vec<SgVaultTokenOnly>,
-}
-
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Vault")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct SgVaultTokenOnly {
-    pub token: SgErc20,
-}
