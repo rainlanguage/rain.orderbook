@@ -3,9 +3,13 @@ use alloy::providers::{
     fillers::FillProvider, utils::JoinedRecommendedFillers, ProviderBuilder, RootProvider,
 };
 use alloy::rpc::client::RpcClient;
-use alloy::transports::{http::Http, layers::FallbackLayer};
+use alloy::transports::http::Http;
+#[cfg(not(target_family = "wasm"))]
+use alloy::transports::layers::FallbackLayer;
+#[cfg(not(target_family = "wasm"))]
 use std::num::NonZeroUsize;
 use thiserror::Error;
+#[cfg(not(target_family = "wasm"))]
 use tower::ServiceBuilder;
 use url::Url;
 
@@ -20,7 +24,7 @@ pub enum ReadProviderError {
     NoRpcs,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(target_family = "wasm")]
 pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError> {
     let rpc = rpcs.first().ok_or(ReadProviderError::NoRpcs)?;
     let transport = Http::new(Url::parse(rpc)?);
@@ -29,7 +33,7 @@ pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError
     Ok(provider)
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_family = "wasm"))]
 pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError> {
     let size = rpcs.len();
 
