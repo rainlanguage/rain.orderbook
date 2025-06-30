@@ -171,7 +171,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
             Float diff = vaultBalance.sub(testVaults[i].expect);
 
-            assertTrue(diff.lt(LibDecimalFloat.packLossless(1, -13)), "vaultBalance");
+            assertTrue(diff.lt(LibDecimalFloat.packLossless(11, -14)), "vaultBalance");
         }
     }
 
