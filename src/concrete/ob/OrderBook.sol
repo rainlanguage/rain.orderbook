@@ -532,9 +532,7 @@ contract OrderBook is
                             remainingTakerInput
                         );
 
-                        Float takerOutput = orderIOCalculation.IORatio.multiply(
-                            takerInput
-                        );
+                        Float takerOutput = orderIOCalculation.IORatio.mul(takerInput);
 
                         remainingTakerInput = remainingTakerInput.sub(
                             takerInput
@@ -1135,9 +1133,13 @@ contract OrderBook is
         OrderIOCalculationV4 memory bobOrderIOCalculation
     ) internal pure returns (Float aliceInput, Float aliceOutput) {
         // Alice's input is her output * her IO ratio.
+<<<<<<< HEAD
         aliceInput = aliceOrderIOCalculation.outputMax.multiply(
             aliceOrderIOCalculation.IORatio
         );
+=======
+        aliceInput = aliceOrderIOCalculation.outputMax.mul(aliceOrderIOCalculation.IORatio);
+>>>>>>> origin/2024-09-12-i9r
 
         aliceOutput = aliceOrderIOCalculation.outputMax;
 
@@ -1147,7 +1149,7 @@ contract OrderBook is
             aliceInput = bobOrderIOCalculation.outputMax;
 
             // Alice's output is capped at her input / her IO ratio.
-            aliceOutput = aliceInput.divide(aliceOrderIOCalculation.IORatio);
+            aliceOutput = aliceInput.div(aliceOrderIOCalculation.IORatio);
         }
     }
 

@@ -9,17 +9,7 @@ use wasm_bindgen_utils::prelude::*;
 /// Retrieves basic transaction information including sender, block number,
 /// and timestamp.
 ///
-/// # Parameters
-///
-/// * `url` - Subgraph endpoint URL
-/// * `tx_hash` - Transaction hash
-///
-/// # Returns
-///
-/// * `Ok(SgTransaction)` - Transaction details
-/// * `Err(SubgraphError)` - Transaction not found or network errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getTransaction(
@@ -33,8 +23,15 @@ use wasm_bindgen_utils::prelude::*;
 /// const transaction = result.value;
 /// // Do something with the transaction
 /// ```
-#[wasm_export(js_name = "getTransaction", unchecked_return_type = "SgTransaction")]
-pub async fn get_transaction(url: &str, tx_hash: &str) -> Result<SgTransaction, SubgraphError> {
+#[wasm_export(
+    js_name = "getTransaction",
+    unchecked_return_type = "SgTransaction",
+    return_description = "Transaction details"
+)]
+pub async fn get_transaction(
+    #[wasm_export(param_description = "Subgraph endpoint URL")] url: &str,
+    #[wasm_export(param_description = "Transaction hash")] tx_hash: &str,
+) -> Result<SgTransaction, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     Ok(client.transaction_detail(Id::new(tx_hash)).await?)
 }
