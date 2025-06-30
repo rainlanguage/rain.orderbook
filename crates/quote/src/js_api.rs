@@ -1,4 +1,4 @@
-use crate::{error::Error, BatchQuoteSpec, QuoteSpec};
+use crate::{error::Error, BatchQuoteSpec};
 use crate::{
     get_order_quotes, BatchOrderQuotesResponse, BatchQuoteTarget, OrderQuoteValue, QuoteTarget,
 };
@@ -412,6 +412,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod quote_non_wasm_tests {
         use super::*;
+        use crate::QuoteSpec;
         use alloy::primitives::{address, fixed_bytes, Bytes, FixedBytes};
         use alloy::{sol, sol_types::SolValue};
         use httpmock::MockServer;
