@@ -16,17 +16,7 @@ impl_wasm_traits!(GetTransactionAddOrdersResult);
 /// Retrieves all orders created within a single blockchain transaction, useful
 /// for tracking order deployment.
 ///
-/// # Parameters
-///
-/// * `url` - Subgraph endpoint URL
-/// * `tx_hash` - Transaction hash
-///
-/// # Returns
-///
-/// * `Ok(GetTransactionAddOrdersResult)` - Array of orders added in the transaction
-/// * `Err(SubgraphError)` - Transaction not found or network errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getTransactionAddOrders(
@@ -47,11 +37,12 @@ impl_wasm_traits!(GetTransactionAddOrdersResult);
 /// ```
 #[wasm_export(
     js_name = "getTransactionAddOrders",
-    unchecked_return_type = "GetTransactionAddOrdersResult"
+    unchecked_return_type = "GetTransactionAddOrdersResult",
+    return_description = "Array of orders added in the transaction"
 )]
 pub async fn get_transaction_add_orders(
-    url: &str,
-    tx_hash: &str,
+    #[wasm_export(param_description = "Subgraph endpoint URL")] url: &str,
+    #[wasm_export(param_description = "Transaction hash")] tx_hash: &str,
 ) -> Result<GetTransactionAddOrdersResult, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     Ok(GetTransactionAddOrdersResult(

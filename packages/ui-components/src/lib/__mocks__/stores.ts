@@ -6,12 +6,13 @@ import settingsYamlContent from '../__fixtures__/settings.yaml?raw';
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 
-vi.mock(import('@rainlanguage/orderbook'), async (importOriginal) => {
-	const actual = await importOriginal();
-	return {
-		...actual
-	};
-});
+if (import.meta.vitest) {
+	vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+		return {
+			...(await importOriginal())
+		};
+	});
+}
 
 // Parse the YAML settings
 const parseResult = parseYaml([settingsYamlContent]);

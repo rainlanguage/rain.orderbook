@@ -58,17 +58,16 @@ pub struct RaindexClient {
 impl RaindexClient {
     /// Constructor that creates and returns RaindexClient instance directly
     ///
-    /// # Parameters
+    /// ## Parameters
     ///
-    /// - `ob_yamls` - Vector of YAML configuration strings
-    /// The YAML files must match the orderbook yaml [spec]()
+    /// - `ob_yamls` - Vector of YAML configuration strings. The YAML files must match the [orderbook yaml spec](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md).
+    /// - `validate` - Optional boolean flag to enable validation of the YAML configuration. Defaults to false.
     ///
-    /// # Returns
+    /// ## Returns
     ///
-    /// - `Ok(RaindexClient)` - Initialized client instance for further operations
-    /// - `Err(RaindexError)` - For YAML parsing or initialization errors
+    /// - `RaindexClient` - Initialized client instance for further operations.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Single YAML file
@@ -190,6 +189,8 @@ pub enum RaindexError {
     WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
     #[error(transparent)]
     DepositArgsError(#[from] DepositError),
+    #[error("Missing subgraph {0} for order {1}")]
+    SubgraphNotFound(String, String),
 }
 
 impl RaindexError {
@@ -254,6 +255,12 @@ impl RaindexError {
             }
             RaindexError::DepositArgsError(err) => {
                 format!("Failed to create deposit arguments: {}", err)
+            }
+            RaindexError::SubgraphNotFound(subgraph, order) => {
+                format!(
+                    "Subgraph with name '{}' not found for the order with hash '{}'",
+                    subgraph, order
+                )
             }
         }
     }

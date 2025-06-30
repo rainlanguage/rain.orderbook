@@ -97,6 +97,25 @@ impl DotrainYaml {
 
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
+    pub fn get_order_for_gui_deployment(
+        &self,
+        order_key: &str,
+        deployment_key: &str,
+    ) -> Result<OrderCfg, YamlError> {
+        let mut context = Context::new();
+        self.expand_context_with_current_order(&mut context, Some(order_key.to_string()));
+        self.expand_context_with_current_deployment(&mut context, Some(deployment_key.to_string()));
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
+
+        if let Some(select_tokens) =
+            GuiCfg::parse_select_tokens(self.documents.clone(), deployment_key)?
+        {
+            context.add_select_tokens(select_tokens.iter().map(|st| st.key.clone()).collect());
+        }
+
+        OrderCfg::parse_from_yaml(self.documents.clone(), order_key, Some(&context))
+    }
 
     pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_scenarios()?.keys().cloned().collect())
