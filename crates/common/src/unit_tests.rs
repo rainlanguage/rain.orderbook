@@ -11,7 +11,7 @@ use rain_interpreter_eval::{
     error::ForkCallError,
     eval::ForkEvalArgs,
     fork::{Forker, NewForkedEvm},
-    trace::RainEvalResult,
+    trace::RainEvalResults,
 };
 use rain_orderbook_app_settings::{
     blocks::BlockError, config::*, deployer::DeployerCfg, unit_test::TestConfig,
@@ -133,7 +133,7 @@ impl TestRunner {
         final_bindings
     }
 
-    async fn run_pre_entrypoint(&mut self) -> Result<Vec<RainEvalResult>, TestRunnerError> {
+    async fn run_pre_entrypoint(&mut self) -> Result<RainEvalResults, TestRunnerError> {
         let final_bindings = self.get_final_bindings(true);
 
         let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
@@ -164,16 +164,16 @@ impl TestRunner {
                 .await
         });
 
-        Ok(vec![handle.await??.into()])
+        Ok(vec![handle.await??.into()].into())
     }
 
     async fn run_calculate_entrypoint(
         &mut self,
-        pre_stack: Vec<RainEvalResult>,
-    ) -> Result<Vec<RainEvalResult>, TestRunnerError> {
-        let input_token = pre_stack[0].stack[2];
-        let output_token = pre_stack[0].stack[1];
-        let output_cap = pre_stack[0].stack[0];
+        pre_stack: RainEvalResults,
+    ) -> Result<RainEvalResults, TestRunnerError> {
+        let input_token = pre_stack.results[0].stack[2];
+        let output_token = pre_stack.results[0].stack[1];
+        let output_cap = pre_stack.results[0].stack[0];
 
         let final_bindings = self.get_final_bindings(false);
 
@@ -222,12 +222,12 @@ impl TestRunner {
 
     async fn run_handle_entrypoint(
         &mut self,
-        pre_stack: Vec<RainEvalResult>,
-        calculate_stack: Vec<RainEvalResult>,
-    ) -> Result<Vec<RainEvalResult>, TestRunnerError> {
-        let output_cap = pre_stack[0].stack[0];
-        let max_output = calculate_stack[0].stack[1];
-        let _io_ratio = calculate_stack[0].stack[0];
+        pre_stack: RainEvalResults,
+        calculate_stack: RainEvalResults,
+    ) -> Result<RainEvalResults, TestRunnerError> {
+        let output_cap = pre_stack.results[0].stack[0];
+        let max_output = calculate_stack.results[0].stack[1];
+        let _io_ratio = calculate_stack.results[0].stack[0];
 
         let final_bindings = self.get_final_bindings(false);
 
@@ -269,14 +269,14 @@ impl TestRunner {
 
     async fn run_post_entrypoint(
         &mut self,
-        pre_stack: Vec<RainEvalResult>,
-        calculate_stack: Vec<RainEvalResult>,
-    ) -> Result<Vec<RainEvalResult>, TestRunnerError> {
-        let input_token = pre_stack[0].stack[2];
-        let output_token = pre_stack[0].stack[1];
-        let output_cap = pre_stack[0].stack[0];
-        let max_output = calculate_stack[0].stack[1];
-        let io_ratio = calculate_stack[0].stack[0];
+        pre_stack: RainEvalResults,
+        calculate_stack: RainEvalResults,
+    ) -> Result<RainEvalResults, TestRunnerError> {
+        let input_token = pre_stack.results[0].stack[2];
+        let output_token = pre_stack.results[0].stack[1];
+        let output_cap = pre_stack.results[0].stack[0];
+        let max_output = calculate_stack.results[0].stack[1];
+        let io_ratio = calculate_stack.results[0].stack[0];
 
         let final_bindings = self.get_final_bindings(true);
 
@@ -324,7 +324,7 @@ impl TestRunner {
         Ok(vec![handle.await??.into()].into())
     }
 
-    pub async fn run_unit_test(&mut self) -> Result<Vec<RainEvalResult>, TestRunnerError> {
+    pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
         self.test_setup.deployer = self
             .settings
             .main_config

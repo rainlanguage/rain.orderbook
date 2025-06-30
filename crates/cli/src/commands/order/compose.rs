@@ -76,7 +76,7 @@ mod tests {
         std::fs::write(dotrain_path.clone(), dotrain).unwrap();
 
         let compose = Compose {
-            dotrain_file: dotrain_path.into(),
+            dotrain_file: dotrain_path,
             settings_file: None,
             scenario: "some-scenario".to_string(),
             encoding: SupportedOutputEncoding::Hex,
@@ -95,7 +95,7 @@ mod tests {
         std::fs::write(dotrain_path.clone(), dotrain).unwrap();
 
         let compose = Compose {
-            dotrain_file: dotrain_path.into(),
+            dotrain_file: dotrain_path,
             settings_file: None,
             scenario: "some-other-scenario".to_string(),
             encoding: SupportedOutputEncoding::Hex,

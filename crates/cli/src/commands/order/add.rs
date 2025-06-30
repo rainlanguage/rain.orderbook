@@ -93,7 +93,7 @@ mod tests {
 
         let cli_order_add_args = CliOrderAddArgs {
             no_broadcast: false,
-            dotrain_file: dotrain_path.into(),
+            dotrain_file: dotrain_path,
             deployment: "some-deployment".to_string(),
             transaction_args: CliTransactionArgs {
                 orderbook_address: Address::random(),

@@ -277,7 +277,7 @@ deployers:
 
         let words = Words {
             input: Input {
-                dotrain_file: Some(dotrain_path.into()),
+                dotrain_file: Some(dotrain_path),
                 settings_file: None,
             },
             source: Source {
@@ -336,8 +336,8 @@ deployers:
 
         let words = Words {
             input: Input {
-                settings_file: Some(settings_path.into()),
-                dotrain_file: Some(dotrain_path.into()),
+                settings_file: Some(settings_path),
+                dotrain_file: Some(dotrain_path),
             },
             source: Source {
                 deployer: Some("some-deployer".to_string()),
@@ -398,7 +398,7 @@ _ _: 1 2;
         let words = Words {
             input: Input {
                 settings_file: None,
-                dotrain_file: Some(dotrain_path.into()),
+                dotrain_file: Some(dotrain_path),
             },
             source: Source {
                 deployer: None,
@@ -575,7 +575,7 @@ _ _: 1 2;
         let words = Words {
             input: Input {
                 settings_file: None,
-                dotrain_file: Some(dotrain_path.into()),
+                dotrain_file: Some(dotrain_path),
             },
             source: Source {
                 deployment: Some("some-deployment".to_string()),
@@ -636,7 +636,7 @@ deployers:
 
         let words = Words {
             input: Input {
-                dotrain_file: Some(dotrain_path.into()),
+                dotrain_file: Some(dotrain_path),
                 settings_file: None,
             },
             source: Source {

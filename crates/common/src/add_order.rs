@@ -3,9 +3,9 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
+use alloy::primitives::{hex::FromHexError, Address, B256};
 #[cfg(not(target_family = "wasm"))]
 use alloy::primitives::{FixedBytes, U256};
-use alloy::primitives::{hex::FromHexError, Address, B256};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
