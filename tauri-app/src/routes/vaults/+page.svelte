@@ -8,7 +8,7 @@
     orderHash,
     accounts,
     activeAccountsItems,
-    activeSubgraphs,
+    selectedChainIds,
     settings,
     showInactiveOrders,
     hideZeroBalanceVaults,
@@ -42,7 +42,7 @@
   {orderHash}
   {accounts}
   {activeAccountsItems}
-  {activeSubgraphs}
+  {selectedChainIds}
   {settings}
   {showInactiveOrders}
   {hideZeroBalanceVaults}

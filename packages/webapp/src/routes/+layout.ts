@@ -6,7 +6,6 @@ import {
 	parseYaml,
 	RaindexClient,
 	type Address,
-	type NetworkCfg,
 	type NewConfig,
 	type OrderbookCfg,
 	type SubgraphCfg
@@ -118,7 +117,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		stores: {
 			settings,
 			activeSubgraphs: writable<Record<string, SubgraphCfg>>({}),
-			activeNetworks: writable<Record<string, NetworkCfg>>({}),
+			selectedChainIds: writable<number[]>([]),
 			accounts,
 			activeAccountsItems,
 			activeAccounts,

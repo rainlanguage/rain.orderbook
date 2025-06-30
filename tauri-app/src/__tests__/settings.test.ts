@@ -1,7 +1,6 @@
 import {
   settings,
   activeAccountsItems,
-  activeSubgraphs,
   activeNetworkRef,
   activeOrderbookRef,
   resetActiveNetworkRef,
@@ -12,6 +11,7 @@ import {
   accounts,
   activeAccounts,
   EMPTY_SETTINGS,
+  selectedChainIds,
 } from '$lib/stores/settings';
 import { mockConfig } from '$lib/mocks/mockConfig';
 import { beforeEach, describe, expect, test } from 'vitest';
@@ -24,34 +24,24 @@ describe('Settings active accounts items', () => {
   beforeEach(() => {
     settings.set(EMPTY_SETTINGS);
     activeAccountsItems.set({});
-    activeSubgraphs.set({});
+    selectedChainIds.set([]);
     activeNetworkRef.set(undefined);
     activeOrderbookRef.set(undefined);
 
     settings.set(mockConfig);
     activeAccountsItems.set({
-      name_one: 'address_one',
-      name_two: 'address_two',
+      name_one: '0xaddress_one',
+      name_two: '0xaddress_two',
     });
-    activeSubgraphs.set({
-      mainnet: {
-        key: 'mainnet',
-        url: 'https://api.thegraph.com/subgraphs/name/mainnet',
-      },
-    });
+    selectedChainIds.set([1, 2]);
 
     // Verify initial state
     expect(get(settings)).toEqual(mockConfig);
     expect(get(activeAccountsItems)).toEqual({
-      name_one: 'address_one',
-      name_two: 'address_two',
+      name_one: '0xaddress_one',
+      name_two: '0xaddress_two',
     });
-    expect(get(activeSubgraphs)).toEqual({
-      mainnet: {
-        key: 'mainnet',
-        url: 'https://api.thegraph.com/subgraphs/name/mainnet',
-      },
-    });
+    expect(get(selectedChainIds)).toEqual([1, 2]);
   });
 
   test('should remove account if that account is removed', () => {
@@ -116,58 +106,6 @@ describe('Settings active accounts items', () => {
 
     expect(get(activeAccountsItems)).toEqual({});
   });
-
-  test('should update active subgraphs when subgraph value changes', () => {
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        subgraphs: {
-          mainnet: {
-            key: 'mainnet',
-            url: 'new value',
-          },
-        },
-      },
-    };
-
-    settings.set(newSettings as unknown as NewConfig);
-
-    expect(get(activeSubgraphs)).toEqual({});
-  });
-
-  test('should update active subgraphs when subgraph removed', () => {
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        subgraphs: {
-          testnet: {
-            key: 'testnet',
-            url: 'testnet',
-          },
-        },
-      },
-    };
-
-    settings.set(newSettings as unknown as NewConfig);
-
-    expect(get(activeSubgraphs)).toEqual({});
-  });
-
-  test('should reset active subgraphs when subgraphs are empty', () => {
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        subgraphs: {},
-      },
-    };
-
-    settings.set(newSettings as unknown as NewConfig);
-
-    expect(get(activeSubgraphs)).toEqual({});
-  });
 });
 
 describe('Network and Orderbook Management', () => {
@@ -177,7 +115,26 @@ describe('Network and Orderbook Management', () => {
     activeNetworkRef.set(undefined);
     activeOrderbookRef.set(undefined);
     activeAccountsItems.set({});
-    activeSubgraphs.set({});
+    selectedChainIds.set([1, 2]);
+  });
+
+  test('should update selectedChainIds when networks change', () => {
+    const newSettings = {
+      ...mockConfig,
+      orderbook: {
+        ...mockConfig.orderbook,
+        networks: {
+          mainnet: {
+            key: 'mainnet',
+            url: 'https://mainnet.rpc',
+            chainId: 1,
+          },
+        },
+      },
+    };
+    settings.set(newSettings as unknown as NewConfig);
+
+    expect(get(selectedChainIds)).toEqual([]);
   });
 
   test('should reset activeNetworkRef when networks are empty', () => {
@@ -425,13 +382,13 @@ describe('Derived Store Behaviors', () => {
   test('activeAccounts should filter based on activeAccountsItems', () => {
     settings.set(mockConfig);
     activeAccountsItems.set({
-      name_one: 'address_one',
+      name_one: '0xaddress_one',
     });
 
     expect(get(activeAccounts)).toEqual({
       name_one: {
         key: 'name_one',
-        address: 'address_one',
+        address: '0xaddress_one',
       },
     });
   });
@@ -473,9 +430,9 @@ describe('Settings Subscription Edge Cases', () => {
   test('should handle account items with extra accounts not in settings', () => {
     settings.set(mockConfig); // settings.accounts has name_one, name_two
     activeAccountsItems.set({
-      name_one: 'address_one', // Will be kept
-      name_two: 'address_two', // Will be kept
-      name_three: 'address_three', // Should be removed by the subscription
+      name_one: '0xaddress_one', // Will be kept
+      name_two: '0xaddress_two', // Will be kept
+      name_three: '0xaddress_three', // Should be removed by the subscription
     });
 
     // Trigger the subscription by setting settings again (even if it's the same)
@@ -483,8 +440,8 @@ describe('Settings Subscription Edge Cases', () => {
     settings.set({ ...mockConfig });
 
     expect(get(activeAccountsItems)).toEqual({
-      name_one: 'address_one',
-      name_two: 'address_two',
+      name_one: '0xaddress_one',
+      name_two: '0xaddress_two',
     });
   });
 });

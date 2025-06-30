@@ -1,26 +1,20 @@
-import type { SgOrder } from '@rainlanguage/orderbook';
+import type { RaindexClient, RaindexOrder } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import type { TransactionManager, TransactionConfirmationProps } from '@rainlanguage/ui-components';
-import { getRemoveOrderCalldata } from '@rainlanguage/orderbook';
 
 export interface HandleRemoveOrderDependencies {
+	raindexClient: RaindexClient;
+	order: RaindexOrder;
 	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
-	network: string;
-	orderbookAddress: Hex;
-	subgraphUrl: string;
-	chainId: number;
 	orderHash: string;
 }
 
-export async function handleRemoveOrder(
-	order: SgOrder,
-	deps: HandleRemoveOrderDependencies
-): Promise<void> {
+export async function handleRemoveOrder(deps: HandleRemoveOrderDependencies): Promise<void> {
 	let calldata: string;
 	try {
-		const calldataResult = await getRemoveOrderCalldata(order);
+		const calldataResult = deps.order.getRemoveCalldata();
 		if (calldataResult.error) {
 			return deps.errToast(calldataResult.error.msg);
 		}
@@ -29,17 +23,16 @@ export async function handleRemoveOrder(
 			open: true,
 			modalTitle: 'Removing order',
 			args: {
-				entity: order,
-				toAddress: deps.orderbookAddress,
-				chainId: deps.chainId,
+				entity: deps.order,
+				toAddress: deps.order.orderbook,
+				chainId: deps.order.chainId,
 				onConfirm: (txHash: Hex) => {
 					deps.manager.createRemoveOrderTransaction({
-						subgraphUrl: deps.subgraphUrl,
+						raindexClient: deps.raindexClient,
 						txHash,
 						queryKey: deps.orderHash,
-						chainId: deps.chainId,
-						networkKey: deps.network,
-						entity: order
+						chainId: deps.order.chainId,
+						entity: deps.order
 					});
 				},
 				calldata

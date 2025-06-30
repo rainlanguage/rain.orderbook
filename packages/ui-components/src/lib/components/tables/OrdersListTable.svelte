@@ -51,7 +51,7 @@
 		queryKey: [QKEY_ORDERS, $selectedChainIds, $settings, owners, $showInactiveOrders, $orderHash],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getOrders(
-				$selectedChainIds.map(BigInt),
+				$selectedChainIds,
 				{
 					owners,
 					active: $showInactiveOrders ? undefined : true,
@@ -98,7 +98,7 @@
 		}
 		activeNetworkRef.set(res.value);
 		activeOrderbookRef.set(res.value);
-		goto(`/orders/${res.value}-${e.detail.item.orderHash}`);
+		goto(`/orders/${e.detail.item.chainId}-${e.detail.item.orderbook}-${e.detail.item.orderHash}`);
 	}}
 >
 	<svelte:fragment slot="title">

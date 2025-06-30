@@ -2,10 +2,7 @@
 	import { Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
 	import { formatUnits } from 'viem';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import {
-		getVaultBalanceChanges,
-		type SgVaultBalanceChangeUnwrapped
-	} from '@rainlanguage/orderbook';
+	import { RaindexVault, type RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
@@ -13,26 +10,22 @@
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 
 	export let id: string;
-	export let subgraphUrl: string;
+	export let vault: RaindexVault;
 
 	$: balanceChangesQuery = createInfiniteQuery({
 		queryKey: [id, QKEY_VAULT_CHANGES + id],
 		queryFn: async ({ pageParam }) => {
-			const result = await getVaultBalanceChanges(subgraphUrl || '', id, {
-				page: pageParam + 1,
-				pageSize: DEFAULT_PAGE_SIZE
-			});
+			const result = await vault.getBalanceChanges(pageParam + 1);
 			if (result.error) throw new Error(result.error.msg);
 			return result.value;
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
-		},
-		enabled: !!subgraphUrl
+		}
 	});
 
-	const AppTable = TanstackAppTable<SgVaultBalanceChangeUnwrapped>;
+	const AppTable = TanstackAppTable<RaindexVaultBalanceChange>;
 </script>
 
 <AppTable
@@ -67,12 +60,12 @@
 			tdClass="break-word p-0 text-left"
 			data-testid="vaultBalanceChangesTableBalanceChange"
 		>
-			{formatUnits(BigInt(item.amount), Number(item.vault.token.decimals ?? 0))}
-			{item.vault.token.symbol}
+			{formatUnits(BigInt(item.amount), Number(item.token.decimals ?? 0))}
+			{item.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableBalance">
-			{formatUnits(BigInt(item.newVaultBalance), Number(item.vault.token.decimals ?? 0))}
-			{item.vault.token.symbol}
+			{formatUnits(item.newBalance, Number(item.token.decimals ?? 0))}
+			{item.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableType">
 			{item.__typename}

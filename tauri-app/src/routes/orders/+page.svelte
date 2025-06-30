@@ -5,7 +5,7 @@
   import { handleOrderRemoveModal } from '$lib/services/modal';
 
   import {
-    activeSubgraphs,
+    selectedChainIds,
     settings,
     accounts,
     activeAccountsItems,
@@ -35,7 +35,7 @@
   {activeNetworkRef}
   {activeOrderbookRef}
   {handleOrderRemoveModal}
-  {activeSubgraphs}
+  {selectedChainIds}
   {settings}
   {accounts}
   {activeAccountsItems}

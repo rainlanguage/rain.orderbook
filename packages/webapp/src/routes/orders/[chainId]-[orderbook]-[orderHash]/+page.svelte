@@ -7,66 +7,53 @@
 		handleTransactionConfirmationModal,
 		handleWithdrawModal
 	} from '$lib/services/modal';
-	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
+	import type { Address, RaindexClient, RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
-	const { orderHash, network } = $page.params;
+	const { orderHash, chainId, orderbook } = $page.params;
+	const parsedChainId = Number(chainId);
+	const orderbookAddress = orderbook as Address;
 
-	const { settings } = $page.data.stores;
-	const orderbookAddress = $settings.orderbook.orderbooks[network]?.address || '';
-	const subgraphUrl = $settings.orderbook.subgraphs[network]?.url || '';
-	const rpcUrl = $settings.orderbook.networks[network]?.rpc || '';
-	const chainId = $settings.orderbook.networks[network]?.chainId || 0;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
 
-	async function onRemove(order: SgOrder) {
-		await handleRemoveOrder(order, {
+	async function onRemove(raindexClient: RaindexClient, order: RaindexOrder) {
+		await handleRemoveOrder({
+			raindexClient,
+			order,
 			handleTransactionConfirmationModal,
 			errToast,
 			manager,
-			network,
-			orderbookAddress: orderbookAddress as Hex,
-			subgraphUrl,
-			chainId,
 			orderHash
 		});
 	}
 
-	async function onDeposit(vault: SgVault) {
+	async function onDeposit(raindexClient: RaindexClient, vault: RaindexVault) {
 		await handleVaultDeposit({
+			raindexClient,
 			vault,
 			handleDepositModal,
 			handleTransactionConfirmationModal,
 			errToast,
 			manager,
-			network,
-			orderbookAddress: orderbookAddress as Hex,
-			subgraphUrl,
-			chainId,
-			account: $account as Hex,
-			rpcUrl
+			account: $account as Hex
 		});
 	}
 
-	async function onWithdraw(vault: SgVault) {
+	async function onWithdraw(raindexClient: RaindexClient, vault: RaindexVault) {
 		await handleVaultWithdraw({
+			raindexClient,
 			vault,
 			handleWithdrawModal,
 			handleTransactionConfirmationModal,
 			errToast,
 			manager,
-			network,
-			toAddress: orderbookAddress as Hex,
-			subgraphUrl,
-			chainId,
-			account: $account as Hex,
-			rpcUrl
+			account: $account as Hex
 		});
 	}
 </script>
@@ -74,13 +61,12 @@
 <PageHeader title="Order" pathname={$page.url.pathname} />
 
 <OrderDetail
+	chainId={parsedChainId}
+	{orderbookAddress}
 	{orderHash}
-	{subgraphUrl}
-	{rpcUrl}
 	{codeMirrorTheme}
 	{lightweightChartsTheme}
 	{colorTheme}
-	{orderbookAddress}
 	{onRemove}
 	{onDeposit}
 	{onWithdraw}

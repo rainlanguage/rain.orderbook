@@ -57,7 +57,7 @@
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getVaults(
-				$selectedChainIds.map(BigInt),
+				$selectedChainIds,
 				{
 					owners,
 					hideZeroBalance: $hideZeroBalanceVaults
@@ -106,7 +106,7 @@
 				throw new Error(res.error.readableMsg);
 			}
 			updateActiveNetworkAndOrderbook(res.value);
-			goto(`/vaults/${res.value}-${e.detail.item.id}`);
+			goto(`/vaults/${e.detail.item.chainId}-${e.detail.item.orderbook}-${e.detail.item.id}`);
 		}}
 	>
 		<svelte:fragment slot="title">
@@ -167,9 +167,8 @@
 							<OrderOrVaultHash
 								type="orders"
 								orderOrVault={order}
-								network={raindexClient.getSubgraphKeyForChainId(item.chainId, item.orderbook)
-									.value ?? ''}
-								{updateActiveNetworkAndOrderbook}
+								chainId={item.chainId}
+								orderbookAddress={item.orderbook}
 							/>
 						{/each}
 						{#if item.ordersAsInput.length > 3}...{/if}
@@ -183,9 +182,8 @@
 							<OrderOrVaultHash
 								type="orders"
 								orderOrVault={order}
-								network={raindexClient.getSubgraphKeyForChainId(item.chainId, item.orderbook)
-									.value ?? ''}
-								{updateActiveNetworkAndOrderbook}
+								chainId={item.chainId}
+								orderbookAddress={item.orderbook}
 							/>
 						{/each}
 						{#if item.ordersAsOutput.length > 3}...{/if}

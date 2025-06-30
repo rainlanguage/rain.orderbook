@@ -1,15 +1,14 @@
 <script lang="ts">
-  import { orderbookAddress } from '$lib/stores/settings';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import type { SgOrder as OrderDetailOrder } from '@rainlanguage/orderbook';
+  import type { RaindexOrder } from '@rainlanguage/orderbook';
 
   let openOrderRemoveModal = true;
-  export let order: OrderDetailOrder;
+  export let order: RaindexOrder;
   let isSubmitting = false;
   export let onOrderRemoved: () => void;
 
@@ -27,7 +26,7 @@
     isSubmitting = true;
     try {
       const calldata = (await orderRemoveCalldata(order.id)) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      const tx = await ethersExecute(calldata, order.orderbook);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
       onOrderRemoved();

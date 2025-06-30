@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import OrderOrVaultHash from '../lib/components/OrderOrVaultHash.svelte';
-import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
+import type { RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
@@ -91,7 +91,7 @@ describe('OrderOrVaultHash', () => {
 			const { getByTestId } = render(OrderOrVaultHash, {
 				props: {
 					type: 'vaults',
-					orderOrVault: mockVault as unknown as SgVault,
+					orderOrVault: mockVault as unknown as RaindexVault,
 					network: mockSubgraphName,
 					updateActiveNetworkAndOrderbook: mockUpdateFn
 				}
@@ -111,7 +111,7 @@ describe('OrderOrVaultHash', () => {
 			const { getByTestId } = render(OrderOrVaultHash, {
 				props: {
 					type: 'orders',
-					orderOrVault: mockOrder as unknown as SgOrder,
+					orderOrVault: mockOrder as unknown as RaindexOrder,
 					network: mockSubgraphName,
 					updateActiveNetworkAndOrderbook: mockUpdateFn
 				}
@@ -124,7 +124,7 @@ describe('OrderOrVaultHash', () => {
 			const { getByTestId } = render(OrderOrVaultHash, {
 				props: {
 					type: 'orders',
-					orderOrVault: mockInactiveOrder as unknown as SgOrder,
+					orderOrVault: mockInactiveOrder as unknown as RaindexOrder,
 					network: mockSubgraphName,
 					updateActiveNetworkAndOrderbook: mockUpdateFn
 				}

@@ -7,51 +7,42 @@
 		handleTransactionConfirmationModal,
 		handleWithdrawModal
 	} from '$lib/services/modal';
-	import { type SgVault } from '@rainlanguage/orderbook';
+	import { RaindexClient, type Address, type RaindexVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
-	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
-	const network = $page.params.network;
-	const subgraphUrl = $settings.orderbook.subgraphs[network]?.url || '';
-	const chainId = $settings.orderbook.networks[network]?.chainId || 0;
-	const orderbookAddress = $settings.orderbook.orderbooks[network]?.address as Hex;
-	const rpcUrl = $settings.orderbook.networks[network]?.rpc || '';
+	const { id, chainId, orderbook } = $page.params;
+	const parsedChainId = Number(chainId);
+	const orderbookAddress = orderbook as Address;
+
+	const { activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
 
-	async function onDeposit(vault: SgVault) {
+	async function onDeposit(raindexClient: RaindexClient, vault: RaindexVault) {
 		await handleVaultDeposit({
+			raindexClient,
 			vault,
 			handleDepositModal,
 			handleTransactionConfirmationModal,
 			errToast,
 			manager,
-			network,
-			orderbookAddress,
-			subgraphUrl,
-			chainId,
-			account: $account as Hex,
-			rpcUrl
+			account: $account as Hex
 		});
 	}
 
-	async function onWithdraw(vault: SgVault) {
+	async function onWithdraw(raindexClient: RaindexClient, vault: RaindexVault) {
 		await handleVaultWithdraw({
+			raindexClient,
 			vault,
 			handleWithdrawModal,
 			handleTransactionConfirmationModal,
 			errToast,
 			manager,
-			network,
-			toAddress: orderbookAddress as Hex,
-			subgraphUrl,
-			chainId,
-			account: $account as Hex,
-			rpcUrl
+			account: $account as Hex
 		});
 	}
 </script>
@@ -59,10 +50,10 @@
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
 <VaultDetail
-	id={$page.params.id}
-	network={$page.params.network}
+	{id}
+	{orderbookAddress}
+	chainId={parsedChainId}
 	{lightweightChartsTheme}
-	{settings}
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{onDeposit}

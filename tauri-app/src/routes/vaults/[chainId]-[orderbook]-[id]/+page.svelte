@@ -4,19 +4,23 @@
   import { VaultDetail } from '@rainlanguage/ui-components';
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
-  import { settings, activeNetworkRef, activeOrderbookRef } from '$lib/stores/settings';
-  import type { SgVault } from '@rainlanguage/orderbook';
+  import { activeNetworkRef, activeOrderbookRef } from '$lib/stores/settings';
+  import type { Address, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
+
+  const { chainId, orderbook, id } = $page.params;
+  const parsedChainId = Number(chainId);
+  const orderbookAddress = orderbook as Address;
 
   const queryClient = useQueryClient();
 
-  function onDeposit(vault: SgVault) {
+  function onDeposit(_raindexClient: RaindexClient, vault: RaindexVault) {
     handleDepositModal(vault, () => {
       invalidateTanstackQueries(queryClient, [$page.params.id]);
     });
   }
 
-  function onWithdraw(vault: SgVault) {
+  function onWithdraw(_raindexClient: RaindexClient, vault: RaindexVault) {
     handleWithdrawModal(vault, () => {
       invalidateTanstackQueries(queryClient, [$page.params.id]);
     });
@@ -26,10 +30,10 @@
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
 <VaultDetail
-  id={$page.params.id}
-  network={$page.params.network}
+  chainId={parsedChainId}
+  {orderbookAddress}
+  {id}
   {lightweightChartsTheme}
-  {settings}
   {activeNetworkRef}
   {activeOrderbookRef}
   {onDeposit}

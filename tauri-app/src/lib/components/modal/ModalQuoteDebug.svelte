@@ -1,28 +1,30 @@
 <script lang="ts">
   import { debugOrderQuote } from '$lib/queries/orderQuote';
   import { queryClient } from '$lib/queries/queryClient';
-  import type { SgOrder } from '@rainlanguage/orderbook';
+  import type { RaindexOrder } from '@rainlanguage/orderbook';
   import { createQuery } from '@tanstack/svelte-query';
   import { Alert, Modal } from 'flowbite-svelte';
-  import { type Hex } from 'viem';
   import { Refresh } from '@rainlanguage/ui-components';
   import EvalResultsTable from '../debug/EvalResultsTable.svelte';
   import { fade } from 'svelte/transition';
 
   export let open: boolean;
-  export let order: SgOrder;
+  export let order: RaindexOrder;
   export let inputIOIndex: number;
   export let outputIOIndex: number;
   export let pair: string;
-  export let orderbook: Hex;
-  export let rpcUrl: string;
-  export let blockNumber: number | undefined;
+  export let blockNumber: bigint | undefined;
 
   $: debugQuery = createQuery(
     {
-      queryKey: [order + rpcUrl + pair + blockNumber],
+      queryKey: [order + pair + blockNumber],
       queryFn: () => {
-        return debugOrderQuote(order, inputIOIndex, outputIOIndex, orderbook, rpcUrl, blockNumber);
+        return debugOrderQuote(
+          order,
+          inputIOIndex,
+          outputIOIndex,
+          blockNumber ? Number(blockNumber) : undefined,
+        );
       },
       retry: 0,
       refetchOnWindowFocus: false,
@@ -37,7 +39,6 @@
   <div class="flex items-center">
     {#if $debugQuery.data}
       <div class="flex flex-col text-sm">
-        <span class="whitespace-nowrap" data-testid="modal-quote-debug-rpc-url">RPC: {rpcUrl}</span>
         <span class="whitespace-nowrap" data-testid="modal-quote-debug-block-number"
           >Block: {blockNumber}</span
         >

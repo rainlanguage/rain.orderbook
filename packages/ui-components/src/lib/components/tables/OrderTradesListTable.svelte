@@ -2,18 +2,16 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
-	import { getOrderTradesList, getOrderTradesCount } from '@rainlanguage/orderbook';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import { BugOutline } from 'flowbite-svelte-icons';
-	import type { SgTrade } from '@rainlanguage/orderbook';
+	import type { RaindexOrder, RaindexTrade } from '@rainlanguage/orderbook';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
-	export let id: string;
-	export let subgraphUrl: string;
+	export let order: RaindexOrder;
 	export let rpcUrl: string | undefined = undefined;
 	export let handleDebugTradeModal: ((hash: string, rpcUrl: string) => void) | undefined =
 		undefined;
@@ -23,27 +21,23 @@
 	let tradesCount: number | undefined;
 
 	$: orderTradesQuery = createInfiniteQuery({
-		queryKey: [id, QKEY_ORDER_TRADES_LIST + id],
+		queryKey: [order.id, QKEY_ORDER_TRADES_LIST + order.id],
 		queryFn: async ({ pageParam }: { pageParam: number }) => {
 			tradesCount = undefined;
 
 			const [countResult, tradesResult] = await Promise.all([
-				getOrderTradesCount(
-					subgraphUrl || '',
-					id,
+				order.getTradeCount(
 					startTimestamp ? BigInt(startTimestamp) : undefined,
 					endTimestamp ? BigInt(endTimestamp) : undefined
 				),
-				getOrderTradesList(
-					subgraphUrl || '',
-					id,
-					{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE },
+				order.getTradesList(
 					startTimestamp ? BigInt(startTimestamp) : undefined,
-					endTimestamp ? BigInt(endTimestamp) : undefined
+					endTimestamp ? BigInt(endTimestamp) : undefined,
+					pageParam + 1
 				)
 			]);
-			if (countResult.error) throw new Error(countResult.error.msg);
-			if (tradesResult.error) throw new Error(tradesResult.error.msg);
+			if (countResult.error) throw new Error(countResult.error.readableMsg);
+			if (tradesResult.error) throw new Error(tradesResult.error.readableMsg);
 
 			const count = countResult.value;
 			const trades = tradesResult.value;
@@ -55,10 +49,13 @@
 			return trades;
 		},
 		initialPageParam: 0,
-		getNextPageParam: (lastPage: SgTrade[], _allPages: SgTrade[][], lastPageParam: number) => {
+		getNextPageParam: (
+			lastPage: RaindexTrade[],
+			_allPages: RaindexTrade[][],
+			lastPageParam: number
+		) => {
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
-		},
-		enabled: !!subgraphUrl
+		}
 	});
 </script>
 
@@ -66,7 +63,7 @@
 	query={orderTradesQuery}
 	emptyMessage="No trades found"
 	rowHoverable={false}
-	queryKey={id}
+	queryKey={order.id}
 >
 	<svelte:fragment slot="info">
 		{#if tradesCount !== undefined}
@@ -91,37 +88,37 @@
 			{formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32">
-			<Hash type={HashType.Wallet} value={item.tradeEvent.transaction.from} />
+			<Hash type={HashType.Wallet} value={item.transaction.from} />
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32">
-			<Hash type={HashType.Transaction} value={item.tradeEvent.transaction.id} />
+			<Hash type={HashType.Transaction} value={item.transaction.id} />
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2">
 			{formatUnits(
 				BigInt(item.inputVaultBalanceChange.amount),
-				Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0)
+				Number(item.inputVaultBalanceChange.token.decimals ?? 0)
 			)}
-			{item.inputVaultBalanceChange.vault.token.symbol}
+			{item.inputVaultBalanceChange.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2">
 			{formatUnits(
 				BigInt(item.outputVaultBalanceChange.amount) * BigInt(-1),
-				Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0)
+				Number(item.outputVaultBalanceChange.token.decimals ?? 0)
 			)}
-			{item.outputVaultBalanceChange.vault.token.symbol}
+			{item.outputVaultBalanceChange.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="io-ratio">
 			{Math.abs(
 				Number(
 					formatUnits(
 						BigInt(item.inputVaultBalanceChange.amount),
-						Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0)
+						Number(item.inputVaultBalanceChange.token.decimals ?? 0)
 					)
 				) /
 					Number(
 						formatUnits(
 							BigInt(item.outputVaultBalanceChange.amount),
-							Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0)
+							Number(item.outputVaultBalanceChange.token.decimals ?? 0)
 						)
 					)
 			)}
@@ -130,13 +127,13 @@
 					Number(
 						formatUnits(
 							BigInt(item.outputVaultBalanceChange.amount),
-							Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0)
+							Number(item.outputVaultBalanceChange.token.decimals ?? 0)
 						)
 					) /
 						Number(
 							formatUnits(
 								BigInt(item.inputVaultBalanceChange.amount),
-								Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0)
+								Number(item.inputVaultBalanceChange.token.decimals ?? 0)
 							)
 						)
 				)})
@@ -148,7 +145,7 @@
 					data-testid="debug-trade-button"
 					class="text-gray-500 hover:text-gray-700"
 					on:click={() => {
-						if (rpcUrl) handleDebugTradeModal(item.tradeEvent.transaction.id, rpcUrl);
+						if (rpcUrl) handleDebugTradeModal(item.transaction.id, rpcUrl);
 					}}
 				>
 					<BugOutline size="xs" />

@@ -2,7 +2,6 @@ import type { Readable, Writable } from 'svelte/store';
 import type {
 	AccountCfg,
 	Address,
-	NetworkCfg,
 	NewConfig,
 	OrderbookCfg,
 	SubgraphCfg
@@ -12,7 +11,6 @@ export interface AppStoresInterface {
 	settings: Writable<NewConfig>;
 	selectedChainIds: Writable<number[]>;
 	activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
-	activeNetworks: Writable<Record<string, NetworkCfg>>;
 	accounts: Readable<Record<string, AccountCfg>>;
 	activeAccountsItems: Writable<Record<string, Address>> | undefined;
 	showInactiveOrders: Writable<boolean>;

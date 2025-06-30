@@ -3,7 +3,7 @@ import {
 	handleRemoveOrder,
 	type HandleRemoveOrderDependencies
 } from '../lib/services/handleRemoveOrder'; // Assuming path is correct
-import type { SgOrder } from '@rainlanguage/orderbook';
+import type { RaindexOrder } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 
@@ -18,7 +18,7 @@ const mockManager = {
 
 const mockOrder = {
 	id: '0xorderid'
-} as SgOrder;
+} as RaindexOrder;
 
 const mockDeps: HandleRemoveOrderDependencies = {
 	network: 'ethereum',

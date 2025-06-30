@@ -1,4 +1,4 @@
-import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
+import type { RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
 import type { VaultActionArgs } from './transaction';
 import type { Hex } from 'viem';
 
@@ -27,20 +27,18 @@ export type TransactionConfirmationProps = {
 		// Function to call when the transaction is confirmed in wallet.
 		onConfirm: (hash: Hex) => void;
 		// Entity to generate calldata for (optional, not used for approval transactions when adding orders).
-		entity?: SgOrder | SgVault;
+		entity?: RaindexOrder | RaindexVault;
 		// Calldata for the transaction.
 		calldata: string;
 	};
 };
 
 export type QuoteDebugModalHandler = (
-	order: SgOrder,
-	rpcUrl: string,
-	orderbook: string,
+	order: RaindexOrder,
 	inputIOIndex: number,
 	outputIOIndex: number,
 	pair: string,
-	blockNumber?: number
+	blockNumber?: bigint
 ) => void;
 
 export type DebugTradeModalHandler = (hash: string, rpcUrl: string) => void;

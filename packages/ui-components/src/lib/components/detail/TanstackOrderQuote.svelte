@@ -3,12 +3,11 @@
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
-	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook';
+	import { type BatchOrderQuotesResponse } from '@rainlanguage/orderbook';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
-	import type { Hex } from 'viem';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-	import type { SgOrder } from '@rainlanguage/orderbook';
+	import type { RaindexOrder } from '@rainlanguage/orderbook';
 	import {
 		Table,
 		TableBody,
@@ -19,20 +18,16 @@
 	} from 'flowbite-svelte';
 	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 	import Tooltip from '../Tooltip.svelte';
-	export let id: string;
-	export let order: SgOrder;
-	export let rpcUrl: string;
-	export let orderbookAddress: Hex;
+
+	export let order: RaindexOrder;
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
-				order: SgOrder,
-				rpcUrl: string,
-				orderbookAddress: Hex,
+				order: RaindexOrder,
 				inputIndex: number,
 				outputIndex: number,
 				pairName: string,
-				blockNumber?: number
+				blockNumber?: bigint
 		  ) => void) = undefined;
 
 	let enabled = true;
@@ -42,23 +37,23 @@
 
 	const refreshQuotes = async () => {
 		try {
-			await invalidateTanstackQueries(queryClient, [id, QKEY_ORDER_QUOTE + id]);
+			await invalidateTanstackQueries(queryClient, [order.id, QKEY_ORDER_QUOTE + order.id]);
 		} catch {
 			errToast('Failed to refresh');
 		}
 	};
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
-		queryKey: [id, QKEY_ORDER_QUOTE + id],
+		queryKey: [order.id, QKEY_ORDER_QUOTE + order.id],
 		queryFn: async () => {
-			const result = await getOrderQuote([order], rpcUrl);
+			const result = await order.getQuotes(blockNumber);
 			if (result.error) throw new Error(result.error.msg);
 			return result.value;
 		},
-		enabled: !!id && enabled
+		enabled: !!order.id && enabled
 	});
 
-	let blockNumber: number | undefined;
+	let blockNumber: bigint | undefined;
 	$: orderModalArg = order;
 </script>
 
@@ -74,7 +69,7 @@
 						enabled = false;
 					}}
 					on:blur={({ detail: { value } }) => {
-						blockNumber = parseInt(value);
+						blockNumber = BigInt(value);
 						refreshQuotes();
 					}}
 				/>
@@ -138,12 +133,10 @@
 										on:click={() =>
 											handleQuoteDebugModal(
 												orderModalArg,
-												rpcUrl || '',
-												orderbookAddress || '',
 												item.pair.inputIndex,
 												item.pair.outputIndex,
 												item.pair.pairName,
-												$orderQuoteQuery.data[0].blockNumber
+												BigInt($orderQuoteQuery.data[0].blockNumber)
 											)}
 									>
 										<BugOutline size="sm" color="grey" />
@@ -173,12 +166,10 @@
 										on:click={() =>
 											handleQuoteDebugModal(
 												order,
-												rpcUrl || '',
-												orderbookAddress || '',
 												item.pair.inputIndex,
 												item.pair.outputIndex,
 												item.pair.pairName,
-												$orderQuoteQuery.data[0].blockNumber
+												BigInt($orderQuoteQuery.data[0].blockNumber)
 											)}
 									>
 										<BugOutline size="sm" color="grey" />

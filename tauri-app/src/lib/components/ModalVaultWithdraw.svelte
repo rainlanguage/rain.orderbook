@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
-  import type { SgVault as TokenVaultDetail } from '@rainlanguage/orderbook';
+  import type { RaindexVault } from '@rainlanguage/orderbook';
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
-  import { bigintStringToHex, InputTokenAmount } from '@rainlanguage/ui-components';
+  import { bigintToHex, InputTokenAmount } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
@@ -12,7 +12,7 @@
   import { formatUnits } from 'viem';
 
   export let open = false;
-  export let vault: TokenVaultDetail;
+  export let vault: RaindexVault;
   export let onWithdraw: () => void;
   let amount: bigint = 0n;
   let amountGTBalance: boolean;
@@ -75,7 +75,7 @@
         Vault ID
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintStringToHex(vault.vaultId)}
+        {bigintToHex(vault.vaultId)}
       </p>
     </div>
 

@@ -75,7 +75,6 @@ export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
 	type TransactionArgs,
-	type DeploymentArgs,
 	type VaultActionArgs
 } from './types/transaction';
 export type {
@@ -96,7 +95,7 @@ export {
 	timestampSecondsToUTCTimestamp,
 	promiseTimeout
 } from './services/time';
-export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
+export { bigintStringToHex, bigintToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';

@@ -1,12 +1,12 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { SgVault as TokenVaultDetail } from '@rainlanguage/orderbook';
+  import type { RaindexVault } from '@rainlanguage/orderbook';
   import {
     vaultDeposit,
     vaultDepositApproveCalldata,
     vaultDepositCalldata,
   } from '$lib/services/vault';
-  import { bigintStringToHex, InputTokenAmount } from '@rainlanguage/ui-components';
+  import { bigintToHex, InputTokenAmount } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
   import { checkAllowance, ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
@@ -17,7 +17,7 @@
   import { onMount } from 'svelte';
 
   export let open = false;
-  export let vault: TokenVaultDetail;
+  export let vault: RaindexVault;
   export let onDeposit: () => void;
   let amount: bigint;
   let isSubmitting = false;
@@ -97,7 +97,7 @@
         Vault ID
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintStringToHex(vault.vaultId)}
+        {bigintToHex(vault.vaultId)}
       </p>
     </div>
 

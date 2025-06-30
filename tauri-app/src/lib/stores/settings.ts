@@ -5,9 +5,9 @@ import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import {
   parseYaml,
+  type Address,
   type NewConfig,
   type OrderbookCfg,
-  type SubgraphCfg,
 } from '@rainlanguage/orderbook';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
@@ -85,6 +85,12 @@ export const activeChainHasBlockExplorer = derived(activeChain, ($activeChain) =
 export const activeChainLatestBlockNumber = derived(activeNetwork, ($activeNetwork) =>
   $activeNetwork !== undefined ? getBlockNumberFromRpc($activeNetwork.rpc) : 0,
 );
+export const selectedChainIds = cachedWritableStore<number[]>(
+  'settings.selectedChainIds',
+  [],
+  (value) => JSON.stringify(value),
+  (str) => JSON.parse(str),
+);
 
 // orderbook
 export const activeOrderbookRef = cachedWritableStringOptional('settings.activeOrderbookRef');
@@ -123,7 +129,7 @@ export const hasRequiredSettings = derived(
 
 // accounts
 export const accounts = derived(settings, ($settings) => $settings.orderbook.accounts ?? {});
-export const activeAccountsItems = cachedWritableStore<Record<string, string>>(
+export const activeAccountsItems = cachedWritableStore<Record<string, Address>>(
   'settings.activeAccountsItems',
   {},
   JSON.stringify,
@@ -149,18 +155,6 @@ export const activeAccounts = derived(
 export const subgraphs = derived(settings, ($settings) =>
   $settings?.orderbook.subgraphs !== undefined ? Object.entries($settings.orderbook.subgraphs) : [],
 );
-export const activeSubgraphs = cachedWritableStore<Record<string, SubgraphCfg>>(
-  'settings.activeSubgraphs',
-  {},
-  JSON.stringify,
-  (s) => {
-    try {
-      return JSON.parse(s);
-    } catch {
-      return {};
-    }
-  },
-);
 
 // When networks / orderbooks settings updated, reset active network / orderbook
 settings.subscribe(async () => {
@@ -176,6 +170,7 @@ settings.subscribe(async () => {
       !Object.keys($settings.orderbook.networks).includes($activeNetworkRef))
   ) {
     resetActiveNetworkRef();
+    selectedChainIds.set([]);
   }
 
   if (
@@ -201,25 +196,9 @@ settings.subscribe(async () => {
           }
           return false;
         })
-        .map(([key, value]) => [key, value.address]),
+        .map(([key, value]) => [key, value.address as Address]),
     );
     activeAccountsItems.set(updatedActiveAccounts);
-  }
-
-  // Reset active subgraphs if subgraphs have changed
-  if (Object.keys($settings.orderbook.subgraphs).length === 0) {
-    activeSubgraphs.set({});
-  } else {
-    const currentActiveSubgraphs = get(activeSubgraphs);
-    const updatedActiveSubgraphs = Object.fromEntries(
-      Object.entries($settings.orderbook.subgraphs).filter(([key, value]) => {
-        if (key in currentActiveSubgraphs) {
-          return JSON.stringify(currentActiveSubgraphs[key]) === JSON.stringify(value);
-        }
-        return false;
-      }),
-    );
-    activeSubgraphs.set(updatedActiveSubgraphs);
   }
 });
 

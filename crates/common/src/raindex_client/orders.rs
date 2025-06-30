@@ -108,7 +108,7 @@ impl RaindexOrder {
     pub fn vaults(&self) -> Vec<RaindexVault> {
         get_vaults_with_type(self.inputs.clone(), self.outputs.clone())
     }
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn orderbook(&self) -> String {
         self.orderbook.to_string()
     }
@@ -230,6 +230,12 @@ impl RaindexOrder {
     pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
         let raindex_client = self.get_raindex_client()?;
         raindex_client.get_orderbook_client(self.chain_id, self.orderbook.to_string())
+    }
+
+    #[wasm_export(skip)]
+    pub fn get_rpc_url(&self) -> Result<Url, RaindexError> {
+        let raindex_client = self.get_raindex_client()?;
+        raindex_client.get_rpc_url_for_chain(self.chain_id)
     }
 
     /// Retrieves volume data for all vaults associated with this order over a specified time period.
