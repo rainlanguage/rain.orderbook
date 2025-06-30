@@ -23,6 +23,7 @@ use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod order_quotes;
 pub mod orderbook;
 pub mod orders;
 pub mod remove_orders;
@@ -243,6 +244,8 @@ pub enum RaindexError {
     ParseConfigError(#[from] ParseConfigError),
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
+    #[error(transparent)]
+    OrderbookQuoteError(#[from] rain_orderbook_quote::error::Error),
 }
 
 impl RaindexError {
@@ -328,6 +331,9 @@ impl RaindexError {
             }
             RaindexError::AddOrderArgsError(e) => {
                 format!("Failed to prepare the add order calldata: {}", e)
+            }
+            RaindexError::OrderbookQuoteError(err) => {
+                format!("Failed to get order quote: {}", err)
             }
         }
     }

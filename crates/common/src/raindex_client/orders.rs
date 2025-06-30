@@ -10,7 +10,9 @@ use alloy::primitives::{Address, U256};
 use rain_orderbook_subgraph_client::{
     performance::{vol::VaultVolume, OrderPerformance},
     types::{
-        common::{SgBytes, SgOrder, SgOrderAsIO, SgOrdersListFilterArgs},
+        common::{
+            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
+        },
         Id,
     },
     MultiOrderbookSubgraphClient, OrderbookSubgraphClient, SgPaginationArgs,
@@ -18,7 +20,7 @@ use rain_orderbook_subgraph_client::{
 use std::{
     collections::HashSet,
     str::FromStr,
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockReadGuard},
 };
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -219,11 +221,14 @@ fn get_vaults_with_type(
 #[wasm_export]
 impl RaindexOrder {
     #[wasm_export(skip)]
-    pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
-        let raindex_client = self
-            .raindex_client
+    pub fn get_raindex_client(&self) -> Result<RwLockReadGuard<RaindexClient>, RaindexError> {
+        self.raindex_client
             .read()
-            .map_err(|_| RaindexError::ReadLockError)?;
+            .map_err(|_| RaindexError::ReadLockError)
+    }
+    #[wasm_export(skip)]
+    pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
+        let raindex_client = self.get_raindex_client()?;
         raindex_client.get_orderbook_client(self.chain_id, self.orderbook.to_string())
     }
 
@@ -317,6 +322,7 @@ impl RaindexOrder {
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RaindexOrderAsIO {
+    id: String,
     order_hash: String,
     active: bool,
 }
@@ -325,7 +331,18 @@ impl TryFrom<SgOrderAsIO> for RaindexOrderAsIO {
     type Error = RaindexError;
     fn try_from(order: SgOrderAsIO) -> Result<Self, Self::Error> {
         Ok(Self {
+            id: order.id.0,
             order_hash: order.order_hash.0,
+            active: order.active,
+        })
+    }
+}
+impl TryFrom<RaindexOrderAsIO> for SgOrderAsIO {
+    type Error = RaindexError;
+    fn try_from(order: RaindexOrderAsIO) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: SgBytes(order.id),
+            order_hash: SgBytes(order.order_hash),
             active: order.active,
         })
     }
@@ -552,6 +569,39 @@ impl RaindexOrder {
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
+        })
+    }
+
+    pub fn into_sg_order(self) -> Result<SgOrder, RaindexError> {
+        #[cfg(target_family = "wasm")]
+        let timestamp_added = self.timestamp_added.to_string();
+        #[cfg(not(target_family = "wasm"))]
+        let timestamp_added = self.timestamp_added().to_string();
+
+        Ok(SgOrder {
+            id: SgBytes(self.id()),
+            order_bytes: SgBytes(self.order_bytes()),
+            order_hash: SgBytes(self.order_hash()),
+            owner: SgBytes(self.owner().to_string()),
+            outputs: self
+                .outputs()
+                .into_iter()
+                .map(|v| v.into_sg_vault())
+                .collect::<Result<Vec<SgVault>, RaindexError>>()?,
+            inputs: self
+                .inputs()
+                .into_iter()
+                .map(|v| v.into_sg_vault())
+                .collect::<Result<Vec<SgVault>, RaindexError>>()?,
+            orderbook: SgOrderbook {
+                id: SgBytes(self.orderbook().to_string()),
+            },
+            active: self.active(),
+            timestamp_added: SgBigInt(timestamp_added),
+            meta: self.meta().map(SgBytes),
+            add_events: vec![],
+            remove_events: vec![],
+            trades: vec![],
         })
     }
 }

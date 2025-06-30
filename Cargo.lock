@@ -6470,6 +6470,7 @@ dependencies = [
  "rain_interpreter_parser",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
+ "rain_orderbook_quote",
  "rain_orderbook_subgraph_client",
  "rain_orderbook_test_fixtures",
  "reqwest 0.12.5",

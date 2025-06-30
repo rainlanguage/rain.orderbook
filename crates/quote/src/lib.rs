@@ -6,8 +6,8 @@ mod quote;
 mod quote_debug;
 pub mod rpc;
 
-#[cfg(any(target_family = "wasm", test))]
-pub mod js_api;
+// #[cfg(any(target_family = "wasm", test))]
+// pub mod js_api;
 
 mod order_quotes;
 pub use order_quotes::*;

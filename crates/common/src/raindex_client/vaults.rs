@@ -9,8 +9,8 @@ use alloy::primitives::{Address, Bytes, I256, U256};
 use rain_orderbook_subgraph_client::{
     types::{
         common::{
-            SgBytes, SgErc20, SgTradeVaultBalanceChange, SgVault, SgVaultBalanceChangeUnwrapped,
-            SgVaultsListFilterArgs,
+            SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTradeVaultBalanceChange,
+            SgVault, SgVaultBalanceChangeUnwrapped, SgVaultsListFilterArgs,
         },
         Id,
     },
@@ -786,6 +786,30 @@ impl RaindexVault {
             orders_as_outputs: self.orders_as_outputs.clone(),
         }
     }
+
+    pub fn into_sg_vault(self) -> Result<SgVault, RaindexError> {
+        Ok(SgVault {
+            id: SgBytes(self.id),
+            vault_id: SgBigInt(self.vault_id.to_string()),
+            balance: SgBigInt(self.balance.to_string()),
+            owner: SgBytes(self.owner.to_string()),
+            token: self.token.try_into()?,
+            orderbook: SgOrderbook {
+                id: SgBytes(self.orderbook.to_string()),
+            },
+            orders_as_input: self
+                .orders_as_inputs
+                .into_iter()
+                .map(|v| v.try_into())
+                .collect::<Result<Vec<SgOrderAsIO>, RaindexError>>()?,
+            orders_as_output: self
+                .orders_as_outputs
+                .into_iter()
+                .map(|v| v.try_into())
+                .collect::<Result<Vec<SgOrderAsIO>, RaindexError>>()?,
+            balance_changes: vec![],
+        })
+    }
 }
 
 impl TryFrom<SgErc20> for RaindexVaultToken {
@@ -803,17 +827,31 @@ impl TryFrom<SgErc20> for RaindexVaultToken {
         })
     }
 }
+impl TryFrom<RaindexVaultToken> for SgErc20 {
+    type Error = RaindexError;
+    fn try_from(token: RaindexVaultToken) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: SgBytes(token.id),
+            address: SgBytes(token.address.to_string()),
+            name: token.name,
+            symbol: token.symbol,
+            decimals: token
+                .decimals
+                .map(|decimals| SgBigInt(decimals.to_string())),
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raindex_client::tests::get_test_yaml;
-    use alloy::sol_types::SolCall;
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
+        use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
+        use alloy::sol_types::SolCall;
         use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_bindings::{

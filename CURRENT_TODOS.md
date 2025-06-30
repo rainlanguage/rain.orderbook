@@ -9,3 +9,4 @@
 9. Convert all chain ids to u32.
 10. Make sure the wasm macro PR is merged and published. Use the latest version.
 11. Remove the old get add order calldata standalone wasm binding.
+12. Update balance change query to use page size 1000.
