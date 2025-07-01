@@ -1617,14 +1617,8 @@ ${dotrainWithoutVaultIds}`;
 			);
 			assert.notEqual(newCurrentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.notEqual(newCurrentDeployment.deployment.order.outputs[0].vaultId, undefined);
-			assert.equal(
-				newCurrentDeployment.deployment.order.inputs[0].vaultId,
-				'0x0000000000000000000000000000000000000000000000000000000000000123'
-			);
-			assert.equal(
-				newCurrentDeployment.deployment.order.outputs[0].vaultId,
-				'0x0000000000000000000000000000000000000000000000000000000000000234'
-			);
+			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123');
+			assert.equal(newCurrentDeployment.deployment.order.outputs[0].vaultId, '0x234');
 
 			const vaultIds = extractWasmEncodedData<Map<string, (string | undefined)[]>>(
 				gui.getVaultIds()
