@@ -3,17 +3,19 @@ import { parseYaml } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import settingsYamlContent from '../__fixtures__/settings.yaml?raw';
 
-const yamlContent = [
-	`
-doesnt work
-`
-];
-
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 
+if (import.meta.vitest) {
+	vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+		return {
+			...(await importOriginal())
+		};
+	});
+}
+
 // Parse the YAML settings
-const parseResult = parseYaml(yamlContent);
+const parseResult = parseYaml([settingsYamlContent]);
 if (parseResult.error) {
 	throw new Error(`Failed to parse settings YAML: ${parseResult.error.readableMsg}`);
 }
