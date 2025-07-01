@@ -4,7 +4,6 @@
   import { VaultDetail } from '@rainlanguage/ui-components';
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
-  import { activeNetworkRef, activeOrderbookRef } from '$lib/stores/settings';
   import type { Address, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
 
@@ -34,8 +33,6 @@
   {orderbookAddress}
   {id}
   {lightweightChartsTheme}
-  {activeNetworkRef}
-  {activeOrderbookRef}
   {onDeposit}
   {onWithdraw}
 />

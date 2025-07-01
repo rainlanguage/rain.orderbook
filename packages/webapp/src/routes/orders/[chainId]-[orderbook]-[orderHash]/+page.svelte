@@ -28,8 +28,7 @@
 			order,
 			handleTransactionConfirmationModal,
 			errToast,
-			manager,
-			orderHash
+			manager
 		});
 	}
 

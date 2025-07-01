@@ -17,7 +17,6 @@
 	const parsedChainId = Number(chainId);
 	const orderbookAddress = orderbook as Address;
 
-	const { activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
@@ -54,8 +53,6 @@
 	{orderbookAddress}
 	chainId={parsedChainId}
 	{lightweightChartsTheme}
-	{activeNetworkRef}
-	{activeOrderbookRef}
 	{onDeposit}
 	{onWithdraw}
 />

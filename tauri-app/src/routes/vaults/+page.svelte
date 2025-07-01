@@ -12,8 +12,6 @@
     settings,
     showInactiveOrders,
     hideZeroBalanceVaults,
-    activeNetworkRef,
-    activeOrderbookRef,
     activeAccounts,
     resetActiveNetworkRef,
     resetActiveOrderbookRef,
@@ -46,8 +44,6 @@
   {settings}
   {showInactiveOrders}
   {hideZeroBalanceVaults}
-  {activeNetworkRef}
-  {activeOrderbookRef}
   {handleDepositGenericModal}
   {handleDepositModal}
   {handleWithdrawModal}

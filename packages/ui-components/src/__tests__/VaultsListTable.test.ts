@@ -41,8 +41,8 @@ vi.mock('@tanstack/svelte-query');
 
 // Hoisted mock stores
 const {
-	// mockActiveNetworkRefStore,
-	// mockActiveOrderbookRefStore,
+	mockActiveNetworkRefStore,
+	mockActiveOrderbookRefStore,
 	mockHideZeroBalanceVaultsStore,
 	mockOrderHashStore,
 	mockAccountsStore,
@@ -55,15 +55,14 @@ const {
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 const defaultProps = {
-	// activeOrderbook: mockActiveOrderbookRefStore,
 	orderHash: mockOrderHashStore,
 	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
 	settings: mockSettingsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
-	// activeNetworkRef: mockActiveNetworkRefStore,
-	// activeOrderbookRef: mockActiveOrderbookRefStore,
+	activeNetworkRef: mockActiveNetworkRefStore,
+	activeOrderbookRef: mockActiveOrderbookRefStore,
 	activeAccounts: mockActiveAccountsStore,
 	selectedChainIds: mockSelectedChainIdsStore,
 	showMyItemsOnly: mockShowMyItemsOnlyStore
