@@ -1,7 +1,6 @@
 import type { AccountCfg, NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
 import { parseYaml } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
-import settingsYamlContent from '../__fixtures__/settings.yaml?raw';
 
 const yamlContent = [
 	`

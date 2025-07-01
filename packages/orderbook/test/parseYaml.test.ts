@@ -1,4 +1,5 @@
-import { parseYaml, OrderbookYaml, DotrainOrderGui, RaindexClient } from '@rainlanguage/orderbook';
+import { describe, it } from 'vitest';
+import { DotrainOrderGui, parseYaml } from '../dist/cjs';
 
 const yamlContent = [
 	`
@@ -189,11 +190,7 @@ accounts:
 ];
 
 describe('parseYaml', () => {
-	it('should parse YAML', async () => {
-		const yaml = `
-version: 1    
-`;
-
+	it('dotrain order gui', async () => {
 		const dotrain = `
 version: 1
 
@@ -544,20 +541,17 @@ io: if(
 #handle-add-order
 :;
 `;
+		const dotrainOrderGui = await DotrainOrderGui.getDeploymentDetail(dotrain, 'flare');
+		console.log(dotrainOrderGui);
+		console.log(dotrainOrderGui.value);
+	});
 
-		// console.log('raindex client', RaindexClient);
-		// console.log('dotrain order gui', DotrainOrderGui);
-		// const dotrainOrderGui = await DotrainOrderGui.getDeploymentDetails(dotrain);
-		// console.log(dotrainOrderGui);
-		// console.log(dotrainOrderGui.value);
-
-		// const orderbookYaml = OrderbookYaml.new([yaml]);
-		// console.log(
-		// 	orderbookYaml.value?.getOrderbookByAddress('0xCEe8Cd002F151A536394E564b84076c41bBBcD4d')
-		// );
-
+	it('should parse YAML', () => {
+		const yaml = `
+version: 1    
+`;
 		const result = parseYaml([yaml]);
-		console.log(typeof result.error);
+		console.log(result);
 		if (result.error) {
 			throw new Error(`Failed to parse YAML in standalone test file: ${result.error.readableMsg}`);
 		}
