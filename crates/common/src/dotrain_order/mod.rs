@@ -263,17 +263,7 @@ impl DotrainOrder {
     /// - Remote network configurations
     /// - Remote token definitions
     ///
-    /// # Parameters
-    ///
-    /// * `dotrain` - Complete dotrain text containing YAML frontmatter and Rainlang code
-    /// * `settings` - Optional additional YAML configuration strings to merge with the frontmatter
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(DotrainOrder)` - Successfully parsed and validated DotrainOrder instance
-    /// * `Err(DotrainOrderError)` - Configuration parsing failed, version mismatch, or network errors
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Basic usage
@@ -294,9 +284,19 @@ impl DotrainOrder {
     ///   // Do something with the dotrainOrder
     /// }
     /// ```
-    #[wasm_export(js_name = "create", preserve_js_class)]
+    #[wasm_export(
+        js_name = "create",
+        preserve_js_class,
+        return_description = "Successfully parsed and validated DotrainOrder instance"
+    )]
     pub async fn create(
+        #[wasm_export(
+            param_description = "Complete dotrain text containing YAML frontmatter and Rainlang code"
+        )]
         dotrain: String,
+        #[wasm_export(
+            param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
+        )]
         settings: Option<Vec<String>>,
     ) -> Result<DotrainOrder, DotrainOrderError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
@@ -344,12 +344,7 @@ impl DotrainOrder {
 
     /// Returns the original dotrain text used to create this DotrainOrder instance.
     ///
-    /// # Returns
-    ///
-    /// * `Ok(String)` - The complete dotrain text including YAML frontmatter and Rainlang code
-    /// * `Err(DotrainOrderError)` - Instance not properly initialized (should not occur in normal usage)
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = dotrainOrder.dotrain();
@@ -360,7 +355,11 @@ impl DotrainOrder {
     ///   // Do something with the dotrain
     /// }
     /// ```
-    #[wasm_export(js_name = "dotrain", unchecked_return_type = "string")]
+    #[wasm_export(
+        js_name = "dotrain",
+        unchecked_return_type = "string",
+        return_description = "The complete dotrain text including YAML frontmatter and Rainlang code"
+    )]
     pub fn dotrain(&self) -> Result<String, DotrainOrderError> {
         Ok(self.dotrain.clone())
     }
@@ -370,8 +369,7 @@ impl DotrainOrder {
     /// Takes a scenario name from the dotrain configuration and composes the Rainlang
     /// code with that scenario's bindings applied.
     ///
-    /// # Parameters
-    /// * `scenario` - Name of the scenario defined in the dotrain YAML frontmatter
+    /// ## Examples
     ///
     /// # Returns
     /// * `Ok(String)` - Composed Rainlang code with scenario bindings applied
@@ -391,10 +389,14 @@ impl DotrainOrder {
     /// ```
     #[wasm_export(
         js_name = "composeScenarioToRainlang",
-        unchecked_return_type = "string"
+        unchecked_return_type = "string",
+        return_description = "Composed Rainlang code with scenario bindings applied"
     )]
     pub async fn compose_scenario_to_rainlang(
         &self,
+        #[wasm_export(
+            param_description = "Name of the scenario defined in the dotrain YAML frontmatter"
+        )]
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
@@ -411,16 +413,7 @@ impl DotrainOrder {
     ///
     /// This is useful for scenarios that need to perform actions immediately after an order is added.
     ///
-    /// # Parameters
-    ///
-    /// * `scenario` - Name of the scenario defined in the dotrain YAML frontmatter
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(String)` - Composed handle-add-order Rainlang code with scenario bindings applied
-    /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang composition failed
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await dotrainOrder.composeScenarioToPostTaskRainlang("scenario");
@@ -433,10 +426,14 @@ impl DotrainOrder {
     /// ```
     #[wasm_export(
         js_name = "composeScenarioToPostTaskRainlang",
-        unchecked_return_type = "string"
+        unchecked_return_type = "string",
+        return_description = "Composed handle-add-order Rainlang code with scenario bindings applied"
     )]
     pub async fn compose_scenario_to_post_task_rainlang(
         &self,
+        #[wasm_export(
+            param_description = "Name of the scenario defined in the dotrain YAML frontmatter"
+        )]
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
@@ -454,16 +451,7 @@ impl DotrainOrder {
     /// configuration ready for deployment. This method resolves the deployment's scenario
     /// and composes the Rainlang code with the appropriate bindings.
     ///
-    /// # Parameters
-    ///
-    /// * `deployment` - Name of the deployment defined in the dotrain YAML frontmatter
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(String)` - Composed Rainlang code for the deployment's scenario
-    /// * `Err(DotrainOrderError)` - Deployment not found or Rainlang composition failed
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Compose a production deployment
@@ -477,10 +465,14 @@ impl DotrainOrder {
     /// ```
     #[wasm_export(
         js_name = "composeDeploymentToRainlang",
-        unchecked_return_type = "string"
+        unchecked_return_type = "string",
+        return_description = "Composed Rainlang code for the deployment's scenario"
     )]
     pub async fn compose_deployment_to_rainlang(
         &self,
+        #[wasm_export(
+            param_description = "Name of the deployment defined in the dotrain YAML frontmatter"
+        )]
         deployment: String,
     ) -> Result<String, DotrainOrderError> {
         let scenario = self.dotrain_yaml.get_deployment(&deployment)?.scenario;

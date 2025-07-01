@@ -59,18 +59,7 @@ impl_wasm_traits!(DoOrderQuoteResult);
 /// contract address and the order's hash, ensuring consistent identification
 /// across different systems and queries.
 ///
-/// # Parameters
-///
-/// - `orderbook` - Ethereum address of the orderbook contract (hex string with or without "0x" prefix)
-/// - `order_hash` - Hash of the order as a string (decimal or hex format)
-///
-/// # Returns
-///
-/// - `Ok(String)` - Hex-encoded order ID with "0x" prefix for subgraph usage
-/// - `Err(FromHexError)` - If the orderbook address is malformed
-/// - `Err(U256ParseError)` - If the order hash cannot be parsed as a number
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = getId(
@@ -85,8 +74,19 @@ impl_wasm_traits!(DoOrderQuoteResult);
 /// const orderId = result.value;
 /// // Do something with the orderId
 /// ```
-#[wasm_export(js_name = "getId", unchecked_return_type = "string")]
-pub fn get_id(orderbook: &str, order_hash: &str) -> Result<String, QuoteBindingsError> {
+#[wasm_export(
+    js_name = "getId",
+    unchecked_return_type = "string",
+    return_description = "Hex-encoded order ID with \"0x\" prefix for subgraph usage"
+)]
+pub fn get_id(
+    #[wasm_export(
+        param_description = "Ethereum address of the orderbook contract (hex string with or without \"0x\" prefix)"
+    )]
+    orderbook: &str,
+    #[wasm_export(param_description = "Hash of the order as a string (decimal or hex format)")]
+    order_hash: &str,
+) -> Result<String, QuoteBindingsError> {
     let orderbook = Address::from_hex(orderbook)?;
     let order_hash = U256::from_str(order_hash)?;
     Ok(encode_prefixed(make_order_id(orderbook, order_hash)))
@@ -99,28 +99,7 @@ pub fn get_id(orderbook: &str, order_hash: &str) -> Result<String, QuoteBindings
 /// a complete order configuration including the orderbook address and quote parameters.
 /// The function processes all targets in a single batch operation for efficiency.
 ///
-/// # Parameters
-///
-/// - `quote_targets` - Array of quote targets with the following structure:
-///   - `orderbook` - Ethereum address of the orderbook contract
-///   - `quote_config` - Quote configuration containing:
-///     - `order` - Complete order structure with owner, evaluable, validInputs, validOutputs, and nonce
-///     - `inputIOIndex` - Index of the input token in the order's IO configuration
-///     - `outputIOIndex` - Index of the output token in the order's IO configuration
-///     - `signedContext` - Additional context data for the quote calculation
-/// - `rpc_url` - Ethereum RPC endpoint URL for blockchain queries
-/// - `block_number` - Optional specific block number for historical quotes (uses latest if None)
-/// - `gas` - Optional gas limit as string for quote simulations (uses default if None)
-/// - `multicall_address` - Optional custom multicall contract address (uses default if None)
-///
-/// # Returns
-///
-/// - `Ok(DoQuoteTargetsResult)` - Array of quote results, each containing either success data or error
-/// - `Err(FromHexError)` - If multicall address format is invalid
-/// - `Err(U256ParseError)` - If gas value cannot be parsed
-/// - `Err(QuoteError)` - If RPC communication or contract execution fails
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await doQuoteTargets(
@@ -136,13 +115,27 @@ pub fn get_id(orderbook: &str, order_hash: &str) -> Result<String, QuoteBindings
 /// ```
 #[wasm_export(
     js_name = "doQuoteTargets",
-    unchecked_return_type = "DoQuoteTargetsResult"
+    unchecked_return_type = "DoQuoteTargetsResult",
+    return_description = "Array of quote results, each containing either success data or error"
 )]
 pub async fn do_quote_targets(
+    #[wasm_export(
+        param_description = "Array of quote targets with orderbook address and complete order configuration"
+    )]
     quote_targets: BatchQuoteTarget,
+    #[wasm_export(param_description = "Ethereum RPC endpoint URL for blockchain queries")]
     rpc_url: String,
+    #[wasm_export(
+        param_description = "Optional specific block number for historical quotes (uses latest if None)"
+    )]
     block_number: Option<u64>,
+    #[wasm_export(
+        param_description = "Optional gas limit as string for quote simulations (uses default if None)"
+    )]
     gas: Option<String>,
+    #[wasm_export(
+        param_description = "Optional custom multicall contract address (uses default if None)"
+    )]
     multicall_address: Option<String>,
 ) -> Result<DoQuoteTargetsResult, QuoteBindingsError> {
     let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
@@ -176,28 +169,7 @@ pub async fn do_quote_targets(
 /// then executes the actual quote calculations via blockchain calls. This approach
 /// is ideal when you have order identifiers but need to fetch the full order data.
 ///
-/// # Parameters
-///
-/// - `quote_specs` - Array of quote specifications with the following structure:
-///   - `order_hash` - Unique identifier for the order in the subgraph
-///   - `input_io_index` - Index of the input token in the order's IO configuration
-///   - `output_io_index` - Index of the output token in the order's IO configuration
-///   - `orderbook` - Address of the orderbook contract containing the order
-///   - `signed_context` - Additional context data for the quote calculation
-/// - `subgraph_url` - GraphQL endpoint URL for the subgraph
-/// - `rpc_url` - Ethereum RPC endpoint URL for blockchain quote execution
-/// - `block_number` - Optional specific block number for historical quotes (uses latest if None)
-/// - `gas` - Optional gas limit as string for quote simulations (uses default if None)
-/// - `multicall_address` - Optional custom multicall contract address (uses default if None)
-///
-/// # Returns
-///
-/// - `Ok(DoQuoteSpecsResult)` - Array of quote results, each containing either success data or error
-/// - `Err(FromHexError)` - If multicall address format is invalid
-/// - `Err(U256ParseError)` - If gas value cannot be parsed
-/// - `Err(QuoteError)` - If subgraph query or RPC execution fails
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await doQuoteSpecs(
@@ -212,13 +184,31 @@ pub async fn do_quote_targets(
 /// const quoteResults = result.value;
 /// // Do something with the quoteResults
 /// ```
-#[wasm_export(js_name = "doQuoteSpecs", unchecked_return_type = "DoQuoteSpecsResult")]
+#[wasm_export(
+    js_name = "doQuoteSpecs",
+    unchecked_return_type = "DoQuoteSpecsResult",
+    return_description = "Array of quote results, each containing either success data or error"
+)]
 pub async fn do_quote_specs(
+    #[wasm_export(
+        param_description = "Array of quote specifications with order_hash, io indexes, orderbook address, and signed_context"
+    )]
     quote_specs: BatchQuoteSpec,
+    #[wasm_export(param_description = "GraphQL endpoint URL for the subgraph")]
     subgraph_url: String,
+    #[wasm_export(param_description = "Ethereum RPC endpoint URL for blockchain quote execution")]
     rpc_url: String,
+    #[wasm_export(
+        param_description = "Optional specific block number for historical quotes (uses latest if None)"
+    )]
     block_number: Option<u64>,
+    #[wasm_export(
+        param_description = "Optional gas limit as string for quote simulations (uses default if None)"
+    )]
     gas: Option<String>,
+    #[wasm_export(
+        param_description = "Optional custom multicall contract address (uses default if None)"
+    )]
     multicall_address: Option<String>,
 ) -> Result<DoQuoteSpecsResult, QuoteBindingsError> {
     let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
@@ -258,22 +248,7 @@ pub async fn do_quote_specs(
 /// lightweight quote specifications and converts them into quote target objects that
 /// can be used for subsequent quote operations or validation.
 ///
-/// # Parameters
-///
-/// - `quote_specs` - Array of quote specifications with the following structure:
-///   - `order_hash` - Unique identifier for the order in the subgraph
-///   - `input_io_index` - Index of the input token in the order's IO configuration
-///   - `output_io_index` - Index of the output token in the order's IO configuration
-///   - `orderbook` - Address of the orderbook contract containing the order
-///   - `signed_context` - Additional context data for the quote calculation
-/// - `subgraph_url` - GraphQL endpoint URL for the subgraph
-///
-/// # Returns
-///
-/// - `Ok(QuoteTargetResult)` - Array of quote targets (Some) or None if order not found in subgraph
-/// - `Err(QuoteError)` - If subgraph communication fails or query is malformed
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getQuoteTargetFromSubgraph(
@@ -289,10 +264,15 @@ pub async fn do_quote_specs(
 /// ```
 #[wasm_export(
     js_name = "getQuoteTargetFromSubgraph",
-    unchecked_return_type = "QuoteTargetResult"
+    unchecked_return_type = "QuoteTargetResult",
+    return_description = "Array of quote targets (Some) or None if order not found in subgraph"
 )]
 pub async fn get_batch_quote_target_from_subgraph(
+    #[wasm_export(
+        param_description = "Array of quote specifications with order_hash, io indexes, orderbook address, and signed_context"
+    )]
     quote_specs: BatchQuoteSpec,
+    #[wasm_export(param_description = "GraphQL endpoint URL for the subgraph")]
     subgraph_url: String,
 ) -> Result<QuoteTargetResult, QuoteBindingsError> {
     let quote_targets = quote_specs
@@ -308,30 +288,7 @@ pub async fn get_batch_quote_target_from_subgraph(
 /// possible input/output token pairs within each order, providing comprehensive
 /// trading information without requiring additional network calls for order data.
 ///
-/// # Parameters
-///
-/// - `order` - Array of complete order objects with the following structure:
-///   - `id` - Unique identifier for the order
-///   - `order_bytes` - Complete order bytecode
-///   - `order_hash` - Hash of the order
-///   - `owner` - Ethereum address of the order owner
-///   - `inputs` - Array of input vault objects containing:
-///     - `token` - Token information with address, symbol, and decimals
-///     - `vault_id` - Vault identifier for the token
-///   - `outputs` - Array of output vault objects with same structure as inputs
-///   - `active` - Boolean indicating if the order is active
-///   - `orderbook` - Orderbook information containing the contract ID
-/// - `rpc_url` - Ethereum RPC endpoint URL for blockchain quote execution
-/// - `block_number` - Optional specific block number for historical quotes (uses latest if None)
-/// - `gas` - Optional gas limit as string for quote simulations (uses default if None)
-///
-/// # Returns
-///
-/// - `Ok(DoOrderQuoteResult)` - Array of batch quote responses with trading pair information
-/// - `Err(U256ParseError)` - If gas value cannot be parsed
-/// - `Err(QuoteError)` - If RPC communication or contract execution fails
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getOrderQuote(
@@ -347,12 +304,23 @@ pub async fn get_batch_quote_target_from_subgraph(
 /// ```
 #[wasm_export(
     js_name = "getOrderQuote",
-    unchecked_return_type = "DoOrderQuoteResult"
+    unchecked_return_type = "DoOrderQuoteResult",
+    return_description = "Array of batch quote responses with trading pair information"
 )]
 pub async fn get_order_quote(
+    #[wasm_export(
+        param_description = "Array of complete order objects with id, order_bytes, inputs, outputs, and orderbook information"
+    )]
     order: Vec<SgOrder>,
+    #[wasm_export(param_description = "Ethereum RPC endpoint URL for blockchain quote execution")]
     rpc_url: String,
+    #[wasm_export(
+        param_description = "Optional specific block number for historical quotes (uses latest if None)"
+    )]
     block_number: Option<u64>,
+    #[wasm_export(
+        param_description = "Optional gas limit as string for quote simulations (uses default if None)"
+    )]
     gas: Option<String>,
 ) -> Result<DoOrderQuoteResult, QuoteBindingsError> {
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;

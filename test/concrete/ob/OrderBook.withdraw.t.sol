@@ -29,11 +29,13 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         vm.assume(amount > 0);
         vm.prank(alice);
         vm.record();
+        vm.expectEmit(false, false, false, true);
+        emit Withdraw(alice, token, vaultId, amount, 0);
         vm.recordLogs();
         iOrderbook.withdraw2(token, vaultId, amount, new TaskV1[](0));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
-        // Zero logs because nothing happened.
-        assertEq(vm.getRecordedLogs().length, 0, "logs");
+        // Event is emitted even if the vault is empty and zero tokens move.
+        assertEq(vm.getRecordedLogs().length, 1, "logs");
         // - reentrancy guard x3
         // - vault balance x1
         assertEq(reads.length, 4, "reads");
