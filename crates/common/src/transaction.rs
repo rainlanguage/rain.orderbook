@@ -118,7 +118,7 @@ impl TransactionArgs {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use alloy::primitives::address;
     use httpmock::MockServer;

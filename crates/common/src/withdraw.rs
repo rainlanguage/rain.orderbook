@@ -55,7 +55,7 @@ impl WithdrawArgs {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use alloy_ethers_typecast::gas_fee_middleware::GasFeeSpeed;

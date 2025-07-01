@@ -17,17 +17,7 @@ impl_wasm_traits!(GetTransactionRemoveOrdersResult);
 ///
 /// Retrieves all orders cancelled or removed within a single blockchain transaction.
 ///
-/// # Parameters
-///
-/// * `url` - Subgraph endpoint URL
-/// * `tx_hash` - Transaction hash
-///
-/// # Returns
-///
-/// * `Ok(GetTransactionRemoveOrdersResult)` - Array of orders removed in the transaction
-/// * `Err(SubgraphError)` - Transaction not found or network errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getTransactionRemoveOrders(
@@ -43,11 +33,12 @@ impl_wasm_traits!(GetTransactionRemoveOrdersResult);
 /// ```
 #[wasm_export(
     js_name = "getTransactionRemoveOrders",
-    unchecked_return_type = "GetTransactionRemoveOrdersResult"
+    unchecked_return_type = "GetTransactionRemoveOrdersResult",
+    return_description = "Array of orders removed in the transaction"
 )]
 pub async fn get_transaction_remove_orders(
-    url: &str,
-    tx_hash: &str,
+    #[wasm_export(param_description = "Subgraph endpoint URL")] url: &str,
+    #[wasm_export(param_description = "Transaction hash")] tx_hash: &str,
 ) -> Result<GetTransactionRemoveOrdersResult, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     Ok(GetTransactionRemoveOrdersResult(

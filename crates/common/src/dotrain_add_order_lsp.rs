@@ -120,7 +120,7 @@ impl DotrainAddOrderLsp {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use rain_orderbook_app_settings::spec_version::SpecVersion;

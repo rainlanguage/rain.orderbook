@@ -211,16 +211,7 @@ impl DotrainOrderGui {
     /// will be deposited. This helps determine which tokens need approval before
     /// the order can be created.
     ///
-    /// # Parameters
-    ///
-    /// - `owner` - Wallet address to check allowances for
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(AllowancesResult)` - Current allowances for all deposit tokens
-    /// - `Err(GuiError)` - If allowance check fails
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await gui.checkAllowances(walletAddress);
@@ -238,9 +229,13 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "checkAllowances",
-        unchecked_return_type = "AllowancesResult"
+        unchecked_return_type = "AllowancesResult",
+        return_description = "Current allowances for all deposit tokens"
     )]
-    pub async fn check_allowances(&mut self, owner: String) -> Result<AllowancesResult, GuiError> {
+    pub async fn check_allowances(
+        &mut self,
+        #[wasm_export(param_description = "Wallet address to check allowances for")] owner: String,
+    ) -> Result<AllowancesResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::Allowance)?;
 
         let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
@@ -277,17 +272,7 @@ impl DotrainOrderGui {
     /// Automatically checks current allowances and generates approval calldata only
     /// for tokens where the current allowance is insufficient for the planned deposits.
     ///
-    /// # Parameters
-    ///
-    /// - `owner` - Wallet address that will approve the tokens
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(ApprovalCalldataResult::NoDeposits)` - No deposits configured
-    /// - `Ok(ApprovalCalldataResult::Calldatas(vec))` - Approval calldatas needed
-    /// - `Err(GuiError)` - If allowance checks or calldata generation fails
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await gui.generateApprovalCalldatas(walletAddress);
@@ -307,10 +292,12 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "generateApprovalCalldatas",
-        unchecked_return_type = "ApprovalCalldataResult"
+        unchecked_return_type = "ApprovalCalldataResult",
+        return_description = "Approval calldatas needed for insufficient allowances"
     )]
     pub async fn generate_approval_calldatas(
         &mut self,
+        #[wasm_export(param_description = "Wallet address that will approve the tokens")]
         owner: String,
     ) -> Result<ApprovalCalldataResult, GuiError> {
         let deposits_map = self.get_deposits_as_map().await?;
@@ -371,14 +358,7 @@ impl DotrainOrderGui {
     /// Creates deposit calldatas for all configured deposits, automatically
     /// skipping zero amounts and ensuring vault IDs are properly assigned.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(DepositCalldataResult::NoDeposits)` - No deposits configured
-    /// - `Ok(DepositCalldataResult::Calldatas(vec))` - Deposit calldatas to execute
-    /// - `Err(SelectTokensNotSet)` - Required tokens haven't been selected
-    /// - `Err(VaultIdNotFound)` - Vault ID missing for output token
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await gui.generateDepositCalldatas();
@@ -396,7 +376,8 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "generateDepositCalldatas",
-        unchecked_return_type = "DepositCalldataResult"
+        unchecked_return_type = "DepositCalldataResult",
+        return_description = "Deposit calldatas to execute or NoDeposits if none configured"
     )]
     pub async fn generate_deposit_calldatas(&mut self) -> Result<DepositCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::Deposit)?;
@@ -442,14 +423,7 @@ impl DotrainOrderGui {
     /// Creates the addOrder calldata with all field values applied to the
     /// Rainlang code and proper vault configurations.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(AddOrderCalldataResult)` - Encoded addOrder call ready for execution
-    /// - `Err(FieldValueNotSet)` - Required field value missing
-    /// - `Err(TokenMustBeSelected)` - Required token not selected
-    /// - `Err(GuiError)` - Configuration or compilation error
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await gui.generateAddOrderCalldata();
@@ -463,7 +437,8 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "generateAddOrderCalldata",
-        unchecked_return_type = "AddOrderCalldataResult"
+        unchecked_return_type = "AddOrderCalldataResult",
+        return_description = "Encoded addOrder call ready for execution"
     )]
     pub async fn generate_add_order_calldata(
         &mut self,
@@ -485,18 +460,13 @@ impl DotrainOrderGui {
     /// This is the most efficient way to deploy an order, combining all necessary
     /// operations into a single calldata to minimize gas costs and ensure atomicity.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(DepositAndAddOrderCalldataResult)` - Multicall calldata
-    /// - `Err(GuiError)` - If any component generation fails
-    ///
     /// # Transaction Structure
     ///
     /// The multicall includes:
     /// 1. AddOrder call (always first)
     /// 2. All deposit calls for non-zero amounts
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await gui.generateDepositAndAddOrderCalldatas();
@@ -509,7 +479,8 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "generateDepositAndAddOrderCalldatas",
-        unchecked_return_type = "DepositAndAddOrderCalldataResult"
+        unchecked_return_type = "DepositAndAddOrderCalldataResult",
+        return_description = "Multicall calldata combining deposits and addOrder"
     )]
     pub async fn generate_deposit_and_add_order_calldatas(
         &mut self,
@@ -543,18 +514,7 @@ impl DotrainOrderGui {
     /// Sets the vault ID for a specific input or output token. Vault IDs determine
     /// which vaults are used for the input or output tokens in the order.
     ///
-    /// # Parameters
-    ///
-    /// - `is_input` - True for input vaults, false for output vaults
-    /// - `index` - Zero-based index in the inputs/outputs array
-    /// - `vault_id` - Vault ID number as string, or None to clear
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())` - Vault ID set successfully
-    /// - `Err(GuiError)` - If order configuration is invalid
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result1 = gui.setVaultId(true, 0, "42");
@@ -568,8 +528,11 @@ impl DotrainOrderGui {
     #[wasm_export(js_name = "setVaultId", unchecked_return_type = "void")]
     pub fn set_vault_id(
         &mut self,
+        #[wasm_export(param_description = "True for input vaults, false for output vaults")]
         is_input: bool,
+        #[wasm_export(param_description = "Zero-based index in the inputs/outputs array")]
         index: u8,
+        #[wasm_export(param_description = "Vault ID number as string, or None to clear")]
         vault_id: Option<String>,
     ) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
@@ -587,12 +550,7 @@ impl DotrainOrderGui {
     /// Returns the current vault ID configuration showing which vaults are
     /// assigned to each input and output token position.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(IOVaultIds)` - Map with 'input' and 'output' arrays of vault IDs
-    /// - `Err(GuiError)` - If deployment configuration is invalid
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getVaultIds();
@@ -608,7 +566,11 @@ impl DotrainOrderGui {
     ///   console.log("Value:", value);
     /// }
     /// ```
-    #[wasm_export(js_name = "getVaultIds", unchecked_return_type = "IOVaultIds")]
+    #[wasm_export(
+        js_name = "getVaultIds",
+        unchecked_return_type = "IOVaultIds",
+        return_description = "Map with 'input' and 'output' arrays of vault IDs"
+    )]
     pub fn get_vault_ids(&self) -> Result<IOVaultIds, GuiError> {
         let deployment = self.get_current_deployment()?;
         let map = HashMap::from([
@@ -641,10 +603,6 @@ impl DotrainOrderGui {
     /// Quick validation to determine if vault configuration has started.
     /// Useful for UI state management and validation flows.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(bool)` - True if at least one vault ID is set
-    ///
     /// # Examples
     ///
     /// ```javascript
@@ -657,7 +615,11 @@ impl DotrainOrderGui {
     /// const hasVaults = result.value;
     /// // Do something with the has vaults
     /// ```
-    #[wasm_export(js_name = "hasAnyVaultId", unchecked_return_type = "boolean")]
+    #[wasm_export(
+        js_name = "hasAnyVaultId",
+        unchecked_return_type = "boolean",
+        return_description = "True if at least one vault ID is set"
+    )]
     pub fn has_any_vault_id(&self) -> Result<bool, GuiError> {
         let map = self.get_vault_ids()?;
         Ok(map.0.values().any(|ids| ids.iter().any(|id| id.is_some())))
@@ -675,16 +637,6 @@ impl DotrainOrderGui {
     /// This is the comprehensive function that provides everything needed to deploy
     /// an order: approval calldatas, the main deployment transaction, and metadata.
     /// Use this for full transaction orchestration.
-    ///
-    /// # Parameters
-    ///
-    /// - `owner` - Wallet address that will deploy the order
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(DeploymentTransactionArgs)` - Complete transaction package
-    /// - `Err(SelectTokensNotSet)` - Required tokens not selected
-    /// - `Err(GuiError)` - Configuration or generation error
     ///
     /// # Transaction Package
     ///
@@ -716,10 +668,12 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getDeploymentTransactionArgs",
-        unchecked_return_type = "DeploymentTransactionArgs"
+        unchecked_return_type = "DeploymentTransactionArgs",
+        return_description = "Complete transaction package including approvals and deployment calldata"
     )]
     pub async fn get_deployment_transaction_args(
         &mut self,
+        #[wasm_export(param_description = "Wallet address that will deploy the order")]
         owner: String,
     ) -> Result<DeploymentTransactionArgs, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
