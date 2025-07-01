@@ -12,3 +12,4 @@
 12. Update balance change query to use page size 1000.
 13. Make sure to look at the commented TODOs in the codebase.
 14. Look at the transaction manager tests and make sure they are correct.
+15. Remove get network key function from the gui sdk.
