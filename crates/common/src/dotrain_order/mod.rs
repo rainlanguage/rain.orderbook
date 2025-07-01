@@ -369,7 +369,7 @@ impl DotrainOrder {
     /// Takes a scenario name from the dotrain configuration and composes the Rainlang
     /// code with that scenario's bindings applied.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Compile a trading scenario
