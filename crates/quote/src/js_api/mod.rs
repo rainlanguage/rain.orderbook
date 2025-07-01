@@ -147,11 +147,8 @@ pub async fn do_quote_targets(
 ) -> Result<DoQuoteTargetsResult, QuoteBindingsError> {
     let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let quote_targets: Vec<QuoteTarget> =
-        quote_targets.0.into_iter().map(QuoteTarget::from).collect();
-    let batch_quote_target = BatchQuoteTarget(quote_targets);
 
-    let quotes = batch_quote_target
+    let quotes = quote_targets
         .do_quote(&rpc_url, block_number, gas_value, multicall_address)
         .await?;
 
@@ -226,10 +223,8 @@ pub async fn do_quote_specs(
 ) -> Result<DoQuoteSpecsResult, QuoteBindingsError> {
     let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let quote_specs: Vec<QuoteSpec> = quote_specs.0.into_iter().map(QuoteSpec::from).collect();
-    let batch_quote_spec = BatchQuoteSpec(quote_specs);
 
-    let quotes = batch_quote_spec
+    let quotes = quote_specs
         .do_quote(
             &subgraph_url,
             &rpc_url,
@@ -300,10 +295,7 @@ pub async fn get_batch_quote_target_from_subgraph(
     quote_specs: BatchQuoteSpec,
     subgraph_url: String,
 ) -> Result<QuoteTargetResult, QuoteBindingsError> {
-    let quote_specs: Vec<QuoteSpec> = quote_specs.0.into_iter().map(QuoteSpec::from).collect();
-    let batch_quote_spec = BatchQuoteSpec(quote_specs);
-
-    let quote_targets = batch_quote_spec
+    let quote_targets = quote_specs
         .get_batch_quote_target_from_subgraph(&subgraph_url)
         .await?;
     Ok(QuoteTargetResult(quote_targets))

@@ -1,3 +1,5 @@
+#![allow(clippy::large_enum_variant)]
+
 #[cfg(target_family = "wasm")]
 pub mod bindings;
 #[cfg(any(target_family = "wasm", test))]

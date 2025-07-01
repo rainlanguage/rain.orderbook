@@ -1,3 +1,5 @@
+#![allow(clippy::large_enum_variant)]
+
 #[cfg(not(target_family = "wasm"))]
 pub mod cli;
 pub mod error;

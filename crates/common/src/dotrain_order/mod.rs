@@ -378,7 +378,7 @@ impl DotrainOrder {
     /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang composition failed
     ///
     /// # Examples
-
+    ///
     /// ```javascript
     /// // Compile a trading scenario
     /// const result = await dotrainOrder.composeScenarioToRainlang("market-making");
