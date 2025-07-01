@@ -640,8 +640,12 @@ test: test
         assert_eq!(network.key, "mainnet");
         assert_eq!(network.chain_id, 1);
         assert_eq!(
-            network.rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://mainnet.infura.io/1").unwrap(),
+                Url::parse("https://mainnet.infura.io/2").unwrap(),
+                Url::parse("https://mainnet.infura.io/3").unwrap(),
+            ]
         );
 
         // Test error case - chain ID not found
@@ -690,19 +694,22 @@ test: test
     version: {spec_version}
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
             label: Ethereum Mainnet
             network-id: 1
             currency: ETH
         polygon:
-            rpc: https://polygon-rpc.com
+            rpcs:
+                - https://polygon-rpc.com
             chain-id: 137
             label: Polygon Mainnet
             network-id: 137
             currency: MATIC
         arbitrum:
-            rpc: https://arb1.arbitrum.io
+            rpcs:
+                - https://arb1.arbitrum.io
             chain-id: 42161
             label: Arbitrum One
             network-id: 42161

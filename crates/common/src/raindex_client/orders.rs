@@ -473,13 +473,15 @@ mod tests {
 version: {spec_version}
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
         chain-id: 1
         label: Ethereum Mainnet
         network-id: 1
         currency: ETH
     polygon:
-        rpc: https://polygon-rpc.com
+        rpcs:
+            - https://polygon-rpc.com
         chain-id: 137
         label: Polygon Mainnet
         network-id: 137
