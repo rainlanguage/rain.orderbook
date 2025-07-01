@@ -48,8 +48,6 @@
 	{activeAccountsItems}
 	{showInactiveOrders}
 	{hideZeroBalanceVaults}
-	{activeNetworkRef}
-	{activeOrderbookRef}
 	{activeAccounts}
 	{selectedChainIds}
 />
