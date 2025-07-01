@@ -46,7 +46,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         Float targetAmount,
         bytes[] memory evalStrings,
         uint256 expectedReads,
-        uint256 expectedWrites
+        uint256 expectedWrites,
+        bytes memory err
     ) internal {
         uint8 decimals = IERC20Metadata(address(iToken0)).decimals();
 
@@ -125,7 +126,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 0, 0);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 0, 0, "");
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -144,7 +145,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         // each get is 2 reads and 1 write.
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 2, 1);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 2, 1, "");
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -163,12 +164,12 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
         // each set is 1 read and 1 write.
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 1, 1);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 1, 1, "");
 
         bytes[] memory evals1 = new bytes[](1);
         evals1[0] = bytes(":ensure(equal-to(get(1) 2) \"set works\");");
         // each get is 2 reads and 1 write.
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 2, 1);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 2, 1, "");
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -191,7 +192,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
         // each set is 1 read and 1 write.
         // each get is 2 reads and 1 write.
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 6, 4);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 6, 4, "");
 
         bytes[] memory evals1 = new bytes[](4);
         evals1[0] = bytes(":set(1 20);");
@@ -200,7 +201,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
         // each set is 1 read and 1 write.
         // each get is 2 reads and 1 write.
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 6, 4);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 6, 4, "");
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -225,7 +226,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
         // each set is 1 read and 1 write.
         // each get is 2 reads and 1 write.
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 6, 4);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 6, 4, "");
 
         bytes[] memory evals1 = new bytes[](4);
         evals1[0] = bytes(":set(1 20);");
@@ -234,19 +235,31 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
         // each set is 1 read and 1 write.
         // each get is 2 reads and 1 write.
-        checkWithdraw(bob, vaultId, depositAmount, withdrawAmount, evals1, 6, 4);
+        checkWithdraw(bob, vaultId, depositAmount, withdrawAmount, evals1, 6, 4, "");
 
         bytes[] memory evals2 = new bytes[](2);
         evals2[0] = bytes(":ensure(equal-to(get(1) 2) \"alice state 1\");");
         evals2[1] = bytes(":ensure(equal-to(get(2) 3) \"alice state 2\");");
         // each get is 2 reads and 1 write.
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals2, 4, 2);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals2, 4, 2, "");
 
         bytes[] memory evals3 = new bytes[](2);
         evals3[0] = bytes(":ensure(equal-to(get(1) 20) \"bob state 1\");");
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
         // each get is 2 reads and 1 write.
-        checkWithdraw(bob, vaultId, depositAmount, withdrawAmount, evals3, 4, 2);
+        checkWithdraw(bob, vaultId, depositAmount, withdrawAmount, evals3, 4, 2, "");
+    }
+
+    /// Evals DO run if withdrawal amount ends up as 0.
+    /// No withdraw => eval.
+    /// forge-config: default.fuzz.runs = 100
+    function testOrderBookWithdrawalEvalZeroAmountEvalNoop(address alice, uint256 vaultId, uint256 withdrawAmount)
+        external
+    {
+        withdrawAmount = bound(withdrawAmount, 1, type(uint128).max);
+        bytes[] memory evals = new bytes[](1);
+        evals[0] = bytes(":ensure(0 \"always fails\");");
+        checkWithdraw(alice, vaultId, 0, withdrawAmount, evals, 0, 0, "always fails");
     }
 
     /// A revert in the action prevents withdraw from being enacted.
@@ -360,6 +373,6 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         );
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
 
-        checkWithdraw(alice, vaultId, depositAmount, targetAmount, evals, 0, 0);
+        checkWithdraw(alice, vaultId, depositAmount, targetAmount, evals, 0, 0, "");
     }
 }
