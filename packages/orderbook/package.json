@@ -37,7 +37,7 @@
         "rm-temp": "rimraf ./temp",
         "test": "npm run check && vitest run --dir test",
         "format": "prettier --write test",
-        "check": "tsc ./dist/**/* --noEmit --allowJs"
+        "check": "tsc ./dist/**/*.ts --noEmit --allowJs"
     },
     "devDependencies": {
         "rimraf": "6.0.1"
