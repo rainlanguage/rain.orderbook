@@ -53,7 +53,7 @@ vi.mock('$app/stores', async () => {
 	};
 });
 
-vi.mock('@rainlanguage/orderbook', () => {
+vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
 	const DotrainOrderGui = vi.fn();
 	// @ts-expect-error - static method
 	DotrainOrderGui.getStrategyDetails = vi.fn();
@@ -84,6 +84,7 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.prototype.getAllGuiConfig = vi.fn();
 	DotrainOrderGui.prototype.getCurrentDeploymentDetails = vi.fn();
 	return {
+		...(await importOriginal()),
 		DotrainOrderGui
 	};
 });
