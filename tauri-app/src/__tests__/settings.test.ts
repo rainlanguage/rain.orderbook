@@ -53,7 +53,7 @@ describe('Settings active accounts items', () => {
         accounts: {
           name_one: {
             key: 'name_one',
-            address: 'address_one',
+            address: '0xaddress_one',
           },
         },
       },
@@ -64,7 +64,7 @@ describe('Settings active accounts items', () => {
 
     // Check the expected result
     expect(get(activeAccountsItems)).toEqual({
-      name_one: 'address_one',
+      name_one: '0xaddress_one',
     });
   });
 
@@ -76,11 +76,11 @@ describe('Settings active accounts items', () => {
         accounts: {
           name_one: {
             key: 'name_one',
-            address: 'address_one',
+            address: '0xaddress_one',
           },
           name_two: {
             key: 'name_two',
-            address: 'new_value',
+            address: '0xnew_value',
           },
         },
       },
@@ -89,7 +89,7 @@ describe('Settings active accounts items', () => {
     settings.set(newSettings as unknown as NewConfig);
 
     expect(get(activeAccountsItems)).toEqual({
-      name_one: 'address_one',
+      name_one: '0xaddress_one',
     });
   });
 
