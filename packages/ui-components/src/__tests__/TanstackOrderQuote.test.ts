@@ -3,9 +3,7 @@ import { describe, it, vi, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import TanstackOrderQuote from '../lib/components/detail/TanstackOrderQuote.svelte';
 import { expect } from '../lib/test/matchers';
-import { mockOrderDetailsExtended } from '../lib/__fixtures__/orderDetail';
-import { getOrderQuote } from '@rainlanguage/orderbook';
-import type { SgOrder } from '@rainlanguage/orderbook';
+import type { RaindexOrder } from '@rainlanguage/orderbook';
 import { useToasts } from '$lib/providers/toasts/useToasts';
 import { writable } from 'svelte/store';
 import { invalidateTanstackQueries } from '$lib/queries/queryClient';
@@ -26,6 +24,11 @@ vi.mock('$lib/queries/queryClient', async (importOriginal) => ({
 const mockErrToast = vi.fn();
 
 describe('TanstackOrderQuote component', () => {
+	const mockOrder: RaindexOrder = {
+		id: '1',
+		getQuotes: vi.fn()
+	} as unknown as RaindexOrder;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
@@ -36,7 +39,7 @@ describe('TanstackOrderQuote component', () => {
 		});
 	});
 	it('displays order quote data when query is successful', async () => {
-		(getOrderQuote as Mock).mockResolvedValueOnce({
+		(mockOrder.getQuotes as Mock).mockResolvedValueOnce({
 			value: [
 				{
 					success: true,
@@ -52,10 +55,7 @@ describe('TanstackOrderQuote component', () => {
 
 		render(TanstackOrderQuote, {
 			props: {
-				id: '0x123',
-				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
-				orderbookAddress: '0x123',
+				order: mockOrder,
 				handleQuoteDebugModal: vi.fn()
 			},
 			context: new Map([['$$_queryClient', queryClient]])
@@ -71,7 +71,7 @@ describe('TanstackOrderQuote component', () => {
 	});
 
 	it('refreshes the quote when the refresh icon is clicked', async () => {
-		(getOrderQuote as Mock).mockResolvedValueOnce({
+		(mockOrder.getQuotes as Mock).mockResolvedValueOnce({
 			value: [
 				{
 					success: true,
@@ -90,7 +90,7 @@ describe('TanstackOrderQuote component', () => {
 			]
 		});
 		// Setup mock for the second data load (after refresh)
-		(getOrderQuote as Mock).mockResolvedValueOnce({
+		(mockOrder.getQuotes as Mock).mockResolvedValueOnce({
 			value: [
 				{
 					success: true,
@@ -120,10 +120,7 @@ describe('TanstackOrderQuote component', () => {
 
 		render(TanstackOrderQuote, {
 			props: {
-				id: '0x123',
-				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
-				orderbookAddress: '0x123',
+				order: mockOrder,
 				handleQuoteDebugModal: vi.fn()
 			},
 			context: new Map([['$$_queryClient', queryClient]])
@@ -158,7 +155,7 @@ describe('TanstackOrderQuote component', () => {
 	});
 
 	it('displays error message when query fails', async () => {
-		(getOrderQuote as Mock).mockResolvedValueOnce({
+		(mockOrder.getQuotes as Mock).mockResolvedValueOnce({
 			value: [
 				{
 					success: false,
@@ -174,10 +171,7 @@ describe('TanstackOrderQuote component', () => {
 
 		render(TanstackOrderQuote, {
 			props: {
-				id: '0x123',
-				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
-				orderbookAddress: '0x123',
+				order: mockOrder,
 				handleQuoteDebugModal: vi.fn()
 			},
 			context: new Map([['$$_queryClient', queryClient]])
@@ -190,7 +184,7 @@ describe('TanstackOrderQuote component', () => {
 	});
 
 	it('displays zero for price when io ratio is zero', async () => {
-		(getOrderQuote as Mock).mockResolvedValueOnce({
+		(mockOrder.getQuotes as Mock).mockResolvedValueOnce({
 			value: [
 				{
 					success: true,
@@ -206,10 +200,7 @@ describe('TanstackOrderQuote component', () => {
 
 		render(TanstackOrderQuote, {
 			props: {
-				id: '0x123',
-				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
-				orderbookAddress: '0x123',
+				order: mockOrder,
 				handleQuoteDebugModal: vi.fn()
 			},
 			context: new Map([['$$_queryClient', queryClient]])
@@ -227,7 +218,7 @@ describe('TanstackOrderQuote component', () => {
 
 	it('triggers a toast when the quote fails to refresh', async () => {
 		(invalidateTanstackQueries as Mock).mockRejectedValueOnce(new Error('Failed to refresh'));
-		(getOrderQuote as Mock).mockResolvedValueOnce({
+		(mockOrder.getQuotes as Mock).mockResolvedValueOnce({
 			value: [
 				{
 					success: true,
@@ -249,10 +240,7 @@ describe('TanstackOrderQuote component', () => {
 
 		render(TanstackOrderQuote, {
 			props: {
-				id: '0x123',
-				order: mockOrderDetailsExtended.order as SgOrder,
-				rpcUrl: 'https://example.com',
-				orderbookAddress: '0x123',
+				order: mockOrder,
 				handleQuoteDebugModal: vi.fn()
 			},
 			context: new Map([['$$_queryClient', queryClient]])

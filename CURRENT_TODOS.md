@@ -10,3 +10,5 @@
 10. Make sure the wasm macro PR is merged and published. Use the latest version.
 11. Remove the old get add order calldata standalone wasm binding.
 12. Update balance change query to use page size 1000.
+13. Make sure to look at the commented TODOs in the codebase.
+14. Look at the transaction manager tests and make sure they are correct.

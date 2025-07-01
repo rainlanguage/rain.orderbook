@@ -24,7 +24,7 @@ const mockVault = {
 	id: '0x1234567890abcdef1234567890abcdef12345678',
 	owner: '0xabcdef1234567890abcdef1234567890abcdef12',
 	vaultId: BigInt(42),
-	balance: BigInt(1000000000000000000),
+	balance: BigInt('1000000000000000000'),
 	token: {
 		id: '0x1111111111111111111111111111111111111111',
 		address: '0x1111111111111111111111111111111111111111',
@@ -41,8 +41,8 @@ vi.mock('@tanstack/svelte-query');
 
 // Hoisted mock stores
 const {
-	mockActiveNetworkRefStore,
-	mockActiveOrderbookRefStore,
+	// mockActiveNetworkRefStore,
+	// mockActiveOrderbookRefStore,
 	mockHideZeroBalanceVaultsStore,
 	mockOrderHashStore,
 	mockAccountsStore,
@@ -50,23 +50,23 @@ const {
 	mockShowInactiveOrdersStore,
 	mockSettingsStore,
 	mockActiveAccountsStore,
-	mockSelectedChainIdsStore
+	mockSelectedChainIdsStore,
+	mockShowMyItemsOnlyStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 const defaultProps = {
-	activeOrderbook: mockActiveOrderbookRefStore,
-	subgraphUrl: readable('https://api.thegraph.com/subgraphs/name/test'),
+	// activeOrderbook: mockActiveOrderbookRefStore,
 	orderHash: mockOrderHashStore,
 	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
 	settings: mockSettingsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
-	activeNetworkRef: mockActiveNetworkRefStore,
-	activeOrderbookRef: mockActiveOrderbookRefStore,
+	// activeNetworkRef: mockActiveNetworkRefStore,
+	// activeOrderbookRef: mockActiveOrderbookRefStore,
 	activeAccounts: mockActiveAccountsStore,
-	currentRoute: '/vaults',
-	selectedChainIds: mockSelectedChainIdsStore
+	selectedChainIds: mockSelectedChainIdsStore,
+	showMyItemsOnly: mockShowMyItemsOnlyStore
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

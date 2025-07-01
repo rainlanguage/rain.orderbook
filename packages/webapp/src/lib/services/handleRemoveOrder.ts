@@ -8,7 +8,6 @@ export interface HandleRemoveOrderDependencies {
 	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
-	orderHash: string;
 }
 
 export async function handleRemoveOrder(deps: HandleRemoveOrderDependencies): Promise<void> {
@@ -16,7 +15,7 @@ export async function handleRemoveOrder(deps: HandleRemoveOrderDependencies): Pr
 	try {
 		const calldataResult = deps.order.getRemoveCalldata();
 		if (calldataResult.error) {
-			return deps.errToast(calldataResult.error.msg);
+			return deps.errToast(calldataResult.error.readableMsg);
 		}
 		calldata = calldataResult.value;
 		deps.handleTransactionConfirmationModal({
@@ -30,7 +29,7 @@ export async function handleRemoveOrder(deps: HandleRemoveOrderDependencies): Pr
 					deps.manager.createRemoveOrderTransaction({
 						raindexClient: deps.raindexClient,
 						txHash,
-						queryKey: deps.orderHash,
+						queryKey: deps.order.orderHash,
 						chainId: deps.order.chainId,
 						entity: deps.order
 					});

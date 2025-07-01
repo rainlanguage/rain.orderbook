@@ -3,7 +3,7 @@ import {
 	handleRemoveOrder,
 	type HandleRemoveOrderDependencies
 } from '../lib/services/handleRemoveOrder'; // Assuming path is correct
-import type { RaindexOrder } from '@rainlanguage/orderbook';
+import type { RaindexClient, RaindexOrder } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 
@@ -16,51 +16,45 @@ const mockManager = {
 	createRemoveOrderTransaction: mockCreateRemoveOrderTransaction
 };
 
+const mockRaindexClient = {} as unknown as RaindexClient;
+
 const mockOrder = {
-	id: '0xorderid'
-} as RaindexOrder;
+	id: '0xorderid',
+	orderHash: '0xorderhashfromparams',
+	getRemoveCalldata: vi.fn()
+} as unknown as RaindexOrder;
 
 const mockDeps: HandleRemoveOrderDependencies = {
-	network: 'ethereum',
-	orderbookAddress: '0xorderbook' as Hex,
-	subgraphUrl: 'https://subgraph.example.com',
-	chainId: 1,
-	orderHash: '0xorderhashfromparams',
+	raindexClient: mockRaindexClient,
+	order: mockOrder,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
 	manager: mockManager as unknown as TransactionManager
 };
-
-vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
-	const original = await importOriginal<typeof import('@rainlanguage/orderbook')>();
-	return {
-		...original,
-		getRemoveOrderCalldata: vi.fn()
-	};
-});
-const { getRemoveOrderCalldata } = await import('@rainlanguage/orderbook');
 
 describe('handleRemoveOrder', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
 
-	it('should show error toast if getRemoveOrderCalldata returns an error', async () => {
-		vi.mocked(getRemoveOrderCalldata).mockResolvedValue({
+	it('should show error toast if getRemoveCalldata returns an error', async () => {
+		vi.mocked(mockOrder.getRemoveCalldata).mockReturnValue({
 			error: { msg: 'Calldata error', readableMsg: 'Calldata error readable' },
 			value: undefined
 		});
 
-		await handleRemoveOrder(mockOrder, mockDeps);
+		await handleRemoveOrder(mockDeps);
 
-		expect(mockErrToast).toHaveBeenCalledWith('Calldata error');
+		expect(mockErrToast).toHaveBeenCalledWith('Calldata error readable');
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
 	});
 
 	it('should show error toast if getRemoveOrderCalldata throws', async () => {
-		vi.mocked(getRemoveOrderCalldata).mockRejectedValue(new Error('Fetch failed'));
+		vi.mocked(mockOrder.getRemoveCalldata).mockImplementation(() => {
+			throw new Error('Fetch failed');
+		});
 
-		await handleRemoveOrder(mockOrder, mockDeps);
+		await handleRemoveOrder(mockDeps);
 
 		expect(mockErrToast).toHaveBeenCalledWith('Failed to get calldata for order removal.');
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
@@ -68,20 +62,20 @@ describe('handleRemoveOrder', () => {
 
 	it('should call handleTransactionConfirmationModal on successful calldata fetch', async () => {
 		const mockCalldata = '0xcalldata' as Hex;
-		vi.mocked(getRemoveOrderCalldata).mockResolvedValue({
+		vi.mocked(mockOrder.getRemoveCalldata).mockReturnValue({
 			value: mockCalldata,
 			error: undefined
 		});
 
-		await handleRemoveOrder(mockOrder, mockDeps);
+		await handleRemoveOrder(mockDeps);
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 			open: true,
 			modalTitle: 'Removing order',
 			args: {
 				entity: mockOrder,
-				toAddress: mockDeps.orderbookAddress,
-				chainId: mockDeps.chainId,
+				toAddress: mockOrder.orderbook,
+				chainId: mockOrder.chainId,
 				onConfirm: expect.any(Function),
 				calldata: mockCalldata
 			}
@@ -92,34 +86,33 @@ describe('handleRemoveOrder', () => {
 	it('should call manager.createRemoveOrderTransaction on transaction confirmation', async () => {
 		const mockCalldata = '0xcalldata' as Hex;
 		const mockTxHash = '0xtxhash' as Hex;
-		vi.mocked(getRemoveOrderCalldata).mockResolvedValue({
+		vi.mocked(mockOrder.getRemoveCalldata).mockReturnValue({
 			value: mockCalldata,
 			error: undefined
 		});
 
-		await handleRemoveOrder(mockOrder, mockDeps);
+		await handleRemoveOrder(mockDeps);
 
 		const onConfirmCall = mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
 		onConfirmCall(mockTxHash);
 
 		expect(mockCreateRemoveOrderTransaction).toHaveBeenCalledWith({
-			subgraphUrl: mockDeps.subgraphUrl,
+			raindexClient: mockRaindexClient,
 			txHash: mockTxHash,
-			queryKey: mockDeps.orderHash,
-			chainId: mockDeps.chainId,
-			networkKey: mockDeps.network,
+			queryKey: mockOrder.orderHash,
+			chainId: mockOrder.chainId,
 			entity: mockOrder
 		});
 	});
 
 	it('should call handleTransactionConfirmationModal with correct modalTitle when removing an order', async () => {
 		const mockCalldata = '0xmockcalldata';
-		const mockOrderHash = '0xmockOrderHash';
-		vi.mocked(getRemoveOrderCalldata).mockResolvedValue({ value: mockCalldata, error: undefined });
+		vi.mocked(mockOrder.getRemoveCalldata).mockReturnValue({
+			value: mockCalldata,
+			error: undefined
+		});
 
-		mockDeps.orderHash = mockOrderHash;
-
-		await handleRemoveOrder(mockOrder, mockDeps);
+		await handleRemoveOrder(mockDeps);
 
 		expect(mockDeps.handleTransactionConfirmationModal).toHaveBeenCalledOnce();
 		expect(mockDeps.handleTransactionConfirmationModal).toHaveBeenCalledWith(

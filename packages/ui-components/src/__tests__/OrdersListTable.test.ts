@@ -47,8 +47,7 @@ const mockOrder = {
 	timestampAdded: BigInt(1678901234),
 	meta: '',
 	rainlang: '',
-	tradesCount: 2,
-	getSubgraphKeyForChainId: () => 'mock-network'
+	tradesCount: 2
 } as unknown as RaindexOrder;
 
 vi.mock('@tanstack/svelte-query');
@@ -78,7 +77,6 @@ const defaultProps: OrdersListTableProps = {
 	orderHash: mockOrderHashStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	showMyItemsOnly: mockShowMyItemsOnlyStore,
-	currentRoute: '/orders',
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
 	selectedChainIds: mockSelectedChainIdsStore
@@ -288,7 +286,9 @@ describe('OrdersListTable', () => {
 		const appTable = document.querySelector('div[role="table"]');
 		if (appTable) {
 			appTable.dispatchEvent(event);
-			expect(gotoMock.goto).toHaveBeenCalledWith(`/orders/mock-network-${mockOrder.orderHash}`);
+			expect(gotoMock.goto).toHaveBeenCalledWith(
+				`/orders/${mockOrder.chainId}-${mockOrder.orderbook}-${mockOrder.orderHash}`
+			);
 		}
 	});
 

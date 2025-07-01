@@ -320,7 +320,7 @@ if (import.meta.vitest) {
 					blockNumber: BigInt(0)
 				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
-					amount: BigInt(100),
+					amount: BigInt(200),
 					vaultId: BigInt(1),
 					token: {
 						id: 'output_token',
@@ -374,7 +374,7 @@ if (import.meta.vitest) {
 					blockNumber: BigInt(0)
 				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
-					amount: BigInt(100),
+					amount: BigInt(400),
 					vaultId: BigInt(1),
 					token: {
 						id: 'output_token',

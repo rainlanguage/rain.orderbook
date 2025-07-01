@@ -1,5 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook';
+import {
+	RaindexClient,
+	RaindexOrder,
+	RaindexTransaction,
+	RaindexVault
+} from '@rainlanguage/orderbook';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
@@ -10,6 +15,12 @@ import { useAccount } from '$lib/providers/wallet/useAccount';
 import type { ComponentProps } from 'svelte';
 import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 import { useToasts } from '$lib/providers/toasts/useToasts';
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
+
 // Mock the account hook
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -17,7 +28,7 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 
 // Mock the js_api functions
 vi.mock('@rainlanguage/orderbook', () => ({
-	getOrderByHash: vi.fn()
+	RaindexClient: vi.fn()
 }));
 
 // Mock the query client functions
@@ -35,16 +46,13 @@ vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
 	const mockLightweightCharts = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return { default: mockLightweightCharts };
 });
-const subgraphUrl = 'https://example.com';
 const orderbookAddress = '0x123456789012345678901234567890123456abcd';
-const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 const orderHash = 'mockOrderHash';
 
 const defaultProps: ComponentProps<OrderDetail> = {
-	orderHash,
-	rpcUrl,
-	subgraphUrl,
+	chainId: 1,
 	orderbookAddress,
+	orderHash,
 	colorTheme: readable('dark'),
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
@@ -53,18 +61,23 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	onWithdraw: vi.fn()
 };
 
-const mockOrder: SgOrder = {
+const mockOrder: RaindexOrder = {
+	chainId: 1,
+	orderbook: orderbookAddress,
 	id: 'mockId',
 	orderBytes: '0x0000000000000000000000000000000000000000...',
-	owner: '0x1234567890123456789012345678901234567890',
 	orderHash: orderHash,
+	owner: '0x1234567890123456789012345678901234567890',
 	active: true,
-	meta: null,
-	timestampAdded: '1234567890',
-	orderbook: { id: orderbookAddress },
-
-	inputs: [
+	meta: undefined,
+	rainlang: undefined,
+	timestampAdded: BigInt(1234567890),
+	inputs: [],
+	outputs: [],
+	vaults: [
 		{
+			chainId: 1,
+			vaultType: 'input',
 			id: '0x0000000000000000000000000000000000000002',
 			token: {
 				id: '0x0000000000000000000000000000000000000000',
@@ -73,20 +86,16 @@ const mockOrder: SgOrder = {
 				symbol: 'MCK',
 				decimals: '18'
 			},
-			balance: '0',
-			vaultId: '0x2',
+			balance: BigInt(0),
+			vaultId: BigInt(2),
 			owner: '0x1234567890123456789012345678901234567890',
 			ordersAsOutput: [],
 			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: orderbookAddress
-			}
-		}
-	],
-
-	outputs: [
+			orderbook: orderbookAddress
+		} as unknown as RaindexVault,
 		{
+			chainId: 1,
+			vaultType: 'output',
 			id: '0x0000000000000000000000000000000000000001',
 			token: {
 				id: '0x0000000000000000000000000000000000000000',
@@ -95,37 +104,27 @@ const mockOrder: SgOrder = {
 				symbol: 'MCK2',
 				decimals: '18'
 			},
-			balance: '0',
-			vaultId: '0x1',
+			balance: BigInt(0),
+			vaultId: BigInt(1),
 			owner: '0x1234567890123456789012345678901234567890',
 			ordersAsOutput: [],
 			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: orderbookAddress
-			}
-		}
+			orderbook: orderbookAddress
+		} as unknown as RaindexVault
 	],
-
-	addEvents: [
-		{
-			transaction: {
-				blockNumber: '12345678',
-				timestamp: '1234567890',
-				id: '0x0000000000000000000000000000000000000000',
-				from: '0x1234567890123456789012345678901234567890'
-			}
-		}
-	],
-	trades: [],
-	removeEvents: [],
-
-	expression: '0x123456' // Your existing field
-} as unknown as SgOrder;
+	transaction: {
+		blockNumber: BigInt(12345678),
+		timestamp: BigInt(1234567890),
+		id: '0x0000000000000000000000000000000000000000',
+		from: '0x1234567890123456789012345678901234567890'
+	} as unknown as RaindexTransaction,
+	tradesCount: 0
+} as unknown as RaindexOrder;
 
 const mockMatchesAccount = vi.fn();
 describe('OrderDetail', () => {
 	let queryClient: QueryClient;
+	let mockRaindexClient: RaindexClient;
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
@@ -136,16 +135,12 @@ describe('OrderDetail', () => {
 			matchesAccount: mockMatchesAccount
 		});
 
-		(getOrderByHash as Mock).mockResolvedValue({
-			value: {
-				order: mockOrder,
-				vaults: new Map([
-					['inputs', [mockOrder.inputs[0]]],
-					['outputs', [mockOrder.outputs[0]]],
-					['inputs_outputs', []]
-				])
-			}
-		});
+		mockRaindexClient = {
+			getOrderByHash: vi.fn().mockResolvedValue({
+				value: mockOrder
+			})
+		} as unknown as RaindexClient;
+		(useRaindexClient as Mock).mockReturnValue(mockRaindexClient);
 
 		(useToasts as Mock).mockReturnValue({
 			toasts: writable([]),
@@ -160,11 +155,11 @@ describe('OrderDetail', () => {
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
-		expect(getOrderByHash).toHaveBeenCalledWith(subgraphUrl, orderHash);
+		expect(mockRaindexClient.getOrderByHash).toHaveBeenCalledWith(1, orderbookAddress, orderHash);
 	});
 
 	it('shows the correct empty message when the query returns no data', async () => {
-		(getOrderByHash as Mock).mockResolvedValue({ value: null });
+		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({ value: null });
 
 		render(OrderDetail, {
 			props: defaultProps,
@@ -208,7 +203,7 @@ describe('OrderDetail', () => {
 		await userEvent.click(screen.getByTestId('remove-button'));
 
 		await waitFor(() => {
-			expect(defaultProps.onRemove).toHaveBeenCalledWith(mockOrder);
+			expect(defaultProps.onRemove).toHaveBeenCalledWith(mockRaindexClient, mockOrder);
 		});
 	});
 
@@ -227,17 +222,10 @@ describe('OrderDetail', () => {
 
 	it('does not show remove button if order is not active', async () => {
 		// Modify the mock to return an inactive order
-		(getOrderByHash as Mock).mockResolvedValue({
+		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
 			value: {
-				order: {
-					...mockOrder,
-					active: false
-				},
-				vaults: new Map([
-					['inputs', []],
-					['outputs', []],
-					['inputs_outputs', []]
-				])
+				...mockOrder,
+				active: false
 			}
 		});
 
@@ -258,7 +246,7 @@ describe('OrderDetail', () => {
 		});
 
 		await waitFor(async () => {
-			const refreshButton = await screen.getByTestId('top-refresh');
+			const refreshButton = screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
 
 			expect(invalidateTanstackQueries).toHaveBeenCalledWith(queryClient, [orderHash]);
@@ -274,7 +262,7 @@ describe('OrderDetail', () => {
 		});
 
 		await waitFor(async () => {
-			const refreshButton = await screen.getByTestId('top-refresh');
+			const refreshButton = screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
 		});
 
@@ -306,10 +294,10 @@ describe('OrderDetail', () => {
 			expect(screen.getByText('Created')).toBeInTheDocument();
 		});
 
-		const depositButton = await screen.getAllByTestId('deposit-button');
+		const depositButton = screen.getAllByTestId('deposit-button');
 		await user.click(depositButton[0]);
 
-		expect(mockOnDeposit).toHaveBeenCalledWith(mockOrder.outputs[0]);
+		expect(mockOnDeposit).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults[1]);
 	});
 
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
@@ -332,9 +320,9 @@ describe('OrderDetail', () => {
 			expect(screen.getByText('Created')).toBeInTheDocument();
 		});
 
-		const withdrawButton = await screen.getAllByTestId('withdraw-button');
+		const withdrawButton = screen.getAllByTestId('withdraw-button');
 		await user.click(withdrawButton[0]);
 
-		expect(mockOnWithdraw).toHaveBeenCalledWith(mockOrder.outputs[0]);
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults[1]);
 	});
 });

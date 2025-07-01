@@ -1,57 +1,47 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { test, vi, type Mock } from 'vitest';
+import { test, vi } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChangesTable from '../lib/components/tables/VaultBalanceChangesTable.svelte';
-import type { SgVaultBalanceChangeType } from '@rainlanguage/orderbook';
+import type { RaindexVault, RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
 import { formatTimestampSecondsAsLocal } from '../lib/services/time';
-
-vi.mock('@rainlanguage/orderbook', () => ({
-	getVaultBalanceChanges: vi.fn()
-}));
 
 test('renders the vault list table with correct data', async () => {
 	const queryClient = new QueryClient();
 
-	const mockVaultBalanceChanges: SgVaultBalanceChangeType[] = [
+	const mockVaultBalanceChanges: RaindexVaultBalanceChange[] = [
 		{
 			__typename: 'Withdrawal',
-			amount: '1000',
-			oldVaultBalance: '5000',
-			newVaultBalance: '4000',
-			vault: {
-				id: 'vault1',
-				vault_id: 'vault-id1',
-				token: {
-					id: 'token1',
-					address: '0xTokenAddress1',
-					name: 'Token1',
-					symbol: 'TKN1',
-					decimals: '18'
-				}
+			amount: BigInt(1000),
+			oldBalance: BigInt(5000),
+			newBalance: BigInt(4000),
+			timestamp: BigInt(1625247600),
+			vaultId: BigInt(100),
+			token: {
+				id: 'token1',
+				address: '0xTokenAddress1',
+				name: 'Token1',
+				symbol: 'TKN1',
+				decimals: '18'
 			},
-			timestamp: '1625247600',
 			transaction: {
 				id: 'tx1',
 				from: '0xUser1',
-				timestamp: '0',
-				blockNumber: '0'
+				timestamp: BigInt(1625247600),
+				blockNumber: BigInt(1234567890)
 			},
-			orderbook: {
-				id: '0x00'
-			}
+			orderbook: '0x00'
 		}
 		// ... other mock data
-	] as unknown as SgVaultBalanceChangeType[];
-
-	// Mock the getVaultBalanceChanges function
-	const { getVaultBalanceChanges } = await import('@rainlanguage/orderbook');
-	(getVaultBalanceChanges as Mock).mockResolvedValue({ value: mockVaultBalanceChanges });
+	] as unknown as RaindexVaultBalanceChange[];
+	const mockVault: RaindexVault = {
+		getBalanceChanges: vi.fn().mockResolvedValue({ value: mockVaultBalanceChanges })
+	} as unknown as RaindexVault;
 
 	render(VaultBalanceChangesTable, {
 		props: {
 			id: '100',
-			subgraphUrl: 'https://example.com'
+			vault: mockVault
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
@@ -65,44 +55,38 @@ test('renders the vault list table with correct data', async () => {
 test('it shows the correct data in the table', async () => {
 	const queryClient = new QueryClient();
 
-	const mockVaultBalanceChanges: SgVaultBalanceChangeType[] = [
+	const mockVaultBalanceChanges: RaindexVaultBalanceChange[] = [
 		{
 			__typename: 'Withdrawal',
-			amount: '1000',
-			oldVaultBalance: '5000',
-			newVaultBalance: '4000',
-			vault: {
-				id: 'vault1',
-				vault_id: 'vault-id1',
-				token: {
-					id: 'token1',
-					address: '0xTokenAddress1',
-					name: 'Token1',
-					symbol: 'TKN1',
-					decimals: '4'
-				}
+			amount: BigInt(1000),
+			oldBalance: BigInt(5000),
+			newBalance: BigInt(4000),
+			timestamp: BigInt(1625247600),
+			vaultId: BigInt(100),
+			token: {
+				id: 'token1',
+				address: '0xTokenAddress1',
+				name: 'Token1',
+				symbol: 'TKN1',
+				decimals: '4'
 			},
-			timestamp: '1625247600',
 			transaction: {
 				id: 'tx1',
 				from: '0xUser1',
-				timestamp: '0',
-				blockNumber: '0'
+				timestamp: BigInt(1625247600),
+				blockNumber: BigInt(1234567890)
 			},
-			orderbook: {
-				id: '0x00'
-			}
+			orderbook: '0x00'
 		}
-	] as unknown as SgVaultBalanceChangeType[];
-
-	// Mock the getVaultBalanceChanges function
-	const { getVaultBalanceChanges } = await import('@rainlanguage/orderbook');
-	(getVaultBalanceChanges as Mock).mockResolvedValue({ value: mockVaultBalanceChanges });
+	] as unknown as RaindexVaultBalanceChange[];
+	const mockVault: RaindexVault = {
+		getBalanceChanges: vi.fn().mockResolvedValue({ value: mockVaultBalanceChanges })
+	} as unknown as RaindexVault;
 
 	render(VaultBalanceChangesTable, {
 		props: {
 			id: '100',
-			subgraphUrl: 'https://example.com'
+			vault: mockVault
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});

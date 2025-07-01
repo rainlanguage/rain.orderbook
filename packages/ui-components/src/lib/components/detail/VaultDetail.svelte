@@ -14,7 +14,7 @@
 	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
-	import type { AppStoresInterface } from '$lib/types/appStores';
+	// import type { AppStoresInterface } from '$lib/types/appStores';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -27,8 +27,9 @@
 	export let orderbookAddress: Address;
 	export let chainId: number;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
-	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
-	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
+	// TODO: Remove this once we have a way to update the active network and orderbook
+	// export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
+	// export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
 	/**
 	 * Required callback function when deposit action is triggered for a vault
@@ -56,10 +57,11 @@
 		}
 	});
 
-	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
-		activeNetworkRef.set(subgraphName);
-		activeOrderbookRef.set(subgraphName);
-	};
+	// TODO: Remove this once we have a way to update the active network and orderbook
+	// const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
+	// 	activeNetworkRef.set(subgraphName);
+	// 	activeOrderbookRef.set(subgraphName);
+	// };
 
 	const interval = setInterval(async () => {
 		invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id]);

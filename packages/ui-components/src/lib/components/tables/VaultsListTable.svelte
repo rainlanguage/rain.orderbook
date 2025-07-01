@@ -25,8 +25,9 @@
 	export let settings: AppStoresInterface['settings'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
-	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
-	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
+	// TODO: Remove this once we have a way to update the active network and orderbook
+	// export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
+	// export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let activeAccounts: AppStoresInterface['activeAccounts'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 
@@ -75,10 +76,11 @@
 		enabled: true
 	});
 
-	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
-		activeNetworkRef.set(subgraphName);
-		activeOrderbookRef.set(subgraphName);
-	};
+	// TODO: Remove this once we have a way to update the active network and orderbook
+	// const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
+	// 	activeNetworkRef.set(subgraphName);
+	// 	activeOrderbookRef.set(subgraphName);
+	// };
 	const AppTable = TanstackAppTable<RaindexVault>;
 </script>
 
@@ -98,14 +100,7 @@
 		queryKey={QKEY_VAULTS}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
-			const res = raindexClient.getSubgraphKeyForChainId(
-				e.detail.item.chainId,
-				e.detail.item.orderbook
-			);
-			if (res.error) {
-				throw new Error(res.error.readableMsg);
-			}
-			updateActiveNetworkAndOrderbook(res.value);
+			// updateActiveNetworkAndOrderbook(res.value);
 			goto(`/vaults/${e.detail.item.chainId}-${e.detail.item.orderbook}-${e.detail.item.id}`);
 		}}
 	>
