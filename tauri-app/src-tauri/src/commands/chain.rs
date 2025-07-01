@@ -1,5 +1,5 @@
 use crate::error::CommandResult;
-use alloy_ethers_typecast::transaction::ReadableClient;
+use alloy_ethers_typecast::ReadableClient;
 
 #[tauri::command]
 pub async fn get_chainid(rpc_url: String) -> CommandResult<u64> {
@@ -20,7 +20,7 @@ pub async fn get_block_number(rpc_url: String) -> CommandResult<u64> {
 
 #[cfg(test)]
 mod tests {
-    use alloy_ethers_typecast::transaction::ReadableClientError;
+    use alloy_ethers_typecast::ReadableClientError;
     use httpmock::prelude::*;
     use serde_json::json;
 

@@ -1,7 +1,7 @@
 use alloy::hex::FromHexError;
 use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
 use alloy::signers::ledger::LedgerError;
-use alloy_ethers_typecast::transaction::ReadableClientError;
+use alloy_ethers_typecast::ReadableClientError;
 use dotrain::error::ComposeError;
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::config::ParseConfigSourceError;

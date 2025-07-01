@@ -40,7 +40,7 @@ rain_orderbook_subgraph_client = { path = "../../crates/subgraph" }
 rain_orderbook_app_settings = { path = "../../crates/settings" }
 rain_orderbook_bindings = { path = "../../crates/bindings" }
 alloy = { version = "1.0.9", features = ["sol-types", "json", "json-abi"] }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "f7b5bfd0687f16c77dbfdd4905b2434793fa7885" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "bcc3a04394aefe191fef4ae8e6e94381a419c99a" }
 reqwest = { version = "0.11.22", features = ["json"] }
 serde_bytes = "0.11.14"
 thiserror = "1.0.56"

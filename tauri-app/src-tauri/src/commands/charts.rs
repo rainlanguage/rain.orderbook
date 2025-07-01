@@ -28,7 +28,7 @@ mod tests {
     use super::*;
     use crate::error::CommandError;
     use alloy::primitives::U256;
-    use alloy_ethers_typecast::transaction::ReadableClientError;
+    use alloy_ethers_typecast::ReadableClientError;
     use rain_orderbook_app_settings::{
         plot_source::{
             DotOptionsCfg, HexBinOptionsCfg, HexBinTransformCfg, MarkCfg, TransformCfg,

@@ -4,7 +4,7 @@ use crate::transaction::WritableTransactionExecuteError;
 use alloy::primitives::{Address, B256};
 use alloy::sol_types::SolCall;
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use serde::{Deserialize, Serialize};
 
 use rain_math_float::Float;

@@ -2,7 +2,7 @@ use alloy::{
     primitives::{hex::FromHexError, U256},
     providers::MulticallError,
 };
-use alloy_ethers_typecast::transaction::ReadableClientError;
+use alloy_ethers_typecast::ReadableClientError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_common::provider::ReadProviderError;
 use rain_orderbook_subgraph_client::{

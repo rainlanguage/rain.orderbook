@@ -1,7 +1,7 @@
 use alloy::network::AnyNetwork;
 use alloy::primitives::{Address, U256};
 use alloy::providers::{MulticallError, Provider};
-use alloy_ethers_typecast::transaction::ReadContractParametersBuilderError;
+use alloy_ethers_typecast::ReadContractParametersBuilderError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_bindings::IERC20::IERC20Instance;
 use serde::{Deserialize, Serialize};

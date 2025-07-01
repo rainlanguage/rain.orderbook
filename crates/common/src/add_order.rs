@@ -7,11 +7,11 @@ use alloy::primitives::{hex::FromHexError, Address, B256};
 #[cfg(not(target_family = "wasm"))]
 use alloy::primitives::{FixedBytes, U256};
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::{
+use alloy_ethers_typecast::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
 };
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use dotrain::error::ComposeError;
 use rain_interpreter_bindings::IParserV2::parse2Return;
 use rain_interpreter_dispair::{DISPair, DISPairError};

@@ -10,7 +10,7 @@ use alloy::{
     providers::{Provider, ProviderBuilder, WalletProvider},
     signers::ledger::{HDPath, LedgerError, LedgerSigner},
 };
-use alloy_ethers_typecast::transaction::{
+use alloy_ethers_typecast::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
     WriteContractParametersBuilder, WriteContractParametersBuilderError,
 };

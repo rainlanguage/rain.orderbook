@@ -1,6 +1,6 @@
 use crate::types::{TransactionStatus, TransactionStatusNotice};
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::WriteTransactionStatus;
+use alloy_ethers_typecast::WriteTransactionStatus;
 use chrono::Utc;
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager, Runtime};
@@ -10,7 +10,8 @@ impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
     fn from(val: WriteTransactionStatus<T>) -> Self {
         match val {
             WriteTransactionStatus::PendingPrepare(_) => TransactionStatus::PendingPrepare,
-            WriteTransactionStatus::PendingSignAndSend(_) => TransactionStatus::PendingSignAndSend,
+            WriteTransactionStatus::PendingSign(_) => TransactionStatus::PendingSign,
+            WriteTransactionStatus::Sending => TransactionStatus::Sending,
             WriteTransactionStatus::Confirmed(receipt) => {
                 TransactionStatus::Confirmed(format!("{:?}", receipt.transaction_hash))
             }
@@ -70,7 +71,7 @@ impl TransactionStatusNoticeRwLock {
 mod tests {
     use super::*;
     use alloy::primitives::{Address, B256};
-    use alloy_ethers_typecast::transaction::WriteContractParameters;
+    use alloy_ethers_typecast::WriteContractParameters;
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::deposit3Call;
 

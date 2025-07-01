@@ -1,5 +1,5 @@
 use alloy::primitives::U256;
-use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
+use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::{

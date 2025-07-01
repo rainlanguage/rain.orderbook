@@ -3,12 +3,12 @@ use alloy::primitives::{Address, B256, U256};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use alloy_ethers_typecast::transaction::{
+use alloy_ethers_typecast::{
     ReadContractParametersBuilder, ReadContractParametersBuilderError, ReadableClient,
     ReadableClientError, WritableClientError,
 };
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use rain_math_float::{Float, FloatError};
 #[cfg(not(target_family = "wasm"))]
 use rain_orderbook_bindings::IERC20::approveCall;

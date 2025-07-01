@@ -164,7 +164,7 @@ pub use fork_parse::*;
 #[cfg(not(target_family = "wasm"))]
 mod fork_parse {
     use alloy::primitives::{bytes::Bytes, Address};
-    use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
+    use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
     use once_cell::sync::OnceCell;
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_interpreter_eval::error::ForkCallError;
