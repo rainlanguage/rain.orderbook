@@ -47,6 +47,8 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 		onSubmit: async (amount: bigint) => {
 			let calldata: string;
 			try {
+				// TODO: once the client is ready, we can update
+				// getVaultWithdrawCalldata to fetch the decimals from the RPC URL
 				if (!vault.token.decimals) {
 					errToast('Token decimals not found');
 					return;
