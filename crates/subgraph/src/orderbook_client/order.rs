@@ -44,21 +44,36 @@ impl OrderbookSubgraphClient {
         let has_token_filters = !filter_args.tokens.is_empty();
 
         let filters = if has_basic_filters || has_token_filters {
-            let token_filter = if has_token_filters {
-                Some(SgVaultTokenFilter {
-                    token_in: filter_args.tokens.clone(),
-                })
-            } else {
-                None
+            let basic_filters = SgOrdersListQueryFilters {
+                owner_in: filter_args.owners.clone(),
+                active: filter_args.active,
+                order_hash: filter_args.order_hash.clone(),
+                inputs_: None,
+                outputs_: None,
             };
 
-            Some(SgOrdersListQueryFilters {
-                owner_in: filter_args.owners,
-                active: filter_args.active,
-                order_hash: filter_args.order_hash,
-                inputs_: token_filter.clone(),
-                outputs_: token_filter,
-            })
+            if has_token_filters {
+                let vault_token_filter = Some(SgVaultTokenFilter {
+                    token_in: filter_args.tokens.clone(),
+                });
+
+                let filter_with_inputs = SgOrdersListQueryFilters {
+                    inputs_: vault_token_filter.clone(),
+                    ..basic_filters.clone()
+                };
+                let filter_with_outputs = SgOrdersListQueryFilters {
+                    outputs_: vault_token_filter.clone(),
+                    ..basic_filters.clone()
+                };
+
+                Some(SgOrdersListQueryAnyFilters {
+                    or: vec![filter_with_inputs, filter_with_outputs],
+                })
+            } else {
+                Some(SgOrdersListQueryAnyFilters {
+                    or: vec![basic_filters],
+                })
+            }
         } else {
             None
         };
