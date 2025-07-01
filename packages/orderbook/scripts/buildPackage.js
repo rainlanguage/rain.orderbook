@@ -79,9 +79,9 @@ import { Buffer } from 'buffer';
 import wasmB64 from '../orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');
 
-const wasmModule = new WebAssembly.Module(bytes);
-const wasmInstance = new WebAssembly.Instance(wasmModule, imports);
-wasm = wasmInstance.exports;`;
+// Use asynchronous instantiation to avoid browsers\' 8 MB sync-compile limit.
+const { instance } = await WebAssembly.instantiate(bytes, imports);
+wasm = instance.exports;`;
 esm = esm.replaceAll('imports.wbg', 'imports.__wbindgen_placeholder__');
 esm = '/* this file is auto-generated, do not modify */\n' + esm;
 fs.writeFileSync(`./dist/esm/index.js`, esm);
