@@ -465,26 +465,14 @@ impl RaindexOrder {
 #[cfg(test)]
 mod tests {
     #[cfg(not(target_family = "wasm"))]
-    mod non_wasm {
-        use super::*;
-        use alloy::primitives::U256;
-        use httpmock::MockServer;
-        use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_subgraph_client::{
-            performance::{
-                apy::APYDetails, vol::VolumeDetails, DenominatedPerformance, VaultPerformance,
-            },
-            types::common::{
-                SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
-                SgVault,
-            },
-        };
-        use serde_json::{json, Value};
-        // use wasm_bindgen_utils::prelude::js_sys::BigInt;
+    use super::*;
+    #[cfg(not(target_family = "wasm"))]
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
 
-        fn get_test_yaml(subgraph1: &str, subgraph2: &str) -> String {
-            format!(
-                r#"
+    #[cfg(not(target_family = "wasm"))]
+    fn get_test_yaml(subgraph1: &str, subgraph2: &str) -> String {
+        format!(
+            r#"
 version: {spec_version}
 networks:
     mainnet:
@@ -534,9 +522,26 @@ deployers:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
         network: mainnet
 "#,
-                spec_version = SpecVersion::current()
-            )
-        }
+            spec_version = SpecVersion::current()
+        )
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    mod non_wasm {
+        use super::*;
+        use alloy::primitives::U256;
+        use httpmock::MockServer;
+        use rain_orderbook_subgraph_client::{
+            performance::{
+                apy::APYDetails, vol::VolumeDetails, DenominatedPerformance, VaultPerformance,
+            },
+            types::common::{
+                SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
+                SgVault,
+            },
+        };
+        use serde_json::{json, Value};
+        // use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
         fn get_order1_json() -> Value {
             json!(                        {
