@@ -48,6 +48,21 @@
 			: $showMyItemsOnly && $account
 				? [$account]
 				: [];
+
+	$: tokensQuery = createQuery({
+		queryKey: [QKEY_TOKENS, $activeSubgraphs, multiSubgraphArgs],
+		queryFn: async () => {
+			const result = await getVaultTokens(multiSubgraphArgs);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value || [];
+		},
+		enabled: true
+	});
+
+	$: selectedTokens = $activeTokens.filter(
+		(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.token.address === address)
+	);
+
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
@@ -56,7 +71,7 @@
 			multiSubgraphArgs,
 			$settings,
 			owners,
-			$activeTokens
+			selectedTokens
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await getVaults(
@@ -64,7 +79,7 @@
 				{
 					owners,
 					hideZeroBalance: $hideZeroBalanceVaults,
-					tokens: $activeTokens
+					tokens: selectedTokens
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
@@ -76,16 +91,6 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-		enabled: true
-	});
-
-	$: tokensQuery = createQuery({
-		queryKey: [QKEY_TOKENS, $activeSubgraphs, multiSubgraphArgs],
-		queryFn: async () => {
-			const result = await getVaultTokens(multiSubgraphArgs);
-			if (result.error) throw new Error(result.error.msg);
-			return result.value || [];
-		},
 		enabled: true
 	});
 
@@ -108,6 +113,7 @@
 		{hideZeroBalanceVaults}
 		{activeTokens}
 		{tokensQuery}
+		{selectedTokens}
 	/>
 	<AppTable
 		{query}

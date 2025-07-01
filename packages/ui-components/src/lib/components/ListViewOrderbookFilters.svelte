@@ -6,7 +6,7 @@
 	import { page } from '$app/stores';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
-	import type { SgErc20WithSubgraphName } from '@rainlanguage/orderbook';
+	import type { SgErc20WithSubgraphName, SgTokenAddress } from '@rainlanguage/orderbook';
 	import Tooltip from './Tooltip.svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
@@ -27,6 +27,7 @@
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
+	export let selectedTokens: SgTokenAddress[];
 	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName[], Error>>;
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
@@ -68,7 +69,7 @@
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
 		{#if tokensQuery}
-			<DropdownTokensFilter {tokensQuery} {activeTokens} label="Tokens" />
+			<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
 		{/if}
 		<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 	{/if}

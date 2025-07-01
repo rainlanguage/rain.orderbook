@@ -12,6 +12,7 @@
 
 	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName[], Error>>;
 	export let activeTokens: AppStoresInterface['activeTokens'];
+	export let selectedTokens: SgTokenAddress[];
 
 	export let label: string = 'Filter by tokens';
 	export let allLabel: string = 'All tokens';
@@ -24,8 +25,9 @@
 
 	$: availableTokens = ($tokensQuery?.data as SgErc20WithSubgraphName[]) || [];
 
-	$: selectedCount = $activeTokens.length;
-	$: allSelected = selectedCount === filteredTokens.length && filteredTokens.length > 0;
+	$: selectedCount = selectedTokens.length;
+
+	$: allSelected = selectedCount === availableTokens.length && availableTokens.length > 0;
 	$: buttonText =
 		selectedCount === 0
 			? 'Select tokens'

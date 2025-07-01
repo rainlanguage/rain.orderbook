@@ -58,6 +58,7 @@ describe('ListViewOrderbookFilters', () => {
 		orderHash: writable(''),
 		showMyItemsOnly: writable(false),
 		activeTokens: writable([]),
+		selectedTokens: [],
 		tokensQuery: readable({
 			isLoading: false,
 			isError: false,
