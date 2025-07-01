@@ -194,6 +194,9 @@ pub async fn get_vault_deposit_calldata(
         param_description = "Amount to deposit in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
     )]
     deposit_amount: &str,
+    #[wasm_export(
+        param_description = "Token decimals"
+    )]
     decimals: u8,
 ) -> Result<VaultCalldataResult, SubgraphError> {
     let amount = validate_amount(deposit_amount)?;

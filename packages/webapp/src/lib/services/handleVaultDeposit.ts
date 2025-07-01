@@ -35,10 +35,17 @@ async function executeDeposit(args: DepositArgs) {
 		subgraphUrl,
 		chainId
 	} = args;
-	const calldataResult = await getVaultDepositCalldata(vault, amount.toString());
-	const displayAmount = vault.token.decimals
-		? formatUnits(amount, Number(vault.token.decimals))
-		: amount.toString();
+
+	// TODO: once the client is ready, we can update getVaultDepositCalldata to
+	// fetch the decimals from the RPC URL
+	if (!vault.token.decimals) {
+		errToast('Token decimals not found');
+		return;
+	}
+
+	const decimals = Number(vault.token.decimals);
+	const calldataResult = await getVaultDepositCalldata(vault, amount.toString(), decimals);
+	const displayAmount = formatUnits(amount, decimals);
 	if (calldataResult.error) {
 		return errToast(calldataResult.error.msg);
 	} else if (calldataResult.value) {
