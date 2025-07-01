@@ -369,12 +369,6 @@ impl DotrainOrder {
     /// Takes a scenario name from the dotrain configuration and composes the Rainlang
     /// code with that scenario's bindings applied.
     ///
-    /// ## Examples
-    ///
-    /// # Returns
-    /// * `Ok(String)` - Composed Rainlang code with scenario bindings applied
-    /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang composition failed
-    ///
     /// # Examples
     ///
     /// ```javascript
