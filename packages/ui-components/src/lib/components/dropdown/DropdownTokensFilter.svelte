@@ -52,6 +52,10 @@
 		}
 	}
 
+	$: sortedFilteredTokens = filteredTokens.sort(({ token }) =>
+		selectedTokens.includes(token.address) ? -1 : 1
+	);
+
 	function updateSelectedTokens(newSelection: SgTokenAddress[]) {
 		activeTokens.set(newSelection);
 		dispatch('change', activeTokens);
@@ -145,7 +149,7 @@
 				{#if isEmpty(filteredTokens)}
 					<div class="ml-2 w-full rounded-lg p-3">No tokens match your search</div>
 				{:else}
-					{#each filteredTokens as token, index}
+					{#each sortedFilteredTokens as token, index (`${token.token.address}-${token.subgraphName}`)}
 						<Checkbox
 							data-testid="dropdown-tokens-filter-option"
 							class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600 {selectedIndex ===
@@ -153,7 +157,7 @@
 								? 'bg-blue-100 dark:bg-blue-900'
 								: ''}"
 							on:click={() => toggleToken(token)}
-							checked={!!(token.token.address && $activeTokens.indexOf(token.token.address) > -1)}
+							checked={!!(token.token.address && $activeTokens.includes(token.token.address))}
 						>
 							<div class="ml-2 flex w-full">
 								<div class="flex-1 text-sm font-medium">{token.token.symbol || 'Unknown'}</div>
