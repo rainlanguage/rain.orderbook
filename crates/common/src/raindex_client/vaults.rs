@@ -582,6 +582,7 @@ impl RaindexClient {
                     .unwrap_or(GetVaultsFilters {
                         owners: vec![],
                         hide_zero_balance: false,
+                        tokens: None,
                     })
                     .try_into()?,
                 SgPaginationArgs {
@@ -666,6 +667,8 @@ pub struct GetVaultsFilters {
     #[tsify(type = "Address[]")]
     pub owners: Vec<Address>,
     pub hide_zero_balance: bool,
+    #[tsify(optional)]
+    pub tokens: Option<Vec<String>>,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -679,6 +682,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                 .map(|owner| SgBytes(owner.to_string()))
                 .collect(),
             hide_zero_balance: filters.hide_zero_balance,
+            tokens: filters.tokens.unwrap_or_default(),
         })
     }
 }
@@ -759,7 +763,7 @@ mod tests {
               "balance": "0x10",
               "token": {
                 "id": "token1",
-                "address": "0x0000000000000000000000000000000000000000",
+                "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 "name": "Token 1",
                 "symbol": "TKN1",
                 "decimals": "18"
@@ -780,7 +784,7 @@ mod tests {
                 "balance": "0x20",
                 "token": {
                     "id": "token2",
-                    "address": "0x0000000000000000000000000000000000000000",
+                    "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                     "name": "Token 2",
                     "symbol": "TKN2",
                     "decimals": "18"
@@ -1031,7 +1035,7 @@ mod tests {
                 result,
                 Bytes::copy_from_slice(
                     &deposit2Call {
-                        token: Address::from_str("0x0000000000000000000000000000000000000000")
+                        token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: U256::from_str("0x10").unwrap(),
                         amount: U256::from_str("500").unwrap(),
@@ -1083,7 +1087,7 @@ mod tests {
                 result,
                 Bytes::copy_from_slice(
                     &withdraw2Call {
-                        token: Address::from_str("0x0000000000000000000000000000000000000000")
+                        token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: U256::from_str("0x10").unwrap(),
                         targetAmount: U256::from_str("500").unwrap(),
@@ -1215,6 +1219,109 @@ mod tests {
                 .unwrap();
             let result = vault.get_allowance().await.unwrap();
             assert_eq!(result.0, U256::from(1));
+        }
+
+        #[tokio::test]
+        async fn test_get_vaults_with_token_filter() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaults": [get_vault1_json()]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaults": []
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: Some(vec![
+                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()
+                ]),
+            };
+
+            let result = raindex_client
+                .get_vaults(None, Some(filters), None)
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 1);
+            assert_eq!(result[0].id, "vault1");
+            assert_eq!(
+                result[0].token.address,
+                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_vaults_with_multiple_token_filters() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\",\"0x12e605bc104e93b45e1ad99f9e555f659051c2bb\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaults": [get_vault1_json(), get_vault2_json()]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaults": []
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: Some(vec![
+                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string(),
+                    "0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string(),
+                ]),
+            };
+
+            let result = raindex_client
+                .get_vaults(None, Some(filters), None)
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 2);
         }
     }
 }

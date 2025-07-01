@@ -305,6 +305,7 @@ impl RaindexClient {
                         owners: vec![],
                         active: None,
                         order_hash: None,
+                        tokens: None,
                     })
                     .try_into()?,
                 SgPaginationArgs {
@@ -403,6 +404,8 @@ pub struct GetOrdersFilters {
     pub active: Option<bool>,
     #[tsify(optional)]
     pub order_hash: Option<String>,
+    #[tsify(optional)]
+    pub tokens: Option<Vec<String>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
@@ -417,6 +420,7 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                 .collect(),
             active: filters.active,
             order_hash: filters.order_hash.map(SgBytes),
+            tokens: filters.tokens.unwrap_or_default(),
         })
     }
 }
@@ -970,6 +974,7 @@ mod tests {
                 owners: vec![],
                 active: None,
                 order_hash: None,
+                tokens: None,
             };
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
@@ -1609,6 +1614,112 @@ mod tests {
                     }),
                 }
             );
+        }
+
+        #[tokio::test]
+        async fn test_get_orders_with_token_filter() {
+            let sg_server = MockServer::start_async().await;
+
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": []
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: Some(vec![
+                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()
+                ]),
+            };
+
+            let result = raindex_client
+                .get_orders(None, Some(filters), None)
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 1);
+            assert_eq!(
+                result[0].id,
+                "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1"
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_orders_with_multiple_token_filters() {
+            let sg_server = MockServer::start_async().await;
+
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\",\"0x12e605bc104e93b45e1ad99f9e555f659051c2bb\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": []
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: Some(vec![
+                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string(),
+                    "0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string(),
+                ]),
+            };
+
+            let result = raindex_client
+                .get_orders(None, Some(filters), None)
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 1);
         }
     }
 }
