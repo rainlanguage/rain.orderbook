@@ -60,8 +60,8 @@ describe('TransactionStatusNotice.svelte', () => {
     expect(within(section).getByText(/Please review and sign/)).toBeInTheDocument();
   });
 
-  it('renders correctly for PendingSend status', () => {
-    const notice = createNotice('PendingSend');
+  it('renders correctly for Sending status', () => {
+    const notice = createNotice('Sending');
     render(TransactionStatusNoticeComponent, { transactionStatusNotice: notice });
 
     const spinner = screen.getByTestId('status-pending-send');
