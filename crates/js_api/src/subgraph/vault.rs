@@ -1,7 +1,12 @@
 use super::SubgraphError;
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, Bytes, B256, U256};
+use alloy::sol_types::SolCall;
 use cynic::Id;
+use rain_math_float::Float;
+use rain_orderbook_bindings::IOrderBookV5::deposit3Call;
+use rain_orderbook_bindings::IERC20::approveCall;
 use rain_orderbook_common::deposit::DepositArgs;
+use rain_orderbook_common::erc20::ERC20;
 use rain_orderbook_common::transaction::TransactionArgs;
 use rain_orderbook_common::withdraw::WithdrawArgs;
 use rain_orderbook_subgraph_client::types::common::{
@@ -189,18 +194,22 @@ pub async fn get_vault_deposit_calldata(
         param_description = "Amount to deposit in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
     )]
     deposit_amount: &str,
+    #[wasm_export(param_description = "Token decimals")] decimals: u8,
 ) -> Result<VaultCalldataResult, SubgraphError> {
-    let deposit_amount = validate_amount(deposit_amount)?;
+    let amount = validate_amount(deposit_amount)?;
+    let token = Address::from_str(&vault.token.address.0)?;
+    let vault_id = B256::from(U256::from_str(&vault.vault_id.0)?);
 
-    let deposit_args = DepositArgs {
-        token: Address::from_str(&vault.token.address.0)?,
-        vault_id: U256::from_str(&vault.vault_id.0)?,
-        amount: deposit_amount,
-    };
+    let deposit_call: deposit3Call = DepositArgs {
+        token,
+        vault_id,
+        amount,
+        decimals,
+    }
+    .try_into()?;
+    let calldata = deposit_call.abi_encode();
 
-    Ok(VaultCalldataResult(Bytes::copy_from_slice(
-        &deposit_args.get_deposit_calldata().await?,
-    )))
+    Ok(VaultCalldataResult(Bytes::copy_from_slice(&calldata)))
 }
 
 /// Generates transaction calldata for withdrawing tokens from a vault.
@@ -230,14 +239,17 @@ pub async fn get_vault_deposit_calldata(
 pub async fn get_vault_withdraw_calldata(
     #[wasm_export(param_description = "Source vault object")] vault: &SgVault,
     #[wasm_export(param_description = "Amount to withdraw")] withdraw_amount: &str,
+    #[wasm_export(param_description = "Token decimals")] decimals: u8,
 ) -> Result<VaultCalldataResult, SubgraphError> {
     let withdraw_amount = validate_amount(withdraw_amount)?;
+    let target_amount = Float::from_fixed_decimal(withdraw_amount, decimals)?;
+    let vault_id = B256::from(U256::from_str(&vault.vault_id.0)?);
 
     Ok(VaultCalldataResult(Bytes::copy_from_slice(
         &WithdrawArgs {
             token: Address::from_str(&vault.token.address.0)?,
-            vault_id: U256::from_str(&vault.vault_id.0)?,
-            target_amount: withdraw_amount,
+            vault_id,
+            target_amount,
         }
         .get_withdraw_calldata()
         .await?,
@@ -279,7 +291,7 @@ pub async fn get_vault_approval_calldata(
     let owner = Address::from_str(&vault.owner.0)?;
 
     let (deposit_args, transaction_args) =
-        get_deposit_and_transaction_args(rpc_url, vault, deposit_amount)?;
+        get_deposit_and_transaction_args(rpc_url, vault, deposit_amount).await?;
 
     let allowance = deposit_args
         .read_allowance(owner, transaction_args.clone())
@@ -289,7 +301,11 @@ pub async fn get_vault_approval_calldata(
     }
 
     Ok(VaultCalldataResult(Bytes::copy_from_slice(
-        &deposit_args.get_approve_calldata(transaction_args).await?,
+        &approveCall {
+            spender: transaction_args.orderbook_address,
+            amount: deposit_args.amount,
+        }
+        .abi_encode(),
     )))
 }
 
@@ -322,7 +338,7 @@ pub async fn check_vault_allowance(
     #[wasm_export(param_description = "Vault to check allowance for")] vault: &SgVault,
 ) -> Result<VaultAllowanceResult, SubgraphError> {
     let (deposit_args, transaction_args) =
-        get_deposit_and_transaction_args(rpc_url, vault, U256::ZERO)?;
+        get_deposit_and_transaction_args(rpc_url, vault, U256::ZERO).await?;
 
     Ok(VaultAllowanceResult(
         deposit_args
@@ -355,15 +371,23 @@ pub fn validate_io_index(
     Ok(index)
 }
 
-pub fn get_deposit_and_transaction_args(
+pub async fn get_deposit_and_transaction_args(
     rpc_url: &str,
     vault: &SgVault,
     amount: U256,
 ) -> Result<(DepositArgs, TransactionArgs), SubgraphError> {
+    let url = Url::parse(rpc_url)?;
+    let address = Address::from_str(&vault.token.address.0)?;
+    let erc20 = ERC20::new(url, address);
+
+    let decimals = erc20.decimals().await?;
+
+    let vault_id = B256::from(U256::from_str(&vault.vault_id.0)?);
     let deposit_args = DepositArgs {
         token: Address::from_str(&vault.token.address.0)?,
-        vault_id: U256::from_str(&vault.vault_id.0)?,
+        vault_id,
         amount,
+        decimals,
     };
     let transaction_args = TransactionArgs {
         orderbook_address: Address::from_str(&vault.orderbook.id.0)?,
@@ -403,29 +427,31 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm {
         use super::*;
-        use rain_orderbook_bindings::IOrderBookV4::{deposit2Call, withdraw2Call};
+        use rain_orderbook_bindings::IOrderBookV5::withdraw3Call;
         use wasm_bindgen_test::wasm_bindgen_test;
 
         #[wasm_bindgen_test]
         async fn test_get_vault_deposit_calldata() {
-            let result = get_vault_deposit_calldata(&get_vault1(), "500")
+            let result = get_vault_deposit_calldata(&get_vault1(), "500", 18)
                 .await
                 .unwrap();
+
+            let Float(amount) = Float::from_fixed_decimal(U256::from(500), 18).unwrap();
             assert_eq!(
                 result.0,
                 Bytes::copy_from_slice(
-                    &deposit2Call {
+                    &deposit3Call {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
-                        vaultId: U256::from_str("0x10").unwrap(),
-                        amount: U256::from_str("500").unwrap(),
+                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        depositAmount: amount,
                         tasks: vec![],
                     }
                     .abi_encode()
                 )
             );
 
-            let err = get_vault_deposit_calldata(&get_vault1(), "0")
+            let err = get_vault_deposit_calldata(&get_vault1(), "0", 18)
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
@@ -433,24 +459,26 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vault_withdraw_calldata() {
-            let result = get_vault_withdraw_calldata(&get_vault1(), "500")
+            let result = get_vault_withdraw_calldata(&get_vault1(), "500", 18)
                 .await
                 .unwrap();
+
+            let Float(amount) = Float::from_fixed_decimal(U256::from(500), 18).unwrap();
             assert_eq!(
                 result.0,
                 Bytes::copy_from_slice(
-                    &withdraw2Call {
+                    &withdraw3Call {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
-                        vaultId: U256::from_str("0x10").unwrap(),
-                        targetAmount: U256::from_str("500").unwrap(),
+                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        targetAmount: amount,
                         tasks: vec![],
                     }
                     .abi_encode()
                 )
             );
 
-            let err = get_vault_withdraw_calldata(&get_vault1(), "0")
+            let err = get_vault_withdraw_calldata(&get_vault1(), "0", 18)
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
@@ -460,7 +488,6 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_bindings::IERC20::approveCall;
         use serde_json::{json, Value};
@@ -702,14 +729,11 @@ mod tests {
             let rpc_server = MockServer::start_async().await;
             rpc_server.mock(|when, then| {
                 when.path("/rpc");
-                then.status(200).body(
-                    Response::new_success(
-                        1,
-                        "0x0000000000000000000000000000000000000000000000000000000000000064",
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.status(200).json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x0000000000000000000000000000000000000000000000000000000000000064"
+                }));
             });
 
             let result = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "600")
@@ -748,14 +772,11 @@ mod tests {
             let rpc_server = MockServer::start_async().await;
             rpc_server.mock(|when, then| {
                 when.path("/rpc");
-                then.status(200).body(
-                    Response::new_success(
-                        1,
-                        "0x0000000000000000000000000000000000000000000000000000000000000001",
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.status(200).json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x0000000000000000000000000000000000000000000000000000000000000001"
+                }));
             });
 
             let result = check_vault_allowance(&rpc_server.url("/rpc"), &get_vault1())

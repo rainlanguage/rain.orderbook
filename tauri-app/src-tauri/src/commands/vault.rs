@@ -1,7 +1,7 @@
-use crate::error::CommandResult;
-use crate::toast::toast_error;
-use crate::transaction_status::TransactionStatusNoticeRwLock;
 use alloy::primitives::Bytes;
+use alloy::sol_types::SolCall;
+use rain_math_float::FloatError;
+use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     deposit::DepositArgs,
@@ -13,6 +13,10 @@ use rain_orderbook_common::{
 use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Runtime};
+
+use crate::error::CommandResult;
+use crate::toast::toast_error;
+use crate::transaction_status::TransactionStatusNoticeRwLock;
 
 #[tauri::command]
 pub async fn vaults_list_write_csv(
@@ -85,18 +89,16 @@ pub async fn vault_deposit(
 }
 
 #[tauri::command]
-pub async fn vault_deposit_approve_calldata<R: Runtime>(
-    app_handle: AppHandle<R>,
+pub async fn vault_deposit_approve_calldata(
     deposit_args: DepositArgs,
     transaction_args: TransactionArgs,
 ) -> CommandResult<Bytes> {
-    let calldata = deposit_args
-        .get_approve_calldata(transaction_args)
-        .await
-        .map_err(|e| {
-            toast_error(&app_handle, e.to_string());
-            e
-        })?;
+    let calldata = approveCall {
+        spender: transaction_args.orderbook_address,
+        amount: deposit_args.amount,
+    }
+    .abi_encode();
+
     Ok(Bytes::from(calldata))
 }
 
@@ -105,11 +107,11 @@ pub async fn vault_deposit_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
-    let calldata = deposit_args.get_deposit_calldata().await.map_err(|e| {
+    let deposit_call: deposit3Call = deposit_args.try_into().map_err(|e: FloatError| {
         toast_error(&app_handle, e.to_string());
         e
     })?;
-    Ok(Bytes::from(calldata))
+    Ok(Bytes::from(deposit_call.abi_encode()))
 }
 
 #[tauri::command]
@@ -149,12 +151,13 @@ mod tests {
     use super::*;
     use crate::error::CommandError;
     use alloy::{
-        primitives::{Address, U256},
+        primitives::{Address, B256, U256},
         sol_types::SolCall,
     };
     use httpmock::MockServer;
+    use rain_math_float::Float;
     use rain_orderbook_bindings::{
-        IOrderBookV4::{deposit2Call, withdraw2Call},
+        IOrderBookV5::{deposit3Call, withdraw3Call},
         IERC20::approveCall,
     };
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
@@ -467,15 +470,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_vault_deposit_approve_calldata() {
-        let mock_app = tauri::test::mock_app();
-        let app_handle = mock_app.app_handle();
+        let amount = U256::from(50);
+        let decimals = 18;
 
         let res = vault_deposit_approve_calldata(
-            app_handle.clone(),
             DepositArgs {
                 token: Address::default(),
-                amount: U256::from(50),
-                vault_id: U256::from(1),
+                vault_id: B256::from(U256::from(1)),
+                amount,
+                decimals,
             },
             TransactionArgs {
                 orderbook_address: Address::default(),
@@ -487,7 +490,7 @@ mod tests {
 
         let expected: Bytes = approveCall {
             spender: Address::default(),
-            amount: U256::from(50),
+            amount,
         }
         .abi_encode()
         .into();
@@ -500,21 +503,27 @@ mod tests {
         let mock_app = tauri::test::mock_app();
         let app_handle = mock_app.app_handle();
 
+        let amount = U256::from(50);
+        let decimals = 18;
+
         let res = vault_deposit_calldata(
             app_handle.clone(),
             DepositArgs {
                 token: Address::default(),
-                amount: U256::from(50),
-                vault_id: U256::from(1),
+                vault_id: B256::from(U256::from(1)),
+                amount,
+                decimals,
             },
         )
         .await
         .unwrap();
 
-        let expected: Bytes = deposit2Call {
+        let Float(amount) = Float::from_fixed_decimal(amount, decimals).unwrap();
+
+        let expected: Bytes = deposit3Call {
             token: Address::default(),
-            amount: U256::from(50),
-            vaultId: U256::from(1),
+            depositAmount: amount,
+            vaultId: B256::from(U256::from(1)),
             tasks: vec![],
         }
         .abi_encode()
@@ -528,21 +537,27 @@ mod tests {
         let mock_app = tauri::test::mock_app();
         let app_handle = mock_app.app_handle();
 
+        let amount = U256::from(50);
+        let decimals = 18;
+        let target_amount = Float::from_fixed_decimal(amount, decimals).unwrap();
+
         let res = vault_withdraw_calldata(
             app_handle.clone(),
             WithdrawArgs {
                 token: Address::default(),
-                target_amount: U256::from(50),
-                vault_id: U256::from(1),
+                vault_id: B256::from(U256::from(1)),
+                target_amount,
             },
         )
         .await
         .unwrap();
 
-        let expected: Bytes = withdraw2Call {
+        let Float(target_amount_bytes) = target_amount;
+
+        let expected: Bytes = withdraw3Call {
             token: Address::default(),
-            targetAmount: U256::from(50),
-            vaultId: U256::from(1),
+            targetAmount: target_amount_bytes,
+            vaultId: B256::from(U256::from(1)),
             tasks: vec![],
         }
         .abi_encode()

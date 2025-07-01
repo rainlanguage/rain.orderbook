@@ -1,20 +1,18 @@
 use crate::error::CommandResult;
-use alloy_ethers_typecast::transaction::ReadableClientHttp;
+use alloy_ethers_typecast::ReadableClient;
 
 #[tauri::command]
 pub async fn get_chainid(rpc_url: String) -> CommandResult<u64> {
-    let chain_id = ReadableClientHttp::new_from_urls(vec![rpc_url])?
+    let chain_id = ReadableClient::new_from_http_urls(vec![rpc_url])?
         .get_chainid()
         .await?;
 
-    let chain_id_u64: u64 = chain_id.try_into()?;
-
-    Ok(chain_id_u64)
+    Ok(chain_id)
 }
 
 #[tauri::command]
 pub async fn get_block_number(rpc_url: String) -> CommandResult<u64> {
-    let block_number = ReadableClientHttp::new_from_urls(vec![rpc_url])?
+    let block_number = ReadableClient::new_from_http_urls(vec![rpc_url])?
         .get_block_number()
         .await?;
     Ok(block_number)
@@ -22,7 +20,7 @@ pub async fn get_block_number(rpc_url: String) -> CommandResult<u64> {
 
 #[cfg(test)]
 mod tests {
-    use alloy_ethers_typecast::transaction::ReadableClientError;
+    use alloy_ethers_typecast::ReadableClientError;
     use httpmock::prelude::*;
     use serde_json::json;
 
@@ -59,32 +57,11 @@ mod tests {
         let server = MockServer::start();
 
         server.mock(|when, then| {
-            when.path("/rpc-1").body_contains("eth_chainId");
-            let res_body = json!({ "jsonrpc":"2.0", "id":1, "result": 1 });
-            then.status(200).body(res_body.to_string());
-        });
-
-        let rpc_url = server.url("/rpc-1");
-        let err = get_chainid(rpc_url.clone()).await.unwrap_err();
-        assert!(
-            matches!(
-            err,
-                CommandError::ReadableClientError(ReadableClientError::AllProvidersFailed(ref msg))
-                if msg.get(&rpc_url).is_some()
-                    && matches!(
-                        msg.get(&rpc_url).unwrap(),
-                        ReadableClientError::ReadChainIdError(_)
-                    )
-            ),
-            "unexpected error: {err}"
-        );
-
-        server.mock(|when, then| {
-            when.path("/rpc-2");
+            when.path("/rpc-1");
             then.status(404);
         });
 
-        let rpc_url = server.url("/rpc-2");
+        let rpc_url = server.url("/rpc-1");
         let err = get_chainid(rpc_url.clone()).await.unwrap_err();
         assert!(
             matches!(
@@ -94,19 +71,19 @@ mod tests {
                         && matches!(
                             msg.get(&rpc_url).unwrap(),
                             ReadableClientError::ReadChainIdError(msg)
-                            if msg.contains("Deserialization Error: EOF")
+                            if msg.contains("404 with empty body")
                         )
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
 
         server.mock(|when, then| {
-            when.path("/rpc-3").body_contains("eth_chainId");
+            when.path("/rpc-2").body_contains("eth_chainId");
             let res_body = json!({ "jsonrpc":"2.0", "id":1, "result": "0xyz" });
             then.status(200).body(res_body.to_string());
         });
 
-        let rpc_url = server.url("/rpc-3");
+        let rpc_url = server.url("/rpc-2");
         let err = get_chainid(rpc_url.clone()).await.unwrap_err();
         assert!(
             matches!(
@@ -116,10 +93,10 @@ mod tests {
                     && matches!(
                         msg.get(&rpc_url).unwrap(),
                         ReadableClientError::ReadChainIdError(msg)
-                        if msg.contains("Deserialization Error: invalid hex character")
+                        if msg.contains("invalid value")
                     )
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
     }
 
@@ -210,10 +187,10 @@ mod tests {
                     && matches!(
                         msg.get(&rpc_url).unwrap(),
                         ReadableClientError::ReadBlockNumberError(msg)
-                        if msg.contains("Deserialization Error: invalid hex character")
+                        if msg.contains("deserialization error: invalid value")
                     )
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
     }
 }

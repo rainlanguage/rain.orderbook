@@ -107,9 +107,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 
 			let result = orderbookYaml.getOrderbookByAddress('invalid-address');
 			if (!result.error) expect.fail('Expected error');
-			expect(result.error.msg).toBe('Invalid address: Odd number of digits');
+			expect(result.error.msg).toBe('Invalid address: odd number of digits');
 			expect(result.error.readableMsg).toBe(
-				'The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: "Odd number of digits"'
+				'The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: "odd number of digits"'
 			);
 
 			result = orderbookYaml.getOrderbookByAddress('0x0000000000000000000000000000000000000000');

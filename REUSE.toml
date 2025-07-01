@@ -8,6 +8,7 @@ path = [
     ".gitignore",
     ".gitmodules",
     ".vscode/**/",
+    ".cargo/**/",
     "README.md",
     "flake.lock",
     "flake.nix",

@@ -464,9 +464,12 @@ impl RaindexOrder {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
+    #[cfg(not(target_family = "wasm"))]
     use rain_orderbook_app_settings::spec_version::SpecVersion;
 
+    #[cfg(not(target_family = "wasm"))]
     fn get_test_yaml(subgraph1: &str, subgraph2: &str) -> String {
         format!(
             r#"

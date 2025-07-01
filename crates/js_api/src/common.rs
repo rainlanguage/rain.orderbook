@@ -156,43 +156,46 @@ mod tests {
     mod wasm_tests {
         use super::*;
         use alloy::{
-            primitives::{Address, FixedBytes, U256},
-            sol_types::SolCall,
+            hex::encode_prefixed,
+            primitives::{Address, FixedBytes, B256, U256},
+            sol_types::{SolCall, SolValue},
         };
-        use rain_orderbook_bindings::IOrderBookV4::{removeOrder2Call, EvaluableV3, OrderV3, IO};
+        use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, EvaluableV4, OrderV4, IOV2};
         use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes, SgOrderbook};
         use std::str::FromStr;
         use wasm_bindgen_test::wasm_bindgen_test;
 
         #[wasm_bindgen_test]
         async fn test_get_remove_order_calldata() {
-            let remove_order_call = removeOrder2Call {
-                order: OrderV3 {
-                    owner: Address::from_str("0x6171c21b2e553c59a64d1337211b77c367cefe5d").unwrap(),
-                    evaluable: EvaluableV3 {
-                        interpreter: Address::from_str(
-                            "0x379b966dc6b117dd47b5fc5308534256a4ab1bcc",
-                        )
+            let order = OrderV4 {
+                owner: Address::from_str("0x6171c21b2e553c59a64d1337211b77c367cefe5d").unwrap(),
+                evaluable: EvaluableV4 {
+                    interpreter: Address::from_str(
+                        "0x379b966dc6b117dd47b5fc5308534256a4ab1bcc",
+                    )
+                    .unwrap(),
+                    store: Address::from_str("0x6e4b01603edbda617002a077420e98c86595748e")
                         .unwrap(),
-                        store: Address::from_str("0x6e4b01603edbda617002a077420e98c86595748e")
-                            .unwrap(),
-                        bytecode: Bytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000100000000")
-                            .unwrap(),
-                    },
-                    validInputs: vec![IO {
-                        token: Address::from_str("0x50c5725949a6f0c72e6c4a641f24049a917db0cb")
-                            .unwrap(),
-                        decimals: 18,
-                        vaultId: U256::from(1),
-                    }],
-                    validOutputs: vec![IO {
-                        token: Address::from_str("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913")
-                            .unwrap(),
-                        decimals: 6,
-                        vaultId: U256::from(1),
-                    }],
-                    nonce: FixedBytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000001").unwrap()
+                    bytecode: Bytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000100000000")
+                        .unwrap(),
                 },
+                validInputs: vec![IOV2 {
+                    token: Address::from_str("0x50c5725949a6f0c72e6c4a641f24049a917db0cb")
+                        .unwrap(),
+                    vaultId: B256::from(U256::from(1)),
+                }],
+                validOutputs: vec![IOV2 {
+                    token: Address::from_str("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913")
+                        .unwrap(),
+                    vaultId: B256::from(U256::from(1)),
+                }],
+                nonce: FixedBytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000001").unwrap()
+            };
+
+            let order_bytes = SgBytes(encode_prefixed(order.abi_encode()));
+
+            let remove_order_call = removeOrder3Call {
+                order,
                 tasks: vec![],
             }
             .abi_encode();
@@ -200,7 +203,7 @@ mod tests {
 
             let order = SgOrder {
                 id: SgBytes("1".into()),
-                order_bytes: SgBytes("0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000006171c21b2e553c59a64d1337211b77c367cefe5d00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000379b966dc6b117dd47b5fc5308534256a4ab1bcc0000000000000000000000006e4b01603edbda617002a077420e98c86595748e000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000950000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c020200020110000001100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000050c5725949a6f0c72e6c4a641f24049a917db0cb000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000001".into()),
+                order_bytes,
                 order_hash: SgBytes("".into()),
                 add_events: vec![],
                 timestamp_added: SgBigInt("0".into()),
@@ -225,15 +228,12 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
         use super::*;
-        use alloy::{
-            hex::encode_prefixed,
-            primitives::{Address, B256, U256},
-            sol_types::SolValue,
-        };
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy::primitives::{Address, B256, U256};
+        use alloy::{hex::encode_prefixed, sol, sol_types::SolType};
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_bindings::IOrderBookV4::IO;
+        use rain_orderbook_bindings::IOrderBookV5::IOV2;
+        use serde_json::json;
         use std::{collections::HashMap, str::FromStr};
 
         fn get_dotrain(rpc_url: &str) -> String {
@@ -312,77 +312,57 @@ _ _: 0 0;
             let rpc_server = MockServer::start_async().await;
             let dotrain = get_dotrain(&rpc_server.url("/rpc"));
 
+            // Helper closure to build ABI-encoded single-address return values.
+            let build_address_return = |id: u64| {
+                let addr = Address::random();
+                let encoded_ret = <sol!((address,))>::abi_encode(&(addr,));
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "result": encode_prefixed(encoded_ret)
+                })
+            };
+
+            // mock iInterpreter() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xf0cfdd37");
-                then.body(
-                    Response::new_success(
-                        1,
-                        &B256::left_padding_from(
-                            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
-                                .unwrap()
-                                .as_slice(),
-                        )
-                        .to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.json_body(build_address_return(1));
             });
+
+            // mock iStore() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xc19423bc");
-                then.body(
-                    Response::new_success(
-                        2,
-                        &B256::left_padding_from(
-                            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
-                                .unwrap()
-                                .as_slice(),
-                        )
-                        .to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.json_body(build_address_return(2));
             });
+
+            // mock iParser() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0x24376855");
-                then.body(
-                    Response::new_success(
-                        3,
-                        &B256::left_padding_from(
-                            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
-                                .unwrap()
-                                .as_slice(),
-                        )
-                        .to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.json_body(build_address_return(3));
             });
+
+            // mock parse2() call
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xa3869e14");
-                then.body(
-                    Response::new_success(
-                        4,
-                        &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+
+                let encoded_ret = <sol!((bytes,))>::abi_encode(&(vec![0x01u8, 0x02u8],));
+
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 4,
+                    "result": encode_prefixed(encoded_ret)
+                }));
             });
 
             let expected_calldata: Bytes = AddOrderArgs {
                 dotrain: dotrain.clone(),
-                inputs: vec![IO {
+                inputs: vec![IOV2 {
                     token: Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap(),
-                    decimals: 18,
-                    vaultId: U256::from(1),
+                    vaultId: B256::from(U256::from(1)),
                 }],
-                outputs: vec![IO {
+                outputs: vec![IOV2 {
                     token: Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap(),
-                    decimals: 6,
-                    vaultId: U256::from(2),
+                    vaultId: B256::from(U256::from(2)),
                 }],
                 deployer: Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap(),
                 bindings: HashMap::from([

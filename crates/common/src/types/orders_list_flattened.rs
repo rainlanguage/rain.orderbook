@@ -2,7 +2,7 @@ use crate::types::vault::NO_SYMBOL;
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use alloy::dyn_abi::SolType;
 use alloy::primitives::hex::{decode, encode};
-use rain_orderbook_bindings::IOrderBookV4::OrderV3;
+use rain_orderbook_bindings::IOrderBookV5::OrderV4;
 use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +31,7 @@ impl TryFrom<SgOrder> for OrderFlattened {
     type Error = FlattenError;
 
     fn try_from(val: SgOrder) -> Result<Self, Self::Error> {
-        let order = OrderV3::abi_decode(&decode(&val.order_bytes.0)?, true)?;
+        let order = OrderV4::abi_decode(&decode(&val.order_bytes.0)?)?;
         Ok(Self {
             id: val.id.0,
             timestamp: val.timestamp_added.clone(),
@@ -85,39 +85,37 @@ impl TryIntoCsv<OrderFlattened> for Vec<OrderFlattened> {}
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use super::*;
-    use crate::types::vault::NO_SYMBOL;
     use alloy::{
         hex::FromHexError,
-        primitives::{Address, Bytes, FixedBytes, U256},
+        primitives::{Address, Bytes, FixedBytes, B256, U256},
         sol_types::SolValue,
     };
-    use rain_orderbook_bindings::IOrderBookV4::{EvaluableV3, OrderV3, IO};
+    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
     use rain_orderbook_subgraph_client::types::common::{
         SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderStructPartialTrade, SgOrderbook,
         SgTransaction, SgVault,
     };
+    use std::str::FromStr;
+
+    use super::*;
+    use crate::types::vault::NO_SYMBOL;
 
     fn mock_sg_order_default() -> SgOrder {
-        let evaluable = EvaluableV3 {
+        let evaluable = EvaluableV4 {
             interpreter: Address::repeat_byte(0x01),
             store: Address::repeat_byte(0x02),
             bytecode: Bytes::from_str("0x").unwrap(),
         };
-        let valid_inputs = vec![IO {
+        let valid_inputs = vec![IOV2 {
             token: Address::repeat_byte(0x11),
-            decimals: 18,
-            vaultId: U256::from(111),
+            vaultId: B256::from(U256::from(111)),
         }];
-        let valid_outputs = vec![IO {
+        let valid_outputs = vec![IOV2 {
             token: Address::repeat_byte(0x22),
-            decimals: 18,
-            vaultId: U256::from(222),
+            vaultId: B256::from(U256::from(222)),
         }];
 
-        let order_v3 = OrderV3 {
+        let order_v4 = OrderV4 {
             owner: Address::repeat_byte(0x0a),
             nonce: FixedBytes::from_str(
                 "0x0000000000000000000000000000000000000000000000000000000000000001",
@@ -127,7 +125,7 @@ mod tests {
             validOutputs: valid_outputs.clone(),
             evaluable,
         };
-        let order_bytes_hex = alloy::primitives::hex::encode(order_v3.abi_encode());
+        let order_bytes_hex = alloy::primitives::hex::encode(order_v4.abi_encode());
 
         SgOrder {
             id: SgBytes("order-id-default".into()),

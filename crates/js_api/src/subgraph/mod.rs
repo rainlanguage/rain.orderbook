@@ -1,5 +1,7 @@
 use alloy::{hex::FromHexError, primitives::ruint::ParseError};
-use rain_orderbook_common::{deposit::DepositError, transaction::WritableTransactionExecuteError};
+use rain_math_float::FloatError;
+use rain_orderbook_common::transaction::WritableTransactionExecuteError;
+use rain_orderbook_common::{deposit::DepositError, erc20};
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -33,7 +35,12 @@ pub enum SubgraphError {
     DepositError(#[from] DepositError),
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
+    #[error(transparent)]
+    ERC20Error(#[from] erc20::Error),
+    #[error(transparent)]
+    FloatError(#[from] FloatError),
 }
+
 impl From<SubgraphError> for JsValue {
     fn from(value: SubgraphError) -> Self {
         JsError::new(&value.to_string()).into()

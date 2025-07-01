@@ -1,4 +1,4 @@
-use crate::{error::Error, BatchQuoteSpec, QuoteSpec};
+use crate::{error::Error, BatchQuoteSpec};
 use crate::{
     get_order_quotes, BatchOrderQuotesResponse, BatchQuoteTarget, OrderQuoteValue, QuoteTarget,
 };
@@ -139,12 +139,9 @@ pub async fn do_quote_targets(
     multicall_address: Option<String>,
 ) -> Result<DoQuoteTargetsResult, QuoteBindingsError> {
     let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
-    let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let quote_targets: Vec<QuoteTarget> =
-        quote_targets.0.into_iter().map(QuoteTarget::from).collect();
-    let batch_quote_target = BatchQuoteTarget(quote_targets);
+    let gas_value = gas.map(|v| v.parse::<u64>()).transpose()?;
 
-    let quotes = batch_quote_target
+    let quotes = quote_targets
         .do_quote(&rpc_url, block_number, gas_value, multicall_address)
         .await?;
 
@@ -215,11 +212,9 @@ pub async fn do_quote_specs(
     multicall_address: Option<String>,
 ) -> Result<DoQuoteSpecsResult, QuoteBindingsError> {
     let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
-    let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let quote_specs: Vec<QuoteSpec> = quote_specs.0.into_iter().map(QuoteSpec::from).collect();
-    let batch_quote_spec = BatchQuoteSpec(quote_specs);
+    let gas_value = gas.map(|v| v.parse::<u64>()).transpose()?;
 
-    let quotes = batch_quote_spec
+    let quotes = quote_specs
         .do_quote(
             &subgraph_url,
             &rpc_url,
@@ -280,10 +275,7 @@ pub async fn get_batch_quote_target_from_subgraph(
     #[wasm_export(param_description = "GraphQL endpoint URL for the subgraph")]
     subgraph_url: String,
 ) -> Result<QuoteTargetResult, QuoteBindingsError> {
-    let quote_specs: Vec<QuoteSpec> = quote_specs.0.into_iter().map(QuoteSpec::from).collect();
-    let batch_quote_spec = BatchQuoteSpec(quote_specs);
-
-    let quote_targets = batch_quote_spec
+    let quote_targets = quote_specs
         .get_batch_quote_target_from_subgraph(&subgraph_url)
         .await?;
     Ok(QuoteTargetResult(quote_targets))
@@ -331,7 +323,7 @@ pub async fn get_order_quote(
     )]
     gas: Option<String>,
 ) -> Result<DoOrderQuoteResult, QuoteBindingsError> {
-    let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
+    let gas_value = gas.map(|v| v.parse::<u64>()).transpose()?;
     let order_quotes = get_order_quotes(order, block_number, rpc_url, gas_value).await?;
     Ok(DoOrderQuoteResult(order_quotes))
 }
@@ -344,6 +336,8 @@ pub enum QuoteBindingsError {
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
     U256ParseError(#[from] ParseError),
+    #[error(transparent)]
+    ParseInt(#[from] std::num::ParseIntError),
     #[error("JavaScript error: {0}")]
     JsError(String),
     #[error(transparent)]
@@ -353,12 +347,13 @@ pub enum QuoteBindingsError {
 impl QuoteBindingsError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            Self::QuoteError(e) => format!("Failed to get quote: {}", e),
-            Self::FromHexError(e) => format!("Invalid address format: {}", e),
-            Self::U256ParseError(e) => format!("Invalid numeric value: {}", e),
-            Self::JsError(msg) => format!("Internal JavaScript error: {}", msg),
+            Self::QuoteError(e) => format!("Failed to get quote: {e}"),
+            Self::FromHexError(e) => format!("Invalid address format: {e}"),
+            Self::U256ParseError(e) => format!("Invalid numeric value: {e}"),
+            Self::ParseInt(e) => format!("Invalid numeric value: {e}"),
+            Self::JsError(msg) => format!("Internal JavaScript error: {msg}"),
             Self::SerdeWasmBindgenError(err) => {
-                format!("Failed to serialize/deserialize data: {}", err)
+                format!("Failed to serialize/deserialize data: {err}")
             }
         }
     }
@@ -399,10 +394,10 @@ mod tests {
             assert_eq!(res, expected_id);
 
             let err = get_id("invalid-hex", &order_hash.to_string()).unwrap_err();
-            assert_eq!(err.to_string(), "Odd number of digits");
+            assert_eq!(err.to_string(), "odd number of digits");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid address format: Odd number of digits"
+                "Invalid address format: odd number of digits"
             );
 
             let err = get_id(&orderbook.to_string(), "invalid-hash").unwrap_err();
@@ -417,11 +412,12 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod quote_non_wasm_tests {
         use super::*;
-        use alloy::primitives::{Bytes, FixedBytes};
+        use crate::QuoteSpec;
+        use alloy::primitives::{address, fixed_bytes, Bytes, FixedBytes};
         use alloy::{sol, sol_types::SolValue};
-        use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
-        use rain_orderbook_bindings::IOrderBookV4::{EvaluableV3, OrderV3, Quote, IO};
+        use rain_math_float::Float;
+        use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, QuoteV2, IOV2};
         use rain_orderbook_subgraph_client::types::common::{
             SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTransaction, SgVault,
         };
@@ -441,30 +437,26 @@ mod tests {
             }
         );
 
-        fn get_quote_config() -> Quote {
-            Quote {
-                order: OrderV3 {
-                    owner: Address::from_str("0x2000000000000000000000000000000000000000").unwrap(),
-                    evaluable: EvaluableV3 {
-                        interpreter: Address::from_str(
-                            "0x0000000000000000000000000000000000000001",
-                        )
-                        .unwrap(),
-                        store: Address::from_str("0x0000000000000000000000000000000000000002")
-                            .unwrap(),
+        fn get_quote_config() -> QuoteV2 {
+            QuoteV2 {
+                order: OrderV4 {
+                    owner: address!("0x2000000000000000000000000000000000000000"),
+                    evaluable: EvaluableV4 {
+                        interpreter: address!("0x0000000000000000000000000000000000000001"),
+                        store: address!("0x0000000000000000000000000000000000000002"),
                         bytecode: Bytes::from_str("0x").unwrap(),
                     },
-                    validInputs: vec![IO {
-                        token: Address::from_str("0x0000000000000000000000000000000000000001")
-                            .unwrap(),
-                        decimals: 6,
-                        vaultId: U256::from(20),
+                    validInputs: vec![IOV2 {
+                        token: address!("0x0000000000000000000000000000000000000001"),
+                        vaultId: fixed_bytes!(
+                            "0x0000000000000000000000000000000000000000000000000000000000000006"
+                        ),
                     }],
-                    validOutputs: vec![IO {
-                        token: Address::from_str("0x0000000000000000000000000000000000000002")
-                            .unwrap(),
-                        decimals: 18,
-                        vaultId: U256::from(100),
+                    validOutputs: vec![IOV2 {
+                        token: address!("0x0000000000000000000000000000000000000002"),
+                        vaultId: fixed_bytes!(
+                            "0x0000000000000000000000000000000000000000000000000000000000000012"
+                        ),
                     }],
                     nonce: FixedBytes::from_str(
                         "0x1230000000000000000000000000000000000000000000000000000000000000",
@@ -672,11 +664,11 @@ mod tests {
 
             rpc_server.mock(|when, then| {
                 when.path("/rpc");
-                then.body(
-                    Response::new_success(1, &response_hex)
-                        .to_json_string()
-                        .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": response_hex,
+                }));
             });
 
             let res = do_quote_targets(
@@ -693,8 +685,12 @@ mod tests {
             match &res.0[0] {
                 QuoteResultEnum::Success { value, error } => {
                     assert!(error.is_none());
-                    assert_eq!(value.max_output, U256::from(1));
-                    assert_eq!(value.ratio, U256::from(2));
+
+                    let one = Float::parse("1".to_string()).unwrap();
+                    let two = Float::parse("2".to_string()).unwrap();
+
+                    assert!(value.max_output.eq(one).unwrap());
+                    assert!(value.ratio.eq(two).unwrap());
                 }
                 QuoteResultEnum::Err { .. } => {
                     panic!("Expected success, got error");
@@ -725,10 +721,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "Odd number of digits");
+            assert_eq!(err.to_string(), "odd number of digits");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid address format: Odd number of digits"
+                "Invalid address format: odd number of digits"
             );
 
             let err = do_quote_targets(
@@ -740,10 +736,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
+            assert_eq!(err.to_string(), "invalid digit found in string");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid numeric value: digit 18 is out of range for base 10"
+                "Invalid numeric value: invalid digit found in string"
             );
         }
 
@@ -775,11 +771,11 @@ mod tests {
             ];
             rpc_server.mock(|when, then| {
                 when.path("/rpc");
-                then.body(
-                    Response::new_success(1, &encode_prefixed(aggreate_result.abi_encode()))
-                        .to_json_string()
-                        .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": encode_prefixed(aggreate_result.abi_encode()),
+                }));
             });
 
             let res = do_quote_specs(
@@ -797,8 +793,14 @@ mod tests {
             match &res.0[0] {
                 QuoteResultEnum::Success { value, error } => {
                     assert!(error.is_none());
-                    assert_eq!(value.max_output, U256::from(1));
-                    assert_eq!(value.ratio, U256::from(2));
+
+                    let actual_max_output = value.max_output;
+                    let expected_max_output = Float::parse("1".to_string()).unwrap();
+                    assert!(actual_max_output.eq(expected_max_output).unwrap());
+
+                    let actual_ratio = value.ratio;
+                    let expected_ratio = Float::parse("2".to_string()).unwrap();
+                    assert!(actual_ratio.eq(expected_ratio).unwrap());
                 }
                 QuoteResultEnum::Err { error, .. } => {
                     panic!("Expected success, got error: {}", error);
@@ -830,10 +832,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "Odd number of digits");
+            assert_eq!(err.to_string(), "odd number of digits");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid address format: Odd number of digits"
+                "Invalid address format: odd number of digits"
             );
 
             let err = do_quote_specs(
@@ -846,10 +848,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
+            assert_eq!(err.to_string(), "invalid digit found in string");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid numeric value: digit 18 is out of range for base 10"
+                "Invalid numeric value: invalid digit found in string"
             );
         }
 
@@ -877,7 +879,7 @@ mod tests {
                 }) => {
                     assert_eq!(
                         orderbook,
-                        &Address::from_str("0x1000000000000000000000000000000000000000").unwrap()
+                        &address!("0x1000000000000000000000000000000000000000")
                     );
                     assert_eq!(quote_config, &get_quote_config());
                 }
@@ -890,11 +892,11 @@ mod tests {
                 }) => {
                     assert_eq!(
                         orderbook,
-                        &Address::from_str("0x2000000000000000000000000000000000000000").unwrap()
+                        &address!("0x2000000000000000000000000000000000000000")
                     );
                     assert_eq!(
                         quote_config,
-                        &Quote {
+                        &QuoteV2 {
                             inputIOIndex: U256::from(1),
                             outputIOIndex: U256::from(1),
                             ..get_quote_config()
@@ -976,7 +978,11 @@ mod tests {
             // block number 1
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("blockNumber");
-                then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x1",
+                }));
             });
 
             let aggreate_result = vec![Result {
@@ -992,19 +998,26 @@ mod tests {
             let response_hex = encode_prefixed(aggreate_result.abi_encode());
             rpc_server.mock(|when, then| {
                 when.path("/rpc");
-                then.body(
-                    Response::new_success(1, &response_hex)
-                        .to_json_string()
-                        .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": response_hex,
+                }));
             });
 
             let res = get_order_quote(vec![order], rpc_server.url("/rpc"), None, None)
                 .await
                 .unwrap();
             assert_eq!(res.0.len(), 1);
-            assert_eq!(res.0[0].data.unwrap().max_output, U256::from(1));
-            assert_eq!(res.0[0].data.unwrap().ratio, U256::from(2));
+
+            let actual_max_output = res.0[0].data.unwrap().max_output;
+            let expected_max_output = Float::parse("1".to_string()).unwrap();
+            assert!(actual_max_output.eq(expected_max_output).unwrap());
+
+            let actual_ratio = res.0[0].data.unwrap().ratio;
+            let expected_ratio = Float::parse("2".to_string()).unwrap();
+            assert!(actual_ratio.eq(expected_ratio).unwrap());
+
             assert!(res.0[0].success);
             assert_eq!(res.0[0].error, None);
             assert_eq!(res.0[0].pair.pair_name, "T2/T1");
@@ -1022,10 +1035,10 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
+            assert_eq!(err.to_string(), "invalid digit found in string");
             assert_eq!(
                 err.to_readable_msg(),
-                "Invalid numeric value: digit 18 is out of range for base 10"
+                "Invalid numeric value: invalid digit found in string"
             );
         }
     }

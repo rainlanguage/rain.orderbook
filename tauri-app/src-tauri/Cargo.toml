@@ -18,8 +18,9 @@ tauri-build = { version = "1.5", features = [] }
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 uuid = { version = "1.7.0", features = ["serde"] }
-rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
+rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "1014cbd72fab790b4ab1f5aab3e6780f13cd8efb" }
 rain-metadata = { path = "../../lib/rain.interpreter/lib/rain.metadata/crates/cli" }
+rain-math-float = { path = "../../lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float/crates/float" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tauri = { version = "1.5", features = [
@@ -38,8 +39,8 @@ rain_orderbook_quote = { path = "../../crates/quote" }
 rain_orderbook_subgraph_client = { path = "../../crates/subgraph" }
 rain_orderbook_app_settings = { path = "../../crates/settings" }
 rain_orderbook_bindings = { path = "../../crates/bindings" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "adda117b1f43e1a4dfa012299e71f2b0e73f46f4" }
-alloy = { version = "0.1.4", features = ["full", "node-bindings"] }
+alloy = { version = "1.0.9", features = ["sol-types", "json", "json-abi"] }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "bcc3a04394aefe191fef4ae8e6e94381a419c99a" }
 reqwest = { version = "0.11.22", features = ["json"] }
 serde_bytes = "0.11.14"
 thiserror = "1.0.56"
@@ -61,7 +62,7 @@ custom-protocol = ["tauri/custom-protocol"]
 tauri-cli = "1.5"
 httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
-rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "fa0cc05a8dbf0f167a2392255a8b509309e9da46" }
+rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "bf08b5ab305287fc49408a441d6375f35dc280db" }
 rain-interpreter-eval.path = "../../lib/rain.interpreter/crates/eval"
 strict-yaml-rust = "0.1.2"
 tempfile = "3.20.0"
