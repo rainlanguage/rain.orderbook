@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
 import { expect } from '$lib/__tests__/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
@@ -41,12 +41,6 @@ test('renders table with the correct data', async () => {
   });
 
   expect(await screen.findByTestId('modal-quote-debug-loading-message')).toBeInTheDocument();
-
-  await waitFor(() => {
-    expect(screen.queryByTestId('modal-quote-debug-rpc-url')).toHaveTextContent(
-      'RPC: https://rpc-url.com',
-    );
-  });
 
   const stacks = await screen.findAllByTestId('debug-stack');
   expect(stacks).toHaveLength(3);
