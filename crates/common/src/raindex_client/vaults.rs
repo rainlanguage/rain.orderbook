@@ -411,11 +411,35 @@ impl RaindexVault {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum RaindexVaultBalanceChangeType {
+    Deposit,
+    Withdraw,
+    TradeVaultBalanceChange,
+    ClearBounty,
+    Unknown,
+}
+impl_wasm_traits!(RaindexVaultBalanceChangeType);
+impl TryFrom<String> for RaindexVaultBalanceChangeType {
+    type Error = RaindexError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "Deposit" => Ok(RaindexVaultBalanceChangeType::Deposit),
+            "Withdraw" => Ok(RaindexVaultBalanceChangeType::Withdraw),
+            "TradeVaultBalanceChange" => Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange),
+            "ClearBounty" => Ok(RaindexVaultBalanceChangeType::ClearBounty),
+            "Unknown" => Ok(RaindexVaultBalanceChangeType::Unknown),
+            _ => Err(RaindexError::InvalidVaultBalanceChangeType(value)),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultBalanceChange {
-    __typename: String,
+    r#type: RaindexVaultBalanceChangeType,
     amount: U256,
     new_vault_balance: U256,
     old_vault_balance: U256,
@@ -425,9 +449,9 @@ pub struct RaindexVaultBalanceChange {
 }
 #[wasm_bindgen]
 impl RaindexVaultBalanceChange {
-    #[wasm_bindgen(getter)]
-    pub fn __typename(&self) -> String {
-        self.__typename.clone()
+    #[wasm_bindgen(getter = type)]
+    pub fn type_getter(&self) -> RaindexVaultBalanceChangeType {
+        self.r#type.clone()
     }
     #[cfg(target_family = "wasm")]
     #[wasm_bindgen(getter)]
@@ -492,7 +516,7 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
     type Error = RaindexError;
     fn try_from(balance_change: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
         Ok(Self {
-            __typename: balance_change.__typename,
+            r#type: balance_change.__typename.try_into()?,
             amount: U256::from_str(&balance_change.amount.0)?,
             new_vault_balance: U256::from_str(&balance_change.new_vault_balance.0)?,
             old_vault_balance: U256::from_str(&balance_change.old_vault_balance.0)?,
@@ -948,7 +972,7 @@ mod tests {
                 .unwrap();
             let result = vault.get_balance_changes(None).await.unwrap();
             assert_eq!(result.len(), 1);
-            assert_eq!(result[0].__typename, "Deposit");
+            assert_eq!(result[0].r#type, RaindexVaultBalanceChangeType::Deposit);
             assert_eq!(
                 result[0].amount,
                 U256::from_str("5000000000000000000").unwrap()

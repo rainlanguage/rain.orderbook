@@ -191,6 +191,8 @@ pub enum RaindexError {
     DepositArgsError(#[from] DepositError),
     #[error("Missing subgraph {0} for order {1}")]
     SubgraphNotFound(String, String),
+    #[error("Invalid vault balance change type: {0}")]
+    InvalidVaultBalanceChangeType(String),
 }
 
 impl RaindexError {
@@ -261,6 +263,9 @@ impl RaindexError {
                     "Subgraph with name '{}' not found for the order with hash '{}'",
                     subgraph, order
                 )
+            }
+            RaindexError::InvalidVaultBalanceChangeType(typ) => {
+                format!("Invalid vault balance change type: {}", typ)
             }
         }
     }

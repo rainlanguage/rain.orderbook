@@ -892,7 +892,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
 			const result = extractWasmEncodedData(await vault.getBalanceChanges());
 
-			assert.equal(result[0].__typename, 'Deposit');
+			assert.equal(result[0].type, 'deposit');
 			assert.equal(result[0].amount, BigInt('5000000000000000000'));
 			assert.equal(result[0].newVaultBalance, BigInt('5000000000000000000'));
 			assert.equal(result[0].oldVaultBalance, BigInt('0'));
