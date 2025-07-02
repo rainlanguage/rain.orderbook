@@ -269,46 +269,47 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             // technically this is overly conservative but we REALLY don't want
             // withdrawals to exceed vault balances.
             sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
-            emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
+        }
 
-            if (post.length != 0) {
-                // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
-                // It's incredibly common anyway. Please let us know if this actually a
-                // problem in practice.
-                uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+        emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
 
-                LibOrderBook.doPost(
-                    LibUint256Matrix.matrixFrom(
-                        LibUint256Array.arrayFrom(
-                            uint256(uint160(token)),
-                            vaultId,
-                            LibFixedPointDecimalScale.scale18(
-                                currentVaultBalance,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            ),
-                            LibFixedPointDecimalScale.scale18(
-                                withdrawAmount,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            ),
-                            LibFixedPointDecimalScale.scale18(
-                                targetAmount,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            )
+        if (post.length != 0) {
+            // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+            // It's incredibly common anyway. Please let us know if this actually a
+            // problem in practice.
+            uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(
+                    LibUint256Array.arrayFrom(
+                        uint256(uint160(token)),
+                        vaultId,
+                        LibFixedPointDecimalScale.scale18(
+                            currentVaultBalance,
+                            tokenDecimals,
+                            // Error on overflow.
+                            // Rounding down is the default.
+                            0
+                        ),
+                        LibFixedPointDecimalScale.scale18(
+                            withdrawAmount,
+                            tokenDecimals,
+                            // Error on overflow.
+                            // Rounding down is the default.
+                            0
+                        ),
+                        LibFixedPointDecimalScale.scale18(
+                            targetAmount,
+                            tokenDecimals,
+                            // Error on overflow.
+                            // Rounding down is the default.
+                            0
                         )
-                    ),
-                    post
-                );
-            }
+                    )
+                ),
+                post
+            );
         }
     }
 
