@@ -200,7 +200,7 @@ amount price: 16 52;
             },
             order_bytes: SgBytes(encode_prefixed(order.abi_encode())),
             order_hash: SgBytes("0x01".to_string()),
-            owner: SgBytes("0x01".to_string()),
+            owner: SgBytes("0x0000000000000000000000000000000000000001".to_string()),
             outputs: vec![],
             inputs: vec![],
             active: true,
@@ -213,8 +213,6 @@ amount price: 16 52;
 
         let input_io_index = 0;
         let output_io_index = 0;
-
-        let rpc_url = local_evm.url();
 
         const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
 
@@ -289,14 +287,6 @@ amount price: 16 52;
             None,
         )
         .unwrap();
-        let order = raindex_client
-            .get_order_by_hash(
-                1,
-                CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                "0x1".to_string(),
-            )
-            .await
-            .unwrap();
         let result = debug_order_quote(
             RaindexOrder::try_from_sg_order(
                 Arc::new(RwLock::new(raindex_client)),
