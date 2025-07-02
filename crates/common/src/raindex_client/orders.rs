@@ -238,19 +238,10 @@ impl RaindexOrder {
         raindex_client.get_rpc_url_for_chain(self.chain_id)
     }
 
-    /// Retrieves volume data for all vaults associated with this order over a specified time period.
+    /// Retrieves volume data for all vaults associated with this order over a specified time period
     ///
     /// Queries historical volume information across all vaults that belong to this order,
     /// allowing analysis of trading activity and liquidity patterns over time.
-    ///
-    /// ## Parameters
-    ///
-    /// - `start_timestamp` - Unix timestamp for the start of the query period (optional)
-    /// - `end_timestamp` - Unix timestamp for the end of the query period (optional)
-    ///
-    /// ## Returns
-    ///
-    /// - `Vec<VaultVolume>` - Volume data for each vault over the specified period
     ///
     /// ## Examples
     ///
@@ -268,13 +259,22 @@ impl RaindexOrder {
     /// ```
     #[wasm_export(
         js_name = "getVaultsVolume",
+        return_description = "Volume data for each vault over the specified period",
         unchecked_return_type = "VaultVolume[]",
         preserve_js_class
     )]
     pub async fn get_vaults_volume(
         &self,
-        #[wasm_export(js_name = "startTimestamp")] start_timestamp: Option<u64>,
-        #[wasm_export(js_name = "endTimestamp")] end_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "startTimestamp",
+            param_description = "Unix timestamp for the start of the query period (optional)"
+        )]
+        start_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "endTimestamp",
+            param_description = "Unix timestamp for the end of the query period (optional)"
+        )]
+        end_timestamp: Option<u64>,
     ) -> Result<Vec<VaultVolume>, RaindexError> {
         let client = self.get_orderbook_client()?;
         let volumes = client
@@ -283,19 +283,10 @@ impl RaindexOrder {
         Ok(volumes)
     }
 
-    /// Gets comprehensive performance metrics and analytics for this order over a specified time period.
+    /// Gets comprehensive performance metrics and analytics for this order over a specified time period
     ///
     /// Retrieves detailed performance data including profit/loss, volume statistics, and other
     /// key metrics that help assess the effectiveness of the trading strategy implemented by this order.
-    ///
-    /// ## Parameters
-    ///
-    /// - `start_timestamp` - Unix timestamp for the start of the analysis period (optional, defaults to order creation)
-    /// - `end_timestamp` - Unix timestamp for the end of the analysis period (optional, defaults to current time)
-    ///
-    /// ## Returns
-    ///
-    /// - `OrderPerformance` - Comprehensive performance metrics for the order
     ///
     /// ## Examples
     ///
@@ -311,11 +302,23 @@ impl RaindexOrder {
     /// const performance = result.value;
     /// // Do something with performance
     /// ```
-    #[wasm_export(js_name = "getPerformance", unchecked_return_type = "OrderPerformance")]
+    #[wasm_export(
+        js_name = "getPerformance",
+        return_description = "Comprehensive performance metrics for the order",
+        unchecked_return_type = "OrderPerformance"
+    )]
     pub async fn get_performance(
         &self,
-        #[wasm_export(js_name = "startTimestamp")] start_timestamp: Option<u64>,
-        #[wasm_export(js_name = "endTimestamp")] end_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "startTimestamp",
+            param_description = "Unix timestamp for the start of the analysis period (optional, defaults to order creation)"
+        )]
+        start_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "endTimestamp",
+            param_description = "Unix timestamp for the end of the analysis period (optional, defaults to current time)"
+        )]
+        end_timestamp: Option<u64>,
     ) -> Result<OrderPerformance, RaindexError> {
         let client = self.get_orderbook_client()?;
         let performance = client
@@ -356,24 +359,11 @@ impl TryFrom<RaindexOrderAsIO> for SgOrderAsIO {
 
 #[wasm_export]
 impl RaindexClient {
-    /// Queries orders with filtering and pagination across configured networks.
+    /// Queries orders with filtering and pagination across configured networks
     ///
     /// Retrieves a list of orders from the specified network or all configured networks,
     /// with support for filtering by owner, status, and order hash. Results are paginated
     /// for efficient data retrieval.
-    ///
-    /// ## Parameters
-    ///
-    /// - `chain_id` - Specific blockchain network to query (optional, queries all networks if not specified)
-    /// - `filters` - Filtering criteria (optional, includes all orders if not specified):
-    ///   - `owners`: Array of owner addresses to filter by
-    ///   - `active`: Filter by order status (true for active only)
-    ///   - `order_hash`: Specific order hash to find
-    /// - `page` - Page number for pagination (optional, defaults to 1)
-    ///
-    /// ## Returns
-    ///
-    /// - `Vec<RaindexOrder>` - Array of orders matching the specified criteria
     ///
     /// ## Examples
     ///
@@ -395,13 +385,24 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getOrders",
+        return_description = "Array of orders matching the specified criteria",
         unchecked_return_type = "RaindexOrder[]",
         preserve_js_class
     )]
     pub async fn get_orders(
         &self,
-        #[wasm_export(js_name = "chainIds")] chain_ids: Option<ChainIds>,
+        #[wasm_export(
+            js_name = "chainIds",
+            param_description = "Specific blockchain network to query (optional, queries all networks if not specified)"
+        )]
+        chain_ids: Option<ChainIds>,
+        #[wasm_export(
+            param_description = "Filtering criteria including owners, active status, and order hash (optional)"
+        )]
         filters: Option<GetOrdersFilters>,
+        #[wasm_export(
+            param_description = "Page number for pagination (optional, defaults to 1)"
+        )]
         page: Option<u16>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
@@ -447,19 +448,10 @@ impl RaindexClient {
         Ok(orders)
     }
 
-    /// Retrieves a specific order by its hash from a particular blockchain network.
+    /// Retrieves a specific order by its hash from a particular blockchain network
     ///
     /// Fetches complete order details including all vault information, metadata, and
     /// performance tracking capabilities for a specific order identified by its hash.
-    ///
-    /// ## Parameters
-    ///
-    /// - `chain_id` - The blockchain network ID where the order exists
-    /// - `order_hash` - The unique hash identifier of the order
-    ///
-    /// ## Returns
-    ///
-    /// - `RaindexOrder` - Complete order details with vault and metadata information
     ///
     /// ## Examples
     ///
@@ -477,14 +469,27 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getOrderByHash",
+        return_description = "Complete order details with vault and metadata information",
         unchecked_return_type = "RaindexOrder",
         preserve_js_class
     )]
     pub async fn get_order_by_hash(
         &self,
-        #[wasm_export(js_name = "chainId")] chain_id: u32,
-        #[wasm_export(js_name = "orderbookAddress")] orderbook_address: String,
-        #[wasm_export(js_name = "orderHash")] order_hash: String,
+        #[wasm_export(
+            js_name = "chainId",
+            param_description = "The blockchain network ID where the order exists"
+        )]
+        chain_id: u32,
+        #[wasm_export(
+            js_name = "orderbookAddress",
+            param_description = "Orderbook contract address"
+        )]
+        orderbook_address: String,
+        #[wasm_export(
+            js_name = "orderHash",
+            param_description = "The unique hash identifier of the order"
+        )]
+        order_hash: String,
     ) -> Result<RaindexOrder, RaindexError> {
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
         let order = client.order_detail_by_hash(SgBytes(order_hash)).await?;

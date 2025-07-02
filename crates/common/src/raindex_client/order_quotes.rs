@@ -5,21 +5,12 @@ use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse};
 
 #[wasm_export]
 impl RaindexOrder {
-    /// Executes quotes directly from complete order objects without additional data fetching.
+    /// Executes quotes directly from complete order objects without additional data fetching
     ///
     /// This function performs quote calculations using complete order data structures
     /// that typically come from previous subgraph queries. It generates quotes for all
     /// possible input/output token pairs within each order, providing comprehensive
     /// trading information without requiring additional network calls for order data.
-    ///
-    /// ## Parameters
-    ///
-    /// - `blockNumber` - Optional specific block number for historical quotes (uses latest if None)
-    /// - `gas` - Optional gas limit as string for quote simulations (uses default if None)
-    ///
-    /// ## Returns
-    ///
-    /// - `BatchOrderQuotesResponse[]` - Array of batch quote responses with trading pair information
     ///
     /// ## Examples
     ///
@@ -34,11 +25,19 @@ impl RaindexOrder {
     /// ```
     #[wasm_export(
         js_name = "getQuotes",
+        return_description = "Array of batch quote responses with trading pair information",
         unchecked_return_type = "BatchOrderQuotesResponse[]"
     )]
     pub async fn get_quotes(
         &self,
-        #[wasm_export(js_name = "blockNumber")] block_number: Option<u64>,
+        #[wasm_export(
+            js_name = "blockNumber",
+            param_description = "Optional specific block number for historical quotes (uses latest if None)"
+        )]
+        block_number: Option<u64>,
+        #[wasm_export(
+            param_description = "Optional gas limit as string for quote simulations (uses default if None)"
+        )]
         gas: Option<String>,
     ) -> Result<Vec<BatchOrderQuotesResponse>, RaindexError> {
         let gas_amount = gas.map(|v| U256::from_str(&v)).transpose()?;

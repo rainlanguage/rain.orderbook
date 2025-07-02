@@ -86,20 +86,10 @@ impl RaindexTrade {
 
 #[wasm_export]
 impl RaindexOrder {
-    /// Fetches trade history with optional time filtering.
+    /// Fetches trade history with optional time filtering
     ///
     /// Retrieves a chronological list of trades executed by an order within
     /// an optional time range.
-    ///
-    /// ## Parameters
-    ///
-    /// * `start_timestamp` - Optional start time filter (Unix timestamp in seconds)
-    /// * `end_timestamp` - Optional end time filter (Unix timestamp in seconds)
-    /// * `page` - Optional page number (defaults to 1)
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexTrade[]` - Array of trade records with complete details
     ///
     /// ## Examples
     ///
@@ -112,12 +102,28 @@ impl RaindexOrder {
     /// const trades = result.value;
     /// // Do something with the trades
     /// ```
-    #[wasm_export(js_name = "getTradesList", unchecked_return_type = "RaindexTrade[]")]
+    #[wasm_export(
+        js_name = "getTradesList",
+        return_description = "Array of trade records with complete details",
+        unchecked_return_type = "RaindexTrade[]"
+    )]
     pub async fn get_trades_list(
         &self,
-        #[wasm_export(js_name = "startTimestamp")] start_timestamp: Option<u64>,
-        #[wasm_export(js_name = "endTimestamp")] end_timestamp: Option<u64>,
-        #[wasm_export(js_name = "page")] page: Option<u16>,
+        #[wasm_export(
+            js_name = "startTimestamp",
+            param_description = "Optional start time filter (Unix timestamp in seconds)"
+        )]
+        start_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "endTimestamp",
+            param_description = "Optional end time filter (Unix timestamp in seconds)"
+        )]
+        end_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "page",
+            param_description = "Optional page number (defaults to 1)"
+        )]
+        page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let client = self.get_orderbook_client()?;
         let trades = client
@@ -138,18 +144,10 @@ impl RaindexOrder {
         Ok(trades)
     }
 
-    /// Fetches detailed information for a specific trade.
+    /// Fetches detailed information for a specific trade
     ///
     /// Retrieves complete information about a single trade including vault changes
     /// and transaction details.
-    ///
-    /// ## Parameters
-    ///
-    /// * `trade_id` - Unique trade identifier
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexTrade` - Complete trade information
     ///
     /// ## Examples
     ///
@@ -162,28 +160,27 @@ impl RaindexOrder {
     /// const trade = result.value;
     /// // Do something with the trade
     /// ```
-    #[wasm_export(js_name = "getTradeDetail", unchecked_return_type = "RaindexTrade")]
+    #[wasm_export(
+        js_name = "getTradeDetail",
+        return_description = "Complete trade information",
+        unchecked_return_type = "RaindexTrade"
+    )]
     pub async fn get_trade_detail(
         &self,
-        #[wasm_export(js_name = "tradeId")] trade_id: String,
+        #[wasm_export(
+            js_name = "tradeId",
+            param_description = "Unique trade identifier"
+        )]
+        trade_id: String,
     ) -> Result<RaindexTrade, RaindexError> {
         let client = self.get_orderbook_client()?;
         RaindexTrade::try_from(client.order_trade_detail(Id::new(trade_id.clone())).await?)
     }
 
-    /// Counts total trades for an order within a time range.
+    /// Counts total trades for an order within a time range
     ///
     /// Efficiently counts the total number of trades executed by an order without
     /// fetching all trade details.
-    ///
-    /// ## Parameters
-    ///
-    /// * `start_timestamp` - Optional start time filter (Unix timestamp in seconds)
-    /// * `end_timestamp` - Optional end time filter (Unix timestamp in seconds)
-    ///
-    /// ## Returns
-    ///
-    /// * `u64` - Total trade count as number
     ///
     /// ## Examples
     ///
@@ -196,11 +193,23 @@ impl RaindexOrder {
     /// const count = result.value;
     /// // Do something with the count
     /// ```
-    #[wasm_export(js_name = "getTradeCount", unchecked_return_type = "number")]
+    #[wasm_export(
+        js_name = "getTradeCount",
+        return_description = "Total trade count as number",
+        unchecked_return_type = "number"
+    )]
     pub async fn get_trade_count(
         &self,
-        #[wasm_export(js_name = "startTimestamp")] start_timestamp: Option<u64>,
-        #[wasm_export(js_name = "endTimestamp")] end_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "startTimestamp",
+            param_description = "Optional start time filter (Unix timestamp in seconds)"
+        )]
+        start_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "endTimestamp",
+            param_description = "Optional end time filter (Unix timestamp in seconds)"
+        )]
+        end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
         let client = self.get_orderbook_client()?;
         let trades_count = client

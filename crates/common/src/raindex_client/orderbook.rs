@@ -4,14 +4,6 @@ use super::*;
 impl RaindexClient {
     /// Get the subgraph identifier for a chain ID
     ///
-    /// ## Parameters
-    ///
-    /// - `chain_id` - The chain ID to get the subgraph identifier for
-    ///
-    /// ## Returns
-    ///
-    /// - `String` - The identifier of the subgraph for the given chain ID
-    ///
     /// ## Examples
     ///
     /// ```javascript
@@ -23,11 +15,23 @@ impl RaindexClient {
     /// const subgraphKey = result.value;
     /// // Do something with the subgraph key
     /// ```
-    #[wasm_export(js_name = "getSubgraphKeyForChainId", unchecked_return_type = "string")]
+    #[wasm_export(
+        js_name = "getSubgraphKeyForChainId",
+        return_description = "The identifier of the subgraph for the given chain ID",
+        unchecked_return_type = "string"
+    )]
     pub fn get_subgraph_identifier_for_chain_id(
         &self,
-        #[wasm_export(js_name = "chainId")] chain_id: u32,
-        #[wasm_export(js_name = "orderbookAddress")] orderbook_address: String,
+        #[wasm_export(
+            js_name = "chainId",
+            param_description = "The chain ID to get the subgraph identifier for"
+        )]
+        chain_id: u32,
+        #[wasm_export(
+            js_name = "orderbookAddress",
+            param_description = "Orderbook contract address"
+        )]
+        orderbook_address: String,
     ) -> Result<String, RaindexError> {
         let orderbook =
             self.get_orderbook_for_chain_id(chain_id, Address::from_str(&orderbook_address)?)?;

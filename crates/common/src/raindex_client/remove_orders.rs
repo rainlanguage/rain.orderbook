@@ -8,18 +8,9 @@ use std::sync::{Arc, RwLock};
 
 #[wasm_export]
 impl RaindexClient {
-    /// Fetches orders that were removed in a specific transaction.
+    /// Fetches orders that were removed in a specific transaction
     ///
     /// Retrieves all orders cancelled or removed within a single blockchain transaction.
-    ///
-    /// ## Parameters
-    ///
-    /// * `chain_id` - Chain ID for the network
-    /// * `tx_hash` - Transaction hash
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexOrder[]` - Array of orders removed in the transaction
     ///
     /// ## Examples
     ///
@@ -34,14 +25,27 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getRemoveOrdersForTransaction",
+        return_description = "Array of orders removed in the transaction",
         unchecked_return_type = "RaindexOrder[]",
         preserve_js_class
     )]
     pub async fn get_remove_orders_for_transaction(
         &self,
-        #[wasm_export(js_name = "chainId")] chain_id: u32,
-        #[wasm_export(js_name = "orderbookAddress")] orderbook_address: String,
-        #[wasm_export(js_name = "txHash")] tx_hash: String,
+        #[wasm_export(
+            js_name = "chainId",
+            param_description = "Chain ID for the network"
+        )]
+        chain_id: u32,
+        #[wasm_export(
+            js_name = "orderbookAddress",
+            param_description = "Orderbook contract address"
+        )]
+        orderbook_address: String,
+        #[wasm_export(
+            js_name = "txHash",
+            param_description = "Transaction hash"
+        )]
+        tx_hash: String,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
@@ -64,14 +68,10 @@ impl RaindexClient {
 
 #[wasm_export]
 impl RaindexOrder {
-    /// Generates ABI-encoded calldata for the `removeOrder2()` function on the orderbook contract.
+    /// Generates ABI-encoded calldata for the `removeOrder2()` function on the orderbook contract
     ///
     /// Takes an existing order from the subgraph and creates the transaction calldata needed
     /// to remove it from the orderbook. The order must be active and owned by the caller.
-    ///
-    /// ## Returns
-    ///
-    /// * `Hex` - ABI-encoded calldata ready for blockchain submission
     ///
     /// ## Examples
     ///
@@ -85,7 +85,11 @@ impl RaindexOrder {
     ///   // Do something with the calldata
     /// }
     /// ```
-    #[wasm_export(js_name = "getRemoveCalldata", unchecked_return_type = "Hex")]
+    #[wasm_export(
+        js_name = "getRemoveCalldata",
+        return_description = "ABI-encoded calldata ready for blockchain submission",
+        unchecked_return_type = "Hex"
+    )]
     pub fn get_remove_calldata(&self) -> Result<Bytes, RaindexError> {
         let remove_order_call = removeOrder2Call {
             order: self.try_into()?,

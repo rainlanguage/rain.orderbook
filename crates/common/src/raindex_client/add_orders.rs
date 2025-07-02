@@ -10,19 +10,10 @@ use std::sync::{Arc, RwLock};
 
 #[wasm_export]
 impl RaindexClient {
-    /// Fetches orders that were added in a specific transaction.
+    /// Fetches orders that were added in a specific transaction
     ///
     /// Retrieves all orders created within a single blockchain transaction, useful
     /// for tracking order deployment.
-    ///
-    /// ## Parameters
-    ///
-    /// * `chain_id` - Chain ID for the network
-    /// * `tx_hash` - Transaction hash
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexOrder[]` - Array of orders added in the transaction
     ///
     /// ## Examples
     ///
@@ -37,14 +28,27 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getAddOrdersForTransaction",
+        return_description = "Array of orders added in the transaction",
         unchecked_return_type = "RaindexOrder[]",
         preserve_js_class
     )]
     pub async fn get_add_orders_for_transaction(
         &self,
-        #[wasm_export(js_name = "chainId")] chain_id: u32,
-        #[wasm_export(js_name = "orderbookAddress")] orderbook_address: String,
-        #[wasm_export(js_name = "txHash")] tx_hash: String,
+        #[wasm_export(
+            js_name = "chainId",
+            param_description = "Chain ID for the network"
+        )]
+        chain_id: u32,
+        #[wasm_export(
+            js_name = "orderbookAddress",
+            param_description = "Orderbook contract address"
+        )]
+        orderbook_address: String,
+        #[wasm_export(
+            js_name = "txHash",
+            param_description = "Transaction hash"
+        )]
+        tx_hash: String,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
@@ -67,20 +71,11 @@ impl RaindexClient {
 
 #[wasm_export]
 impl RaindexOrder {
-    /// Generates ABI-encoded calldata for the `addOrder2()` function on the orderbook contract.
+    /// Generates ABI-encoded calldata for the `addOrder2()` function on the orderbook contract
     ///
     /// Parses the dotrain configuration, extracts the specified deployment, and creates the
     /// transaction calldata needed to add an order to the orderbook. The calldata includes
     /// the order structure, evaluable bytecode, and all necessary parameters.
-    ///
-    /// ## Parameters
-    ///
-    /// * `dotrain` - Complete dotrain text containing YAML frontmatter and Rainlang code
-    /// * `deploymentKey` - Name of the deployment defined in the dotrain frontmatter
-    ///
-    /// ## Returns
-    ///
-    /// * `Hex` - ABI-encoded calldata ready for blockchain submission
     ///
     /// ## Examples
     ///
@@ -94,11 +89,22 @@ impl RaindexOrder {
     ///   // Do something with the calldata
     /// }
     /// ```
-    #[wasm_export(js_name = "getAddCalldata", unchecked_return_type = "Hex")]
+    #[wasm_export(
+        js_name = "getAddCalldata",
+        return_description = "ABI-encoded calldata ready for blockchain submission",
+        unchecked_return_type = "Hex"
+    )]
     pub async fn get_add_calldata(
         &self,
+        #[wasm_export(
+            param_description = "Complete dotrain text containing YAML frontmatter and Rainlang code"
+        )]
         dotrain: String,
-        #[wasm_export(js_name = "deploymentKey")] deployment_key: String,
+        #[wasm_export(
+            js_name = "deploymentKey",
+            param_description = "Name of the deployment defined in the dotrain frontmatter"
+        )]
+        deployment_key: String,
     ) -> Result<Bytes, RaindexError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap_or("");
         let config = NewConfig::try_from_yaml(vec![frontmatter.to_string()], false)?;

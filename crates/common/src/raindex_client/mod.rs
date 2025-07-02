@@ -77,17 +77,7 @@ pub struct RaindexClient {
 impl RaindexClient {
     /// Constructor that creates and returns RaindexClient instance directly
     ///
-    /// # Parameters
-    ///
-    /// - `ob_yamls` - Vector of YAML configuration strings
-    /// The YAML files must match the orderbook yaml [spec]()
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(RaindexClient)` - Initialized client instance for further operations
-    /// - `Err(RaindexError)` - For YAML parsing or initialization errors
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Single YAML file
@@ -101,9 +91,19 @@ impl RaindexClient {
     /// // Multiple YAML files (for modular configuration)
     /// const result = await RaindexClient.new([networksYaml, orderbooksYaml, tokensYaml]);
     /// ```
-    #[wasm_export(js_name = "new", preserve_js_class)]
+    #[wasm_export(
+        js_name = "new",
+        return_description = "Initialized client instance for further operations",
+        preserve_js_class
+    )]
     pub fn new(
-        #[wasm_export(js_name = "obYamls")] ob_yamls: Vec<String>,
+        #[wasm_export(
+            js_name = "obYamls",
+            param_description = "Vector of YAML configuration strings. \
+            The YAML files must match the [orderbook yaml spec](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md)
+            "
+        )]
+        ob_yamls: Vec<String>,
         validate: Option<bool>,
     ) -> Result<RaindexClient, RaindexError> {
         let orderbook_yaml = OrderbookYaml::new(ob_yamls, validate.unwrap_or(false))?;

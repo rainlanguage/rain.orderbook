@@ -1,4 +1,3 @@
-1. We need to update the wasm macro to accept wasm export on function params for updating types and parameter names.
 3. Remove any kind of old logic from the UI repo such as multi subgraph args, etc.
 4. Introduce the new routing system with chain id, orderbook address and the order hash.
 5. Remove activeSubgraph store dependency.
