@@ -381,13 +381,13 @@ impl AddOrderArgs {
                     {
                         Ok(_) => return Ok(()),
                         Err(e) => {
-                            err = Some(AddOrderArgsError::ForkCallError(e));
+                            err = Some(AddOrderArgsError::ForkCallError(Box::new(e)));
                             continue;
                         }
                     }
                 }
                 Err(e) => {
-                    err = Some(AddOrderArgsError::ForkCallError(e));
+                    err = Some(AddOrderArgsError::ForkCallError(Box::new(e)));
                 }
             }
         }

@@ -238,7 +238,7 @@ mod fork_parse {
                     break;
                 }
                 Err(e) => {
-                    err = Some(ForkParseError::ForkerError(e));
+                    err = Some(ForkParseError::ForkerError(Box::new(e)));
                 }
             }
         }
