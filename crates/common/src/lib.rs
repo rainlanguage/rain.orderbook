@@ -1,6 +1,3 @@
-#![allow(clippy::result_large_err)]
-#![allow(clippy::large_enum_variant)]
-
 pub mod add_order;
 pub mod csv;
 pub mod deposit;
