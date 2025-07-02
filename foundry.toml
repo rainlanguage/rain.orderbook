@@ -16,7 +16,9 @@ evm_version = "paris"
 
 # optimizer settings for snapshotting.
 optimizer = true
-optimizer_runs = 1000000
+# this is a bit low, was set to 1000000 previously but this caused deployment
+# code size cap to be hit.
+optimizer_runs = 9000
 
 bytecode_hash = "none"
 cbor_metadata = false
