@@ -8,7 +8,6 @@ import type { AppKit } from '@reown/appkit';
 import type { GuiDeploymentCfg, RaindexClient } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
-import { mockConfig } from '../lib/__mocks__/settings';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import type { Account } from '$lib/types/account';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
@@ -94,7 +93,6 @@ const defaultProps: DeploymentStepsProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
-	settings: writable(mockConfig),
 	account: readable('0x123')
 } as DeploymentStepsProps;
 

@@ -279,7 +279,12 @@ impl DotrainOrderGui {
 
     #[wasm_export(js_name = "getAllTokens", unchecked_return_type = "TokenInfo[]")]
     pub async fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
-        let network_key = self.get_network_key()?;
+        let order_key = DeploymentCfg::parse_order_key(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
+        let network_key =
+            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
         let tokens = self.dotrain_order.orderbook_yaml().get_tokens()?;
         let network = self
             .dotrain_order
@@ -449,13 +454,6 @@ mod tests {
             );
 
             assert!(gui.check_select_tokens().is_ok());
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_get_network_key() {
-            let gui = initialize_gui_with_select_tokens().await;
-            let network_key = gui.get_network_key().unwrap();
-            assert_eq!(network_key, "some-network");
         }
 
         #[wasm_bindgen_test]
