@@ -60,7 +60,7 @@ pub trait PaginationClient {
             .map(|f| pagination_variables.skip.unwrap_or(0) + f);
 
         // Loop through fetching another page if there are more pages available AND we have not yet receive the max results length (as specified by our pagination skip & first)
-        while more_pages_available && max_results_len.map_or(true, |l| results.len() < l as usize) {
+        while more_pages_available && max_results_len.is_none_or(|l| results.len() < l as usize) {
             // Fetch a page
             let variables =
                 page_query_variables.with_pagination(Some(page_skip), Some(page_query_limit));

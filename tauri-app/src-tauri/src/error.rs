@@ -113,6 +113,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     NewConfigError(#[from] ParseConfigError),
+
+    #[error("Missing RPCs")]
+    MissingRpcs,
 }
 
 impl Serialize for CommandError {

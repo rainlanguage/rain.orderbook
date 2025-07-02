@@ -8150,6 +8150,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain-erc"
+version = "0.0.0"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=a826bb9c52dd659beb229fbd810a72492188b574#a826bb9c52dd659beb229fbd810a72492188b574"
+dependencies = [
+ "alloy",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
+ "thiserror",
+]
+
+[[package]]
 name = "rain-error-decoding"
 version = "0.1.0"
 source = "git+https://github.com/rainlanguage/rain.error?rev=72d9577fdaf7135113847027ba951f9a43b41827#72d9577fdaf7135113847027ba951f9a43b41827"
@@ -8200,7 +8210,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -8220,7 +8230,7 @@ name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "anyhow",
  "clap",
  "deflate",
@@ -8229,7 +8239,7 @@ dependencies = [
  "inflate",
  "itertools 0.10.5",
  "once_cell",
- "rain-erc",
+ "rain-erc 0.0.0 (git+https://github.com/rainlanguage/rain.erc?rev=a826bb9c52dd659beb229fbd810a72492188b574)",
  "rain-metaboard-subgraph",
  "rain-metadata-bindings",
  "regex",
@@ -8246,7 +8256,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -8348,7 +8358,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
 ]
 
 [[package]]
@@ -8357,7 +8367,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "serde",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
 ]
 
 [[package]]
@@ -8395,7 +8405,7 @@ dependencies = [
  "tracing",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
 ]
 
 [[package]]
@@ -8428,7 +8438,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
 ]
 
 [[package]]
@@ -8449,7 +8459,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
 ]
 
 [[package]]
@@ -10559,7 +10569,7 @@ dependencies = [
  "dotrain",
  "futures",
  "httpmock",
- "rain-erc",
+ "rain-erc 0.0.0 (git+https://github.com/rainlanguage/rain.erc?rev=0106e645ebd49334addc698c5aad9a85370eb54d)",
  "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "rain-interpreter-eval",
  "rain-metadata 0.0.2-alpha.6",
@@ -10583,7 +10593,7 @@ dependencies = [
  "tokio",
  "url",
  "uuid 1.10.0",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
 ]
 
 [[package]]
@@ -11895,7 +11905,22 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros",
+ "wasm-bindgen-utils-macros 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "wasm-bindgen-utils"
+version = "0.0.10"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e#b0ab2000b4953d712d88a402c011d6945c1a093e"
+dependencies = [
+ "js-sys",
+ "paste",
+ "serde",
+ "serde-wasm-bindgen 0.6.5",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-utils-macros 0.0.5 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
 ]
 
 [[package]]
@@ -11903,6 +11928,16 @@ name = "wasm-bindgen-utils-macros"
 version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cc4956f28c8dba2ad5b3afb5ed7d584f7e9e7194e516eae0577d79d594de6e6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
+]
+
+[[package]]
+name = "wasm-bindgen-utils-macros"
+version = "0.0.5"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e#b0ab2000b4953d712d88a402c011d6945c1a093e"
 dependencies = [
  "proc-macro2",
  "quote",

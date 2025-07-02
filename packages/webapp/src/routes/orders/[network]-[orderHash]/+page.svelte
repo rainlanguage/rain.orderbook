@@ -19,7 +19,7 @@
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings.orderbook.orderbooks[network]?.address || '';
 	const subgraphUrl = $settings.orderbook.subgraphs[network]?.url || '';
-	const rpcUrl = $settings.orderbook.networks[network]?.rpc || '';
+	const rpcUrls = $settings.orderbook.networks[network]?.rpcs || [];
 	const chainId = $settings.orderbook.networks[network]?.chainId || 0;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
@@ -50,7 +50,7 @@
 			subgraphUrl,
 			chainId,
 			account: $account as Hex,
-			rpcUrl
+			rpcUrls
 		});
 	}
 
@@ -66,7 +66,7 @@
 			subgraphUrl,
 			chainId,
 			account: $account as Hex,
-			rpcUrl
+			rpcUrls
 		});
 	}
 </script>
@@ -76,7 +76,7 @@
 <OrderDetail
 	{orderHash}
 	{subgraphUrl}
-	{rpcUrl}
+	{rpcUrls}
 	{codeMirrorTheme}
 	{lightweightChartsTheme}
 	{colorTheme}

@@ -9,7 +9,6 @@ import {
   type OrderbookCfg,
   type SubgraphCfg,
 } from '@rainlanguage/orderbook';
-import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
 
 export const EMPTY_SETTINGS: NewConfig = {
@@ -74,7 +73,7 @@ export const activeNetwork = asyncDerived(
       : undefined;
   },
 );
-export const rpcUrl = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.rpc);
+export const rpcUrls = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.rpcs);
 export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.chainId);
 export const activeChain = derived(chainId, ($activeChainId) =>
   find(Object.values(chains), (c) => c.id === $activeChainId),
@@ -82,9 +81,6 @@ export const activeChain = derived(chainId, ($activeChainId) =>
 export const activeChainHasBlockExplorer = derived(activeChain, ($activeChain) => {
   return $activeChain && $activeChain?.blockExplorers?.default !== undefined;
 });
-export const activeChainLatestBlockNumber = derived(activeNetwork, ($activeNetwork) =>
-  $activeNetwork !== undefined ? getBlockNumberFromRpc($activeNetwork.rpc) : 0,
-);
 
 // orderbook
 export const activeOrderbookRef = cachedWritableStringOptional('settings.activeOrderbookRef');

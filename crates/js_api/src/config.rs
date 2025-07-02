@@ -1,9 +1,32 @@
 use rain_orderbook_app_settings::new_config::{NewConfig, ParseConfigError};
 use wasm_bindgen_utils::prelude::*;
 
-#[wasm_export(js_name = "parseYaml", unchecked_return_type = "NewConfig")]
+/// Parses YAML configuration files and creates a unified configuration object.
+///
+/// Combines multiple YAML files into a single configuration, with validation support.
+///
+/// ## Examples
+///
+/// ```javascript
+/// const result = parseYaml([orderbookYaml, dotrainYaml], true);
+/// if (result.error) {
+///   console.error("Parse failed:", result.error.readableMsg);
+///   return;
+/// }
+/// const config = result.value;
+/// // Do something with the config
+/// ```
+#[wasm_export(
+    js_name = "parseYaml",
+    unchecked_return_type = "NewConfig",
+    return_description = "Unified configuration object from parsed YAML files"
+)]
 pub fn parse_yaml(
+    #[wasm_export(param_description = "Array of YAML configuration strings to parse")]
     yaml_list: Vec<String>,
+    #[wasm_export(
+        param_description = "Whether to perform strict validation (optional, defaults to false)"
+    )]
     validate: Option<bool>,
 ) -> Result<NewConfig, ParseConfigError> {
     Ok(NewConfig::try_from_yaml(
@@ -21,10 +44,12 @@ mod tests {
     version: 1
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
         testnet:
-            rpc: https://testnet.infura.io
+            rpcs:
+                - https://testnet.infura.io
             chain-id: 1337
     subgraphs:
         mainnet: https://mainnet-subgraph.com

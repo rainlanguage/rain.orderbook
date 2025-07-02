@@ -41,24 +41,7 @@ impl_wasm_traits!(VaultAllowanceResult);
 /// Queries multiple subgraphs simultaneously to retrieve vault information
 /// across different blockchain networks.
 ///
-/// # Parameters
-///
-/// * `subgraphs` - Array of subgraph configurations, each containing:
-///   - `url`: Subgraph endpoint URL
-///   - `name`: Human-readable network name for identification
-/// * `filter_args` - Filtering options including:
-///   - `owners`: Array of owner addresses to filter by (empty for all)
-///   - `hide_zero_balance`: Whether to exclude vaults with zero balance
-/// * `pagination_args` - Pagination configuration:
-///   - `page`: Page number (1-based)
-///   - `page_size`: Number of vaults per page
-///
-/// # Returns
-///
-/// * `Ok(GetVaultsResult)` - Array of vaults with their associated subgraph network names
-/// * `Err(SubgraphError)` - Network errors, invalid parameters, or query failures
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getVaults(
@@ -79,10 +62,21 @@ impl_wasm_traits!(VaultAllowanceResult);
 /// const vaults = result.value;
 /// // Do something with the vaults
 /// ```
-#[wasm_export(js_name = "getVaults", unchecked_return_type = "GetVaultsResult")]
+#[wasm_export(
+    js_name = "getVaults",
+    unchecked_return_type = "GetVaultsResult",
+    return_description = "Array of vaults with their associated subgraph network names"
+)]
 pub async fn get_vaults(
+    #[wasm_export(
+        param_description = "Array of subgraph configurations, each containing url and name"
+    )]
     subgraphs: Vec<MultiSubgraphArgs>,
+    #[wasm_export(
+        param_description = "Filtering options including owners array and hide_zero_balance flag"
+    )]
     filter_args: SgVaultsListFilterArgs,
+    #[wasm_export(param_description = "Pagination configuration with page number and page_size")]
     pagination_args: SgPaginationArgs,
 ) -> Result<GetVaultsResult, SubgraphError> {
     let client = MultiOrderbookSubgraphClient::new(subgraphs);
@@ -96,17 +90,7 @@ pub async fn get_vaults(
 /// Retrieves complete vault information including token details, balance,
 /// and associated orders.
 ///
-/// # Parameters
-///
-/// * `url` - Subgraph endpoint URL
-/// * `id` - Unique vault identifier
-///
-/// # Returns
-///
-/// * `Ok(SgVault)` - Complete vault information
-/// * `Err(SubgraphError)` - Network or query errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getVault(
@@ -120,8 +104,15 @@ pub async fn get_vaults(
 /// const vault = result.value;
 /// // Do something with the vault
 /// ```
-#[wasm_export(js_name = "getVault", unchecked_return_type = "SgVault")]
-pub async fn get_vault(url: &str, id: &str) -> Result<SgVault, SubgraphError> {
+#[wasm_export(
+    js_name = "getVault",
+    unchecked_return_type = "SgVault",
+    return_description = "Complete vault information"
+)]
+pub async fn get_vault(
+    #[wasm_export(param_description = "Subgraph endpoint URL")] url: &str,
+    #[wasm_export(param_description = "Unique vault identifier")] id: &str,
+) -> Result<SgVault, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     Ok(client.vault_detail(Id::new(id)).await?)
 }
@@ -131,20 +122,7 @@ pub async fn get_vault(url: &str, id: &str) -> Result<SgVault, SubgraphError> {
 /// Retrieves chronological list of deposits, withdrawals, and trades affecting
 /// a vault's balance.
 ///
-/// # Parameters
-///
-/// * `url` - Subgraph endpoint URL
-/// * `id` - Vault identifier
-/// * `pagination_args` - Pagination configuration:
-///   - `page`: Page number (1-based)
-///   - `page_size`: Number of balance changes per page
-///
-/// # Returns
-///
-/// * `Ok(GetVaultBalanceChangesResult)` - Array of balance change events
-/// * `Err(SubgraphError)` - Network or query errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getVaultBalanceChanges(
@@ -161,11 +139,13 @@ pub async fn get_vault(url: &str, id: &str) -> Result<SgVault, SubgraphError> {
 /// ```
 #[wasm_export(
     js_name = "getVaultBalanceChanges",
-    unchecked_return_type = "GetVaultBalanceChangesResult"
+    unchecked_return_type = "GetVaultBalanceChangesResult",
+    return_description = "Array of balance change events"
 )]
 pub async fn get_vault_balance_changes(
-    url: &str,
-    id: &str,
+    #[wasm_export(param_description = "Subgraph endpoint URL")] url: &str,
+    #[wasm_export(param_description = "Vault identifier")] id: &str,
+    #[wasm_export(param_description = "Pagination configuration with page number and page_size")]
     pagination_args: SgPaginationArgs,
 ) -> Result<GetVaultBalanceChangesResult, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
@@ -181,20 +161,7 @@ pub async fn get_vault_balance_changes(
 /// Creates the contract calldata needed to deposit a specified amount of tokens
 /// into a vault.
 ///
-/// # Parameters
-///
-/// * `vault` - Target vault object containing:
-///   - `token.address`: ERC20 token contract address
-///   - `vault_id`: Unique vault identifier
-///   - `orderbook.id`: Orderbook contract address for transaction target
-/// * `deposit_amount` - Amount to deposit in token's smallest unit (e.g., "1000000000000000000" for 1 token with 18 decimals)
-///
-/// # Returns
-///
-/// * `Ok(VaultCalldataResult)` - Encoded transaction calldata as hex string
-/// * `Err(SubgraphError)` - When deposit amount is zero/invalid or vault configuration is malformed
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getVaultDepositCalldata(
@@ -210,10 +177,17 @@ pub async fn get_vault_balance_changes(
 /// ```
 #[wasm_export(
     js_name = "getVaultDepositCalldata",
-    unchecked_return_type = "VaultCalldataResult"
+    unchecked_return_type = "VaultCalldataResult",
+    return_description = "Encoded transaction calldata as hex string"
 )]
 pub async fn get_vault_deposit_calldata(
+    #[wasm_export(
+        param_description = "Target vault object containing token address, vault_id, and orderbook address"
+    )]
     vault: &SgVault,
+    #[wasm_export(
+        param_description = "Amount to deposit in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+    )]
     deposit_amount: &str,
 ) -> Result<VaultCalldataResult, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
@@ -234,17 +208,7 @@ pub async fn get_vault_deposit_calldata(
 /// Creates the contract calldata needed to withdraw a specified amount of tokens
 /// from a vault.
 ///
-/// # Parameters
-///
-/// * `vault` - Source vault object
-/// * `withdraw_amount` - Amount to withdraw
-///
-/// # Returns
-///
-/// * `Ok(VaultCalldataResult)` - Encoded transaction calldata as hex string
-/// * `Err(SubgraphError)` - Invalid amount or encoding errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getVaultWithdrawCalldata(
@@ -260,11 +224,12 @@ pub async fn get_vault_deposit_calldata(
 /// ```
 #[wasm_export(
     js_name = "getVaultWithdrawCalldata",
-    unchecked_return_type = "VaultCalldataResult"
+    unchecked_return_type = "VaultCalldataResult",
+    return_description = "Encoded transaction calldata as hex string"
 )]
 pub async fn get_vault_withdraw_calldata(
-    vault: &SgVault,
-    withdraw_amount: &str,
+    #[wasm_export(param_description = "Source vault object")] vault: &SgVault,
+    #[wasm_export(param_description = "Amount to withdraw")] withdraw_amount: &str,
 ) -> Result<VaultCalldataResult, SubgraphError> {
     let withdraw_amount = validate_amount(withdraw_amount)?;
 
@@ -284,18 +249,7 @@ pub async fn get_vault_withdraw_calldata(
 /// Creates the contract calldata needed to approve the orderbook contract to spend
 /// tokens for a vault deposit, but only if additional approval is needed.
 ///
-/// # Parameters
-///
-/// * `rpc_url` - Blockchain RPC endpoint for checking current allowance
-/// * `vault` - Target vault object
-/// * `deposit_amount` - Amount requiring approval
-///
-/// # Returns
-///
-/// * `Ok(VaultCalldataResult)` - Encoded approval calldata
-/// * `Err(SubgraphError)` - Sufficient allowance exists or other errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await getVaultApprovalCalldata(
@@ -312,18 +266,21 @@ pub async fn get_vault_withdraw_calldata(
 /// ```
 #[wasm_export(
     js_name = "getVaultApprovalCalldata",
-    unchecked_return_type = "VaultCalldataResult"
+    unchecked_return_type = "VaultCalldataResult",
+    return_description = "Encoded approval calldata"
 )]
 pub async fn get_vault_approval_calldata(
-    rpc_url: &str,
-    vault: &SgVault,
-    deposit_amount: &str,
+    #[wasm_export(param_description = "RPC endpoints for checking current allowance")] rpcs: Vec<
+        String,
+    >,
+    #[wasm_export(param_description = "Target vault object")] vault: &SgVault,
+    #[wasm_export(param_description = "Amount requiring approval")] deposit_amount: &str,
 ) -> Result<VaultCalldataResult, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
     let owner = Address::from_str(&vault.owner.0)?;
 
     let (deposit_args, transaction_args) =
-        get_deposit_and_transaction_args(rpc_url, vault, deposit_amount)?;
+        get_deposit_and_transaction_args(&rpcs, vault, deposit_amount)?;
 
     let allowance = deposit_args
         .read_allowance(owner, transaction_args.clone())
@@ -342,17 +299,7 @@ pub async fn get_vault_approval_calldata(
 /// Determines how much the orderbook contract is currently approved to spend
 /// on behalf of the vault owner.
 ///
-/// # Parameters
-///
-/// * `rpc_url` - Blockchain RPC endpoint
-/// * `vault` - Vault to check allowance for
-///
-/// # Returns
-///
-/// * `Ok(VaultAllowanceResult)` - Current allowance amount as string
-/// * `Err(SubgraphError)` - Network or contract errors
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// const result = await checkVaultAllowance(
@@ -368,14 +315,17 @@ pub async fn get_vault_approval_calldata(
 /// ```
 #[wasm_export(
     js_name = "checkVaultAllowance",
-    unchecked_return_type = "VaultAllowanceResult"
+    unchecked_return_type = "VaultAllowanceResult",
+    return_description = "Current allowance amount as string"
 )]
 pub async fn check_vault_allowance(
-    rpc_url: &str,
-    vault: &SgVault,
+    #[wasm_export(param_description = "RPC endpoints for checking current allowance")] rpcs: Vec<
+        String,
+    >,
+    #[wasm_export(param_description = "Vault to check allowance for")] vault: &SgVault,
 ) -> Result<VaultAllowanceResult, SubgraphError> {
     let (deposit_args, transaction_args) =
-        get_deposit_and_transaction_args(rpc_url, vault, U256::ZERO)?;
+        get_deposit_and_transaction_args(&rpcs, vault, U256::ZERO)?;
 
     Ok(VaultAllowanceResult(
         deposit_args
@@ -409,7 +359,7 @@ pub fn validate_io_index(
 }
 
 pub fn get_deposit_and_transaction_args(
-    rpc_url: &str,
+    rpcs: &[String],
     vault: &SgVault,
     amount: U256,
 ) -> Result<(DepositArgs, TransactionArgs), SubgraphError> {
@@ -420,7 +370,7 @@ pub fn get_deposit_and_transaction_args(
     };
     let transaction_args = TransactionArgs {
         orderbook_address: Address::from_str(&vault.orderbook.id.0)?,
-        rpc_url: rpc_url.to_string(),
+        rpcs: rpcs.to_owned(),
         ..Default::default()
     };
     Ok((deposit_args, transaction_args))
@@ -765,9 +715,10 @@ mod tests {
                 );
             });
 
-            let result = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "600")
-                .await
-                .unwrap();
+            let result =
+                get_vault_approval_calldata(vec![rpc_server.url("/rpc")], &get_vault1(), "600")
+                    .await
+                    .unwrap();
             assert_eq!(
                 result.0,
                 Bytes::copy_from_slice(
@@ -780,19 +731,21 @@ mod tests {
                 )
             );
 
-            let err = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "0")
+            let err = get_vault_approval_calldata(vec![rpc_server.url("/rpc")], &get_vault1(), "0")
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
 
-            let err = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "90")
-                .await
-                .unwrap_err();
+            let err =
+                get_vault_approval_calldata(vec![rpc_server.url("/rpc")], &get_vault1(), "90")
+                    .await
+                    .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
 
-            let err = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "100")
-                .await
-                .unwrap_err();
+            let err =
+                get_vault_approval_calldata(vec![rpc_server.url("/rpc")], &get_vault1(), "100")
+                    .await
+                    .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
         }
 
@@ -811,7 +764,7 @@ mod tests {
                 );
             });
 
-            let result = check_vault_allowance(&rpc_server.url("/rpc"), &get_vault1())
+            let result = check_vault_allowance(vec![rpc_server.url("/rpc")], &get_vault1())
                 .await
                 .unwrap();
             assert_eq!(result.0, U256::from(1));

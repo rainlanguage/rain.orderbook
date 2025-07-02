@@ -16,12 +16,7 @@ impl DotrainOrderGui {
     /// to specify contract addresses. This enables generic strategies that work
     /// with user-chosen tokens.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(Vec<GuiSelectTokensCfg>)` - Array of selectable token configurations
-    /// - `Err(GuiError)` - If deployment configuration is invalid
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getSelectTokens();
@@ -35,7 +30,8 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getSelectTokens",
-        unchecked_return_type = "GuiSelectTokensCfg[]"
+        unchecked_return_type = "GuiSelectTokensCfg[]",
+        return_description = "Array of selectable token configurations"
     )]
     pub fn get_select_tokens(&self) -> Result<Vec<GuiSelectTokensCfg>, GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
@@ -50,15 +46,7 @@ impl DotrainOrderGui {
     /// Use this to determine if a user has provided an address for a select-token,
     /// enabling progressive UI updates and validation.
     ///
-    /// # Parameters
-    ///
-    /// - `key` - Token key from select-tokens configuration
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(bool)` - True if token address has been set
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.isSelectTokenSet("stable-token");
@@ -70,8 +58,16 @@ impl DotrainOrderGui {
     /// const isSelectTokenSet = result.value;
     /// // Do something
     /// ```
-    #[wasm_export(js_name = "isSelectTokenSet", unchecked_return_type = "boolean")]
-    pub fn is_select_token_set(&self, key: String) -> Result<bool, GuiError> {
+    #[wasm_export(
+        js_name = "isSelectTokenSet",
+        unchecked_return_type = "boolean",
+        return_description = "True if token address has been set"
+    )]
+    pub fn is_select_token_set(
+        &self,
+        #[wasm_export(param_description = "Token key from select-tokens configuration")]
+        key: String,
+    ) -> Result<bool, GuiError> {
         Ok(self.dotrain_order.orderbook_yaml().get_token(&key).is_ok())
     }
 
@@ -80,12 +76,7 @@ impl DotrainOrderGui {
     /// Checks if all tokens in the select-tokens configuration have been given
     /// addresses. Use this before generating transactions to ensure completeness.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(())` - All required tokens are configured
-    /// - `Err(TokenMustBeSelected)` - A specific token still needs selection
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.checkSelectTokens();
@@ -94,7 +85,11 @@ impl DotrainOrderGui {
     ///   return;
     /// // Do something
     /// ```
-    #[wasm_export(js_name = "checkSelectTokens", unchecked_return_type = "void")]
+    #[wasm_export(
+        js_name = "checkSelectTokens",
+        unchecked_return_type = "void",
+        return_description = "All required tokens are configured"
+    )]
     pub fn check_select_tokens(&self) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
@@ -122,12 +117,7 @@ impl DotrainOrderGui {
     /// Returns the network key used by the deployment's order configuration.
     /// This determines which blockchain network to query for token information.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(String)` - Network key from the configuration
-    /// - `Err(GuiError)` - If order or network configuration is invalid
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getNetworkKey();
@@ -139,7 +129,11 @@ impl DotrainOrderGui {
     /// const networkKey = result.value;
     /// // Do something with the network key
     /// ```
-    #[wasm_export(js_name = "getNetworkKey", unchecked_return_type = "string")]
+    #[wasm_export(
+        js_name = "getNetworkKey",
+        unchecked_return_type = "string",
+        return_description = "Network key from the configuration"
+    )]
     pub fn get_network_key(&self) -> Result<String, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
@@ -155,24 +149,12 @@ impl DotrainOrderGui {
     /// Takes a token address provided by the user and queries the blockchain to get
     /// the token's name, symbol, and decimals. This information is then cached for efficient access.
     ///
-    /// # Parameters
-    ///
-    /// - `key` - Token key from select-tokens configuration
-    /// - `address` - Token contract address provided by user
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())` - Token configured successfully
-    /// - `Err(TokenNotFound)` - Key not in select-tokens list
-    /// - `Err(ReadableClientError)` - Blockchain query failed
-    /// - `Err(FromHexError)` - Invalid address format
-    ///
     /// # Network Usage
     ///
     /// The function uses the deployment's network configuration to determine the
     /// RPC endpoint for querying token information.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // User selects token
@@ -190,7 +172,9 @@ impl DotrainOrderGui {
     #[wasm_export(js_name = "saveSelectToken", unchecked_return_type = "void")]
     pub async fn save_select_token(
         &mut self,
+        #[wasm_export(param_description = "Token key from select-tokens configuration")]
         key: String,
+        #[wasm_export(param_description = "Token contract address provided by user")]
         address: String,
     ) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
@@ -216,10 +200,10 @@ impl DotrainOrderGui {
         )?;
         let network_key =
             OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
-        let rpc_url =
-            NetworkCfg::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
+        let rpcs =
+            NetworkCfg::parse_rpcs(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
-        let erc20 = ERC20::new(rpc_url.clone(), address);
+        let erc20 = ERC20::new(rpcs, address);
         let token_info = erc20.token_info(None).await?;
 
         TokenCfg::add_record_to_yaml(
@@ -241,17 +225,7 @@ impl DotrainOrderGui {
     /// Clears the address and cached information for a select-token, returning it
     /// to an unselected state.
     ///
-    /// # Parameters
-    ///
-    /// - `key` - Token key to clear
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())` - Token configuration removed
-    /// - `Err(TokenNotFound)` - Key not in select-tokens list
-    /// - `Err(SelectTokensNotSet)` - No select-tokens configured for deployment
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Remove token selection
@@ -262,7 +236,10 @@ impl DotrainOrderGui {
     /// }
     /// ```
     #[wasm_export(js_name = "removeSelectToken", unchecked_return_type = "void")]
-    pub fn remove_select_token(&mut self, key: String) -> Result<(), GuiError> {
+    pub fn remove_select_token(
+        &mut self,
+        #[wasm_export(param_description = "Token key to clear")] key: String,
+    ) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
@@ -283,11 +260,7 @@ impl DotrainOrderGui {
     /// Validates that every token in the select-tokens configuration has been
     /// given an address. Use this for overall validation and progress tracking.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(bool)` - True if all tokens are configured
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.areAllTokensSelected();
@@ -299,7 +272,11 @@ impl DotrainOrderGui {
     /// const allSelected = result.value;
     /// // Do something
     /// ```
-    #[wasm_export(js_name = "areAllTokensSelected", unchecked_return_type = "boolean")]
+    #[wasm_export(
+        js_name = "areAllTokensSelected",
+        unchecked_return_type = "boolean",
+        return_description = "True if all tokens are configured"
+    )]
     pub fn are_all_tokens_selected(&self) -> Result<bool, GuiError> {
         let select_tokens = self.get_select_tokens()?;
         for token in select_tokens {
@@ -327,7 +304,7 @@ impl DotrainOrderGui {
             .filter(|(_, token)| token.network.key == network_key)
         {
             if token.decimals.is_none() || token.label.is_none() || token.symbol.is_none() {
-                let erc20 = ERC20::new(network.rpc.clone(), token.address);
+                let erc20 = ERC20::new(network.rpcs.clone(), token.address);
                 fetch_futures.push(async move {
                     let token_info = erc20.token_info(None).await?;
                     Ok::<TokenInfo, GuiError>(TokenInfo {

@@ -15,14 +15,14 @@
   export let outputIOIndex: number;
   export let pair: string;
   export let orderbook: Hex;
-  export let rpcUrl: string;
+  export let rpcUrls: string[];
   export let blockNumber: number | undefined;
 
   $: debugQuery = createQuery(
     {
-      queryKey: [order + rpcUrl + pair + blockNumber],
+      queryKey: [order + rpcUrls.join(',') + pair + blockNumber],
       queryFn: () => {
-        return debugOrderQuote(order, inputIOIndex, outputIOIndex, orderbook, rpcUrl, blockNumber);
+        return debugOrderQuote(order, inputIOIndex, outputIOIndex, orderbook, rpcUrls, blockNumber);
       },
       retry: 0,
       refetchOnWindowFocus: false,
@@ -37,7 +37,9 @@
   <div class="flex items-center">
     {#if $debugQuery.data}
       <div class="flex flex-col text-sm">
-        <span class="whitespace-nowrap" data-testid="modal-quote-debug-rpc-url">RPC: {rpcUrl}</span>
+        <span class="whitespace-nowrap" data-testid="modal-quote-debug-rpc-url"
+          >RPCs: {rpcUrls.join(', ')}</span
+        >
         <span class="whitespace-nowrap" data-testid="modal-quote-debug-block-number"
           >Block: {blockNumber}</span
         >

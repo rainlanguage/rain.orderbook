@@ -65,7 +65,7 @@ describe('Order Page', () => {
             key: 'ethereum',
             network: {
               key: 'ethereum',
-              rpc: 'https://ethereum.example.com',
+              rpcs: ['https://ethereum.example.com'],
               chainId: 1,
             },
             address: '0xabc',
@@ -84,7 +84,7 @@ describe('Order Page', () => {
         networks: {
           ethereum: {
             key: 'ethereum',
-            rpc: 'https://ethereum.example.com',
+            rpcs: ['https://ethereum.example.com'],
             chainId: 1,
           },
         },
@@ -109,7 +109,7 @@ describe('Order Page', () => {
       expect(screen.getByText(/Missing the following items from settings for/)).toBeTruthy();
       expect(screen.getByText('ethereum')).toBeTruthy();
 
-      expect(screen.getByText('RPC URL')).toBeTruthy();
+      expect(screen.getByText('RPC URLs')).toBeTruthy();
       expect(screen.getByText('Subgraph URL')).toBeTruthy();
       expect(screen.getByText('Orderbook Address')).toBeTruthy();
     });
@@ -127,7 +127,7 @@ describe('Order Page', () => {
           networks: {
             ethereum: {
               key: 'ethereum',
-              rpc: 'https://ethereum.example.com',
+              rpcs: ['https://ethereum.example.com'],
             },
           },
         },
@@ -137,7 +137,7 @@ describe('Order Page', () => {
 
       expect(screen.getByText('Subgraph URL')).toBeTruthy();
 
-      expect(screen.queryByText('RPC URL')).toBeFalsy();
+      expect(screen.queryByText('RPC URLs')).toBeFalsy();
       expect(screen.queryByText('Orderbook Address')).toBeFalsy();
     });
 

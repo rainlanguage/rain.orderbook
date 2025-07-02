@@ -139,7 +139,8 @@ const dotrain = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -216,7 +217,8 @@ const dotrainWithoutVaultIds = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -286,7 +288,8 @@ const dotrainWithoutTokens = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -364,7 +367,8 @@ gui:
           default: some-default-value
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 999
         network-id: 999
         currency: ZZ
@@ -525,12 +529,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
 		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
-		assert.equal(entries[0][0], 'other-deployment');
-		assert.equal(entries[0][1].name, 'Test test');
-		assert.equal(entries[0][1].description, 'Test test test');
-		assert.equal(entries[1][0], 'some-deployment');
-		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
-		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
+		assert.equal(entries[0][0], 'some-deployment');
+		assert.equal(entries[0][1].name, 'Buy WETH with USDC on Base.');
+		assert.equal(entries[0][1].description, 'Buy WETH with USDC for fixed price on Base network.');
+		assert.equal(entries[1][0], 'other-deployment');
+		assert.equal(entries[1][1].name, 'Test test');
+		assert.equal(entries[1][1].description, 'Test test test');
 	});
 
 	it('should get deployment detail', async () => {
@@ -950,7 +954,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOy0rDQBSGM1UqiAsRt4Lg1pjJxKS11IWCILEpESK6jem0EzqZiTPTensIl259geITuHXn84g7EWdsI932bM5_zn8uH7B-Y01nhaWyr3PWy9kA6B60VmfdcUpHuKY7dePwIWauZWJZZx_uBZUR9DeypLML4fxj1coASl5gm2F1y8VwS_eIUmXLcSjPUkq4VK0mbPqOKDN7JOijeQiMAub1SXK6qWV_ToA6WNF28sOw7QJDmlTpULVaMOtT-3Oy89GevD37r19XNXTw_pKBjX-saMqKjJo553kemFZBEOxqKUIyjh6izhGNO2l-HLNQ9i_PQnJnI3mT7J_HRaPbLeBFYxAdrusdrggWdg-XlN8XmKlvA8_cgFUCAAA=';
+			'H4sIAAAAAAAA_72OvU7DMBSF44KKhBgQYkVCYiUksZWQVmVBipQJBizEVuXHxUlcOyROIfAQjKy8QMUTsLLxPIgNIWzaoM7c5Zx7z_X1B4yf2lIqSS3NOONpxq-BmtnG5nI6i1hDemrS14koCHcMXetKXfvI66zA35U1pY5trz7W7TRgLabE5ETeiqrQgHtKqZTl0LKYSCJGRS2Hvu27VlUmZlOxB_0x0A5ohACHu8pOVhTogw0V42-WfQdoYtylhN3un5gfRx_zg_fR_PXJffm86sHB23MCdv4wwwUz1G7pHEIILDrP8w6VzfObcRzPwtP0guaDiT9OUHOH7y_b9DhklBTnWeQECLdnMDjZVm-EpKQyU1Iy0U4Jl1-y92H1ZQIAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
