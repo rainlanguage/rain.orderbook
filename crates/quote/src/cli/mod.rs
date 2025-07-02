@@ -91,7 +91,7 @@ impl Quoter {
         let result: QuoterResult = match self.input.read_content()? {
             InputContentType::Target(v) => v
                 .do_quote(
-                    self.rpc.as_str(),
+                    vec![self.rpc.to_string()],
                     self.block_number,
                     None,
                     self.multicall_address,
@@ -102,7 +102,7 @@ impl Quoter {
                 if let Some(sg) = &self.subgraph {
                     v.do_quote(
                         sg.as_str(),
-                        self.rpc.as_str(),
+                        vec![self.rpc.to_string()],
                         self.block_number,
                         None,
                         self.multicall_address,

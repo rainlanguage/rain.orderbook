@@ -200,10 +200,10 @@ impl DotrainOrderGui {
         )?;
         let network_key =
             OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
-        let rpc_url =
-            NetworkCfg::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
+        let rpcs =
+            NetworkCfg::parse_rpcs(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
-        let erc20 = ERC20::new(rpc_url.clone(), address);
+        let erc20 = ERC20::new(rpcs, address);
         let token_info = erc20.token_info(None).await?;
 
         TokenCfg::add_record_to_yaml(
@@ -304,7 +304,7 @@ impl DotrainOrderGui {
             .filter(|(_, token)| token.network.key == network_key)
         {
             if token.decimals.is_none() || token.label.is_none() || token.symbol.is_none() {
-                let erc20 = ERC20::new(network.rpc.clone(), token.address);
+                let erc20 = ERC20::new(network.rpcs.clone(), token.address);
                 fetch_futures.push(async move {
                     let token_info = erc20.token_info(None).await?;
                     Ok::<TokenInfo, GuiError>(TokenInfo {

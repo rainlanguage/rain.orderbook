@@ -67,25 +67,21 @@ impl QuoteTarget {
         make_order_id(self.orderbook, self.get_order_hash().into())
     }
 
-    /// Quotes the target on the given rpc url
+    /// Quotes the target on the given rpc urls
     pub async fn do_quote(
         &self,
-        rpc_url: &str,
+        rpcs: Vec<String>,
         block_number: Option<u64>,
         gas: Option<U256>,
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
-        Ok(batch_quote(
-            &[self.clone()],
-            rpc_url,
-            block_number,
-            gas,
-            multicall_address,
+        Ok(
+            batch_quote(&[self.clone()], rpcs, block_number, gas, multicall_address)
+                .await?
+                .into_iter()
+                .next()
+                .unwrap(),
         )
-        .await?
-        .into_iter()
-        .next()
-        .unwrap())
     }
 
     /// Validate the quote target
@@ -113,12 +109,12 @@ impl BatchQuoteTarget {
     /// Quotes the targets in batch on the given rpc url
     pub async fn do_quote(
         &self,
-        rpc_url: &str,
+        rpcs: Vec<String>,
         block_number: Option<u64>,
         gas: Option<U256>,
         multicall_address: Option<Address>,
     ) -> Result<Vec<QuoteResult>, Error> {
-        batch_quote(&self.0, rpc_url, block_number, gas, multicall_address).await
+        batch_quote(&self.0, rpcs, block_number, gas, multicall_address).await
     }
 }
 
@@ -175,24 +171,18 @@ impl QuoteSpec {
     }
 
     /// Given a subgraph url, will fetch the order details from the subgraph and
-    /// then quotes it using the given rpc url.
+    /// then quotes it using the given rpc urls.
     pub async fn do_quote(
         &self,
         subgraph_url: &str,
-        rpc_url: &str,
+        rpcs: Vec<String>,
         block_number: Option<u64>,
         gas: Option<U256>,
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
         let quote_target = self.get_quote_target_from_subgraph(subgraph_url).await?;
-        let quote_result = batch_quote(
-            &[quote_target],
-            rpc_url,
-            block_number,
-            gas,
-            multicall_address,
-        )
-        .await?;
+        let quote_result =
+            batch_quote(&[quote_target], rpcs, block_number, gas, multicall_address).await?;
 
         Ok(quote_result.into_iter().next().unwrap())
     }
@@ -258,7 +248,7 @@ impl BatchQuoteSpec {
     pub async fn do_quote(
         &self,
         subgraph_url: &str,
-        rpc_url: &str,
+        rpcs: Vec<String>,
         block_number: Option<u64>,
         gas: Option<U256>,
         multicall_address: Option<Address>,
@@ -273,14 +263,7 @@ impl BatchQuoteSpec {
             .filter_map(|v| v.clone())
             .collect();
         let mut quote_results = VecDeque::from(
-            batch_quote(
-                &quote_targets,
-                rpc_url,
-                block_number,
-                gas,
-                multicall_address,
-            )
-            .await?,
+            batch_quote(&quote_targets, rpcs, block_number, gas, multicall_address).await?,
         );
 
         // fill the array with quote results and invalid quote targets following
@@ -757,7 +740,7 @@ mod tests {
         let result = quote_target_specifier
             .do_quote(
                 rpc_server.url("/sg").as_str(),
-                rpc_server.url("/rpc").as_str(),
+                vec![rpc_server.url("/rpc").to_string()],
                 None,
                 None,
                 None,
@@ -831,7 +814,7 @@ mod tests {
         let err = quote_target_specifier
             .do_quote(
                 server.url("/sg").as_str(),
-                server.url("/bad-rpc").as_str(),
+                vec![server.url("/bad-rpc").to_string()],
                 None,
                 None,
                 None,
@@ -852,7 +835,7 @@ mod tests {
         let err = quote_target_specifier
             .do_quote(
                 server.url("/bad-sg").as_str(),
-                server.url("/rpc").as_str(),
+                vec![server.url("/rpc").to_string()],
                 None,
                 None,
                 None,
@@ -913,10 +896,11 @@ mod tests {
             QuoteSpec::default(),
         ]);
 
+        let bad_rpc_url = rpc_server.url("/bad-rpc").to_string();
         let err = batch_quote_targets_specifiers
             .do_quote(
                 rpc_server.url("/sg").as_str(),
-                "bad rpc url",
+                vec![bad_rpc_url.clone()],
                 None,
                 None,
                 None,
@@ -927,8 +911,12 @@ mod tests {
         assert!(
             matches!(
                 err,
-                Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(ref url_err))
-                if url_err.contains("No valid providers could be created from the given URLs")
+                Error::RpcCallError(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(&bad_rpc_url).is_some()
+                    && matches!(
+                        msg.get(&bad_rpc_url).unwrap(),
+                        ReadableClientError::ReadCallError(_)
+                    )
             ),
             "unexpected error: {err}"
         );
@@ -936,7 +924,7 @@ mod tests {
         let result = batch_quote_targets_specifiers
             .do_quote(
                 rpc_server.url("/sg").as_str(),
-                rpc_server.url("/rpc").as_str(),
+                vec![rpc_server.url("/rpc").to_string()],
                 None,
                 None,
                 None,
@@ -995,7 +983,7 @@ mod tests {
         });
 
         let result = quote_target
-            .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
+            .do_quote(vec![rpc_server.url("/rpc").to_string()], None, None, None)
             .await
             .unwrap();
 
@@ -1041,7 +1029,7 @@ mod tests {
         });
 
         let err = quote_target
-            .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
+            .do_quote(vec![rpc_server.url("/rpc").to_string()], None, None, None)
             .await
             .unwrap()
             .unwrap_err();
@@ -1087,7 +1075,7 @@ mod tests {
         });
 
         let result = quote_targets
-            .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
+            .do_quote(vec![rpc_server.url("/rpc").to_string()], None, None, None)
             .await
             .unwrap();
         let mut iter_result = result.into_iter();
@@ -1142,7 +1130,7 @@ mod tests {
 
         let err = quote_targets
             .do_quote(
-                rpc_server.url("/error-rpc").as_str(),
+                vec![rpc_server.url("/error-rpc").to_string()],
                 Some(1),
                 Some(U256::from(1000000)),
                 Some(address!("aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd")),
@@ -1156,7 +1144,12 @@ mod tests {
         ));
 
         let results = quote_targets
-            .do_quote(rpc_server.url("/reverted-rpc").as_str(), None, None, None)
+            .do_quote(
+                vec![rpc_server.url("/reverted-rpc").to_string()],
+                None,
+                None,
+                None,
+            )
             .await
             .unwrap();
 

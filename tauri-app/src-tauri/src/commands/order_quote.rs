@@ -1,4 +1,4 @@
-use crate::error::CommandResult;
+use crate::error::{CommandError, CommandResult};
 use alloy::primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV4::Quote;
 use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
@@ -11,7 +11,7 @@ pub async fn debug_order_quote(
     input_io_index: u32,
     output_io_index: u32,
     orderbook: Address,
-    rpc_url: String,
+    rpcs: Vec<String>,
     block_number: Option<u32>,
 ) -> CommandResult<(RainEvalResultsTable, Option<String>)> {
     let quote_target = QuoteTarget {
@@ -24,11 +24,30 @@ pub async fn debug_order_quote(
         },
     };
 
-    let mut debugger = QuoteDebugger::new(NewQuoteDebugger {
-        fork_url: rpc_url.parse()?,
-        fork_block_number: block_number.map(|s| s.into()),
-    })
-    .await?;
+    let mut debugger: Option<QuoteDebugger> = None;
+    let mut err = None;
+    for rpc in rpcs {
+        match QuoteDebugger::new(NewQuoteDebugger {
+            fork_url: rpc.parse()?,
+            fork_block_number: block_number.map(|s| s.into()),
+        })
+        .await
+        {
+            Ok(res) => {
+                debugger = Some(res);
+                err = None;
+                break;
+            }
+            Err(e) => {
+                err = Some(CommandError::QuoteDebuggerError(e));
+            }
+        }
+    }
+    if let Some(err) = err {
+        return Err(err);
+    }
+    // debugger should be some here
+    let mut debugger = debugger.unwrap();
 
     let res = debugger.debug(quote_target).await?;
     let eval_res: RainEvalResults = vec![res.0.clone()].into();
@@ -68,7 +87,8 @@ mod tests {
 version: {spec_version}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -132,7 +152,7 @@ amount price: 16 52;
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(local_evm.url())
+            .try_into_call(vec![local_evm.url()])
             .await
             .unwrap()
             .abi_encode();
@@ -177,7 +197,7 @@ amount price: 16 52;
             input_io_index,
             output_io_index,
             *orderbook.address(),
-            rpc_url,
+            vec![rpc_url],
             None,
         )
         .await;

@@ -328,7 +328,10 @@ mod tests {
     version: 1
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io/1
+                - https://mainnet.infura.io/2
+                - https://mainnet.infura.io/3
             chain-id: 1
             label: Ethereum Mainnet
             network-id: 1
@@ -369,7 +372,8 @@ mod tests {
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
@@ -394,16 +398,24 @@ mod tests {
         assert_eq!(ob_yaml.get_network_keys().unwrap().len(), 1);
         let network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
-            network.rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://mainnet.infura.io/1").unwrap(),
+                Url::parse("https://mainnet.infura.io/2").unwrap(),
+                Url::parse("https://mainnet.infura.io/3").unwrap(),
+            ]
         );
         assert_eq!(network.chain_id, 1);
         assert_eq!(network.label, Some("Ethereum Mainnet".to_string()));
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.currency, Some("ETH".to_string()));
         assert_eq!(
-            NetworkCfg::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
-            Url::parse("https://mainnet.infura.io").unwrap()
+            NetworkCfg::parse_rpcs(ob_yaml.documents.clone(), "mainnet").unwrap(),
+            vec![
+                Url::parse("https://mainnet.infura.io/1").unwrap(),
+                Url::parse("https://mainnet.infura.io/2").unwrap(),
+                Url::parse("https://mainnet.infura.io/3").unwrap(),
+            ]
         );
 
         let remote_networks = ob_yaml.get_remote_networks().unwrap();
@@ -498,22 +510,35 @@ mod tests {
 
         let mut network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
-            network.rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://mainnet.infura.io/1").unwrap(),
+                Url::parse("https://mainnet.infura.io/2").unwrap(),
+                Url::parse("https://mainnet.infura.io/3").unwrap(),
+            ]
         );
 
         let network = network
-            .update_rpc("https://some-random-rpc-address.com")
+            .update_rpcs(vec![
+                "https://some-random-rpc-address.com".to_string(),
+                "https://some-other-random-rpc-address.com".to_string(),
+            ])
             .unwrap();
         assert_eq!(
-            network.rpc,
-            Url::parse("https://some-random-rpc-address.com").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://some-random-rpc-address.com").unwrap(),
+                Url::parse("https://some-other-random-rpc-address.com").unwrap(),
+            ]
         );
 
         let network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
-            network.rpc,
-            Url::parse("https://some-random-rpc-address.com").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://some-random-rpc-address.com").unwrap(),
+                Url::parse("https://some-other-random-rpc-address.com").unwrap(),
+            ]
         );
     }
 
@@ -547,7 +572,8 @@ mod tests {
         let yaml = r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 "#;
         let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
@@ -614,8 +640,12 @@ test: test
         assert_eq!(network.key, "mainnet");
         assert_eq!(network.chain_id, 1);
         assert_eq!(
-            network.rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://mainnet.infura.io/1").unwrap(),
+                Url::parse("https://mainnet.infura.io/2").unwrap(),
+                Url::parse("https://mainnet.infura.io/3").unwrap(),
+            ]
         );
 
         // Test error case - chain ID not found
@@ -664,19 +694,22 @@ test: test
     version: {spec_version}
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
             label: Ethereum Mainnet
             network-id: 1
             currency: ETH
         polygon:
-            rpc: https://polygon-rpc.com
+            rpcs:
+                - https://polygon-rpc.com
             chain-id: 137
             label: Polygon Mainnet
             network-id: 137
             currency: MATIC
         arbitrum:
-            rpc: https://arb1.arbitrum.io
+            rpcs:
+                - https://arb1.arbitrum.io
             chain-id: 42161
             label: Arbitrum One
             network-id: 42161

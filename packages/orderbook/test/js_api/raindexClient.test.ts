@@ -14,12 +14,14 @@ import { getLocal } from 'mockttp';
 const YAML = `
 networks:
     some-network:
-        rpc: http://localhost:8230/rpc1
+        rpcs:
+            - http://localhost:8230/rpc1
         chain-id: 1
         network-id: 1
         currency: ETH
     other-network:
-        rpc: http://localhost:8230/rpc2
+        rpcs:
+            - http://localhost:8230/rpc2
         chain-id: 2
         network-id: 2
         currency: ETH
