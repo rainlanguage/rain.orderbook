@@ -58,7 +58,7 @@
 
 	function updateSelectedTokens(newSelection: SgTokenAddress[]) {
 		activeTokens.set(newSelection);
-		dispatch('change', activeTokens);
+		dispatch('change', newSelection);
 	}
 
 	function toggleToken({ token }: SgErc20WithSubgraphName) {
@@ -67,7 +67,7 @@
 		const idx = $activeTokens.indexOf(token.address);
 		const newSelection =
 			idx !== -1
-				? [...$activeTokens.slice(0, idx), ...$activeTokens.slice(idx + 1)]
+				? $activeTokens.filter((addr) => addr !== token.address)
 				: [...$activeTokens, token.address];
 
 		updateSelectedTokens(newSelection);
@@ -80,8 +80,7 @@
 			case 'Enter':
 				event.preventDefault();
 				if (filteredTokens.length > 0) {
-					const targetIndex = selectedIndex >= 0 ? selectedIndex : 0;
-					const tokenToToggle = filteredTokens[targetIndex];
+					const tokenToToggle = filteredTokens[selectedIndex];
 					if (tokenToToggle) {
 						toggleToken(tokenToToggle);
 					}
