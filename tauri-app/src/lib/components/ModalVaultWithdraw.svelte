@@ -142,6 +142,7 @@
 {/if}
 
 <ModalExecute
+  chainId={vault.chainId}
   bind:open={selectWallet}
   onBack={() => (open = true)}
   title="Withdraw from Vault"

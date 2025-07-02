@@ -77,7 +77,7 @@
 
   async function fetchUserBalance() {
     try {
-      userBalance = (await checkERC20Balance(vault.token.id)).toBigInt();
+      userBalance = (await checkERC20Balance(vault.token.address)).toBigInt();
     } catch (_e) {
       userBalance = 0n;
     }
@@ -168,6 +168,7 @@
 {/if}
 
 <ModalExecute
+  chainId={vault.chainId}
   bind:open={selectWallet}
   onBack={() => (open = true)}
   title="Deposit to Vault"

@@ -270,8 +270,8 @@
 </Tabs>
 
 <ModalExecute
+  chainId={deployment?.order.network.chainId}
   bind:open={openAddOrderModal}
-  overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
   executeWalletconnect={handleExecuteWalletConnect}

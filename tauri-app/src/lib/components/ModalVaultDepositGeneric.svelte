@@ -124,6 +124,7 @@
 {/if}
 
 <ModalExecute
+  {chainId}
   bind:open={selectWallet}
   onBack={() => (open = true)}
   title="Deposit to Vault"

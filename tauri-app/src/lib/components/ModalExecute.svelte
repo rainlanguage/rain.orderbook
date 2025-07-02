@@ -6,7 +6,7 @@
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
   import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
   import { IconLedger, IconWalletConnect, ButtonLoading } from '@rainlanguage/ui-components';
-  import { activeNetworkRef, chainId as globalChainId } from '$lib/stores/settings';
+  import { activeNetworkRef } from '$lib/stores/settings';
   import type { NetworkCfg } from '@rainlanguage/orderbook';
 
   export let open = false;
@@ -16,9 +16,8 @@
   export let executeWalletconnect: () => Promise<void>;
   export let isSubmitting = false;
   export let onBack: (() => void) | undefined = undefined;
-
+  export let chainId: number | undefined = undefined;
   export let overrideNetwork: NetworkCfg | undefined = undefined;
-  $: chainId = overrideNetwork?.chainId || $globalChainId;
 
   let selectedLedger = false;
   let selectedWalletconnect = false;

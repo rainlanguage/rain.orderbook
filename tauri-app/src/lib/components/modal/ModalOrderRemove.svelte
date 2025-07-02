@@ -39,6 +39,7 @@
 </script>
 
 <ModalExecute
+  chainId={order.chainId}
   bind:open={openOrderRemoveModal}
   title="Remove Order"
   execButtonLabel="Remove Order"
