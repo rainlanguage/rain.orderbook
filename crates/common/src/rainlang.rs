@@ -182,7 +182,7 @@ mod fork_parse {
         #[error("Fork Cache Poisoned")]
         ForkCachePoisoned,
         #[error(transparent)]
-        ForkerError(ForkCallError),
+        ForkerError(Box<ForkCallError>),
         #[error("Fork Call Reverted: {0}")]
         ForkCallReverted(#[from] AbiDecodedErrorType),
         #[error(transparent)]
@@ -195,7 +195,7 @@ mod fork_parse {
         fn from(value: ForkCallError) -> Self {
             match value {
                 ForkCallError::AbiDecodedError(v) => Self::ForkCallReverted(v),
-                other => Self::ForkerError(other),
+                other => Self::ForkerError(Box::new(other)),
             }
         }
     }
