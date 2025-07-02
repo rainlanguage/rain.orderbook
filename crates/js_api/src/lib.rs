@@ -25,5 +25,6 @@ use wasm_bindgen_utils::prelude::wasm_bindgen;
 
 #[wasm_bindgen(typescript_custom_section)]
 const TS_APPEND_CONTENT: &'static str = r#"
-export type Address = `0x${string}`; 
+export type Address = `0x${string}`;
+export type Hex = `0x${string}`;
 "#;
