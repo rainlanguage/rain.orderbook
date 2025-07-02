@@ -313,12 +313,12 @@ impl RaindexVault {
         &self,
         amount: U256,
     ) -> Result<(DepositArgs, TransactionArgs), RaindexError> {
-        let rpc_url = {
+        let rpcs = {
             let raindex_client = self
                 .raindex_client
                 .read()
                 .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_rpc_url_for_chain(self.chain_id)?
+            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
         };
         let deposit_args = DepositArgs {
             token: self.token.address,
@@ -327,7 +327,7 @@ impl RaindexVault {
         };
         let transaction_args = TransactionArgs {
             orderbook_address: self.orderbook,
-            rpc_url: rpc_url.to_string(),
+            rpcs: rpcs.iter().map(|rpc| rpc.to_string()).collect(),
             ..Default::default()
         };
         Ok((deposit_args, transaction_args))
