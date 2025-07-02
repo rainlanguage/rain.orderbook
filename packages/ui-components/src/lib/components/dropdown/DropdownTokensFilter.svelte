@@ -7,6 +7,7 @@
 	import type { AppStoresInterface } from '../../types/appStores';
 	import type { Readable } from 'svelte/store';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
+	import { getTokenDisplayName } from '../../utils/tokens';
 
 	const dispatch = createEventDispatcher();
 
@@ -159,7 +160,7 @@
 							checked={!!(token.token.address && $activeTokens.includes(token.token.address))}
 						>
 							<div class="ml-2 flex w-full">
-								<div class="flex-1 text-sm font-medium">{token.token.symbol || 'Unknown'}</div>
+								<div class="flex-1 text-sm font-medium">{getTokenDisplayName(token.token)}</div>
 								<div class="text-xs text-gray-500">
 									{token.subgraphName}
 								</div>
