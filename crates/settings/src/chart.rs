@@ -864,7 +864,8 @@ mod tests {
     const PREFIX: &str = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:

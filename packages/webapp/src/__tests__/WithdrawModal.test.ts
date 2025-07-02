@@ -46,7 +46,7 @@ describe('WithdrawModal', () => {
 		args: {
 			vault: mockVault as unknown as SgVault,
 			chainId: 1,
-			rpcUrl: 'https://example.com',
+			rpcUrls: ['https://example.com'],
 			account: '0x0000000000000000000000000000000000000000' as Hex,
 			subgraphUrl: 'https://default.subgraph.com'
 		},

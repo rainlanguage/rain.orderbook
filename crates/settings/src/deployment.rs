@@ -300,7 +300,8 @@ mod tests {
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 deployers:
     deployer1:
@@ -335,7 +336,8 @@ test: test
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 deployers:
     deployer1:
@@ -372,7 +374,8 @@ deployments:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 deployers:
     deployer1:
@@ -410,10 +413,12 @@ deployments:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
     network2:
-        rpc: https://test.com
+        rpcs:
+            - https://test.com
         chain-id: 2
 deployers:
     deployer1:
@@ -458,10 +463,12 @@ deployments:
     const PREFIX: &str = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
     network2:
-        rpc: https://test.com
+        rpcs:
+            - https://test.com
         chain-id: 2
 deployers:
     deployer1:

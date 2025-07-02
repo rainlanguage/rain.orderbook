@@ -270,8 +270,9 @@ pub async fn get_vault_withdraw_calldata(
     return_description = "Encoded approval calldata"
 )]
 pub async fn get_vault_approval_calldata(
-    #[wasm_export(param_description = "Blockchain RPC endpoint for checking current allowance")]
-    rpc_url: &str,
+    #[wasm_export(param_description = "RPC endpoints for checking current allowance")] rpcs: Vec<
+        String,
+    >,
     #[wasm_export(param_description = "Target vault object")] vault: &SgVault,
     #[wasm_export(param_description = "Amount requiring approval")] deposit_amount: &str,
 ) -> Result<VaultCalldataResult, SubgraphError> {
@@ -279,7 +280,7 @@ pub async fn get_vault_approval_calldata(
     let owner = Address::from_str(&vault.owner.0)?;
 
     let (deposit_args, transaction_args) =
-        get_deposit_and_transaction_args(rpc_url, vault, deposit_amount)?;
+        get_deposit_and_transaction_args(&rpcs, vault, deposit_amount)?;
 
     let allowance = deposit_args
         .read_allowance(owner, transaction_args.clone())
@@ -318,11 +319,13 @@ pub async fn get_vault_approval_calldata(
     return_description = "Current allowance amount as string"
 )]
 pub async fn check_vault_allowance(
-    #[wasm_export(param_description = "Blockchain RPC endpoint")] rpc_url: &str,
+    #[wasm_export(param_description = "RPC endpoints for checking current allowance")] rpcs: Vec<
+        String,
+    >,
     #[wasm_export(param_description = "Vault to check allowance for")] vault: &SgVault,
 ) -> Result<VaultAllowanceResult, SubgraphError> {
     let (deposit_args, transaction_args) =
-        get_deposit_and_transaction_args(rpc_url, vault, U256::ZERO)?;
+        get_deposit_and_transaction_args(&rpcs, vault, U256::ZERO)?;
 
     Ok(VaultAllowanceResult(
         deposit_args
@@ -356,7 +359,7 @@ pub fn validate_io_index(
 }
 
 pub fn get_deposit_and_transaction_args(
-    rpc_url: &str,
+    rpcs: &[String],
     vault: &SgVault,
     amount: U256,
 ) -> Result<(DepositArgs, TransactionArgs), SubgraphError> {
@@ -367,7 +370,7 @@ pub fn get_deposit_and_transaction_args(
     };
     let transaction_args = TransactionArgs {
         orderbook_address: Address::from_str(&vault.orderbook.id.0)?,
-        rpc_url: rpc_url.to_string(),
+        rpcs: rpcs.to_owned(),
         ..Default::default()
     };
     Ok((deposit_args, transaction_args))
@@ -712,9 +715,10 @@ mod tests {
                 );
             });
 
-            let result = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "600")
-                .await
-                .unwrap();
+            let result =
+                get_vault_approval_calldata(vec![rpc_server.url("/rpc")], &get_vault1(), "600")
+                    .await
+                    .unwrap();
             assert_eq!(
                 result.0,
                 Bytes::copy_from_slice(
@@ -727,19 +731,21 @@ mod tests {
                 )
             );
 
-            let err = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "0")
+            let err = get_vault_approval_calldata(vec![rpc_server.url("/rpc")], &get_vault1(), "0")
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
 
-            let err = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "90")
-                .await
-                .unwrap_err();
+            let err =
+                get_vault_approval_calldata(vec![rpc_server.url("/rpc")], &get_vault1(), "90")
+                    .await
+                    .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
 
-            let err = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "100")
-                .await
-                .unwrap_err();
+            let err =
+                get_vault_approval_calldata(vec![rpc_server.url("/rpc")], &get_vault1(), "100")
+                    .await
+                    .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
         }
 
@@ -758,7 +764,7 @@ mod tests {
                 );
             });
 
-            let result = check_vault_allowance(&rpc_server.url("/rpc"), &get_vault1())
+            let result = check_vault_allowance(vec![rpc_server.url("/rpc")], &get_vault1())
                 .await
                 .unwrap();
             assert_eq!(result.0, U256::from(1));

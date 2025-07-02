@@ -107,11 +107,21 @@ pub async fn get_add_order_calldata(
         AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment_ref.deref().clone())
             .await?;
 
-    let tx_args = TransactionArgs {
-        rpc_url: deployment_ref.scenario.deployer.network.rpc.to_string(),
-        ..Default::default()
-    };
-    let calldata = add_order_args.get_add_order_calldata(tx_args).await?;
+    let rpcs = deployment_ref
+        .scenario
+        .deployer
+        .network
+        .rpcs
+        .iter()
+        .map(|rpc| rpc.to_string())
+        .collect::<Vec<String>>();
+    let calldata = add_order_args
+        .get_add_order_calldata(TransactionArgs {
+            rpcs,
+            ..Default::default()
+        })
+        .await?;
+
     Ok(AddOrderCalldata(Bytes::copy_from_slice(&calldata)))
 }
 
@@ -242,7 +252,8 @@ mod tests {
 version: {spec_version}
 networks:
   mainnet:
-    rpc: {rpc_url}
+    rpcs:
+      - {rpc_url}
     chain-id: 1
 subgraphs:
   mainnet: https://mainnet-subgraph.com
@@ -391,7 +402,7 @@ _ _: 0 0;
                 ]),
             }
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: rpc_server.url("/rpc"),
+                rpcs: vec![rpc_server.url("/rpc")],
                 ..Default::default()
             })
             .await
