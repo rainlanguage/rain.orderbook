@@ -117,39 +117,6 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    /// Gets the network identifier for the current deployment.
-    ///
-    /// Returns the network key used by the deployment's order configuration.
-    /// This determines which blockchain network to query for token information.
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(String)` - Network key from the configuration
-    /// - `Err(GuiError)` - If order or network configuration is invalid
-    ///
-    /// # Examples
-    ///
-    /// ```javascript
-    /// const result = gui.getNetworkKey();
-    /// if (result.error) {
-    ///   console.error("Error:", result.error.readableMsg);
-    ///   return;
-    /// }
-    ///
-    /// const networkKey = result.value;
-    /// // Do something with the network key
-    /// ```
-    #[wasm_export(js_name = "getNetworkKey", unchecked_return_type = "string")]
-    pub fn get_network_key(&self) -> Result<String, GuiError> {
-        let order_key = DeploymentCfg::parse_order_key(
-            self.dotrain_order.dotrain_yaml().documents,
-            &self.selected_deployment,
-        )?;
-        let network_key =
-            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
-        Ok(network_key)
-    }
-
     /// Sets a custom token address to be used in the order.
     ///
     /// Takes a token address provided by the user and queries the blockchain to get

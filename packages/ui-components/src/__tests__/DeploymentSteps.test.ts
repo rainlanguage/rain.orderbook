@@ -109,7 +109,6 @@ describe('DeploymentSteps', () => {
 		guiInstance = {
 			areAllTokensSelected: vi.fn().mockReturnValue({ value: false }),
 			getSelectTokens: vi.fn().mockReturnValue({ value: [] }),
-			getNetworkKey: vi.fn().mockReturnValue({ value: 'flare' }),
 			getCurrentDeployment: vi.fn().mockReturnValue(mockDeployment),
 			getAllFieldDefinitions: vi.fn().mockReturnValue({ value: [] }),
 			hasAnyDeposit: vi.fn().mockReturnValue({ value: false }),

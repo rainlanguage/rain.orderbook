@@ -1960,11 +1960,6 @@ ${dotrainWithoutVaultIds}`;
 			);
 		});
 
-		it('should get network key', async () => {
-			const networkKey = extractWasmEncodedData<string>(gui.getNetworkKey());
-			assert.equal(networkKey, 'some-network');
-		});
-
 		it('should get all tokens for current network', async () => {
 			mockServer
 				.forPost('/rpc-url')
