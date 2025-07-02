@@ -1,4 +1,4 @@
-use crate::{error::Error, BatchQuoteSpec};
+use crate::{error::Error, BatchQuoteSpec, QuoteSpec};
 use crate::{
     get_order_quotes, BatchOrderQuotesResponse, BatchQuoteTarget, OrderQuoteValue, QuoteTarget,
 };
