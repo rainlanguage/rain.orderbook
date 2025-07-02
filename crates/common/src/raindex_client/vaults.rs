@@ -523,8 +523,8 @@ impl RaindexVaultBalanceChange {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultBalanceChange {
-    pub fn __typename(&self) -> String {
-        self.__typename.clone()
+    pub fn r#type(&self) -> RaindexVaultBalanceChangeType {
+        self.r#type.clone()
     }
     pub fn vault_id(&self) -> U256 {
         self.vault_id
