@@ -61,9 +61,10 @@
 		enabled: true
 	});
 
-	$: selectedTokens = $activeTokens.filter(
-		(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.token.address === address)
-	);
+	$: selectedTokens =
+		$activeTokens?.filter(
+			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.token.address === address)
+		) ?? [];
 
 	$: query = createInfiniteQuery({
 		queryKey: [
