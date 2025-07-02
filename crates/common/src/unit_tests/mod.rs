@@ -56,13 +56,19 @@ pub enum TestRunnerError {
     #[error(transparent)]
     BlockError(#[from] BlockError),
     #[error(transparent)]
-    ForkCallError(#[from] ForkCallError),
+    ForkCallError(Box<ForkCallError>),
     #[error(transparent)]
     JoinError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
     #[error(transparent)]
     RainEvalResultError(#[from] RainEvalResultError),
+}
+
+impl From<ForkCallError> for TestRunnerError {
+    fn from(err: ForkCallError) -> Self {
+        Self::ForkCallError(Box::new(err))
+    }
 }
 
 impl TestRunner {
@@ -160,7 +166,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -211,7 +217,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -256,7 +262,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -311,7 +317,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
