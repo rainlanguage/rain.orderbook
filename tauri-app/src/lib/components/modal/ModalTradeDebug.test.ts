@@ -18,7 +18,7 @@ test('renders table with the correct data', async () => {
 
   render(ModalTradeDebug, {
     context: new Map([['$$_queryClient', queryClient]]),
-    props: { open: true, txHash: '0x123', rpcUrl: 'https://rpc-url.com' },
+    props: { open: true, txHash: '0x123', rpcUrls: ['https://rpc-url.com'] },
   });
 
   expect(await screen.findByText('Debug trade')).toBeInTheDocument();
@@ -29,7 +29,7 @@ test('renders table with the correct data', async () => {
       'Trade transaction: 0x123',
     );
     expect(screen.queryByTestId('modal-trade-debug-rpc-url')).toHaveTextContent(
-      'RPC: https://rpc-url.com',
+      'RPCs: https://rpc-url.com',
     );
   });
 

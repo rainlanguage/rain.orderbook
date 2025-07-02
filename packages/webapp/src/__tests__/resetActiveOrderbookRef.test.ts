@@ -11,7 +11,7 @@ const createMockOrderbookConfigSource = (address: string, label?: string): Order
 	network: {
 		key: 'mainnet',
 		chainId: 1,
-		rpc: 'https://mainnet.infura.io/v3/your-infura-project-id'
+		rpcs: ['https://mainnet.infura.io/v3/your-infura-project-id']
 	},
 	subgraph: {
 		key: 'mainnet',

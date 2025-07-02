@@ -1,17 +1,17 @@
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { fetchableIntStore } from '$lib/storesGeneric/fetchableStore';
 import { get } from 'svelte/store';
-import { rpcUrl } from './settings';
+import { rpcUrls } from './settings';
 
 export const forkBlockNumber = fetchableIntStore('forkBlockNumber', async () => {
-  const $rpcUrl = get(rpcUrl);
-  if (!$rpcUrl) return 0;
+  const $rpcUrls = get(rpcUrls);
+  if (!$rpcUrls) return 0;
 
-  return getBlockNumberFromRpc($rpcUrl);
+  return getBlockNumberFromRpc($rpcUrls);
 });
 
 // When active chain updated, reset active orderbook
-rpcUrl.subscribe(async () => {
-  await rpcUrl.load();
+rpcUrls.subscribe(async () => {
+  await rpcUrls.load();
   forkBlockNumber.fetch();
 });

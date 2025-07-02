@@ -155,7 +155,7 @@ pub enum RaindexError {
     #[error(transparent)]
     SerdeError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
-    DotrainOrderError(#[from] DotrainOrderError),
+    DotrainOrderError(Box<DotrainOrderError>),
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
@@ -172,6 +172,12 @@ pub enum RaindexError {
     WriteLockError,
     #[error("Missing subgraph {0} for order {1}")]
     SubgraphNotFound(String, String),
+}
+
+impl From<DotrainOrderError> for RaindexError {
+    fn from(err: DotrainOrderError) -> Self {
+        Self::DotrainOrderError(Box::new(err))
+    }
 }
 
 impl RaindexError {
@@ -263,13 +269,15 @@ mod tests {
 version: {spec_version}
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
         chain-id: 1
         label: Ethereum Mainnet
         network-id: 1
         currency: ETH
     polygon:
-        rpc: https://polygon-rpc.com
+        rpcs:
+            - https://polygon-rpc.com
         chain-id: 137
         label: Polygon Mainnet
         network-id: 137
@@ -319,7 +327,8 @@ deployers:
 version: {spec_version}
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
         chain-id: 1
 orderbooks:
     invalid-orderbook:
@@ -436,10 +445,12 @@ orderbooks:
     version: {spec_version}
     networks:
         isolated:
-            rpc: https://isolated.rpc
+            rpcs:
+                - https://isolated.rpc
             chain-id: 999
         some-network:
-            rpc: https://some-network.rpc
+            rpcs:
+                - https://some-network.rpc
             chain-id: 1000
     subgraphs:
         test: https://test.subgraph

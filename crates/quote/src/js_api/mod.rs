@@ -123,8 +123,7 @@ pub async fn do_quote_targets(
         param_description = "Array of quote targets with orderbook address and complete order configuration"
     )]
     quote_targets: BatchQuoteTarget,
-    #[wasm_export(param_description = "Ethereum RPC endpoint URL for blockchain queries")]
-    rpc_url: String,
+    #[wasm_export(param_description = "RPC endpoints for blockchain queries")] rpcs: Vec<String>,
     #[wasm_export(
         param_description = "Optional specific block number for historical quotes (uses latest if None)"
     )]
@@ -140,12 +139,9 @@ pub async fn do_quote_targets(
 ) -> Result<DoQuoteTargetsResult, QuoteBindingsError> {
     let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let quote_targets: Vec<QuoteTarget> =
-        quote_targets.0.into_iter().map(QuoteTarget::from).collect();
-    let batch_quote_target = BatchQuoteTarget(quote_targets);
 
-    let quotes = batch_quote_target
-        .do_quote(&rpc_url, block_number, gas_value, multicall_address)
+    let quotes = quote_targets
+        .do_quote(rpcs, block_number, gas_value, multicall_address)
         .await?;
 
     let res = quotes
@@ -199,8 +195,9 @@ pub async fn do_quote_specs(
     quote_specs: BatchQuoteSpec,
     #[wasm_export(param_description = "GraphQL endpoint URL for the subgraph")]
     subgraph_url: String,
-    #[wasm_export(param_description = "Ethereum RPC endpoint URL for blockchain quote execution")]
-    rpc_url: String,
+    #[wasm_export(param_description = "RPC endpoints for blockchain quote execution")] rpcs: Vec<
+        String,
+    >,
     #[wasm_export(
         param_description = "Optional specific block number for historical quotes (uses latest if None)"
     )]
@@ -216,13 +213,11 @@ pub async fn do_quote_specs(
 ) -> Result<DoQuoteSpecsResult, QuoteBindingsError> {
     let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let quote_specs: Vec<QuoteSpec> = quote_specs.0.into_iter().map(QuoteSpec::from).collect();
-    let batch_quote_spec = BatchQuoteSpec(quote_specs);
 
-    let quotes = batch_quote_spec
+    let quotes = quote_specs
         .do_quote(
             &subgraph_url,
-            &rpc_url,
+            rpcs,
             block_number,
             gas_value,
             multicall_address,
@@ -280,10 +275,7 @@ pub async fn get_batch_quote_target_from_subgraph(
     #[wasm_export(param_description = "GraphQL endpoint URL for the subgraph")]
     subgraph_url: String,
 ) -> Result<QuoteTargetResult, QuoteBindingsError> {
-    let quote_specs: Vec<QuoteSpec> = quote_specs.0.into_iter().map(QuoteSpec::from).collect();
-    let batch_quote_spec = BatchQuoteSpec(quote_specs);
-
-    let quote_targets = batch_quote_spec
+    let quote_targets = quote_specs
         .get_batch_quote_target_from_subgraph(&subgraph_url)
         .await?;
     Ok(QuoteTargetResult(quote_targets))
@@ -320,8 +312,9 @@ pub async fn get_order_quote(
         param_description = "Array of complete order objects with id, order_bytes, inputs, outputs, and orderbook information"
     )]
     order: Vec<SgOrder>,
-    #[wasm_export(param_description = "Ethereum RPC endpoint URL for blockchain quote execution")]
-    rpc_url: String,
+    #[wasm_export(param_description = "RPC endpoints for blockchain quote execution")] rpcs: Vec<
+        String,
+    >,
     #[wasm_export(
         param_description = "Optional specific block number for historical quotes (uses latest if None)"
     )]
@@ -332,7 +325,7 @@ pub async fn get_order_quote(
     gas: Option<String>,
 ) -> Result<DoOrderQuoteResult, QuoteBindingsError> {
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let order_quotes = get_order_quotes(order, block_number, rpc_url, gas_value).await?;
+    let order_quotes = get_order_quotes(order, block_number, rpcs, gas_value).await?;
     Ok(DoOrderQuoteResult(order_quotes))
 }
 
@@ -681,7 +674,7 @@ mod tests {
 
             let res = do_quote_targets(
                 get_batch_quote_targets(),
-                rpc_server.url("/rpc"),
+                vec![rpc_server.url("/rpc")],
                 None,
                 None,
                 None,
@@ -718,7 +711,7 @@ mod tests {
         async fn test_do_quote_targets_invalid_values() {
             let err = do_quote_targets(
                 get_batch_quote_targets(),
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 None,
                 Some("invalid-address".to_string()),
@@ -733,7 +726,7 @@ mod tests {
 
             let err = do_quote_targets(
                 get_batch_quote_targets(),
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 Some("invalid-gas".to_string()),
                 None,
@@ -785,7 +778,7 @@ mod tests {
             let res = do_quote_specs(
                 get_batch_quote_specs(),
                 subgraph_server.url("/subgraph"),
-                rpc_server.url("/rpc"),
+                vec![rpc_server.url("/rpc")],
                 None,
                 None,
                 None,
@@ -823,7 +816,7 @@ mod tests {
             let err = do_quote_specs(
                 get_batch_quote_specs(),
                 "some-url".to_string(),
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 None,
                 Some("invalid-address".to_string()),
@@ -839,7 +832,7 @@ mod tests {
             let err = do_quote_specs(
                 get_batch_quote_specs(),
                 "some-url".to_string(),
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 Some("invalid-gas".to_string()),
                 None,
@@ -999,7 +992,7 @@ mod tests {
                 );
             });
 
-            let res = get_order_quote(vec![order], rpc_server.url("/rpc"), None, None)
+            let res = get_order_quote(vec![order], vec![rpc_server.url("/rpc")], None, None)
                 .await
                 .unwrap();
             assert_eq!(res.0.len(), 1);
@@ -1016,7 +1009,7 @@ mod tests {
         async fn test_get_order_quote_invalid_values() {
             let err = get_order_quote(
                 vec![],
-                "some-url".to_string(),
+                vec!["some-url".to_string()],
                 None,
                 Some("invalid-gas".to_string()),
             )

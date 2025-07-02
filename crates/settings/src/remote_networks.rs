@@ -381,16 +381,16 @@ using-networks-from:
         let network = networks.get("remote-network").unwrap();
         assert_eq!(network.key, "remote-network");
         assert_eq!(
-            network.rpc,
-            Url::parse("http://localhost:8085/rpc-url").unwrap()
+            network.rpcs,
+            vec![Url::parse("http://localhost:8085/rpc-url").unwrap()]
         );
         assert_eq!(network.chain_id, 123);
 
         let network = networks.get("remote2-network").unwrap();
         assert_eq!(network.key, "remote2-network");
         assert_eq!(
-            network.rpc,
-            Url::parse("http://localhost:8085/rpc-url").unwrap()
+            network.rpcs,
+            vec![Url::parse("http://localhost:8085/rpc-url").unwrap()]
         );
         assert_eq!(network.chain_id, 234);
     }

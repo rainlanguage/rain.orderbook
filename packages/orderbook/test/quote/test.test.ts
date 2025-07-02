@@ -189,7 +189,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 				signedContext: []
 			}
 		};
-		const result = await doQuoteTargets([target], mockServer.url + '/rpc-url');
+		const result = await doQuoteTargets([target], [mockServer.url + '/rpc-url']);
 		if (!result.value) expect.fail('Expected value');
 		const expected: OrderQuoteValue = {
 			maxOutput: '0x1',
@@ -272,7 +272,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 			trades: [],
 			removeEvents: []
 		} as unknown as SgOrder;
-		const result = await getOrderQuote([order], mockServer.url + '/rpc-url');
+		const result = await getOrderQuote([order], [mockServer.url + '/rpc-url']);
 		if (result.error) expect.fail('Expected value');
 		const expected: BatchOrderQuotesResponse[] = [
 			{
@@ -331,7 +331,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 		};
 
 		// should fail without gas specified
-		const doQuoteTargetsResult = await doQuoteTargets([target], mockServer.url + '/rpc-url');
+		const doQuoteTargetsResult = await doQuoteTargets([target], [mockServer.url + '/rpc-url']);
 		if (!doQuoteTargetsResult.error) expect.fail('Expected error');
 		assert(doQuoteTargetsResult.error.msg.includes('all providers failed to handle the request'));
 		assert(
@@ -340,7 +340,12 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 			)
 		);
 
-		const result = await doQuoteTargets([target], mockServer.url + '/rpc-url', undefined, '123456');
+		const result = await doQuoteTargets(
+			[target],
+			[mockServer.url + '/rpc-url'],
+			undefined,
+			'123456'
+		);
 		if (result.error) expect.fail('Expected value');
 		const expected: OrderQuoteValue = {
 			maxOutput: '0x1',
