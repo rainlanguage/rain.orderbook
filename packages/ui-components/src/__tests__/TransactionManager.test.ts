@@ -158,6 +158,9 @@ describe('TransactionManager', () => {
 
 			const removeOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
 			const removeOrderIsSuccessFn = removeOrderCallArgs.awaitSubgraphConfig!.isSuccess;
+			const removeOrderFetchEntityFn = removeOrderCallArgs.awaitSubgraphConfig!.fetchEntityFn;
+
+			expect(removeOrderFetchEntityFn.name).toBe('bound spy');
 			expect(
 				removeOrderIsSuccessFn([
 					{
@@ -233,7 +236,7 @@ describe('TransactionManager', () => {
 				orderbook: withdrawMockArgs.entity.orderbook,
 				txHash: withdrawMockArgs.txHash,
 				successMessage: 'Withdrawal successful.',
-				fetchEntityFn: mockRaindexClient.getTransaction,
+				fetchEntityFn: expect.any(Function),
 				isSuccess: expect.any(Function)
 			}
 		};
@@ -285,6 +288,9 @@ describe('TransactionManager', () => {
 
 			const withdrawCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
 			const withdrawIsSuccessFn = withdrawCallArgs.awaitSubgraphConfig!.isSuccess;
+			const withdrawFetchEntityFn = withdrawCallArgs.awaitSubgraphConfig!.fetchEntityFn;
+
+			expect(withdrawFetchEntityFn.name).toBe('bound spy');
 			expect(withdrawIsSuccessFn({ id: 'tx1' } as RaindexTransaction)).toBe(true);
 			expect(withdrawIsSuccessFn(null as unknown as RaindexTransaction)).toBe(false);
 			expect(withdrawIsSuccessFn(undefined as unknown as RaindexTransaction)).toBe(false);
@@ -680,7 +686,7 @@ describe('TransactionManager', () => {
 				orderbook: addOrderMockArgs.orderbook,
 				txHash: addOrderMockArgs.txHash,
 				successMessage: 'Strategy deployed successfully.',
-				fetchEntityFn: mockRaindexClient.getAddOrdersForTransaction,
+				fetchEntityFn: expect.any(Function),
 				isSuccess: expect.any(Function)
 			}
 		};
@@ -728,6 +734,9 @@ describe('TransactionManager', () => {
 
 			const addOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
 			const addOrderIsSuccessFn = addOrderCallArgs.awaitSubgraphConfig!.isSuccess;
+			const addOrderFetchEntityFn = addOrderCallArgs.awaitSubgraphConfig!.fetchEntityFn;
+
+			expect(addOrderFetchEntityFn.name).toBe('bound spy');
 			expect(
 				addOrderIsSuccessFn([
 					{

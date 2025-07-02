@@ -35,12 +35,12 @@ test('renders the vault list table with correct data', async () => {
 		// ... other mock data
 	] as unknown as RaindexVaultBalanceChange[];
 	const mockVault: RaindexVault = {
+		id: 'vault1',
 		getBalanceChanges: vi.fn().mockResolvedValue({ value: mockVaultBalanceChanges })
 	} as unknown as RaindexVault;
 
 	render(VaultBalanceChangesTable, {
 		props: {
-			id: '100',
 			vault: mockVault
 		},
 		context: new Map([['$$_queryClient', queryClient]])
@@ -80,12 +80,12 @@ test('it shows the correct data in the table', async () => {
 		}
 	] as unknown as RaindexVaultBalanceChange[];
 	const mockVault: RaindexVault = {
+		id: 'vault1',
 		getBalanceChanges: vi.fn().mockResolvedValue({ value: mockVaultBalanceChanges })
 	} as unknown as RaindexVault;
 
 	render(VaultBalanceChangesTable, {
 		props: {
-			id: '100',
 			vault: mockVault
 		},
 		context: new Map([['$$_queryClient', queryClient]])

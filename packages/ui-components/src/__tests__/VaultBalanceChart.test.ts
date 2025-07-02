@@ -17,14 +17,14 @@ test('calls getVaultBalanceChanges with correct arguments', async () => {
 	const queryClient = new QueryClient();
 
 	const mockVault: RaindexVault = {
+		id: 'vault1',
 		getBalanceChanges: vi.fn()
 	} as unknown as RaindexVault;
 
 	render(VaultBalanceChart, {
 		props: {
 			vault: mockVault,
-			lightweightChartsTheme: writable({}),
-			id: 'vault1'
+			lightweightChartsTheme: writable({})
 		} as VaultBalanceChartProps,
 		context: new Map([['$$_queryClient', queryClient]])
 	});

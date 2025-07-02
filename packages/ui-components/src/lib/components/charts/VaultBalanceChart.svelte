@@ -7,11 +7,10 @@
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 
 	export let vault: RaindexVault;
-	export let id: string;
 	export let lightweightChartsTheme;
 
 	$: query = createQuery({
-		queryKey: [id, QKEY_VAULT_CHANGES + id, QKEY_VAULT_CHANGES],
+		queryKey: [vault.id, QKEY_VAULT_CHANGES + vault.id, QKEY_VAULT_CHANGES],
 		queryFn: async () => {
 			const result = await vault.getBalanceChanges(1);
 			if (result.error) throw new Error(result.error.msg);

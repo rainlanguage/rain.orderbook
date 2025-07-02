@@ -174,10 +174,8 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="chart" let:data>
-		<VaultBalanceChart vault={data} {lightweightChartsTheme} {id} />
+		<VaultBalanceChart vault={data} {lightweightChartsTheme} />
 	</svelte:fragment>
 
-	<svelte:fragment slot="below" let:data
-		><VaultBalanceChangesTable {id} vault={data} /></svelte:fragment
-	>
+	<svelte:fragment slot="below" let:data><VaultBalanceChangesTable vault={data} /></svelte:fragment>
 </TanstackPageContentDetail>

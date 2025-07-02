@@ -9,11 +9,10 @@
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 
-	export let id: string;
 	export let vault: RaindexVault;
 
 	$: balanceChangesQuery = createInfiniteQuery({
-		queryKey: [id, QKEY_VAULT_CHANGES + id],
+		queryKey: [vault.id, QKEY_VAULT_CHANGES + vault.id],
 		queryFn: async ({ pageParam }) => {
 			const result = await vault.getBalanceChanges(pageParam + 1);
 			if (result.error) throw new Error(result.error.msg);
@@ -30,7 +29,7 @@
 
 <AppTable
 	query={balanceChangesQuery}
-	queryKey={id}
+	queryKey={vault.id}
 	emptyMessage="No deposits or withdrawals found"
 	rowHoverable={false}
 >

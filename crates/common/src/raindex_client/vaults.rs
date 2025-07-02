@@ -242,10 +242,7 @@ impl RaindexVault {
     )]
     pub async fn get_balance_changes(
         &self,
-        #[wasm_export(
-            param_description = "Optional page number (default to 1)"
-        )]
-        page: Option<u16>,
+        #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         let client = self.get_orderbook_client()?;
         let balance_changes = client
@@ -253,7 +250,7 @@ impl RaindexVault {
                 Id::new(self.id.clone()),
                 SgPaginationArgs {
                     page: page.unwrap_or(1),
-                    page_size: DEFAULT_PAGE_SIZE,
+                    page_size: 1000,
                 },
             )
             .await?;
@@ -340,10 +337,7 @@ impl RaindexVault {
     )]
     pub async fn get_withdraw_calldata(
         &self,
-        #[wasm_export(
-            param_description = "Amount to withdraw"
-        )]
-        amount: String,
+        #[wasm_export(param_description = "Amount to withdraw")] amount: String,
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
         Ok(Bytes::copy_from_slice(
@@ -406,10 +400,7 @@ impl RaindexVault {
     )]
     pub async fn get_approval_calldata(
         &self,
-        #[wasm_export(
-            param_description = "Amount requiring approval"
-        )]
-        amount: String,
+        #[wasm_export(param_description = "Amount requiring approval")] amount: String,
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
 
@@ -615,18 +606,15 @@ impl RaindexClient {
     )]
     pub async fn get_vaults(
         &self,
-        #[wasm_export(
-            param_description = "Specific blockchain networks to query (optional)"
-        )]
+        #[wasm_export(param_description = "Specific blockchain networks to query (optional)")]
         chain_ids: Option<ChainIds>,
         #[wasm_export(
             param_description = "Optional filtering options including owners and hide_zero_balance"
         )]
         filters: Option<GetVaultsFilters>,
-        #[wasm_export(
-            param_description = "Optional page number (defaults to 1)"
-        )]
-        page: Option<u16>,
+        #[wasm_export(param_description = "Optional page number (defaults to 1)")] page: Option<
+            u16,
+        >,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let multi_subgraph_args =
@@ -695,18 +683,9 @@ impl RaindexClient {
     )]
     pub async fn get_vault(
         &self,
-        #[wasm_export(
-            param_description = "Chain ID of the network the vault is on"
-        )]
-        chain_id: u32,
-        #[wasm_export(
-            param_description = "Orderbook contract address"
-        )]
-        orderbook_address: String,
-        #[wasm_export(
-            param_description = "Unique vault identifier"
-        )]
-        vault_id: String,
+        #[wasm_export(param_description = "Chain ID of the network the vault is on")] chain_id: u32,
+        #[wasm_export(param_description = "Orderbook contract address")] orderbook_address: String,
+        #[wasm_export(param_description = "Unique vault identifier")] vault_id: String,
     ) -> Result<RaindexVault, RaindexError> {
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
         let vault = RaindexVault::try_from_sg_vault(
