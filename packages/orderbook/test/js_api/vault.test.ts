@@ -286,7 +286,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			})
 		);
 
-		const res = await checkVaultAllowance(mockServer.url + '/rpc', vault1);
+		const res = await checkVaultAllowance([mockServer.url + '/rpc'], vault1);
 		if (res.error) assert.fail('expected to resolve, but failed');
 		assert.equal(res.value, '0x64');
 	});
@@ -301,7 +301,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			})
 		);
 
-		const res = await getVaultApprovalCalldata(mockServer.url + '/rpc', vault1, '600');
+		const res = await getVaultApprovalCalldata([mockServer.url + '/rpc'], vault1, '600');
 		if (res.error) assert.fail('expected to resolve, but failed');
 
 		assert.ok(res.value.startsWith('0x'));
@@ -319,7 +319,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			})
 		);
 
-		const res = await getVaultApprovalCalldata(mockServer.url + '/rpc', vault1, '100');
+		const res = await getVaultApprovalCalldata([mockServer.url + '/rpc'], vault1, '100');
 		if (!res.error) assert.fail('expected to reject, but resolved');
 		assert.equal(res.error.msg, 'Invalid amount');
 	});
@@ -335,7 +335,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			})
 		);
 
-		const res = await getVaultApprovalCalldata(mockServer.url + '/rpc', vault1, '90');
+		const res = await getVaultApprovalCalldata([mockServer.url + '/rpc'], vault1, '90');
 		if (!res.error) assert.fail('expected to reject, but resolved');
 		assert.equal(res.error.msg, 'Invalid amount');
 	});

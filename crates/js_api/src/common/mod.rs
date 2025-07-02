@@ -73,17 +73,7 @@ impl From<Error> for WasmEncodedError {
 /// transaction calldata needed to add an order to the orderbook. The calldata includes
 /// the order structure, evaluable bytecode, and all necessary parameters.
 ///
-/// # Parameters
-///
-/// * `dotrain` - Complete dotrain text containing YAML frontmatter and Rainlang code
-/// * `deployment` - Name of the deployment defined in the dotrain frontmatter
-///
-/// # Returns
-///
-/// * `Ok(AddOrderCalldata)` - ABI-encoded calldata ready for blockchain submission
-/// * `Err(Error)` - Invalid dotrain format, missing deployment, or compilation failure
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// // Generate calldata for adding an order
@@ -97,10 +87,15 @@ impl From<Error> for WasmEncodedError {
 /// ```
 #[wasm_export(
     js_name = "getAddOrderCalldata",
-    unchecked_return_type = "AddOrderCalldata"
+    unchecked_return_type = "AddOrderCalldata",
+    return_description = "ABI-encoded calldata ready for sending transaction"
 )]
 pub async fn get_add_order_calldata(
+    #[wasm_export(
+        param_description = "Complete dotrain text containing YAML frontmatter and Rainlang code"
+    )]
     dotrain: &str,
+    #[wasm_export(param_description = "Name of the deployment defined in the dotrain frontmatter")]
     deployment: &str,
 ) -> Result<AddOrderCalldata, Error> {
     let config: Config = parse_frontmatter(dotrain.to_string()).await?.try_into()?;
@@ -112,11 +107,21 @@ pub async fn get_add_order_calldata(
         AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment_ref.deref().clone())
             .await?;
 
-    let tx_args = TransactionArgs {
-        rpc_url: deployment_ref.scenario.deployer.network.rpc.to_string(),
-        ..Default::default()
-    };
-    let calldata = add_order_args.get_add_order_calldata(tx_args).await?;
+    let rpcs = deployment_ref
+        .scenario
+        .deployer
+        .network
+        .rpcs
+        .iter()
+        .map(|rpc| rpc.to_string())
+        .collect::<Vec<String>>();
+    let calldata = add_order_args
+        .get_add_order_calldata(TransactionArgs {
+            rpcs,
+            ..Default::default()
+        })
+        .await?;
+
     Ok(AddOrderCalldata(Bytes::copy_from_slice(&calldata)))
 }
 
@@ -125,16 +130,7 @@ pub async fn get_add_order_calldata(
 /// Takes an existing order from the subgraph and creates the transaction calldata needed
 /// to remove it from the orderbook. The order must be active and owned by the caller.
 ///
-/// # Parameters
-///
-/// * `order` - Order object from subgraph containing order details and encoded order data
-///
-/// # Returns
-///
-/// * `Ok(RemoveOrderCalldata)` - ABI-encoded calldata ready for blockchain submission
-/// * `Err(Error)` - Invalid order format or calldata encoding failure
-///
-/// # Examples
+/// ## Examples
 ///
 /// ```javascript
 /// // Generate calldata for removing an order
@@ -148,9 +144,15 @@ pub async fn get_add_order_calldata(
 /// ```
 #[wasm_export(
     js_name = "getRemoveOrderCalldata",
-    unchecked_return_type = "RemoveOrderCalldata"
+    unchecked_return_type = "RemoveOrderCalldata",
+    return_description = "ABI-encoded calldata ready for sending transaction"
 )]
-pub async fn get_remove_order_calldata(order: SgOrder) -> Result<RemoveOrderCalldata, Error> {
+pub async fn get_remove_order_calldata(
+    #[wasm_export(
+        param_description = "Order object from subgraph containing order details and encoded order data"
+    )]
+    order: SgOrder,
+) -> Result<RemoveOrderCalldata, Error> {
     let remove_order_args = RemoveOrderArgs { order };
     let calldata = remove_order_args.get_rm_order_calldata().await?;
     Ok(RemoveOrderCalldata(Bytes::copy_from_slice(&calldata)))
@@ -250,7 +252,8 @@ mod tests {
 version: {spec_version}
 networks:
   mainnet:
-    rpc: {rpc_url}
+    rpcs:
+      - {rpc_url}
     chain-id: 1
 subgraphs:
   mainnet: https://mainnet-subgraph.com
@@ -399,7 +402,7 @@ _ _: 0 0;
                 ]),
             }
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: rpc_server.url("/rpc"),
+                rpcs: vec![rpc_server.url("/rpc")],
                 ..Default::default()
             })
             .await

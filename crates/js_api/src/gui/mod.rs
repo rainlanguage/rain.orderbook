@@ -67,16 +67,7 @@ impl DotrainOrderGui {
     /// This function parses the gui section of the YAML frontmatter to extract deployment keys that can be used
     /// to initialize a GUI instance. Use this to build deployment selectors in your UI.
     ///
-    /// # Parameters
-    ///
-    /// - `dotrain` - Complete dotrain YAML content including the `gui.deployments` section
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(Vec<String>)` - Array of deployment identifiers (keys from the deployments map)
-    /// - `Err(GuiError)` - If YAML parsing fails or deployments section is missing
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const dotrain = `
@@ -96,8 +87,17 @@ impl DotrainOrderGui {
     /// const deploymentKeys = result.value;
     /// // Do something with the deploymentKeys
     /// ```
-    #[wasm_export(js_name = "getDeploymentKeys", unchecked_return_type = "string[]")]
-    pub async fn get_deployment_keys(dotrain: String) -> Result<Vec<String>, GuiError> {
+    #[wasm_export(
+        js_name = "getDeploymentKeys",
+        unchecked_return_type = "string[]",
+        return_description = "Array of deployment identifiers (keys from the deployments map)"
+    )]
+    pub async fn get_deployment_keys(
+        #[wasm_export(
+            param_description = "Complete dotrain YAML content including the `gui.deployments` section"
+        )]
+        dotrain: String,
+    ) -> Result<Vec<String>, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         Ok(GuiCfg::parse_deployment_keys(
             dotrain_order.dotrain_yaml().documents.clone(),
@@ -110,26 +110,12 @@ impl DotrainOrderGui {
     /// deployment. The instance tracks field values, deposits, token selections, and provides
     /// methods for generating order transactions.
     ///
-    /// # Parameters
-    ///
-    /// - `dotrain` - Complete dotrain YAML content with all configurations
-    /// - `selected_deployment` - Key of the deployment to activate (must exist in YAML)
-    /// - `state_update_callback` - Optional JavaScript function called on state changes.
-    /// After a state change (deposit, field value, vault id, select token, etc.),
-    /// the callback is called with the new state. This is useful for auto-saving the state of the GUI across sessions.
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(DotrainOrderGui)` - Initialized GUI instance for further operations
-    /// - `Err(DeploymentNotFound)` - If the selected deployment doesn't exist
-    /// - `Err(GuiError)` - For YAML parsing or other initialization errors
-    ///
-    /// # State Management
+    /// ## State Management
     ///
     /// The callback function receives a serialized state string on every change, enabling
     /// auto-save functionality or state synchronization across components.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Basic initialization
@@ -153,10 +139,23 @@ impl DotrainOrderGui {
     ///   // Use gui instance...
     /// }
     /// ```
-    #[wasm_export(js_name = "newWithDeployment", preserve_js_class)]
+    #[wasm_export(
+        js_name = "newWithDeployment",
+        preserve_js_class,
+        return_description = "Initialized GUI instance for further operations"
+    )]
     pub async fn new_with_deployment(
+        #[wasm_export(param_description = "Complete dotrain YAML content with all configurations")]
         dotrain: String,
+        #[wasm_export(
+            param_description = "Key of the deployment to activate (must exist in YAML)"
+        )]
         selected_deployment: String,
+        #[wasm_export(
+            param_description = "Optional JavaScript function called on state changes. \
+            After a state change (deposit, field value, vault id, select token, etc.), the callback is called with the new state. \
+            This is useful for auto-saving the state of the GUI across sessions."
+        )]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
@@ -180,12 +179,7 @@ impl DotrainOrderGui {
     /// This returns the parsed GUI section from the YAML, filtered to include only
     /// the current deployment. Use this to access strategy-level metadata.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(GuiCfg)` - Complete GUI configuration with name, description, and deployments
-    /// - `Err(GuiConfigNotFound)` - If the YAML lacks a gui section
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getGuiConfig();
@@ -196,7 +190,11 @@ impl DotrainOrderGui {
     /// const config = result.value;
     /// // Do something with the config
     /// ```
-    #[wasm_export(js_name = "getGuiConfig", unchecked_return_type = "GuiCfg")]
+    #[wasm_export(
+        js_name = "getGuiConfig",
+        unchecked_return_type = "GuiCfg",
+        return_description = "Complete GUI configuration with name, description, and deployments"
+    )]
     pub fn get_gui_config(&self) -> Result<GuiCfg, GuiError> {
         if !GuiCfg::check_gui_key_exists(self.dotrain_order.dotrain_yaml().documents.clone())? {
             return Err(GuiError::GuiConfigNotFound);
@@ -214,19 +212,14 @@ impl DotrainOrderGui {
     /// This is the primary method for accessing deployment-specific settings that define
     /// what inputs are needed from the user. The configuration drives UI generation.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(GuiDeploymentCfg)` - Active deployment with all configuration details
-    /// - `Err(DeploymentNotFound)` - If the deployment was removed from YAML
-    ///
-    /// # Configuration Structure
+    /// ## Configuration Structure
     ///
     /// - `fields` - Input fields requiring user configuration
     /// - `deposits` - Token deposits with amounts and presets
     /// - `selectTokens` - Tokens that users must choose addresses for
     /// - `deployment` - Underlying order and scenario configuration
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getCurrentDeployment();
@@ -239,7 +232,8 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getCurrentDeployment",
-        unchecked_return_type = "GuiDeploymentCfg"
+        unchecked_return_type = "GuiDeploymentCfg",
+        return_description = "Active deployment with all configuration details"
     )]
     pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, GuiError> {
         let gui = self.get_gui_config()?;
@@ -259,21 +253,11 @@ impl DotrainOrderGui {
     /// If any information is missing, it queries the blockchain to fetch the complete details.
     /// This hybrid approach minimizes RPC calls while ensuring accurate data.
     ///
-    /// # Parameters
-    ///
-    /// - `key` - Token identifier from the YAML tokens section
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(TokenInfo)` - Complete token details including address, decimals, name, and symbol
-    /// - `Err(KeyNotFound)` - If the token key doesn't exist in YAML
-    /// - `Err(ReadableClientError)` - If blockchain query fails
-    ///
-    /// # Network Selection
+    /// ## Network Selection
     ///
     /// The RPC endpoint is determined by the deployment's order network configuration.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Get token info (may query blockchain)
@@ -285,8 +269,16 @@ impl DotrainOrderGui {
     /// const tokenInfo = result.value;
     /// // Do something with the tokenInfo
     /// ```
-    #[wasm_export(js_name = "getTokenInfo", unchecked_return_type = "TokenInfo")]
-    pub async fn get_token_info(&self, key: String) -> Result<TokenInfo, GuiError> {
+    #[wasm_export(
+        js_name = "getTokenInfo",
+        unchecked_return_type = "TokenInfo",
+        return_description = "Complete token details including address, decimals, name, and symbol"
+    )]
+    pub async fn get_token_info(
+        &self,
+        #[wasm_export(param_description = "Token identifier from the YAML tokens section")]
+        key: String,
+    ) -> Result<TokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
         let token_info = if token.decimals.is_some()
@@ -308,10 +300,10 @@ impl DotrainOrderGui {
                 self.dotrain_order.dotrain_yaml().documents,
                 &order_key,
             )?;
-            let rpc_url =
-                NetworkCfg::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
+            let rpcs =
+                NetworkCfg::parse_rpcs(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
-            let erc20 = ERC20::new(rpc_url, token.address);
+            let erc20 = ERC20::new(rpcs, token.address);
             let onchain_info = erc20.token_info(None).await?;
 
             TokenInfo {
@@ -331,17 +323,12 @@ impl DotrainOrderGui {
     /// - If `select-tokens` is defined, returns info for those tokens
     /// - Otherwise, returns info for all input/output tokens in the order
     ///
-    /// # Returns
-    ///
-    /// - `Ok(Vec<TokenInfo>)` - Array of complete token information
-    /// - `Err(GuiError)` - If any token lookup fails
-    ///
-    /// # Performance Note
+    /// ## Performance Note
     ///
     /// This may trigger multiple blockchain queries if token data isn't cached in YAML.
     /// Consider caching the results in your application.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await gui.getAllTokenInfos();
@@ -352,7 +339,11 @@ impl DotrainOrderGui {
     /// const tokens = result.value;
     /// // Do something with the tokens
     /// ```
-    #[wasm_export(js_name = "getAllTokenInfos", unchecked_return_type = "TokenInfo[]")]
+    #[wasm_export(
+        js_name = "getAllTokenInfos",
+        unchecked_return_type = "TokenInfo[]",
+        return_description = "Array of complete token information"
+    )]
     pub async fn get_all_token_infos(&self) -> Result<Vec<TokenInfo>, GuiError> {
         let select_tokens = self.get_select_tokens()?;
 
@@ -385,23 +376,14 @@ impl DotrainOrderGui {
     /// This static method allows checking strategy details without creating a GUI instance,
     /// useful for displaying strategy information before deployment selection.
     ///
-    /// # Parameters
-    ///
-    /// - `dotrain` - Complete dotrain YAML content
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(NameAndDescriptionCfg)` - Strategy name, description, and optional short description
-    /// - `Err(GuiError)` - If required fields are missing from the gui section
-    ///
-    /// # Required Fields
+    /// ## Required Fields
     ///
     /// The YAML must contain:
     /// - `gui.name` - Strategy display name
     /// - `gui.description` - Full strategy description  
     /// - `gui.short-description` - Brief summary (optional but recommended)
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await getStrategyDetails(dotrainYaml);
@@ -414,9 +396,12 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getStrategyDetails",
-        unchecked_return_type = "NameAndDescriptionCfg"
+        unchecked_return_type = "NameAndDescriptionCfg",
+        return_description = "Strategy name, description, and optional short description"
     )]
-    pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescriptionCfg, GuiError> {
+    pub async fn get_strategy_details(
+        #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
+    ) -> Result<NameAndDescriptionCfg, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         let details =
             GuiCfg::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
@@ -428,16 +413,7 @@ impl DotrainOrderGui {
     /// This static method extracts name and description for each deployment, useful for
     /// building deployment selection interfaces with rich descriptions.
     ///
-    /// # Parameters
-    ///
-    /// - `dotrain` - Complete dotrain YAML content
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(HashMap<String, NameAndDescriptionCfg>)` - Map of deployment key to metadata
-    /// - `Err(GuiError)` - If YAML structure is invalid
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await getDeploymentDetails(dotrainYaml);
@@ -461,10 +437,11 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getDeploymentDetails",
-        unchecked_return_type = "Map<string, NameAndDescriptionCfg>"
+        unchecked_return_type = "Map<string, NameAndDescriptionCfg>",
+        return_description = "Map of deployment key to metadata"
     )]
     pub async fn get_deployment_details(
-        dotrain: String,
+        #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<HashMap<String, NameAndDescriptionCfg>, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         Ok(GuiCfg::parse_deployment_details(
@@ -477,17 +454,7 @@ impl DotrainOrderGui {
     /// Convenience method that extracts details for a single deployment without
     /// parsing all deployments.
     ///
-    /// # Parameters
-    ///
-    /// - `dotrain` - Complete dotrain YAML content
-    /// - `key` - Deployment identifier to look up
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(NameAndDescriptionCfg)` - Deployment name and description
-    /// - `Err(DeploymentNotFound)` - If the key doesn't exist
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await getDeploymentDetail(dotrainYaml, "mainnet-strategy");
@@ -500,11 +467,12 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getDeploymentDetail",
-        unchecked_return_type = "NameAndDescriptionCfg"
+        unchecked_return_type = "NameAndDescriptionCfg",
+        return_description = "Deployment name and description"
     )]
     pub async fn get_deployment_detail(
-        dotrain: String,
-        key: String,
+        #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
+        #[wasm_export(param_description = "Deployment identifier to look up")] key: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
         let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
         let deployment_detail = deployment_details
@@ -518,12 +486,7 @@ impl DotrainOrderGui {
     /// Instance method that returns name and description for the deployment
     /// selected during initialization.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(NameAndDescriptionCfg)` - Current deployment's metadata
-    /// - `Err(DeploymentNotFound)` - If deployment was removed from YAML
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getCurrentDeploymentDetails();
@@ -536,7 +499,8 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getCurrentDeploymentDetails",
-        unchecked_return_type = "NameAndDescriptionCfg"
+        unchecked_return_type = "NameAndDescriptionCfg",
+        return_description = "Current deployment's metadata"
     )]
     pub fn get_current_deployment_details(&self) -> Result<NameAndDescriptionCfg, GuiError> {
         let deployment_details =
@@ -554,12 +518,7 @@ impl DotrainOrderGui {
     /// This generates a valid dotrain file with YAML frontmatter and Rainlang code,
     /// preserving all configurations and bindings. Useful for saving or sharing strategies.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(String)` - Complete dotrain content with YAML frontmatter separator
-    /// - `Err(GuiError)` - If configuration is invalid
-    ///
-    /// # Format
+    /// ## Format
     ///
     /// The output follows the standard dotrain format:
     /// ```
@@ -571,7 +530,7 @@ impl DotrainOrderGui {
     /// ...
     /// ```
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.generateDotrainText();
@@ -582,7 +541,11 @@ impl DotrainOrderGui {
     /// const dotrain = result.value;
     /// // Do something with the dotrain
     /// ```
-    #[wasm_export(js_name = "generateDotrainText", unchecked_return_type = "string")]
+    #[wasm_export(
+        js_name = "generateDotrainText",
+        unchecked_return_type = "string",
+        return_description = "Complete dotrain content with YAML frontmatter separator"
+    )]
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
         let rain_document = RainDocument::create(self.dotrain_order.dotrain()?, None, None, None);
         let dotrain = format!(
@@ -599,26 +562,11 @@ impl DotrainOrderGui {
     /// This method updates scenario bindings from current field values and composes
     /// the Rainlang code ready to be displayed on the UI.
     ///
-    /// # Side Effects
+    /// ## Side Effects
     ///
     /// Updates the internal scenario bindings before composition.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(String)` - Composed Rainlang code with comments for each entrypoint
-    /// - `Err(GuiError)` - If composition fails
-    ///
-    /// # Output Format
-    ///
-    /// ```
-    /// /* 0. calculate-io */
-    /// _ _: 0 0;
-    ///
-    /// /* 1. handle-io */
-    /// :;
-    /// ```
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await gui.getComposedRainlang();
@@ -629,7 +577,11 @@ impl DotrainOrderGui {
     /// const rainlang = result.value;
     /// // Do something with the rainlang
     /// ```
-    #[wasm_export(js_name = "getComposedRainlang", unchecked_return_type = "string")]
+    #[wasm_export(
+        js_name = "getComposedRainlang",
+        unchecked_return_type = "string",
+        return_description = "Composed Rainlang code with comments for each entrypoint"
+    )]
     pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
         self.update_scenario_bindings()?;
         let dotrain = self.generate_dotrain_text()?;
@@ -918,12 +870,14 @@ gui:
           description: Token 4 description
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
     other-network:
-        rpc: http://localhost:8086/rpc-url
+        rpcs:
+            - http://localhost:8086/rpc-url
         chain-id: 124
         network-id: 124
         currency: ETH2
@@ -1762,7 +1716,8 @@ _ _: 0 0;
                 r#"
 networks:
     some-network:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH

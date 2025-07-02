@@ -21,9 +21,21 @@ pub struct QuoteDebugger {
 #[derive(Debug, thiserror::Error)]
 pub enum QuoteDebuggerError {
     #[error("Forker error: {0}")]
-    ForkerError(#[from] ForkCallError),
+    ForkerError(Box<ForkCallError>),
     #[error("Quote error: {0}")]
-    QuoteError(#[from] crate::error::Error),
+    QuoteError(crate::error::Error),
+}
+
+impl From<ForkCallError> for QuoteDebuggerError {
+    fn from(err: ForkCallError) -> Self {
+        Self::ForkerError(Box::new(err))
+    }
+}
+
+impl From<crate::error::Error> for QuoteDebuggerError {
+    fn from(err: crate::error::Error) -> Self {
+        Self::QuoteError(err)
+    }
 }
 
 impl QuoteDebugger {
@@ -101,7 +113,8 @@ mod tests {
 version: {spec_version}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -165,7 +178,7 @@ amount price: 16 52;
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(local_evm.url())
+            .try_into_call(vec![local_evm.url()])
             .await
             .unwrap()
             .abi_encode();
@@ -224,7 +237,8 @@ amount price: 16 52;
 version: {spec_version}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -293,7 +307,7 @@ _: 1;
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(local_evm.url())
+            .try_into_call(vec![local_evm.url()])
             .await
             .unwrap()
             .abi_encode();
@@ -350,7 +364,8 @@ _: 1;
 version: {spec_version}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -419,7 +434,7 @@ _: 1;
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(local_evm.url())
+            .try_into_call(vec![local_evm.url()])
             .await
             .unwrap()
             .abi_encode();

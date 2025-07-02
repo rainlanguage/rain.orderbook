@@ -35,7 +35,7 @@ export type TransactionConfirmationProps = {
 
 export type QuoteDebugModalHandler = (
 	order: SgOrder,
-	rpcUrl: string,
+	rpcUrls: string[],
 	orderbook: string,
 	inputIOIndex: number,
 	outputIOIndex: number,
@@ -43,7 +43,7 @@ export type QuoteDebugModalHandler = (
 	blockNumber?: number
 ) => void;
 
-export type DebugTradeModalHandler = (hash: string, rpcUrl: string) => void;
+export type DebugTradeModalHandler = (hash: string, rpcUrls: string[]) => void;
 
 export type HandleTransactionConfirmationModal = (
 	props: TransactionConfirmationProps,

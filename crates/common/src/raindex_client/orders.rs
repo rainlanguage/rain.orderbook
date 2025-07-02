@@ -384,7 +384,10 @@ impl RaindexClient {
                     .iter()
                     .find(|(_, subgraph)| subgraph.name == order.subgraph_name)
                     .map(|(chain_id, _)| *chain_id)
-                    .unwrap();
+                    .ok_or(RaindexError::SubgraphNotFound(
+                        order.subgraph_name.clone(),
+                        order.order.order_hash.0.clone(),
+                    ))?;
                 let order = RaindexOrder::try_from_sg_order(
                     raindex_client.clone(),
                     chain_id,

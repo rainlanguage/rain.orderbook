@@ -24,17 +24,7 @@ impl OrderbookYaml {
     /// other deployment metadata. The YAML sources are merged and validated according to the
     /// [orderbook specification](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md).
     ///
-    /// # Parameters
-    ///
-    /// * `sources` - Vector of YAML configuration strings to parse and merge
-    /// * `validate` - Optional boolean to enable strict validation (defaults to false)
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(OrderbookYaml)` - Successfully parsed and configured instance
-    /// * `Err(OrderbookYamlError)` - Error parsing or validating the YAML configuration
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Basic usage with single YAML source
@@ -59,9 +49,19 @@ impl OrderbookYaml {
     /// const orderbookYaml = result.value;
     /// // Do something with the orderbookYaml
     /// ```
-    #[wasm_export(js_name = "new", preserve_js_class)]
+    #[wasm_export(
+        js_name = "new",
+        preserve_js_class,
+        return_description = "Successfully parsed and configured instance"
+    )]
     pub fn new(
+        #[wasm_export(
+            param_description = "Vector of YAML configuration strings to parse and merge"
+        )]
         sources: Vec<String>,
+        #[wasm_export(
+            param_description = "Optional boolean to enable strict validation (defaults to false)"
+        )]
         validate: Option<bool>,
     ) -> Result<OrderbookYaml, OrderbookYamlError> {
         let yaml = OrderbookYamlCfg::new(sources, validate.unwrap_or(false))?;
@@ -74,16 +74,7 @@ impl OrderbookYaml {
     /// using the orderbook's blockchain address. It's essential for accessing orderbook metadata
     /// including network configuration, subgraph endpoints, and other deployment details.
     ///
-    /// # Parameters
-    ///
-    /// * `orderbook_address` - The hexadecimal address of the orderbook contract
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(OrderbookCfg)` - Complete orderbook configuration
-    /// * `Err(OrderbookYamlError)` - Error parsing the YAML configuration
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Basic usage
@@ -97,10 +88,12 @@ impl OrderbookYaml {
     /// ```
     #[wasm_export(
         js_name = "getOrderbookByAddress",
-        unchecked_return_type = "OrderbookCfg"
+        unchecked_return_type = "OrderbookCfg",
+        return_description = "Complete orderbook configuration"
     )]
     pub fn get_orderbook_by_address(
         &self,
+        #[wasm_export(param_description = "The hexadecimal address of the orderbook contract")]
         orderbook_address: &str,
     ) -> Result<OrderbookCfg, OrderbookYamlError> {
         let address =
@@ -154,7 +147,8 @@ mod tests {
     version: {spec_version}
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
             label: Ethereum Mainnet
             network-id: 1

@@ -17,12 +17,14 @@ import { getLocal } from 'mockttp';
 const YAML = `
 networks:
     some-network:
-        rpc: http://localhost:8230/rpc1
+        rpcs:
+            - http://localhost:8230/rpc1
         chain-id: 1
         network-id: 1
         currency: ETH
     other-network:
-        rpc: http://localhost:8230/rpc2
+        rpcs:
+            - http://localhost:8230/rpc2
         chain-id: 2
         network-id: 2
         currency: ETH
@@ -1482,7 +1484,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
 			const result = extractWasmEncodedData(await vault.getBalanceChanges());
 
-			assert.equal(result[0].__typename, 'Deposit');
+			assert.equal(result[0].type, 'deposit');
 			assert.equal(result[0].amount, BigInt('5000000000000000000'));
 			assert.equal(result[0].newBalance, BigInt('5000000000000000000'));
 			assert.equal(result[0].oldBalance, BigInt('0'));

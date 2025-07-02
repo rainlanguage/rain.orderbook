@@ -64,17 +64,16 @@ pub struct RaindexClient {
 impl RaindexClient {
     /// Constructor that creates and returns RaindexClient instance directly
     ///
-    /// # Parameters
+    /// ## Parameters
     ///
-    /// - `ob_yamls` - Vector of YAML configuration strings
-    /// The YAML files must match the orderbook yaml [spec]()
+    /// - `ob_yamls` - Vector of YAML configuration strings. The YAML files must match the [orderbook yaml spec](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md).
+    /// - `validate` - Optional boolean flag to enable validation of the YAML configuration. Defaults to false.
     ///
-    /// # Returns
+    /// ## Returns
     ///
-    /// - `Ok(RaindexClient)` - Initialized client instance for further operations
-    /// - `Err(RaindexError)` - For YAML parsing or initialization errors
+    /// - `RaindexClient` - Initialized client instance for further operations.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Single YAML file
@@ -152,9 +151,9 @@ impl RaindexClient {
         Ok(orderbook.subgraph.url.clone())
     }
 
-    fn get_rpc_url_for_chain(&self, chain_id: u64) -> Result<Url, RaindexError> {
+    fn get_rpc_urls_for_chain(&self, chain_id: u64) -> Result<Vec<Url>, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
-        Ok(network.rpc.clone())
+        Ok(network.rpcs.clone())
     }
 }
 
@@ -173,7 +172,7 @@ pub enum RaindexError {
     #[error(transparent)]
     SerdeError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
-    DotrainOrderError(#[from] DotrainOrderError),
+    DotrainOrderError(Box<DotrainOrderError>),
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
@@ -198,6 +197,16 @@ pub enum RaindexError {
     WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
     #[error(transparent)]
     DepositArgsError(#[from] DepositError),
+    #[error("Missing subgraph {0} for order {1}")]
+    SubgraphNotFound(String, String),
+    #[error("Invalid vault balance change type: {0}")]
+    InvalidVaultBalanceChangeType(String),
+}
+
+impl From<DotrainOrderError> for RaindexError {
+    fn from(err: DotrainOrderError) -> Self {
+        Self::DotrainOrderError(Box::new(err))
+    }
 }
 
 impl RaindexError {
@@ -269,6 +278,15 @@ impl RaindexError {
             RaindexError::DepositArgsError(err) => {
                 format!("Failed to create deposit arguments: {}", err)
             }
+            RaindexError::SubgraphNotFound(subgraph, order) => {
+                format!(
+                    "Subgraph with name '{}' not found for the order with hash '{}'",
+                    subgraph, order
+                )
+            }
+            RaindexError::InvalidVaultBalanceChangeType(typ) => {
+                format!("Invalid vault balance change type: {}", typ)
+            }
         }
     }
 }
@@ -299,13 +317,15 @@ mod tests {
 version: {spec_version}
 networks:
     mainnet:
-        rpc: {rpc1}
+        rpcs:
+            - {rpc1}
         chain-id: 1
         label: Ethereum Mainnet
         network-id: 1
         currency: ETH
     polygon:
-        rpc: {rpc2}
+        rpcs:
+            - {rpc2}
         chain-id: 137
         label: Polygon Mainnet
         network-id: 137
@@ -362,7 +382,8 @@ deployers:
     version: {spec_version}
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
     orderbooks:
         invalid-orderbook:
@@ -526,10 +547,12 @@ deployers:
     version: {spec_version}
     networks:
         isolated:
-            rpc: https://isolated.rpc
+            rpcs:
+                - https://isolated.rpc
             chain-id: 999
         some-network:
-            rpc: https://some-network.rpc
+            rpcs:
+                - https://some-network.rpc
             chain-id: 1000
     subgraphs:
         test: https://test.subgraph

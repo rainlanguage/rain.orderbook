@@ -238,7 +238,7 @@ using-tokens-from: {}
                 NetworkCfg {
                     document: default_document(),
                     key: "remote-network".to_string(),
-                    rpc: Url::parse("http://localhost:8085/rpc-url").unwrap(),
+                    rpcs: vec![Url::parse("http://localhost:8085/rpc-url").unwrap()],
                     chain_id: 123,
                     label: None,
                     network_id: None,
@@ -250,7 +250,7 @@ using-tokens-from: {}
                 NetworkCfg {
                     document: default_document(),
                     key: "remote2-network".to_string(),
-                    rpc: Url::parse("http://localhost:8085/rpc-url").unwrap(),
+                    rpcs: vec![Url::parse("http://localhost:8085/rpc-url").unwrap()],
                     chain_id: 234,
                     label: None,
                     network_id: None,
