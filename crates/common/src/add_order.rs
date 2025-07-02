@@ -57,16 +57,29 @@ pub enum AddOrderArgsError {
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
     #[error(transparent)]
-    DotrainOrderError(#[from] DotrainOrderError),
+    DotrainOrderError(Box<DotrainOrderError>),
     #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
-    ForkCallError(#[from] ForkCallError),
+    ForkCallError(Box<ForkCallError>),
     #[error("Input token not found for index: {0}")]
     InputTokenNotFound(String),
     #[error("Output token not found for index: {0}")]
     OutputTokenNotFound(String),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
+}
+
+impl From<DotrainOrderError> for AddOrderArgsError {
+    fn from(err: DotrainOrderError) -> Self {
+        Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl From<ForkCallError> for AddOrderArgsError {
+    fn from(err: ForkCallError) -> Self {
+        Self::ForkCallError(Box::new(err))
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

@@ -123,8 +123,8 @@ _ _: 0 0;
 
         assert!(matches!(
             err,
-            CommandError::ForkParseError(ForkParseError::ForkerError(ForkCallError::TypedError(msg)))
-            if msg.contains("parse2Call")
+            CommandError::ForkParseError(ForkParseError::ForkerError(ref boxed_err))
+            if matches!(**boxed_err, ForkCallError::TypedError(ref msg) if msg.contains("parse2Call"))
         ));
     }
 }

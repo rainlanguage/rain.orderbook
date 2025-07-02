@@ -84,7 +84,7 @@ pub enum DotrainOrderError {
     AuthoringMetaV2Error(#[from] AuthoringMetaV2Error),
 
     #[error(transparent)]
-    FetchAuthoringMetaV2WordError(#[from] FetchAuthoringMetaV2WordError),
+    FetchAuthoringMetaV2WordError(Box<FetchAuthoringMetaV2WordError>),
 
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
@@ -120,6 +120,12 @@ pub enum DotrainOrderError {
     ParseRemoteNetworksError(#[from] ParseRemoteNetworksError),
     #[error(transparent)]
     ParseRemoteTokensError(#[from] ParseRemoteTokensError),
+}
+
+impl From<FetchAuthoringMetaV2WordError> for DotrainOrderError {
+    fn from(err: FetchAuthoringMetaV2WordError) -> Self {
+        Self::FetchAuthoringMetaV2WordError(Box::new(err))
+    }
 }
 
 impl DotrainOrderError {

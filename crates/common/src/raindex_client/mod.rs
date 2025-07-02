@@ -155,7 +155,7 @@ pub enum RaindexError {
     #[error(transparent)]
     SerdeError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
-    DotrainOrderError(#[from] DotrainOrderError),
+    DotrainOrderError(Box<DotrainOrderError>),
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
@@ -172,6 +172,12 @@ pub enum RaindexError {
     WriteLockError,
     #[error("Missing subgraph {0} for order {1}")]
     SubgraphNotFound(String, String),
+}
+
+impl From<DotrainOrderError> for RaindexError {
+    fn from(err: DotrainOrderError) -> Self {
+        Self::DotrainOrderError(Box::new(err))
+    }
 }
 
 impl RaindexError {

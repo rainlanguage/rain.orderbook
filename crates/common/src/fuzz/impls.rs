@@ -72,7 +72,7 @@ pub enum FuzzRunnerError {
     #[error("{0} is not a testable scenario")]
     ScenarioNotTestable(String),
     #[error(transparent)]
-    ForkCallError(#[from] ForkCallError),
+    ForkCallError(Box<ForkCallError>),
     #[error("Empty Front Matter")]
     EmptyFrontmatter,
     #[error(transparent)]
@@ -97,6 +97,12 @@ pub enum FuzzRunnerError {
     SpecVersionMismatch(String, String),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
+}
+
+impl From<ForkCallError> for FuzzRunnerError {
+    fn from(err: ForkCallError) -> Self {
+        Self::ForkCallError(Box::new(err))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -302,7 +308,7 @@ impl FuzzRunner {
                     };
                     fork_clone
                         .fork_eval(args)
-                        .map_err(FuzzRunnerError::ForkCallError)
+                        .map_err(|e| FuzzRunnerError::ForkCallError(Box::new(e)))
                         .await
                 });
                 handles.push(handle);
@@ -472,7 +478,7 @@ impl FuzzRunner {
                 decode_errors: true,
             })
             .await
-            .map_err(FuzzRunnerError::ForkCallError)?;
+            .map_err(|e| FuzzRunnerError::ForkCallError(Box::new(e)))?;
         let store = self
             .forker
             .alloy_call(Address::default(), deployer.address, iStoreCall {}, true)

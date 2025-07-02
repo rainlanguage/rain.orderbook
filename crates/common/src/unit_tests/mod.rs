@@ -56,7 +56,7 @@ pub enum TestRunnerError {
     #[error(transparent)]
     BlockError(#[from] BlockError),
     #[error(transparent)]
-    ForkCallError(#[from] ForkCallError),
+    ForkCallError(Box<ForkCallError>),
     #[error(transparent)]
     JoinError(#[from] tokio::task::JoinError),
     #[error(transparent)]
@@ -65,6 +65,12 @@ pub enum TestRunnerError {
     RainEvalResultError(#[from] RainEvalResultError),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
+}
+
+impl From<ForkCallError> for TestRunnerError {
+    fn from(err: ForkCallError) -> Self {
+        Self::ForkCallError(Box::new(err))
+    }
 }
 
 impl TestRunner {
@@ -162,7 +168,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -213,7 +219,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -258,7 +264,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -313,7 +319,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 

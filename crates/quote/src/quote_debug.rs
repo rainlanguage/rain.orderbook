@@ -21,9 +21,21 @@ pub struct QuoteDebugger {
 #[derive(Debug, thiserror::Error)]
 pub enum QuoteDebuggerError {
     #[error("Forker error: {0}")]
-    ForkerError(#[from] ForkCallError),
+    ForkerError(Box<ForkCallError>),
     #[error("Quote error: {0}")]
-    QuoteError(#[from] crate::error::Error),
+    QuoteError(crate::error::Error),
+}
+
+impl From<ForkCallError> for QuoteDebuggerError {
+    fn from(err: ForkCallError) -> Self {
+        Self::ForkerError(Box::new(err))
+    }
+}
+
+impl From<crate::error::Error> for QuoteDebuggerError {
+    fn from(err: crate::error::Error) -> Self {
+        Self::QuoteError(err)
+    }
 }
 
 impl QuoteDebugger {
