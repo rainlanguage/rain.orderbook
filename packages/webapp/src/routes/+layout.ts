@@ -7,8 +7,7 @@ import {
 	RaindexClient,
 	type Address,
 	type NewConfig,
-	type OrderbookCfg,
-	type SubgraphCfg
+	type OrderbookCfg
 } from '@rainlanguage/orderbook';
 
 export interface LayoutData {
@@ -116,7 +115,6 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	return {
 		stores: {
 			settings,
-			activeSubgraphs: writable<Record<string, SubgraphCfg>>({}),
 			selectedChainIds: writable<number[]>([]),
 			accounts,
 			activeAccountsItems,
@@ -282,7 +280,6 @@ subgraphs:
 			if (!stores) throw new Error('Test setup error: stores should not be null');
 
 			expect(stores).toHaveProperty('settings');
-			expect(stores).toHaveProperty('activeSubgraphs');
 			expect(stores).toHaveProperty('accounts');
 			expect(stores).toHaveProperty('activeAccountsItems');
 			expect(stores).toHaveProperty('activeAccounts');
