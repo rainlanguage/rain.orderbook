@@ -30,6 +30,27 @@ impl OrderbookSubgraphClient {
         Ok(data.orders)
     }
 
+    fn build_filter_with_tokens(
+        tokens: Vec<String>,
+        basic_filters: SgOrdersListQueryFilters,
+    ) -> SgOrdersListQueryAnyFilters {
+        let vault_token_filter = Some(SgVaultTokenFilter {
+            token_in: tokens.clone(),
+        });
+
+        let filter_with_inputs = SgOrdersListQueryFilters {
+            inputs_: vault_token_filter.clone(),
+            ..basic_filters.clone()
+        };
+        let filter_with_outputs = SgOrdersListQueryFilters {
+            outputs_: vault_token_filter.clone(),
+            ..basic_filters.clone()
+        };
+        SgOrdersListQueryAnyFilters {
+            or: vec![filter_with_inputs, filter_with_outputs],
+        }
+    }
+
     /// Fetch all orders, paginated
     pub async fn orders_list(
         &self,
@@ -52,28 +73,13 @@ impl OrderbookSubgraphClient {
                 outputs_: None,
             };
 
-            if has_token_filters {
-                let vault_token_filter = Some(SgVaultTokenFilter {
-                    token_in: filter_args.tokens.clone(),
-                });
-
-                let filter_with_inputs = SgOrdersListQueryFilters {
-                    inputs_: vault_token_filter.clone(),
-                    ..basic_filters.clone()
-                };
-                let filter_with_outputs = SgOrdersListQueryFilters {
-                    outputs_: vault_token_filter.clone(),
-                    ..basic_filters.clone()
-                };
-
-                Some(SgOrdersListQueryAnyFilters {
-                    or: vec![filter_with_inputs, filter_with_outputs],
-                })
+            Some(if has_token_filters {
+                Self::build_filter_with_tokens(filter_args.tokens, basic_filters)
             } else {
-                Some(SgOrdersListQueryAnyFilters {
+                SgOrdersListQueryAnyFilters {
                     or: vec![basic_filters],
-                })
-            }
+                }
+            })
         } else {
             None
         };
