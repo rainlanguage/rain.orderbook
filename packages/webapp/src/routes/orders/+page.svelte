@@ -9,21 +9,13 @@
 		selectedChainIds
 	} from '$lib/stores/settings';
 
-	const {
-		settings,
-		accounts,
-		activeAccountsItems,
-		hideZeroBalanceVaults,
-		activeNetworkRef,
-		activeOrderbookRef
-	}: AppStoresInterface = $page.data.stores;
+	const { settings, accounts, activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface =
+		$page.data.stores;
 </script>
 
 <PageHeader title={'Orders'} pathname={$page.url.pathname} />
 
 <OrdersListTable
-	{activeNetworkRef}
-	{activeOrderbookRef}
 	{selectedChainIds}
 	{settings}
 	{accounts}

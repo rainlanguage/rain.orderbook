@@ -400,9 +400,7 @@ impl RaindexClient {
             param_description = "Filtering criteria including owners, active status, and order hash (optional)"
         )]
         filters: Option<GetOrdersFilters>,
-        #[wasm_export(
-            param_description = "Page number for pagination (optional, defaults to 1)"
-        )]
+        #[wasm_export(param_description = "Page number for pagination (optional, defaults to 1)")]
         page: Option<u16>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));

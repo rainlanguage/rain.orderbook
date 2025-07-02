@@ -34,8 +34,6 @@
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
-	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
 	const { matchesAccount, account } = useAccount();
 	const raindexClient = useRaindexClient();
@@ -89,15 +87,6 @@
 	queryKey={QKEY_ORDERS}
 	emptyMessage="No Orders Found"
 	on:clickRow={(e) => {
-		const res = raindexClient.getSubgraphKeyForChainId(
-			e.detail.item.chainId,
-			e.detail.item.orderbook
-		);
-		if (res.error) {
-			throw new Error(res.error.readableMsg);
-		}
-		activeNetworkRef.set(res.value);
-		activeOrderbookRef.set(res.value);
 		goto(`/orders/${e.detail.item.chainId}-${e.detail.item.orderbook}-${e.detail.item.orderHash}`);
 	}}
 >

@@ -1,10 +1,8 @@
 <script lang="ts">
   import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
-  import { onMount } from 'svelte';
   import { page } from '$app/stores';
 
   import {
-    activeOrderbook,
     orderHash,
     accounts,
     activeAccountsItems,
@@ -13,8 +11,6 @@
     showInactiveOrders,
     hideZeroBalanceVaults,
     activeAccounts,
-    resetActiveNetworkRef,
-    resetActiveOrderbookRef,
   } from '$lib/stores/settings';
 
   import {
@@ -23,20 +19,12 @@
     handleWithdrawModal,
   } from '$lib/services/modal';
   import { writable } from 'svelte/store';
-
-  onMount(async () => {
-    if (!$activeOrderbook) {
-      await resetActiveNetworkRef();
-      resetActiveOrderbookRef();
-    }
-  });
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
 <VaultsListTable
   {activeAccounts}
-  {activeOrderbook}
   {orderHash}
   {accounts}
   {activeAccountsItems}

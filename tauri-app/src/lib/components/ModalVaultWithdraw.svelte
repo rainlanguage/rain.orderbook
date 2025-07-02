@@ -3,7 +3,6 @@
   import type { RaindexVault } from '@rainlanguage/orderbook';
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
   import { bigintToHex, InputTokenAmount } from '@rainlanguage/ui-components';
-  import { orderbookAddress } from '$lib/stores/settings';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
@@ -49,7 +48,7 @@
         vault.token.id,
         amount,
       )) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      const tx = await ethersExecute(calldata, vault.orderbook);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
       onWithdraw();

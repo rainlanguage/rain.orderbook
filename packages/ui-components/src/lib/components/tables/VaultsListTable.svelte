@@ -18,7 +18,6 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 
-	export let activeOrderbook: AppStoresInterface['activeOrderbook'];
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -101,7 +100,6 @@
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
 					{#if handleDepositGenericModal}
 						<Button
-							disabled={!$activeOrderbook}
 							size="sm"
 							color="primary"
 							data-testid="new-vault-button"

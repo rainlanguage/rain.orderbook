@@ -7,7 +7,6 @@
     vaultDepositCalldata,
   } from '$lib/services/vault';
   import { bigintToHex, InputTokenAmount } from '@rainlanguage/ui-components';
-  import { orderbookAddress } from '$lib/stores/settings';
   import { checkAllowance, ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
@@ -47,8 +46,7 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      if (!$orderbookAddress) throw Error('Select an orderbook to deposit');
-      const allowance = await checkAllowance(vault.token.id, $orderbookAddress);
+      const allowance = await checkAllowance(vault.token.id, vault.orderbook);
       if (allowance.lt(amount)) {
         const approveCalldata = (await vaultDepositApproveCalldata(
           BigInt(vault.vaultId),
@@ -65,7 +63,7 @@
         vault.token.id,
         amount,
       )) as Uint8Array;
-      const depositTx = await ethersExecute(depositCalldata, $orderbookAddress);
+      const depositTx = await ethersExecute(depositCalldata, vault.orderbook);
       toasts.success('Transaction sent successfully!');
       await depositTx.wait(1);
       onDeposit();

@@ -34,21 +34,14 @@ impl RaindexClient {
     )]
     pub async fn get_add_orders_for_transaction(
         &self,
-        #[wasm_export(
-            js_name = "chainId",
-            param_description = "Chain ID for the network"
-        )]
+        #[wasm_export(js_name = "chainId", param_description = "Chain ID for the network")]
         chain_id: u32,
         #[wasm_export(
             js_name = "orderbookAddress",
             param_description = "Orderbook contract address"
         )]
         orderbook_address: String,
-        #[wasm_export(
-            js_name = "txHash",
-            param_description = "Transaction hash"
-        )]
-        tx_hash: String,
+        #[wasm_export(js_name = "txHash", param_description = "Transaction hash")] tx_hash: String,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;

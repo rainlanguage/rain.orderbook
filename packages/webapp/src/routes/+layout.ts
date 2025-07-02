@@ -1,14 +1,7 @@
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
-import pickBy from 'lodash/pickBy';
 import type { LayoutLoad } from './$types';
-import {
-	parseYaml,
-	RaindexClient,
-	type Address,
-	type NewConfig,
-	type OrderbookCfg
-} from '@rainlanguage/orderbook';
+import { parseYaml, RaindexClient, type Address, type NewConfig } from '@rainlanguage/orderbook';
 
 export interface LayoutData {
 	errorMessage?: string;
@@ -69,39 +62,10 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	}
 
 	const settings: AppStoresInterface['settings'] = writable<NewConfig>(config);
-	const activeNetworkRef: AppStoresInterface['activeNetworkRef'] = writable<string>('');
-	const activeOrderbookRef: AppStoresInterface['activeOrderbookRef'] = writable<string>('');
-	const activeOrderbook = derived(
-		[settings, activeOrderbookRef],
-		([$settings, $activeOrderbookRef]) =>
-			$settings.orderbook.orderbooks !== undefined &&
-			Object.entries($settings.orderbook.orderbooks).length > 0 &&
-			$activeOrderbookRef !== undefined
-				? $settings.orderbook.orderbooks[$activeOrderbookRef]
-				: undefined
-	);
 
-	const activeNetworkOrderbooks = derived(
-		[settings, activeNetworkRef],
-		([$settings, $activeNetworkRef]) => {
-			return $settings.orderbook.orderbooks
-				? (pickBy(
-						$settings.orderbook.orderbooks,
-						(orderbook) => orderbook.network.key === $activeNetworkRef
-					) as Record<string, OrderbookCfg>)
-				: ({} as Record<string, OrderbookCfg>);
-		}
-	);
 	const accounts = derived(settings, ($settings) => $settings.orderbook.accounts || {});
 	const activeAccountsItems = writable<Record<string, Address>>({});
 
-	const subgraph = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
-		$settings.orderbook.subgraphs !== undefined &&
-		Object.entries($settings.orderbook.subgraphs).length > 0 &&
-		$activeOrderbook?.subgraph !== undefined
-			? $settings.orderbook.subgraphs[$activeOrderbook.subgraph.key]
-			: undefined
-	);
 	const activeAccounts = derived(
 		[accounts, activeAccountsItems],
 		([$accounts, $activeAccountsItems]) =>
@@ -123,11 +87,6 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			showInactiveOrders: writable<boolean>(false),
 			orderHash: writable<string>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
-			activeNetworkRef,
-			activeOrderbookRef,
-			activeOrderbook,
-			subgraph,
-			activeNetworkOrderbooks,
 			showMyItemsOnly: writable<boolean>(false)
 		},
 		raindexClient
@@ -286,90 +245,13 @@ subgraphs:
 			expect(stores).toHaveProperty('showInactiveOrders');
 			expect(stores).toHaveProperty('orderHash');
 			expect(stores).toHaveProperty('hideZeroBalanceVaults');
-			expect(stores).toHaveProperty('activeNetworkRef');
-			expect(stores).toHaveProperty('activeOrderbookRef');
-			expect(stores).toHaveProperty('activeOrderbook');
-			expect(stores).toHaveProperty('subgraph');
-			expect(stores).toHaveProperty('activeNetworkOrderbooks');
 
 			expect(get(stores.settings)).toEqual(mockConfig);
-			expect(get(stores.activeNetworkRef)).toEqual('');
-			expect(get(stores.activeOrderbookRef)).toEqual('');
 			if (stores.activeAccountsItems) {
 				expect(get(stores.activeAccountsItems)).toEqual({});
 			}
 			expect(get(stores.orderHash)).toEqual('');
 			expect(get(stores.hideZeroBalanceVaults)).toEqual(false);
-		});
-
-		it('should handle derived store: activeOrderbook', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeOrderbook)).toBeUndefined();
-
-			stores.activeOrderbookRef.set('orderbook1');
-
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
-		});
-
-		it('should handle derived store: activeNetworkOrderbooks', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeNetworkOrderbooks)).toEqual({});
-
-			stores.activeNetworkRef.set('network1');
-
-			const networkOrderbooks = get(stores.activeNetworkOrderbooks);
-			expect(networkOrderbooks).toHaveProperty('orderbook1');
-			expect(networkOrderbooks).toHaveProperty('orderbook3');
-			expect(networkOrderbooks).not.toHaveProperty('orderbook2');
-		});
-
-		it('should handle derived store: subgraph', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.subgraph)).toBeUndefined();
-
-			stores.activeOrderbookRef.set('orderbook1');
-
-			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph1);
 		});
 
 		it('should handle derived store: activeAccounts with empty activeAccountsItems', async () => {
@@ -479,51 +361,6 @@ subgraphs:
 			expect(result.errorMessage).toContain('Malformed settings');
 		});
 
-		it('should handle chain reaction of store updates when changing network and orderbook', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraph)).toBeUndefined();
-			expect(get(stores.activeNetworkOrderbooks)).toEqual({});
-
-			stores.activeNetworkRef.set('network1');
-
-			const networkOrderbooks = get(stores.activeNetworkOrderbooks);
-			expect(Object.keys(networkOrderbooks).length).toBe(2);
-			expect(networkOrderbooks).toHaveProperty('orderbook1');
-			expect(networkOrderbooks).toHaveProperty('orderbook3');
-
-			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraph)).toBeUndefined();
-
-			stores.activeOrderbookRef.set('orderbook1');
-
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
-			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph1);
-
-			stores.activeNetworkRef.set('network2');
-
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
-
-			const newNetworkOrderbooks = get(stores.activeNetworkOrderbooks);
-			expect(Object.keys(newNetworkOrderbooks).length).toBe(1);
-			expect(newNetworkOrderbooks).toHaveProperty('orderbook2');
-			expect(newNetworkOrderbooks).not.toHaveProperty('orderbook1');
-		});
-
 		it('should handle multiple interrelated store updates correctly', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
 				value: mockConfig as unknown as NewConfig,
@@ -540,26 +377,14 @@ subgraphs:
 
 			if (!stores) throw new Error('Test setup error: stores should not be null');
 
-			stores.activeNetworkRef.set('network1');
-			stores.activeOrderbookRef.set('orderbook1');
 			stores.activeAccountsItems?.set({ account1: '0x1234567890123456789012345678901234567890' });
 
-			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook1');
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
-			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph1);
 			expect(get(stores.activeAccounts)).toHaveProperty('account1');
 
-			stores.activeNetworkRef.set('network2');
 			stores.activeAccountsItems?.set({
 				account1: '0x1234567890123456789012345678901234567890',
 				account2: '0x1234567890123456789012345678901234567890'
 			});
-			stores.activeOrderbookRef.set('orderbook2');
-
-			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook2');
-			expect(get(stores.activeNetworkOrderbooks)).not.toHaveProperty('orderbook1');
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook2);
-			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph2);
 
 			const finalAccounts = get(stores.activeAccounts);
 			expect(Object.keys(finalAccounts).length).toBe(2);
