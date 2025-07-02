@@ -1,6 +1,5 @@
 import type { Hex } from 'viem';
-import type { RaindexVault, VaultCalldataResult } from '@rainlanguage/orderbook';
-import type { Config } from '@wagmi/core';
+import type { RaindexVault } from '@rainlanguage/orderbook';
 import type { ToastLink } from './toast';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
@@ -38,15 +37,6 @@ export enum TransactionStoreErrorMessage {
 	SUBGRAPH_FAILED = 'Failed to index transaction.',
 	RECEIPT_FAILED = 'Failed to get transaction receipt.'
 }
-
-export type DepositOrWithdrawTransactionArgs = {
-	config: Config;
-	approvalCalldata?: VaultCalldataResult;
-	transactionCalldata: VaultCalldataResult;
-	action: 'deposit' | 'withdraw';
-	chainId: number;
-	vault: RaindexVault;
-};
 
 export type InternalTransactionArgs = {
 	chainId: number;
