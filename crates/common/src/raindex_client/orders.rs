@@ -336,6 +336,34 @@ pub struct RaindexOrderAsIO {
     active: bool,
 }
 impl_wasm_traits!(RaindexOrderAsIO);
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+impl RaindexOrderAsIO {
+    #[wasm_bindgen(getter)]
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+    #[wasm_bindgen(getter = orderHash)]
+    pub fn order_hash(&self) -> String {
+        self.order_hash.clone()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn active(&self) -> bool {
+        self.active
+    }
+}
+#[cfg(not(target_family = "wasm"))]
+impl RaindexOrderAsIO {
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+    pub fn order_hash(&self) -> String {
+        self.order_hash.clone()
+    }
+    pub fn active(&self) -> bool {
+        self.active
+    }
+}
 impl TryFrom<SgOrderAsIO> for RaindexOrderAsIO {
     type Error = RaindexError;
     fn try_from(order: SgOrderAsIO) -> Result<Self, Self::Error> {

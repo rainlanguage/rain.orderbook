@@ -328,24 +328,17 @@ mod tests {
                 output.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
             );
-            // assert_eq!(output.orders_as_output().len(), 1);
-            // assert_eq!(
-            //     output.orders_as_output[0].id,
-            //     SgBytes(
-            //         "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1"
-            //             .to_string()
-            //     )
-            // );
-            // assert_eq!(
-            //     output.orders_as_output[0].order_hash,
-            //     SgBytes(
-            //         "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
-            //             .to_string()
-            //     )
-            // );
-            // assert!(output.orders_as_output[0].active);
-            // assert!(output.orders_as_input.is_empty());
-            // assert!(output.balance_changes.is_empty());
+            assert_eq!(output.orders_as_outputs().len(), 1);
+            assert_eq!(
+                output.orders_as_outputs()[0].id(),
+                "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()
+            );
+            assert_eq!(
+                output.orders_as_outputs()[0].order_hash(),
+                "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4".to_string()
+            );
+            assert!(output.orders_as_outputs()[0].active());
+            assert!(output.orders_as_inputs().is_empty());
 
             assert_eq!(order.inputs().len(), 1);
             let input = &order.inputs()[0];
@@ -383,49 +376,32 @@ mod tests {
                 input.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
             );
-            // assert!(input.orders_as_output.is_empty());
-            // assert_eq!(input.orders_as_input.len(), 1);
-            // assert_eq!(
-            //     input.orders_as_input[0].id,
-            //     SgBytes(
-            //         "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1"
-            //             .to_string()
-            //     )
-            // );
-            // assert_eq!(
-            //     input.orders_as_input[0].order_hash,
-            //     SgBytes(
-            //         "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
-            //             .to_string()
-            //     )
-            // );
-            // assert!(input.orders_as_input[0].active);
-            // assert!(input.balance_changes.is_empty());
+            assert!(input.orders_as_outputs().is_empty());
+            assert_eq!(input.orders_as_inputs().len(), 1);
+            assert_eq!(
+                input.orders_as_inputs()[0].id(),
+                "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()
+            );
+            assert_eq!(
+                input.orders_as_inputs()[0].order_hash(),
+                "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4".to_string()
+            );
+            assert!(input.orders_as_inputs()[0].active());
 
-            // assert_eq!(order.add_events.len(), 1);
-            // let add_event = &order.add_events[0];
-            // assert_eq!(
-            //     add_event.transaction.id,
-            //     SgBytes(
-            //         "0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af"
-            //             .to_string()
-            //     )
-            // );
-            // assert_eq!(
-            //     add_event.transaction.from,
-            //     SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string())
-            // );
-            // assert_eq!(
-            //     add_event.transaction.block_number,
-            //     SgBigInt("37432554".to_string())
-            // );
-            // assert_eq!(
-            //     add_event.transaction.timestamp,
-            //     SgBigInt("1739448802".to_string())
-            // );
+            assert_eq!(order.transaction().is_some(), true);
+            let transaction = order.transaction().unwrap();
+            assert_eq!(
+                transaction.id(),
+                "0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af".to_string()
+            );
+            assert_eq!(
+                transaction.from(),
+                Address::from_str("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11").unwrap()
+            );
+            assert_eq!(transaction.block_number(), U256::from(37432554));
+            assert_eq!(transaction.timestamp(), U256::from(1739448802));
 
-            // assert!(order.trades.is_empty());
-            // assert!(order.remove_events.is_empty());
+            assert_eq!(order.trades_count(), 0);
         }
 
         fn get_dotrain(rpc_url: &str) -> String {
