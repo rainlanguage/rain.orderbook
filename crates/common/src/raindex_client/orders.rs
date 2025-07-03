@@ -404,8 +404,8 @@ pub struct GetOrdersFilters {
     pub active: Option<bool>,
     #[tsify(optional)]
     pub order_hash: Option<String>,
-    #[tsify(optional)]
-    pub tokens: Option<Vec<String>>,
+    #[tsify(optional, type = "Address[]")]
+    pub tokens: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
@@ -420,7 +420,15 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                 .collect(),
             active: filters.active,
             order_hash: filters.order_hash.map(SgBytes),
-            tokens: filters.tokens.unwrap_or_default(),
+            tokens: filters
+                .tokens
+                .map(|tokens| {
+                    tokens
+                        .into_iter()
+                        .map(|token| token.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     }
 }
@@ -1654,9 +1662,10 @@ mod tests {
                 owners: vec![],
                 active: None,
                 order_hash: None,
-                tokens: Some(vec![
-                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()
-                ]),
+                tokens: Some(vec![Address::from_str(
+                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                )
+                .unwrap()]),
             };
 
             let result = raindex_client
@@ -1709,8 +1718,8 @@ mod tests {
                 active: None,
                 order_hash: None,
                 tokens: Some(vec![
-                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string(),
-                    "0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string(),
+                    Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
+                    Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
             };
 

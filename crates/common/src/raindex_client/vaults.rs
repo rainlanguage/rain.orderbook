@@ -667,8 +667,8 @@ pub struct GetVaultsFilters {
     #[tsify(type = "Address[]")]
     pub owners: Vec<Address>,
     pub hide_zero_balance: bool,
-    #[tsify(optional)]
-    pub tokens: Option<Vec<String>>,
+    #[tsify(optional, type = "Address[]")]
+    pub tokens: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -682,7 +682,15 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                 .map(|owner| SgBytes(owner.to_string()))
                 .collect(),
             hide_zero_balance: filters.hide_zero_balance,
-            tokens: filters.tokens.unwrap_or_default(),
+            tokens: filters
+                .tokens
+                .map(|tokens| {
+                    tokens
+                        .into_iter()
+                        .map(|token| token.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     }
 }
@@ -1257,9 +1265,10 @@ mod tests {
             let filters = GetVaultsFilters {
                 owners: vec![],
                 hide_zero_balance: false,
-                tokens: Some(vec![
-                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()
-                ]),
+                tokens: Some(vec![Address::from_str(
+                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                )
+                .unwrap()]),
             };
 
             let result = raindex_client
@@ -1311,8 +1320,8 @@ mod tests {
                 owners: vec![],
                 hide_zero_balance: false,
                 tokens: Some(vec![
-                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string(),
-                    "0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string(),
+                    Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
+                    Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
             };
 
