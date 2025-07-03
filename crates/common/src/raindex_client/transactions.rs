@@ -76,7 +76,7 @@ impl RaindexClient {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getTransaction(
+    /// const result = await client.getTransaction(
     ///   1,
     ///   "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
     /// );

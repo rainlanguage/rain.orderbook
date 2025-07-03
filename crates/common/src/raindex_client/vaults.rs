@@ -611,7 +611,7 @@ impl RaindexClient {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getVaults(
+    /// const result = await client.getVaults(
     ///   {
     ///     owners: ["0x1234567890abcdef1234567890abcdef12345678"],
     ///     hide_zero_balance: true
@@ -689,7 +689,7 @@ impl RaindexClient {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getVault(
+    /// const result = await client.getVault(
     ///   137, // Polygon network
     ///   "0x1234567890abcdef1234567890abcdef12345678"
     /// );

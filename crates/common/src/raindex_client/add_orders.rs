@@ -22,7 +22,7 @@ impl RaindexClient {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getAddOrdersForTransaction(1, "0x1234567890abcdef1234567890abcdef12345678");
+    /// const result = await client.getAddOrdersForTransaction(1, "0x1234567890abcdef1234567890abcdef12345678");
     /// if (result.error) {
     ///   console.error("Cannot fetch added orders:", result.error.readableMsg);
     ///   return;
