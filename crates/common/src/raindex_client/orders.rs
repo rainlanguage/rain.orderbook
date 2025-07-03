@@ -42,16 +42,16 @@ const DEFAULT_PAGE_SIZE: u16 = 100;
 pub struct RaindexOrder {
     raindex_client: Arc<RwLock<RaindexClient>>,
     chain_id: u32,
-    id: String,
-    order_bytes: String,
-    order_hash: String,
+    id: Bytes,
+    order_bytes: Bytes,
+    order_hash: Bytes,
     owner: Address,
     inputs: Vec<RaindexVault>,
     outputs: Vec<RaindexVault>,
     orderbook: Address,
     active: bool,
     timestamp_added: U256,
-    meta: Option<String>,
+    meta: Option<Bytes>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
@@ -63,17 +63,17 @@ impl RaindexOrder {
     pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
     pub fn id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
-    #[wasm_bindgen(getter = orderBytes)]
+    #[wasm_bindgen(getter = orderBytes, unchecked_return_type = "Hex")]
     pub fn order_bytes(&self) -> String {
-        self.order_bytes.clone()
+        self.order_bytes.to_string()
     }
-    #[wasm_bindgen(getter = orderHash)]
+    #[wasm_bindgen(getter = orderHash, unchecked_return_type = "Hex")]
     pub fn order_hash(&self) -> String {
-        self.order_hash.clone()
+        self.order_hash.to_string()
     }
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn owner(&self) -> String {
@@ -121,9 +121,9 @@ impl RaindexOrder {
         BigInt::from_str(&self.timestamp_added.to_string())
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex | undefined")]
     pub fn meta(&self) -> Option<String> {
-        self.meta.clone()
+        self.meta.clone().map(|meta| meta.to_string())
     }
     #[wasm_bindgen(getter)]
     pub fn rainlang(&self) -> Option<String> {
@@ -143,13 +143,13 @@ impl RaindexOrder {
     pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
-    pub fn id(&self) -> String {
+    pub fn id(&self) -> Bytes {
         self.id.clone()
     }
-    pub fn order_bytes(&self) -> String {
+    pub fn order_bytes(&self) -> Bytes {
         self.order_bytes.clone()
     }
-    pub fn order_hash(&self) -> String {
+    pub fn order_hash(&self) -> Bytes {
         self.order_hash.clone()
     }
     pub fn owner(&self) -> Address {
@@ -173,7 +173,7 @@ impl RaindexOrder {
     pub fn timestamp_added(&self) -> U256 {
         self.timestamp_added
     }
-    pub fn meta(&self) -> Option<String> {
+    pub fn meta(&self) -> Option<Bytes> {
         self.meta.clone()
     }
     pub fn rainlang(&self) -> Option<String> {
@@ -193,24 +193,24 @@ fn get_vaults_with_type(
 ) -> Vec<RaindexVault> {
     let mut vaults: Vec<RaindexVault> = Vec::new();
 
-    let input_ids: HashSet<String> = inputs.iter().map(|v| v.id()).collect();
-    let output_ids: HashSet<String> = outputs.iter().map(|v| v.id()).collect();
+    let input_ids: HashSet<String> = inputs.iter().map(|v| v.id().to_string()).collect();
+    let output_ids: HashSet<String> = outputs.iter().map(|v| v.id().to_string()).collect();
 
     // First add inputs (excluding input_outputs)
     for vault in &inputs {
-        if !output_ids.contains(&vault.id()) {
+        if !output_ids.contains(&vault.id().to_string()) {
             vaults.push(vault.clone());
         }
     }
     // Then add outputs (excluding input_outputs)
     for vault in &outputs {
-        if !input_ids.contains(&vault.id()) {
+        if !input_ids.contains(&vault.id().to_string()) {
             vaults.push(vault.clone());
         }
     }
     // Finally add input_outputs (only once for vaults that are both input and output)
     for vault in &inputs {
-        if output_ids.contains(&vault.id()) {
+        if output_ids.contains(&vault.id().to_string()) {
             let input_output_vault = vault.with_vault_type(RaindexVaultType::InputOutput);
             vaults.push(input_output_vault);
         }
@@ -278,7 +278,7 @@ impl RaindexOrder {
     ) -> Result<Vec<VaultVolume>, RaindexError> {
         let client = self.get_orderbook_client()?;
         let volumes = client
-            .order_vaults_volume(Id::new(self.id.clone()), start_timestamp, end_timestamp)
+            .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
             .await?;
         Ok(volumes)
     }
@@ -322,7 +322,7 @@ impl RaindexOrder {
     ) -> Result<OrderPerformance, RaindexError> {
         let client = self.get_orderbook_client()?;
         let performance = client
-            .order_performance(Id::new(self.id.clone()), start_timestamp, end_timestamp)
+            .order_performance(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
             .await?;
         Ok(performance)
     }
@@ -331,7 +331,8 @@ impl RaindexOrder {
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RaindexOrderAsIO {
-    pub id: String,
+    #[tsify(type = "Hex")]
+    pub id: Bytes,
     #[tsify(type = "Hex")]
     pub order_hash: Bytes,
     pub active: bool,
@@ -341,7 +342,7 @@ impl TryFrom<SgOrderAsIO> for RaindexOrderAsIO {
     type Error = RaindexError;
     fn try_from(order: SgOrderAsIO) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: order.id.0,
+            id: Bytes::from_str(&order.id.0)?,
             order_hash: Bytes::from_str(&order.order_hash.0)?,
             active: order.active,
         })
@@ -351,7 +352,7 @@ impl TryFrom<RaindexOrderAsIO> for SgOrderAsIO {
     type Error = RaindexError;
     fn try_from(order: RaindexOrderAsIO) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: SgBytes(order.id),
+            id: SgBytes(order.id.to_string()),
             order_hash: SgBytes(order.order_hash.to_string()),
             active: order.active,
         })
@@ -568,9 +569,9 @@ impl RaindexOrder {
         Ok(Self {
             raindex_client: raindex_client.clone(),
             chain_id,
-            id: order.id.0,
-            order_bytes: order.order_bytes.0,
-            order_hash: order.order_hash.0,
+            id: Bytes::from_str(&order.id.0)?,
+            order_bytes: Bytes::from_str(&order.order_bytes.0)?,
+            order_hash: Bytes::from_str(&order.order_hash.0)?,
             owner: Address::from_str(&order.owner.0)?,
             inputs: order
                 .inputs
@@ -599,7 +600,10 @@ impl RaindexOrder {
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
-            meta: order.meta.map(|meta| meta.0),
+            meta: order
+                .meta
+                .map(|meta| Bytes::from_str(&meta.0))
+                .transpose()?,
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
@@ -613,9 +617,9 @@ impl RaindexOrder {
         let timestamp_added = self.timestamp_added().to_string();
 
         Ok(SgOrder {
-            id: SgBytes(self.id()),
-            order_bytes: SgBytes(self.order_bytes()),
-            order_hash: SgBytes(self.order_hash()),
+            id: SgBytes(self.id().to_string()),
+            order_bytes: SgBytes(self.order_bytes().to_string()),
+            order_hash: SgBytes(self.order_hash().to_string()),
             owner: SgBytes(self.owner().to_string()),
             outputs: self
                 .outputs()
@@ -632,7 +636,7 @@ impl RaindexOrder {
             },
             active: self.active(),
             timestamp_added: SgBigInt(timestamp_added),
-            meta: self.meta().map(SgBytes),
+            meta: self.meta().map(|meta| SgBytes(meta.to_string())),
             add_events: vec![],
             remove_events: vec![],
             trades: vec![],
@@ -1064,9 +1068,9 @@ mod tests {
                     "data": {
                       "orders": [
                         {
-                          "id": "order2",
+                          "id": "0x0234",
                           "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-                          "orderHash": "0x2",
+                          "orderHash": "0x2345",
                           "owner": "0x0000000000000000000000000000000000000000",
                           "outputs": [
                             {
@@ -1223,9 +1227,9 @@ mod tests {
 
             let order2 = result[1].clone();
             assert_eq!(order2.chain_id, 137);
-            assert_eq!(order2.id, "order2".to_string());
-            assert_eq!(order2.order_bytes, "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000".to_string());
-            assert_eq!(order2.order_hash, "0x2".to_string());
+            assert_eq!(order2.id, Bytes::from_str("0x0234").unwrap());
+            assert_eq!(order2.order_bytes, Bytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap());
+            assert_eq!(order2.order_hash, Bytes::from_str("0x2345").unwrap());
             assert_eq!(
                 order2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1234,7 +1238,7 @@ mod tests {
             let order2_outputs = order2.outputs[0].clone();
             assert_eq!(
                 order2_outputs.id(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Bytes::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(
                 order2_outputs.owner(),
@@ -1261,7 +1265,7 @@ mod tests {
             let order2_inputs = order2.inputs[0].clone();
             assert_eq!(
                 order2_inputs.id(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Bytes::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(
                 order2_inputs.owner(),

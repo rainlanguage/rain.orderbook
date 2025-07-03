@@ -49,7 +49,7 @@ pub struct RaindexVault {
     raindex_client: Arc<RwLock<RaindexClient>>,
     chain_id: u32,
     vault_type: Option<RaindexVaultType>,
-    id: String,
+    id: Bytes,
     owner: Address,
     vault_id: U256,
     balance: U256,
@@ -76,9 +76,9 @@ impl RaindexVault {
     pub fn vault_type(&self) -> Option<RaindexVaultType> {
         self.vault_type.clone()
     }
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
     pub fn id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn owner(&self) -> String {
@@ -117,7 +117,7 @@ impl RaindexVault {
     pub fn vault_type(&self) -> Option<RaindexVaultType> {
         self.vault_type.clone()
     }
-    pub fn id(&self) -> String {
+    pub fn id(&self) -> Bytes {
         self.id.clone()
     }
     pub fn owner(&self) -> Address {
@@ -247,7 +247,7 @@ impl RaindexVault {
         let client = self.get_orderbook_client()?;
         let balance_changes = client
             .vault_balance_changes_list(
-                Id::new(self.id.clone()),
+                Id::new(self.id.to_string()),
                 SgPaginationArgs {
                     page: page.unwrap_or(1),
                     page_size: 1000,
@@ -766,7 +766,7 @@ impl RaindexVault {
             raindex_client,
             chain_id,
             vault_type,
-            id: vault.id.0,
+            id: Bytes::from_str(&vault.id.0)?,
             owner: Address::from_str(&vault.owner.0)?,
             vault_id: U256::from_str(&vault.vault_id.0)?,
             balance: U256::from_str(&vault.balance.0)?,
@@ -803,7 +803,7 @@ impl RaindexVault {
 
     pub fn into_sg_vault(self) -> Result<SgVault, RaindexError> {
         Ok(SgVault {
-            id: SgBytes(self.id),
+            id: SgBytes(self.id.to_string()),
             vault_id: SgBigInt(self.vault_id.to_string()),
             balance: SgBigInt(self.balance.to_string()),
             owner: SgBytes(self.owner.to_string()),
@@ -876,7 +876,7 @@ mod tests {
 
         fn get_vault1_json() -> Value {
             json!({
-              "id": "vault1",
+              "id": "0x0123",
               "owner": "0x0000000000000000000000000000000000000000",
               "vaultId": "0x10",
               "balance": "0x10",
@@ -897,7 +897,7 @@ mod tests {
         }
         fn get_vault2_json() -> Value {
             json!({
-                "id": "vault2",
+                "id": "0x0234",
                 "owner": "0x0000000000000000000000000000000000000000",
                 "vaultId": "0x20",
                 "balance": "0x20",
@@ -952,7 +952,7 @@ mod tests {
 
             let vault1 = result[0].clone();
             assert_eq!(vault1.chain_id, 1);
-            assert_eq!(vault1.id, "vault1");
+            assert_eq!(vault1.id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 vault1.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -967,7 +967,7 @@ mod tests {
 
             let vault2 = result[1].clone();
             assert_eq!(vault2.chain_id, 137);
-            assert_eq!(vault2.id, "vault2");
+            assert_eq!(vault2.id, Bytes::from_str("0x0234").unwrap());
             assert_eq!(
                 vault2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1013,7 +1013,7 @@ mod tests {
                 .await
                 .unwrap();
             assert_eq!(vault.chain_id, 1);
-            assert_eq!(vault.id, "vault1");
+            assert_eq!(vault.id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 vault.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1131,7 +1131,10 @@ mod tests {
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
                 result[0].transaction.id(),
-                "0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22"
+                Bytes::from_str(
+                    "0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22"
+                )
+                .unwrap()
             );
             assert_eq!(
                 result[0].transaction.from(),

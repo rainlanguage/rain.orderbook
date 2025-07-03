@@ -11,7 +11,7 @@ use wasm_bindgen_utils::prelude::js_sys::BigInt;
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexTransaction {
-    id: String,
+    id: Bytes,
     from: Address,
     block_number: U256,
     timestamp: U256,
@@ -19,9 +19,9 @@ pub struct RaindexTransaction {
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexTransaction {
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
     pub fn id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn from(&self) -> String {
@@ -40,7 +40,7 @@ impl RaindexTransaction {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexTransaction {
-    pub fn id(&self) -> String {
+    pub fn id(&self) -> Bytes {
         self.id.clone()
     }
     pub fn from(&self) -> Address {
@@ -131,7 +131,7 @@ impl TryFrom<SgTransaction> for RaindexTransaction {
     type Error = RaindexError;
     fn try_from(transaction: SgTransaction) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: transaction.id.0,
+            id: Bytes::from_str(&transaction.id.0)?,
             from: Address::from_str(&transaction.from.0)?,
             block_number: U256::from_str(&transaction.block_number.0)?,
             timestamp: U256::from_str(&transaction.timestamp.0)?,
@@ -158,7 +158,7 @@ mod test_helpers {
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "transaction": {
-                            "id": "tx1",
+                            "id": "0x0123",
                             "from": "0x1000000000000000000000000000000000000000",
                             "blockNumber": "12345",
                             "timestamp": "1734054063"
@@ -185,7 +185,7 @@ mod test_helpers {
                 )
                 .await
                 .unwrap();
-            assert_eq!(tx.id(), "tx1".to_string());
+            assert_eq!(tx.id(), Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 tx.from(),
                 Address::from_str("0x1000000000000000000000000000000000000000").unwrap()
