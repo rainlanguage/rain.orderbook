@@ -1,7 +1,7 @@
 {
   "image": "ghcr.io/zombiezen/codespaces-nix",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/nix-community/nix/nix": {}
   }
 }
