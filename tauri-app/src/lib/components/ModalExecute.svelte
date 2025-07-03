@@ -6,7 +6,6 @@
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
   import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
   import { IconLedger, IconWalletConnect, ButtonLoading } from '@rainlanguage/ui-components';
-  import { activeNetworkRef } from '$lib/stores/settings';
   import type { NetworkCfg } from '@rainlanguage/orderbook';
 
   export let open = false;
@@ -30,7 +29,9 @@
     }
   }
 
-  const getNetworkName = (chainId: number) => {
+  const getNetworkName = (chainId: number | undefined) => {
+    if (!chainId) return 'an unknown';
+
     const existingNetwork = Object.entries($settings?.orderbook.networks || {}).find(
       (entry) => entry[1].chainId === chainId,
     );
@@ -109,7 +110,7 @@
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
         <div class="text-red-500" data-testid="network-connection-error">
           You are connected to {getNetworkName($walletConnectNetwork)} network. Please connect your wallet
-          to {overrideNetwork?.key || $activeNetworkRef} network.
+          to {overrideNetwork?.key || getNetworkName(chainId)} network.
         </div>
       {/if}
     </div>

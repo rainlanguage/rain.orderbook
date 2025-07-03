@@ -1,18 +1,14 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
   import type { RaindexVault } from '@rainlanguage/orderbook';
-  import {
-    vaultDeposit,
-    vaultDepositApproveCalldata,
-    vaultDepositCalldata,
-  } from '$lib/services/vault';
+  import { vaultDeposit } from '$lib/services/vault';
   import { bigintToHex, InputTokenAmount } from '@rainlanguage/ui-components';
-  import { checkAllowance, ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
+  import { ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import { formatUnits } from 'viem';
+  import { formatUnits, hexToBytes } from 'viem';
   import { onMount } from 'svelte';
 
   export let open = false;
@@ -34,7 +30,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultDeposit(BigInt(vault.vaultId), vault.token.id, amount);
+      await vaultDeposit(vault.vaultId, vault.token.address, amount);
       onDeposit();
     } catch (e) {
       reportErrorToSentry(e);
@@ -46,24 +42,25 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const allowance = await checkAllowance(vault.token.id, vault.orderbook);
-      if (allowance.lt(amount)) {
-        const approveCalldata = (await vaultDepositApproveCalldata(
-          BigInt(vault.vaultId),
-          vault.token.id,
-          amount,
-        )) as Uint8Array;
-        const approveTx = await ethersExecute(approveCalldata, vault.token.id);
+      const allowance = await vault.getAllowance();
+      if (allowance.error) {
+        throw new Error(allowance.error.readableMsg);
+      }
+      if (BigInt(allowance.value) < amount) {
+        const calldata = await vault.getApprovalCalldata(amount.toString());
+        if (calldata.error) {
+          throw new Error(calldata.error.readableMsg);
+        }
+        const approveTx = await ethersExecute(hexToBytes(calldata.value), vault.token.address);
         toasts.success('Approve Transaction sent successfully!');
         await approveTx.wait(1);
       }
 
-      const depositCalldata = (await vaultDepositCalldata(
-        BigInt(vault.vaultId),
-        vault.token.id,
-        amount,
-      )) as Uint8Array;
-      const depositTx = await ethersExecute(depositCalldata, vault.orderbook);
+      const calldata = await vault.getDepositCalldata(amount.toString());
+      if (calldata.error) {
+        throw new Error(calldata.error.readableMsg);
+      }
+      const depositTx = await ethersExecute(hexToBytes(calldata.value), vault.orderbook);
       toasts.success('Transaction sent successfully!');
       await depositTx.wait(1);
       onDeposit();
