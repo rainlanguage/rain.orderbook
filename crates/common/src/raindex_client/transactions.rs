@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use super::*;
-use alloy::primitives::{Address, U256};
+use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::types::{common::SgTransaction, Id};
 use serde::{Deserialize, Serialize};
 #[cfg(target_family = "wasm")]
@@ -61,15 +61,6 @@ impl RaindexClient {
     /// Retrieves basic transaction information including sender, block number,
     /// and timestamp.
     ///
-    /// ## Parameters
-    ///
-    /// * `chain_id` - Chain ID for the network
-    /// * `tx_hash` - Transaction hash
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexTransaction` - Transaction details
-    ///
     /// ## Examples
     ///
     /// ```javascript
@@ -86,17 +77,53 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getTransaction",
+        return_description = "Transaction details",
         unchecked_return_type = "RaindexTransaction"
     )]
-    pub async fn get_transaction(
+    pub async fn get_transaction_wasm_binding(
         &self,
-        #[wasm_export(js_name = "chainId")] chain_id: u32,
-        #[wasm_export(js_name = "orderbookAddress")] orderbook_address: String,
-        #[wasm_export(js_name = "txHash")] tx_hash: String,
+        #[wasm_export(js_name = "chainId", param_description = "Chain ID for the network")]
+        chain_id: u32,
+        #[wasm_export(
+            js_name = "orderbookAddress",
+            param_description = "Orderbook contract address",
+            unchecked_param_type = "Address"
+        )]
+        orderbook_address: String,
+        #[wasm_export(
+            js_name = "txHash",
+            param_description = "Transaction hash",
+            unchecked_param_type = "Hex"
+        )]
+        tx_hash: String,
+    ) -> Result<RaindexTransaction, RaindexError> {
+        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let tx_hash = Bytes::from_str(&tx_hash)?;
+        self._get_transaction(chain_id, orderbook_address, tx_hash)
+            .await
+    }
+}
+impl RaindexClient {
+    async fn _get_transaction(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        tx_hash: Bytes,
     ) -> Result<RaindexTransaction, RaindexError> {
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
-        let transaction = client.transaction_detail(Id::new(tx_hash)).await?;
+        let transaction = client
+            .transaction_detail(Id::new(tx_hash.to_string()))
+            .await?;
         transaction.try_into()
+    }
+    pub async fn get_transaction(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        tx_hash: Bytes,
+    ) -> Result<RaindexTransaction, RaindexError> {
+        self._get_transaction(chain_id, orderbook_address, tx_hash)
+            .await
     }
 }
 
@@ -153,8 +180,8 @@ mod test_helpers {
             let tx = raindex_client
                 .get_transaction(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0x123".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();

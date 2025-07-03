@@ -215,7 +215,7 @@ impl RaindexVault {
             .raindex_client
             .read()
             .map_err(|_| YamlError::ReadLockError)?;
-        raindex_client.get_orderbook_client(self.chain_id, self.orderbook.to_string())
+        raindex_client.get_orderbook_client(self.chain_id, self.orderbook)
     }
 
     /// Fetches balance change history for a vault
@@ -681,20 +681,54 @@ impl RaindexClient {
         unchecked_return_type = "RaindexVault",
         preserve_js_class
     )]
-    pub async fn get_vault(
+    pub async fn get_vault_wasm_binding(
         &self,
-        #[wasm_export(param_description = "Chain ID of the network the vault is on")] chain_id: u32,
-        #[wasm_export(param_description = "Orderbook contract address")] orderbook_address: String,
-        #[wasm_export(param_description = "Unique vault identifier")] vault_id: String,
+        #[wasm_export(
+            js_name = "chainId",
+            param_description = "Chain ID of the network the vault is on"
+        )]
+        chain_id: u32,
+        #[wasm_export(
+            js_name = "orderbookAddress",
+            param_description = "Orderbook contract address",
+            unchecked_param_type = "Address"
+        )]
+        orderbook_address: String,
+        #[wasm_export(
+            js_name = "vaultId",
+            param_description = "Unique vault identifier",
+            unchecked_param_type = "Hex"
+        )]
+        vault_id: String,
+    ) -> Result<RaindexVault, RaindexError> {
+        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let vault_id = Bytes::from_str(&vault_id)?;
+        self._get_vault(chain_id, orderbook_address, vault_id).await
+    }
+}
+impl RaindexClient {
+    async fn _get_vault(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        vault_id: Bytes,
     ) -> Result<RaindexVault, RaindexError> {
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
         let vault = RaindexVault::try_from_sg_vault(
             Arc::new(RwLock::new(self.clone())),
             chain_id,
-            client.vault_detail(Id::new(vault_id)).await?,
+            client.vault_detail(Id::new(vault_id.to_string())).await?,
             None,
         )?;
         Ok(vault)
+    }
+    pub async fn get_vault(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        vault_id: Bytes,
+    ) -> Result<RaindexVault, RaindexError> {
+        self._get_vault(chain_id, orderbook_address, vault_id).await
     }
 }
 
@@ -973,8 +1007,8 @@ mod tests {
             let vault = raindex_client
                 .get_vault(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "vault1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1065,8 +1099,8 @@ mod tests {
             let vault = raindex_client
                 .get_vault(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "vault1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1137,8 +1171,8 @@ mod tests {
             let vault = raindex_client
                 .get_vault(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "vault1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1190,8 +1224,8 @@ mod tests {
             let vault = raindex_client
                 .get_vault(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "vault1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1258,8 +1292,8 @@ mod tests {
             let vault = raindex_client
                 .get_vault(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "vault1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1335,8 +1369,8 @@ mod tests {
             let vault = raindex_client
                 .get_vault(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "vault1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();

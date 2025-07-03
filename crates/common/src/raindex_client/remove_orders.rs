@@ -29,21 +29,42 @@ impl RaindexClient {
         unchecked_return_type = "RaindexOrder[]",
         preserve_js_class
     )]
-    pub async fn get_remove_orders_for_transaction(
+    pub async fn get_remove_orders_for_transaction_wasm_binding(
         &self,
         #[wasm_export(js_name = "chainId", param_description = "Chain ID for the network")]
         chain_id: u32,
         #[wasm_export(
             js_name = "orderbookAddress",
-            param_description = "Orderbook contract address"
+            param_description = "Orderbook contract address",
+            unchecked_param_type = "Address"
         )]
         orderbook_address: String,
-        #[wasm_export(js_name = "txHash", param_description = "Transaction hash")] tx_hash: String,
+        #[wasm_export(
+            js_name = "txHash",
+            param_description = "Transaction hash",
+            unchecked_param_type = "Hex"
+        )]
+        tx_hash: String,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let tx_hash = Bytes::from_str(&tx_hash)?;
+        self._get_remove_orders_for_transaction(chain_id, orderbook_address, tx_hash)
+            .await
+    }
+}
+impl RaindexClient {
+    async fn _get_remove_orders_for_transaction(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        tx_hash: Bytes,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
 
-        let orders = client.transaction_remove_orders(Id::new(tx_hash)).await?;
+        let orders = client
+            .transaction_remove_orders(Id::new(tx_hash.to_string()))
+            .await?;
         let orders = orders
             .into_iter()
             .map(|value| {
@@ -56,6 +77,15 @@ impl RaindexClient {
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
         Ok(orders)
+    }
+    async fn get_remove_orders_for_transaction(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        tx_hash: Bytes,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        self._get_remove_orders_for_transaction(chain_id, orderbook_address, tx_hash)
+            .await
     }
 }
 
@@ -227,8 +257,8 @@ mod tests {
             let res = raindex_client
                 .get_remove_orders_for_transaction(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0x123".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -454,8 +484,8 @@ mod tests {
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0x1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();

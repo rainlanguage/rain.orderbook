@@ -18,7 +18,7 @@ impl RaindexClient {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getAddOrdersForTransaction(1, "0x1234567890abcdef1234567890abcdef12345678");
+    /// const result = await client.getAddOrdersForTransaction(1, "0x1234567890abcdef1234567890abcdef12345678");
     /// if (result.error) {
     ///   console.error("Cannot fetch added orders:", result.error.readableMsg);
     ///   return;
@@ -32,21 +32,42 @@ impl RaindexClient {
         unchecked_return_type = "RaindexOrder[]",
         preserve_js_class
     )]
-    pub async fn get_add_orders_for_transaction(
+    pub async fn get_add_orders_for_transaction_wasm_binding(
         &self,
         #[wasm_export(js_name = "chainId", param_description = "Chain ID for the network")]
         chain_id: u32,
         #[wasm_export(
             js_name = "orderbookAddress",
-            param_description = "Orderbook contract address"
+            param_description = "Orderbook contract address",
+            unchecked_param_type = "Hex"
         )]
         orderbook_address: String,
-        #[wasm_export(js_name = "txHash", param_description = "Transaction hash")] tx_hash: String,
+        #[wasm_export(
+            js_name = "txHash",
+            param_description = "Transaction hash",
+            unchecked_param_type = "Hex"
+        )]
+        tx_hash: String,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let tx_hash = Bytes::from_str(&tx_hash)?;
+        self._get_add_orders_for_transaction(chain_id, orderbook_address, tx_hash)
+            .await
+    }
+}
+impl RaindexClient {
+    async fn _get_add_orders_for_transaction(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        tx_hash: Bytes,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
 
-        let orders = client.transaction_add_orders(Id::new(tx_hash)).await?;
+        let orders = client
+            .transaction_add_orders(Id::new(tx_hash.to_string()))
+            .await?;
         let orders = orders
             .into_iter()
             .map(|value| {
@@ -59,6 +80,15 @@ impl RaindexClient {
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
         Ok(orders)
+    }
+    pub async fn get_add_orders_for_transaction(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        tx_hash: Bytes,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        self._get_add_orders_for_transaction(chain_id, orderbook_address, tx_hash)
+            .await
     }
 }
 
@@ -246,8 +276,8 @@ mod tests {
             let res = raindex_client
                 .get_add_orders_for_transaction(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0x123".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -330,14 +360,17 @@ mod tests {
             );
             assert_eq!(output.orders_as_outputs().len(), 1);
             assert_eq!(
-                output.orders_as_outputs()[0].id(),
+                output.orders_as_outputs()[0].id,
                 "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()
             );
             assert_eq!(
-                output.orders_as_outputs()[0].order_hash(),
-                "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4".to_string()
+                output.orders_as_outputs()[0].order_hash,
+                Bytes::from_str(
+                    "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
+                )
+                .unwrap()
             );
-            assert!(output.orders_as_outputs()[0].active());
+            assert!(output.orders_as_outputs()[0].active);
             assert!(output.orders_as_inputs().is_empty());
 
             assert_eq!(order.inputs().len(), 1);
@@ -379,16 +412,19 @@ mod tests {
             assert!(input.orders_as_outputs().is_empty());
             assert_eq!(input.orders_as_inputs().len(), 1);
             assert_eq!(
-                input.orders_as_inputs()[0].id(),
+                input.orders_as_inputs()[0].id,
                 "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()
             );
             assert_eq!(
-                input.orders_as_inputs()[0].order_hash(),
-                "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4".to_string()
+                input.orders_as_inputs()[0].order_hash,
+                Bytes::from_str(
+                    "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
+                )
+                .unwrap()
             );
-            assert!(input.orders_as_inputs()[0].active());
+            assert!(input.orders_as_inputs()[0].active);
 
-            assert_eq!(order.transaction().is_some(), true);
+            assert!(order.transaction().is_some());
             let transaction = order.transaction().unwrap();
             assert_eq!(
                 transaction.id(),
@@ -706,8 +742,8 @@ _ _: 0 0;
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0xbeef".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0xbeef").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -748,8 +784,8 @@ _ _: 0 0;
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0xbeef".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0xbeef").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -788,8 +824,8 @@ _ _: 0 0;
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0xbeef".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0xbeef").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -860,8 +896,8 @@ deployments:
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0xbeef".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0xbeef").unwrap(),
                 )
                 .await
                 .unwrap();

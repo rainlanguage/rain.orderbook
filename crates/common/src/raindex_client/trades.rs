@@ -246,7 +246,7 @@ mod test_helpers {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::primitives::I256;
+        use alloy::primitives::{Bytes, I256};
         use httpmock::MockServer;
         use serde_json::{json, Value};
 
@@ -570,8 +570,8 @@ mod test_helpers {
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "order1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -752,8 +752,8 @@ mod test_helpers {
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "order1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -919,8 +919,8 @@ mod test_helpers {
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "order1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();

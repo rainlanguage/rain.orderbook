@@ -64,6 +64,7 @@ mod tests {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::hex::encode_prefixed;
+        use alloy::primitives::{Address, Bytes};
         use alloy::{sol, sol_types::SolValue};
         use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
@@ -194,8 +195,8 @@ mod tests {
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0x1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -235,8 +236,8 @@ mod tests {
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "0x1".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();

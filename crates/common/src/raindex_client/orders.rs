@@ -6,7 +6,7 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
-use alloy::primitives::{Address, U256};
+use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::{
     performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -229,7 +229,7 @@ impl RaindexOrder {
     #[wasm_export(skip)]
     pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
         let raindex_client = self.get_raindex_client()?;
-        raindex_client.get_orderbook_client(self.chain_id, self.orderbook.to_string())
+        raindex_client.get_orderbook_client(self.chain_id, self.orderbook)
     }
 
     #[wasm_export(skip)]
@@ -331,45 +331,18 @@ impl RaindexOrder {
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RaindexOrderAsIO {
-    id: String,
-    order_hash: String,
-    active: bool,
+    pub id: String,
+    #[tsify(type = "Hex")]
+    pub order_hash: Bytes,
+    pub active: bool,
 }
 impl_wasm_traits!(RaindexOrderAsIO);
-#[cfg(target_family = "wasm")]
-#[wasm_bindgen]
-impl RaindexOrderAsIO {
-    #[wasm_bindgen(getter)]
-    pub fn id(&self) -> String {
-        self.id.clone()
-    }
-    #[wasm_bindgen(getter = orderHash)]
-    pub fn order_hash(&self) -> String {
-        self.order_hash.clone()
-    }
-    #[wasm_bindgen(getter)]
-    pub fn active(&self) -> bool {
-        self.active
-    }
-}
-#[cfg(not(target_family = "wasm"))]
-impl RaindexOrderAsIO {
-    pub fn id(&self) -> String {
-        self.id.clone()
-    }
-    pub fn order_hash(&self) -> String {
-        self.order_hash.clone()
-    }
-    pub fn active(&self) -> bool {
-        self.active
-    }
-}
 impl TryFrom<SgOrderAsIO> for RaindexOrderAsIO {
     type Error = RaindexError;
     fn try_from(order: SgOrderAsIO) -> Result<Self, Self::Error> {
         Ok(Self {
             id: order.id.0,
-            order_hash: order.order_hash.0,
+            order_hash: Bytes::from_str(&order.order_hash.0)?,
             active: order.active,
         })
     }
@@ -379,7 +352,7 @@ impl TryFrom<RaindexOrderAsIO> for SgOrderAsIO {
     fn try_from(order: RaindexOrderAsIO) -> Result<Self, Self::Error> {
         Ok(Self {
             id: SgBytes(order.id),
-            order_hash: SgBytes(order.order_hash),
+            order_hash: SgBytes(order.order_hash.to_string()),
             active: order.active,
         })
     }
@@ -499,7 +472,7 @@ impl RaindexClient {
         unchecked_return_type = "RaindexOrder",
         preserve_js_class
     )]
-    pub async fn get_order_by_hash(
+    pub async fn get_order_by_hash_wasm_binding(
         &self,
         #[wasm_export(
             js_name = "chainId",
@@ -508,24 +481,46 @@ impl RaindexClient {
         chain_id: u32,
         #[wasm_export(
             js_name = "orderbookAddress",
-            param_description = "Orderbook contract address"
+            param_description = "Orderbook contract address",
+            unchecked_param_type = "Address"
         )]
         orderbook_address: String,
         #[wasm_export(
             js_name = "orderHash",
-            param_description = "The unique hash identifier of the order"
+            param_description = "The unique hash identifier of the order",
+            unchecked_param_type = "Hex"
         )]
         order_hash: String,
     ) -> Result<RaindexOrder, RaindexError> {
+        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let order_hash = Bytes::from_str(&order_hash)?;
+        self._get_order_by_hash(chain_id, orderbook_address, order_hash)
+            .await
+    }
+}
+impl RaindexClient {
+    async fn _get_order_by_hash(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        order_hash: Bytes,
+    ) -> Result<RaindexOrder, RaindexError> {
+        let raindex_client = Arc::new(RwLock::new(self.clone()));
         let client = self.get_orderbook_client(chain_id, orderbook_address)?;
-        let order = client.order_detail_by_hash(SgBytes(order_hash)).await?;
-        let order = RaindexOrder::try_from_sg_order(
-            Arc::new(RwLock::new(self.clone())),
-            chain_id,
-            order,
-            None,
-        )?;
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
+        let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
         Ok(order)
+    }
+    pub async fn get_order_by_hash(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        order_hash: Bytes,
+    ) -> Result<RaindexOrder, RaindexError> {
+        self._get_order_by_hash(chain_id, orderbook_address, order_hash)
+            .await
     }
 }
 
@@ -536,8 +531,8 @@ pub struct GetOrdersFilters {
     pub owners: Vec<Address>,
     #[tsify(optional)]
     pub active: Option<bool>,
-    #[tsify(optional)]
-    pub order_hash: Option<String>,
+    #[tsify(optional, type = "Hex")]
+    pub order_hash: Option<Bytes>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
@@ -551,7 +546,9 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                 .map(|owner| SgBytes(owner.to_string()))
                 .collect(),
             active: filters.active,
-            order_hash: filters.order_hash.map(SgBytes),
+            order_hash: filters
+                .order_hash
+                .map(|order_hash| SgBytes(order_hash.to_string())),
         })
     }
 }
@@ -1319,8 +1316,8 @@ mod tests {
             let res = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "hash".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1376,8 +1373,8 @@ mod tests {
             let res = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "hash".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1430,8 +1427,8 @@ mod tests {
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "hash".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1710,8 +1707,8 @@ mod tests {
             let order = raindex_client
                 .get_order_by_hash(
                     1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
-                    "hash".to_string(),
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
                 .unwrap();

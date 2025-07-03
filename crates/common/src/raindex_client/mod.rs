@@ -24,7 +24,6 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
 pub mod order_quotes;
-pub mod orderbook;
 pub mod orders;
 pub mod remove_orders;
 pub mod trades;
@@ -165,9 +164,8 @@ impl RaindexClient {
     pub fn get_orderbook_client(
         &self,
         chain_id: u32,
-        orderbook_address: String,
+        orderbook_address: Address,
     ) -> Result<OrderbookSubgraphClient, RaindexError> {
-        let orderbook_address = Address::from_str(&orderbook_address)?;
         let orderbook = self.get_orderbook_for_chain_id(chain_id, orderbook_address)?;
         Ok(OrderbookSubgraphClient::new(orderbook.subgraph.url.clone()))
     }
