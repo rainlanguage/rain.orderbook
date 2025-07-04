@@ -22,8 +22,12 @@
   import { derived } from 'svelte/store';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
-  import { settingsText } from '$lib/stores/settings';
+  import { settings, settingsText } from '$lib/stores/settings';
   import { RaindexClient } from '@rainlanguage/orderbook';
+  import { onMount } from 'svelte';
+  import { loadRemoteSettings } from '$lib/services/loadRemoteSettings';
+  import { parseConfig } from '$lib/services/config';
+  import { applySettings } from '$lib/services/applySettings';
 
   const account = derived(
     [ledgerWalletAddress, walletconnectAccount],
@@ -31,6 +35,13 @@
       return $ledgerWalletAddress || $walletconnectAccount || null;
     },
   );
+
+  onMount(async () => {
+    if ($settingsText === '') {
+      const settingsYamlText = await loadRemoteSettings();
+      await applySettings(settingsYamlText, settings, settingsText, parseConfig);
+    }
+  });
 
   let raindexClient: RaindexClient | undefined = undefined;
   $: if ($settingsText) {
@@ -70,7 +81,7 @@
               {/each}
             </div>
             <div
-              class="fixed bottom-0 left-64 right-0 h-10 bg-primary-400 p-2 text-center text-white"
+              class="bg-primary-400 fixed bottom-0 left-64 right-0 h-10 p-2 text-center text-white"
             >
               The Raindex app is still early alpha - have fun but use at your own risk!
             </div>

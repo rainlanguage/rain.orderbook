@@ -109,9 +109,10 @@ export const selectedChainIds = cachedWritableStore<number[]>(
  */
 export const orderHash = cachedWritableStore<Hex>(
 	'settings.orderHash',
-	'0x0',
+	// @ts-expect-error initially the value is empty
+	'',
 	(value) => value,
-	(str) => (str || '0x0') as Hex
+	(str) => (str || '') as Hex
 );
 
 /**

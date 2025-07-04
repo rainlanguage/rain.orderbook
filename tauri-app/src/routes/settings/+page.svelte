@@ -23,8 +23,9 @@
   onMount(() => {
     updateHeight();
     window.addEventListener('resize', updateHeight);
-    if (get(settingsFile).text) {
-      handleApply(get(settingsFile).text);
+    const fileText = get(settingsFile).text;
+    if (fileText && fileText.trim() !== '') {
+      handleApply(fileText);
     } else {
       settingsStatus = 'success';
       errorMessage = undefined;
@@ -46,7 +47,7 @@
 
   const { debouncedFn: debouncedHandleApply } = useDebouncedFn(handleApply, 1000);
 
-  $: if ($settingsFile.text !== undefined && typeof $settingsFile.text === 'string') {
+  $: if ($settingsFile.text !== undefined && typeof $settingsFile.text === 'string' && $settingsFile.text.trim() !== '') {
     debouncedHandleApply($settingsFile.text);
   }
 </script>

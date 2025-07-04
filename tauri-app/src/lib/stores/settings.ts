@@ -44,6 +44,19 @@ export const settingsFile = textFileStore(
   ['yml', 'yaml'],
   get(settingsText),
 );
+settingsText.subscribe((value) => {
+  const currentFileText = get(settingsFile).text;
+  if (value && currentFileText !== value) {
+    settingsFile.set({
+      text: value,
+      path: undefined,
+      isLoading: false,
+      isSaving: false,
+      isSavingAs: false,
+      isEmpty: value.length === 0,
+    });
+  }
+});
 export const settings = cachedWritableStore<NewConfig>(
   'settings',
   EMPTY_SETTINGS,
@@ -274,7 +287,8 @@ export const hideZeroBalanceVaults = cachedWritableStore<boolean>(
 
 export const orderHash = cachedWritableStore<Hex>(
   'settings.orderHash',
-  '0x0',
+  // @ts-expect-error initially the value is empty
+  '',
   (value) => value,
-  (str) => (str || '0x0') as Hex,
+  (str) => (str || '') as Hex,
 );

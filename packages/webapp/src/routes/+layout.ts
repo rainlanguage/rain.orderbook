@@ -91,7 +91,8 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			activeAccounts,
 			// Instantiate with false to show only active orders
 			showInactiveOrders: writable<boolean>(false),
-			orderHash: writable<Hex>('0x0'),
+			// @ts-expect-error initially the value is empty
+			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
 			showMyItemsOnly: writable<boolean>(false)
 		},
@@ -256,7 +257,7 @@ subgraphs:
 			if (stores.activeAccountsItems) {
 				expect(get(stores.activeAccountsItems)).toEqual({});
 			}
-			expect(get(stores.orderHash)).toEqual('0x0');
+			expect(get(stores.orderHash)).toEqual('');
 			expect(get(stores.hideZeroBalanceVaults)).toEqual(false);
 		});
 
