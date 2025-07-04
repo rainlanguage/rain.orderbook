@@ -131,12 +131,20 @@ impl RaindexOrder {
     ) -> Result<Bytes, RaindexError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap_or("");
         let config = NewConfig::try_from_yaml(vec![frontmatter.to_string()], false)?;
+        println!("{:?}", config.get_deployments().keys());
         let deployment = config.get_deployment(&deployment_key)?;
         let add_order_args =
             AddOrderArgs::new_from_deployment(dotrain, deployment.as_ref().clone()).await?;
 
         let tx_args = TransactionArgs {
-            rpc_url: deployment.scenario.deployer.network.rpc.to_string(),
+            rpcs: deployment
+                .scenario
+                .deployer
+                .network
+                .rpcs
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
             ..Default::default()
         };
         let calldata = add_order_args.get_add_order_calldata(tx_args).await?;
@@ -470,7 +478,8 @@ mod tests {
 version: {spec_version}
 networks:
   mainnet:
-    rpc: {rpc_url}
+    rpcs:
+      - {rpc_url}
     chain-id: 1
 subgraphs:
   mainnet: https://mainnet-subgraph.com
@@ -738,7 +747,7 @@ _ _: 0 0;
                 ]),
             }
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: rpc_server.url("/rpc"),
+                rpcs: vec![rpc_server.url("/rpc")],
                 ..Default::default()
             })
             .await
@@ -929,6 +938,7 @@ deployments:
                 .get_add_calldata(dotrain.to_string(), "deployment1".to_string())
                 .await
                 .unwrap_err();
+            println!("{:?}", err);
             assert!(matches!(
                 err,
                 RaindexError::AddOrderArgsError(AddOrderArgsError::DISPairError(_))

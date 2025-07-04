@@ -769,7 +769,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 version: 1
 networks:
   some-network:
-    rpc: http://localhost:8230/rpc1
+    rpcs:
+      - http://localhost:8230/rpc1
     chain-id: 123
     network-id: 123
     currency: ETH

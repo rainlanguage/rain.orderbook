@@ -233,9 +233,9 @@ impl RaindexOrder {
     }
 
     #[wasm_export(skip)]
-    pub fn get_rpc_url(&self) -> Result<Url, RaindexError> {
+    pub fn get_rpc_urls(&self) -> Result<Vec<Url>, RaindexError> {
         let raindex_client = self.get_raindex_client()?;
-        raindex_client.get_rpc_url_for_chain(self.chain_id)
+        raindex_client.get_rpc_urls_for_chain(self.chain_id)
     }
 
     /// Retrieves volume data for all vaults associated with this order over a specified time period

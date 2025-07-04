@@ -67,7 +67,7 @@
 			{item.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableType">
-			{item.__typename}
+			{item.type}
 		</TableBodyCell>
 	</svelte:fragment>
 </AppTable>

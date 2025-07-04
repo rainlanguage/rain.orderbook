@@ -529,12 +529,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
 		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
-		assert.equal(entries[0][0], 'some-deployment');
-		assert.equal(entries[0][1].name, 'Buy WETH with USDC on Base.');
-		assert.equal(entries[0][1].description, 'Buy WETH with USDC for fixed price on Base network.');
-		assert.equal(entries[1][0], 'other-deployment');
-		assert.equal(entries[1][1].name, 'Test test');
-		assert.equal(entries[1][1].description, 'Test test test');
+		assert.equal(entries[0][0], 'other-deployment');
+		assert.equal(entries[0][1].name, 'Test test');
+		assert.equal(entries[0][1].description, 'Test test test');
+		assert.equal(entries[1][0], 'some-deployment');
+		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
+		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
 	});
 
 	it('should get deployment detail', async () => {
@@ -954,7 +954,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7VQzUrDQBDORqkgHkS8CoJXYzYbk9ZSDwqCxKZEiOg1ptsmdLMbs9v69xAevfoCxSfw6s3nEW8S3E1N6bVz2Jn5vm9nPgZof7Ehs8BcGLcp7ad0CCQGtfX_7CQiY6xLpKEYNsLU0lSsyuzAA7cmQZVkRWYLwsXD6p0yyFmGDYrFPStGOxJLhMjbpklYHJGEcdFuwZZjFnlsjAvyXCpA-QK18iw835blYEGABliTdFju3rWAchjWXaF6tySPL53v6d5XZ_rx6rz_3Ojo6PMtBltzHtHMI9KrI1fjbNsGs8513X1ZFl4y8Z_87gkJulF6GlCPD64vvOTBQPwuPLwMsmavl8Gr5tA_3pR_mEhwYfRxTthjhqn4BSt9rARFAgAA';
+			'H4sIAAAAAAAA_7WOu07DMBSG44KKhBgQYkVCYiUkcZSQVmVBipQJBizEVuXi4iSuHRKnEHgIRlZeoOIJWNl4HsSGImzaoK49g_9z-X3OB7Tf2JEqcCX0KGVJym6B7Jna9vJ0FtIa92SnryY8x8zSVGxKdcwTt2OBf5YNqZZprl7WrRRgxadYZ1jc8zJXgAdSiRDF0DAoj0NKeCWGnuk5RlnEel3Sp9YB2heo0z4K9mU6WRGgD7bkGLUMhxZQpKhLB7vVmlmfR1_zo8_R_P3Fefu-6cHBx2sM9v6xwgUrVNnSOtu2waJyXfdYpll2N46iWXCeXJFsMPHGsV0_oMfrJjkNKMH5ZRpavo2aC-if7co_XBBc6gkuKG-mmIkf-pUp41UCAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {

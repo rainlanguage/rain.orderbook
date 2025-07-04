@@ -451,7 +451,7 @@ impl RaindexVault {
 #[serde(rename_all = "camelCase")]
 pub enum RaindexVaultBalanceChangeType {
     Deposit,
-    Withdraw,
+    Withdrawal,
     TradeVaultBalanceChange,
     ClearBounty,
     Unknown,
@@ -462,7 +462,7 @@ impl TryFrom<String> for RaindexVaultBalanceChangeType {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.as_str() {
             "Deposit" => Ok(RaindexVaultBalanceChangeType::Deposit),
-            "Withdraw" => Ok(RaindexVaultBalanceChangeType::Withdraw),
+            "Withdrawal" => Ok(RaindexVaultBalanceChangeType::Withdrawal),
             "TradeVaultBalanceChange" => Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange),
             "ClearBounty" => Ok(RaindexVaultBalanceChangeType::ClearBounty),
             "Unknown" => Ok(RaindexVaultBalanceChangeType::Unknown),

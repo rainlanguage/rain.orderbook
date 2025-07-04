@@ -189,7 +189,7 @@ impl RaindexClient {
         Ok(orderbook.clone())
     }
 
-    fn get_rpc_urls_for_chain(&self, chain_id: u64) -> Result<Vec<Url>, RaindexError> {
+    fn get_rpc_urls_for_chain(&self, chain_id: u32) -> Result<Vec<Url>, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpcs.clone())
     }

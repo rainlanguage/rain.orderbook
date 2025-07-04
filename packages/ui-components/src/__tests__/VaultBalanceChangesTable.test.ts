@@ -57,7 +57,7 @@ test('it shows the correct data in the table', async () => {
 
 	const mockVaultBalanceChanges: RaindexVaultBalanceChange[] = [
 		{
-			__typename: 'Withdrawal',
+			type: 'withdrawal',
 			amount: BigInt(1000),
 			oldBalance: BigInt(5000),
 			newBalance: BigInt(4000),
@@ -101,6 +101,6 @@ test('it shows the correct data in the table', async () => {
 			'0.1 TKN1'
 		);
 		expect(screen.getByTestId('vaultBalanceChangesTableBalance')).toHaveTextContent('0.4 TKN1');
-		expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent('Withdrawal');
+		expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent('withdrawal');
 	});
 });

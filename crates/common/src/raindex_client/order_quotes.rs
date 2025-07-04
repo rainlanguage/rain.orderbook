@@ -41,13 +41,11 @@ impl RaindexOrder {
         gas: Option<String>,
     ) -> Result<Vec<BatchOrderQuotesResponse>, RaindexError> {
         let gas_amount = gas.map(|v| U256::from_str(&v)).transpose()?;
-        let rpc_url = self
-            .get_raindex_client()?
-            .get_rpc_url_for_chain(self.chain_id())?;
+        let rpcs = self.get_rpc_urls()?;
         let order_quotes = get_order_quotes(
             vec![self.clone().into_sg_order()?],
             block_number,
-            rpc_url.to_string(),
+            rpcs.iter().map(|s| s.to_string()).collect(),
             gas_amount,
         )
         .await?;
