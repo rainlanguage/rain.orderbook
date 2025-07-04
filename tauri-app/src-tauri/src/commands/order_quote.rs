@@ -5,7 +5,7 @@ use rain_orderbook_common::{
     fuzz::{RainEvalResults, RainEvalResultsTable},
     raindex_client::orders::RaindexOrder,
 };
-use rain_orderbook_quote::{NewQuoteDebugger, QuoteDebugger, QuoteTarget};
+use rain_orderbook_quote::{NewQuoteDebugger, QuoteDebugger, QuoteDebuggerError, QuoteTarget};
 
 #[tauri::command]
 pub async fn debug_order_quote(
@@ -14,7 +14,7 @@ pub async fn debug_order_quote(
     output_io_index: u32,
     block_number: Option<u32>,
 ) -> CommandResult<(RainEvalResultsTable, Option<String>)> {
-    let rpc_url = order.get_rpc_url()?;
+    let rpc_urls = order.get_rpc_urls()?;
     let quote_target = QuoteTarget {
         orderbook: order.orderbook(),
         quote_config: Quote {
@@ -25,22 +25,34 @@ pub async fn debug_order_quote(
         },
     };
 
-    let mut debugger = QuoteDebugger::new(NewQuoteDebugger {
-        fork_url: rpc_url,
-        fork_block_number: block_number.map(|s| s.into()),
-    })
-    .await?;
+    let mut err: Option<QuoteDebuggerError> = None;
+    for rpc_url in rpc_urls {
+        match QuoteDebugger::new(NewQuoteDebugger {
+            fork_url: rpc_url,
+            fork_block_number: block_number.map(|s| s.into()),
+        })
+        .await
+        {
+            Ok(mut debugger) => {
+                let res = debugger.debug(quote_target).await?;
+                let eval_res: RainEvalResults = vec![res.0.clone()].into();
 
-    let res = debugger.debug(quote_target).await?;
-    let eval_res: RainEvalResults = vec![res.0.clone()].into();
+                return Ok((
+                    eval_res.into_flattened_table()?,
+                    res.1.map(|v| match v {
+                        Ok(e) => e.to_string(),
+                        Err(e) => e.to_string(),
+                    }),
+                ));
+            }
+            Err(e) => {
+                err = Some(e);
+            }
+        }
+    }
 
-    Ok((
-        eval_res.into_flattened_table()?,
-        res.1.map(|v| match v {
-            Ok(e) => e.to_string(),
-            Err(e) => e.to_string(),
-        }),
-    ))
+    // if we are here, we have tried all rpcs and failed
+    Err(err.unwrap().into())
 }
 
 #[cfg(test)]
