@@ -15,7 +15,7 @@ impl RaindexClient {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getRemoveOrdersForTransaction(1, "0x1234567890abcdef1234567890abcdef12345678");
+    /// const result = await client.getRemoveOrdersForTransaction(1, "0x1234567890abcdef1234567890abcdef12345678");
     /// if (result.error) {
     ///   console.error("Cannot fetch removed orders:", result.error.readableMsg);
     ///   return;

@@ -94,6 +94,9 @@ error UnsupportedCalculateInputs(uint256 inputs);
 /// @param outputs The outputs the expression offers.
 error UnsupportedCalculateOutputs(uint256 outputs);
 
+/// Thrown when clear output amounts are both zero.
+error ClearZeroAmount();
+
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
 uint256 constant ORDER_LIVE = 1;
@@ -269,46 +272,47 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             // technically this is overly conservative but we REALLY don't want
             // withdrawals to exceed vault balances.
             sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
-            emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
+        }
 
-            if (post.length != 0) {
-                // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
-                // It's incredibly common anyway. Please let us know if this actually a
-                // problem in practice.
-                uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+        emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
 
-                LibOrderBook.doPost(
-                    LibUint256Matrix.matrixFrom(
-                        LibUint256Array.arrayFrom(
-                            uint256(uint160(token)),
-                            vaultId,
-                            LibFixedPointDecimalScale.scale18(
-                                currentVaultBalance,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            ),
-                            LibFixedPointDecimalScale.scale18(
-                                withdrawAmount,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            ),
-                            LibFixedPointDecimalScale.scale18(
-                                targetAmount,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            )
+        if (post.length != 0) {
+            // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+            // It's incredibly common anyway. Please let us know if this actually a
+            // problem in practice.
+            uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(
+                    LibUint256Array.arrayFrom(
+                        uint256(uint160(token)),
+                        vaultId,
+                        LibFixedPointDecimalScale.scale18(
+                            currentVaultBalance,
+                            tokenDecimals,
+                            // Error on overflow.
+                            // Rounding down is the default.
+                            0
+                        ),
+                        LibFixedPointDecimalScale.scale18(
+                            withdrawAmount,
+                            tokenDecimals,
+                            // Error on overflow.
+                            // Rounding down is the default.
+                            0
+                        ),
+                        LibFixedPointDecimalScale.scale18(
+                            targetAmount,
+                            tokenDecimals,
+                            // Error on overflow.
+                            // Rounding down is the default.
+                            0
                         )
-                    ),
-                    post
-                );
-            }
+                    )
+                ),
+                post
+            );
         }
     }
 
@@ -703,6 +707,11 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         handleIO(aliceOrderIOCalculation);
         handleIO(bobOrderIOCalculation);
+
+        // Do this last so we don't swallow errors from the handle IO.
+        if (clearStateChange.aliceOutput == 0 && clearStateChange.bobOutput == 0) {
+            revert ClearZeroAmount();
+        }
     }
 
     /// Main entrypoint into an order calculates the amount and IO ratio. Both

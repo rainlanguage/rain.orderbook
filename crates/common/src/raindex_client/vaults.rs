@@ -355,12 +355,12 @@ impl RaindexVault {
         &self,
         amount: U256,
     ) -> Result<(DepositArgs, TransactionArgs), RaindexError> {
-        let rpc_url = {
+        let rpcs = {
             let raindex_client = self
                 .raindex_client
                 .read()
                 .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_rpc_url_for_chain(self.chain_id)?
+            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
         };
         let deposit_args = DepositArgs {
             token: self.token.address,
@@ -369,7 +369,7 @@ impl RaindexVault {
         };
         let transaction_args = TransactionArgs {
             orderbook_address: self.orderbook,
-            rpc_url: rpc_url.to_string(),
+            rpcs: rpcs.iter().map(|rpc| rpc.to_string()).collect(),
             ..Default::default()
         };
         Ok((deposit_args, transaction_args))
@@ -447,11 +447,35 @@ impl RaindexVault {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum RaindexVaultBalanceChangeType {
+    Deposit,
+    Withdraw,
+    TradeVaultBalanceChange,
+    ClearBounty,
+    Unknown,
+}
+impl_wasm_traits!(RaindexVaultBalanceChangeType);
+impl TryFrom<String> for RaindexVaultBalanceChangeType {
+    type Error = RaindexError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "Deposit" => Ok(RaindexVaultBalanceChangeType::Deposit),
+            "Withdraw" => Ok(RaindexVaultBalanceChangeType::Withdraw),
+            "TradeVaultBalanceChange" => Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange),
+            "ClearBounty" => Ok(RaindexVaultBalanceChangeType::ClearBounty),
+            "Unknown" => Ok(RaindexVaultBalanceChangeType::Unknown),
+            _ => Err(RaindexError::InvalidVaultBalanceChangeType(value)),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultBalanceChange {
-    __typename: String,
+    r#type: RaindexVaultBalanceChangeType,
     vault_id: U256,
     token: RaindexVaultToken,
     amount: I256,
@@ -464,9 +488,9 @@ pub struct RaindexVaultBalanceChange {
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVaultBalanceChange {
-    #[wasm_bindgen(getter)]
-    pub fn __typename(&self) -> String {
-        self.__typename.clone()
+    #[wasm_bindgen(getter = type)]
+    pub fn type_getter(&self) -> RaindexVaultBalanceChangeType {
+        self.r#type.clone()
     }
     #[wasm_bindgen(getter = vaultId)]
     pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
@@ -508,8 +532,8 @@ impl RaindexVaultBalanceChange {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultBalanceChange {
-    pub fn __typename(&self) -> String {
-        self.__typename.clone()
+    pub fn r#type(&self) -> RaindexVaultBalanceChangeType {
+        self.r#type.clone()
     }
     pub fn vault_id(&self) -> U256 {
         self.vault_id
@@ -545,7 +569,7 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
     type Error = RaindexError;
     fn try_from(balance_change: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
         Ok(Self {
-            __typename: balance_change.__typename,
+            r#type: balance_change.__typename.try_into()?,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
             token: RaindexVaultToken::try_from(balance_change.vault.token)?,
             amount: I256::from_str(&balance_change.amount.0)?,
@@ -562,7 +586,7 @@ impl TryFrom<SgTradeVaultBalanceChange> for RaindexVaultBalanceChange {
     type Error = RaindexError;
     fn try_from(balance_change: SgTradeVaultBalanceChange) -> Result<Self, Self::Error> {
         Ok(Self {
-            __typename: balance_change.__typename,
+            r#type: balance_change.__typename.try_into()?,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
             token: RaindexVaultToken::try_from(balance_change.vault.token)?,
             amount: I256::from_str(&balance_change.amount.0)?,
@@ -585,7 +609,7 @@ impl RaindexClient {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getVaults(
+    /// const result = await client.getVaults(
     ///   {
     ///     owners: ["0x1234567890abcdef1234567890abcdef12345678"],
     ///     hide_zero_balance: true
@@ -664,7 +688,7 @@ impl RaindexClient {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getVault(
+    /// const result = await client.getVault(
     ///   137, // Polygon network
     ///   "0x1234567890abcdef1234567890abcdef12345678"
     /// );
@@ -1106,7 +1130,7 @@ mod tests {
                 .unwrap();
             let result = vault.get_balance_changes(None).await.unwrap();
             assert_eq!(result.len(), 1);
-            assert_eq!(result[0].__typename, "Deposit");
+            assert_eq!(result[0].r#type, RaindexVaultBalanceChangeType::Deposit);
             assert_eq!(result[0].vault_id, U256::from_str("1").unwrap());
             assert_eq!(
                 result[0].token.id,

@@ -139,7 +139,8 @@ const dotrain = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -216,7 +217,8 @@ const dotrainWithoutVaultIds = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -286,7 +288,8 @@ const dotrainWithoutTokens = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -364,7 +367,8 @@ gui:
           default: some-default-value
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 999
         network-id: 999
         currency: ZZ
@@ -525,12 +529,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
 		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
-		assert.equal(entries[0][0], 'other-deployment');
-		assert.equal(entries[0][1].name, 'Test test');
-		assert.equal(entries[0][1].description, 'Test test test');
-		assert.equal(entries[1][0], 'some-deployment');
-		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
-		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
+		assert.equal(entries[0][0], 'some-deployment');
+		assert.equal(entries[0][1].name, 'Buy WETH with USDC on Base.');
+		assert.equal(entries[0][1].description, 'Buy WETH with USDC for fixed price on Base network.');
+		assert.equal(entries[1][0], 'other-deployment');
+		assert.equal(entries[1][1].name, 'Test test');
+		assert.equal(entries[1][1].description, 'Test test test');
 	});
 
 	it('should get deployment detail', async () => {

@@ -188,9 +188,10 @@ impl RaindexClient {
             ))?;
         Ok(orderbook.clone())
     }
-    fn get_rpc_url_for_chain(&self, chain_id: u32) -> Result<Url, RaindexError> {
+
+    fn get_rpc_urls_for_chain(&self, chain_id: u64) -> Result<Vec<Url>, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
-        Ok(network.rpc.clone())
+        Ok(network.rpcs.clone())
     }
 }
 
@@ -209,7 +210,7 @@ pub enum RaindexError {
     #[error(transparent)]
     SerdeError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
-    DotrainOrderError(#[from] DotrainOrderError),
+    DotrainOrderError(Box<DotrainOrderError>),
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
@@ -244,6 +245,16 @@ pub enum RaindexError {
     AddOrderArgsError(#[from] AddOrderArgsError),
     #[error(transparent)]
     OrderbookQuoteError(#[from] rain_orderbook_quote::error::Error),
+    #[error("Missing subgraph {0} for order {1}")]
+    SubgraphNotFound(String, String),
+    #[error("Invalid vault balance change type: {0}")]
+    InvalidVaultBalanceChangeType(String),
+}
+
+impl From<DotrainOrderError> for RaindexError {
+    fn from(err: DotrainOrderError) -> Self {
+        Self::DotrainOrderError(Box::new(err))
+    }
 }
 
 impl RaindexError {
@@ -333,6 +344,15 @@ impl RaindexError {
             RaindexError::OrderbookQuoteError(err) => {
                 format!("Failed to get order quote: {}", err)
             }
+            RaindexError::SubgraphNotFound(subgraph, order) => {
+                format!(
+                    "Subgraph with name '{}' not found for the order with hash '{}'",
+                    subgraph, order
+                )
+            }
+            RaindexError::InvalidVaultBalanceChangeType(typ) => {
+                format!("Invalid vault balance change type: {}", typ)
+            }
         }
     }
 }
@@ -364,13 +384,15 @@ mod tests {
 version: {spec_version}
 networks:
     mainnet:
-        rpc: {rpc1}
+        rpcs:
+            - {rpc1}
         chain-id: 1
         label: Ethereum Mainnet
         network-id: 1
         currency: ETH
     polygon:
-        rpc: {rpc2}
+        rpcs:
+            - {rpc2}
         chain-id: 137
         label: Polygon Mainnet
         network-id: 137
@@ -429,7 +451,8 @@ deployers:
     version: {spec_version}
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
     orderbooks:
         invalid-orderbook:
@@ -637,10 +660,12 @@ deployers:
     version: {spec_version}
     networks:
         isolated:
-            rpc: https://isolated.rpc
+            rpcs:
+                - https://isolated.rpc
             chain-id: 999
         some-network:
-            rpc: https://some-network.rpc
+            rpcs:
+                - https://some-network.rpc
             chain-id: 1000
     subgraphs:
         test: https://test.subgraph

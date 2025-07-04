@@ -349,8 +349,8 @@ pub trait ContractTxHandler<T: SolCall> {
     ) -> Result<TransactionReceipt, RpcError<TransportErrorKind>>;
 }
 
-impl<'a, T: SolCall> ContractTxHandler<T>
-    for CallBuilder<Http<Client>, &'a LocalEvmProvider, PhantomData<T>>
+impl<T: SolCall> ContractTxHandler<T>
+    for CallBuilder<Http<Client>, &LocalEvmProvider, PhantomData<T>>
 {
     async fn do_call(
         &self,

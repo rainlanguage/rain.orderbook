@@ -64,9 +64,9 @@
 	chainId={parsedChainId}
 	{orderbookAddress}
 	orderHash={parsedOrderHash}
-	{codeMirrorTheme}
 	{lightweightChartsTheme}
 	{colorTheme}
+	{codeMirrorTheme}
 	{onRemove}
 	{onDeposit}
 	{onWithdraw}

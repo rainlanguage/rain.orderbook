@@ -117,6 +117,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     RaindexError(#[from] RaindexError),
+
+    #[error("Missing RPCs")]
+    MissingRpcs,
 }
 
 impl Serialize for CommandError {

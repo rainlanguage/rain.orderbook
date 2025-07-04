@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
 		globals: true,
 		environment: 'jsdom',
 		include: ['src/**/*.{test,spec}.ts'],
-		exclude: ['src/lib/__mocks__/stores.ts'],
+		exclude: ['src/lib/__mocks__/**/*.ts'],
 		// Extend jest-dom matchers
 		setupFiles: ['./test-setup.ts'],
 		// load env vars

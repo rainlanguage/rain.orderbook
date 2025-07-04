@@ -23,8 +23,8 @@ export const handleOrderRemoveModal = (order: RaindexOrder, onOrderRemoved: () =
   new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
 };
 
-export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {
-  new ModalTradeDebug({ target: document.body, props: { open: true, txHash, rpcUrl } });
+export const handleDebugTradeModal = (txHash: string, rpcUrls: string[]) => {
+  new ModalTradeDebug({ target: document.body, props: { open: true, txHash, rpcUrls } });
 };
 
 export const handleQuoteDebugModal = (

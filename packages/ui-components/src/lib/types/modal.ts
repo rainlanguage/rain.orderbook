@@ -41,7 +41,7 @@ export type QuoteDebugModalHandler = (
 	blockNumber?: bigint
 ) => void;
 
-export type DebugTradeModalHandler = (hash: string, rpcUrl: string) => void;
+export type DebugTradeModalHandler = (hash: string, rpcUrls: string[]) => void;
 
 export type HandleTransactionConfirmationModal = (
 	props: TransactionConfirmationProps,

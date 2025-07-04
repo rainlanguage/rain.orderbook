@@ -20,12 +20,14 @@ const CHAIN_ID_2_ORDERBOOK_ADDRESS = '0xbeedbeedbeedbeedbeedbeedbeedbeedbeedbeed
 const YAML = `
 networks:
     some-network:
-        rpc: http://localhost:8230/rpc1
+        rpcs:
+            - http://localhost:8230/rpc1
         chain-id: 1
         network-id: 1
         currency: ETH
     other-network:
-        rpc: http://localhost:8230/rpc2
+        rpcs:
+            - http://localhost:8230/rpc2
         chain-id: 2
         network-id: 2
         currency: ETH
@@ -1672,7 +1674,7 @@ _ _: 0 0;
 			);
 			const result = extractWasmEncodedData(await vault.getBalanceChanges());
 
-			assert.equal(result[0].__typename, 'Deposit');
+			assert.equal(result[0].type, 'deposit');
 			assert.equal(result[0].amount, BigInt('5000000000000000000'));
 			assert.equal(result[0].newBalance, BigInt('5000000000000000000'));
 			assert.equal(result[0].oldBalance, BigInt('0'));

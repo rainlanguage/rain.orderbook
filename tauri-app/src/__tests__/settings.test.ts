@@ -216,7 +216,7 @@ describe('Network and Orderbook Management', () => {
             address: '0xOrderbookAddress1',
             network: {
               key: 'mainnet',
-              rpc: 'mainnet.rpc',
+              rpcs: ['mainnet.rpc'],
               chainId: 1,
             },
             subgraph: {
@@ -229,7 +229,7 @@ describe('Network and Orderbook Management', () => {
             address: '0xOrderbookAddress2',
             network: {
               key: 'testnet',
-              rpc: 'testnet.rpc',
+              rpcs: ['testnet.rpc'],
               chainId: 5,
             },
             subgraph: {
@@ -257,15 +257,15 @@ describe('Network and Orderbook Management', () => {
       orderbook: {
         ...mockConfig.orderbook,
         networks: {
-          mainnet: { key: 'mainnet', rpc: 'mainnet.rpc', chainId: 1 },
-          testnet: { key: 'mainnet', rpc: 'testnet.rpc', chainId: 5 },
+          mainnet: { key: 'mainnet', rpcs: ['mainnet.rpc'], chainId: 1 },
+          testnet: { key: 'testnet', rpcs: ['testnet.rpc'], chainId: 5 },
         },
         orderbooks: {
           orderbook1: {
             address: '0xOrderbookAddress1',
             network: {
               key: 'mainnet',
-              rpc: 'mainnet.rpc',
+              rpcs: ['mainnet.rpc'],
               chainId: 1,
             },
             subgraph: {
@@ -356,7 +356,7 @@ describe('Derived Store Behaviors', () => {
             address: '0xOrderbookAddress1',
             network: {
               key: 'mainnet',
-              rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+              rpcs: ['https://mainnet.infura.io/v3/YOUR-PROJECT-ID'],
               chainId: 1,
             },
             subgraph: {
