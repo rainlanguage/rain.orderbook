@@ -1,9 +1,12 @@
 use super::*;
 use crate::{
     meta::TryDecodeRainlangSource,
-    raindex_client::vaults::{RaindexVault, RaindexVaultType},
+    raindex_client::{
+        transactions::RaindexTransaction,
+        vaults::{RaindexVault, RaindexVaultType},
+    },
 };
-use alloy::primitives::Address;
+use alloy::primitives::{Address, U256};
 use rain_orderbook_subgraph_client::{
     performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -17,6 +20,8 @@ use std::{
     str::FromStr,
     sync::{Arc, RwLock},
 };
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
 
@@ -43,11 +48,12 @@ pub struct RaindexOrder {
     outputs: Vec<RaindexVault>,
     orderbook: Address,
     active: bool,
-    timestamp_added: String,
+    timestamp_added: U256,
     meta: Option<String>,
     rainlang: Option<String>,
+    transaction: Option<RaindexTransaction>,
 }
-
+#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexOrder {
     #[wasm_bindgen(getter)]
@@ -97,31 +103,7 @@ impl RaindexOrder {
     /// ```
     #[wasm_bindgen(getter)]
     pub fn vaults(&self) -> Vec<RaindexVault> {
-        let mut vaults: Vec<RaindexVault> = Vec::new();
-
-        let input_ids: HashSet<String> = self.inputs.iter().map(|v| v.id()).collect();
-        let output_ids: HashSet<String> = self.outputs.iter().map(|v| v.id()).collect();
-
-        // First add inputs (excluding input_outputs)
-        for vault in &self.inputs {
-            if !output_ids.contains(&vault.id()) {
-                vaults.push(vault.clone());
-            }
-        }
-        // Then add outputs (excluding input_outputs)
-        for vault in &self.outputs {
-            if !input_ids.contains(&vault.id()) {
-                vaults.push(vault.clone());
-            }
-        }
-        // Finally add input_outputs (only once for vaults that are both input and output)
-        for vault in &self.inputs {
-            if output_ids.contains(&vault.id()) {
-                let input_output_vault = vault.with_vault_type(RaindexVaultType::InputOutput);
-                vaults.push(input_output_vault);
-            }
-        }
-        vaults
+        get_vaults_with_type(self.inputs.clone(), self.outputs.clone())
     }
     #[wasm_bindgen(getter)]
     pub fn orderbook(&self) -> String {
@@ -132,8 +114,9 @@ impl RaindexOrder {
         self.active
     }
     #[wasm_bindgen(getter = timestampAdded)]
-    pub fn timestamp_added(&self) -> String {
-        self.timestamp_added.clone()
+    pub fn timestamp_added(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.timestamp_added.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
     #[wasm_bindgen(getter)]
     pub fn meta(&self) -> Option<String> {
@@ -143,11 +126,92 @@ impl RaindexOrder {
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
     }
+    #[wasm_bindgen(getter)]
+    pub fn transaction(&self) -> Option<RaindexTransaction> {
+        self.transaction.clone()
+    }
+}
+#[cfg(not(target_family = "wasm"))]
+impl RaindexOrder {
+    pub fn chain_id(&self) -> u64 {
+        self.chain_id
+    }
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+    pub fn order_bytes(&self) -> String {
+        self.order_bytes.clone()
+    }
+    pub fn order_hash(&self) -> String {
+        self.order_hash.clone()
+    }
+    pub fn owner(&self) -> Address {
+        self.owner
+    }
+    pub fn inputs(&self) -> Vec<RaindexVault> {
+        self.inputs.clone()
+    }
+    pub fn outputs(&self) -> Vec<RaindexVault> {
+        self.outputs.clone()
+    }
+    pub fn vaults(&self) -> Vec<RaindexVault> {
+        get_vaults_with_type(self.inputs.clone(), self.outputs.clone())
+    }
+    pub fn orderbook(&self) -> Address {
+        self.orderbook
+    }
+    pub fn active(&self) -> bool {
+        self.active
+    }
+    pub fn timestamp_added(&self) -> U256 {
+        self.timestamp_added
+    }
+    pub fn meta(&self) -> Option<String> {
+        self.meta.clone()
+    }
+    pub fn rainlang(&self) -> Option<String> {
+        self.rainlang.clone()
+    }
+    pub fn transaction(&self) -> Option<RaindexTransaction> {
+        self.transaction.clone()
+    }
+}
+
+fn get_vaults_with_type(
+    inputs: Vec<RaindexVault>,
+    outputs: Vec<RaindexVault>,
+) -> Vec<RaindexVault> {
+    let mut vaults: Vec<RaindexVault> = Vec::new();
+
+    let input_ids: HashSet<String> = inputs.iter().map(|v| v.id()).collect();
+    let output_ids: HashSet<String> = outputs.iter().map(|v| v.id()).collect();
+
+    // First add inputs (excluding input_outputs)
+    for vault in &inputs {
+        if !output_ids.contains(&vault.id()) {
+            vaults.push(vault.clone());
+        }
+    }
+    // Then add outputs (excluding input_outputs)
+    for vault in &outputs {
+        if !input_ids.contains(&vault.id()) {
+            vaults.push(vault.clone());
+        }
+    }
+    // Finally add input_outputs (only once for vaults that are both input and output)
+    for vault in &inputs {
+        if output_ids.contains(&vault.id()) {
+            let input_output_vault = vault.with_vault_type(RaindexVaultType::InputOutput);
+            vaults.push(input_output_vault);
+        }
+    }
+    vaults
 }
 
 #[wasm_export]
 impl RaindexOrder {
-    fn get_subgraph_url(&self) -> Result<Url, RaindexError> {
+    #[wasm_export(skip)]
+    pub fn get_subgraph_url(&self) -> Result<Url, RaindexError> {
         let raindex_client = self
             .raindex_client
             .read()
@@ -328,6 +392,7 @@ impl RaindexClient {
                     raindex_client.clone(),
                     chain_id,
                     order.order.clone(),
+                    None,
                 )?;
                 Ok(order)
             })
@@ -389,6 +454,7 @@ impl RaindexClient {
             raindex_client,
             chain_id as u64,
             self.get_sg_order(chain_id, order_hash).await?,
+            None,
         )?;
         Ok(order)
     }
@@ -422,10 +488,11 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
 }
 
 impl RaindexOrder {
-    fn try_from_sg_order(
+    pub fn try_from_sg_order(
         raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u64,
         order: SgOrder,
+        transaction: Option<RaindexTransaction>,
     ) -> Result<Self, RaindexError> {
         let rainlang = order
             .meta
@@ -465,9 +532,10 @@ impl RaindexOrder {
                 .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
-            timestamp_added: order.timestamp_added.0,
+            timestamp_added: U256::from_str(&order.timestamp_added.0)?,
             meta: order.meta.map(|meta| meta.0),
             rainlang,
+            transaction,
         })
     }
 }
@@ -993,6 +1061,7 @@ mod tests {
                 Arc::new(RwLock::new(raindex_client.clone())),
                 1,
                 get_order1(),
+                None,
             )
             .unwrap();
 
@@ -1069,23 +1138,23 @@ mod tests {
             );
             assert_eq!(
                 order2_outputs.owner(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(order2_outputs.vault_id(), "0".to_string());
+            assert_eq!(order2_outputs.vault_id(), U256::from(0));
             assert_eq!(
                 order2_outputs.token().id(),
                 "0x0000000000000000000000000000000000000000".to_string()
             );
             assert_eq!(
                 order2_outputs.token().address(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(order2_outputs.token().name(), Some("T1".to_string()));
             assert_eq!(order2_outputs.token().symbol(), Some("T1".to_string()));
-            assert_eq!(order2_outputs.token().decimals(), Some("0".to_string()));
+            assert_eq!(order2_outputs.token().decimals(), Some(U256::from(0)));
             assert_eq!(
                 order2_outputs.orderbook(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
 
             assert_eq!(order2.inputs.len(), 1);
@@ -1096,29 +1165,29 @@ mod tests {
             );
             assert_eq!(
                 order2_inputs.owner(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(order2_inputs.vault_id(), "0".to_string());
+            assert_eq!(order2_inputs.vault_id(), U256::from(0));
             assert_eq!(
                 order2_inputs.token().id(),
                 "0x0000000000000000000000000000000000000000".to_string()
             );
             assert_eq!(
                 order2_inputs.token().address(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(order2_inputs.token().name(), Some("T2".to_string()));
             assert_eq!(order2_inputs.token().symbol(), Some("T2".to_string()));
-            assert_eq!(order2_inputs.token().decimals(), Some("0".to_string()));
+            assert_eq!(order2_inputs.token().decimals(), Some(U256::from(0)));
             assert_eq!(
                 order2_inputs.orderbook(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(
                 order2.orderbook(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(order2.timestamp_added(), "0".to_string());
+            assert_eq!(order2.timestamp_added(), U256::from(0));
         }
 
         #[tokio::test]
@@ -1153,6 +1222,7 @@ mod tests {
                 Arc::new(RwLock::new(raindex_client.clone())),
                 1,
                 get_order1(),
+                None,
             )
             .unwrap();
             assert_eq!(res.id, expected_order.id);
