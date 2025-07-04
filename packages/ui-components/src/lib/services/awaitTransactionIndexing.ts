@@ -8,13 +8,15 @@ import type {
 	RaindexClient,
 	WasmEncodedResult,
 	RaindexTransaction,
-	RaindexOrder
+	RaindexOrder,
+	Address,
+	Hex
 } from '@rainlanguage/orderbook';
 
 export type AwaitSubgraphConfig = {
 	chainId: number;
-	orderbook: string;
-	txHash: string;
+	orderbook: Address;
+	txHash: Hex;
 	successMessage: string;
 	fetchEntityFn:
 		| typeof RaindexClient.prototype.getTransaction
@@ -35,7 +37,7 @@ export type IndexingResult<T> = {
 		/**
 		 * The transaction hash
 		 */
-		txHash: string;
+		txHash: Hex;
 		/**
 		 * Message to display on successful indexing
 		 */
@@ -43,7 +45,7 @@ export type IndexingResult<T> = {
 		/**
 		 * Optional order hash if available
 		 */
-		orderHash?: string;
+		orderHash?: Hex;
 		/**
 		 * Optional network key
 		 */
@@ -84,11 +86,11 @@ export const awaitSubgraphIndexing = async <T>(options: {
 	/**
 	 * Orderbook address to query
 	 */
-	orderbook: string;
+	orderbook: Address;
 	/**
 	 * Transaction hash to check for indexing
 	 */
-	txHash: string;
+	txHash: Hex;
 	/**
 	 * Message to display on successful indexing
 	 */
@@ -113,8 +115,8 @@ export const awaitSubgraphIndexing = async <T>(options: {
 	 */
 	fetchEntityFn: (
 		chainId: number,
-		orderbook: string,
-		txHash: string
+		orderbook: Address,
+		txHash: Hex
 	) => Promise<WasmEncodedResult<T | null | undefined>>;
 	/**
 	 * Function to determine if the fetched data indicates success

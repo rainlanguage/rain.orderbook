@@ -14,6 +14,7 @@
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
 	const { id, chainId, orderbook } = $page.params;
+	const parsedId = id as Hex;
 	const parsedChainId = Number(chainId);
 	const orderbookAddress = orderbook as Address;
 
@@ -49,7 +50,7 @@
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
 <VaultDetail
-	{id}
+	id={parsedId}
 	{orderbookAddress}
 	chainId={parsedChainId}
 	{lightweightChartsTheme}

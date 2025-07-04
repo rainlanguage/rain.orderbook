@@ -24,7 +24,13 @@
 		InfoCircleOutline
 	} from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { RaindexClient, RaindexOrder, RaindexVault, type Address } from '@rainlanguage/orderbook';
+	import {
+		RaindexClient,
+		RaindexOrder,
+		RaindexVault,
+		type Address,
+		type Hex
+	} from '@rainlanguage/orderbook';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
@@ -34,7 +40,7 @@
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
 	export let orderbookAddress: Address;
-	export let orderHash: string;
+	export let orderHash: Hex;
 	export let chainId: number;
 
 	/** Callback function when remove action is triggered for an order

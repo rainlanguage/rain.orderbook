@@ -56,7 +56,7 @@ describe('ListViewOrderbookFilters', () => {
 		activeAccountsItems: writable({}),
 		selectedChainIds: writable([]),
 		showInactiveOrders: writable(true),
-		orderHash: writable(''),
+		orderHash: writable('0x0234'),
 		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;
 

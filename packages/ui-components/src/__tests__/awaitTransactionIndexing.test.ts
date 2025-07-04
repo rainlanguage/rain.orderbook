@@ -17,13 +17,13 @@ describe('subgraphIndexing', () => {
 	});
 
 	it('should resolve with value when data is successfully fetched', async () => {
-		const mockData = { id: 'tx123' } as RaindexTransaction;
+		const mockData = { id: '0x0123' } as unknown as RaindexTransaction;
 		mockFetchData.mockResolvedValue({ value: mockData });
 
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
 			orderbook: '0x123',
-			txHash: 'tx123',
+			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			fetchEntityFn: mockFetchData,
 			isSuccess: (data: RaindexTransaction) => !!data.id
@@ -35,11 +35,11 @@ describe('subgraphIndexing', () => {
 
 		expect(result.value).toBeDefined();
 		expect(result.error).toBeUndefined();
-		expect(result.value?.txHash).toBe('tx123');
+		expect(result.value?.txHash).toBe('0x0234');
 		expect(result.value?.successMessage).toBe('Transaction confirmed');
 		expect(result.value?.data).toEqual(mockData);
 
-		expect(mockFetchData).toHaveBeenCalledWith(1, '0x123', 'tx123');
+		expect(mockFetchData).toHaveBeenCalledWith(1, '0x123', '0x0234');
 		expect(mockFetchData).toHaveBeenCalledTimes(1);
 	});
 
@@ -55,7 +55,7 @@ describe('subgraphIndexing', () => {
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
 			orderbook: '0x123',
-			txHash: 'tx123',
+			txHash: '0x0234',
 			successMessage: 'Order confirmed',
 			fetchEntityFn: mockFetchData,
 			isSuccess: (data: RaindexOrder[]) => data.length > 0
@@ -75,7 +75,7 @@ describe('subgraphIndexing', () => {
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
 			orderbook: '0x123',
-			txHash: 'tx123',
+			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 5,
 			interval: 500,
@@ -101,7 +101,7 @@ describe('subgraphIndexing', () => {
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
 			orderbook: '0x123',
-			txHash: 'tx123',
+			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 3,
 			interval: 500,
@@ -123,12 +123,12 @@ describe('subgraphIndexing', () => {
 	it('should resolve immediately when successful data is found', async () => {
 		mockFetchData
 			.mockResolvedValueOnce({ value: null })
-			.mockResolvedValueOnce({ value: { id: 'tx123' } as RaindexTransaction });
+			.mockResolvedValueOnce({ value: { id: '0x0123' } as unknown as RaindexTransaction });
 
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
 			orderbook: '0x123',
-			txHash: 'tx123',
+			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 5,
 			interval: 500,

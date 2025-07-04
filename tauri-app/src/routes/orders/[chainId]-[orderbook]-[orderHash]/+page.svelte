@@ -10,29 +10,36 @@
     handleWithdrawModal,
     handleOrderRemoveModal,
   } from '$lib/services/modal';
-  import type { Address, RaindexClient, RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
+  import type {
+    Address,
+    Hex,
+    RaindexClient,
+    RaindexOrder,
+    RaindexVault,
+  } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
 
   const queryClient = useQueryClient();
   const { chainId, orderbook, orderHash } = $page.params;
+  const parsedOrderHash = orderHash as Hex;
   const parsedChainId = Number(chainId);
   const orderbookAddress = orderbook as Address;
 
   function onRemove(_raindexClient: RaindexClient, order: RaindexOrder) {
     handleOrderRemoveModal(order, () => {
-      invalidateTanstackQueries(queryClient, [orderHash]);
+      invalidateTanstackQueries(queryClient, [parsedOrderHash]);
     });
   }
 
   function onDeposit(_raindexClient: RaindexClient, vault: RaindexVault) {
     handleDepositModal(vault, () => {
-      invalidateTanstackQueries(queryClient, [orderHash]);
+      invalidateTanstackQueries(queryClient, [parsedOrderHash]);
     });
   }
 
   function onWithdraw(_raindexClient: RaindexClient, vault: RaindexVault) {
     handleWithdrawModal(vault, () => {
-      invalidateTanstackQueries(queryClient, [orderHash]);
+      invalidateTanstackQueries(queryClient, [parsedOrderHash]);
     });
   }
 </script>
@@ -43,7 +50,7 @@
   <OrderDetail
     chainId={parsedChainId}
     {orderbookAddress}
-    {orderHash}
+    orderHash={parsedOrderHash}
     {colorTheme}
     {codeMirrorTheme}
     {lightweightChartsTheme}

@@ -1,5 +1,5 @@
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import { type NewConfig } from '@rainlanguage/orderbook';
+import { type Hex, type NewConfig } from '@rainlanguage/orderbook';
 
 export const EMPTY_CONFIG: NewConfig = {
 	orderbook: {
@@ -107,11 +107,11 @@ export const selectedChainIds = cachedWritableStore<number[]>(
  * @default "" - Empty string by default
  * @returns A writable store containing the order hash string
  */
-export const orderHash = cachedWritableStore<string>(
+export const orderHash = cachedWritableStore<Hex>(
 	'settings.orderHash',
-	'',
+	'0x0',
 	(value) => value,
-	(str) => str || ''
+	(str) => (str || '0x0') as Hex
 );
 
 /**

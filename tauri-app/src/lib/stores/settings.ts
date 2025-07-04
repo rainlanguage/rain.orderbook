@@ -6,6 +6,7 @@ import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import {
   parseYaml,
   type Address,
+  type Hex,
   type NewConfig,
   type OrderbookCfg,
 } from '@rainlanguage/orderbook';
@@ -271,9 +272,9 @@ export const hideZeroBalanceVaults = cachedWritableStore<boolean>(
   },
 );
 
-export const orderHash = cachedWritableStore<string>(
+export const orderHash = cachedWritableStore<Hex>(
   'settings.orderHash',
-  '',
+  '0x0',
   (value) => value,
-  (str) => str || '',
+  (str) => (str || '0x0') as Hex,
 );

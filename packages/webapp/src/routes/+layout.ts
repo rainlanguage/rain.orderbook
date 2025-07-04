@@ -1,7 +1,13 @@
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
 import type { LayoutLoad } from './$types';
-import { parseYaml, RaindexClient, type Address, type NewConfig } from '@rainlanguage/orderbook';
+import {
+	parseYaml,
+	RaindexClient,
+	type Address,
+	type Hex,
+	type NewConfig
+} from '@rainlanguage/orderbook';
 
 export interface LayoutData {
 	errorMessage?: string;
@@ -85,7 +91,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			activeAccounts,
 			// Instantiate with false to show only active orders
 			showInactiveOrders: writable<boolean>(false),
-			orderHash: writable<string>(''),
+			orderHash: writable<Hex>('0x0'),
 			hideZeroBalanceVaults: writable<boolean>(false),
 			showMyItemsOnly: writable<boolean>(false)
 		},
@@ -250,7 +256,7 @@ subgraphs:
 			if (stores.activeAccountsItems) {
 				expect(get(stores.activeAccountsItems)).toEqual({});
 			}
-			expect(get(stores.orderHash)).toEqual('');
+			expect(get(stores.orderHash)).toEqual('0x0');
 			expect(get(stores.hideZeroBalanceVaults)).toEqual(false);
 		});
 

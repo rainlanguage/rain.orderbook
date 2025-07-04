@@ -15,6 +15,7 @@
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
 	const { orderHash, chainId, orderbook } = $page.params;
+	const parsedOrderHash = orderHash as Hex;
 	const parsedChainId = Number(chainId);
 	const orderbookAddress = orderbook as Address;
 
@@ -62,7 +63,7 @@
 <OrderDetail
 	chainId={parsedChainId}
 	{orderbookAddress}
-	{orderHash}
+	orderHash={parsedOrderHash}
 	{codeMirrorTheme}
 	{lightweightChartsTheme}
 	{colorTheme}

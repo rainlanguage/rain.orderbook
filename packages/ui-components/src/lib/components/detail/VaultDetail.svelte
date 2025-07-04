@@ -6,7 +6,12 @@
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { QKEY_VAULT } from '../../queries/keys';
-	import { RaindexClient, type Address, type RaindexVault } from '@rainlanguage/orderbook';
+	import {
+		RaindexClient,
+		type Address,
+		type Hex,
+		type RaindexVault
+	} from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
@@ -22,7 +27,7 @@
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
-	export let id: string;
+	export let id: Hex;
 	export let orderbookAddress: Address;
 	export let chainId: number;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;

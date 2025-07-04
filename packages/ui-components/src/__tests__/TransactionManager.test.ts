@@ -291,7 +291,7 @@ describe('TransactionManager', () => {
 			const withdrawFetchEntityFn = withdrawCallArgs.awaitSubgraphConfig!.fetchEntityFn;
 
 			expect(withdrawFetchEntityFn.name).toBe('bound spy');
-			expect(withdrawIsSuccessFn({ id: 'tx1' } as RaindexTransaction)).toBe(true);
+			expect(withdrawIsSuccessFn({ id: '0x0123' } as unknown as RaindexTransaction)).toBe(true);
 			expect(withdrawIsSuccessFn(null as unknown as RaindexTransaction)).toBe(false);
 			expect(withdrawIsSuccessFn(undefined as unknown as RaindexTransaction)).toBe(false);
 			expect(withdrawIsSuccessFn('' as unknown as RaindexTransaction)).toBe(false);

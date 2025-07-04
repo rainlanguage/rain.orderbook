@@ -4,10 +4,11 @@
   import { VaultDetail } from '@rainlanguage/ui-components';
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
-  import type { Address, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
+  import type { Address, Hex, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
 
   const { chainId, orderbook, id } = $page.params;
+  const parsedId = id as Hex;
   const parsedChainId = Number(chainId);
   const orderbookAddress = orderbook as Address;
 
@@ -31,7 +32,7 @@
 <VaultDetail
   chainId={parsedChainId}
   {orderbookAddress}
-  {id}
+  id={parsedId}
   {lightweightChartsTheme}
   {onDeposit}
   {onWithdraw}

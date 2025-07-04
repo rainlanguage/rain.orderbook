@@ -47,7 +47,7 @@ vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
 	return { default: mockLightweightCharts };
 });
 const orderbookAddress = '0x123456789012345678901234567890123456abcd';
-const orderHash = 'mockOrderHash';
+const orderHash = '0x0234';
 
 const defaultProps: ComponentProps<OrderDetail> = {
 	chainId: 1,
