@@ -6084,7 +6084,7 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain-erc"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/rain.erc?rev=a826bb9c52dd659beb229fbd810a72492188b574#a826bb9c52dd659beb229fbd810a72492188b574"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=490f7d851565002ad0f7fe89ed683a89d38b5c02#490f7d851565002ad0f7fe89ed683a89d38b5c02"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
