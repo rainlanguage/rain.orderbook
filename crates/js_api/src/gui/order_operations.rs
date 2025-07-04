@@ -82,7 +82,7 @@ pub struct DeploymentTransactionArgs {
     deployment_calldata: Bytes,
     #[tsify(type = "string")]
     orderbook_address: Address,
-    chain_id: u64,
+    chain_id: u32,
 }
 impl_wasm_traits!(DeploymentTransactionArgs);
 

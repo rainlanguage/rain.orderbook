@@ -10,14 +10,15 @@
 	import {
 		ToastProvider,
 		WalletProvider,
-		FixedBottomTransaction
+		FixedBottomTransaction,
+		RaindexClientProvider
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 
-	const { errorMessage } = $page.data;
+	const { errorMessage, raindexClient } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -55,15 +56,17 @@
 					{:else if errorMessage}
 						<ErrorPage />
 					{:else}
-						<div
-							data-testid="layout-container"
-							class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-						>
-							<Sidebar {colorTheme} page={$page} />
-							<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-								<slot />
-							</main>
-						</div>
+						<RaindexClientProvider {raindexClient}>
+							<div
+								data-testid="layout-container"
+								class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+							>
+								<Sidebar {colorTheme} page={$page} />
+								<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
+									<slot />
+								</main>
+							</div>
+						</RaindexClientProvider>
 					{/if}
 					<FixedBottomTransaction />
 				</LoadingWrapper>

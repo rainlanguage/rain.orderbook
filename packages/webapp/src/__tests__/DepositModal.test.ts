@@ -6,6 +6,7 @@ import type { ComponentProps } from 'svelte';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
 import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
+import type { RaindexVault } from '@rainlanguage/orderbook';
 
 type ModalProps = ComponentProps<DepositModal>;
 
@@ -35,9 +36,10 @@ describe('DepositModal', () => {
 			symbol: 'TEST',
 			decimals: '18'
 		},
-		vaultId: '1',
+		chainId: 1,
+		orderbook: '0x123',
 		balance: BigInt(1)
-	};
+	} as unknown as RaindexVault;
 
 	const mockOnSubmit = vi.fn();
 
@@ -46,8 +48,6 @@ describe('DepositModal', () => {
 		onSubmit: mockOnSubmit,
 		args: {
 			vault: mockVault,
-			chainId: 1,
-			rpcUrl: 'https://example.com',
 			account: '0x0000000000000000000000000000000000000000',
 			config: mockWeb3Config
 		}

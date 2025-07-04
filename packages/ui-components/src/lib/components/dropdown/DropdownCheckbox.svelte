@@ -78,9 +78,9 @@
 				checked={key in value}
 			>
 				<div class="ml-2">
-					<div class="text-sm font-medium">{key}</div>
+					<div class="text-sm font-medium">{optionValue}</div>
 					{#if !onlyTitle}
-						<div class="text-xs text-gray-500">{optionValue}</div>
+						<div class="text-xs text-gray-500">{key}</div>
 					{/if}
 				</div>
 			</Checkbox>

@@ -1,14 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
-import type { OrderPerformance } from '@rainlanguage/orderbook';
+import type { OrderPerformance, RaindexOrder } from '@rainlanguage/orderbook';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderApy from '../lib/components/tables/OrderAPY.svelte';
 import { bigintStringToPercentage } from '../lib/utils/number';
-
-vi.mock('@rainlanguage/orderbook', () => ({
-	getOrderPerformance: vi.fn(() => Promise.resolve({ value: mockOrderApy }))
-}));
 
 const mockOrderApy: OrderPerformance = {
 	orderId: '1',
@@ -35,10 +31,14 @@ const mockOrderApy: OrderPerformance = {
 };
 test('renders table with correct data', async () => {
 	const queryClient = new QueryClient();
+	const mockOrder: RaindexOrder = {
+		id: '1',
+		getPerformance: vi.fn().mockResolvedValue({ value: mockOrderApy })
+	} as unknown as RaindexOrder;
 
 	render(OrderApy, {
 		context: new Map([['$$_queryClient', queryClient]]),
-		props: { id: '1', subgraphUrl: 'https://example.com' }
+		props: { order: mockOrder }
 	});
 
 	await waitFor(async () => {

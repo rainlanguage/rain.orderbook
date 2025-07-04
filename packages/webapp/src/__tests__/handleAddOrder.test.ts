@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleAddOrder } from '../lib/services/handleAddOrder';
 import type { HandleAddOrderDependencies } from '../lib/services/handleAddOrder';
-import type { DeploymentTransactionArgs, DotrainOrderGui } from '@rainlanguage/orderbook';
+import type {
+	DeploymentTransactionArgs,
+	DotrainOrderGui,
+	RaindexClient
+} from '@rainlanguage/orderbook';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 import { QKEY_ORDERS } from '@rainlanguage/ui-components';
 import type { Hex } from 'viem';
@@ -19,15 +23,14 @@ const mockManager = {
 
 // New Mocks for gui
 const mockGetDeploymentTransactionArgs = vi.fn();
-const mockGetNetworkKey = vi.fn();
 
-const MOCKED_NETWORK_KEY = 'testNetwork';
 const MOCKED_ACCOUNT = '0xmockAccount' as Hex;
 
 const mockGui = {
-	getDeploymentTransactionArgs: mockGetDeploymentTransactionArgs,
-	getNetworkKey: mockGetNetworkKey
+	getDeploymentTransactionArgs: mockGetDeploymentTransactionArgs
 } as unknown as DotrainOrderGui;
+
+const mockRaindexClient = {} as unknown as RaindexClient;
 
 const mockDeps: HandleAddOrderDependencies = {
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
@@ -35,7 +38,7 @@ const mockDeps: HandleAddOrderDependencies = {
 	manager: mockManager,
 	gui: mockGui,
 	account: MOCKED_ACCOUNT,
-	subgraphUrl: 'https://test.subgraph.com'
+	raindexClient: mockRaindexClient
 };
 
 const mockDeploymentArgs: DeploymentTransactionArgs = {
@@ -52,7 +55,6 @@ describe('handleAddOrder', () => {
 		mockHandleTransactionConfirmationModal.mockReset();
 		// Default to success for sequential calls
 		mockHandleTransactionConfirmationModal.mockResolvedValue({ success: true });
-		mockGetNetworkKey.mockReturnValue({ value: MOCKED_NETWORK_KEY, error: null });
 		// mockGetDeploymentTransactionArgs will be reset/set in each test
 	});
 
@@ -97,8 +99,7 @@ describe('handleAddOrder', () => {
 				chainId: currentTestSpecificArgs.chainId,
 				txHash: mockAddOrderTxHash, // Check for the specific hash
 				queryKey: QKEY_ORDERS,
-				networkKey: MOCKED_NETWORK_KEY,
-				subgraphUrl: mockDeps.subgraphUrl
+				raindexClient: mockRaindexClient
 			})
 		);
 	});
@@ -171,8 +172,7 @@ describe('handleAddOrder', () => {
 			expect.objectContaining({
 				chainId: currentTestSpecificArgs.chainId,
 				txHash: '0xapprovalTxHash',
-				queryKey: QKEY_ORDERS,
-				networkKey: MOCKED_NETWORK_KEY
+				queryKey: QKEY_ORDERS
 			})
 		);
 
@@ -183,8 +183,7 @@ describe('handleAddOrder', () => {
 				chainId: currentTestSpecificArgs.chainId,
 				txHash: '0xdeploymentTxHash',
 				queryKey: QKEY_ORDERS,
-				networkKey: MOCKED_NETWORK_KEY,
-				subgraphUrl: mockDeps.subgraphUrl
+				raindexClient: mockRaindexClient
 			})
 		);
 	});
@@ -259,14 +258,14 @@ describe('handleAddOrder', () => {
 		await approval1OnConfirm('0xapproval1TxHash' as Hex);
 		expect(mockCreateApprovalTransaction).toHaveBeenNthCalledWith(
 			1,
-			expect.objectContaining({ txHash: '0xapproval1TxHash', networkKey: MOCKED_NETWORK_KEY })
+			expect.objectContaining({ txHash: '0xapproval1TxHash' })
 		);
 
 		// Simulate calling onConfirm for second approval
 		await approval2OnConfirm('0xapproval2TxHash' as Hex);
 		expect(mockCreateApprovalTransaction).toHaveBeenNthCalledWith(
 			2,
-			expect.objectContaining({ txHash: '0xapproval2TxHash', networkKey: MOCKED_NETWORK_KEY })
+			expect.objectContaining({ txHash: '0xapproval2TxHash' })
 		);
 
 		// Simulate calling onConfirm for deployment
@@ -274,8 +273,7 @@ describe('handleAddOrder', () => {
 		expect(mockCreateAddOrderTransaction).toHaveBeenCalledWith(
 			expect.objectContaining({
 				txHash: '0xdeploymentTxHash',
-				networkKey: MOCKED_NETWORK_KEY,
-				subgraphUrl: mockDeps.subgraphUrl
+				raindexClient: mockRaindexClient
 			})
 		);
 	});
@@ -319,8 +317,7 @@ describe('handleAddOrder', () => {
 			expect.objectContaining({
 				chainId: currentTestSpecificArgs.chainId,
 				txHash: specificApprovalHash, // Check specific hash
-				queryKey: QKEY_ORDERS,
-				networkKey: MOCKED_NETWORK_KEY
+				queryKey: QKEY_ORDERS
 			})
 		);
 
@@ -333,32 +330,17 @@ describe('handleAddOrder', () => {
 				chainId: currentTestSpecificArgs.chainId,
 				txHash: specificAddOrderHash, // Check specific hash
 				queryKey: QKEY_ORDERS,
-				networkKey: MOCKED_NETWORK_KEY,
-				subgraphUrl: mockDeps.subgraphUrl
+				raindexClient: mockRaindexClient
 			})
 		);
 	});
 
-	it('should call errToast if getNetworkKey returns an error', async () => {
-		mockGetNetworkKey.mockReturnValue({ value: null, error: true });
-
-		await handleAddOrder(mockDeps);
-
-		expect(mockErrToast).toHaveBeenCalledWith('Could not deploy: Error getting network key');
-		expect(mockGetDeploymentTransactionArgs).not.toHaveBeenCalled();
-		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
-		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
-		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
-	});
-
 	it('should call errToast if account is null', async () => {
 		const depsWithNullAccount = { ...mockDeps, account: null };
-		mockGetNetworkKey.mockReturnValue({ value: MOCKED_NETWORK_KEY, error: null });
 
 		await handleAddOrder(depsWithNullAccount);
 
 		expect(mockErrToast).toHaveBeenCalledWith('Could not deploy: No wallet address found');
-		expect(mockGetNetworkKey).toHaveBeenCalled();
 		expect(mockGetDeploymentTransactionArgs).not.toHaveBeenCalled();
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
 		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
@@ -371,13 +353,10 @@ describe('handleAddOrder', () => {
 			value: null,
 			error: { msg: customErrorMsg }
 		});
-		// Ensure getNetworkKey is fine for this test
-		mockGetNetworkKey.mockReturnValue({ value: MOCKED_NETWORK_KEY, error: null });
 
 		await handleAddOrder(mockDeps);
 
 		expect(mockErrToast).toHaveBeenCalledWith(`Could not deploy: ${customErrorMsg}`);
-		expect(mockGetNetworkKey).toHaveBeenCalled();
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
 		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
 		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();

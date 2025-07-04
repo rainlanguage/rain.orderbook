@@ -2,15 +2,14 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_VAULTS_VOL_LIST } from '../../queries/keys';
-	import { getOrderVaultsVolume, type VaultVolume } from '@rainlanguage/orderbook';
+	import { type RaindexOrder, type VaultVolume } from '@rainlanguage/orderbook';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 	import { bigintStringToHex } from '../../utils/hex';
 
-	export let id: string;
-	export let subgraphUrl: string;
+	export let order: RaindexOrder;
 
 	let startTimestamp: number | undefined;
 	let endTimestamp: number | undefined;
@@ -19,20 +18,14 @@
 	$: queryEndTime = endTimestamp ? BigInt(endTimestamp) : undefined;
 
 	$: vaultsVol = createInfiniteQuery<VaultVolume[]>({
-		queryKey: [id, QKEY_VAULTS_VOL_LIST + id],
+		queryKey: [order.id, QKEY_VAULTS_VOL_LIST + order.id],
 		queryFn: async () => {
-			const result = await getOrderVaultsVolume(
-				subgraphUrl || '',
-				id,
-				queryStartTime,
-				queryEndTime
-			);
-			if (result.error) throw new Error(result.error.msg);
+			const result = await order.getVaultsVolume(queryStartTime, queryEndTime);
+			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
 		initialPageParam: 0,
-		getNextPageParam: () => undefined,
-		enabled: !!subgraphUrl
+		getNextPageParam: () => undefined
 	});
 </script>
 
@@ -40,7 +33,7 @@
 	query={vaultsVol}
 	emptyMessage="No trades found"
 	rowHoverable={false}
-	queryKey={id}
+	queryKey={order.id}
 >
 	<svelte:fragment slot="timeFilter">
 		<TableTimeFilters bind:startTimestamp bind:endTimestamp />

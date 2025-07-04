@@ -61,7 +61,7 @@ impl_wasm_traits!(DeploymentsDebugDataMap);
 pub struct DeploymentDebugData {
     pub pairs_data: Vec<DeploymentDebugPairData>,
     pub block_number: u64,
-    pub chain_id: u64,
+    pub chain_id: u32,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DeploymentDebugData);

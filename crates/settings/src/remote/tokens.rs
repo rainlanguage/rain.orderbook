@@ -20,7 +20,7 @@ pub struct Version {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Token {
-    pub chain_id: u64,
+    pub chain_id: u32,
     pub address: String,
     pub name: String,
     pub symbol: String,

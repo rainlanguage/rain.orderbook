@@ -6,20 +6,25 @@ import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'svelte';
-
-import { getVault, type SgOrderAsIO, type SgVault } from '@rainlanguage/orderbook';
-type VaultDetailProps = ComponentProps<VaultDetail>;
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+import { RaindexClient, RaindexVault, type RaindexOrderAsIO } from '@rainlanguage/orderbook';
 import { useAccount } from '../lib/providers/wallet/useAccount';
 import { QKEY_VAULT } from '$lib/queries/keys';
 import { useToasts } from '../lib/providers/toasts/useToasts';
 import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 
+type VaultDetailProps = ComponentProps<VaultDetail>;
+
 vi.mock('../lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
+
 vi.mock('@rainlanguage/orderbook', () => ({
-	getVault: vi.fn()
+	RaindexClient: vi.fn()
 }));
 
 vi.mock('$app/navigation', () => ({
@@ -41,23 +46,10 @@ vi.mock('$lib/providers/toasts/useToasts', () => ({
 
 const mockErrToast = vi.fn();
 
-const mockSettings = readable({
-	orderbook: {
-		subgraphs: {
-			mainnet: {
-				key: 'mainnet',
-				url: 'https://example.com'
-			}
-		}
-	}
-});
-
 const defaultProps: VaultDetailProps = {
+	chainId: 1,
+	orderbookAddress: '0x00',
 	id: '100',
-	network: 'mainnet',
-	activeNetworkRef: writable('mainnet'),
-	activeOrderbookRef: writable('0x00'),
-	settings: mockSettings,
 	lightweightChartsTheme: readable(darkChartTheme),
 	onDeposit: vi.fn(),
 	onWithdraw: vi.fn()
@@ -67,7 +59,8 @@ const mockMatchesAccount = vi.fn();
 
 describe('VaultDetail', () => {
 	let queryClient: QueryClient;
-	let mockData: SgVault;
+	let mockRaindexClient: RaindexClient;
+	let mockData: RaindexVault;
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
@@ -85,10 +78,16 @@ describe('VaultDetail', () => {
 			removeToast: vi.fn()
 		});
 
+		mockRaindexClient = {
+			getVault: vi.fn()
+		} as unknown as RaindexClient;
+		(useRaindexClient as Mock).mockReturnValue(mockRaindexClient);
+
 		mockData = {
 			id: '1',
-			vaultId: '0xabc',
+			chainId: 1,
 			owner: '0x1234567890123456789012345678901234567890',
+			vaultId: BigInt(1000),
 			token: {
 				id: '0x456',
 				address: '0x456',
@@ -96,32 +95,25 @@ describe('VaultDetail', () => {
 				symbol: 'USDC',
 				decimals: '6'
 			},
-			balance: '100000000000',
+			balance: BigInt(100000000000),
 			ordersAsInput: [],
 			ordersAsOutput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x00'
-			}
-		} as unknown as SgVault;
-
-		(getVault as Mock).mockResolvedValue({ value: mockData });
+			orderbook: '0x00'
+		} as unknown as RaindexVault;
+		(mockRaindexClient.getVault as Mock).mockResolvedValue({ value: mockData });
 	});
 
 	it('calls the vault detail query fn with the correct vault id', async () => {
-		const { getVault } = await import('@rainlanguage/orderbook');
-
 		render(VaultDetail, {
 			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
-		expect(getVault).toHaveBeenCalledWith('https://example.com', '100');
+		expect(mockRaindexClient.getVault).toHaveBeenCalledWith(1, '0x00', '100');
 	});
 
 	it('shows the correct empty message when the query returns no data', async () => {
-		const { getVault } = await import('@rainlanguage/orderbook');
-		(getVault as Mock).mockResolvedValue({ value: null });
+		(mockRaindexClient.getVault as Mock).mockResolvedValue({ value: null });
 
 		render(VaultDetail, {
 			props: defaultProps,
@@ -141,7 +133,7 @@ describe('VaultDetail', () => {
 
 		await waitFor(() => {
 			expect(screen.getByTestId('vaultDetailTokenName')).toHaveTextContent('USDC coin');
-			expect(screen.getByTestId('vaultDetailVaultId')).toHaveTextContent('Vault ID 0xabc');
+			expect(screen.getByTestId('vaultDetailVaultId')).toHaveTextContent('Vault ID 0x3e8');
 			expect(screen.getByTestId('vaultDetailOwnerAddress')).toHaveTextContent(
 				'Owner address 0x123'
 			);
@@ -182,8 +174,10 @@ describe('VaultDetail', () => {
 	});
 
 	it('refresh button triggers query invalidation when clicked', async () => {
-		mockData.ordersAsInput = [{ id: '1', owner: '0x123' }] as unknown as SgOrderAsIO[];
-		mockData.ordersAsOutput = [{ id: '2', owner: '0x123' }] as unknown as SgOrderAsIO[];
+		// @ts-expect-error - we are mutating the mock data
+		mockData.ordersAsInput = [{ id: '1' }] as unknown as RaindexOrderAsIO[];
+		// @ts-expect-error - we are mutating the mock data
+		mockData.ordersAsOutput = [{ id: '2' }] as unknown as RaindexOrderAsIO[];
 
 		render(VaultDetail, {
 			props: defaultProps,
@@ -201,8 +195,10 @@ describe('VaultDetail', () => {
 	});
 
 	it('failed query invalidation triggers a toast', async () => {
-		mockData.ordersAsInput = [{ id: '1', owner: '0x123' }] as unknown as SgOrderAsIO[];
-		mockData.ordersAsOutput = [{ id: '2', owner: '0x123' }] as unknown as SgOrderAsIO[];
+		// @ts-expect-error - we are mutating the mock data
+		mockData.ordersAsInput = [{ id: '1' }] as unknown as RaindexOrderAsIO[];
+		// @ts-expect-error - we are mutating the mock data
+		mockData.ordersAsOutput = [{ id: '2' }] as unknown as RaindexOrderAsIO[];
 
 		(invalidateTanstackQueries as Mock).mockRejectedValue(new Error('Failed to refresh'));
 
@@ -212,7 +208,7 @@ describe('VaultDetail', () => {
 		});
 
 		await waitFor(async () => {
-			const refreshButton = await screen.getByTestId('top-refresh');
+			const refreshButton = screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
 			expect(mockErrToast).toHaveBeenCalledWith('Failed to refresh');
 		});

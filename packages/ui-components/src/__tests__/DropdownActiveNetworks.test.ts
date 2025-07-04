@@ -1,52 +1,55 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
-import DropdownActiveSubgraphs from '../lib/components/dropdown/DropdownActiveSubgraphs.svelte';
+import DropdownActiveNetworks from '../lib/components/dropdown/DropdownActiveNetworks.svelte';
 import { mockConfig } from '../lib/__mocks__/settings';
-import type { NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
+import type { NewConfig } from '@rainlanguage/orderbook';
 
-describe('DropdownActiveSubgraphs', () => {
+describe('DropdownActiveNetworks', () => {
 	const mockSettings = {
 		...mockConfig,
 		orderbook: {
 			...mockConfig.orderbook,
-			subgraphs: {
+			networks: {
 				mainnet: {
 					key: 'mainnet',
-					url: 'mainnet'
+					url: 'mainnet',
+					chainId: 1
 				},
 				testnet: {
 					key: 'testnet',
-					url: 'testnet'
+					url: 'testnet',
+					chainId: 2
 				},
 				local: {
 					key: 'local',
-					url: 'local'
+					url: 'local',
+					chainId: 3
 				}
 			}
 		}
 	} as unknown as NewConfig;
-	let activeSubgraphsStore: Writable<Record<string, SubgraphCfg>>;
+	let selectedChainIdsStore: Writable<number[]>;
 
 	beforeEach(() => {
-		activeSubgraphsStore = writable({});
+		selectedChainIdsStore = writable([]);
 	});
 
 	test('renders correctly', () => {
-		render(DropdownActiveSubgraphs, {
+		render(DropdownActiveNetworks, {
 			props: {
 				settings: mockSettings,
-				activeSubgraphs: activeSubgraphsStore
+				selectedChainIds: selectedChainIdsStore
 			}
 		});
 		expect(screen.getByText('Networks')).toBeInTheDocument();
 	});
 
 	test('displays the correct number of options', async () => {
-		render(DropdownActiveSubgraphs, {
+		render(DropdownActiveNetworks, {
 			props: {
 				settings: mockSettings,
-				activeSubgraphs: activeSubgraphsStore
+				selectedChainIds: selectedChainIdsStore
 			}
 		});
 
@@ -58,35 +61,28 @@ describe('DropdownActiveSubgraphs', () => {
 		});
 	});
 
-	test('updates active subgraphs when an option is selected', async () => {
-		render(DropdownActiveSubgraphs, {
+	test('updates selected chain ids when an option is selected', async () => {
+		render(DropdownActiveNetworks, {
 			props: {
 				settings: mockSettings,
-				activeSubgraphs: activeSubgraphsStore
+				selectedChainIds: selectedChainIdsStore
 			}
 		});
 
 		await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
-		await fireEvent.click(screen.getByText('mainnet'));
+		await fireEvent.click(screen.getByText('Ethereum'));
 		await waitFor(() => {
-			expect(get(activeSubgraphsStore)).toEqual({ mainnet: { key: 'mainnet', url: 'mainnet' } });
+			expect(get(selectedChainIdsStore)).toEqual([1]);
 		});
 
-		await fireEvent.click(screen.getByText('testnet'));
+		await fireEvent.click(screen.getByText('Expanse Network'));
 		await waitFor(() => {
-			expect(get(activeSubgraphsStore)).toEqual({
-				mainnet: { key: 'mainnet', url: 'mainnet' },
-				testnet: { key: 'testnet', url: 'testnet' }
-			});
+			expect(get(selectedChainIdsStore)).toEqual([1, 2]);
 		});
 
 		await fireEvent.click(screen.getByText('local'));
 		await waitFor(() => {
-			expect(get(activeSubgraphsStore)).toEqual({
-				mainnet: { key: 'mainnet', url: 'mainnet' },
-				testnet: { key: 'testnet', url: 'testnet' },
-				local: { key: 'local', url: 'local' }
-			});
+			expect(get(selectedChainIdsStore)).toEqual([1, 2, 3]);
 		});
 	});
 });

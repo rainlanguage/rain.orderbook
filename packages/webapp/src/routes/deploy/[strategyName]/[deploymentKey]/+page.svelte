@@ -10,13 +10,12 @@
 	} from '@rainlanguage/ui-components';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDisclaimerModal } from '$lib/services/modal';
-	import { DotrainOrderGui } from '@rainlanguage/orderbook';
+	import { DotrainOrderGui, RaindexClient } from '@rainlanguage/orderbook';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 	import { handleAddOrder } from '$lib/services/handleAddOrder';
 	import { handleTransactionConfirmationModal } from '$lib/services/modal';
 
-	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
@@ -45,16 +44,16 @@
 		}
 	});
 
-	const onDeploy = (gui: DotrainOrderGui, subgraphUrl?: string) => {
+	const onDeploy = (raindexClient: RaindexClient, gui: DotrainOrderGui) => {
 		handleDisclaimerModal({
 			open: true,
 			onAccept: () => {
 				handleAddOrder({
+					raindexClient,
 					handleTransactionConfirmationModal,
 					errToast,
 					manager,
 					gui,
-					subgraphUrl,
 					account: $account
 				});
 			}
@@ -73,7 +72,6 @@
 				wagmiConnected={connected}
 				{appKitModal}
 				{onDeploy}
-				{settings}
 				{account}
 			/>
 		</GuiProvider>

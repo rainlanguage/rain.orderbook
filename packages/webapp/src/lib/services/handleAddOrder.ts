@@ -1,4 +1,10 @@
-import type { DotrainOrderGui, SgErc20, SgVault } from '@rainlanguage/orderbook';
+import type {
+	Address,
+	DotrainOrderGui,
+	RaindexClient,
+	RaindexVault,
+	RaindexVaultToken
+} from '@rainlanguage/orderbook';
 import type {
 	TransactionManager,
 	HandleTransactionConfirmationModal
@@ -20,18 +26,12 @@ export type HandleAddOrderDependencies = {
 	errToast: (message: string) => void;
 	manager: TransactionManager;
 	gui: DotrainOrderGui;
+	raindexClient: RaindexClient;
 	account: Hex | null;
-	subgraphUrl?: string;
 };
 
 export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
-	const { gui, account, errToast } = deps;
-
-	const networkKeyResult = gui.getNetworkKey();
-	if (networkKeyResult.error) {
-		return errToast('Could not deploy: ' + AddOrderErrors.ERROR_GETTING_NETWORK_KEY);
-	}
-	const network = networkKeyResult.value;
+	const { gui, account, errToast, raindexClient } = deps;
 
 	if (!account) {
 		return errToast('Could not deploy: ' + AddOrderErrors.NO_ACCOUNT_CONNECTED);
@@ -60,10 +60,9 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 							chainId,
 							txHash: hash,
 							queryKey: QKEY_ORDERS,
-							networkKey: network,
 							entity: {
-								token: { symbol: approval.symbol } as unknown as SgErc20
-							} as unknown as SgVault
+								token: { symbol: approval.symbol } as unknown as RaindexVaultToken
+							} as unknown as RaindexVault
 						});
 					}
 				}
@@ -82,16 +81,16 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 			open: true,
 			modalTitle: 'Deploying your order',
 			args: {
-				toAddress: orderbookAddress as Hex,
+				toAddress: orderbookAddress as Address,
 				chainId,
 				calldata: deploymentCalldata as `0x${string}`,
 				onConfirm: (hash: Hex) => {
 					deps.manager.createAddOrderTransaction({
+						raindexClient,
+						orderbook: orderbookAddress as Address,
 						chainId,
 						txHash: hash,
-						queryKey: QKEY_ORDERS,
-						networkKey: network,
-						subgraphUrl: deps.subgraphUrl || ''
+						queryKey: QKEY_ORDERS
 					});
 				}
 			}

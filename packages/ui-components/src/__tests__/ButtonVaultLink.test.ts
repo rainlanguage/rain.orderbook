@@ -1,25 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
-import type { SgVault } from '@rainlanguage/orderbook';
+import type { RaindexVault } from '@rainlanguage/orderbook';
 
 describe('ButtonVaultLink', () => {
 	const mockVault = {
 		id: '123',
-		vaultId: '1000',
-		balance: '1000000000000000000',
+		vaultId: BigInt(1000),
+		balance: BigInt('1000000000000000000'),
 		token: {
 			name: 'Test Token',
 			symbol: 'TEST',
 			decimals: '18'
 		}
-	} as unknown as SgVault;
+	} as unknown as RaindexVault;
 
 	it('should render vault information correctly', () => {
 		render(ButtonVaultLink, {
 			props: {
 				tokenVault: mockVault,
-				subgraphName: 'test'
+				chainId: 1,
+				orderbookAddress: '0x00'
 			}
 		});
 
@@ -33,7 +34,8 @@ describe('ButtonVaultLink', () => {
 		render(ButtonVaultLink, {
 			props: {
 				tokenVault: mockVault,
-				subgraphName: 'test'
+				chainId: 1,
+				orderbookAddress: '0x00'
 			}
 		});
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleWalletConfirmation } from '../lib/services/handleWalletConfirmation';
 import { sendTransaction, switchChain } from '@wagmi/core';
 import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
-import type { SgOrder } from '@rainlanguage/orderbook';
+import type { RaindexOrder } from '@rainlanguage/orderbook';
 
 const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
@@ -18,20 +18,18 @@ vi.mock('$lib/stores/wagmi', () => ({
 const mockCalldata = '0x1234567890abcdef';
 const mockTxHash = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
 
-const mockOrder: SgOrder = {
+const mockOrder = {
 	id: '0x1',
 	orderBytes: '0x2',
 	orderHash: '0x3',
 	owner: '0x4',
 	outputs: [],
 	inputs: [],
-	orderbook: { id: '0x5' },
+	orderbook: 0x5,
 	active: true,
-	timestampAdded: '1234567890',
-	addEvents: [],
-	trades: [],
-	removeEvents: []
-};
+	timestampAdded: BigInt(1234567890),
+	tradesCount: 0
+} as unknown as RaindexOrder;
 
 beforeEach(() => {
 	vi.clearAllMocks();

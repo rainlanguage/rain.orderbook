@@ -1,9 +1,5 @@
-import {
-	parseYaml,
-	type AccountCfg,
-	type NewConfig,
-	type SubgraphCfg
-} from '@rainlanguage/orderbook';
+import type { AccountCfg, NewConfig } from '@rainlanguage/orderbook';
+import { parseYaml } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import settingsYamlContent from '../__fixtures__/settings.yaml?raw';
 import { type Config } from '@wagmi/core';
@@ -44,7 +40,6 @@ const initialPageState = {
 
 const mockPageWritable = writable<typeof initialPageState>(initialPageState);
 const mockSettingsWritable = writable<NewConfig>(settingsFixture as unknown as NewConfig);
-const mockActiveSubgraphsWritable = writable<Record<string, SubgraphCfg>>({});
 const mockAccountsWritable = writable<Record<string, AccountCfg>>({});
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
 const mockShowInactiveOrdersWritable = writable<boolean>(true);
@@ -58,18 +53,12 @@ const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
+const mockSelectedChainIdsWritable = writable<number[]>([]);
 
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
 	set: mockSettingsWritable.set,
 	mockSetSubscribeValue: (value: NewConfig): void => mockSettingsWritable.set(value)
-};
-
-export const mockActiveSubgraphsStore = {
-	subscribe: mockActiveSubgraphsWritable.subscribe,
-	set: mockActiveSubgraphsWritable.set,
-	mockSetSubscribeValue: (value: Record<string, SubgraphCfg>): void =>
-		mockActiveSubgraphsWritable.set(value)
 };
 
 export const mockAccountsStore = {
@@ -150,6 +139,12 @@ export const mockShowMyItemsOnlyStore = {
 	subscribe: mockShowMyItemsOnlyWritable.subscribe,
 	set: mockShowMyItemsOnlyWritable.set,
 	mockSetSubscribeValue: (value: boolean): void => mockShowMyItemsOnlyWritable.set(value)
+};
+
+export const mockSelectedChainIdsStore = {
+	subscribe: mockSelectedChainIdsWritable.subscribe,
+	set: mockSelectedChainIdsWritable.set,
+	mockSetSubscribeValue: (value: number[]): void => mockSelectedChainIdsWritable.set(value)
 };
 
 export const mockPageStore = {

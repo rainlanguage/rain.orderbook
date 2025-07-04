@@ -21,6 +21,7 @@
   let amount: bigint | undefined = undefined;
   let isSubmitting = false;
   let selectWallet = false;
+  let chainId = undefined;
 
   function reset() {
     open = false;
@@ -124,6 +125,7 @@
 {/if}
 
 <ModalExecute
+  {chainId}
   bind:open={selectWallet}
   onBack={() => (open = true)}
   title="Deposit to Vault"

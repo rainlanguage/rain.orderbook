@@ -15,7 +15,7 @@ pub async fn make_charts(dotrain: String, settings: Option<String>) -> CommandRe
 pub async fn make_deployment_debug(
     dotrain: String,
     settings: Option<String>,
-    block_numbers: Option<HashMap<u64, u64>>,
+    block_numbers: Option<HashMap<u32, u64>>,
     shared_state: State<'_, SharedState>,
 ) -> CommandResult<DeploymentsDebugDataMap> {
     let mut runner = shared_state.debug_runner.lock().await;

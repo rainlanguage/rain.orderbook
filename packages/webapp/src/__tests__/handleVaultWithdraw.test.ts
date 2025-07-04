@@ -3,7 +3,7 @@ import {
 	handleVaultWithdraw,
 	type VaultWithdrawHandlerDependencies
 } from '../lib/services/handleVaultWithdraw';
-import type { SgVault } from '@rainlanguage/orderbook';
+import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 
@@ -17,36 +17,25 @@ const mockManager = {
 	createWithdrawTransaction: mockCreateWithdrawTransaction
 };
 
+const mockRaindexClient = {} as unknown as RaindexClient;
+
 const mockVault = {
 	id: '0xvaultid',
 	token: {
 		symbol: 'TEST'
-	}
-} as SgVault;
+	},
+	getWithdrawCalldata: vi.fn()
+} as unknown as RaindexVault;
 
 const mockDeps: VaultWithdrawHandlerDependencies = {
+	raindexClient: mockRaindexClient,
 	vault: mockVault,
-	network: 'ethereum',
-	toAddress: '0xorderbook' as Hex,
-	subgraphUrl: 'https://subgraph.example.com',
-	chainId: 1,
 	account: '0xaccount' as Hex,
-	rpcUrls: ['https://rpc.example.com'],
 	handleWithdrawModal: mockHandleWithdrawModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
 	manager: mockManager as unknown as TransactionManager
 };
-
-// Mock getVaultWithdrawCalldata
-vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
-	const original = await importOriginal<typeof import('@rainlanguage/orderbook')>();
-	return {
-		...original,
-		getVaultWithdrawCalldata: vi.fn()
-	};
-});
-const { getVaultWithdrawCalldata } = await import('@rainlanguage/orderbook');
 
 describe('handleVaultWithdraw', () => {
 	beforeEach(() => {
@@ -59,9 +48,6 @@ describe('handleVaultWithdraw', () => {
 			open: true,
 			args: {
 				vault: mockVault,
-				chainId: mockDeps.chainId,
-				rpcUrls: mockDeps.rpcUrls,
-				subgraphUrl: mockDeps.subgraphUrl,
 				account: mockDeps.account
 			},
 			onSubmit: expect.any(Function)
@@ -69,7 +55,7 @@ describe('handleVaultWithdraw', () => {
 	});
 
 	it('should show error toast if getVaultWithdrawCalldata returns an error', async () => {
-		vi.mocked(getVaultWithdrawCalldata).mockResolvedValue({
+		vi.mocked(mockVault.getWithdrawCalldata).mockResolvedValue({
 			error: { msg: 'Calldata error', readableMsg: 'Calldata error readable' },
 			value: undefined
 		});
@@ -84,7 +70,7 @@ describe('handleVaultWithdraw', () => {
 	});
 
 	it('should show error toast if getVaultWithdrawCalldata throws', async () => {
-		vi.mocked(getVaultWithdrawCalldata).mockRejectedValue(new Error('Fetch failed'));
+		vi.mocked(mockVault.getWithdrawCalldata).mockRejectedValue(new Error('Fetch failed'));
 
 		await handleVaultWithdraw(mockDeps);
 
@@ -97,7 +83,7 @@ describe('handleVaultWithdraw', () => {
 
 	it('should call handleTransactionConfirmationModal on successful calldata fetch', async () => {
 		const mockCalldata = '0xcalldata' as Hex;
-		vi.mocked(getVaultWithdrawCalldata).mockResolvedValue({
+		vi.mocked(mockVault.getWithdrawCalldata).mockResolvedValue({
 			value: mockCalldata,
 			error: undefined
 		});
@@ -112,8 +98,6 @@ describe('handleVaultWithdraw', () => {
 			modalTitle: 'Withdrawing 0.1 TEST...',
 			args: {
 				entity: mockVault,
-				toAddress: mockDeps.toAddress,
-				chainId: mockDeps.chainId,
 				onConfirm: expect.any(Function),
 				calldata: mockCalldata
 			}
@@ -124,7 +108,7 @@ describe('handleVaultWithdraw', () => {
 	it('should call manager.createWithdrawTransaction on transaction confirmation', async () => {
 		const mockCalldata = '0xcalldata' as Hex;
 		const mockTxHash = '0xtxhash' as Hex;
-		vi.mocked(getVaultWithdrawCalldata).mockResolvedValue({
+		vi.mocked(mockVault.getWithdrawCalldata).mockResolvedValue({
 			value: mockCalldata,
 			error: undefined
 		});
@@ -138,11 +122,10 @@ describe('handleVaultWithdraw', () => {
 		onConfirmCall(mockTxHash);
 
 		expect(mockCreateWithdrawTransaction).toHaveBeenCalledWith({
+			raindexClient: mockRaindexClient,
 			entity: mockVault,
-			subgraphUrl: mockDeps.subgraphUrl,
 			txHash: mockTxHash,
-			chainId: mockDeps.chainId,
-			networkKey: mockDeps.network,
+			chainId: mockVault.chainId,
 			queryKey: mockVault.id
 		});
 	});

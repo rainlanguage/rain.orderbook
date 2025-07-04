@@ -15,6 +15,7 @@ crate-type = ["rlib", "cdylib"]
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
+rain_orderbook_quote = { workspace = true }
 alloy = { workspace = true, features = [ "dyn-abi", "rand" ] }
 alloy-ethers-typecast = { workspace = true }
 url = { workspace = true }

@@ -3,28 +3,20 @@
 	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 	import {
-		activeSubgraphs,
 		orderHash,
 		showMyItemsOnly,
-		showInactiveOrders
+		showInactiveOrders,
+		selectedChainIds
 	} from '$lib/stores/settings';
 
-	const {
-		settings,
-		accounts,
-		activeAccountsItems,
-		hideZeroBalanceVaults,
-		activeNetworkRef,
-		activeOrderbookRef
-	}: AppStoresInterface = $page.data.stores;
+	const { settings, accounts, activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface =
+		$page.data.stores;
 </script>
 
 <PageHeader title={'Orders'} pathname={$page.url.pathname} />
 
 <OrdersListTable
-	{activeNetworkRef}
-	{activeOrderbookRef}
-	{activeSubgraphs}
+	{selectedChainIds}
 	{settings}
 	{accounts}
 	{activeAccountsItems}

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
 import { expect } from '$lib/__tests__/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
@@ -6,7 +6,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { formatEther } from 'viem';
 import { mockQuoteDebug } from '$lib/queries/orderQuote';
 import ModalQuoteDebug from './ModalQuoteDebug.svelte';
-import type { SgOrder } from '@rainlanguage/orderbook';
+import type { RaindexOrder } from '@rainlanguage/orderbook';
 
 test('renders table with the correct data', async () => {
   const queryClient = new QueryClient();
@@ -23,33 +23,24 @@ test('renders table with the correct data', async () => {
       open: true,
       order: {
         id: '1',
-        orderbook: { id: '0x00' },
+        orderbook: '0x00',
         orderBytes: '0x123',
         orderHash: '0x123',
         owner: '0x123',
         outputs: [],
         inputs: [],
         active: true,
-        addEvents: [],
-        timestampAdded: '123',
-        trades: [],
-      } as unknown as SgOrder,
-      rpcUrls: ['https://rpc-url.com'],
+        timestampAdded: BigInt(123),
+        tradesCount: 0,
+      } as unknown as RaindexOrder,
       inputIOIndex: 0,
       outputIOIndex: 0,
-      orderbook: '0x123',
       pair: 'ETH/USDC',
-      blockNumber: 123,
+      blockNumber: BigInt(123),
     },
   });
 
   expect(await screen.findByTestId('modal-quote-debug-loading-message')).toBeInTheDocument();
-
-  await waitFor(() => {
-    expect(screen.queryByTestId('modal-quote-debug-rpc-url')).toHaveTextContent(
-      'RPCs: https://rpc-url.com',
-    );
-  });
 
   const stacks = await screen.findAllByTestId('debug-stack');
   expect(stacks).toHaveLength(3);

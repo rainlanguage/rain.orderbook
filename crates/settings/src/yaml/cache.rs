@@ -52,7 +52,7 @@ mod tests {
     use url::Url; // Used by TokenCfg
 
     // Helper to create a NetworkCfg for tests
-    fn sample_network_cfg(key: &str, rpc_url_str: &str, chain_id: u64) -> NetworkCfg {
+    fn sample_network_cfg(key: &str, rpc_url_str: &str, chain_id: u32) -> NetworkCfg {
         NetworkCfg {
             document: default_document(),
             key: key.to_string(),
