@@ -6857,7 +6857,6 @@ dependencies = [
  "reqwest 0.12.20",
  "serde",
  "serde_json",
- "sha2 0.10.9",
  "strict-yaml-rust",
  "thiserror 1.0.69",
  "tokio",
