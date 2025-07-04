@@ -79,7 +79,8 @@ mod tests {
 version: {spec_version}
 networks:
     mainnet:
-        rpc: {rpc}
+        rpcs:
+            - {rpc}
         chain-id: 1
         label: Ethereum Mainnet
         network-id: 1
@@ -314,6 +315,7 @@ amount price: 16 52;
         )
         .await;
 
+        println!("{:?}", result);
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap().0.rows[0],
