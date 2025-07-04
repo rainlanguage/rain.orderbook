@@ -56,7 +56,7 @@ impl RaindexTransaction {
 
 #[wasm_export]
 impl RaindexClient {
-    /// Fetches transaction details for a given transaction hash.on a given chain
+    /// Fetches transaction details for a given transaction hash on a given chain
     ///
     /// Retrieves basic transaction information including sender, block number,
     /// and timestamp.

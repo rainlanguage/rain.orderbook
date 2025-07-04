@@ -35,8 +35,8 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			transaction: {
 				id: 'transaction_id',
 				from: '0xsender_address',
-				timestamp: '1632000000',
-				blockNumber: '0'
+				timestamp: BigInt(1632000000),
+				blockNumber: BigInt(0)
 			},
 			orderbook: '0x1'
 		},

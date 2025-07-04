@@ -47,7 +47,11 @@
 
   const { debouncedFn: debouncedHandleApply } = useDebouncedFn(handleApply, 1000);
 
-  $: if ($settingsFile.text !== undefined && typeof $settingsFile.text === 'string' && $settingsFile.text.trim() !== '') {
+  $: if (
+    $settingsFile.text !== undefined &&
+    typeof $settingsFile.text === 'string' &&
+    $settingsFile.text.trim() !== ''
+  ) {
     debouncedHandleApply($settingsFile.text);
   }
 </script>

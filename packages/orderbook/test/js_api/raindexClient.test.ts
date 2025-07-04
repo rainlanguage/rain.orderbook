@@ -919,7 +919,7 @@ _ _: 0 0;
 				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			let result = extractWasmEncodedData(await order.getQuotes());
+			const result = extractWasmEncodedData(await order.getQuotes());
 			assert.deepEqual(result, [
 				{
 					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
