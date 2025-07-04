@@ -962,7 +962,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOTUvDMBjHmykTxIOIV0HwamybvljHPA6mYkUI4rXrsrU0S7o0dUw_hEevfoHhJ_Dqzc8j3qSYbOvYdc8h_-fln-f5AeM_9pRKUkjYS1k_ZUOgepaxuzx9imhJGqrT1BOeEWYbOraVetaZX7OguWVLqW1Z65fVKw1Y8BGBjMgJF5kGPFKaSJm3TJPyOKIJL2QrsALPFHkMS0FfKgeoXqBPd3D3UKWDNQGaYEeNccVwbANNiut0qF5tmPW1_TM7-W7PPt-8j9_HBrr4eo_BwQorWrAinS2tcxwHLCrf909VGnT48112k8LbyH3o3V9NYRieyzQTEe2WHI_d64EbYjLmk-HlvvrDZUIE7JOc8umIMPkHbEaANVUCAAA=';
+			'H4sIAAAAAAAA_72OvU7DMBSF44KKhBgQYkVCYiUksRWrVGUBgVIqYDHIGwqpaaL4J01cfsRDMLLyAhVPwMrG8yA2hLBpU3XuXc6591xff8D5qzWjmlXavclkP5MDYGa-szqd3sV8xBpm0rSJypkMHFvLRkN_D9dW4P_KktHA9-cfq3cWsFKCuZLpe1XmFnDLaKp10fY8rpKYp6rS7ZbfCr2ySNxRyZ_sx8A6YBGOSbRp7O2cAk2wYmLyy7IdAEtM6pSw3i2I-bnzNd757IzfX8K3b9qA-x-vCdiYYYYTZmjd1DmEEJh0GONdY4cPER2KS4Kvs-zo9JAoirpd2qPhhaBxjFhxddIbiPMkys8O1s0bpVNWun1WcPUomNQ_z0E6QWUCAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
