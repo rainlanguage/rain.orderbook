@@ -15,15 +15,16 @@ export interface LayoutData {
 	raindexClient: RaindexClient | null;
 }
 
+const REMOTE_SETTINGS_URL =
+	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/9de4614e8298f6d92c7c276a553d67bdceb3736c/settings.yaml';
+
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let config: NewConfig;
 	let errorMessage: string | undefined;
 	let settingsYamlText: string;
 
 	try {
-		const response = await fetch(
-			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/6e3a9a3d02c9fcf45a89cf9ca00e745d961de413/settings.yaml'
-		);
+		const response = await fetch(REMOTE_SETTINGS_URL);
 		if (!response.ok) {
 			throw new Error('Error status: ' + response.status.toString());
 		}
@@ -236,9 +237,7 @@ subgraphs:
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 
-			expect(mockFetch).toHaveBeenCalledWith(
-				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/6e3a9a3d02c9fcf45a89cf9ca00e745d961de413/settings.yaml'
-			);
+			expect(mockFetch).toHaveBeenCalledWith(REMOTE_SETTINGS_URL);
 
 			expect(result).toHaveProperty('stores');
 			const stores: AppStoresInterface | null = result.stores;
