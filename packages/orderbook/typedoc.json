@@ -3,7 +3,7 @@
   "entryPoints": [
     "./dist/esm/index.d.ts"
   ],
-  "out": "./docs",
+  "out": "./dist",
   "name": "Raindex SDK Documentation",
   "readme": "./README.md",
   "includeVersion": false,
@@ -17,10 +17,6 @@
     "GitHub": "https://github.com/rainlanguage/rain.orderbook",
     "NPM": "https://www.npmjs.com/package/@rainlanguage/orderbook"
   },
-  // "sidebarLinks": {
-  //   "Rainlang Documentation": "https://docs.rainlang.xyz",
-  //   "Raindex Website": "https://v2.raindex.finance"
-  // },
   "kindSortOrder": [
     "Class",
     "Function",
