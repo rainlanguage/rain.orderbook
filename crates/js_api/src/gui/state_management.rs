@@ -448,7 +448,7 @@ mod tests {
         assert_eq!(
             gui.get_field_value("binding-1".to_string()).unwrap(),
             FieldValue {
-                binding: "binding-1".to_string(),
+                field: "binding-1".to_string(),
                 value: "100".to_string(),
                 is_preset: false,
             }
@@ -456,7 +456,7 @@ mod tests {
         assert_eq!(
             gui.get_field_value("binding-2".to_string()).unwrap(),
             FieldValue {
-                binding: "binding-2".to_string(),
+                field: "binding-2".to_string(),
                 value: "0".to_string(),
                 is_preset: true,
             }

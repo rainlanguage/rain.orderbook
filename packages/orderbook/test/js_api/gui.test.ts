@@ -760,19 +760,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			);
 			gui.setFieldValue('binding-1', allFieldDefinitions[0].presets?.[0]?.value || '');
 			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: allFieldDefinitions[0].presets?.[0]?.value || '',
 				is_preset: true
 			});
 			gui.setFieldValue('binding-1', allFieldDefinitions[0].presets?.[1]?.value || '');
 			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: allFieldDefinitions[0].presets?.[1]?.value || '',
 				is_preset: true
 			});
 			gui.setFieldValue('binding-1', allFieldDefinitions[0].presets?.[2]?.value || '');
 			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: allFieldDefinitions[0].presets?.[2]?.value || '',
 				is_preset: true
 			});
@@ -786,33 +786,33 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		it('should save field value as custom values', async () => {
 			gui.setFieldValues([
 				{
-					binding: 'binding-1',
+					field: 'binding-1',
 					value: '0x1234567890abcdef1234567890abcdef12345678'
 				},
 				{
-					binding: 'binding-2',
+					field: 'binding-2',
 					value: '100'
 				}
 			]);
 			gui.setFieldValues([
 				{
-					binding: 'binding-1',
+					field: 'binding-1',
 					value: 'some-string'
 				},
 				{
-					binding: 'binding-2',
+					field: 'binding-2',
 					value: 'true'
 				}
 			]);
 			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 2);
 			assert.deepEqual(fieldValues[0], {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: 'some-string',
 				is_preset: true
 			});
 			assert.deepEqual(fieldValues[1], {
-				binding: 'binding-2',
+				field: 'binding-2',
 				value: 'true',
 				is_preset: false
 			});
@@ -836,7 +836,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			gui.setFieldValue('binding-1', '0x1234567890abcdef1234567890abcdef12345678');
 			let fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1'));
 			assert.deepEqual(fieldValue, {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: '0x1234567890abcdef1234567890abcdef12345678',
 				is_preset: true
 			});
@@ -844,7 +844,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			gui.setFieldValue('binding-2', 'true');
 			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-2'));
 			assert.deepEqual(fieldValue, {
-				binding: 'binding-2',
+				field: 'binding-2',
 				value: 'true',
 				is_preset: false
 			});
@@ -852,7 +852,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			gui.setFieldValue('binding-1', 'some-string');
 			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1'));
 			assert.deepEqual(fieldValue, {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: 'some-string',
 				is_preset: true
 			});
@@ -860,7 +860,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			gui.setFieldValue('binding-2', '100.5');
 			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-2'));
 			assert.deepEqual(fieldValue, {
-				binding: 'binding-2',
+				field: 'binding-2',
 				value: '100.5',
 				is_preset: false
 			});
@@ -1010,7 +1010,7 @@ ${dotrain}`;
 			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 1);
 			assert.deepEqual(fieldValues[0], {
-				binding: 'test-binding',
+				field: 'test-binding',
 				value: 'test-value',
 				is_preset: true
 			});

@@ -3,7 +3,7 @@ use super::*;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 
 pub struct FieldValuePair {
-    binding: String,
+    field: String,
     value: String,
 }
 impl_wasm_traits!(FieldValuePair);
@@ -18,7 +18,7 @@ impl_wasm_traits!(PairValue);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct FieldValue {
-    pub binding: String,
+    pub field: String,
     pub value: String,
     pub is_preset: bool,
 }
@@ -70,12 +70,12 @@ impl DotrainOrderGui {
     #[wasm_export(js_name = "setFieldValue", unchecked_return_type = "void")]
     pub fn set_field_value(
         &mut self,
-        #[wasm_export(param_description = "Field binding identifier from the YAML configuration")]
-        binding: String,
+        #[wasm_export(param_description = "Field identifier from the YAML configuration")]
+        field: String,
         #[wasm_export(param_description = "Value to save (can be a preset value or custom input)")]
         value: String,
     ) -> Result<(), GuiError> {
-        let field_definition = self.get_field_definition(&binding)?;
+        let field_definition = self.get_field_definition(&field)?;
 
         let value = match field_definition.presets.as_ref() {
             Some(presets) => match presets.iter().position(|p| p.value == value) {
@@ -94,7 +94,7 @@ impl DotrainOrderGui {
             },
         };
 
-        self.field_values.insert(binding, value);
+        self.field_values.insert(field, value);
 
         self.execute_state_update_callback()?;
         Ok(())
@@ -110,9 +110,9 @@ impl DotrainOrderGui {
     ///
     /// ```javascript
     /// const fields = [
-    ///   { binding: "max-price", value: "1500" },
-    ///   { binding: "min-amount", value: "100" },
-    ///   { binding: "slippage", value: "0.5" }
+    ///   { field: "max-price", value: "1500" },
+    ///   { field: "min-amount", value: "100" },
+    ///   { field: "slippage", value: "0.5" }
     /// ];
     ///
     /// const result = gui.setFieldValues(fields);
@@ -129,7 +129,7 @@ impl DotrainOrderGui {
         >,
     ) -> Result<(), GuiError> {
         for field_value in field_values {
-            self.set_field_value(field_value.binding, field_value.value)?;
+            self.set_field_value(field_value.field, field_value.value)?;
         }
         Ok(())
     }
@@ -151,9 +151,10 @@ impl DotrainOrderGui {
     #[wasm_export(js_name = "unsetFieldValue", unchecked_return_type = "void")]
     pub fn unset_field_value(
         &mut self,
-        #[wasm_export(param_description = "Field binding identifier to remove")] binding: String,
+        #[wasm_export(param_description = "Field identifier from the YAML configuration")]
+        field: String,
     ) -> Result<(), GuiError> {
-        self.field_values.remove(&binding);
+        self.field_values.remove(&field);
         self.execute_state_update_callback()?;
         Ok(())
     }
@@ -172,29 +173,30 @@ impl DotrainOrderGui {
     /// }
     ///
     /// const { binding, value, isPreset } = result.value;
-    /// // binding is the field binding identifier
+    /// // binding is the field identifier
     /// // value is the field value
     /// // isPreset is a boolean indicating if the value is a preset
     /// ```
     #[wasm_export(
         js_name = "getFieldValue",
         unchecked_return_type = "FieldValue",
-        return_description = "Field value with binding, value, and preset flag"
+        return_description = "Field value with the identifier, value, and preset flag"
     )]
     pub fn get_field_value(
         &self,
-        #[wasm_export(param_description = "Field binding identifier to retrieve")] binding: String,
+        #[wasm_export(param_description = "Field identifier from the YAML configuration")]
+        field: String,
     ) -> Result<FieldValue, GuiError> {
         let field_value = self
             .field_values
-            .get(&binding)
-            .ok_or(GuiError::FieldBindingNotFound(binding.clone()))?;
+            .get(&field)
+            .ok_or(GuiError::FieldBindingNotFound(field.clone()))?;
         let preset = match field_value.is_preset {
             true => {
-                let field_definition = self.get_field_definition(&binding)?;
+                let field_definition = self.get_field_definition(&field)?;
                 let presets = field_definition
                     .presets
-                    .ok_or(GuiError::BindingHasNoPresets(binding.clone()))?;
+                    .ok_or(GuiError::BindingHasNoPresets(field.clone()))?;
                 presets
                     .iter()
                     .find(|preset| preset.id == field_value.value)
@@ -208,7 +210,7 @@ impl DotrainOrderGui {
             },
         };
         Ok(FieldValue {
-            binding: binding.clone(),
+            field: field.clone(),
             value: preset.value.clone(),
             is_preset: field_value.is_preset,
         })
@@ -229,8 +231,8 @@ impl DotrainOrderGui {
     ///
     /// const [fieldValue1, fieldValue2, ...] = result.value;
     /// const {
-    ///   // binding is the field binding identifier
-    ///   binding,
+    ///   // field is the field identifier
+    ///   field,
     ///   // value is the field value
     ///   value,
     ///   // isPreset is a boolean indicating if the value is a preset
@@ -266,8 +268,8 @@ impl DotrainOrderGui {
     /// }
     ///
     /// const {
-    ///   // binding is the field binding identifier
-    ///   binding,
+    ///   // field is the field identifier
+    ///   field,
     ///   // name is the display name for the field
     ///   name,
     ///   // description is the help text for the field
@@ -287,14 +289,14 @@ impl DotrainOrderGui {
     )]
     pub fn get_field_definition(
         &self,
-        #[wasm_export(param_description = "Field binding identifier to look up")] binding: &str,
+        #[wasm_export(param_description = "Field binding identifier to look up")] field: &str,
     ) -> Result<GuiFieldDefinitionCfg, GuiError> {
         let deployment = self.get_current_deployment()?;
         let field_definition = deployment
             .fields
             .iter()
-            .find(|field| field.binding == binding)
-            .ok_or(GuiError::FieldBindingNotFound(binding.to_string()))?;
+            .find(|field_definition| field_definition.binding == field)
+            .ok_or(GuiError::FieldBindingNotFound(field.to_string()))?;
         Ok(field_definition.clone())
     }
 
@@ -409,12 +411,12 @@ mod tests {
             .unwrap();
 
         let field_value = gui.get_field_value("binding-1".to_string()).unwrap();
-        assert_eq!(field_value.binding, "binding-1");
+        assert_eq!(field_value.field, "binding-1");
         assert_eq!(field_value.value, "some-default-value");
         assert!(!field_value.is_preset);
 
         let field_value = gui.get_field_value("binding-2".to_string()).unwrap();
-        assert_eq!(field_value.binding, "binding-2");
+        assert_eq!(field_value.field, "binding-2");
         assert_eq!(field_value.value, "99.2");
         assert!(field_value.is_preset);
     }
@@ -425,11 +427,11 @@ mod tests {
 
         gui.set_field_values(vec![
             FieldValuePair {
-                binding: "binding-1".to_string(),
+                field: "binding-1".to_string(),
                 value: "some-default-value".to_string(),
             },
             FieldValuePair {
-                binding: "binding-2".to_string(),
+                field: "binding-2".to_string(),
                 value: "99.2".to_string(),
             },
         ])
@@ -437,10 +439,10 @@ mod tests {
 
         let field_values = gui.get_all_field_values().unwrap();
         assert_eq!(field_values.len(), 2);
-        assert_eq!(field_values[0].binding, "binding-1");
+        assert_eq!(field_values[0].field, "binding-1");
         assert_eq!(field_values[0].value, "some-default-value");
         assert!(!field_values[0].is_preset);
-        assert_eq!(field_values[1].binding, "binding-2");
+        assert_eq!(field_values[1].field, "binding-2");
         assert_eq!(field_values[1].value, "99.2");
         assert!(field_values[1].is_preset);
     }
