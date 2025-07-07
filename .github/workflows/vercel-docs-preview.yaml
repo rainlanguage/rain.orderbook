@@ -36,9 +36,16 @@ jobs:
       - run: nix develop .#webapp-shell -c npm run docs
         working-directory: packages/orderbook
 
+      - name: Prepare Vercel build output
+        run: |
+          OUTPUT_DIR="packages/orderbook/.vercel/output"
+          mkdir -p "${OUTPUT_DIR}/static"
+          cp -r packages/orderbook/docs/* "${OUTPUT_DIR}/static/"
+          echo '{ "version": 3 }' > "${OUTPUT_DIR}/config.json"
+
       - name: Install Vercel CLI
         run: npm install --global vercel@canary
       - name: Pull Vercel Environment Information
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
       - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --token=${{ secrets.VERCEL_TOKEN }} packages/orderbook
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} packages/orderbook
