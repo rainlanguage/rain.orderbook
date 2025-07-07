@@ -1,0 +1,34 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "./dist/esm/index.d.ts"
+  ],
+  "out": "./docs",
+  "name": "Raindex SDK Documentation",
+  "readme": "./README.md",
+  "includeVersion": false,
+  "excludeExternals": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeNotDocumented": false,
+  "hideGenerator": true,
+  "theme": "default",
+  "navigationLinks": {
+    "GitHub": "https://github.com/rainlanguage/rain.orderbook",
+    "NPM": "https://www.npmjs.com/package/@rainlanguage/orderbook"
+  },
+  // "sidebarLinks": {
+  //   "Rainlang Documentation": "https://docs.rainlang.xyz",
+  //   "Raindex Website": "https://v2.raindex.finance"
+  // },
+  "kindSortOrder": [
+    "Class",
+    "Function",
+    "Interface",
+    "Enum",
+    "Variable",
+    "Property",
+    "Method",
+    "Accessor"
+  ]
+}
