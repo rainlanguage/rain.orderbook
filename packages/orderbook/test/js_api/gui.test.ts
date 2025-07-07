@@ -397,7 +397,8 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
-using-tokens-from: http://localhost:8085/remote-tokens
+using-tokens-from:
+  - http://localhost:8085/remote-tokens
 tokens:
     token1:
         network: remote-network
@@ -529,12 +530,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
 		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
-		assert.equal(entries[0][0], 'some-deployment');
-		assert.equal(entries[0][1].name, 'Buy WETH with USDC on Base.');
-		assert.equal(entries[0][1].description, 'Buy WETH with USDC for fixed price on Base network.');
-		assert.equal(entries[1][0], 'other-deployment');
-		assert.equal(entries[1][1].name, 'Test test');
-		assert.equal(entries[1][1].description, 'Test test test');
+		assert.equal(entries[0][0], 'other-deployment');
+		assert.equal(entries[0][1].name, 'Test test');
+		assert.equal(entries[0][1].description, 'Test test test');
+		assert.equal(entries[1][0], 'some-deployment');
+		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
+		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
 	});
 
 	it('should get deployment detail', async () => {
