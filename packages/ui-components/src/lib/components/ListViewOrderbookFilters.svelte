@@ -68,9 +68,7 @@
 		{#if $accounts && Object.values($accounts).length > 0}
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
-		{#if tokensQuery}
-			<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
-		{/if}
+		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
 		<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 	{/if}
 </div>
