@@ -867,7 +867,7 @@ _ _: 0 0;
 			);
 
 			const calldata = extractWasmEncodedData(
-				await order.getAddCalldata(dotrain, 'some-deployment')
+				await order.getAddOrderCalldata(dotrain, 'some-deployment')
 			);
 			assert.equal(calldata.length, 2314);
 		});
@@ -881,7 +881,7 @@ _ _: 0 0;
 				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = await order.getAddCalldata(dotrain, 'some-other-deployment');
+			const res = await order.getAddOrderCalldata(dotrain, 'some-other-deployment');
 			if (!res.error) assert.fail('expected error');
 			assert.equal(res.error.msg, 'Deployment not found: some-other-deployment');
 			assert.equal(

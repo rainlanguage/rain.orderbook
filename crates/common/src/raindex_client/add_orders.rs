@@ -51,12 +51,12 @@ impl RaindexClient {
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let tx_hash = Bytes::from_str(&tx_hash)?;
-        self._get_add_orders_for_transaction(chain_id, orderbook_address, tx_hash)
+        self.get_add_orders_for_transaction(chain_id, orderbook_address, tx_hash)
             .await
     }
 }
 impl RaindexClient {
-    async fn _get_add_orders_for_transaction(
+    async fn get_add_orders_for_transaction(
         &self,
         chain_id: u32,
         orderbook_address: Address,
@@ -81,15 +81,6 @@ impl RaindexClient {
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
         Ok(orders)
     }
-    pub async fn get_add_orders_for_transaction(
-        &self,
-        chain_id: u32,
-        orderbook_address: Address,
-        tx_hash: Bytes,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        self._get_add_orders_for_transaction(chain_id, orderbook_address, tx_hash)
-            .await
-    }
 }
 
 #[wasm_export]
@@ -104,7 +95,7 @@ impl RaindexOrder {
     ///
     /// ```javascript
     /// // Generate calldata for adding an order
-    /// const result = await order.getAddCalldata(dotrainText, "flare");
+    /// const result = await order.getAddOrderCalldata(dotrainText, "flare");
     /// if (result.error) {
     ///   console.error('Failed:', result.error.readableMsg);
     /// } else {
@@ -113,11 +104,11 @@ impl RaindexOrder {
     /// }
     /// ```
     #[wasm_export(
-        js_name = "getAddCalldata",
+        js_name = "getAddOrderCalldata",
         return_description = "ABI-encoded calldata ready for blockchain submission",
         unchecked_return_type = "Hex"
     )]
-    pub async fn get_add_calldata(
+    pub async fn get_add_order_calldata(
         &self,
         #[wasm_export(
             param_description = "Complete dotrain text containing YAML frontmatter and Rainlang code"
@@ -131,7 +122,6 @@ impl RaindexOrder {
     ) -> Result<Bytes, RaindexError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap_or("");
         let config = NewConfig::try_from_yaml(vec![frontmatter.to_string()], false)?;
-        println!("{:?}", config.get_deployments().keys());
         let deployment = config.get_deployment(&deployment_key)?;
         let add_order_args =
             AddOrderArgs::new_from_deployment(dotrain, deployment.as_ref().clone()).await?;
@@ -664,7 +654,7 @@ _ _: 0 0;
         }
 
         #[tokio::test]
-        async fn test_get_add_calldata() {
+        async fn test_get_add_order_calldata() {
             let rpc_server = MockServer::start_async().await;
             let dotrain = get_dotrain(&rpc_server.url("/rpc"));
 
@@ -781,7 +771,7 @@ _ _: 0 0;
                 .await
                 .unwrap();
             let calldata = order
-                .get_add_calldata(dotrain.to_string(), "deployment1".to_string())
+                .get_add_order_calldata(dotrain.to_string(), "deployment1".to_string())
                 .await
                 .unwrap();
 
@@ -791,7 +781,7 @@ _ _: 0 0;
         }
 
         #[tokio::test]
-        async fn test_get_add_calldata_invalid_deployment() {
+        async fn test_get_add_order_calldata_invalid_deployment() {
             let server = MockServer::start_async().await;
             server.mock(|when, then| {
                 when.path("/sg");
@@ -823,7 +813,7 @@ _ _: 0 0;
                 .await
                 .unwrap();
             let err = order
-                .get_add_calldata(dotrain.to_string(), "invalid-deployment".to_string())
+                .get_add_order_calldata(dotrain.to_string(), "invalid-deployment".to_string())
                 .await
                 .unwrap_err();
             assert!(matches!(
@@ -833,7 +823,7 @@ _ _: 0 0;
         }
 
         #[tokio::test]
-        async fn test_get_add_calldata_invalid_dotrain() {
+        async fn test_get_add_order_calldata_invalid_dotrain() {
             let server = MockServer::start_async().await;
             server.mock(|when, then| {
                 when.path("/sg");
@@ -864,7 +854,7 @@ _ _: 0 0;
                 .unwrap();
 
             let err = order
-                .get_add_calldata(
+                .get_add_order_calldata(
                     format!(
                         r#"
 version: {}
@@ -883,7 +873,7 @@ test: test
             ));
 
             let err = order
-                .get_add_calldata(
+                .get_add_order_calldata(
                     r#"
 deployments:
   deployment1:
@@ -935,10 +925,9 @@ deployments:
                 .await
                 .unwrap();
             let err = order
-                .get_add_calldata(dotrain.to_string(), "deployment1".to_string())
+                .get_add_order_calldata(dotrain.to_string(), "deployment1".to_string())
                 .await
                 .unwrap_err();
-            println!("{:?}", err);
             assert!(matches!(
                 err,
                 RaindexError::AddOrderArgsError(AddOrderArgsError::DISPairError(_))

@@ -498,12 +498,12 @@ impl RaindexClient {
     ) -> Result<RaindexOrder, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let order_hash = Bytes::from_str(&order_hash)?;
-        self._get_order_by_hash(chain_id, orderbook_address, order_hash)
+        self.get_order_by_hash(chain_id, orderbook_address, order_hash)
             .await
     }
 }
 impl RaindexClient {
-    async fn _get_order_by_hash(
+    pub async fn get_order_by_hash(
         &self,
         chain_id: u32,
         orderbook_address: Address,
@@ -516,15 +516,6 @@ impl RaindexClient {
             .await?;
         let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
         Ok(order)
-    }
-    pub async fn get_order_by_hash(
-        &self,
-        chain_id: u32,
-        orderbook_address: Address,
-        order_hash: Bytes,
-    ) -> Result<RaindexOrder, RaindexError> {
-        self._get_order_by_hash(chain_id, orderbook_address, order_hash)
-            .await
     }
 }
 

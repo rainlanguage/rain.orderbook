@@ -727,11 +727,11 @@ impl RaindexClient {
     ) -> Result<RaindexVault, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let vault_id = Bytes::from_str(&vault_id)?;
-        self._get_vault(chain_id, orderbook_address, vault_id).await
+        self.get_vault(chain_id, orderbook_address, vault_id).await
     }
 }
 impl RaindexClient {
-    async fn _get_vault(
+    pub async fn get_vault(
         &self,
         chain_id: u32,
         orderbook_address: Address,
@@ -745,14 +745,6 @@ impl RaindexClient {
             None,
         )?;
         Ok(vault)
-    }
-    pub async fn get_vault(
-        &self,
-        chain_id: u32,
-        orderbook_address: Address,
-        vault_id: Bytes,
-    ) -> Result<RaindexVault, RaindexError> {
-        self._get_vault(chain_id, orderbook_address, vault_id).await
     }
 }
 

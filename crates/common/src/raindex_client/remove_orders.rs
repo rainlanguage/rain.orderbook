@@ -48,12 +48,12 @@ impl RaindexClient {
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let tx_hash = Bytes::from_str(&tx_hash)?;
-        self._get_remove_orders_for_transaction(chain_id, orderbook_address, tx_hash)
+        self.get_remove_orders_for_transaction(chain_id, orderbook_address, tx_hash)
             .await
     }
 }
 impl RaindexClient {
-    async fn _get_remove_orders_for_transaction(
+    pub async fn get_remove_orders_for_transaction(
         &self,
         chain_id: u32,
         orderbook_address: Address,
@@ -77,15 +77,6 @@ impl RaindexClient {
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
         Ok(orders)
-    }
-    async fn get_remove_orders_for_transaction(
-        &self,
-        chain_id: u32,
-        orderbook_address: Address,
-        tx_hash: Bytes,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        self._get_remove_orders_for_transaction(chain_id, orderbook_address, tx_hash)
-            .await
     }
 }
 

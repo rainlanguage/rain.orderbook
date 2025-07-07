@@ -99,12 +99,12 @@ impl RaindexClient {
     ) -> Result<RaindexTransaction, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let tx_hash = Bytes::from_str(&tx_hash)?;
-        self._get_transaction(chain_id, orderbook_address, tx_hash)
+        self.get_transaction(chain_id, orderbook_address, tx_hash)
             .await
     }
 }
 impl RaindexClient {
-    async fn _get_transaction(
+    pub async fn get_transaction(
         &self,
         chain_id: u32,
         orderbook_address: Address,
@@ -115,15 +115,6 @@ impl RaindexClient {
             .transaction_detail(Id::new(tx_hash.to_string()))
             .await?;
         transaction.try_into()
-    }
-    pub async fn get_transaction(
-        &self,
-        chain_id: u32,
-        orderbook_address: Address,
-        tx_hash: Bytes,
-    ) -> Result<RaindexTransaction, RaindexError> {
-        self._get_transaction(chain_id, orderbook_address, tx_hash)
-            .await
     }
 }
 
