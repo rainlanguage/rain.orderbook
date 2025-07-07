@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { Button, Dropdown, Label, Checkbox, Input } from 'flowbite-svelte';
 	import { ChevronDownSolid, SearchSolid } from 'flowbite-svelte-icons';
 	import { isEmpty } from 'lodash';
@@ -8,8 +7,6 @@
 	import type { Readable } from 'svelte/store';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
 	import { getTokenDisplayName } from '../../utils/tokens';
-
-	const dispatch = createEventDispatcher();
 
 	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName[], Error>>;
 	export let activeTokens: AppStoresInterface['activeTokens'];
@@ -59,7 +56,6 @@
 
 	function updateSelectedTokens(newSelection: SgTokenAddress[]) {
 		activeTokens.set(newSelection);
-		dispatch('change', newSelection);
 	}
 
 	function toggleToken({ token }: SgErc20WithSubgraphName) {
