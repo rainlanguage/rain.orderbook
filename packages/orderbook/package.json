@@ -37,10 +37,14 @@
         "rm-temp": "rimraf ./temp",
         "test": "npm run check && vitest run --dir test",
         "format": "prettier --write test",
-        "check": "tsc ./dist/**/*.{ts,js} --noEmit --allowJs"
+        "check": "tsc ./dist/**/*.{ts,js} --noEmit --allowJs",
+        "docs": "typedoc",
+        "docs:clean": "rimraf ./docs"
     },
     "devDependencies": {
-        "rimraf": "6.0.1"
+        "rimraf": "6.0.1",
+        "typedoc": "^0.28.7",
+        "typedoc-theme-oxide": "^0.2.0"
     },
     "dependencies": {
         "buffer": "6.0.3"
