@@ -3,7 +3,7 @@
   "entryPoints": [
     "./dist/esm/index.d.ts"
   ],
-  "out": "./dist",
+  "out": "./docs",
   "name": "Raindex SDK Documentation",
   "readme": "./README.md",
   "includeVersion": false,
