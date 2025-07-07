@@ -1581,9 +1581,14 @@ ${dotrainWithoutVaultIds}`;
 				);
 			} else expect.fail('Expected error');
 
-			let missingFieldValues = extractWasmEncodedData<string[]>(gui.getMissingFieldValues());
+			let missingFieldValues = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+				gui.getMissingFieldValues()
+			);
 			assert.equal(missingFieldValues.length, 1);
-			assert.equal(missingFieldValues[0], 'Test binding');
+			assert.deepEqual(
+				missingFieldValues[0],
+				extractWasmEncodedData(gui.getFieldDefinition('test-binding'))
+			);
 		});
 
 		it('should set vault ids', async () => {

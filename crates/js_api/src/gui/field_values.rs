@@ -356,15 +356,10 @@ impl DotrainOrderGui {
         Ok(field_definitions)
     }
 
-    /// Lists field names that haven't been configured yet.
+    /// Lists field definitions that haven't been configured yet.
     ///
-    /// Returns human-readable field names (not bindings) for fields that need values.
+    /// Returns field definitions for fields that need values.
     /// Use this for validation and to guide users through required configurations.
-    ///
-    /// ## Note
-    ///
-    /// This returns field names (e.g., "Maximum Price") not bindings (e.g., "max-price")
-    /// for better user experience.
     ///
     /// ## Examples
     ///
@@ -379,16 +374,16 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getMissingFieldValues",
-        unchecked_return_type = "string[]",
-        return_description = "Array of field names that need configuration"
+        unchecked_return_type = "GuiFieldDefinitionCfg[]",
+        return_description = "Array of field definitions that need to be set"
     )]
-    pub fn get_missing_field_values(&self) -> Result<Vec<String>, GuiError> {
+    pub fn get_missing_field_values(&self) -> Result<Vec<GuiFieldDefinitionCfg>, GuiError> {
         let deployment = self.get_current_deployment()?;
         let mut missing_field_values = Vec::new();
 
         for field in deployment.fields.iter() {
             if !self.field_values.contains_key(&field.binding) {
-                missing_field_values.push(field.name.clone());
+                missing_field_values.push(field.clone());
             }
         }
         Ok(missing_field_values)
@@ -562,15 +557,15 @@ mod tests {
 
         let field_values = gui.get_missing_field_values().unwrap();
         assert_eq!(field_values.len(), 2);
-        assert_eq!(field_values[0], "Field 1 name");
-        assert_eq!(field_values[1], "Field 2 name");
+        assert_eq!(field_values[0], get_binding_1());
+        assert_eq!(field_values[1], get_binding_2());
 
         gui.set_field_value("binding-1".to_string(), "some-default-value".to_string())
             .unwrap();
 
         let field_values = gui.get_missing_field_values().unwrap();
         assert_eq!(field_values.len(), 1);
-        assert_eq!(field_values[0], "Field 2 name");
+        assert_eq!(field_values[0], get_binding_2());
     }
 
     #[wasm_bindgen_test]
