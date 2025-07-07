@@ -57,7 +57,7 @@
 	function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
 			inputValue = preset;
-			gui.saveDeposit(deposit.token?.key, preset);
+			gui.setDeposit(deposit.token?.key, preset);
 
 			try {
 				currentDeposit = getCurrentDeposit();
@@ -71,7 +71,7 @@
 		if (deposit.token?.key) {
 			if (e.currentTarget instanceof HTMLInputElement) {
 				inputValue = e.currentTarget.value;
-				gui.saveDeposit(deposit.token.key, e.currentTarget.value);
+				gui.setDeposit(deposit.token.key, e.currentTarget.value);
 				try {
 					currentDeposit = getCurrentDeposit();
 				} catch (e) {

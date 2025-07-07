@@ -1754,7 +1754,7 @@ networks:
                 "YAML configuration error: Missing required field 'tokens' in root"
             );
 
-            gui.save_select_token(
+            gui.set_select_token(
                 "token3".to_string(),
                 "0x0000000000000000000000000000000000000001".to_string(),
             )

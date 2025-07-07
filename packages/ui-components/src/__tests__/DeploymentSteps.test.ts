@@ -119,7 +119,7 @@ describe('DeploymentSteps', () => {
 			}),
 			getTokenInfo: vi.fn(),
 			isSelectTokenSet: vi.fn().mockReturnValue({ value: false }),
-			saveSelectToken: vi.fn(),
+			setSelectToken: vi.fn(),
 			getDeploymentTransactionArgs: vi.fn()
 		} as unknown as DotrainOrderGui;
 
@@ -171,7 +171,7 @@ describe('DeploymentSteps', () => {
 		(mockGui.getTokenInfo as Mock).mockImplementation(() => {});
 		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 		(mockGui.isSelectTokenSet as Mock).mockReturnValue({ value: false });
-		(mockGui.saveSelectToken as Mock).mockImplementation(() => {});
+		(mockGui.setSelectToken as Mock).mockImplementation(() => {});
 		(mockGui.getCurrentDeployment as Mock).mockReturnValue({
 			value: {
 				deployment: {
@@ -221,7 +221,7 @@ describe('DeploymentSteps', () => {
 		(mockGui.getTokenInfo as Mock).mockImplementation(() => {});
 		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 		(mockGui.isSelectTokenSet as Mock).mockReturnValue({ value: false });
-		(mockGui.saveSelectToken as Mock).mockImplementation(() => {});
+		(mockGui.setSelectToken as Mock).mockImplementation(() => {});
 		(mockGui.getCurrentDeployment as Mock).mockReturnValue({
 			value: {
 				deployment: {
@@ -270,7 +270,7 @@ describe('DeploymentSteps', () => {
 		(mockGui.getTokenInfo as Mock).mockImplementation(() => {});
 		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 		(mockGui.isSelectTokenSet as Mock).mockReturnValue({ value: false });
-		(mockGui.saveSelectToken as Mock).mockImplementation(() => {});
+		(mockGui.setSelectToken as Mock).mockImplementation(() => {});
 		(mockGui.getCurrentDeployment as Mock).mockReturnValue({
 			value: {
 				deployment: {

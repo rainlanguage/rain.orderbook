@@ -8152,7 +8152,7 @@ dependencies = [
 [[package]]
 name = "rain-erc"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/rain.erc?rev=a826bb9c52dd659beb229fbd810a72492188b574#a826bb9c52dd659beb229fbd810a72492188b574"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=490f7d851565002ad0f7fe89ed683a89d38b5c02#490f7d851565002ad0f7fe89ed683a89d38b5c02"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
@@ -8239,7 +8239,7 @@ dependencies = [
  "inflate",
  "itertools 0.10.5",
  "once_cell",
- "rain-erc 0.0.0 (git+https://github.com/rainlanguage/rain.erc?rev=a826bb9c52dd659beb229fbd810a72492188b574)",
+ "rain-erc 0.0.0 (git+https://github.com/rainlanguage/rain.erc?rev=490f7d851565002ad0f7fe89ed683a89d38b5c02)",
  "rain-metaboard-subgraph",
  "rain-metadata-bindings",
  "regex",
