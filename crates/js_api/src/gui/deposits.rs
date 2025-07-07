@@ -140,8 +140,7 @@ impl DotrainOrderGui {
         let gui_deposit = self.get_gui_deposit(&token)?;
 
         if amount.is_empty() {
-            self.unset_deposit(token)?;
-            return Ok(());
+            return Err(GuiError::DepositAmountCannotBeEmpty);
         }
 
         let value = match gui_deposit.presets.as_ref() {
@@ -365,10 +364,17 @@ mod tests {
             Address::from_str("0xc2132d05d31c914a87c6611c10748aeb04b58e8f").unwrap()
         );
 
-        gui.set_deposit("token1".to_string(), "".to_string())
-            .unwrap();
-        let deposit = gui.get_deposits().unwrap();
-        assert_eq!(deposit.len(), 0);
+        let err = gui
+            .set_deposit("token1".to_string(), "".to_string())
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::DepositAmountCannotBeEmpty.to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The deposit amount cannot be an empty string. Please set a valid amount."
+        );
 
         let mut gui = initialize_gui_with_select_tokens().await;
         let err = gui

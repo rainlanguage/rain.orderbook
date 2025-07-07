@@ -706,12 +706,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 			gui.setDeposit('token1', '50.6');
 			assert.equal(extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits()).length, 1);
-			gui.setDeposit('token1', '');
-			assert.equal(extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits()).length, 0);
 
-			assert.equal(stateUpdateCallback.mock.calls.length, 4);
+			assert.equal(stateUpdateCallback.mock.calls.length, 3);
 			expect(stateUpdateCallback).toHaveBeenCalledWith(
 				extractWasmEncodedData(gui.serializeState())
+			);
+		});
+
+		it('should throw error if deposit amount is empty', () => {
+			const result = gui.setDeposit('token1', '');
+			if (!result.error) expect.fail('Expected error');
+			expect(result.error.msg).toBe('Deposit amount cannot be an empty string');
+			expect(result.error.readableMsg).toBe(
+				'The deposit amount cannot be an empty string. Please set a valid amount.'
 			);
 		});
 
