@@ -1,7 +1,7 @@
 use crate::remote::tokens::{RemoteTokensError, Tokens};
 use crate::yaml::context::Context;
 use crate::yaml::{
-    default_document, optional_string, FieldErrorKind, YamlError, YamlParseableValue,
+    default_document, optional_vec, require_string, FieldErrorKind, YamlError, YamlParseableValue,
 };
 use crate::{NetworkCfg, TokenCfg};
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ pub struct RemoteTokensCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub url: Url,
+    pub urls: Vec<Url>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(RemoteTokensCfg);
@@ -35,22 +35,24 @@ impl RemoteTokensCfg {
     ) -> Result<HashMap<String, TokenCfg>, ParseRemoteTokensError> {
         let mut tokens: HashMap<String, TokenCfg> = HashMap::new();
 
-        let tokens_res = reqwest::get(remote_tokens.url.to_string())
-            .await?
-            .json::<Tokens>()
-            .await?;
+        for url in remote_tokens.urls {
+            let tokens_res = reqwest::get(url.to_string())
+                .await?
+                .json::<Tokens>()
+                .await?;
 
-        for token in &tokens_res.tokens {
-            let token_cfg = token
-                .clone()
-                .try_into_token_cfg(networks, remote_tokens.document.clone())?;
+            for token in &tokens_res.tokens {
+                let token_cfg = token
+                    .clone()
+                    .try_into_token_cfg(networks, remote_tokens.document.clone())?;
 
-            if tokens.contains_key(&token_cfg.key) {
-                return Err(ParseRemoteTokensError::ConflictingTokens(
-                    token_cfg.key.clone(),
-                ));
+                if tokens.contains_key(&token_cfg.key) {
+                    return Err(ParseRemoteTokensError::ConflictingTokens(
+                        token_cfg.key.clone(),
+                    ));
+                }
+                tokens.insert(token_cfg.key.clone(), token_cfg);
             }
-            tokens.insert(token_cfg.key.clone(), token_cfg);
         }
 
         Ok(tokens)
@@ -69,35 +71,44 @@ impl YamlParseableValue for RemoteTokensCfg {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<Option<RemoteTokensCfg>, YamlError> {
-        let mut url: Option<Url> = None;
+        let mut validated_urls: Vec<Url> = Vec::new();
         let mut document_index: usize = 0;
 
         for (index, document) in documents.iter().enumerate() {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Some(value) = optional_string(&document_read, "using-tokens-from") {
-                if let Some(url) = url {
-                    return Err(YamlError::KeyShadowing(
-                        url.to_string(),
-                        "using-tokens-from".to_string(),
-                    ));
+            if let Some(urls) = optional_vec(&document_read, "using-tokens-from") {
+                for url in urls {
+                    let url = require_string(url, None, Some("using-tokens-from".to_string()))?;
+
+                    let validated_url =
+                        RemoteTokensCfg::validate_url(&url).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "url".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: "using-tokens-from".to_string(),
+                        })?;
+
+                    if validated_urls.contains(&validated_url) {
+                        return Err(YamlError::KeyShadowing(
+                            validated_url.to_string(),
+                            "using-tokens-from".to_string(),
+                        ));
+                    }
+                    validated_urls.push(validated_url);
                 }
 
-                let validated_url =
-                    RemoteTokensCfg::validate_url(&value).map_err(|e| YamlError::Field {
-                        kind: FieldErrorKind::InvalidValue {
-                            field: "url".to_string(),
-                            reason: e.to_string(),
-                        },
-                        location: "using-tokens-from".to_string(),
-                    })?;
-                url = Some(validated_url);
                 document_index = index;
             }
         }
 
-        Ok(url.map(|url| RemoteTokensCfg {
-            url,
+        if validated_urls.is_empty() {
+            return Ok(None);
+        }
+
+        Ok(Some(RemoteTokensCfg {
+            urls: validated_urls,
             document: documents[document_index].clone(),
         }))
     }
@@ -107,13 +118,13 @@ impl Default for RemoteTokensCfg {
     fn default() -> Self {
         RemoteTokensCfg {
             document: default_document(),
-            url: Url::parse("http://example.com").unwrap(),
+            urls: vec![Url::parse("http://example.com").unwrap()],
         }
     }
 }
 impl PartialEq for RemoteTokensCfg {
     fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
+        self.urls == other.urls
     }
 }
 
@@ -142,7 +153,8 @@ mod tests {
     #[test]
     fn test_parse_remote_tokens_from_yaml() {
         let yaml = r#"
-using-tokens-from: test
+using-tokens-from:
+  - test
 "#;
         let error =
             RemoteTokensCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
@@ -161,10 +173,12 @@ using-tokens-from: test
     #[test]
     fn test_parse_remote_tokens_from_multiple_files() {
         let yaml_one = r#"
-using-tokens-from: http://test.com
+using-tokens-from:
+  - http://test.com
 "#;
         let yaml_two = r#"
-using-tokens-from: http://test.com
+using-tokens-from:
+  - http://test.com
 "#;
         let error = RemoteTokensCfg::parse_from_yaml_optional(
             vec![get_document(yaml_one), get_document(yaml_two)],
@@ -185,7 +199,8 @@ using-tokens-from: http://test.com
         let server = MockServer::start_async().await;
         let yaml = format!(
             r#"
-using-tokens-from: {}
+using-tokens-from:
+  - {}
 "#,
             server.base_url()
         );
@@ -281,5 +296,178 @@ using-tokens-from: {}
         );
         assert_eq!(token.network.key, "remote2-network");
         assert_eq!(token.network.chain_id, 234);
+    }
+
+    #[tokio::test]
+    async fn test_fetch_remote_tokens_from_multiple_urls() {
+        let server = MockServer::start_async().await;
+
+        let yaml = format!(
+            r#"
+using-tokens-from:
+  - {}
+  - {}/tokens2
+"#,
+            server.base_url(),
+            server.base_url()
+        );
+
+        let remote_tokens =
+            RemoteTokensCfg::parse_from_yaml_optional(vec![get_document(&yaml)], None)
+                .unwrap()
+                .unwrap();
+
+        let response1 = r#"
+{
+    "name": "Remote1",
+    "timestamp": "2021-01-01T00:00:00.000Z",
+    "keywords": [],
+    "version": {
+        "major": 1,
+        "minor": 0,
+        "patch": 0
+    },
+    "tokens": [
+        {
+            "chainId": 123,
+            "address": "0x0000000000000000000000000000000000000001",
+            "name": "Token1",
+            "symbol": "T1",
+            "decimals": 18
+        },
+        {
+            "chainId": 234,
+            "address": "0x0000000000000000000000000000000000000002",
+            "name": "Token2",
+            "symbol": "T2",
+            "decimals": 18
+        }
+    ],
+    "logoUri": "http://localhost.com"
+}
+        "#;
+
+        let response2 = r#"
+{
+    "name": "Remote2",
+    "timestamp": "2021-01-01T00:00:00.000Z",
+    "keywords": [],
+    "version": {
+        "major": 1,
+        "minor": 0,
+        "patch": 0
+    },
+    "tokens": [
+        {
+            "chainId": 345,
+            "address": "0x0000000000000000000000000000000000000003",
+            "name": "Token3",
+            "symbol": "T3",
+            "decimals": 18
+        },
+        {
+            "chainId": 456,
+            "address": "0x0000000000000000000000000000000000000004",
+            "name": "Token4",
+            "symbol": "T4",
+            "decimals": 18
+        }
+    ],
+    "logoUri": "http://localhost.com"
+}
+        "#;
+
+        server
+            .mock_async(|when, then| {
+                when.method("GET").path("/");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(response1);
+            })
+            .await;
+
+        server
+            .mock_async(|when, then| {
+                when.method("GET").path("/tokens2");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(response2);
+            })
+            .await;
+
+        let networks = HashMap::from([
+            (
+                "remote-network".to_string(),
+                NetworkCfg {
+                    document: default_document(),
+                    key: "remote-network".to_string(),
+                    rpcs: vec![Url::parse("http://localhost:8085/rpc-url").unwrap()],
+                    chain_id: 123,
+                    label: None,
+                    network_id: None,
+                    currency: None,
+                },
+            ),
+            (
+                "remote2-network".to_string(),
+                NetworkCfg {
+                    document: default_document(),
+                    key: "remote2-network".to_string(),
+                    rpcs: vec![Url::parse("http://localhost:8085/rpc-url").unwrap()],
+                    chain_id: 234,
+                    label: None,
+                    network_id: None,
+                    currency: None,
+                },
+            ),
+            (
+                "remote3-network".to_string(),
+                NetworkCfg {
+                    document: default_document(),
+                    key: "remote3-network".to_string(),
+                    rpcs: vec![Url::parse("http://localhost:8085/rpc-url").unwrap()],
+                    chain_id: 345,
+                    label: None,
+                    network_id: None,
+                    currency: None,
+                },
+            ),
+            (
+                "remote4-network".to_string(),
+                NetworkCfg {
+                    document: default_document(),
+                    key: "remote4-network".to_string(),
+                    rpcs: vec![Url::parse("http://localhost:8085/rpc-url").unwrap()],
+                    chain_id: 456,
+                    label: None,
+                    network_id: None,
+                    currency: None,
+                },
+            ),
+        ]);
+
+        let tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens)
+            .await
+            .unwrap();
+
+        assert_eq!(tokens.len(), 4_usize);
+
+        let token = tokens.get("token3").unwrap();
+        assert_eq!(token.key, "token3");
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000003").unwrap()
+        );
+        assert_eq!(token.network.key, "remote3-network");
+        assert_eq!(token.network.chain_id, 345);
+
+        let token = tokens.get("token4").unwrap();
+        assert_eq!(token.key, "token4");
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000004").unwrap()
+        );
+        assert_eq!(token.network.key, "remote4-network");
+        assert_eq!(token.network.chain_id, 456);
     }
 }
