@@ -1,3 +1,11 @@
+use rain_metadata::{
+    types::{
+        dotrain::instance_v1::{DotrainInstanceV1, TokenCfg, ValueCfg},
+        source_v1::DotrainSourceV1,
+    },
+    RainMetaDocumentV1Item,
+};
+
 use super::*;
 use alloy::{
     primitives::{Bytes, B256, U256},
@@ -459,6 +467,97 @@ impl DotrainOrderGui {
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
+    fn generate_dotrain_instance_v1(&self) -> Result<DotrainInstanceV1, GuiError> {
+        let dotrain_source: RainMetaDocumentV1Item = DotrainSourceV1(self.dotrain_order).into();
+        let dotrain_hash = dotrain_source.hash(true)?;
+
+        // Convert deposits to ValueCfg format directly
+        let deposits: BTreeMap<String, ValueCfg> = self
+            .deposits
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.clone(),
+                    ValueCfg {
+                        id: k.clone(),
+                        name: None,
+                        value: v.value.clone(),
+                    },
+                )
+            })
+            .collect();
+
+        // Convert select_tokens to TokenCfg format directly
+        let select_tokens: BTreeMap<String, TokenCfg> = {
+            let mut result = BTreeMap::new();
+            let deployment_select_tokens = GuiCfg::parse_select_tokens(
+                self.dotrain_order.dotrain_yaml().documents,
+                &self.selected_deployment,
+            )?;
+
+            if let Some(st) = deployment_select_tokens {
+                for select_token in st {
+                    if let Ok(token) = self
+                        .dotrain_order
+                        .orderbook_yaml()
+                        .get_token(&select_token.key)
+                    {
+                        result.insert(
+                            select_token.key,
+                            TokenCfg {
+                                network: token.network.key.clone(),
+                                address: token.address,
+                            },
+                        );
+                    }
+                }
+            }
+            result
+        };
+
+        // Convert vault_ids from IOVaultIds to BTreeMap<String, Option<String>>
+        let vault_ids_map = self.get_vault_ids()?;
+        let vault_ids: BTreeMap<String, Option<String>> = vault_ids_map
+            .0
+            .into_iter()
+            .flat_map(|(io_type, vault_list)| {
+                vault_list
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(index, vault_id)| {
+                        let key = format!("{}_{}", io_type, index);
+                        let value = vault_id.map(|v| format!("0x{:x}", v));
+                        (key, value)
+                    })
+            })
+            .collect();
+
+        // Convert field values to ValueCfg format directly
+        let field_values: BTreeMap<String, ValueCfg> = self
+            .field_values
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.clone(),
+                    ValueCfg {
+                        id: k.clone(),
+                        name: None,
+                        value: v.value.clone(),
+                    },
+                )
+            })
+            .collect();
+
+        Ok(DotrainInstanceV1 {
+            dotrain_hash,
+            field_values,
+            deposits,
+            select_tokens,
+            vault_ids,
+            selected_deployment: self.selected_deployment.clone(),
+        })
+    }
+
     /// Generates calldata for adding the order to the orderbook.
     ///
     /// Creates the addOrder calldata with all field values applied to the
@@ -485,10 +584,12 @@ impl DotrainOrderGui {
         &mut self,
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
+        let dotrain_instance_v1 = self.generate_dotrain_instance_v1()?;
 
         let calldata = AddOrderArgs::new_from_deployment(
             self.dotrain_order.dotrain()?,
             deployment.deployment.as_ref().clone(),
+            Some(dotrain_instance_v1),
         )
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)
@@ -972,5 +1073,47 @@ mod tests {
         let deployment = gui.get_current_deployment().unwrap();
         assert_eq!(deployment.deployment.scenario.bindings["binding-1"], "100");
         assert_eq!(deployment.deployment.scenario.bindings["binding-2"], "200");
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_generate_add_order_calldata_with_dotrain_instance_v1() {
+        let mut gui = initialize_gui(Some("some-deployment".to_string())).await;
+
+        // Set up some field values, deposits, and vault IDs to test DotrainInstanceV1
+        gui.save_field_value("binding-1".to_string(), "100".to_string())
+            .unwrap();
+        gui.save_deposit("token1".to_string(), "500".to_string())
+            .unwrap();
+        gui.set_vault_id(true, 0, Some("1".to_string())).unwrap();
+        gui.set_vault_id(false, 0, Some("2".to_string())).unwrap();
+
+        let result = gui.generate_add_order_calldata().await;
+
+        assert!(
+            result.is_ok(),
+            "generate_add_order_calldata should succeed with complete DotrainInstanceV1"
+        );
+
+        // Verify that DotrainInstanceV1 is being generated correctly
+        let dotrain_instance_v1 = gui.generate_dotrain_instance_v1().unwrap();
+        assert!(
+            !dotrain_instance_v1.field_values.is_empty(),
+            "field_values should not be empty"
+        );
+        assert!(
+            !dotrain_instance_v1.deposits.is_empty(),
+            "deposits should not be empty"
+        );
+        assert!(
+            !dotrain_instance_v1.vault_ids.is_empty(),
+            "vault_ids should not be empty"
+        );
+        assert_eq!(dotrain_instance_v1.selected_deployment, "some-deployment");
+
+        // Verify specific values
+        assert!(dotrain_instance_v1.field_values.contains_key("binding-1"));
+        assert_eq!(dotrain_instance_v1.field_values["binding-1"].value, "100");
+        assert!(dotrain_instance_v1.deposits.contains_key("token1"));
+        assert_eq!(dotrain_instance_v1.deposits["token1"].value, "500");
     }
 }
