@@ -236,7 +236,7 @@ impl DotrainOrderGui {
     /// }
     /// ```
     #[wasm_export(js_name = "unsetSelectToken", unchecked_return_type = "void")]
-    pub fn remove_select_token(
+    pub fn unset_select_token(
         &mut self,
         #[wasm_export(param_description = "Token key to clear")] key: String,
     ) -> Result<(), GuiError> {
@@ -500,7 +500,7 @@ mod tests {
                 "T3".to_string(),
             );
 
-            let err = gui.remove_select_token("token5".to_string()).unwrap_err();
+            let err = gui.unset_select_token("token5".to_string()).unwrap_err();
             assert_eq!(
                 err.to_string(),
                 GuiError::TokenNotFound("token5".to_string()).to_string()
@@ -510,11 +510,11 @@ mod tests {
                 "The token 'token5' could not be found in the YAML configuration."
             );
 
-            assert!(gui.remove_select_token("token3".to_string()).is_ok());
+            assert!(gui.unset_select_token("token3".to_string()).is_ok());
             assert!(!gui.is_select_token_set("token3".to_string()).unwrap());
 
             let mut gui = initialize_gui(None).await;
-            let err = gui.remove_select_token("token3".to_string()).unwrap_err();
+            let err = gui.unset_select_token("token3".to_string()).unwrap_err();
             assert_eq!(err.to_string(), GuiError::SelectTokensNotSet.to_string());
             assert_eq!(
                 err.to_readable_msg(),
