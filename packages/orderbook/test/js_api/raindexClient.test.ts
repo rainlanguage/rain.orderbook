@@ -1940,7 +1940,7 @@ _ _: 0 0;
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 			assert.equal(result.id, transaction.id);
 			assert.equal(result.from, transaction.from);

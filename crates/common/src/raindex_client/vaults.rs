@@ -215,7 +215,7 @@ impl RaindexVault {
             .raindex_client
             .read()
             .map_err(|_| YamlError::ReadLockError)?;
-        raindex_client.get_orderbook_client(self.chain_id, self.orderbook)
+        raindex_client.get_orderbook_client(self.orderbook)
     }
 
     /// Fetches balance change history for a vault
@@ -604,7 +604,7 @@ impl RaindexClient {
     /// Fetches vault data from multiple subgraphs across different networks
     ///
     /// Queries multiple subgraphs simultaneously to retrieve vault information
-    /// across different blockchain networks.
+    /// across different networks.
     ///
     /// ## Examples
     ///
@@ -630,7 +630,7 @@ impl RaindexClient {
     )]
     pub async fn get_vaults(
         &self,
-        #[wasm_export(param_description = "Specific blockchain networks to query (optional)")]
+        #[wasm_export(param_description = "Specific networks to query (optional)")]
         chain_ids: Option<ChainIds>,
         #[wasm_export(
             param_description = "Optional filtering options including owners and hide_zero_balance"
@@ -737,7 +737,7 @@ impl RaindexClient {
         orderbook_address: Address,
         vault_id: Bytes,
     ) -> Result<RaindexVault, RaindexError> {
-        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
+        let client = self.get_orderbook_client(orderbook_address)?;
         let vault = RaindexVault::try_from_sg_vault(
             Arc::new(RwLock::new(self.clone())),
             chain_id,

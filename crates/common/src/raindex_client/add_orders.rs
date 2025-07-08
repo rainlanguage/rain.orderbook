@@ -63,7 +63,7 @@ impl RaindexClient {
         tx_hash: Bytes,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
+        let client = self.get_orderbook_client(orderbook_address)?;
 
         let orders = client
             .transaction_add_orders(Id::new(tx_hash.to_string()))

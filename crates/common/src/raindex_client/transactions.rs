@@ -56,7 +56,7 @@ impl RaindexTransaction {
 
 #[wasm_export]
 impl RaindexClient {
-    /// Fetches transaction details for a given transaction hash on a given chain
+    /// Fetches transaction details for a given transaction hash
     ///
     /// Retrieves basic transaction information including sender, block number,
     /// and timestamp.
@@ -65,7 +65,6 @@ impl RaindexClient {
     ///
     /// ```javascript
     /// const result = await client.getTransaction(
-    ///   1,
     ///   "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
     /// );
     /// if (result.error) {
@@ -82,8 +81,6 @@ impl RaindexClient {
     )]
     pub async fn get_transaction_wasm_binding(
         &self,
-        #[wasm_export(js_name = "chainId", param_description = "Chain ID for the network")]
-        chain_id: u32,
         #[wasm_export(
             js_name = "orderbookAddress",
             param_description = "Orderbook contract address",
@@ -99,18 +96,16 @@ impl RaindexClient {
     ) -> Result<RaindexTransaction, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let tx_hash = Bytes::from_str(&tx_hash)?;
-        self.get_transaction(chain_id, orderbook_address, tx_hash)
-            .await
+        self.get_transaction(orderbook_address, tx_hash).await
     }
 }
 impl RaindexClient {
     pub async fn get_transaction(
         &self,
-        chain_id: u32,
         orderbook_address: Address,
         tx_hash: Bytes,
     ) -> Result<RaindexTransaction, RaindexError> {
-        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
+        let client = self.get_orderbook_client(orderbook_address)?;
         let transaction = client
             .transaction_detail(Id::new(tx_hash.to_string()))
             .await?;
@@ -170,7 +165,6 @@ mod test_helpers {
             .unwrap();
             let tx = raindex_client
                 .get_transaction(
-                    1,
                     Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     Bytes::from_str("0x0123").unwrap(),
                 )

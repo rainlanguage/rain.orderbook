@@ -229,7 +229,7 @@ impl RaindexOrder {
     #[wasm_export(skip)]
     pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
         let raindex_client = self.get_raindex_client()?;
-        raindex_client.get_orderbook_client(self.chain_id, self.orderbook)
+        raindex_client.get_orderbook_client(self.orderbook)
     }
 
     #[wasm_export(skip)]
@@ -510,7 +510,7 @@ impl RaindexClient {
         order_hash: Bytes,
     ) -> Result<RaindexOrder, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
+        let client = self.get_orderbook_client(orderbook_address)?;
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
             .await?;

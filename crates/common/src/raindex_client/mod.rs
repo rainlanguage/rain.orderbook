@@ -8,7 +8,6 @@ use alloy::{
 };
 use rain_orderbook_app_settings::{
     new_config::ParseConfigError,
-    orderbook::OrderbookCfg,
     yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable},
 };
 use rain_orderbook_subgraph_client::{
@@ -35,7 +34,7 @@ pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
 impl_wasm_traits!(ChainIds);
 
 /// RaindexClient provides a simplified interface for querying orderbook data across
-/// multiple blockchain networks with automatic configuration management.
+/// multiple networks with automatic configuration management.
 ///
 /// This client abstracts away complex network-specific configurations by parsing YAML
 /// configuration files that define networks, tokens, orderbooks, and subgraph endpoints.
@@ -98,7 +97,7 @@ impl RaindexClient {
     pub fn new(
         #[wasm_export(
             js_name = "obYamls",
-            param_description = "Vector of YAML configuration strings. \
+            param_description = "List of YAML configuration strings. \
             The YAML files must match the [orderbook yaml spec](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md)
             "
         )]
@@ -163,30 +162,12 @@ impl RaindexClient {
     #[wasm_export(skip)]
     pub fn get_orderbook_client(
         &self,
-        chain_id: u32,
         orderbook_address: Address,
     ) -> Result<OrderbookSubgraphClient, RaindexError> {
-        let orderbook = self.get_orderbook_for_chain_id(chain_id, orderbook_address)?;
-        Ok(OrderbookSubgraphClient::new(orderbook.subgraph.url.clone()))
-    }
-
-    fn get_orderbook_for_chain_id(
-        &self,
-        chain_id: u32,
-        orderbook_address: Address,
-    ) -> Result<OrderbookCfg, RaindexError> {
-        let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
-        let orderbooks = self
+        let orderbook = self
             .orderbook_yaml
-            .get_orderbooks_by_network_key(&network.key)?;
-        let orderbook = orderbooks
-            .iter()
-            .find(|orderbook| orderbook.address == orderbook_address)
-            .ok_or(RaindexError::OrderbookNotFound(
-                orderbook_address.to_string(),
-                chain_id,
-            ))?;
-        Ok(orderbook.clone())
+            .get_orderbook_by_address(orderbook_address)?;
+        Ok(OrderbookSubgraphClient::new(orderbook.subgraph.url.clone()))
     }
 
     fn get_rpc_urls_for_chain(&self, chain_id: u32) -> Result<Vec<Url>, RaindexError> {
@@ -496,58 +477,6 @@ deployers:
         fn test_raindex_client_new_empty_yaml() {
             let err = RaindexClient::new(vec!["".to_string()], None).unwrap_err();
             assert!(matches!(err, RaindexError::YamlError(YamlError::EmptyFile)));
-        }
-
-        #[wasm_bindgen_test]
-        fn test_get_orderbook_for_chain_success() {
-            let client = RaindexClient::new(
-                vec![get_test_yaml(
-                    // not used
-                    "http://localhost:3000/sg1",
-                    "http://localhost:3000/sg2",
-                    "http://localhost:3000/rpc1",
-                    "http://localhost:3000/rpc2",
-                )],
-                None,
-            )
-            .unwrap();
-            let orderbook = client
-                .get_orderbook_for_chain_id(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                )
-                .unwrap();
-            assert_eq!(
-                orderbook.address,
-                Address::from_str("0x1234567890123456789012345678901234567890").unwrap()
-            );
-            assert_eq!(orderbook.network.key, "mainnet");
-            assert_eq!(orderbook.subgraph.key, "mainnet");
-        }
-
-        #[wasm_bindgen_test]
-        fn test_get_orderbook_for_chain_not_found() {
-            let client = RaindexClient::new(
-                vec![get_test_yaml(
-                    // not used
-                    "http://localhost:3000/sg1",
-                    "http://localhost:3000/sg2",
-                    "http://localhost:3000/rpc1",
-                    "http://localhost:3000/rpc2",
-                )],
-                None,
-            )
-            .unwrap();
-            let err = client
-                .get_orderbook_for_chain_id(
-                    999,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                )
-                .unwrap_err();
-            assert!(
-                matches!(err, RaindexError::YamlError(YamlError::NotFound(ref msg)) if msg == "network with chain-id: 999")
-            );
-            assert!(err.to_readable_msg().contains("network with chain-id: 999"));
         }
 
         #[wasm_bindgen_test]
