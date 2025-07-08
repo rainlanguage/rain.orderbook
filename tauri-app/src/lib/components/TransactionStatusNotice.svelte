@@ -7,7 +7,6 @@
     ExclamationCircleSolid,
   } from 'flowbite-svelte-icons';
   import { formatBlockExplorerTransactionUrl } from '$lib/utils/transaction';
-  import { activeChainHasBlockExplorer } from '$lib/stores/settings';
 
   export let transactionStatusNotice: TransactionStatusNotice;
 </script>
@@ -39,17 +38,18 @@
         <div data-testid="confirmed-payload" class="mb-4 break-all">
           Hash: {transactionStatusNotice.status.payload}
         </div>
-        {#if $activeChainHasBlockExplorer}
-          <Button
-            data-testid="block-explorer-link"
-            size="xs"
-            color="light"
-            href={formatBlockExplorerTransactionUrl(transactionStatusNotice.status.payload)}
-            target="_blank"
-          >
-            View on Block Explorer
-          </Button>
-        {/if}
+        <Button
+          data-testid="block-explorer-link"
+          size="xs"
+          color="light"
+          href={formatBlockExplorerTransactionUrl(
+            transactionStatusNotice.chain_id,
+            transactionStatusNotice.status.payload,
+          )}
+          target="_blank"
+        >
+          View on Block Explorer
+        </Button>
       </div>
     {:else if transactionStatusNotice.status.type === 'Failed'}
       <CloseCircleSolid data-testid="status-failed" class="h-10 w-10" color="red" />

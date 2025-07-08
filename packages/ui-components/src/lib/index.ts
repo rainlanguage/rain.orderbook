@@ -100,6 +100,7 @@ export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
 export { invalidateTanstackQueries } from './queries/queryClient';
 export { getToastsContext } from './providers/toasts/context';
+export { getNetworkName } from './utils/getNetworkName';
 
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';

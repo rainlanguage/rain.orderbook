@@ -250,7 +250,7 @@ export const configSource: ConfigSource = {
 };
 
 test('pick deployments', () => {
-  const activeNetwork = 'network1';
+  const activeNetwork = 14;
   const result = pickDeployments(configSource, config, activeNetwork);
   const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {
     sell: {
@@ -267,7 +267,7 @@ test('pick deployments', () => {
 });
 
 test('pick deployments when empty', () => {
-  const activeNetwork = 'network2';
+  const activeNetwork = 137;
   const result = pickDeployments(configSource, config, activeNetwork);
   const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {};
 
@@ -275,7 +275,7 @@ test('pick deployments when empty', () => {
 });
 
 test('pick scenarios', () => {
-  const activeNetwork = 'network1';
+  const activeNetwork = 14;
   const result = pickScenarios(config, activeNetwork);
   const expectedPickedScenarios: Dictionary<ScenarioCfg> = {
     'network1.sell': {
@@ -323,7 +323,7 @@ test('pick scenarios', () => {
 });
 
 test('pick scenarios when empty', () => {
-  const activeNetwork = 'network2';
+  const activeNetwork = 137;
   const result = pickScenarios(config, activeNetwork);
   const expectedPickedScenarios: Dictionary<ScenarioCfg> = {};
 
