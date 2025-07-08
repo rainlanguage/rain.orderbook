@@ -19,8 +19,6 @@
 	export let type: 'orders' | 'vaults';
 	export let chainId: number;
 	export let orderbookAddress: Address;
-	// TODO: Add this back in when we have a way to update the active network and orderbook
-	// export let updateActiveNetworkAndOrderbook: (subgraphName: string) => void;
 
 	$: hash = extractHash(orderOrVault);
 	$: isActive = isOrderOrVaultActive(orderOrVault);
@@ -32,9 +30,6 @@
 		class="mr-1 mt-1 px-2 py-1 text-sm"
 		color={isActive ? 'green' : 'yellow'}
 		data-testid="vault-order-input"
-		data-id={hash}
-		on:click={() => {
-			// updateActiveNetworkAndOrderbook(network);
-		}}><Hash type={HashType.Identifier} value={hash} copyOnClick={false} /></Button
+		data-id={hash}><Hash type={HashType.Identifier} value={hash} copyOnClick={false} /></Button
 	>
 </a>
