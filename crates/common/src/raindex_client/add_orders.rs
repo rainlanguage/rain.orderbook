@@ -156,7 +156,7 @@ mod tests {
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
         use rain_orderbook_bindings::IOrderBookV4::IO;
-        use serde_json::{json, Value};
+        use serde_json::json;
         use std::{collections::HashMap, str::FromStr};
 
         #[tokio::test]
