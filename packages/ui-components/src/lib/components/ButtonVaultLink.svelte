@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { Address, RaindexVault } from '@rainlanguage/orderbook';
-	import { bigintToHex } from '../utils/hex';
+	import { formatUnits, toHex } from 'viem';
 	import Tooltip from './Tooltip.svelte';
-	import { formatUnits } from 'viem';
 
 	export let tokenVault: RaindexVault;
 	export let chainId: number;
@@ -15,7 +14,7 @@
 >
 	<div class="flex flex-col items-start gap-y-2">
 		<Tooltip triggeredBy={`#token-info-${tokenVault.vaultId}`}>
-			ID: <span class="font-mono">{bigintToHex(tokenVault.vaultId)}</span>
+			ID: <span class="font-mono">{toHex(tokenVault.vaultId)}</span>
 		</Tooltip>
 		<a
 			href={`/vaults/${chainId}-${orderbookAddress}-${tokenVault.id}`}

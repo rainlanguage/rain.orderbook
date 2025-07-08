@@ -2,13 +2,13 @@
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
   import type { RaindexVault } from '@rainlanguage/orderbook';
   import { vaultDeposit } from '$lib/services/vault';
-  import { bigintToHex, InputTokenAmount } from '@rainlanguage/ui-components';
+  import { InputTokenAmount } from '@rainlanguage/ui-components';
   import { ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import { formatUnits, hexToBytes } from 'viem';
+  import { formatUnits, hexToBytes, toHex } from 'viem';
   import { onMount } from 'svelte';
 
   export let open = false;
@@ -92,7 +92,7 @@
         Vault ID
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintToHex(vault.vaultId)}
+        {toHex(vault.vaultId)}
       </p>
     </div>
 

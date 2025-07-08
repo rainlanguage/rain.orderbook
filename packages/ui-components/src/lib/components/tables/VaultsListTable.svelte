@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import { toHex } from 'viem';
+
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -11,7 +13,6 @@
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
-	import { bigintToHex } from '../../utils/hex';
 	import { RaindexVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
@@ -129,7 +130,7 @@
 			</TableBodyCell>
 
 			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id">
-				<Hash type={HashType.Identifier} value={bigintToHex(item.vaultId)} />
+				<Hash type={HashType.Identifier} value={toHex(item.vaultId)} />
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
 				<Hash type={HashType.Identifier} value={item.orderbook} />
