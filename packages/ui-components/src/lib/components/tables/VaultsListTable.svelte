@@ -28,7 +28,6 @@
 	export let activeAccounts: AppStoresInterface['activeAccounts'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 
-	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let handleWithdrawModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
@@ -99,17 +98,6 @@
 			<div class="mt-2 flex w-full justify-between">
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
-					{#if handleDepositGenericModal}
-						<Button
-							size="sm"
-							color="primary"
-							data-testid="new-vault-button"
-							on:click={() => {
-								handleDepositGenericModal();
-							}}
-							>New vault
-						</Button>
-					{/if}
 				</div>
 			</div>
 		</svelte:fragment>

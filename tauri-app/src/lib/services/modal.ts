@@ -1,15 +1,10 @@
 import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
 import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
-import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
 import type { RainEvalResultsTable, RaindexVault, RaindexOrder } from '@rainlanguage/orderbook';
 import ModalOrderRemove from '$lib/components/modal/ModalOrderRemove.svelte';
 import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
 import ModalScenarioDebug from '$lib/components/modal/ModalScenarioDebug.svelte';
-
-export const handleDepositGenericModal = () => {
-  new ModalVaultDepositGeneric({ target: document.body, props: { open: true } });
-};
 
 export const handleDepositModal = (vault: RaindexVault, onDeposit: () => void) => {
   new ModalVaultDeposit({ target: document.body, props: { open: true, vault, onDeposit } });

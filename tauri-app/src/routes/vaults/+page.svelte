@@ -13,11 +13,7 @@
     activeAccounts,
   } from '$lib/stores/settings';
 
-  import {
-    handleDepositGenericModal,
-    handleDepositModal,
-    handleWithdrawModal,
-  } from '$lib/services/modal';
+  import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import { writable } from 'svelte/store';
 </script>
 
@@ -32,7 +28,6 @@
   {settings}
   {showInactiveOrders}
   {hideZeroBalanceVaults}
-  {handleDepositGenericModal}
   {handleDepositModal}
   {handleWithdrawModal}
   showMyItemsOnly={writable(false)}
