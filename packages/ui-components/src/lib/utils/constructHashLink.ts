@@ -30,9 +30,9 @@ export function constructHashLink(
 		return `/${type}`;
 	}
 
-	const slug = isOrder(orderOrVault) ? orderOrVault.orderHash : (orderOrVault as RaindexVault)?.id;
+	const slug = isOrder(orderOrVault) ? orderOrVault.orderHash : (orderOrVault as RaindexVault).id;
 
-	return `/${type}/${chainId}-${orderbookAddress}-${slug || ''}`;
+	return `/${type}/${chainId}-${orderbookAddress}-${slug}`;
 }
 
 /**
