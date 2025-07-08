@@ -624,7 +624,7 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getVaults",
-        return_description = "Array of vaults with their associated subgraph network names",
+        return_description = "Array of raindex vault instances",
         unchecked_return_type = "RaindexVault[]",
         preserve_js_class
     )]

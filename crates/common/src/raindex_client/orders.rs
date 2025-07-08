@@ -387,7 +387,7 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getOrders",
-        return_description = "Array of orders matching the specified criteria",
+        return_description = "Array of raindex order instances",
         unchecked_return_type = "RaindexOrder[]",
         preserve_js_class
     )]
