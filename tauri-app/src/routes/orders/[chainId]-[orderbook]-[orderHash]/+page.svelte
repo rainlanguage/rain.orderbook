@@ -8,6 +8,7 @@
     handleDepositModal,
     handleWithdrawModal,
     handleOrderRemoveModal,
+    handleDebugTradeModal,
   } from '$lib/services/modal';
   import type {
     Address,
@@ -17,12 +18,14 @@
     RaindexVault,
   } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
 
   const queryClient = useQueryClient();
   const { chainId, orderbook, orderHash } = $page.params;
   const parsedOrderHash = orderHash as Hex;
   const parsedChainId = Number(chainId);
   const orderbookAddress = orderbook as Address;
+  const orderbookCfg = getOrderbookByChainId(parsedChainId);
 
   function onRemove(_raindexClient: RaindexClient, order: RaindexOrder) {
     handleOrderRemoveModal(order, () => {
@@ -54,8 +57,10 @@
     {codeMirrorTheme}
     {lightweightChartsTheme}
     {handleQuoteDebugModal}
+    {handleDebugTradeModal}
     {onRemove}
     {onDeposit}
     {onWithdraw}
+    rpcUrls={orderbookCfg.network.rpcs}
   />
 </div>

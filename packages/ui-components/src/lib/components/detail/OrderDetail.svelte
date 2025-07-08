@@ -15,7 +15,7 @@
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import OrderApy from '../tables/OrderAPY.svelte';
-	import type { QuoteDebugModalHandler } from '../../types/modal';
+	import type { DebugTradeModalHandler, QuoteDebugModalHandler } from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import {
@@ -35,12 +35,14 @@
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
+	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
 	export let orderbookAddress: Address;
 	export let orderHash: Hex;
 	export let chainId: number;
+	export let rpcUrls: string[] | undefined = undefined;
 
 	/** Callback function when remove action is triggered for an order
 	 * @param order The order to remove
@@ -215,7 +217,7 @@
 				</div>
 			</TabItem>
 			<TabItem open title="Trades">
-				<OrderTradesListTable order={data} />
+				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcUrls} />
 			</TabItem>
 			<TabItem title="Volume">
 				<OrderVaultsVolTable order={data} />

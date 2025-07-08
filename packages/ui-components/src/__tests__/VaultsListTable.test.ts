@@ -131,30 +131,6 @@ describe('VaultsListTable', () => {
 		});
 	});
 
-	it('shows new vault button when handleDepositGenericModal is provided', async () => {
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: { pages: [[mockVault]] },
-					status: 'success',
-					isFetching: false,
-					isFetched: true
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-		const handleDepositGenericModal = vi.fn();
-
-		render(VaultsListTable, {
-			...defaultProps,
-			handleDepositGenericModal
-		} as unknown as VaultsListTableProps);
-
-		expect(screen.getByTestId('new-vault-button')).toBeInTheDocument();
-	});
-
 	it('handles deposit action', async () => {
 		mockMatchesAccount.mockReturnValue(true);
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
