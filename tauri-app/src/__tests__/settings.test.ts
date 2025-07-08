@@ -1,17 +1,10 @@
 import {
   settings,
   activeAccountsItems,
-  activeSubgraphs,
-  activeNetworkRef,
-  activeOrderbookRef,
-  resetActiveNetworkRef,
-  resetActiveOrderbookRef,
-  activeNetworkOrderbooks,
-  hasRequiredSettings,
-  subgraph,
   accounts,
   activeAccounts,
   EMPTY_SETTINGS,
+  selectedChainIds,
 } from '$lib/stores/settings';
 import { mockConfig } from '$lib/mocks/mockConfig';
 import { beforeEach, describe, expect, test } from 'vitest';
@@ -24,34 +17,22 @@ describe('Settings active accounts items', () => {
   beforeEach(() => {
     settings.set(EMPTY_SETTINGS);
     activeAccountsItems.set({});
-    activeSubgraphs.set({});
-    activeNetworkRef.set(undefined);
-    activeOrderbookRef.set(undefined);
+    selectedChainIds.set([]);
 
     settings.set(mockConfig);
     activeAccountsItems.set({
-      name_one: 'address_one',
-      name_two: 'address_two',
+      name_one: '0xaddress_one',
+      name_two: '0xaddress_two',
     });
-    activeSubgraphs.set({
-      mainnet: {
-        key: 'mainnet',
-        url: 'https://api.thegraph.com/subgraphs/name/mainnet',
-      },
-    });
+    selectedChainIds.set([1, 2]);
 
     // Verify initial state
     expect(get(settings)).toEqual(mockConfig);
     expect(get(activeAccountsItems)).toEqual({
-      name_one: 'address_one',
-      name_two: 'address_two',
+      name_one: '0xaddress_one',
+      name_two: '0xaddress_two',
     });
-    expect(get(activeSubgraphs)).toEqual({
-      mainnet: {
-        key: 'mainnet',
-        url: 'https://api.thegraph.com/subgraphs/name/mainnet',
-      },
-    });
+    expect(get(selectedChainIds)).toEqual([1, 2]);
   });
 
   test('should remove account if that account is removed', () => {
@@ -63,7 +44,7 @@ describe('Settings active accounts items', () => {
         accounts: {
           name_one: {
             key: 'name_one',
-            address: 'address_one',
+            address: '0xaddress_one',
           },
         },
       },
@@ -74,7 +55,7 @@ describe('Settings active accounts items', () => {
 
     // Check the expected result
     expect(get(activeAccountsItems)).toEqual({
-      name_one: 'address_one',
+      name_one: '0xaddress_one',
     });
   });
 
@@ -86,11 +67,11 @@ describe('Settings active accounts items', () => {
         accounts: {
           name_one: {
             key: 'name_one',
-            address: 'address_one',
+            address: '0xaddress_one',
           },
           name_two: {
             key: 'name_two',
-            address: 'new_value',
+            address: '0xnew_value',
           },
         },
       },
@@ -99,7 +80,7 @@ describe('Settings active accounts items', () => {
     settings.set(newSettings as unknown as NewConfig);
 
     expect(get(activeAccountsItems)).toEqual({
-      name_one: 'address_one',
+      name_one: '0xaddress_one',
     });
   });
 
@@ -116,306 +97,11 @@ describe('Settings active accounts items', () => {
 
     expect(get(activeAccountsItems)).toEqual({});
   });
-
-  test('should update active subgraphs when subgraph value changes', () => {
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        subgraphs: {
-          mainnet: {
-            key: 'mainnet',
-            url: 'new value',
-          },
-        },
-      },
-    };
-
-    settings.set(newSettings as unknown as NewConfig);
-
-    expect(get(activeSubgraphs)).toEqual({});
-  });
-
-  test('should update active subgraphs when subgraph removed', () => {
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        subgraphs: {
-          testnet: {
-            key: 'testnet',
-            url: 'testnet',
-          },
-        },
-      },
-    };
-
-    settings.set(newSettings as unknown as NewConfig);
-
-    expect(get(activeSubgraphs)).toEqual({});
-  });
-
-  test('should reset active subgraphs when subgraphs are empty', () => {
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        subgraphs: {},
-      },
-    };
-
-    settings.set(newSettings as unknown as NewConfig);
-
-    expect(get(activeSubgraphs)).toEqual({});
-  });
-});
-
-describe('Network and Orderbook Management', () => {
-  beforeEach(() => {
-    // Reset all stores
-    settings.set(EMPTY_SETTINGS);
-    activeNetworkRef.set(undefined);
-    activeOrderbookRef.set(undefined);
-    activeAccountsItems.set({});
-    activeSubgraphs.set({});
-  });
-
-  test('should reset activeNetworkRef when networks are empty', () => {
-    // First set valid settings
-    settings.set(mockConfig);
-    activeNetworkRef.set('mainnet');
-
-    // Then make networks empty
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        networks: {},
-      },
-    };
-
-    settings.set(newSettings as unknown as NewConfig);
-
-    expect(get(activeNetworkRef)).toBeUndefined();
-  });
-
-  test('should reset activeOrderbookRef when activeNetworkRef is undefined', () => {
-    settings.set(mockConfig);
-    activeNetworkRef.set('mainnet');
-    activeOrderbookRef.set('orderbook1');
-
-    activeNetworkRef.set(undefined);
-
-    expect(get(activeOrderbookRef)).toBeUndefined();
-  });
-
-  test('resetActiveNetworkRef should set first available network', async () => {
-    settings.set(mockConfig);
-
-    resetActiveNetworkRef();
-
-    expect(get(activeNetworkRef)).toBe('mainnet');
-  });
-
-  test('resetActiveNetworkRef should set undefined when no networks', async () => {
-    const emptySettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        networks: {},
-      },
-    };
-    settings.set(emptySettings as unknown as NewConfig);
-
-    resetActiveNetworkRef();
-
-    expect(get(activeNetworkRef)).toBeUndefined();
-  });
-
-  test('should reset activeOrderbookRef when orderbooks are empty', () => {
-    settings.set(mockConfig);
-    activeOrderbookRef.set('orderbook1');
-
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        orderbooks: {},
-      },
-    };
-
-    settings.set(newSettings as unknown as NewConfig);
-
-    expect(get(activeOrderbookRef)).toBeUndefined();
-  });
-
-  test('should filter orderbooks by active network', () => {
-    const multiNetworkConfig = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        orderbooks: {
-          orderbook1: {
-            address: '0xOrderbookAddress1',
-            network: {
-              key: 'mainnet',
-              rpcs: ['mainnet.rpc'],
-              chainId: 1,
-            },
-            subgraph: {
-              key: 'mainnet',
-              url: 'mainnet',
-            },
-            label: 'Orderbook 1',
-          },
-          orderbook2: {
-            address: '0xOrderbookAddress2',
-            network: {
-              key: 'testnet',
-              rpcs: ['testnet.rpc'],
-              chainId: 5,
-            },
-            subgraph: {
-              key: 'testnet',
-              url: 'testnet',
-            },
-            label: 'Orderbook 2',
-          },
-        },
-      },
-    };
-
-    settings.set(multiNetworkConfig as unknown as NewConfig);
-    activeNetworkRef.set('mainnet');
-
-    const filteredOrderbooks = get(activeNetworkOrderbooks);
-    expect(filteredOrderbooks).toEqual({
-      orderbook1: multiNetworkConfig.orderbook.orderbooks.orderbook1,
-    });
-  });
-
-  test('should reset orderbook when network changes to incompatible one', () => {
-    const multiNetworkConfig = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        networks: {
-          mainnet: { key: 'mainnet', rpcs: ['mainnet.rpc'], chainId: 1 },
-          testnet: { key: 'testnet', rpcs: ['testnet.rpc'], chainId: 5 },
-        },
-        orderbooks: {
-          orderbook1: {
-            address: '0xOrderbookAddress1',
-            network: {
-              key: 'mainnet',
-              rpcs: ['mainnet.rpc'],
-              chainId: 1,
-            },
-            subgraph: {
-              key: 'mainnet',
-              url: 'mainnet',
-            },
-            label: 'Orderbook 1',
-          },
-        },
-      },
-    };
-
-    settings.set(multiNetworkConfig as unknown as NewConfig);
-    activeNetworkRef.set('mainnet');
-    activeOrderbookRef.set('orderbook1');
-
-    activeNetworkRef.set('testnet');
-
-    expect(get(activeOrderbookRef)).toBeUndefined();
-  });
-
-  test('resetActiveOrderbookRef should set first available orderbook', () => {
-    settings.set(mockConfig);
-    activeNetworkRef.set('mainnet');
-
-    resetActiveOrderbookRef();
-
-    expect(get(activeOrderbookRef)).toBe('orderbook1');
-  });
-
-  test('resetActiveOrderbookRef should set undefined when no orderbooks', () => {
-    settings.set(mockConfig);
-    activeNetworkRef.set('mainnet');
-
-    const newSettings = {
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        orderbooks: {},
-      },
-    };
-    settings.set(newSettings as unknown as NewConfig);
-
-    resetActiveOrderbookRef();
-
-    expect(get(activeOrderbookRef)).toBeUndefined();
-  });
-
-  test('hasRequiredSettings should return true when both refs are set', () => {
-    activeNetworkRef.set('mainnet');
-    activeOrderbookRef.set('orderbook1');
-
-    expect(get(hasRequiredSettings)).toBe(true);
-  });
-
-  test('hasRequiredSettings should return false when refs are missing', () => {
-    activeNetworkRef.set(undefined);
-    activeOrderbookRef.set('orderbook1');
-
-    expect(get(hasRequiredSettings)).toBe(false);
-  });
 });
 
 describe('Derived Store Behaviors', () => {
   beforeEach(() => {
     settings.set(EMPTY_SETTINGS);
-    activeNetworkRef.set(undefined);
-    activeOrderbookRef.set(undefined);
-  });
-
-  test('subgraphUrl should return undefined when no settings', () => {
-    expect(get(subgraph)).toBeUndefined();
-  });
-
-  test('subgraph should derive correctly when settings available', () => {
-    settings.set({
-      ...mockConfig,
-      orderbook: {
-        ...mockConfig.orderbook,
-        subgraphs: {
-          mainnet: {
-            key: 'mainnet',
-            url: 'https://api.thegraph.com/subgraphs/name/mainnet',
-          },
-        },
-        orderbooks: {
-          orderbook1: {
-            address: '0xOrderbookAddress1',
-            network: {
-              key: 'mainnet',
-              rpcs: ['https://mainnet.infura.io/v3/YOUR-PROJECT-ID'],
-              chainId: 1,
-            },
-            subgraph: {
-              key: 'mainnet',
-              url: 'https://api.thegraph.com/subgraphs/name/mainnet',
-            },
-          },
-        },
-      },
-    } as unknown as NewConfig);
-    activeOrderbookRef.set('orderbook1');
-
-    expect(get(subgraph)).toStrictEqual({
-      key: 'mainnet',
-      url: 'https://api.thegraph.com/subgraphs/name/mainnet',
-    });
   });
 
   test('accounts should return empty object when no settings', () => {
@@ -425,13 +111,13 @@ describe('Derived Store Behaviors', () => {
   test('activeAccounts should filter based on activeAccountsItems', () => {
     settings.set(mockConfig);
     activeAccountsItems.set({
-      name_one: 'address_one',
+      name_one: '0xaddress_one',
     });
 
     expect(get(activeAccounts)).toEqual({
       name_one: {
         key: 'name_one',
-        address: 'address_one',
+        address: '0xaddress_one',
       },
     });
   });
@@ -473,9 +159,9 @@ describe('Settings Subscription Edge Cases', () => {
   test('should handle account items with extra accounts not in settings', () => {
     settings.set(mockConfig); // settings.accounts has name_one, name_two
     activeAccountsItems.set({
-      name_one: 'address_one', // Will be kept
-      name_two: 'address_two', // Will be kept
-      name_three: 'address_three', // Should be removed by the subscription
+      name_one: '0xaddress_one', // Will be kept
+      name_two: '0xaddress_two', // Will be kept
+      name_three: '0xaddress_three', // Should be removed by the subscription
     });
 
     // Trigger the subscription by setting settings again (even if it's the same)
@@ -483,8 +169,8 @@ describe('Settings Subscription Edge Cases', () => {
     settings.set({ ...mockConfig });
 
     expect(get(activeAccountsItems)).toEqual({
-      name_one: 'address_one',
-      name_two: 'address_two',
+      name_one: '0xaddress_one',
+      name_two: '0xaddress_two',
     });
   });
 });

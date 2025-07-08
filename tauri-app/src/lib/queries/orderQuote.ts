@@ -1,23 +1,20 @@
 import { invoke } from '@tauri-apps/api';
-import type { SgOrder, RainEvalResultsTable } from '@rainlanguage/orderbook';
-import type { Hex } from 'viem';
+import type { RainEvalResultsTable, SgOrder } from '@rainlanguage/orderbook';
 import { mockIPC } from '@tauri-apps/api/mocks';
 
 export async function debugOrderQuote(
   order: SgOrder,
+  rpcs: string[],
   inputIOIndex: number,
   outputIOIndex: number,
-  orderbook: Hex,
-  rpcUrls: string[],
   blockNumber?: number,
 ) {
   return await invoke<[RainEvalResultsTable, string | undefined]>('debug_order_quote', {
     order,
     inputIoIndex: inputIOIndex,
     outputIoIndex: outputIOIndex,
-    orderbook,
-    rpcs: rpcUrls,
     blockNumber,
+    rpcs,
   });
 }
 
@@ -49,14 +46,13 @@ if (import.meta.vitest) {
         outputs: [],
         inputs: [],
         active: true,
-        addEvents: [],
-        timestampAdded: '123',
-        trades: [],
+        timestampAdded: BigInt(123),
+        tradesCount: 0,
       } as unknown as SgOrder,
+      ['http://localhost:8545'],
       0,
       0,
-      '0x123',
-      ['https://rpc-url.com'],
+      123,
     );
     expect(result).toEqual(mockQuoteDebug);
   });

@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { Label } from 'flowbite-svelte';
 	import type { AppStoresInterface } from '$lib/types/appStores';
+	import type { Hex } from '@rainlanguage/orderbook';
 
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let value = $orderHash;
 
 	function handleChange(event: Event) {
 		const input = event.target as HTMLInputElement;
-		value = input.value;
+		value = input.value as Hex;
 		$orderHash = value;
 	}
 </script>

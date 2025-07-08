@@ -1,12 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { SgAddOrderWithOrder, SgTransaction } from '@rainlanguage/orderbook';
+import type { RaindexOrder, RaindexTransaction } from '@rainlanguage/orderbook';
 import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
 import { TransactionStoreErrorMessage } from '$lib/types/transaction';
-vi.mock('@rainlanguage/orderbook', () => ({
-	getTransaction: vi.fn(),
-	getTransactionAddOrders: vi.fn(),
-	getTransactionRemoveOrders: vi.fn()
-}));
 
 describe('subgraphIndexing', () => {
 	const mockFetchData = vi.fn();
@@ -22,15 +17,16 @@ describe('subgraphIndexing', () => {
 	});
 
 	it('should resolve with value when data is successfully fetched', async () => {
-		const mockData = { id: 'tx123' } as SgTransaction;
+		const mockData = { id: '0x0123' } as unknown as RaindexTransaction;
 		mockFetchData.mockResolvedValue({ value: mockData });
 
 		const resultPromise = awaitSubgraphIndexing({
-			subgraphUrl: 'https://test.subgraph.com',
-			txHash: 'tx123',
+			chainId: 1,
+			orderbook: '0x123',
+			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			fetchEntityFn: mockFetchData,
-			isSuccess: (data: SgTransaction) => !!data.id
+			isSuccess: (data: RaindexTransaction) => !!data.id
 		});
 
 		await vi.advanceTimersByTimeAsync(1000);
@@ -39,32 +35,30 @@ describe('subgraphIndexing', () => {
 
 		expect(result.value).toBeDefined();
 		expect(result.error).toBeUndefined();
-		expect(result.value?.txHash).toBe('tx123');
+		expect(result.value?.txHash).toBe('0x0234');
 		expect(result.value?.successMessage).toBe('Transaction confirmed');
 		expect(result.value?.data).toEqual(mockData);
 
-		expect(mockFetchData).toHaveBeenCalledWith('https://test.subgraph.com', 'tx123');
+		expect(mockFetchData).toHaveBeenCalledWith(1, '0x123', '0x0234');
 		expect(mockFetchData).toHaveBeenCalledTimes(1);
 	});
 
 	it('should extract order hash from array data', async () => {
 		const mockOrderData = [
 			{
-				order: {
-					orderHash: 'order123'
-				}
+				orderHash: 'order123'
 			}
-		] as SgAddOrderWithOrder[];
+		] as unknown as RaindexOrder[];
 
 		mockFetchData.mockResolvedValue({ value: mockOrderData });
 
 		const resultPromise = awaitSubgraphIndexing({
-			subgraphUrl: 'https://test.subgraph.com',
-			txHash: 'tx123',
+			chainId: 1,
+			orderbook: '0x123',
+			txHash: '0x0234',
 			successMessage: 'Order confirmed',
-			network: 'mainnet',
 			fetchEntityFn: mockFetchData,
-			isSuccess: (data: SgAddOrderWithOrder[]) => data.length > 0
+			isSuccess: (data: RaindexOrder[]) => data.length > 0
 		});
 
 		await vi.advanceTimersByTimeAsync(1000);
@@ -73,15 +67,15 @@ describe('subgraphIndexing', () => {
 
 		expect(result.value).toBeDefined();
 		expect(result.value?.orderHash).toBe('order123');
-		expect(result.value?.network).toBe('mainnet');
 	});
 
 	it('should retry fetching data until maxAttempts is reached', async () => {
 		mockFetchData.mockResolvedValue({ value: null });
 
 		const resultPromise = awaitSubgraphIndexing({
-			subgraphUrl: 'https://test.subgraph.com',
-			txHash: 'tx123',
+			chainId: 1,
+			orderbook: '0x123',
+			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 5,
 			interval: 500,
@@ -105,8 +99,9 @@ describe('subgraphIndexing', () => {
 		mockFetchData.mockResolvedValue({ error: 'error' });
 
 		const resultPromise = awaitSubgraphIndexing({
-			subgraphUrl: 'https://test.subgraph.com',
-			txHash: 'tx123',
+			chainId: 1,
+			orderbook: '0x123',
+			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 3,
 			interval: 500,
@@ -128,16 +123,17 @@ describe('subgraphIndexing', () => {
 	it('should resolve immediately when successful data is found', async () => {
 		mockFetchData
 			.mockResolvedValueOnce({ value: null })
-			.mockResolvedValueOnce({ value: { id: 'tx123' } as SgTransaction });
+			.mockResolvedValueOnce({ value: { id: '0x0123' } as unknown as RaindexTransaction });
 
 		const resultPromise = awaitSubgraphIndexing({
-			subgraphUrl: 'https://test.subgraph.com',
-			txHash: 'tx123',
+			chainId: 1,
+			orderbook: '0x123',
+			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 5,
 			interval: 500,
 			fetchEntityFn: mockFetchData,
-			isSuccess: (data: SgTransaction) => !!data?.id
+			isSuccess: (data: RaindexTransaction) => !!data?.id
 		});
 
 		await vi.advanceTimersByTimeAsync(500);

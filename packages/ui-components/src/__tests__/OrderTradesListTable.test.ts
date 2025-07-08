@@ -2,159 +2,137 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { SgTrade } from '@rainlanguage/orderbook';
+import type { RaindexOrder, RaindexTrade } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
 
-const mockTradeOrdersList: SgTrade[] = [
+const mockTradeOrdersList: RaindexTrade[] = [
 	{
 		id: '1',
-		timestamp: '1632000000',
-		tradeEvent: {
-			sender: 'sender_address',
-			transaction: {
-				id: 'transaction_id',
-				from: 'sender_address',
-				timestamp: '1632000000',
-				blockNumber: '0'
-			}
+		timestamp: BigInt(1632000000),
+		transaction: {
+			id: 'transaction_id',
+			from: '0xsender_address',
+			timestamp: BigInt(1632000000),
+			blockNumber: BigInt(0)
 		},
 		outputVaultBalanceChange: {
-			amount: '-100',
-			vault: {
-				id: 'id',
-				vault_id: 'vault-id',
-				token: {
-					id: 'output_token',
-					address: 'output_token',
-					name: 'output_token',
-					symbol: 'output_token',
-					decimals: '1'
-				}
+			amount: BigInt(-100),
+			vaultId: BigInt(1),
+			token: {
+				id: 'output_token',
+				address: '0xoutput_token',
+				name: 'output_token',
+				symbol: 'output_token',
+				decimals: '1'
 			},
 			id: '1',
 			__typename: 'Withdraw',
-			newVaultBalance: '0',
-			oldVaultBalance: '0',
-			timestamp: '0',
+			newBalance: BigInt(0),
+			oldBalance: BigInt(0),
+			timestamp: BigInt(0),
 			transaction: {
 				id: 'transaction_id',
-				from: 'sender_address',
-				timestamp: '1632000000',
-				blockNumber: '0'
+				from: '0xsender_address',
+				timestamp: BigInt(1632000000),
+				blockNumber: BigInt(0)
 			},
-			orderbook: { id: '1' }
+			orderbook: '0x1'
 		},
-		order: {
-			id: 'order_id',
-			orderHash: 'orderHash'
-		},
+		orderHash: 'orderHash',
 		inputVaultBalanceChange: {
-			vault: {
-				id: 'id',
-				vault_id: 'vault-id',
-				token: {
-					id: 'output_token',
-					address: 'output_token',
-					name: 'output_token',
-					symbol: 'output_token',
-					decimals: '1'
-				}
+			vaultId: BigInt(1),
+			token: {
+				id: 'output_token',
+				address: '0xoutput_token',
+				name: 'output_token',
+				symbol: 'output_token',
+				decimals: '1'
 			},
-			amount: '50',
+			amount: BigInt(50),
 			id: '1',
 			__typename: 'Withdraw',
-			newVaultBalance: '0',
-			oldVaultBalance: '0',
-			timestamp: '0',
+			newBalance: BigInt(0),
+			oldBalance: BigInt(0),
+			timestamp: BigInt(0),
 			transaction: {
 				id: 'transaction_id',
-				from: 'sender_address',
-				timestamp: '1632000000',
-				blockNumber: '0'
+				from: '0xsender_address',
+				timestamp: BigInt(1632000000),
+				blockNumber: BigInt(0)
 			},
-			orderbook: { id: '1' }
+			orderbook: '0x1'
 		},
-		orderbook: {
-			id: '0x00'
-		}
+		orderbook: '0x00'
 	},
 	{
 		id: '2',
-		timestamp: '1632000000',
-		tradeEvent: {
-			sender: 'sender_address',
-			transaction: {
-				id: 'transaction_id',
-				from: 'sender_address',
-				timestamp: '1632000000',
-				blockNumber: '0'
-			}
+		timestamp: BigInt(1632000000),
+		transaction: {
+			id: 'transaction_id',
+			from: '0xsender_address',
+			timestamp: BigInt(1632000000),
+			blockNumber: BigInt(0)
 		},
 		outputVaultBalanceChange: {
-			amount: '-100',
-			vault: {
-				id: 'id',
-				vault_id: 'vault-id',
-				token: {
-					id: 'output_token',
-					address: 'output_token',
-					name: 'output_token',
-					symbol: 'output_token',
-					decimals: '1'
-				}
+			amount: BigInt(-100),
+			vaultId: BigInt(1),
+			token: {
+				id: 'output_token',
+				address: '0xoutput_token',
+				name: 'output_token',
+				symbol: 'output_token',
+				decimals: '1'
 			},
 			id: '1',
 			__typename: 'Withdraw',
-			newVaultBalance: '0',
-			oldVaultBalance: '0',
-			timestamp: '0',
+			newBalance: BigInt(0),
+			oldBalance: BigInt(0),
+			timestamp: BigInt(0),
 			transaction: {
 				id: 'transaction_id',
-				from: 'sender_address',
-				timestamp: '1632000000',
-				blockNumber: '0'
+				from: '0xsender_address',
+				timestamp: BigInt(1632000000),
+				blockNumber: BigInt(0)
 			},
-			orderbook: { id: '1' }
+			orderbook: '0x1'
 		},
-		order: {
-			id: 'order_id',
-			orderHash: 'orderHash'
-		},
+		orderHash: 'orderHash',
 		inputVaultBalanceChange: {
-			vault: {
-				id: 'id',
-				vault_id: 'vault-id',
-				token: {
-					id: 'output_token',
-					address: 'output_token',
-					name: 'output_token',
-					symbol: 'output_token',
-					decimals: '1'
-				}
+			vaultId: BigInt(1),
+			token: {
+				id: 'output_token',
+				address: '0xoutput_token',
+				name: 'output_token',
+				symbol: 'output_token',
+				decimals: '1'
 			},
-			amount: '50',
+			amount: BigInt(50),
 			id: '1',
 			__typename: 'Withdraw',
-			newVaultBalance: '0',
-			oldVaultBalance: '0',
-			timestamp: '0',
+			newBalance: BigInt(0),
+			oldBalance: BigInt(0),
+			timestamp: BigInt(0),
 			transaction: {
 				id: 'transaction_id',
-				from: 'sender_address',
-				timestamp: '1632000000',
-				blockNumber: '0'
+				from: '0xsender_address',
+				timestamp: BigInt(1632000000),
+				blockNumber: BigInt(0)
 			},
-			orderbook: { id: '1' }
+			orderbook: '0x1'
 		},
-		orderbook: {
-			id: '0x00'
-		}
+		orderbook: '0x00'
 	}
-] as unknown as SgTrade[];
+] as unknown as RaindexTrade[];
 
 vi.mock('@tanstack/svelte-query');
+
+const mockOrder: RaindexOrder = {
+	id: '1',
+	getTradeCount: vi.fn(),
+	getTradesList: vi.fn()
+} as unknown as RaindexOrder;
 
 test('renders table with correct data', async () => {
 	const queryClient = new QueryClient();
@@ -176,7 +154,7 @@ test('renders table with correct data', async () => {
 
 	render(OrderTradesListTable, {
 		context: new Map([['$$_queryClient', queryClient]]),
-		props: { id: '1', subgraphUrl: 'https://example.com' }
+		props: { order: mockOrder, rpcUrls: ['https://example.com'] }
 	});
 
 	await waitFor(async () => {
@@ -187,11 +165,11 @@ test('renders table with correct data', async () => {
 		for (let i = 0; i < mockTradeOrdersList.length; i++) {
 			const inputDisplay = formatUnits(
 				BigInt(mockTradeOrdersList[i].inputVaultBalanceChange.amount),
-				Number(mockTradeOrdersList[i].inputVaultBalanceChange.vault.token.decimals)
+				Number(mockTradeOrdersList[i].inputVaultBalanceChange.token.decimals)
 			);
 			const outputDisplay = formatUnits(
 				BigInt(mockTradeOrdersList[i].outputVaultBalanceChange.amount),
-				Number(mockTradeOrdersList[i].outputVaultBalanceChange.vault.token.decimals)
+				Number(mockTradeOrdersList[i].outputVaultBalanceChange.token.decimals)
 			);
 			const ioRatio = Number(inputDisplay) / (Number(outputDisplay) * -1);
 			const oiRatio = (Number(outputDisplay) * -1) / Number(inputDisplay);
@@ -213,9 +191,8 @@ test('renders a debug button for each trade', async () => {
 	render(OrderTradesListTable, {
 		context: new Map([['$$_queryClient', queryClient]]),
 		props: {
-			id: '1',
-			subgraphUrl: 'https://example.com',
-			rpcUrl: 'example.com',
+			order: mockOrder,
+			rpcUrls: ['example.com'],
 			handleDebugTradeModal: () => {}
 		}
 	});

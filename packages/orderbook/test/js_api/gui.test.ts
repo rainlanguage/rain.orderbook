@@ -529,12 +529,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
 		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
-		assert.equal(entries[0][0], 'some-deployment');
-		assert.equal(entries[0][1].name, 'Buy WETH with USDC on Base.');
-		assert.equal(entries[0][1].description, 'Buy WETH with USDC for fixed price on Base network.');
-		assert.equal(entries[1][0], 'other-deployment');
-		assert.equal(entries[1][1].name, 'Test test');
-		assert.equal(entries[1][1].description, 'Test test test');
+		assert.equal(entries[0][0], 'other-deployment');
+		assert.equal(entries[0][1].name, 'Test test');
+		assert.equal(entries[0][1].description, 'Test test test');
+		assert.equal(entries[1][0], 'some-deployment');
+		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
+		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
 	});
 
 	it('should get deployment detail', async () => {
@@ -954,7 +954,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_72OvU7DMBSF44KKhBgQYkVCYiUksZWQVmVBipQJBizEVuXHxUlcOyROIfAQjKy8QMUTsLLxPIgNIWzaoM7c5Zx7z_X1B4yf2lIqSS3NOONpxq-BmtnG5nI6i1hDemrS14koCHcMXetKXfvI66zA35U1pY5trz7W7TRgLabE5ETeiqrQgHtKqZTl0LKYSCJGRS2Hvu27VlUmZlOxB_0x0A5ohACHu8pOVhTogw0V42-WfQdoYtylhN3un5gfRx_zg_fR_PXJffm86sHB23MCdv4wwwUz1G7pHEIILDrP8w6VzfObcRzPwtP0guaDiT9OUHOH7y_b9DhklBTnWeQECLdnMDjZVm-EpKQyU1Iy0U4Jl1-y92H1ZQIAAA==';
+			'H4sIAAAAAAAA_7WOu07DMBSG44KKhBgQYkVCYiUkcZSQVmVBipQJBizEVuXi4iSuHRKnEHgIRlZeoOIJWNl4HsSGImzaoK49g_9z-X3OB7Tf2JEqcCX0KGVJym6B7Jna9vJ0FtIa92SnryY8x8zSVGxKdcwTt2OBf5YNqZZprl7WrRRgxadYZ1jc8zJXgAdSiRDF0DAoj0NKeCWGnuk5RlnEel3Sp9YB2heo0z4K9mU6WRGgD7bkGLUMhxZQpKhLB7vVmlmfR1_zo8_R_P3Fefu-6cHBx2sM9v6xwgUrVNnSOtu2waJyXfdYpll2N46iWXCeXJFsMPHGsV0_oMfrJjkNKMH5ZRpavo2aC-if7co_XBBc6gkuKG-mmIkf-pUp41UCAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1962,11 +1962,6 @@ ${dotrainWithoutVaultIds}`;
 			expect(stateUpdateCallback).toHaveBeenCalledWith(
 				extractWasmEncodedData(gui.serializeState())
 			);
-		});
-
-		it('should get network key', async () => {
-			const networkKey = extractWasmEncodedData<string>(gui.getNetworkKey());
-			assert.equal(networkKey, 'some-network');
 		});
 
 		it('should get all tokens for current network', async () => {

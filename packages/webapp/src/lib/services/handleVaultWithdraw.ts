@@ -1,53 +1,41 @@
-import type { SgVault } from '@rainlanguage/orderbook';
+import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
 import { formatUnits, type Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 import type {
 	VaultActionModalProps,
 	TransactionConfirmationProps
 } from '@rainlanguage/ui-components';
-import { getVaultWithdrawCalldata } from '@rainlanguage/orderbook';
 
 export interface VaultWithdrawHandlerDependencies {
-	vault: SgVault;
+	raindexClient: RaindexClient;
+	vault: RaindexVault;
 	handleWithdrawModal: (props: VaultActionModalProps) => void;
 	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
-	network: string;
-	toAddress: Hex;
-	subgraphUrl: string;
-	chainId: number;
 	account: Hex;
-	rpcUrls: string[];
 }
 
 export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies): Promise<void> {
 	const {
+		raindexClient,
 		vault,
 		handleWithdrawModal,
 		handleTransactionConfirmationModal,
 		errToast,
 		manager,
-		network,
-		toAddress,
-		subgraphUrl,
-		chainId,
-		account,
-		rpcUrls
+		account
 	} = deps;
 	handleWithdrawModal({
 		open: true,
 		args: {
 			vault,
-			chainId,
-			rpcUrls,
-			subgraphUrl,
 			account
 		},
 		onSubmit: async (amount: bigint) => {
 			let calldata: string;
 			try {
-				const calldataResult = await getVaultWithdrawCalldata(vault, amount.toString());
+				const calldataResult = await vault.getWithdrawCalldata(amount.toString());
 				if (calldataResult.error) {
 					return errToast(calldataResult.error.msg);
 				}
@@ -57,15 +45,14 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 					modalTitle: `Withdrawing ${formatUnits(amount, Number(vault.token.decimals))} ${vault.token.symbol}...`,
 					args: {
 						entity: vault,
-						toAddress,
-						chainId,
+						toAddress: vault.orderbook,
+						chainId: vault.chainId,
 						onConfirm: (txHash: Hex) => {
 							manager.createWithdrawTransaction({
+								raindexClient,
 								entity: vault,
-								subgraphUrl,
 								txHash,
-								chainId,
-								networkKey: network,
+								chainId: vault.chainId,
 								queryKey: vault.id
 							});
 						},

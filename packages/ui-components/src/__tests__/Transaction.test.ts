@@ -88,7 +88,6 @@ describe('TransactionStore', () => {
 	};
 
 	const mockChainId = 1;
-	const mockSubgraphUrl = 'https://api.thegraph.com/subgraphs/name/mock';
 	const mockTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
 	const mockOrderHash = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
 	const mockOnSuccess = vi.fn();
@@ -104,7 +103,8 @@ describe('TransactionStore', () => {
 	let transaction: TransactionStore;
 
 	const mockAwaitSubgraphConfig: AwaitSubgraphConfig = {
-		subgraphUrl: mockSubgraphUrl,
+		chainId: mockChainId,
+		orderbook: '0x00',
 		txHash: mockTxHash,
 		successMessage: 'Transaction successful',
 		fetchEntityFn: vi.fn(),
@@ -117,7 +117,6 @@ describe('TransactionStore', () => {
 			{
 				config: mockConfig,
 				chainId: mockChainId,
-				subgraphUrl: mockSubgraphUrl,
 				txHash: mockTxHash,
 				orderHash: mockOrderHash,
 				name: TransactionName.REMOVAL,

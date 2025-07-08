@@ -1,11 +1,8 @@
 use std::str::FromStr;
 
 use super::*;
-use alloy::primitives::{Address, U256};
-use rain_orderbook_subgraph_client::{
-    types::{common::SgTransaction, Id},
-    OrderbookSubgraphClient,
-};
+use alloy::primitives::{Address, Bytes, U256};
+use rain_orderbook_subgraph_client::types::{common::SgTransaction, Id};
 use serde::{Deserialize, Serialize};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -14,7 +11,7 @@ use wasm_bindgen_utils::prelude::js_sys::BigInt;
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexTransaction {
-    id: String,
+    id: Bytes,
     from: Address,
     block_number: U256,
     timestamp: U256,
@@ -22,9 +19,9 @@ pub struct RaindexTransaction {
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexTransaction {
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
     pub fn id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn from(&self) -> String {
@@ -43,7 +40,7 @@ impl RaindexTransaction {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexTransaction {
-    pub fn id(&self) -> String {
+    pub fn id(&self) -> Bytes {
         self.id.clone()
     }
     pub fn from(&self) -> Address {
@@ -59,25 +56,15 @@ impl RaindexTransaction {
 
 #[wasm_export]
 impl RaindexClient {
-    /// Fetches transaction details for a given transaction hash.on a given chain
+    /// Fetches transaction details for a given transaction hash
     ///
     /// Retrieves basic transaction information including sender, block number,
     /// and timestamp.
-    ///
-    /// ## Parameters
-    ///
-    /// * `chain_id` - Chain ID for the network
-    /// * `tx_hash` - Transaction hash
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexTransaction` - Transaction details
     ///
     /// ## Examples
     ///
     /// ```javascript
     /// const result = await client.getTransaction(
-    ///   1,
     ///   "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
     /// );
     /// if (result.error) {
@@ -89,16 +76,39 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getTransaction",
+        return_description = "Transaction details",
         unchecked_return_type = "RaindexTransaction"
     )]
-    pub async fn get_transaction(
+    pub async fn get_transaction_wasm_binding(
         &self,
-        chain_id: u16,
+        #[wasm_export(
+            js_name = "orderbookAddress",
+            param_description = "Orderbook contract address",
+            unchecked_param_type = "Address"
+        )]
+        orderbook_address: String,
+        #[wasm_export(
+            js_name = "txHash",
+            param_description = "Transaction hash",
+            unchecked_param_type = "Hex"
+        )]
         tx_hash: String,
     ) -> Result<RaindexTransaction, RaindexError> {
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id as u64)?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
-        let transaction = client.transaction_detail(Id::new(tx_hash)).await?;
+        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let tx_hash = Bytes::from_str(&tx_hash)?;
+        self.get_transaction(orderbook_address, tx_hash).await
+    }
+}
+impl RaindexClient {
+    pub async fn get_transaction(
+        &self,
+        orderbook_address: Address,
+        tx_hash: Bytes,
+    ) -> Result<RaindexTransaction, RaindexError> {
+        let client = self.get_orderbook_client(orderbook_address)?;
+        let transaction = client
+            .transaction_detail(Id::new(tx_hash.to_string()))
+            .await?;
         transaction.try_into()
     }
 }
@@ -107,7 +117,7 @@ impl TryFrom<SgTransaction> for RaindexTransaction {
     type Error = RaindexError;
     fn try_from(transaction: SgTransaction) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: transaction.id.0,
+            id: Bytes::from_str(&transaction.id.0)?,
             from: Address::from_str(&transaction.from.0)?,
             block_number: U256::from_str(&transaction.block_number.0)?,
             timestamp: U256::from_str(&transaction.timestamp.0)?,
@@ -122,7 +132,7 @@ mod test_helpers {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::get_test_yaml;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use httpmock::MockServer;
         use serde_json::json;
 
@@ -134,7 +144,7 @@ mod test_helpers {
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "transaction": {
-                            "id": "tx1",
+                            "id": "0x0123",
                             "from": "0x1000000000000000000000000000000000000000",
                             "blockNumber": "12345",
                             "timestamp": "1734054063"
@@ -154,10 +164,13 @@ mod test_helpers {
             )
             .unwrap();
             let tx = raindex_client
-                .get_transaction(1, "0x123".to_string())
+                .get_transaction(
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
-            assert_eq!(tx.id(), "tx1".to_string());
+            assert_eq!(tx.id(), Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 tx.from(),
                 Address::from_str("0x1000000000000000000000000000000000000000").unwrap()

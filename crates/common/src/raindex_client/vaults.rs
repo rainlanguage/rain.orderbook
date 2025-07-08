@@ -1,14 +1,16 @@
 use super::*;
 use crate::{
-    deposit::DepositArgs, raindex_client::transactions::RaindexTransaction,
-    transaction::TransactionArgs, withdraw::WithdrawArgs,
+    deposit::DepositArgs,
+    raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
+    transaction::TransactionArgs,
+    withdraw::WithdrawArgs,
 };
 use alloy::primitives::{Address, Bytes, I256, U256};
 use rain_orderbook_subgraph_client::{
     types::{
         common::{
-            SgBytes, SgErc20, SgTradeVaultBalanceChange, SgVault, SgVaultBalanceChangeUnwrapped,
-            SgVaultsListFilterArgs,
+            SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTradeVaultBalanceChange,
+            SgVault, SgVaultBalanceChangeUnwrapped, SgVaultsListFilterArgs,
         },
         Id,
     },
@@ -45,14 +47,16 @@ impl_wasm_traits!(RaindexVaultType);
 #[wasm_bindgen]
 pub struct RaindexVault {
     raindex_client: Arc<RwLock<RaindexClient>>,
-    chain_id: u64,
+    chain_id: u32,
     vault_type: Option<RaindexVaultType>,
-    id: String,
+    id: Bytes,
     owner: Address,
     vault_id: U256,
     balance: U256,
     token: RaindexVaultToken,
     orderbook: Address,
+    orders_as_inputs: Vec<RaindexOrderAsIO>,
+    orders_as_outputs: Vec<RaindexOrderAsIO>,
 }
 
 #[cfg(target_family = "wasm")]
@@ -64,13 +68,17 @@ impl RaindexVault {
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
 
+    #[wasm_bindgen(getter = chainId)]
+    pub fn chain_id(&self) -> u32 {
+        self.chain_id
+    }
     #[wasm_bindgen(getter = vaultType)]
     pub fn vault_type(&self) -> Option<RaindexVaultType> {
         self.vault_type.clone()
     }
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
     pub fn id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn owner(&self) -> String {
@@ -92,13 +100,24 @@ impl RaindexVault {
     pub fn orderbook(&self) -> String {
         self.orderbook.to_string()
     }
+    #[wasm_bindgen(getter = ordersAsInput)]
+    pub fn orders_as_inputs(&self) -> Vec<RaindexOrderAsIO> {
+        self.orders_as_inputs.clone()
+    }
+    #[wasm_bindgen(getter = ordersAsOutput)]
+    pub fn orders_as_outputs(&self) -> Vec<RaindexOrderAsIO> {
+        self.orders_as_outputs.clone()
+    }
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVault {
+    pub fn chain_id(&self) -> u32 {
+        self.chain_id
+    }
     pub fn vault_type(&self) -> Option<RaindexVaultType> {
         self.vault_type.clone()
     }
-    pub fn id(&self) -> String {
+    pub fn id(&self) -> Bytes {
         self.id.clone()
     }
     pub fn owner(&self) -> Address {
@@ -115,6 +134,12 @@ impl RaindexVault {
     }
     pub fn orderbook(&self) -> Address {
         self.orderbook
+    }
+    pub fn orders_as_inputs(&self) -> Vec<RaindexOrderAsIO> {
+        self.orders_as_inputs.clone()
+    }
+    pub fn orders_as_outputs(&self) -> Vec<RaindexOrderAsIO> {
+        self.orders_as_outputs.clone()
     }
 }
 
@@ -184,18 +209,19 @@ impl RaindexVaultToken {
 
 #[wasm_export]
 impl RaindexVault {
-    /// Fetches balance change history for a vault.
+    #[wasm_export(skip)]
+    pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
+        let raindex_client = self
+            .raindex_client
+            .read()
+            .map_err(|_| YamlError::ReadLockError)?;
+        raindex_client.get_orderbook_client(self.orderbook)
+    }
+
+    /// Fetches balance change history for a vault
     ///
     /// Retrieves chronological list of deposits, withdrawals, and trades affecting
     /// a vault's balance.
-    ///
-    /// ## Parameters
-    ///
-    /// * `page`: Optional page number (default to 1)
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexVaultBalanceChange[]` - Array of balance change events
     ///
     /// ## Examples
     ///
@@ -210,27 +236,21 @@ impl RaindexVault {
     /// ```
     #[wasm_export(
         js_name = "getBalanceChanges",
+        return_description = "Array of balance change events",
         unchecked_return_type = "RaindexVaultBalanceChange[]",
         preserve_js_class
     )]
     pub async fn get_balance_changes(
         &self,
-        page: Option<u16>,
+        #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        let subgraph_url = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_subgraph_url_for_chain(self.chain_id)?
-        };
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         let balance_changes = client
             .vault_balance_changes_list(
-                Id::new(self.id.clone()),
+                Id::new(self.id.to_string()),
                 SgPaginationArgs {
                     page: page.unwrap_or(1),
-                    page_size: DEFAULT_PAGE_SIZE,
+                    page_size: 1000,
                 },
             )
             .await?;
@@ -249,18 +269,10 @@ impl RaindexVault {
         Ok(amount)
     }
 
-    /// Generates transaction calldata for depositing tokens into a vault.
+    /// Generates transaction calldata for depositing tokens into a vault
     ///
     /// Creates the contract calldata needed to deposit a specified amount of tokens
     /// into a vault.
-    ///
-    /// ## Parameters
-    ///
-    /// * `deposit_amount` - Amount to deposit in token's smallest unit (e.g., "1000000000000000000" for 1 token with 18 decimals)
-    ///
-    /// ## Returns
-    ///
-    /// * `Bytes` - Encoded transaction calldata as hex string
     ///
     /// ## Examples
     ///
@@ -276,35 +288,34 @@ impl RaindexVault {
     /// const calldata = result.value;
     /// // Do something with the calldata
     /// ```
-    #[wasm_export(js_name = "getDepositCalldata", unchecked_return_type = "Hex")]
+    #[wasm_export(
+        js_name = "getDepositCalldata",
+        return_description = "Encoded transaction calldata as hex string",
+        unchecked_return_type = "Hex"
+    )]
     pub async fn get_deposit_calldata(
         &self,
-        deposit_amount: String,
+        #[wasm_export(
+            param_description = "Amount to deposit in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+        )]
+        amount: String,
     ) -> Result<Bytes, RaindexError> {
-        let deposit_amount = self.validate_amount(&deposit_amount)?;
+        let amount = self.validate_amount(&amount)?;
         Ok(Bytes::copy_from_slice(
             &DepositArgs {
                 token: self.token.address,
                 vault_id: self.vault_id,
-                amount: deposit_amount,
+                amount,
             }
             .get_deposit_calldata()
             .await?,
         ))
     }
 
-    /// Generates transaction calldata for withdrawing tokens from a vault.
+    /// Generates transaction calldata for withdrawing tokens from a vault
     ///
     /// Creates the contract calldata needed to withdraw a specified amount of tokens
     /// from a vault.
-    ///
-    /// ## Parameters
-    ///
-    /// * `withdraw_amount` - Amount to withdraw
-    ///
-    /// ## Returns
-    ///
-    /// * `Bytes` - Encoded transaction calldata as hex string
     ///
     /// ## Examples
     ///
@@ -319,17 +330,24 @@ impl RaindexVault {
     /// const calldata = result.value;
     /// // Do something with the calldata
     /// ```
-    #[wasm_export(js_name = "getWithdrawCalldata", unchecked_return_type = "Hex")]
+    #[wasm_export(
+        js_name = "getWithdrawCalldata",
+        return_description = "Encoded transaction calldata as hex string",
+        unchecked_return_type = "Hex"
+    )]
     pub async fn get_withdraw_calldata(
         &self,
-        withdraw_amount: String,
+        #[wasm_export(
+            param_description = "Amount to withdraw in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+        )]
+        amount: String,
     ) -> Result<Bytes, RaindexError> {
-        let withdraw_amount = self.validate_amount(&withdraw_amount)?;
+        let amount = self.validate_amount(&amount)?;
         Ok(Bytes::copy_from_slice(
             &WithdrawArgs {
                 token: self.token.address,
                 vault_id: self.vault_id,
-                target_amount: withdraw_amount,
+                target_amount: amount,
             }
             .get_withdraw_calldata()
             .await?,
@@ -360,18 +378,10 @@ impl RaindexVault {
         Ok((deposit_args, transaction_args))
     }
 
-    /// Generates ERC20 approval calldata for vault deposits.
+    /// Generates ERC20 approval calldata for vault deposits
     ///
     /// Creates the contract calldata needed to approve the orderbook contract to spend
     /// tokens for a vault deposit, but only if additional approval is needed.
-    ///
-    /// ## Parameters
-    ///
-    /// * `deposit_amount` - Amount requiring approval
-    ///
-    /// ## Returns
-    ///
-    /// * `Bytes` - Encoded approval calldata as hex string
     ///
     /// ## Examples
     ///
@@ -386,20 +396,26 @@ impl RaindexVault {
     /// const calldata = result.value;
     /// // Do something with the calldata
     /// ```
-    #[wasm_export(js_name = "getApprovalCalldata", unchecked_return_type = "Hex")]
+    #[wasm_export(
+        js_name = "getApprovalCalldata",
+        return_description = "Encoded approval calldata as hex string",
+        unchecked_return_type = "Hex"
+    )]
     pub async fn get_approval_calldata(
         &self,
-        deposit_amount: String,
+        #[wasm_export(
+            param_description = "Amount requiring approval in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+        )]
+        amount: String,
     ) -> Result<Bytes, RaindexError> {
-        let deposit_amount = self.validate_amount(&deposit_amount)?;
+        let amount = self.validate_amount(&amount)?;
 
-        let (deposit_args, transaction_args) =
-            self.get_deposit_and_transaction_args(deposit_amount)?;
+        let (deposit_args, transaction_args) = self.get_deposit_and_transaction_args(amount)?;
 
         let allowance = deposit_args
             .read_allowance(self.owner, transaction_args.clone())
             .await?;
-        if allowance >= deposit_amount {
+        if allowance >= amount {
             return Err(RaindexError::ExistingAllowance);
         }
 
@@ -408,14 +424,10 @@ impl RaindexVault {
         ))
     }
 
-    /// Gets the current ERC20 allowance for a vault.
+    /// Gets the current ERC20 allowance for a vault
     ///
     /// Determines how much the orderbook contract is currently approved to spend
     /// on behalf of the vault owner.
-    ///
-    /// ## Returns
-    ///
-    /// * `bigint` - Current allowance amount
     ///
     /// ## Examples
     ///
@@ -428,7 +440,10 @@ impl RaindexVault {
     /// const allowance = result.value;
     /// // Do something with the allowance
     /// ```
-    #[wasm_export(js_name = "getAllowance")]
+    #[wasm_export(
+        js_name = "getAllowance",
+        return_description = "Current allowance amount in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+    )]
     pub async fn get_allowance(&self) -> Result<RaindexVaultAllowance, RaindexError> {
         let (deposit_args, transaction_args) = self.get_deposit_and_transaction_args(U256::ZERO)?;
         let allowance = deposit_args
@@ -442,7 +457,7 @@ impl RaindexVault {
 #[serde(rename_all = "camelCase")]
 pub enum RaindexVaultBalanceChangeType {
     Deposit,
-    Withdraw,
+    Withdrawal,
     TradeVaultBalanceChange,
     ClearBounty,
     Unknown,
@@ -453,7 +468,7 @@ impl TryFrom<String> for RaindexVaultBalanceChangeType {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.as_str() {
             "Deposit" => Ok(RaindexVaultBalanceChangeType::Deposit),
-            "Withdraw" => Ok(RaindexVaultBalanceChangeType::Withdraw),
+            "Withdrawal" => Ok(RaindexVaultBalanceChangeType::Withdrawal),
             "TradeVaultBalanceChange" => Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange),
             "ClearBounty" => Ok(RaindexVaultBalanceChangeType::ClearBounty),
             "Unknown" => Ok(RaindexVaultBalanceChangeType::Unknown),
@@ -592,21 +607,10 @@ impl TryFrom<SgTradeVaultBalanceChange> for RaindexVaultBalanceChange {
 
 #[wasm_export]
 impl RaindexClient {
-    /// Fetches vault data from multiple subgraphs across different networks.
+    /// Fetches vault data from multiple subgraphs across different networks
     ///
     /// Queries multiple subgraphs simultaneously to retrieve vault information
-    /// across different blockchain networks.
-    ///
-    /// ## Parameters
-    ///
-    /// * `filters` - Optional filtering options including:
-    ///   - `owners`: Array of owner addresses to filter by (empty for all)
-    ///   - `hide_zero_balance`: Whether to exclude vaults with zero balance
-    /// * `page` - Optional page number (defaults to 1)
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexVault[]` - Array of vaults with their associated subgraph network names
+    /// across different networks.
     ///
     /// ## Examples
     ///
@@ -626,19 +630,29 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getVaults",
+        return_description = "Array of raindex vault instances",
         unchecked_return_type = "RaindexVault[]",
         preserve_js_class
     )]
     pub async fn get_vaults(
         &self,
-        chain_id: Option<u16>,
+        #[wasm_export(param_description = "Specific networks to query (optional)")]
+        chain_ids: Option<ChainIds>,
+        #[wasm_export(
+            param_description = "Optional filtering options including owners and hide_zero_balance"
+        )]
         filters: Option<GetVaultsFilters>,
-        page: Option<u16>,
+        #[wasm_export(param_description = "Optional page number (defaults to 1)")] page: Option<
+            u16,
+        >,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let multi_subgraph_args = self.get_multi_subgraph_args(chain_id.map(|id| id as u64))?;
-        let client =
-            MultiOrderbookSubgraphClient::new(multi_subgraph_args.values().cloned().collect());
+        let multi_subgraph_args =
+            self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
         let vaults = client
             .vaults_list(
                 filters
@@ -658,7 +672,7 @@ impl RaindexClient {
             .map(|vault| {
                 let chain_id = multi_subgraph_args
                     .iter()
-                    .find(|(_, subgraph)| subgraph.name == vault.subgraph_name)
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
                     .map(|(chain_id, _)| *chain_id)
                     .unwrap();
                 let vault = RaindexVault::try_from_sg_vault(
@@ -673,18 +687,9 @@ impl RaindexClient {
         Ok(vaults)
     }
 
-    /// Fetches detailed information for a specific vault.
+    /// Fetches detailed information for a specific vault
     ///
     /// Retrieves complete vault information including token details, balance, etc.
-    ///
-    /// ## Parameters
-    ///
-    /// * `chain_id` - Chain ID of the network the vault is on
-    /// * `vault_id` - Unique vault identifier
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexVault` - Complete vault information
     ///
     /// ## Examples
     ///
@@ -702,21 +707,47 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getVault",
+        return_description = "Complete vault information",
         unchecked_return_type = "RaindexVault",
         preserve_js_class
     )]
-    pub async fn get_vault(
+    pub async fn get_vault_wasm_binding(
         &self,
-        chain_id: u16,
+        #[wasm_export(
+            js_name = "chainId",
+            param_description = "Chain ID of the network the vault is on"
+        )]
+        chain_id: u32,
+        #[wasm_export(
+            js_name = "orderbookAddress",
+            param_description = "Orderbook contract address",
+            unchecked_param_type = "Address"
+        )]
+        orderbook_address: String,
+        #[wasm_export(
+            js_name = "vaultId",
+            param_description = "Unique vault identifier",
+            unchecked_param_type = "Hex"
+        )]
         vault_id: String,
     ) -> Result<RaindexVault, RaindexError> {
-        let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let subgraph_url = self.get_subgraph_url_for_chain(chain_id as u64)?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let vault_id = Bytes::from_str(&vault_id)?;
+        self.get_vault(chain_id, orderbook_address, vault_id).await
+    }
+}
+impl RaindexClient {
+    pub async fn get_vault(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        vault_id: Bytes,
+    ) -> Result<RaindexVault, RaindexError> {
+        let client = self.get_orderbook_client(orderbook_address)?;
         let vault = RaindexVault::try_from_sg_vault(
-            raindex_client.clone(),
-            chain_id as u64,
-            client.vault_detail(Id::new(vault_id)).await?,
+            Arc::new(RwLock::new(self.clone())),
+            chain_id,
+            client.vault_detail(Id::new(vault_id.to_string())).await?,
             None,
         )?;
         Ok(vault)
@@ -749,7 +780,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
 impl RaindexVault {
     pub fn try_from_sg_vault(
         raindex_client: Arc<RwLock<RaindexClient>>,
-        chain_id: u64,
+        chain_id: u32,
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
@@ -757,12 +788,22 @@ impl RaindexVault {
             raindex_client,
             chain_id,
             vault_type,
-            id: vault.id.0,
+            id: Bytes::from_str(&vault.id.0)?,
             owner: Address::from_str(&vault.owner.0)?,
             vault_id: U256::from_str(&vault.vault_id.0)?,
             balance: U256::from_str(&vault.balance.0)?,
             token: vault.token.try_into()?,
             orderbook: Address::from_str(&vault.orderbook.id.0)?,
+            orders_as_inputs: vault
+                .orders_as_input
+                .iter()
+                .map(|order| RaindexOrderAsIO::try_from(order.clone()))
+                .collect::<Result<Vec<RaindexOrderAsIO>, RaindexError>>()?,
+            orders_as_outputs: vault
+                .orders_as_output
+                .iter()
+                .map(|order| RaindexOrderAsIO::try_from(order.clone()))
+                .collect::<Result<Vec<RaindexOrderAsIO>, RaindexError>>()?,
         })
     }
 
@@ -777,7 +818,33 @@ impl RaindexVault {
             balance: self.balance,
             token: self.token.clone(),
             orderbook: self.orderbook,
+            orders_as_inputs: self.orders_as_inputs.clone(),
+            orders_as_outputs: self.orders_as_outputs.clone(),
         }
+    }
+
+    pub fn into_sg_vault(self) -> Result<SgVault, RaindexError> {
+        Ok(SgVault {
+            id: SgBytes(self.id.to_string()),
+            vault_id: SgBigInt(self.vault_id.to_string()),
+            balance: SgBigInt(self.balance.to_string()),
+            owner: SgBytes(self.owner.to_string()),
+            token: self.token.try_into()?,
+            orderbook: SgOrderbook {
+                id: SgBytes(self.orderbook.to_string()),
+            },
+            orders_as_input: self
+                .orders_as_inputs
+                .into_iter()
+                .map(|v| v.try_into())
+                .collect::<Result<Vec<SgOrderAsIO>, RaindexError>>()?,
+            orders_as_output: self
+                .orders_as_outputs
+                .into_iter()
+                .map(|v| v.try_into())
+                .collect::<Result<Vec<SgOrderAsIO>, RaindexError>>()?,
+            balance_changes: vec![],
+        })
     }
 }
 
@@ -796,16 +863,31 @@ impl TryFrom<SgErc20> for RaindexVaultToken {
         })
     }
 }
+impl TryFrom<RaindexVaultToken> for SgErc20 {
+    type Error = RaindexError;
+    fn try_from(token: RaindexVaultToken) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: SgBytes(token.id),
+            address: SgBytes(token.address.to_string()),
+            name: token.name,
+            symbol: token.symbol,
+            decimals: token
+                .decimals
+                .map(|decimals| SgBigInt(decimals.to_string())),
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raindex_client::tests::get_test_yaml;
-    use alloy::sol_types::SolCall;
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
+        use crate::raindex_client::tests::get_test_yaml;
+        use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
+        use alloy::sol_types::SolCall;
         use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_bindings::{
@@ -816,7 +898,7 @@ mod tests {
 
         fn get_vault1_json() -> Value {
             json!({
-              "id": "vault1",
+              "id": "0x0123",
               "owner": "0x0000000000000000000000000000000000000000",
               "vaultId": "0x10",
               "balance": "0x10",
@@ -828,7 +910,7 @@ mod tests {
                 "decimals": "18"
               },
               "orderbook": {
-                "id": "0x0000000000000000000000000000000000000000"
+                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
               },
               "ordersAsOutput": [],
               "ordersAsInput": [],
@@ -837,7 +919,7 @@ mod tests {
         }
         fn get_vault2_json() -> Value {
             json!({
-                "id": "vault2",
+                "id": "0x0234",
                 "owner": "0x0000000000000000000000000000000000000000",
                 "vaultId": "0x20",
                 "balance": "0x20",
@@ -891,7 +973,8 @@ mod tests {
             assert_eq!(result.len(), 2);
 
             let vault1 = result[0].clone();
-            assert_eq!(vault1.id, "vault1");
+            assert_eq!(vault1.chain_id, 1);
+            assert_eq!(vault1.id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 vault1.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -901,11 +984,12 @@ mod tests {
             assert_eq!(vault1.token.id, "token1");
             assert_eq!(
                 vault1.orderbook,
-                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
+                Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap()
             );
 
             let vault2 = result[1].clone();
-            assert_eq!(vault2.id, "vault2");
+            assert_eq!(vault2.chain_id, 137);
+            assert_eq!(vault2.id, Bytes::from_str("0x0234").unwrap());
             assert_eq!(
                 vault2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -943,10 +1027,15 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
-            assert_eq!(vault.id, "vault1");
+            assert_eq!(vault.chain_id, 1);
+            assert_eq!(vault.id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 vault.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -956,7 +1045,7 @@ mod tests {
             assert_eq!(vault.token.id, "token1");
             assert_eq!(
                 vault.orderbook,
-                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
+                Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap()
             );
         }
 
@@ -1030,7 +1119,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
             let result = vault.get_balance_changes(None).await.unwrap();
@@ -1060,7 +1153,10 @@ mod tests {
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
                 result[0].transaction.id(),
-                "0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22"
+                Bytes::from_str(
+                    "0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22"
+                )
+                .unwrap()
             );
             assert_eq!(
                 result[0].transaction.from(),
@@ -1098,7 +1194,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
             let result = vault.get_deposit_calldata("500".to_string()).await.unwrap();
@@ -1147,7 +1247,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
             let result = vault
@@ -1211,7 +1315,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
             let result = vault
@@ -1222,8 +1330,7 @@ mod tests {
                 result,
                 Bytes::copy_from_slice(
                     &approveCall {
-                        spender: Address::from_str("0x0000000000000000000000000000000000000000")
-                            .unwrap(),
+                        spender: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                         amount: U256::from(600),
                     }
                     .abi_encode(),
@@ -1285,7 +1392,11 @@ mod tests {
             )
             .unwrap();
             let vault = raindex_client
-                .get_vault(1, "vault1".to_string())
+                .get_vault(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
             let result = vault.get_allowance().await.unwrap();
