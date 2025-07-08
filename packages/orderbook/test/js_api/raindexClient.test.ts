@@ -837,9 +837,6 @@ _ _: 0 0;
 
 		it('should get add calldata', async () => {
 			await mockServer
-				.forPost('/sg1')
-				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
-			await mockServer
 				.forPost('/rpc1')
 				.withBodyIncluding('0xf0cfdd37')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
@@ -862,26 +859,17 @@ _ _: 0 0;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
-			);
 
 			const calldata = extractWasmEncodedData(
-				await order.getAddOrderCalldata(dotrain, 'some-deployment')
+				await raindexClient.getAddOrderCalldata(dotrain, 'some-deployment')
 			);
 			assert.equal(calldata.length, 2314);
 		});
 
 		it('should throw undefined deployment error', async () => {
-			await mockServer
-				.forPost('/sg1')
-				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
-			);
+			const res = await raindexClient.getAddOrderCalldata(dotrain, 'some-other-deployment');
 
-			const res = await order.getAddOrderCalldata(dotrain, 'some-other-deployment');
 			if (!res.error) assert.fail('expected error');
 			assert.equal(res.error.msg, 'Deployment not found: some-other-deployment');
 			assert.equal(
