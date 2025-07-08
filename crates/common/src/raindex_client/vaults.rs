@@ -337,7 +337,10 @@ impl RaindexVault {
     )]
     pub async fn get_withdraw_calldata(
         &self,
-        #[wasm_export(param_description = "Amount to withdraw")] amount: String,
+        #[wasm_export(
+            param_description = "Amount to withdraw in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+        )]
+        amount: String,
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
         Ok(Bytes::copy_from_slice(
@@ -400,7 +403,10 @@ impl RaindexVault {
     )]
     pub async fn get_approval_calldata(
         &self,
-        #[wasm_export(param_description = "Amount requiring approval")] amount: String,
+        #[wasm_export(
+            param_description = "Amount requiring approval in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+        )]
+        amount: String,
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
 
@@ -436,7 +442,7 @@ impl RaindexVault {
     /// ```
     #[wasm_export(
         js_name = "getAllowance",
-        return_description = "Current allowance amount"
+        return_description = "Current allowance amount in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
     )]
     pub async fn get_allowance(&self) -> Result<RaindexVaultAllowance, RaindexError> {
         let (deposit_args, transaction_args) = self.get_deposit_and_transaction_args(U256::ZERO)?;
