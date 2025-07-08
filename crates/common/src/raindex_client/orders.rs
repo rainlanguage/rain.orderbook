@@ -326,6 +326,24 @@ impl RaindexOrder {
             .await?;
         Ok(performance)
     }
+
+    /// Converts the order from RaindexOrder to an SgOrder type
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const sgOrder = await order.convertToSgOrder();
+    /// // Do something with sgOrder
+    /// ```
+    #[wasm_export(
+        js_name = "convertToSgOrder",
+        return_description = "Order as SgOrder type",
+        unchecked_return_type = "SgOrder"
+    )]
+    pub fn convert_to_sg_order(&self) -> Result<SgOrder, RaindexError> {
+        let sg_order = self.clone().into_sg_order()?;
+        Ok(sg_order)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]

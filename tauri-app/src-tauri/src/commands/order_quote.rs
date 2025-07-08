@@ -1,24 +1,24 @@
+use std::str::FromStr;
+
 use crate::error::CommandResult;
-use alloy::primitives::U256;
+use alloy::primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV4::Quote;
-use rain_orderbook_common::{
-    fuzz::{RainEvalResults, RainEvalResultsTable},
-    raindex_client::orders::RaindexOrder,
-};
+use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
 use rain_orderbook_quote::{NewQuoteDebugger, QuoteDebugger, QuoteDebuggerError, QuoteTarget};
+use rain_orderbook_subgraph_client::types::common::SgOrder;
 
 #[tauri::command]
 pub async fn debug_order_quote(
-    order: RaindexOrder,
+    order: SgOrder,
+    rpcs: Vec<String>,
     input_io_index: u32,
     output_io_index: u32,
     block_number: Option<u32>,
 ) -> CommandResult<(RainEvalResultsTable, Option<String>)> {
-    let rpc_urls = order.get_rpc_urls()?;
     let quote_target = QuoteTarget {
-        orderbook: order.orderbook(),
+        orderbook: Address::from_str(&order.orderbook.id.0)?,
         quote_config: Quote {
-            order: order.into_sg_order()?.try_into()?,
+            order: order.try_into()?,
             inputIOIndex: U256::from(input_io_index),
             outputIOIndex: U256::from(output_io_index),
             signedContext: vec![],
@@ -26,9 +26,9 @@ pub async fn debug_order_quote(
     };
 
     let mut err: Option<QuoteDebuggerError> = None;
-    for rpc_url in rpc_urls {
+    for rpc in rpcs {
         match QuoteDebugger::new(NewQuoteDebugger {
-            fork_url: rpc_url,
+            fork_url: rpc.parse()?,
             fork_block_number: block_number.map(|s| s.into()),
         })
         .await
@@ -296,26 +296,15 @@ amount price: 16 52;
             }));
         });
 
-        let raindex_client = RaindexClient::new(
-            vec![get_test_yaml(&server.url("/sg"), &local_evm.url())],
-            None,
-        )
-        .unwrap();
         let result = debug_order_quote(
-            RaindexOrder::try_from_sg_order(
-                Arc::new(RwLock::new(raindex_client)),
-                1,
-                sg_order,
-                None,
-            )
-            .unwrap(),
+            sg_order,
+            vec![local_evm.url()],
             input_io_index,
             output_io_index,
             None,
         )
         .await;
 
-        println!("{:?}", result);
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap().0.rows[0],

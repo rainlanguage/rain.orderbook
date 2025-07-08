@@ -4,7 +4,6 @@
   import { OrderDetail } from '@rainlanguage/ui-components';
   import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/stores/darkMode';
   import {
-    handleDebugTradeModal,
     handleQuoteDebugModal,
     handleDepositModal,
     handleWithdrawModal,
@@ -55,7 +54,6 @@
     {codeMirrorTheme}
     {lightweightChartsTheme}
     {handleQuoteDebugModal}
-    {handleDebugTradeModal}
     {onRemove}
     {onDeposit}
     {onWithdraw}

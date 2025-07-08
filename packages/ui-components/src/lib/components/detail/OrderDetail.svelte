@@ -15,7 +15,7 @@
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import OrderApy from '../tables/OrderAPY.svelte';
-	import type { QuoteDebugModalHandler, DebugTradeModalHandler } from '../../types/modal';
+	import type { QuoteDebugModalHandler } from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import {
@@ -35,7 +35,6 @@
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
-	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
