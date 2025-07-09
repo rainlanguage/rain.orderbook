@@ -24,6 +24,14 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   };
 });
 
+vi.mock('$lib/utils/getOrderbookByChainId', () => ({
+  getOrderbookByChainId: vi.fn().mockReturnValue({
+    network: {
+      rpcs: ['http://localhost:8545'],
+    },
+  }),
+}));
+
 vi.mock('@tanstack/svelte-query', () => ({
   useQueryClient: vi.fn().mockReturnValue({
     invalidateQueries: vi.fn(),

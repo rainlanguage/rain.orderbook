@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import { toHex } from 'viem';
+
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -11,7 +13,6 @@
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
-	import { bigintToHex } from '../../utils/hex';
 	import { RaindexVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
@@ -27,7 +28,6 @@
 	export let activeAccounts: AppStoresInterface['activeAccounts'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 
-	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let handleWithdrawModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
@@ -98,17 +98,6 @@
 			<div class="mt-2 flex w-full justify-between">
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
-					{#if handleDepositGenericModal}
-						<Button
-							size="sm"
-							color="primary"
-							data-testid="new-vault-button"
-							on:click={() => {
-								handleDepositGenericModal();
-							}}
-							>New vault
-						</Button>
-					{/if}
 				</div>
 			</div>
 		</svelte:fragment>
@@ -129,7 +118,7 @@
 			</TableBodyCell>
 
 			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id">
-				<Hash type={HashType.Identifier} value={bigintToHex(item.vaultId)} />
+				<Hash type={HashType.Identifier} value={toHex(item.vaultId)} />
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
 				<Hash type={HashType.Identifier} value={item.orderbook} />

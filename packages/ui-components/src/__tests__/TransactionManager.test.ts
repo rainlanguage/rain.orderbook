@@ -158,9 +158,7 @@ describe('TransactionManager', () => {
 
 			const removeOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
 			const removeOrderIsSuccessFn = removeOrderCallArgs.awaitSubgraphConfig!.isSuccess;
-			const removeOrderFetchEntityFn = removeOrderCallArgs.awaitSubgraphConfig!.fetchEntityFn;
 
-			expect(removeOrderFetchEntityFn.name).toBe('bound spy');
 			expect(
 				removeOrderIsSuccessFn([
 					{
@@ -288,9 +286,7 @@ describe('TransactionManager', () => {
 
 			const withdrawCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
 			const withdrawIsSuccessFn = withdrawCallArgs.awaitSubgraphConfig!.isSuccess;
-			const withdrawFetchEntityFn = withdrawCallArgs.awaitSubgraphConfig!.fetchEntityFn;
 
-			expect(withdrawFetchEntityFn.name).toBe('bound spy');
 			expect(withdrawIsSuccessFn({ id: '0x0123' } as unknown as RaindexTransaction)).toBe(true);
 			expect(withdrawIsSuccessFn(null as unknown as RaindexTransaction)).toBe(false);
 			expect(withdrawIsSuccessFn(undefined as unknown as RaindexTransaction)).toBe(false);

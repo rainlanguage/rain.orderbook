@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import OrderOrVaultHash from '../lib/components/OrderOrVaultHash.svelte';
 import type { RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
@@ -23,12 +23,6 @@ describe('OrderOrVaultHash', () => {
 		id: '0xvault456'
 	} as unknown as RaindexVault;
 
-	const mockUpdateFn = vi.fn();
-
-	beforeEach(() => {
-		mockUpdateFn.mockClear();
-	});
-
 	describe('Order rendering', () => {
 		it('renders with active order', () => {
 			const { getByTestId } = render(OrderOrVaultHash, {
@@ -37,7 +31,6 @@ describe('OrderOrVaultHash', () => {
 					orderOrVault: mockOrder,
 					chainId: 1,
 					orderbookAddress: '0x234567'
-					// updateActiveNetworkAndOrderbook: mockUpdateFn
 				}
 			});
 
@@ -61,30 +54,11 @@ describe('OrderOrVaultHash', () => {
 					orderOrVault: mockInactiveOrder,
 					chainId: 1,
 					orderbookAddress: '0x234567'
-					// updateActiveNetworkAndOrderbook: mockUpdateFn
 				}
 			});
 
 			const button = getByTestId('vault-order-input');
 			expect(button.classList.toString()).toContain('text-white bg-yellow');
-		});
-
-		it('handles click event correctly', async () => {
-			const { getByTestId } = render(OrderOrVaultHash, {
-				props: {
-					type: 'orders',
-					orderOrVault: mockOrder,
-					chainId: 1,
-					orderbookAddress: '0x234567'
-					// updateActiveNetworkAndOrderbook: mockUpdateFn
-				}
-			});
-
-			const button = getByTestId('vault-order-input');
-			await fireEvent.click(button);
-
-			// expect(mockUpdateFn).toHaveBeenCalledWith(mockSubgraphName);
-			// expect(mockUpdateFn).toHaveBeenCalledTimes(1);
 		});
 	});
 
@@ -96,7 +70,6 @@ describe('OrderOrVaultHash', () => {
 					orderOrVault: mockVault,
 					chainId: 1,
 					orderbookAddress: '0x234567'
-					// updateActiveNetworkAndOrderbook: mockUpdateFn
 				}
 			});
 
@@ -117,7 +90,6 @@ describe('OrderOrVaultHash', () => {
 					orderOrVault: mockOrder as unknown as RaindexOrder,
 					chainId: 1,
 					orderbookAddress: '0x234567'
-					// updateActiveNetworkAndOrderbook: mockUpdateFn
 				}
 			});
 
@@ -131,7 +103,6 @@ describe('OrderOrVaultHash', () => {
 					orderOrVault: mockInactiveOrder as unknown as RaindexOrder,
 					chainId: 1,
 					orderbookAddress: '0x234567'
-					// updateActiveNetworkAndOrderbook: mockUpdateFn
 				}
 			});
 

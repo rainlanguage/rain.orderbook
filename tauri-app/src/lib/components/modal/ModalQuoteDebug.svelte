@@ -7,6 +7,7 @@
   import { Refresh } from '@rainlanguage/ui-components';
   import EvalResultsTable from '../debug/EvalResultsTable.svelte';
   import { fade } from 'svelte/transition';
+  import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
 
   export let open: boolean;
   export let order: RaindexOrder;
@@ -18,13 +19,21 @@
   $: debugQuery = createQuery(
     {
       queryKey: [order + pair + blockNumber],
-      queryFn: () => {
-        return debugOrderQuote(
-          order,
+      queryFn: async () => {
+        const orderbook = getOrderbookByChainId(order.chainId);
+        const sgOrder = order.convertToSgOrder();
+        if (sgOrder.error) {
+          throw new Error(sgOrder.error.readableMsg);
+        }
+
+        const result = await debugOrderQuote(
+          sgOrder.value,
+          orderbook.network.rpcs,
           inputIOIndex,
           outputIOIndex,
           blockNumber ? Number(blockNumber) : undefined,
         );
+        return result;
       },
       retry: 0,
       refetchOnWindowFocus: false,

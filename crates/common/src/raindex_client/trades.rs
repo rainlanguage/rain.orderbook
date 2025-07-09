@@ -175,7 +175,7 @@ impl RaindexOrder {
         trade_id: String,
     ) -> Result<RaindexTrade, RaindexError> {
         let trade_id = Bytes::from_str(&trade_id)?;
-        self._get_trade_detail(trade_id).await
+        self.get_trade_detail(trade_id).await
     }
 
     /// Counts total trades for an order within a time range
@@ -224,16 +224,13 @@ impl RaindexOrder {
     }
 }
 impl RaindexOrder {
-    async fn _get_trade_detail(&self, trade_id: Bytes) -> Result<RaindexTrade, RaindexError> {
+    pub async fn get_trade_detail(&self, trade_id: Bytes) -> Result<RaindexTrade, RaindexError> {
         let client = self.get_orderbook_client()?;
         RaindexTrade::try_from(
             client
                 .order_trade_detail(Id::new(trade_id.to_string()))
                 .await?,
         )
-    }
-    pub async fn get_trade_detail(&self, trade_id: Bytes) -> Result<RaindexTrade, RaindexError> {
-        self._get_trade_detail(trade_id).await
     }
 }
 

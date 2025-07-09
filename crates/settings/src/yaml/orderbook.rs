@@ -186,25 +186,21 @@ impl OrderbookYaml {
         &self,
         network_key: &str,
     ) -> Result<Vec<OrderbookCfg>, YamlError> {
-        let orderbooks = self.get_orderbooks()?;
-        let mut ordered = std::collections::BTreeMap::new();
-        for (key, orderbook) in orderbooks {
-            ordered.insert(key, orderbook);
-        }
+        let mut orderbooks: Vec<_> = self
+            .get_orderbooks()?
+            .into_iter()
+            .filter(|(_, ob)| ob.network.key == network_key)
+            .map(|(_, ob)| ob)
+            .collect();
+        orderbooks.sort_by(|a, b| a.key.cmp(&b.key));
 
-        let mut result = Vec::new();
-        for (_key, orderbook) in ordered {
-            if orderbook.network.key == network_key {
-                result.push(orderbook);
-            }
-        }
-        if result.is_empty() {
+        if orderbooks.is_empty() {
             return Err(YamlError::NotFound(format!(
                 "orderbook with network key: {}",
                 network_key
             )));
         }
-        Ok(result)
+        Ok(orderbooks)
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {

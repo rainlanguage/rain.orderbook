@@ -11,7 +11,8 @@ import {
 	type RaindexVault,
 	type RaindexOrder,
 	RaindexClient,
-	type Address
+	type Address,
+	type Hex
 } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 
@@ -167,7 +168,8 @@ export class TransactionManager {
 				orderbook,
 				txHash,
 				successMessage,
-				fetchEntityFn: raindexClient.getTransaction.bind(raindexClient),
+				fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
+					raindexClient.getTransaction(orderbook, txHash),
 				isSuccess: (data) => !!data
 			}
 		});
@@ -289,7 +291,8 @@ export class TransactionManager {
 				orderbook,
 				txHash,
 				successMessage,
-				fetchEntityFn: raindexClient.getTransaction.bind(raindexClient),
+				fetchEntityFn: (_chainId: number, orderbook: `0x${string}`, txHash: `0x${string}`) =>
+					raindexClient.getTransaction(orderbook, txHash),
 				isSuccess: (data) => !!data
 			}
 		});

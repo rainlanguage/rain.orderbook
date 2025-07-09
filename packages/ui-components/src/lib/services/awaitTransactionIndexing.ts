@@ -5,7 +5,6 @@
 
 import { TransactionStoreErrorMessage } from '$lib/types/transaction';
 import type {
-	RaindexClient,
 	WasmEncodedResult,
 	RaindexTransaction,
 	RaindexOrder,
@@ -18,10 +17,11 @@ export type AwaitSubgraphConfig = {
 	orderbook: Address;
 	txHash: Hex;
 	successMessage: string;
-	fetchEntityFn:
-		| typeof RaindexClient.prototype.getTransaction
-		| typeof RaindexClient.prototype.getRemoveOrdersForTransaction
-		| typeof RaindexClient.prototype.getAddOrdersForTransaction;
+	fetchEntityFn: (
+		chainId: number,
+		orderbook: Address,
+		txHash: Hex
+	) => Promise<WasmEncodedResult<RaindexTransaction | RaindexOrder[] | null | undefined>>;
 	isSuccess: (data: RaindexTransaction | RaindexOrder[]) => boolean;
 };
 

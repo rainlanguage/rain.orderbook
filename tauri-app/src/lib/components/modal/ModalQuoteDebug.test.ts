@@ -1,12 +1,20 @@
 import { render, screen } from '@testing-library/svelte';
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 import { expect } from '$lib/__tests__/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import { QueryClient } from '@tanstack/svelte-query';
 import { formatEther } from 'viem';
 import { mockQuoteDebug } from '$lib/queries/orderQuote';
 import ModalQuoteDebug from './ModalQuoteDebug.svelte';
-import type { RaindexOrder } from '@rainlanguage/orderbook';
+import type { RaindexOrder, SgOrder } from '@rainlanguage/orderbook';
+
+vi.mock('$lib/utils/getOrderbookByChainId', () => ({
+  getOrderbookByChainId: vi.fn().mockReturnValue({
+    network: {
+      rpcs: ['http://localhost:8545'],
+    },
+  }),
+}));
 
 test('renders table with the correct data', async () => {
   const queryClient = new QueryClient();
@@ -22,16 +30,23 @@ test('renders table with the correct data', async () => {
     props: {
       open: true,
       order: {
-        id: '1',
-        orderbook: '0x00',
-        orderBytes: '0x123',
-        orderHash: '0x123',
-        owner: '0x123',
-        outputs: [],
-        inputs: [],
-        active: true,
-        timestampAdded: BigInt(123),
-        tradesCount: 0,
+        convertToSgOrder: () => {
+          return {
+            value: {
+              id: '1',
+              orderbook: {
+                id: '0x00',
+                orderBytes: '0x123',
+                orderHash: '0x123',
+                owner: '0x123',
+                outputs: [],
+                inputs: [],
+                active: true,
+                timestampAdded: '123',
+              },
+            } as unknown as SgOrder,
+          };
+        },
       } as unknown as RaindexOrder,
       inputIOIndex: 0,
       outputIOIndex: 0,

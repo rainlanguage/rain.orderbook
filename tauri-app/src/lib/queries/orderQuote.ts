@@ -1,9 +1,10 @@
 import { invoke } from '@tauri-apps/api';
-import type { RainEvalResultsTable, RaindexOrder } from '@rainlanguage/orderbook';
+import type { RainEvalResultsTable, SgOrder } from '@rainlanguage/orderbook';
 import { mockIPC } from '@tauri-apps/api/mocks';
 
 export async function debugOrderQuote(
-  order: RaindexOrder,
+  order: SgOrder,
+  rpcs: string[],
   inputIOIndex: number,
   outputIOIndex: number,
   blockNumber?: number,
@@ -13,6 +14,7 @@ export async function debugOrderQuote(
     inputIoIndex: inputIOIndex,
     outputIoIndex: outputIOIndex,
     blockNumber,
+    rpcs,
   });
 }
 
@@ -46,7 +48,8 @@ if (import.meta.vitest) {
         active: true,
         timestampAdded: BigInt(123),
         tradesCount: 0,
-      } as unknown as RaindexOrder,
+      } as unknown as SgOrder,
+      ['http://localhost:8545'],
       0,
       0,
       123,

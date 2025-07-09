@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { bigintToHex } from '../../utils/hex';
 	import Hash, { HashType } from '../Hash.svelte';
 	import VaultBalanceChangesTable from '../tables/VaultBalanceChangesTable.svelte';
 	import VaultBalanceChart from '../charts/VaultBalanceChart.svelte';
@@ -13,7 +12,7 @@
 		type RaindexVault
 	} from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits } from 'viem';
+	import { formatUnits, toHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
@@ -115,7 +114,7 @@
 	<svelte:fragment slot="card" let:data>
 		<CardProperty data-testid="vaultDetailVaultId">
 			<svelte:fragment slot="key">Vault ID</svelte:fragment>
-			<svelte:fragment slot="value">{bigintToHex(data.vaultId)}</svelte:fragment>
+			<svelte:fragment slot="value">{toHex(data.vaultId)}</svelte:fragment>
 		</CardProperty>
 
 		<CardProperty data-testid="vaultDetailOrderbookAddress">

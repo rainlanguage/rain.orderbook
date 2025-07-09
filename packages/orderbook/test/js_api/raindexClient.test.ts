@@ -765,131 +765,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.deepEqual(result.value, expected);
 		});
 
-		const dotrain = `
-version: 1
-networks:
-  some-network:
-    rpcs:
-      - http://localhost:8230/rpc1
-    chain-id: 123
-    network-id: 123
-    currency: ETH
-
-subgraphs:
-  some-sg: https://www.some-sg.com
-
-deployers:
-  some-deployer:
-    network: some-network
-    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-
-orderbooks:
-  some-orderbook:
-    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
-    network: some-network
-    subgraph: some-sg
-
-tokens:
-  token1:
-    network: some-network
-    address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
-    decimals: 6
-    label: T1
-    symbol: T1
-  token2:
-    network: some-network
-    address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
-    decimals: 18
-    label: T2
-    symbol: T2
-
-scenarios:
-  some-scenario:
-    network: some-network
-    deployer: some-deployer
-    bindings:
-      key: 10
-
-orders:
-  some-order:
-    inputs:
-      - token: token1
-        vault-id: 1
-    outputs:
-      - token: token2
-        vault-id: 1
-    deployer: some-deployer
-    orderbook: some-orderbook
-
-deployments:
-  some-deployment:
-    scenario: some-scenario
-    order: some-order
----
-#key !Test binding
-#calculate-io
-_ _: 0 0;
-#handle-io
-:;
-#handle-add-order
-:;
-		`;
-
-		it('should get add calldata', async () => {
-			await mockServer
-				.forPost('/sg1')
-				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
-			await mockServer
-				.forPost('/rpc1')
-				.withBodyIncluding('0xf0cfdd37')
-				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
-			// iStore() call
-			await mockServer
-				.forPost('/rpc1')
-				.withBodyIncluding('0xc19423bc')
-				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
-			// iParser() call
-			await mockServer
-				.forPost('/rpc1')
-				.withBodyIncluding('0x24376855')
-				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
-			// parse2() call
-			await mockServer
-				.forPost('/rpc1')
-				.withBodyIncluding('0xa3869e14')
-				// 0x1234 encoded bytes
-				.thenSendJsonRpcResult(
-					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
-				);
-			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
-			);
-
-			const calldata = extractWasmEncodedData(
-				await order.getAddCalldata(dotrain, 'some-deployment')
-			);
-			assert.equal(calldata.length, 2314);
-		});
-
-		it('should throw undefined deployment error', async () => {
-			await mockServer
-				.forPost('/sg1')
-				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
-			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
-			);
-
-			const res = await order.getAddCalldata(dotrain, 'some-other-deployment');
-			if (!res.error) assert.fail('expected error');
-			assert.equal(res.error.msg, 'Deployment not found: some-other-deployment');
-			assert.equal(
-				res.error.readableMsg,
-				'Failed to parse yaml sources for configuration: Deployment not found: some-other-deployment'
-			);
-		});
-
 		it('should get remove calldata', async () => {
 			await mockServer
 				.forPost('/sg1')
@@ -1940,7 +1815,7 @@ _ _: 0 0;
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 			assert.equal(result.id, transaction.id);
 			assert.equal(result.from, transaction.from);

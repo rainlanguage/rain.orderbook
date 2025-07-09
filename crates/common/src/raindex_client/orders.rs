@@ -229,7 +229,7 @@ impl RaindexOrder {
     #[wasm_export(skip)]
     pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
         let raindex_client = self.get_raindex_client()?;
-        raindex_client.get_orderbook_client(self.chain_id, self.orderbook)
+        raindex_client.get_orderbook_client(self.orderbook)
     }
 
     #[wasm_export(skip)]
@@ -326,6 +326,24 @@ impl RaindexOrder {
             .await?;
         Ok(performance)
     }
+
+    /// Converts the order from RaindexOrder to an SgOrder type
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const sgOrder = await order.convertToSgOrder();
+    /// // Do something with sgOrder
+    /// ```
+    #[wasm_export(
+        js_name = "convertToSgOrder",
+        return_description = "Order as SgOrder type",
+        unchecked_return_type = "SgOrder"
+    )]
+    pub fn convert_to_sg_order(&self) -> Result<SgOrder, RaindexError> {
+        let sg_order = self.clone().into_sg_order()?;
+        Ok(sg_order)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
@@ -387,7 +405,7 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getOrders",
-        return_description = "Array of orders matching the specified criteria",
+        return_description = "Array of raindex order instances",
         unchecked_return_type = "RaindexOrder[]",
         preserve_js_class
     )]
@@ -498,33 +516,24 @@ impl RaindexClient {
     ) -> Result<RaindexOrder, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let order_hash = Bytes::from_str(&order_hash)?;
-        self._get_order_by_hash(chain_id, orderbook_address, order_hash)
+        self.get_order_by_hash(chain_id, orderbook_address, order_hash)
             .await
     }
 }
 impl RaindexClient {
-    async fn _get_order_by_hash(
-        &self,
-        chain_id: u32,
-        orderbook_address: Address,
-        order_hash: Bytes,
-    ) -> Result<RaindexOrder, RaindexError> {
-        let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let client = self.get_orderbook_client(chain_id, orderbook_address)?;
-        let order = client
-            .order_detail_by_hash(SgBytes(order_hash.to_string()))
-            .await?;
-        let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
-        Ok(order)
-    }
     pub async fn get_order_by_hash(
         &self,
         chain_id: u32,
         orderbook_address: Address,
         order_hash: Bytes,
     ) -> Result<RaindexOrder, RaindexError> {
-        self._get_order_by_hash(chain_id, orderbook_address, order_hash)
-            .await
+        let raindex_client = Arc::new(RwLock::new(self.clone()));
+        let client = self.get_orderbook_client(orderbook_address)?;
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
+        let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
+        Ok(order)
     }
 }
 

@@ -16,7 +16,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await orderRemove(order.id);
+      await orderRemove(order);
       onOrderRemoved();
     } catch (e) {
       reportErrorToSentry(e);
