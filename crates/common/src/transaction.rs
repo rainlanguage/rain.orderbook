@@ -98,7 +98,6 @@ impl TransactionArgs {
         ),
         TransactionArgsError,
     > {
-
         match self.chain_id {
             Some(chain_id) => {
                 let mut err: Option<TransactionArgsError> = None;
@@ -108,18 +107,19 @@ impl TransactionArgs {
                     ));
                 }
                 for rpc in self.rpcs.clone() {
-
-        let derivation_index = self.derivation_index.unwrap_or(0);
-        let signer = LedgerSigner::new(HDPath::LedgerLive(derivation_index), self.chain_id).await;
+                    let derivation_index = self.derivation_index.unwrap_or(0);
+                    let signer =
+                        LedgerSigner::new(HDPath::LedgerLive(derivation_index), self.chain_id)
+                            .await;
 
                     match client {
                         Ok(client) => {
-        let address = signer.get_address().await?;
+                            let address = signer.get_address().await?;
 
-        let url: url::Url = self.rpc_url.parse()?;
-        let provider = ProviderBuilder::new_with_network::<AnyNetwork>()
-            .wallet(signer)
-            .connect_http(url);
+                            let url: url::Url = self.rpc_url.parse()?;
+                            let provider = ProviderBuilder::new_with_network::<AnyNetwork>()
+                                .wallet(signer)
+                                .connect_http(url);
 
                             return Ok((provider, address));
                         }
@@ -133,7 +133,6 @@ impl TransactionArgs {
             }
             None => Err(TransactionArgsError::ChainIdNone),
         }
-
     }
 }
 
@@ -175,16 +174,9 @@ mod tests {
             orderbook_address: address!("123abcdef24Ca5003905aA834De7156C68b2E1d0"),
             derivation_index: Some(0),
             chain_id: Some(1),
-<<<<<<< HEAD
-            rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
-            max_priority_fee_per_gas: Some(100),
-            max_fee_per_gas: Some(200),
-=======
             rpcs: vec!["https://mainnet.infura.io/v3/your-api-key".to_string()],
             max_priority_fee_per_gas: Some(U256::from(100)),
             max_fee_per_gas: Some(U256::from(200)),
-            gas_fee_speed: Some(GasFeeSpeed::Fast),
->>>>>>> origin/2024-09-12-i9r
         };
 
         let call = vaultBalance2Call {
@@ -278,23 +270,16 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-<<<<<<< HEAD
-            rpc_url: "".to_string(),
-=======
             rpcs: vec![server.url("/rpc")],
->>>>>>> origin/2024-09-12-i9r
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
         };
 
-<<<<<<< HEAD
-=======
         let err = args.clone().try_into_ledger_client().await;
         assert!(matches!(err, Err(TransactionArgsError::ChainIdNone)));
 
         args.try_fill_chain_id().await.unwrap();
         args.rpcs = vec!["".to_string()];
->>>>>>> origin/2024-09-12-i9r
         let result = args.try_into_ledger_client().await;
         // The error is different based on whether you have a Ledger plugged in,
         // hence no pattern matching to avoid breaking the test for devs
