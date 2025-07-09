@@ -96,7 +96,8 @@ impl TransactionArgs {
         ),
         TransactionArgsError,
     > {
-        let signer = LedgerSigner::new(HDPath::LedgerLive(0), self.chain_id).await?;
+        let derivation_index = self.derivation_index.unwrap_or(0);
+        let signer = LedgerSigner::new(HDPath::LedgerLive(derivation_index), self.chain_id).await?;
         let address = signer.get_address().await?;
 
         let url: url::Url = self.rpc_url.parse()?;
