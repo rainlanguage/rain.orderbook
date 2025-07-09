@@ -409,7 +409,7 @@ mod tests {
     use js_sys::{eval, Reflect};
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_22QXWvCMBSGGzc2BruSwa4G-wELTY3bjLCLoRXF4hfV26I1qDRNShvx60_4k0U9qSiei7zPm5ycnJOCdY4X0MlCThdyhh3LxAOoQ8htUgnBBrFyMvAEqlXEJb1X7X7mtXsFl6mYY8n1SqWRufcBOtc6qdq2UOFYzFWmqxVS-bbTJMTLVOzMw8gQMi24fvMNsFgerfc3CyqiZzj2j718UvRofLtDC_lIecESY-jiHMa-AOtk2Fe-F4w931VBo5-Ve71lV0Q_g22ruw6Y61Kv9v9LaTz8ezcTc8FDjU_fgKc8EWoTc6kPu-zJ97ABAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PXWvCMBRt3NgY7EkGexrsByw0NW4zwh7GVlEsflF9LVqDStOktBG__oQ_Wao3FcX7cM85ycnNPSXrVE-Ak4WcLuQMO5apO0CHkGtTBcEBsQpmyAOgVhGX9Na0285L9QwqUzHHkuuVSiPz7g1wrnVSt22hwrGYq0zXa6T2aadJiJep2OUOlHdkvnb95gvQcnW03l81VEaPcO3nO7xTdG90u0NLRZRiYIUxdFYOYx9A_8mwr3wvGHu-q4JGP6v2esuuiL4G21Z3HTDXpd7f7zel8fDn1STlgocaH-PjKU-E2sRc6gN7v9qEqAEAAA==";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {

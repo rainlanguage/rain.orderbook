@@ -143,7 +143,7 @@ orderbooks: &orderbooks
         assert_eq!(config_src.deployments, HashMap::new());
         assert_eq!(config_src.metaboards, HashMap::new());
         assert_eq!(config_src.sentry, None);
-        assert_eq!(config_src.version, "1".to_string());
+        assert_eq!(config_src.version, "2".to_string());
         assert_eq!(config_src.accounts, None);
         assert_eq!(config_src.gui, None);
 
@@ -293,7 +293,7 @@ orderbooks: &orderbooks
         // Inspect sentry
         assert_eq!(config.sentry, None);
         // Inspect spec_version
-        assert_eq!(config.version, "1".to_string());
+        assert_eq!(config.version, "2".to_string());
         // Inspect accounts
         assert_eq!(config.accounts, None);
         // Inspect gui
@@ -426,7 +426,7 @@ orderbooks:
         assert!(merged_config.orderbooks.contains_key("testnetOrderbook"));
 
         // Verify raindex version was preserved
-        assert_eq!(merged_config.version, "1".to_string());
+        assert_eq!(merged_config.version, "2".to_string());
     }
 
     #[tokio::test]
