@@ -124,7 +124,13 @@ impl DotrainOrderGui {
         let orderbook = self.get_orderbook()?;
         Ok(TransactionArgs {
             orderbook_address: orderbook.address,
-            rpc_url: orderbook.network.rpc.to_string(),
+            rpcs: orderbook
+                .network
+                .rpcs
+                .clone()
+                .into_iter()
+                .map(|url| url.to_string())
+                .collect(),
             ..Default::default()
         })
     }
@@ -452,7 +458,7 @@ impl DotrainOrderGui {
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)
         .await?;
-        Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)))
+        return Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)));
     }
 
     /// Generates a multicall combining all deposits and add order in one calldata.

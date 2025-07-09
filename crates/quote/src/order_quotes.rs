@@ -41,15 +41,15 @@ impl_wasm_traits!(Pair);
 pub async fn get_order_quotes(
     orders: Vec<SgOrder>,
     block_number: Option<u64>,
-    rpc_url: String,
-    gas: Option<u64>,
+    rpcs: Vec<String>,
+    gas: Option<U256>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     let req_block_number = match block_number {
         Some(block) => block,
         None => {
-            ReadableClient::new_from_http_urls(vec![rpc_url.clone()])?
+            ReadableClient::new_from_http_urls(rpcs.clone())?
                 .get_block_number()
                 .await?
         }
@@ -111,7 +111,7 @@ pub async fn get_order_quotes(
         }
 
         let quote_values = BatchQuoteTarget(quote_targets)
-            .do_quote(&rpc_url, Some(req_block_number), gas, None)
+            .do_quote(rpcs.clone(), Some(req_block_number), gas, None)
             .await;
 
         if let Ok(quote_values) = quote_values {
@@ -219,7 +219,8 @@ mod tests {
 version: {spec_version}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -289,7 +290,7 @@ amount price: context<3 0>() context<4 0>();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(setup.local_evm.url())
+            .try_into_call(vec![setup.local_evm.url()])
             .await
             .unwrap()
             .abi_encode();
@@ -388,7 +389,7 @@ amount price: context<3 0>() context<4 0>();
 
         let order = create_sg_order(&setup, order, inputs, outputs);
 
-        let result = get_order_quotes(vec![order], None, setup.local_evm.url(), None)
+        let result = get_order_quotes(vec![order], None, vec![setup.local_evm.url()], None)
             .await
             .unwrap();
 
@@ -463,7 +464,7 @@ amount price: context<3 0>() context<4 0>();
         let mut invalid_order = create_sg_order(&setup, order.clone(), vec![], vec![]);
         invalid_order.orderbook.id = SgBytes("invalid_address".to_string());
 
-        let err = get_order_quotes(vec![invalid_order], None, setup.local_evm.url(), None)
+        let err = get_order_quotes(vec![invalid_order], None, vec![setup.local_evm.url()], None)
             .await
             .unwrap_err();
 
@@ -472,7 +473,7 @@ amount price: context<3 0>() context<4 0>();
         // Test invalid order bytes
         let invalid_order = create_sg_order(&setup, B256::random().to_string(), vec![], vec![]);
 
-        let err = get_order_quotes(vec![invalid_order], None, setup.local_evm.url(), None)
+        let err = get_order_quotes(vec![invalid_order], None, vec![setup.local_evm.url()], None)
             .await
             .unwrap_err();
 
@@ -484,9 +485,14 @@ amount price: context<3 0>() context<4 0>();
         // Test invalid RPC URL
         let valid_order = create_sg_order(&setup, order, vec![], vec![]);
 
-        let err = get_order_quotes(vec![valid_order], None, "invalid_rpc_url".to_string(), None)
-            .await
-            .unwrap_err();
+        let err = get_order_quotes(
+            vec![valid_order],
+            None,
+            vec!["invalid_rpc_url".to_string()],
+            None,
+        )
+        .await
+        .unwrap_err();
 
         assert!(matches!(
             err,

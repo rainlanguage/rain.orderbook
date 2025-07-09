@@ -67,8 +67,7 @@ impl DepositArgs {
         owner: Address,
         transaction_args: TransactionArgs,
     ) -> Result<U256, DepositError> {
-        let readable_client =
-            ReadableClient::new_from_http_urls(vec![transaction_args.rpc_url.clone()])?;
+        let readable_client = ReadableClient::new_from_http_urls(transaction_args.rpcs.clone())?;
         let parameters = ReadContractParametersBuilder::<allowanceCall>::default()
             .address(self.token)
             .call(allowanceCall {
@@ -186,7 +185,7 @@ mod tests {
             .read_allowance(
                 Address::ZERO,
                 TransactionArgs {
-                    rpc_url: rpc_server.url("/rpc"),
+                    rpcs: vec![rpc_server.url("/rpc")],
                     orderbook_address: Address::ZERO,
                     ..Default::default()
                 },
@@ -199,7 +198,7 @@ mod tests {
     #[test]
     fn test_deposit_call_try_into_write_contract_parameters() {
         let args = TransactionArgs {
-            rpc_url: "http://test.com".to_string(),
+            rpcs: vec!["http://test.com".to_string()],
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),
@@ -226,7 +225,7 @@ mod tests {
     #[test]
     fn test_approve_call_try_into_write_contract_parameters() {
         let args = TransactionArgs {
-            rpc_url: "http://test.com".to_string(),
+            rpcs: vec!["http://test.com".to_string()],
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),

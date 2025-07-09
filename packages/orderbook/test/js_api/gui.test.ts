@@ -139,7 +139,8 @@ const dotrain = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -216,7 +217,8 @@ const dotrainWithoutVaultIds = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -286,7 +288,8 @@ const dotrainWithoutTokens = `
 version: 1
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -364,7 +367,8 @@ gui:
           default: some-default-value
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 999
         network-id: 999
         currency: ZZ
@@ -949,7 +953,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	describe('state management tests', async () => {
-		let serializedState = '';
+		let serializedState =
+			'H4sIAAAAAAAA_72OvU7DMBSF44KKhBgQYkVCYiUksZWQVmVBipQJBizEVuXHxUlcOyROIfAQjKy8QMUTsLLxPIgNIWzaoM7c5Zx7z_X1B4yf2lIqSS3NOONpxq-BmtnG5nI6i1hDemrS14koCHcMXetKXfvI66zA35U1pY5trz7W7TRgLabE5ETeiqrQgHtKqZTl0LKYSCJGRS2Hvu27VlUmZlOxB_0x0A5ohACHu8pOVhTogw0V42-WfQdoYtylhN3un5gfRx_zg_fR_PXJffm86sHB23MCdv4wwwUz1G7pHEIILDrP8w6VzfObcRzPwtP0guaDiT9OUHOH7y_b9DhklBTnWeQECLdnMDjZVm-EpKQyU1Iy0U4Jl1-y92H1ZQIAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {

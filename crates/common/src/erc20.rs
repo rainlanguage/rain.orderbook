@@ -24,17 +24,17 @@ impl_wasm_traits!(TokenInfo);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ERC20 {
-    pub rpc_url: Url,
+    pub rpcs: Vec<Url>,
     pub address: Address,
 }
 
 impl ERC20 {
-    pub fn new(rpc_url: Url, address: Address) -> Self {
-        Self { rpc_url, address }
+    pub fn new(rpcs: Vec<Url>, address: Address) -> Self {
+        Self { rpcs, address }
     }
 
     fn get_instance(&self) -> Result<IERC20Instance<ReadProvider, AnyNetwork>, Error> {
-        let provider = mk_read_provider(&[self.rpc_url.as_str()])?;
+        let provider = mk_read_provider(self.rpcs.iter().map(|rpc| rpc.to_string()).collect())?;
         let erc20 = IERC20Instance::new(self.address, provider);
         Ok(erc20)
     }
@@ -183,7 +183,11 @@ mod tests {
             }));
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
+
         let decimals = erc20.decimals().await.unwrap();
         assert_eq!(decimals, 18);
     }
@@ -201,7 +205,10 @@ mod tests {
             }));
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         assert!(erc20.decimals().await.is_err());
 
         server.mock(|when, then| {
@@ -228,7 +235,10 @@ mod tests {
             }));
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         let name = erc20.name().await.unwrap();
         assert_eq!(name, "Test Token");
     }
@@ -246,7 +256,10 @@ mod tests {
             }));
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         assert!(erc20.name().await.is_err());
 
         server.mock(|when, then| {
@@ -273,7 +286,10 @@ mod tests {
             }));
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         let symbol = erc20.symbol().await.unwrap();
         assert_eq!(symbol, "TEST");
     }
@@ -291,7 +307,10 @@ mod tests {
             }));
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         assert!(erc20.symbol().await.is_err());
 
         server.mock(|when, then| {
@@ -310,7 +329,21 @@ mod tests {
         let local_evm = LocalEvm::new_with_tokens(1).await;
         let token = local_evm.tokens[0].clone();
 
-        let erc20 = ERC20::new(Url::parse(&local_evm.url()).unwrap(), *token.address());
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x82ad56cb");
+            then.body(Response::new_success(
+                1,
+                "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000",
+            )
+            .to_json_string()
+            .unwrap(),
+            );
+        });
+
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         let token_info = erc20.token_info(None).await.unwrap();
 
         assert_eq!(token_info.decimals, 18);
@@ -331,7 +364,10 @@ mod tests {
             }));
         });
 
-        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
         assert!(erc20.token_info(None).await.is_err());
 
         server.mock(|when, then| {

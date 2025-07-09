@@ -14,12 +14,12 @@ use rain_orderbook_common::provider::mk_read_provider;
 /// Quotes array of given quote targets using the given rpc url
 pub async fn batch_quote(
     quote_targets: &[QuoteTarget],
-    rpc: &str,
+    rpcs: Vec<String>,
     block_number: Option<u64>,
     _gas: Option<u64>, // TODO: remove or use
     multicall_address: Option<Address>,
 ) -> Result<Vec<QuoteResult>, Error> {
-    let provider = mk_read_provider(&[rpc])?;
+    let provider = mk_read_provider(rpcs)?;
 
     let mut multicall = if let Some(addr) = multicall_address {
         provider.multicall().address(addr).dynamic()
@@ -130,7 +130,7 @@ mod tests {
 
         let result = batch_quote(
             &quote_targets,
-            rpc_server.url("/").as_str(),
+            vec![rpc_server.url("/").to_string()],
             None,
             None,
             None,
@@ -155,9 +155,15 @@ mod tests {
         let rpc_server = MockServer::start_async().await;
         let quote_targets = vec![QuoteTarget::default()];
 
-        let err = batch_quote(&quote_targets, "this should break", None, None, None)
-            .await
-            .unwrap_err();
+        let err = batch_quote(
+            &quote_targets,
+            vec!["this should break".to_string()],
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap_err();
 
         assert!(
             matches!(
@@ -183,7 +189,7 @@ mod tests {
 
         let err = batch_quote(
             &quote_targets,
-            rpc_server.url("/rpc").as_str(),
+            vec![rpc_server.url("/rpc").to_string()],
             None,
             None,
             None,

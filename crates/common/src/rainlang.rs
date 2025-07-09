@@ -187,20 +187,22 @@ mod fork_parse {
         #[error("Fork Cache Poisoned")]
         ForkCachePoisoned,
         #[error(transparent)]
-        ForkerError(ForkCallError),
+        ForkerError(Box<ForkCallError>),
         #[error("Fork Call Reverted: {0}")]
         ForkCallReverted(#[from] AbiDecodedErrorType),
         #[error(transparent)]
         ReadableClientError(#[from] ReadableClientError),
         #[error("Failed to read Parser address from deployer")]
         ReadParserAddressFailed,
+        #[error("Invalid input args: {0}")]
+        InvalidArgs(String),
     }
 
     impl From<ForkCallError> for ForkParseError {
         fn from(value: ForkCallError) -> Self {
             match value {
                 ForkCallError::AbiDecodedError(v) => Self::ForkCallReverted(v),
-                other => Self::ForkerError(other),
+                other => Self::ForkerError(Box::new(other)),
             }
         }
     }
@@ -210,7 +212,7 @@ mod fork_parse {
     /// returns abi encoded expression config on Ok variant
     pub async fn parse_rainlang_on_fork(
         rainlang: &str,
-        rpc_url: &str,
+        rpcs: &Vec<String>,
         block_number: Option<u64>,
         deployer: Address,
     ) -> Result<Bytes, ForkParseError> {
@@ -218,7 +220,7 @@ mod fork_parse {
         let block_number_val = match block_number {
             Some(b) => b,
             None => {
-                let client = ReadableClient::new_from_http_urls(vec![rpc_url.to_string()])?;
+                let client = ReadableClientHttp::new_from_http_urls(rpcs.clone())?;
                 client.get_block_number().await?
             }
         };
@@ -239,7 +241,29 @@ mod fork_parse {
             .clone();
 
         let mut forker = fork_arc.lock().await;
-        forker.add_or_select(args, None).await?;
+
+        if rpcs.is_empty() {
+            return Err(ForkParseError::InvalidArgs("rpcs cannot be empty".into()));
+        }
+
+        for rpc in rpcs {
+            let args = NewForkedEvm {
+                fork_url: rpc.to_owned(),
+                fork_block_number: Some(block_number_val),
+            };
+            match forker.add_or_select(args, None).await {
+                Ok(_) => {
+                    err = None;
+                    break;
+                }
+                Err(e) => {
+                    err = Some(ForkParseError::ForkerError(Box::new(e)));
+                }
+            }
+        }
+        if let Some(err) = err {
+            return Err(err);
+        };
 
         let parse_args = ForkParseArgs {
             rainlang_string: rainlang.to_owned(),
@@ -287,7 +311,7 @@ _ _: 1 2;
             )
             .unwrap();
 
-            let bytes = parse_rainlang_on_fork(&rainlang, &rpc_url, None, deployer)
+            let bytes = parse_rainlang_on_fork(&rainlang, &vec![rpc_url], None, deployer)
                 .await
                 .unwrap();
 
@@ -314,7 +338,7 @@ _ _: 0 0;
 _ _: 1 2;
 ";
 
-            let err = parse_rainlang_on_fork(dotrain, &rpc_url, None, deployer)
+            let err = parse_rainlang_on_fork(dotrain, &vec![rpc_url], None, deployer)
                 .await
                 .unwrap_err();
 
@@ -356,7 +380,7 @@ _ _: 1 2;
             )
             .unwrap();
 
-            let err = parse_rainlang_on_fork(&rainlang, &rpc_url, None, deployer)
+            let err = parse_rainlang_on_fork(&rainlang, &vec![rpc_url.clone()], None, deployer)
                 .await
                 .unwrap_err();
 

@@ -24,14 +24,21 @@ execSync(
 	}.wasm --out-dir ./temp/web/${package} --out-name ${package}`
 );
 
-// encode wasm as base64 into a json that can be natively imported
+// encode wasm as base64 into a json for cjs and esm that can be natively imported
 // in js modules in order to avoid using fetch or fs operations
-const wasmBytes = fs.readFileSync(`./temp/node/${package}/${package}_bg.wasm`);
+const wasmCjsBytes = fs.readFileSync(`./temp/node/${package}/${package}_bg.wasm`);
 fs.writeFileSync(
-	`./dist/orderbook_wbg.json`,
-	JSON.stringify({
-		wasm: Buffer.from(wasmBytes, 'binary').toString('base64')
-	})
+  `./dist/cjs/orderbook_wbg.json`,
+  JSON.stringify({
+    wasm: Buffer.from(wasmCjsBytes, "binary").toString("base64"),
+  })
+);
+const wasmEsmBytes = fs.readFileSync(`./temp/web/${package}/${package}_bg.wasm`);
+fs.writeFileSync(
+  `./dist/esm/orderbook_wbg.json`,
+  JSON.stringify({
+    wasm: Buffer.from(wasmEsmBytes, "binary").toString("base64"),
+  })
 );
 
 // prepare the dts
@@ -56,7 +63,7 @@ cjs = cjs.replace(
 const bytes = require('fs').readFileSync(path);`,
 	`
 const { Buffer } = require('buffer');
-const wasmB64 = require('../orderbook_wbg.json');
+const wasmB64 = require('../cjs/orderbook_wbg.json');
 const bytes = Buffer.from(wasmB64.wasm, 'base64');`
 );
 cjs = cjs.replace('const { TextEncoder, TextDecoder } = require(`util`);', '');
@@ -67,21 +74,13 @@ fs.writeFileSync(`./dist/cjs/index.js`, cjs);
 let esm = fs.readFileSync(`./temp/web/${package}/${package}.js`, {
 	encoding: 'utf-8'
 });
-const index = esm.indexOf('function __wbg_init_memory(imports, memory)');
-esm = esm.slice(0, index);
-esm =
-	'let imports = {};\n' +
-	esm +
-	`
-imports = __wbg_get_imports();
-
-import { Buffer } from 'buffer';
-import wasmB64 from '../orderbook_wbg.json';
+esm = esm.replace(
+  `export { initSync };
+export default __wbg_init;`,
+`import { Buffer } from 'buffer';
+import wasmB64 from '../esm/orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');
-
-// Use asynchronous instantiation to avoid browsers\' 8 MB sync-compile limit.
-const { instance } = await WebAssembly.instantiate(bytes, imports);
-wasm = instance.exports;`;
-esm = esm.replaceAll('imports.wbg', 'imports.__wbindgen_placeholder__');
-esm = '/* this file is auto-generated, do not modify */\n' + esm;
+initSync(bytes);`
+)
+esm = "/* this file is auto-generated, do not modify */\n" + esm;
 fs.writeFileSync(`./dist/esm/index.js`, esm);

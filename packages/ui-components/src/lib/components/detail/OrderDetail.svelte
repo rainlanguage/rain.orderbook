@@ -41,7 +41,7 @@
 	export let lightweightChartsTheme;
 	export let orderbookAddress: Hex;
 	export let orderHash: string;
-	export let rpcUrl: string;
+	export let rpcUrls: string[];
 	export let subgraphUrl: string;
 
 	/** Callback function when remove action is triggered for an order
@@ -204,7 +204,7 @@
 		<TanstackOrderQuote
 			id={data.order.id}
 			order={data.order}
-			{rpcUrl}
+			{rpcUrls}
 			{orderbookAddress}
 			{handleQuoteDebugModal}
 		/>

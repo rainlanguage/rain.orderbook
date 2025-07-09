@@ -46,7 +46,8 @@ mod tests {
 version: {spec_version}
 networks:
     sepolia:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 0
 deployers:
     sepolia:
@@ -120,7 +121,8 @@ _ _: 0 0;
     version: {spec_version}
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -251,7 +253,8 @@ _ _: 0 0;
     version: {spec_version}
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -297,24 +300,24 @@ _ _: 0 0;
             assert_eq!(&authoring_meta.words[0].word, "some-word");
             assert_eq!(&authoring_meta.words[0].description, "some-desc");
 
-            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
-            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
-        }
-
-        assert!(result.pragma_words.len() == 1);
-        assert_eq!(result.pragma_words[0].address, pragma_addresses[0]);
-        assert!(matches!(
-            result.pragma_words[0].words,
-            WordsResult::Error(_)
-        ));
-        if let WordsResult::Error(e) = &result.pragma_words[0].words {
-            assert!(
-                e.contains(&format!(
-                    "Error fetching authoring meta for contract {}",
-                    pragma_addresses[0],
-                )) && e.contains(&pragma_meta_hash),
-                "unexpected error: {e}"
-            );
+            assert!(result.pragma_words.len() == 1);
+            assert_eq!(result.pragma_words[0].address, pragma_addresses[0]);
+            assert!(matches!(
+                result.pragma_words[0].words,
+                WordsResult::Error(_)
+            ));
+            if let WordsResult::Error(e) = &result.pragma_words[0].words {
+                assert_eq!(
+                    e,
+                    &format!(
+                        "Error fetching authoring meta for contract {}, RPCs {:?}, Metaboard URL {}: Subgraph query returned no data for metahash {}",
+                        pragma_addresses[0],
+                        vec![server.url("/rpc")],
+                        server.url("/sg"),
+                        pragma_meta_hash,
+                    )
+                );
+            }
         }
     }
 

@@ -76,7 +76,8 @@ deployments:
 version: {spec_version}
 networks:
   flare:
-    rpc: {rpc}
+    rpcs:
+      - {rpc}
     chain-id: 14
     currency: "FLR"
 subgraphs:

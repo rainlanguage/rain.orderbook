@@ -147,7 +147,8 @@ mod tests {
     version: {spec_version}
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
             label: Ethereum Mainnet
             network-id: 1

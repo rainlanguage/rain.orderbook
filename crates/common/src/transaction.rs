@@ -46,6 +46,8 @@ pub enum TransactionArgsError {
     #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
     Url(#[from] url::ParseError),
+    #[error("Invalid input args: {0}")]
+    InvalidArgs(String),
 }
 
 #[derive(Clone, Serialize, Deserialize, Default)]
@@ -53,9 +55,9 @@ pub struct TransactionArgs {
     pub orderbook_address: Address,
     pub derivation_index: Option<usize>,
     pub chain_id: Option<u64>,
-    pub rpc_url: String,
-    pub max_priority_fee_per_gas: Option<u128>,
-    pub max_fee_per_gas: Option<u128>,
+    pub rpcs: Vec<String>,
+    pub max_priority_fee_per_gas: Option<U256>,
+    pub max_fee_per_gas: Option<U256>,
 }
 
 impl TransactionArgs {
@@ -76,7 +78,7 @@ impl TransactionArgs {
 
     pub async fn try_fill_chain_id(&mut self) -> Result<(), TransactionArgsError> {
         if self.chain_id.is_none() {
-            let chain_id = ReadableClient::new_from_http_urls(vec![self.rpc_url.clone()])?
+            let chain_id = ReadableClientHttp::new_from_http_urls(self.rpcs.clone())?
                 .get_chainid()
                 .await?;
 
@@ -96,8 +98,22 @@ impl TransactionArgs {
         ),
         TransactionArgsError,
     > {
+
+        match self.chain_id {
+            Some(chain_id) => {
+                let mut err: Option<TransactionArgsError> = None;
+                if self.rpcs.is_empty() {
+                    return Err(TransactionArgsError::InvalidArgs(
+                        "rpcs cannot be empty".into(),
+                    ));
+                }
+                for rpc in self.rpcs.clone() {
+
         let derivation_index = self.derivation_index.unwrap_or(0);
-        let signer = LedgerSigner::new(HDPath::LedgerLive(derivation_index), self.chain_id).await?;
+        let signer = LedgerSigner::new(HDPath::LedgerLive(derivation_index), self.chain_id).await;
+
+                    match client {
+                        Ok(client) => {
         let address = signer.get_address().await?;
 
         let url: url::Url = self.rpc_url.parse()?;
@@ -105,7 +121,19 @@ impl TransactionArgs {
             .wallet(signer)
             .connect_http(url);
 
-        Ok((provider, address))
+                            return Ok((provider, address));
+                        }
+                        Err(e) => {
+                            err = Some(TransactionArgsError::LedgerClient(e));
+                        }
+                    }
+                }
+                // if we are here, we have tried all rpcs and failed
+                Err(err.unwrap())
+            }
+            None => Err(TransactionArgsError::ChainIdNone),
+        }
+
     }
 }
 
@@ -123,7 +151,7 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-            rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
+            rpcs: vec!["https://mainnet.infura.io/v3/your-api-key".to_string()],
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
         };
@@ -147,9 +175,16 @@ mod tests {
             orderbook_address: address!("123abcdef24Ca5003905aA834De7156C68b2E1d0"),
             derivation_index: Some(0),
             chain_id: Some(1),
+<<<<<<< HEAD
             rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
             max_priority_fee_per_gas: Some(100),
             max_fee_per_gas: Some(200),
+=======
+            rpcs: vec!["https://mainnet.infura.io/v3/your-api-key".to_string()],
+            max_priority_fee_per_gas: Some(U256::from(100)),
+            max_fee_per_gas: Some(U256::from(200)),
+            gas_fee_speed: Some(GasFeeSpeed::Fast),
+>>>>>>> origin/2024-09-12-i9r
         };
 
         let call = vaultBalance2Call {
@@ -190,7 +225,7 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-            rpc_url: server.url("/rpc"),
+            rpcs: vec![server.url("/rpc")],
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
         };
@@ -199,7 +234,7 @@ mod tests {
         assert_eq!(args.chain_id, Some(1));
 
         // the URL is invalid but it shouldn't be used now that chain ID is set
-        args.rpc_url = "".to_string();
+        args.rpcs = vec!["".to_string()];
         args.try_fill_chain_id().await.unwrap();
         assert_eq!(args.chain_id, Some(1));
     }
@@ -217,7 +252,7 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-            rpc_url: server.url("/rpc"),
+            rpcs: vec![server.url("/rpc")],
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
         };
@@ -227,9 +262,9 @@ mod tests {
             matches!(
                 &err,
                 TransactionArgsError::ReadableClient(ReadableClientError::AllProvidersFailed(ref msg))
-                if msg.get(&args.rpc_url).is_some()
+                if msg.get(&args.rpcs[0]).is_some()
                     && matches!(
-                        msg.get(&args.rpc_url).unwrap(),
+                        msg.get(&args.rpcs[0]).unwrap(),
                         ReadableClientError::ReadChainIdError(_)
                     )
             ),
@@ -243,11 +278,23 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
+<<<<<<< HEAD
             rpc_url: "".to_string(),
+=======
+            rpcs: vec![server.url("/rpc")],
+>>>>>>> origin/2024-09-12-i9r
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
         };
 
+<<<<<<< HEAD
+=======
+        let err = args.clone().try_into_ledger_client().await;
+        assert!(matches!(err, Err(TransactionArgsError::ChainIdNone)));
+
+        args.try_fill_chain_id().await.unwrap();
+        args.rpcs = vec!["".to_string()];
+>>>>>>> origin/2024-09-12-i9r
         let result = args.try_into_ledger_client().await;
         // The error is different based on whether you have a Ledger plugged in,
         // hence no pattern matching to avoid breaking the test for devs

@@ -56,11 +56,21 @@ pub enum TestRunnerError {
     #[error(transparent)]
     BlockError(#[from] BlockError),
     #[error(transparent)]
-    ForkCallError(#[from] ForkCallError),
+    ForkCallError(Box<ForkCallError>),
     #[error(transparent)]
     JoinError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
+    #[error(transparent)]
+    RainEvalResultError(#[from] RainEvalResultError),
+    #[error("Invalid input args: {0}")]
+    InvalidArgs(String),
+}
+
+impl From<ForkCallError> for TestRunnerError {
+    fn from(err: ForkCallError) -> Self {
+        Self::ForkCallError(Box::new(err))
+    }
 }
 
 impl TestRunner {
@@ -160,7 +170,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -213,7 +223,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -260,7 +270,7 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
@@ -317,11 +327,47 @@ impl TestRunner {
             };
             fork_clone
                 .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
+                .map_err(|e| TestRunnerError::ForkCallError(Box::new(e)))
                 .await
         });
 
         Ok(vec![handle.await??.into()].into())
+    }
+
+    async fn create_fork(
+        &mut self,
+        rpcs: Vec<String>,
+        block_number: u64,
+    ) -> Result<(), TestRunnerError> {
+        let mut last_err = None;
+        let mut fork_success = false;
+        for rpc in &rpcs {
+            match self
+                .forker
+                .add_or_select(
+                    NewForkedEvm {
+                        fork_url: rpc.clone(),
+                        fork_block_number: Some(block_number),
+                    },
+                    None,
+                )
+                .await
+            {
+                Ok(_) => {
+                    fork_success = true;
+                    break;
+                }
+                Err(e) => {
+                    last_err = Some(e);
+                }
+            }
+        }
+        if !fork_success {
+            return Err(TestRunnerError::InvalidArgs(format!(
+                "Failed to create fork: {last_err:?}"
+            )));
+        }
+        Ok(())
     }
 
     pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
@@ -336,14 +382,21 @@ impl TestRunner {
             .clone();
 
         // Fetch the latest block number
+<<<<<<< HEAD:crates/common/src/unit_tests.rs
         let block_number = ReadableClient::new_from_http_urls(vec![self
+=======
+        let rpcs = self
+>>>>>>> origin/2024-09-12-i9r:crates/common/src/unit_tests/mod.rs
             .test_setup
             .deployer
             .network
-            .rpc
-            .to_string()])?
-        .get_block_number()
-        .await?;
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect::<Vec<String>>();
+        let block_number = ReadableClientHttp::new_from_urls(rpcs.clone())?
+            .get_block_number()
+            .await?;
         let blocks = self
             .settings
             .test_config
@@ -355,16 +408,7 @@ impl TestRunner {
             })?;
         self.test_setup.block_number = blocks[0];
 
-        // Create a fork with the first block number
-        self.forker
-            .add_or_select(
-                NewForkedEvm {
-                    fork_url: self.test_setup.deployer.network.rpc.clone().into(),
-                    fork_block_number: Some(block_number),
-                },
-                None,
-            )
-            .await?;
+        self.create_fork(rpcs, block_number).await?;
 
         let pre_stack = self.run_pre_entrypoint().await?;
         let calculate_stack = self.run_calculate_entrypoint(pre_stack.clone()).await?;
@@ -447,7 +491,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:

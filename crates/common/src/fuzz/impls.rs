@@ -75,7 +75,7 @@ pub enum FuzzRunnerError {
     #[error("{0} is not a testable scenario")]
     ScenarioNotTestable(String),
     #[error(transparent)]
-    ForkCallError(#[from] ForkCallError),
+    ForkCallError(Box<ForkCallError>),
     #[error("Empty Front Matter")]
     EmptyFrontmatter,
     #[error(transparent)]
@@ -100,6 +100,14 @@ pub enum FuzzRunnerError {
     Eyre(#[from] eyre::Report),
     #[error(transparent)]
     RainEvalResultConversion(#[from] RainEvalResultFromRawCallResultError),
+    #[error("Invalid input args: {0}")]
+    InvalidArgs(String),
+}
+
+impl From<ForkCallError> for FuzzRunnerError {
+    fn from(err: ForkCallError) -> Self {
+        Self::ForkCallError(Box::new(err))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -166,6 +174,42 @@ impl FuzzRunner {
         self.run_scenario(context, &scenario).await
     }
 
+    async fn create_fork(
+        &mut self,
+        rpcs: Vec<String>,
+        block_number: u64,
+    ) -> Result<(), FuzzRunnerError> {
+        let mut last_err = None;
+        let mut fork_success = false;
+        for rpc in &rpcs {
+            match self
+                .forker
+                .add_or_select(
+                    NewForkedEvm {
+                        fork_url: rpc.clone(),
+                        fork_block_number: Some(block_number),
+                    },
+                    None,
+                )
+                .await
+            {
+                Ok(_) => {
+                    fork_success = true;
+                    break;
+                }
+                Err(e) => {
+                    last_err = Some(e);
+                }
+            }
+        }
+        if !fork_success {
+            return Err(FuzzRunnerError::InvalidArgs(format!(
+                "Failed to create fork: {last_err:?}"
+            )));
+        }
+        Ok(())
+    }
+
     pub async fn run_scenario(
         &mut self,
         context: &mut FuzzRunnerContext,
@@ -177,10 +221,15 @@ impl FuzzRunner {
         let deployer = scenario.deployer.clone();
 
         // Fetch the latest block number
-        let block_number =
-            ReadableClient::new_from_http_urls(vec![deployer.network.rpc.to_string()])?
-                .get_block_number()
-                .await?;
+        let rpcs = deployer
+            .network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect::<Vec<String>>();
+        let block_number = ReadableClientHttp::new_from_http_urls(rpcs.clone())?
+            .get_block_number()
+            .await?;
 
         let blocks = scenario
             .blocks
@@ -189,16 +238,7 @@ impl FuzzRunner {
                 b.expand_to_block_numbers(block_number)
             })?;
 
-        // Create a fork with the first block number
-        self.forker
-            .add_or_select(
-                NewForkedEvm {
-                    fork_url: deployer.network.rpc.clone().into(),
-                    fork_block_number: Some(blocks[0]),
-                },
-                None,
-            )
-            .await?;
+        self.create_fork(rpcs, blocks[0]).await?;
 
         // Pull out the bindings from the scenario
         let scenario_bindings: Vec<Rebind> = scenario
@@ -279,7 +319,7 @@ impl FuzzRunner {
                     };
                     fork_clone
                         .fork_eval(args)
-                        .map_err(FuzzRunnerError::ForkCallError)
+                        .map_err(|e| FuzzRunnerError::ForkCallError(Box::new(e)))
                         .await
                 });
                 handles.push(handle);
@@ -321,15 +361,14 @@ impl FuzzRunner {
         let deployer = scenario.deployer.clone();
 
         // Create or select a cached fork
-        self.forker
-            .add_or_select(
-                NewForkedEvm {
-                    fork_url: deployer.network.rpc.clone().into(),
-                    fork_block_number: Some(block_number),
-                },
-                None,
-            )
-            .await?;
+        let rpcs = deployer
+            .network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect::<Vec<String>>();
+
+        self.create_fork(rpcs, block_number).await?;
 
         // Pull out the bindings from the scenario
         let scenario_bindings: Vec<Rebind> = scenario
@@ -450,8 +489,7 @@ impl FuzzRunner {
                 decode_errors: true,
             })
             .await
-            .map_err(FuzzRunnerError::ForkCallError)?;
-
+            .map_err(|e| FuzzRunnerError::ForkCallError(Box::new(e)))?;
         let store = self
             .forker
             .alloy_call(Address::default(), deployer.address, iStoreCall {}, true)
@@ -571,12 +609,18 @@ impl FuzzRunner {
                 *cached_block_number
             } else {
                 // Fetch the latest block number, if failed, record the error and continue to next deployment key
+<<<<<<< HEAD
                 match ReadableClient::new_from_http_urls(vec![scenario
+=======
+                let rpcs = scenario
+>>>>>>> origin/2024-09-12-i9r
                     .deployer
                     .network
-                    .rpc
-                    .to_string()])
-                {
+                    .rpcs
+                    .iter()
+                    .map(|rpc| rpc.to_string())
+                    .collect::<Vec<String>>();
+                match ReadableClientHttp::new_from_urls(rpcs) {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,
                         Err(e) => {
@@ -705,7 +749,8 @@ deployers:
         address: 0x1111111111111111111111111111111111111111
 networks:
     some-key:
-        rpc: https://example.com
+        rpcs:
+            - https://example.com
         chain-id: 123
 scenarios:
     some-key:
@@ -776,7 +821,8 @@ deployers:
         address: 0x1111111111111111111111111111111111111111
 networks:
     some-key:
-        rpc: https://example.com
+        rpcs:
+            - https://example.com
         chain-id: 123
 scenarios:
     some-key:
@@ -822,7 +868,8 @@ b: fuzzed;
 version: {spec_version}
 bad-networks-key:
     some-key:
-        rpc: https://example.com
+        rpcs:
+            - https://example.com
         chain-id: 123"#,
             spec_version = SpecVersion::current()
         );
@@ -844,7 +891,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -893,7 +941,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -943,7 +992,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -1012,7 +1062,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -1059,7 +1110,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -1096,7 +1148,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -1174,7 +1227,8 @@ deployers:
         address: {deployer}
 networks:
     flare:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 tokens:
     wflr:

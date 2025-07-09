@@ -115,6 +115,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     FloatError(#[from] FloatError),
+
+    #[error("Missing RPCs")]
+    MissingRpcs,
 }
 
 impl Serialize for CommandError {
