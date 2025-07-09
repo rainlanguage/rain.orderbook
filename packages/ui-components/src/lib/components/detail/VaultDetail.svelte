@@ -1,65 +1,61 @@
 <script lang="ts">
-	import { bigintStringToHex } from '../../utils/hex';
 	import Hash, { HashType } from '../Hash.svelte';
 	import VaultBalanceChangesTable from '../tables/VaultBalanceChangesTable.svelte';
 	import VaultBalanceChart from '../charts/VaultBalanceChart.svelte';
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { QKEY_VAULT } from '../../queries/keys';
-	import { getVault, type SgVault } from '@rainlanguage/orderbook';
+	import {
+		RaindexClient,
+		type Address,
+		type Hex,
+		type RaindexVault
+	} from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits } from 'viem';
+	import { formatUnits, toHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
-	import type { AppStoresInterface } from '$lib/types/appStores';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownToBracketOutline, ArrowUpFromBracketOutline } from 'flowbite-svelte-icons';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
+	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
-	export let id: string;
-	export let network: string;
+	export let id: Hex;
+	export let orderbookAddress: Address;
+	export let chainId: number;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
-	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
-	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
-	export let settings: AppStoresInterface['settings'];
 
 	/**
 	 * Required callback function when deposit action is triggered for a vault
 	 * @param vault The vault to deposit into
 	 */
-	export let onDeposit: (vault: SgVault) => void;
+	export let onDeposit: (raindexClient: RaindexClient, vault: RaindexVault) => void;
 
 	/**
 	 * Required callback function when withdraw action is triggered for a vault
 	 * @param vault The vault to withdraw from
 	 */
-	export let onWithdraw: (vault: SgVault) => void;
+	export let onWithdraw: (raindexClient: RaindexClient, vault: RaindexVault) => void;
 
-	const subgraphUrl = $settings.orderbook.subgraphs[network].url || '';
 	const queryClient = useQueryClient();
 	const { matchesAccount } = useAccount();
 	const { errToast } = useToasts();
+	const raindexClient = useRaindexClient();
 
-	$: vaultDetailQuery = createQuery<SgVault>({
+	$: vaultDetailQuery = createQuery<RaindexVault>({
 		queryKey: [id, QKEY_VAULT + id],
 		queryFn: async () => {
-			const result = await getVault(subgraphUrl || '', id);
-			if (result.error) throw new Error(result.error.msg);
+			const result = await raindexClient.getVault(chainId, orderbookAddress, id);
+			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
-		},
-		enabled: !!subgraphUrl
+		}
 	});
-
-	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
-		activeNetworkRef.set(subgraphName);
-		activeOrderbookRef.set(subgraphName);
-	};
 
 	const interval = setInterval(async () => {
 		invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id]);
@@ -93,7 +89,7 @@
 					size="xs"
 					data-testid="deposit-button"
 					aria-label="Deposit to vault"
-					on:click={() => onDeposit(data)}
+					on:click={() => onDeposit(raindexClient, data)}
 				>
 					<ArrowDownToBracketOutline size="xs" />
 				</Button>
@@ -102,7 +98,7 @@
 					size="xs"
 					data-testid="withdraw-button"
 					aria-label="Withdraw from vault"
-					on:click={() => onWithdraw(data)}
+					on:click={() => onWithdraw(raindexClient, data)}
 				>
 					<ArrowUpFromBracketOutline size="xs" />
 				</Button>
@@ -118,13 +114,13 @@
 	<svelte:fragment slot="card" let:data>
 		<CardProperty data-testid="vaultDetailVaultId">
 			<svelte:fragment slot="key">Vault ID</svelte:fragment>
-			<svelte:fragment slot="value">{bigintStringToHex(data.vaultId)}</svelte:fragment>
+			<svelte:fragment slot="value">{toHex(data.vaultId)}</svelte:fragment>
 		</CardProperty>
 
 		<CardProperty data-testid="vaultDetailOrderbookAddress">
 			<svelte:fragment slot="key">Orderbook</svelte:fragment>
 			<svelte:fragment slot="value">
-				<Hash type={HashType.Identifier} value={data.orderbook.id} />
+				<Hash type={HashType.Identifier} value={data.orderbook} />
 			</svelte:fragment>
 		</CardProperty>
 
@@ -156,12 +152,7 @@
 				<p data-testid="vaultDetailOrdersAsInput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsInput && data.ordersAsInput.length > 0}
 						{#each data.ordersAsInput as order}
-							<OrderOrVaultHash
-								type="orders"
-								orderOrVault={order}
-								{network}
-								{updateActiveNetworkAndOrderbook}
-							/>
+							<OrderOrVaultHash type="orders" orderOrVault={order} {chainId} {orderbookAddress} />
 						{/each}
 					{:else}
 						None
@@ -176,12 +167,7 @@
 				<p data-testid="vaultDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
-							<OrderOrVaultHash
-								type="orders"
-								orderOrVault={order}
-								{network}
-								{updateActiveNetworkAndOrderbook}
-							/>
+							<OrderOrVaultHash type="orders" orderOrVault={order} {chainId} {orderbookAddress} />
 						{/each}
 					{:else}
 						None
@@ -192,8 +178,8 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="chart" let:data>
-		<VaultBalanceChart vault={data} {subgraphUrl} {lightweightChartsTheme} {id} />
+		<VaultBalanceChart vault={data} {lightweightChartsTheme} />
 	</svelte:fragment>
 
-	<svelte:fragment slot="below"><VaultBalanceChangesTable {id} {subgraphUrl} /></svelte:fragment>
+	<svelte:fragment slot="below" let:data><VaultBalanceChangesTable vault={data} /></svelte:fragment>
 </TanstackPageContentDetail>

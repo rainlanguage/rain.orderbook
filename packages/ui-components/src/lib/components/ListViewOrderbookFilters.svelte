@@ -1,14 +1,12 @@
 <script lang="ts" generics="T">
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
-
 	import type { Readable } from 'svelte/store';
-
+	import DropdownActiveNetworks from './dropdown/DropdownActiveNetworks.svelte';
 	import { page } from '$app/stores';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
-	import type { SgErc20WithSubgraphName, SgTokenAddress } from '@rainlanguage/orderbook';
+	import type { Address, RaindexVaultToken } from '@rainlanguage/orderbook';
 	import Tooltip from './Tooltip.svelte';
-	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
 	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
@@ -23,12 +21,12 @@
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
+	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
-	export let selectedTokens: SgTokenAddress[];
-	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName[], Error>>;
+	export let selectedTokens: Address[];
+	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
 	$: isOrdersPage = $page.url.pathname === '/orders';
@@ -69,6 +67,6 @@
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
 		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
-		<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
+		<DropdownActiveNetworks settings={$settings} {selectedChainIds} />
 	{/if}
 </div>

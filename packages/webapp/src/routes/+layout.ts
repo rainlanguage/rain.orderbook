@@ -1,37 +1,41 @@
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
-import pickBy from 'lodash/pickBy';
 import type { LayoutLoad } from './$types';
 import {
 	parseYaml,
-	type NewConfig,
-	type OrderbookCfg,
-	type SubgraphCfg
+	RaindexClient,
+	type Address,
+	type Hex,
+	type NewConfig
 } from '@rainlanguage/orderbook';
 
 export interface LayoutData {
 	errorMessage?: string;
 	stores: AppStoresInterface | null;
+	raindexClient: RaindexClient | null;
 }
+
+const REMOTE_SETTINGS_URL =
+	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/1321342555262ff6867f888957b3f03421df334f/settings.yaml';
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let config: NewConfig;
 	let errorMessage: string | undefined;
+	let settingsYamlText: string;
 
 	try {
-		const response = await fetch(
-			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/a42d1f611f2169302c04ea809c09a7e37177cf0b/settings.yaml'
-		);
+		const response = await fetch(REMOTE_SETTINGS_URL);
 		if (!response.ok) {
 			throw new Error('Error status: ' + response.status.toString());
 		}
-		const settingsYamlText = await response.text();
+		settingsYamlText = await response.text();
 
 		const configRes = parseYaml([settingsYamlText]);
 		if (configRes.error) {
 			return {
 				errorMessage: configRes.error.readableMsg,
-				stores: null
+				stores: null,
+				raindexClient: null
 			};
 		}
 		config = configRes.value;
@@ -39,63 +43,51 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		errorMessage = 'Failed to get site config settings. ' + (error as Error).message;
 		return {
 			errorMessage,
-			stores: null
+			stores: null,
+			raindexClient: null
+		};
+	}
+
+	let raindexClient: RaindexClient | null = null;
+	try {
+		const raindexClientRes = RaindexClient.new([settingsYamlText]);
+		if (raindexClientRes.error) {
+			return {
+				errorMessage: raindexClientRes.error.readableMsg,
+				stores: null,
+				raindexClient: null
+			};
+		} else {
+			raindexClient = raindexClientRes.value;
+		}
+	} catch (error: unknown) {
+		return {
+			errorMessage: 'Error initializing RaindexClient: ' + (error as Error).message,
+			stores: null,
+			raindexClient: null
 		};
 	}
 
 	const settings: AppStoresInterface['settings'] = writable<NewConfig>(config);
-	const activeNetworkRef: AppStoresInterface['activeNetworkRef'] = writable<string>('');
-	const activeOrderbookRef: AppStoresInterface['activeOrderbookRef'] = writable<string>('');
-	const activeOrderbook = derived(
-		[settings, activeOrderbookRef],
-		([$settings, $activeOrderbookRef]) =>
-			$settings.orderbook.orderbooks !== undefined &&
-			Object.entries($settings.orderbook.orderbooks).length > 0 &&
-			$activeOrderbookRef !== undefined
-				? $settings.orderbook.orderbooks[$activeOrderbookRef]
-				: undefined
-	);
 
-	const activeNetworkOrderbooks = derived(
-		[settings, activeNetworkRef],
-		([$settings, $activeNetworkRef]) => {
-			return $settings.orderbook.orderbooks
-				? (pickBy(
-						$settings.orderbook.orderbooks,
-						(orderbook) => orderbook.network.key === $activeNetworkRef
-					) as Record<string, OrderbookCfg>)
-				: ({} as Record<string, OrderbookCfg>);
-		}
-	);
 	const accounts = derived(settings, ($settings) => $settings.orderbook.accounts || {});
-	const activeAccountsItems = writable<Record<string, string>>({});
-
-	const subgraph = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
-		$settings.orderbook.subgraphs !== undefined &&
-		Object.entries($settings.orderbook.subgraphs).length > 0 &&
-		$activeOrderbook?.subgraph !== undefined
-			? $settings.orderbook.subgraphs[$activeOrderbook.subgraph.key]
-			: undefined
-	);
+	const activeAccountsItems = writable<Record<string, Address>>({});
 
 	return {
 		stores: {
 			settings,
-			activeSubgraphs: writable<Record<string, SubgraphCfg>>({}),
+			selectedChainIds: writable<number[]>([]),
 			accounts,
 			activeAccountsItems,
 			// Instantiate with false to show only active orders
 			showInactiveOrders: writable<boolean>(false),
-			orderHash: writable<string>(''),
+			// @ts-expect-error initially the value is empty
+			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
-			activeNetworkRef,
-			activeOrderbookRef,
-			activeOrderbook,
-			subgraph,
-			activeNetworkOrderbooks,
 			showMyItemsOnly: writable<boolean>(false),
-			activeTokens: writable<string[]>([])
-		}
+			activeTokens: writable<Address[]>([])
+		},
+		raindexClient
 	};
 };
 
@@ -235,9 +227,7 @@ subgraphs:
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 
-			expect(mockFetch).toHaveBeenCalledWith(
-				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/a42d1f611f2169302c04ea809c09a7e37177cf0b/settings.yaml'
-			);
+			expect(mockFetch).toHaveBeenCalledWith(REMOTE_SETTINGS_URL);
 
 			expect(result).toHaveProperty('stores');
 			const stores: AppStoresInterface | null = result.stores;
@@ -245,96 +235,18 @@ subgraphs:
 			if (!stores) throw new Error('Test setup error: stores should not be null');
 
 			expect(stores).toHaveProperty('settings');
-			expect(stores).toHaveProperty('activeSubgraphs');
 			expect(stores).toHaveProperty('accounts');
 			expect(stores).toHaveProperty('activeAccountsItems');
 			expect(stores).toHaveProperty('showInactiveOrders');
 			expect(stores).toHaveProperty('orderHash');
 			expect(stores).toHaveProperty('hideZeroBalanceVaults');
-			expect(stores).toHaveProperty('activeNetworkRef');
-			expect(stores).toHaveProperty('activeOrderbookRef');
-			expect(stores).toHaveProperty('activeOrderbook');
-			expect(stores).toHaveProperty('subgraph');
-			expect(stores).toHaveProperty('activeNetworkOrderbooks');
 
 			expect(get(stores.settings)).toEqual(mockConfig);
-			expect(get(stores.activeNetworkRef)).toEqual('');
-			expect(get(stores.activeOrderbookRef)).toEqual('');
 			if (stores.activeAccountsItems) {
 				expect(get(stores.activeAccountsItems)).toEqual({});
 			}
 			expect(get(stores.orderHash)).toEqual('');
 			expect(get(stores.hideZeroBalanceVaults)).toEqual(false);
-		});
-
-		it('should handle derived store: activeOrderbook', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeOrderbook)).toBeUndefined();
-
-			stores.activeOrderbookRef.set('orderbook1');
-
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
-		});
-
-		it('should handle derived store: activeNetworkOrderbooks', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeNetworkOrderbooks)).toEqual({});
-
-			stores.activeNetworkRef.set('network1');
-
-			const networkOrderbooks = get(stores.activeNetworkOrderbooks);
-			expect(networkOrderbooks).toHaveProperty('orderbook1');
-			expect(networkOrderbooks).toHaveProperty('orderbook3');
-			expect(networkOrderbooks).not.toHaveProperty('orderbook2');
-		});
-
-		it('should handle derived store: subgraph', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.subgraph)).toBeUndefined();
-
-			stores.activeOrderbookRef.set('orderbook1');
-
-			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph1);
 		});
 
 		it('should return errorMessage if fetch fails with non-OK status', async () => {
@@ -400,85 +312,6 @@ subgraphs:
 			expect(result).toHaveProperty('errorMessage');
 			expect(result.errorMessage).toContain('Malformed settings');
 			expect(result.errorMessage).toContain('Malformed settings');
-		});
-
-		it('should handle chain reaction of store updates when changing network and orderbook', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraph)).toBeUndefined();
-			expect(get(stores.activeNetworkOrderbooks)).toEqual({});
-
-			stores.activeNetworkRef.set('network1');
-
-			const networkOrderbooks = get(stores.activeNetworkOrderbooks);
-			expect(Object.keys(networkOrderbooks).length).toBe(2);
-			expect(networkOrderbooks).toHaveProperty('orderbook1');
-			expect(networkOrderbooks).toHaveProperty('orderbook3');
-
-			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraph)).toBeUndefined();
-
-			stores.activeOrderbookRef.set('orderbook1');
-
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
-			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph1);
-
-			stores.activeNetworkRef.set('network2');
-
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
-
-			const newNetworkOrderbooks = get(stores.activeNetworkOrderbooks);
-			expect(Object.keys(newNetworkOrderbooks).length).toBe(1);
-			expect(newNetworkOrderbooks).toHaveProperty('orderbook2');
-			expect(newNetworkOrderbooks).not.toHaveProperty('orderbook1');
-		});
-
-		it('should handle multiple interrelated store updates correctly', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			stores.activeNetworkRef.set('network1');
-			stores.activeOrderbookRef.set('orderbook1');
-			stores.activeAccountsItems?.set({ account1: 'Account 1' });
-
-			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook1');
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook1);
-			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph1);
-
-			stores.activeNetworkRef.set('network2');
-			stores.activeAccountsItems?.set({ account1: 'Account 1', account2: 'Account 2' });
-			stores.activeOrderbookRef.set('orderbook2');
-
-			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook2');
-			expect(get(stores.activeNetworkOrderbooks)).not.toHaveProperty('orderbook1');
-			expect(get(stores.activeOrderbook)).toEqual(mockConfig.orderbook.orderbooks.orderbook2);
-			expect(get(stores.subgraph)).toEqual(mockConfig.orderbook.subgraphs.subgraph2);
 		});
 	});
 }

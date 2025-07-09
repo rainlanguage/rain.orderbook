@@ -6,21 +6,21 @@ import type { AccountCfg } from '@rainlanguage/orderbook';
 
 describe('DropdownOrderListAccounts', () => {
 	let accounts: Writable<Record<string, AccountCfg>>;
-	let activeAccountsItems: Writable<Record<string, string>>;
+	let activeAccountsItems: Writable<Record<string, `0x${string}`>>;
 
 	beforeEach(() => {
 		accounts = writable({
 			address1: {
 				key: 'address1',
-				address: 'Label 1'
+				address: '0x1234567890123456789012345678901234567890'
 			},
 			address2: {
 				key: 'address2',
-				address: 'Label 2'
+				address: '0x1234567890123456789012345678901234567891'
 			},
 			address3: {
 				key: 'address3',
-				address: 'Label 3'
+				address: '0x1234567890123456789012345678901234567892'
 			}
 		});
 		activeAccountsItems = writable({});
@@ -61,10 +61,12 @@ describe('DropdownOrderListAccounts', () => {
 		});
 
 		await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
-		await fireEvent.click(screen.getByText('Label 1'));
+		await fireEvent.click(screen.getByText('0x1234567890123456789012345678901234567890'));
 
 		await waitFor(() => {
-			expect(get(activeAccountsItems)).toEqual({ address1: 'Label 1' });
+			expect(get(activeAccountsItems)).toEqual({
+				address1: '0x1234567890123456789012345678901234567890'
+			});
 		});
 	});
 
@@ -81,9 +83,9 @@ describe('DropdownOrderListAccounts', () => {
 
 		await waitFor(() => {
 			expect(get(activeAccountsItems)).toEqual({
-				address1: 'Label 1',
-				address2: 'Label 2',
-				address3: 'Label 3'
+				address1: '0x1234567890123456789012345678901234567890',
+				address2: '0x1234567890123456789012345678901234567891',
+				address3: '0x1234567890123456789012345678901234567892'
 			});
 		});
 	});

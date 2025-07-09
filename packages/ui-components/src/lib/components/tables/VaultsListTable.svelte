@@ -1,4 +1,8 @@
 <script lang="ts" generics="T">
+	import { toHex } from 'viem';
+
+	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -9,38 +13,28 @@
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
-	import { bigintStringToHex } from '../../utils/hex';
-	import { type SgVault } from '@rainlanguage/orderbook';
-	import { QKEY_VAULTS, QKEY_TOKENS } from '../../queries/keys';
-	import { getVaults, type SgVaultWithSubgraphName, getVaultTokens } from '@rainlanguage/orderbook';
+	import { RaindexVault } from '@rainlanguage/orderbook';
+	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { getMultiSubgraphArgs } from '$lib/utils/configHelpers';
+	import { getNetworkName } from '$lib/utils/getNetworkName';
 
-	export let activeOrderbook: AppStoresInterface['activeOrderbook'];
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
-	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 	export let settings: AppStoresInterface['settings'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
-	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
-	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
-
-	export let handleDepositGenericModal: (() => void) | undefined = undefined;
-	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
-		undefined;
-	export let handleWithdrawModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
-		undefined;
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
+	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let handleDepositModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
+		undefined;
+	export let handleWithdrawModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
+		undefined;
 
 	const { account, matchesAccount } = useAccount();
-
-	$: multiSubgraphArgs = getMultiSubgraphArgs(
-		Object.keys($activeSubgraphs).length > 0 ? $activeSubgraphs : $settings.orderbook.subgraphs
-	);
+	const raindexClient = useRaindexClient();
 
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
@@ -50,41 +44,40 @@
 				: [];
 
 	$: tokensQuery = createQuery({
-		queryKey: [QKEY_TOKENS, $activeSubgraphs, multiSubgraphArgs],
+		queryKey: [QKEY_TOKENS, $selectedChainIds],
 		queryFn: async () => {
-			const result = await getVaultTokens(multiSubgraphArgs);
-			if (result.error) throw new Error(result.error.msg);
-			return result.value || [];
+			const result = await raindexClient.getAllVaultTokens($selectedChainIds);
+			if (result.error) throw new Error(result.error.readableMsg);
+			return result.value;
 		},
 		enabled: true
 	});
 
 	$: selectedTokens =
 		$activeTokens?.filter(
-			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.token.address === address)
+			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
 		) ?? [];
 
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
 			$hideZeroBalanceVaults,
-			$activeSubgraphs,
-			multiSubgraphArgs,
+			$selectedChainIds,
 			$settings,
 			owners,
 			selectedTokens
 		],
 		queryFn: async ({ pageParam }) => {
-			const result = await getVaults(
-				multiSubgraphArgs,
+			const result = await raindexClient.getVaults(
+				$selectedChainIds,
 				{
 					owners,
 					hideZeroBalance: $hideZeroBalanceVaults,
 					tokens: selectedTokens
 				},
-				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
+				pageParam + 1
 			);
-			if (result.error) throw new Error(result.error.msg);
+			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
 		initialPageParam: 0,
@@ -95,16 +88,12 @@
 		enabled: true
 	});
 
-	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
-		activeNetworkRef.set(subgraphName);
-		activeOrderbookRef.set(subgraphName);
-	};
-	const AppTable = TanstackAppTable<SgVaultWithSubgraphName>;
+	const AppTable = TanstackAppTable<RaindexVault>;
 </script>
 
 {#if $query}
 	<ListViewOrderbookFilters
-		{activeSubgraphs}
+		{selectedChainIds}
 		{settings}
 		{accounts}
 		{activeAccountsItems}
@@ -121,26 +110,13 @@
 		queryKey={QKEY_VAULTS}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
-			updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
-			goto(`/vaults/${e.detail.item.subgraphName}-${e.detail.item.vault.id}`);
+			goto(`/vaults/${e.detail.item.chainId}-${e.detail.item.orderbook}-${e.detail.item.id}`);
 		}}
 	>
 		<svelte:fragment slot="title">
 			<div class="mt-2 flex w-full justify-between">
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
-					{#if handleDepositGenericModal}
-						<Button
-							disabled={!$activeOrderbook}
-							size="sm"
-							color="primary"
-							data-testid="new-vault-button"
-							on:click={() => {
-								handleDepositGenericModal();
-							}}
-							>New vault
-						</Button>
-					{/if}
 				</div>
 			</div>
 		</svelte:fragment>
@@ -157,62 +133,62 @@
 
 		<svelte:fragment slot="bodyRow" let:item>
 			<TableBodyCell tdClass="px-4 py-2" data-testid="vault-network">
-				{item.subgraphName}
+				{getNetworkName(Number(item.chainId))}
 			</TableBodyCell>
 
 			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id">
-				<Hash type={HashType.Identifier} value={bigintStringToHex(item.vault.vaultId)} />
+				<Hash type={HashType.Identifier} value={toHex(item.vaultId)} />
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
-				<Hash type={HashType.Identifier} value={item.vault.orderbook.id} />
+				<Hash type={HashType.Identifier} value={item.orderbook} />
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner">
-				<Hash type={HashType.Wallet} value={item.vault.owner} />
+				<Hash type={HashType.Wallet} value={item.owner} />
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
-				>{item.vault.token.name}</TableBodyCell
+				>{item.token.name}</TableBodyCell
 			>
 			<TableBodyCell tdClass="break-all p-2 min-w-48" data-testid="vault-balance">
-				{vaultBalanceDisplay(item.vault)}
-				{item.vault.token.symbol}
+				{vaultBalanceDisplay(item)}
+				{item.token.symbol}
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all p-2 min-w-48">
-				{#if item.vault.ordersAsInput.length > 0}
+				{#if item.ordersAsInput.length > 0}
 					<div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
-						{#each item.vault.ordersAsInput.slice(0, 3) as order}
+						{#each item.ordersAsInput.slice(0, 3) as order}
 							<OrderOrVaultHash
 								type="orders"
 								orderOrVault={order}
-								network={item.subgraphName}
-								{updateActiveNetworkAndOrderbook}
+								chainId={item.chainId}
+								orderbookAddress={item.orderbook}
 							/>
 						{/each}
-						{#if item.vault.ordersAsInput.length > 3}...{/if}
+						{#if item.ordersAsInput.length > 3}...{/if}
 					</div>
 				{/if}
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all p-2 min-w-48">
-				{#if item.vault.ordersAsOutput.length > 0}
+				{#if item.ordersAsOutput.length > 0}
 					<div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
-						{#each item.vault.ordersAsOutput.slice(0, 3) as order}
+						{#each item.ordersAsOutput.slice(0, 3) as order}
 							<OrderOrVaultHash
 								type="orders"
 								orderOrVault={order}
-								network={item.subgraphName}
-								{updateActiveNetworkAndOrderbook}
+								chainId={item.chainId}
+								orderbookAddress={item.orderbook}
 							/>
 						{/each}
-						{#if item.vault.ordersAsOutput.length > 3}...{/if}
+						{#if item.ordersAsOutput.length > 3}...{/if}
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.vault.owner)}
+			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.owner)}
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"
 						outline={false}
 						data-testid="vault-menu"
-						id={`vault-menu-${item.vault.id}`}
+						id={`vault-menu-${item.id}`}
 						class="mr-2 border-none px-2"
 						on:click={(e) => {
 							e.stopPropagation();
@@ -225,13 +201,13 @@
 				<Dropdown
 					data-testid="dropdown"
 					placement="bottom-end"
-					triggeredBy={`#vault-menu-${item.vault.id}`}
+					triggeredBy={`#vault-menu-${item.id}`}
 				>
 					<DropdownItem
 						data-testid="deposit-button"
 						on:click={(e) => {
 							e.stopPropagation();
-							handleDepositModal(item.vault, $query.refetch);
+							handleDepositModal(item, $query.refetch);
 						}}
 						>Deposit
 					</DropdownItem>
@@ -239,7 +215,7 @@
 						data-testid="withdraw-button"
 						on:click={(e) => {
 							e.stopPropagation();
-							handleWithdrawModal(item.vault, $query.refetch);
+							handleWithdrawModal(item, $query.refetch);
 						}}
 						>Withdraw
 					</DropdownItem>

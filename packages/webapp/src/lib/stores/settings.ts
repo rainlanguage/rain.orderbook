@@ -1,5 +1,5 @@
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import { type NewConfig, type SgErc20, type SubgraphCfg } from '@rainlanguage/orderbook';
+import { type Address, type Hex, type NewConfig } from '@rainlanguage/orderbook';
 
 export const EMPTY_CONFIG: NewConfig = {
 	orderbook: {
@@ -85,25 +85,18 @@ export const showMyItemsOnly = cachedWritableStore<boolean>(
 );
 
 /**
- * A persistent store that holds active subgraph URLs for different networks/orderbooks.
+ * A persistent store that holds the currently selected chain IDs.
  *
- * This store maps network/orderbook identifiers to their corresponding subgraph URLs.
- * The setting is saved to local storage and persists between sessions.
+ * This setting is saved to local storage and persists between sessions.
  *
- * @default {} - Empty object by default
- * @returns A writable store containing a record of subgraph URLs
+ * @default [] - Empty array by default
+ * @returns A writable store containing an array of chain IDs
  */
-export const activeSubgraphs = cachedWritableStore<Record<string, SubgraphCfg>>(
-	'settings.activeSubgraphs',
-	{},
-	JSON.stringify,
-	(s) => {
-		try {
-			return JSON.parse(s);
-		} catch {
-			return {};
-		}
-	}
+export const selectedChainIds = cachedWritableStore<number[]>(
+	'settings.selectedChainIds',
+	[],
+	(value) => JSON.stringify(value),
+	(str) => JSON.parse(str)
 );
 
 /**
@@ -114,11 +107,12 @@ export const activeSubgraphs = cachedWritableStore<Record<string, SubgraphCfg>>(
  * @default "" - Empty string by default
  * @returns A writable store containing the order hash string
  */
-export const orderHash = cachedWritableStore<string>(
+export const orderHash = cachedWritableStore<Hex>(
 	'settings.orderHash',
+	// @ts-expect-error initially the value is empty
 	'',
 	(value) => value,
-	(str) => str || ''
+	(str) => (str || '') as Hex
 );
 
 /**
@@ -151,7 +145,7 @@ export const showInactiveOrders = cachedWritableStore<boolean>(
  * @default [] - Empty array by default
  * @returns A writable store containing selected tokens mapped by address
  */
-export const activeTokens = cachedWritableStore<SgErc20['address'][]>(
+export const activeTokens = cachedWritableStore<Address[]>(
 	'settings.selectedTokens',
 	[],
 	JSON.stringify,

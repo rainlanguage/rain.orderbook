@@ -1,8 +1,8 @@
-import type { SgVault } from '@rainlanguage/orderbook';
+import type { RaindexVault } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 
-export const vaultBalanceDisplay = (vault: SgVault) => {
-	return formatUnits(BigInt(vault.balance), +(vault.token?.decimals || 0));
+export const vaultBalanceDisplay = (vault: RaindexVault) => {
+	return formatUnits(BigInt(vault.balance), Number(vault.token?.decimals || 0));
 };
 
 if (import.meta.vitest) {
@@ -25,12 +25,10 @@ if (import.meta.vitest) {
 			orderbook: {
 				id: '0x00'
 			}
-		} as unknown as SgVault;
-
-		expect(vaultBalanceDisplay(vault)).toEqual('1');
+		};
+		expect(vaultBalanceDisplay(vault as unknown as RaindexVault)).toEqual('1');
 
 		vault.token.decimals = '6';
-
-		expect(vaultBalanceDisplay(vault)).toEqual('1000000000000');
+		expect(vaultBalanceDisplay(vault as unknown as RaindexVault)).toEqual('1000000000000');
 	});
 }

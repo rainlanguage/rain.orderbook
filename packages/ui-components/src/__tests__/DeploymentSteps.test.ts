@@ -5,12 +5,12 @@ import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { GuiDeploymentCfg } from '@rainlanguage/orderbook';
+import type { GuiDeploymentCfg, RaindexClient } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
-import { mockConfig } from '../lib/__mocks__/settings';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import type { Account } from '$lib/types/account';
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: vi.fn()
@@ -20,6 +20,10 @@ const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/s
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
+}));
+
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
 }));
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
@@ -89,8 +93,6 @@ const defaultProps: DeploymentStepsProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
-	settings: writable(mockConfig),
-	registryUrl: 'https://registry.reown.xyz',
 	account: readable('0x123')
 } as DeploymentStepsProps;
 
@@ -105,7 +107,6 @@ describe('DeploymentSteps', () => {
 		guiInstance = {
 			areAllTokensSelected: vi.fn().mockReturnValue({ value: false }),
 			getSelectTokens: vi.fn().mockReturnValue({ value: [] }),
-			getNetworkKey: vi.fn().mockReturnValue({ value: 'flare' }),
 			getCurrentDeployment: vi.fn().mockReturnValue(mockDeployment),
 			getAllFieldDefinitions: vi.fn().mockReturnValue({ value: [] }),
 			hasAnyDeposit: vi.fn().mockReturnValue({ value: false }),
@@ -378,6 +379,9 @@ describe('DeploymentSteps', () => {
 		guiInstance.areAllTokensSelected = vi.fn().mockReturnValue({ value: true });
 		vi.mocked(useGui).mockReturnValue(guiInstance);
 
+		const mockRaindexClient = {} as unknown as RaindexClient;
+		vi.mocked(useRaindexClient).mockReturnValue(mockRaindexClient);
+
 		const propsWithMockHandlers = {
 			...defaultProps,
 			account: readable('0xTestAccount') as Account
@@ -392,11 +396,10 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(mockOnDeploy).toHaveBeenCalledTimes(1);
 
-			const [guiArg, subgraphUrlArg] = mockOnDeploy.mock.calls[0];
+			const [raindexClient, guiArg] = mockOnDeploy.mock.calls[0];
 
 			expect(guiArg).toBe(mockGui);
-			const expectedSubgraphUrl = mockConfig.orderbook.subgraphs.flare.url;
-			expect(subgraphUrlArg).toBe(expectedSubgraphUrl);
+			expect(raindexClient).toBe(mockRaindexClient);
 		});
 	});
 });

@@ -1,55 +1,34 @@
 <script lang="ts">
   import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
-  import { onMount } from 'svelte';
   import { page } from '$app/stores';
 
   import {
-    activeOrderbook,
     orderHash,
     accounts,
     activeAccountsItems,
-    activeSubgraphs,
+    selectedChainIds,
     settings,
     showInactiveOrders,
     hideZeroBalanceVaults,
-    activeNetworkRef,
-    activeOrderbookRef,
     activeTokens,
-    resetActiveNetworkRef,
-    resetActiveOrderbookRef,
   } from '$lib/stores/settings';
 
-  import {
-    handleDepositGenericModal,
-    handleDepositModal,
-    handleWithdrawModal,
-  } from '$lib/services/modal';
+  import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import { writable } from 'svelte/store';
-
-  onMount(async () => {
-    if (!$activeOrderbook) {
-      await resetActiveNetworkRef();
-      resetActiveOrderbookRef();
-    }
-  });
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
 <VaultsListTable
-  {activeOrderbook}
   {orderHash}
   {accounts}
   {activeAccountsItems}
-  {activeSubgraphs}
+  {selectedChainIds}
   {settings}
   {showInactiveOrders}
   {hideZeroBalanceVaults}
-  {activeNetworkRef}
-  {activeOrderbookRef}
-  {activeTokens}
-  {handleDepositGenericModal}
   {handleDepositModal}
   {handleWithdrawModal}
+  {activeTokens}
   showMyItemsOnly={writable(false)}
 />

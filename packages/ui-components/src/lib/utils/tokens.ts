@@ -1,5 +1,5 @@
-import type { SgErc20 } from '@rainlanguage/orderbook';
+import type { RaindexVaultToken } from '@rainlanguage/orderbook';
 
-export function getTokenDisplayName(token: SgErc20): string {
+export function getTokenDisplayName(token: RaindexVaultToken): string {
 	return token.symbol || token.name || 'Unknown Token';
 }

@@ -2,26 +2,27 @@
 	import { Button, Dropdown, Label, Checkbox, Input } from 'flowbite-svelte';
 	import { ChevronDownSolid, SearchSolid } from 'flowbite-svelte-icons';
 	import { isEmpty } from 'lodash';
-	import type { SgErc20WithSubgraphName, SgTokenAddress } from '@rainlanguage/orderbook';
+	import type { Address, RaindexVaultToken } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import type { Readable } from 'svelte/store';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
 	import { getTokenDisplayName } from '../../utils/tokens';
+	import { getNetworkName } from '$lib/utils/getNetworkName';
 
-	export let tokensQuery: Readable<QueryObserverResult<SgErc20WithSubgraphName[], Error>>;
+	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 	export let activeTokens: AppStoresInterface['activeTokens'];
-	export let selectedTokens: SgTokenAddress[];
+	export let selectedTokens: Address[];
 
 	export let label: string = 'Filter by tokens';
 	export let allLabel: string = 'All tokens';
 	export let emptyMessage: string = 'No tokens available';
 	export let loadingMessage: string = 'Loading tokens...';
 
-	let filteredTokens: SgErc20WithSubgraphName[] = [];
+	let filteredTokens: RaindexVaultToken[] = [];
 	let searchTerm: string = '';
 	let selectedIndex = 0; // Selected item index
 
-	$: availableTokens = ($tokensQuery?.data as SgErc20WithSubgraphName[]) || [];
+	$: availableTokens = $tokensQuery?.data || [];
 
 	$: selectedCount = selectedTokens.length;
 
@@ -41,31 +42,29 @@
 			const term = searchTerm.toLowerCase();
 			filteredTokens = availableTokens.filter(
 				(token) =>
-					token.token.symbol?.toLowerCase().includes(term) ||
-					token.token.name?.toLowerCase().includes(term) ||
-					token.token.address?.toLowerCase().includes(term)
+					token.symbol?.toLowerCase().includes(term) ||
+					token.name?.toLowerCase().includes(term) ||
+					token.address?.toLowerCase().includes(term)
 			);
 			// Select first element in the list automatically if there are any results
 			selectedIndex = filteredTokens.length > 0 ? 0 : -1;
 		}
 	}
 
-	$: sortedFilteredTokens = filteredTokens.sort(({ token }) =>
-		selectedTokens.includes(token.address) ? -1 : 1
+	$: sortedFilteredTokens = filteredTokens.sort(({ address }) =>
+		selectedTokens.includes(address) ? -1 : 1
 	);
 
-	function updateSelectedTokens(newSelection: SgTokenAddress[]) {
+	function updateSelectedTokens(newSelection: Address[]) {
 		activeTokens.set(newSelection);
 	}
 
-	function toggleToken({ token }: SgErc20WithSubgraphName) {
-		if (!token.address) return;
+	function toggleToken({ address }: RaindexVaultToken) {
+		if (!address) return;
 
-		const idx = $activeTokens.indexOf(token.address);
+		const idx = $activeTokens.indexOf(address);
 		const newSelection =
-			idx !== -1
-				? $activeTokens.filter((addr) => addr !== token.address)
-				: [...$activeTokens, token.address];
+			idx !== -1 ? $activeTokens.filter((addr) => addr !== address) : [...$activeTokens, address];
 
 		updateSelectedTokens(newSelection);
 	}
@@ -145,7 +144,7 @@
 				{#if isEmpty(filteredTokens)}
 					<div class="ml-2 w-full rounded-lg p-3">No tokens match your search</div>
 				{:else}
-					{#each sortedFilteredTokens as token, index (`${token.token.address}-${token.subgraphName}`)}
+					{#each sortedFilteredTokens as token, index}
 						<Checkbox
 							data-testid="dropdown-tokens-filter-option"
 							class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600 {selectedIndex ===
@@ -153,12 +152,12 @@
 								? 'bg-blue-100 dark:bg-blue-900'
 								: ''}"
 							on:click={() => toggleToken(token)}
-							checked={!!(token.token.address && $activeTokens.includes(token.token.address))}
+							checked={!!(token.address && $activeTokens.includes(token.address))}
 						>
 							<div class="ml-2 flex w-full">
-								<div class="flex-1 text-sm font-medium">{getTokenDisplayName(token.token)}</div>
+								<div class="flex-1 text-sm font-medium">{getTokenDisplayName(token)}</div>
 								<div class="text-xs text-gray-500">
-									{token.subgraphName}
+									{getNetworkName(token.chainId)}
 								</div>
 							</div>
 						</Checkbox>

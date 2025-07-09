@@ -2,45 +2,36 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, readable } from 'svelte/store';
 import DropdownTokensFilter from '../lib/components/dropdown/DropdownTokensFilter.svelte';
 import { expect, test, describe, beforeEach } from 'vitest';
-import type { SgErc20WithSubgraphName, SgTokenAddress } from '@rainlanguage/orderbook';
+import type { Address, RaindexVaultToken } from '@rainlanguage/orderbook';
 import type { QueryObserverResult } from '@tanstack/svelte-query';
 
 describe('DropdownTokensFilter', () => {
-	let activeTokens: ReturnType<typeof writable<SgTokenAddress[]>>;
-	let selectedTokens: SgTokenAddress[];
+	let activeTokens: ReturnType<typeof writable<Address[]>>;
+	let selectedTokens: Address[];
 
-	const mockTokensData: SgErc20WithSubgraphName[] = [
+	const mockTokensData = [
 		{
-			token: {
-				id: 'TOKEN1',
-				address: '0x1234567890123456789012345678901234567890',
-				symbol: 'TOKEN1',
-				name: 'Test Token 1',
-				decimals: '18'
-			},
-			subgraphName: 'subgraph1'
+			id: 'TOKEN1',
+			address: '0x1234567890123456789012345678901234567890',
+			symbol: 'TOKEN1',
+			name: 'Test Token 1',
+			decimals: BigInt(18)
 		},
 		{
-			token: {
-				id: 'TOKEN2',
-				address: '0x2345678901234567890123456789012345678901',
-				symbol: 'TOKEN2',
-				name: 'Test Token 2',
-				decimals: '18'
-			},
-			subgraphName: 'subgraph2'
+			id: 'TOKEN2',
+			address: '0x2345678901234567890123456789012345678901',
+			symbol: 'TOKEN2',
+			name: 'Test Token 2',
+			decimals: BigInt(18)
 		},
 		{
-			token: {
-				id: 'ETH',
-				address: '0x3456789012345678901234567890123456789012',
-				symbol: 'ETH',
-				name: 'Ethereum',
-				decimals: '18'
-			},
-			subgraphName: 'subgraph1'
+			id: 'ETH',
+			address: '0x3456789012345678901234567890123456789012',
+			symbol: 'ETH',
+			name: 'Ethereum',
+			decimals: BigInt(18)
 		}
-	];
+	] as unknown as RaindexVaultToken[];
 
 	beforeEach(() => {
 		activeTokens = writable([]);
@@ -48,7 +39,7 @@ describe('DropdownTokensFilter', () => {
 	});
 
 	function createMockTokensQuery(
-		data: SgErc20WithSubgraphName[] | undefined = undefined,
+		data: RaindexVaultToken[] | undefined = undefined,
 		isLoading = false,
 		isError = false,
 		error: Error | null = null
@@ -58,7 +49,7 @@ describe('DropdownTokensFilter', () => {
 			isLoading,
 			isError,
 			error
-		} as QueryObserverResult<SgErc20WithSubgraphName[], Error>);
+		} as QueryObserverResult<RaindexVaultToken[], Error>);
 	}
 
 	describe('Loading state', () => {
@@ -197,9 +188,7 @@ describe('DropdownTokensFilter', () => {
 
 		test('displays "All tokens" when all tokens are selected', () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const allTokenAddresses = mockTokensData
-				.map((t) => t.token.address)
-				.filter(Boolean) as string[];
+			const allTokenAddresses = mockTokensData.map((t) => t.address).filter(Boolean) as Address[];
 
 			render(DropdownTokensFilter, {
 				props: {
@@ -214,9 +203,7 @@ describe('DropdownTokensFilter', () => {
 
 		test('displays custom all label when all tokens are selected', () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const allTokenAddresses = mockTokensData
-				.map((t) => t.token.address)
-				.filter(Boolean) as string[];
+			const allTokenAddresses = mockTokensData.map((t) => t.address).filter(Boolean) as Address[];
 			const customAllLabel = 'Everything selected';
 
 			render(DropdownTokensFilter, {
@@ -233,7 +220,7 @@ describe('DropdownTokensFilter', () => {
 
 		test('displays count when some tokens are selected', () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const selectedAddresses = [mockTokensData[0].token.address] as string[];
+			const selectedAddresses = [mockTokensData[0].address] as Address[];
 
 			render(DropdownTokensFilter, {
 				props: {
@@ -248,10 +235,7 @@ describe('DropdownTokensFilter', () => {
 
 		test('displays plural count when multiple tokens are selected', () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const selectedAddresses = [
-				mockTokensData[0].token.address,
-				mockTokensData[1].token.address
-			] as string[];
+			const selectedAddresses = [mockTokensData[0].address, mockTokensData[1].address] as Address[];
 
 			render(DropdownTokensFilter, {
 				props: {
@@ -281,13 +265,13 @@ describe('DropdownTokensFilter', () => {
 			await fireEvent.click(checkboxes[0]);
 
 			await waitFor(() => {
-				expect(get(activeTokens)).toContain(mockTokensData[0].token.address);
+				expect(get(activeTokens)).toContain(mockTokensData[0].address);
 			});
 		});
 
 		test('shows selected tokens as checked', async () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const selectedAddress = mockTokensData[0].token.address as string;
+			const selectedAddress = mockTokensData[0].address;
 
 			render(DropdownTokensFilter, {
 				props: {
@@ -484,8 +468,8 @@ describe('DropdownTokensFilter', () => {
 			await fireEvent.keyDown(searchInput, { key: 'Enter' });
 
 			await waitFor(() => {
-				const ethToken = mockTokensData.find((t) => t.token.symbol === 'ETH');
-				expect(get(activeTokens)).toContain(ethToken?.token.address);
+				const ethToken = mockTokensData.find((t) => t.symbol === 'ETH');
+				expect(get(activeTokens)).toContain(ethToken?.address);
 			});
 		});
 

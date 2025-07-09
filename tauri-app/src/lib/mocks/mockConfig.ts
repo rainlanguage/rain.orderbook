@@ -53,11 +53,11 @@ export const mockConfig: NewConfig = {
     accounts: {
       name_one: {
         key: 'name_one',
-        address: 'address_one',
+        address: '0xaddress_one',
       },
       name_two: {
         key: 'name_two',
-        address: 'address_two',
+        address: '0xaddress_two',
       },
     },
   },
