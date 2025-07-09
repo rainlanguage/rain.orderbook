@@ -129,6 +129,9 @@ error NegativePush();
 /// Throws when a negative bounty is calculated.
 error NegativeBounty();
 
+/// Thrown when clear output amounts are both zero.
+error ClearZeroAmount();
+
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
 uint256 constant ORDER_LIVE = 1;
@@ -653,6 +656,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         handleIO(aliceOrderIOCalculation);
         handleIO(bobOrderIOCalculation);
+
+        // Do this last so we don't swallow errors from the handle IO.
+        if (clearStateChange.aliceOutput == 0 && clearStateChange.bobOutput == 0) {
+            revert ClearZeroAmount();
+        }
     }
 
     /// Main entrypoint into an order calculates the amount and IO ratio. Both

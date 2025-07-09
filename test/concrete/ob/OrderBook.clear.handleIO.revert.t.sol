@@ -123,8 +123,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         bytes memory aliceErr = "";
         bytes memory bobErr = "";
 
-        bytes memory aliceString = "_ _:max-value() 1;:ensure(1 \"alice err\");";
-        bytes memory bobString = "_ _:max-value() 1;:ensure(1 \"bob err\");";
+        bytes memory aliceString = "_ _:div(max-value() 2) 1;:ensure(1 \"alice err\");";
+        bytes memory bobString = "_ _:div(max-value() 2) 1;:ensure(1 \"bob err\");";
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -133,8 +133,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         bytes memory aliceErr = "";
         bytes memory bobErr = "";
 
-        bytes memory aliceString = "_ _:max-value() 1;:;";
-        bytes memory bobString = "_ _:max-value() 1;:;";
+        bytes memory aliceString = "_ _:div(max-value() 2) 1;:;";
+        bytes memory bobString = "_ _:div(max-value() 2) 1;:;";
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }

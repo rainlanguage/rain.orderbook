@@ -2,7 +2,6 @@
 export { default as CardProperty } from './components/CardProperty.svelte';
 export { default as Hash, HashType } from './components/Hash.svelte';
 export { default as TanstackAppTable } from './components/TanstackAppTable.svelte';
-export { default as DropdownActiveSubgraphs } from './components/dropdown/DropdownActiveSubgraphs.svelte';
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
 export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
@@ -75,7 +74,6 @@ export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
 	type TransactionArgs,
-	type DeploymentArgs,
 	type VaultActionArgs
 } from './types/transaction';
 export type {
@@ -102,6 +100,7 @@ export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
 export { invalidateTanstackQueries } from './queries/queryClient';
 export { getToastsContext } from './providers/toasts/context';
+export { getNetworkName } from './utils/getNetworkName';
 
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
@@ -133,6 +132,7 @@ export { default as logoDark } from './assets/logo-dark.svg';
 
 // Providers
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
+export { default as RaindexClientProvider } from './providers/RaindexClientProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
 export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';

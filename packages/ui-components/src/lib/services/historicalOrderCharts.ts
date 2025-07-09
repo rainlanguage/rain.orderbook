@@ -1,4 +1,9 @@
-import type { SgTrade } from '@rainlanguage/orderbook';
+import type {
+	RaindexTrade,
+	RaindexTransaction,
+	RaindexVaultBalanceChange,
+	RaindexVaultToken
+} from '@rainlanguage/orderbook';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '../services/time';
 import { sortBy } from 'lodash';
@@ -6,25 +11,28 @@ import { formatUnits } from 'viem';
 
 export type HistoricalOrderChartData = { value: number; time: UTCTimestamp; color?: string }[];
 
-export function prepareHistoricalOrderChartData(takeOrderEntities: SgTrade[], colorTheme: string) {
+export function prepareHistoricalOrderChartData(
+	takeOrderEntities: RaindexTrade[],
+	colorTheme: string
+) {
 	const transformedData = takeOrderEntities.map((d) => ({
 		value: Math.abs(
 			Number(
 				formatUnits(
 					BigInt(d.inputVaultBalanceChange.amount),
-					Number(d.inputVaultBalanceChange.vault.token.decimals ?? 0)
+					Number(d.inputVaultBalanceChange.token.decimals ?? 0)
 				)
 			) /
 				Number(
 					formatUnits(
 						BigInt(d.outputVaultBalanceChange.amount),
-						Number(d.outputVaultBalanceChange.vault.token.decimals ?? 0)
+						Number(d.outputVaultBalanceChange.token.decimals ?? 0)
 					)
 				)
 		),
 		time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
 		color: colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
-		outputAmount: +d.outputVaultBalanceChange.amount
+		outputAmount: Number(d.outputVaultBalanceChange.amount)
 	}));
 
 	// if we have multiple object in the array with the same timestamp, we need to merge them
@@ -58,223 +66,175 @@ if (import.meta.vitest) {
 	const { it, expect } = import.meta.vitest;
 
 	it('transforms and sorts data as expected', () => {
-		const takeOrderEntities: SgTrade[] = [
+		const takeOrderEntities: RaindexTrade[] = [
 			{
 				id: '1',
-				timestamp: '1632000000',
-				tradeEvent: {
-					sender: 'sender_address',
-					transaction: {
-						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					}
-				},
+				timestamp: BigInt(1632000000),
+				transaction: {
+					id: 'transaction_id',
+					from: '0xsender_address',
+					timestamp: BigInt(1632000000),
+					blockNumber: BigInt(0)
+				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
-					amount: '100',
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					id: '1',
+					amount: BigInt(100),
+					vaultId: BigInt(1),
 					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
 						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				order: {
-					id: 'order_id',
-					orderHash: 'orderHash'
-				},
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderHash: 'orderHash',
 				inputVaultBalanceChange: {
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					amount: '50',
-					id: '1',
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					amount: BigInt(50),
 					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				orderbook: {
-					id: '0x00'
-				}
-			},
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderbook: '0x00'
+			} as unknown as RaindexTrade,
 			{
 				id: '2',
-				timestamp: '1631000000',
-				tradeEvent: {
-					sender: 'sender_address',
-					transaction: {
-						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1631000000',
-						blockNumber: '0'
-					}
-				},
+				timestamp: BigInt(1631000000),
+				transaction: {
+					id: 'transaction_id',
+					from: '0xsender_address',
+					timestamp: BigInt(1631000000),
+					blockNumber: BigInt(0)
+				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
-					amount: '100',
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					id: '1',
+					amount: BigInt(100),
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
 					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				order: {
-					id: 'order_id',
-					orderHash: 'orderHash'
-				},
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderHash: 'orderHash',
 				inputVaultBalanceChange: {
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					amount: '50',
-					id: '1',
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					amount: BigInt(50),
 					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				orderbook: {
-					id: '0x00'
-				}
-			},
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderbook: '0x00'
+			} as unknown as RaindexTrade,
 			{
 				id: '3',
-				timestamp: '1630000000',
-				tradeEvent: {
-					sender: 'sender_address',
-					transaction: {
-						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1630000000',
-						blockNumber: '0'
-					}
-				},
+				timestamp: BigInt(1630000000),
+				transaction: {
+					id: 'transaction_id',
+					from: '0xsender_address',
+					timestamp: BigInt(1630000000),
+					blockNumber: BigInt(0)
+				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
-					amount: '100',
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					id: '1',
+					amount: BigInt(100),
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
 					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
 						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				order: {
-					id: 'order_id',
-					orderHash: 'orderHash'
-				},
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderHash: 'orderHash',
 				inputVaultBalanceChange: {
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					amount: '50',
-					id: '1',
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					amount: BigInt(50),
 					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
 						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				orderbook: {
-					id: '0x00'
-				}
-			}
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderbook: '0x00'
+			} as unknown as RaindexTrade
 		];
 
 		const result = prepareHistoricalOrderChartData(takeOrderEntities, 'dark');
@@ -294,223 +254,170 @@ if (import.meta.vitest) {
 	});
 
 	it('handles the case where multiple trades have the same timestamp', () => {
-		const takeOrderEntities: SgTrade[] = [
+		const takeOrderEntities: RaindexTrade[] = [
 			{
 				id: '1',
-				timestamp: '1632000000',
-				tradeEvent: {
-					sender: 'sender_address',
-					transaction: {
-						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					}
-				},
+				timestamp: BigInt(1632000000),
+				transaction: {
+					id: 'transaction_id',
+					from: '0xsender_address',
+					timestamp: BigInt(1632000000),
+					blockNumber: BigInt(0)
+				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
-					amount: '100',
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					id: '1',
-					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					amount: BigInt(100),
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				order: {
-					id: 'order_id',
-					orderHash: 'orderHash'
-				},
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					__typename: 'Withdraw',
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderHash: 'orderHash',
 				inputVaultBalanceChange: {
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					amount: '50',
-					id: '1',
-					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					amount: BigInt(50),
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				orderbook: {
-					id: '0x00'
-				}
-			},
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderbook: '0x00'
+			} as unknown as RaindexTrade,
 			{
 				id: '2',
-				timestamp: '1632000000',
-				tradeEvent: {
-					sender: 'sender_address',
-					transaction: {
-						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					}
-				},
+				timestamp: BigInt(1632000000),
+				transaction: {
+					id: 'transaction_id',
+					from: '0xsender_address',
+					timestamp: BigInt(1632000000),
+					blockNumber: BigInt(0)
+				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
-					amount: '200',
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					id: '1',
-					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					amount: BigInt(200),
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				order: {
-					id: 'order_id',
-					orderHash: 'orderHash'
-				},
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderHash: 'orderHash',
 				inputVaultBalanceChange: {
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					amount: '50',
-					id: '1',
-					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					amount: BigInt(50),
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				orderbook: {
-					id: '0x00'
-				}
-			},
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderbook: '0x00'
+			} as unknown as RaindexTrade,
 			{
 				id: '3',
-				timestamp: '1632000000',
-				tradeEvent: {
-					sender: 'sender_address',
-					transaction: {
-						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					}
-				},
+				timestamp: BigInt(1632000000),
+				transaction: {
+					id: 'transaction_id',
+					from: '0xsender_address',
+					timestamp: BigInt(1632000000),
+					blockNumber: BigInt(0)
+				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
-					amount: '400',
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					id: '1',
-					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					amount: BigInt(400),
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				order: {
-					id: 'order_id',
-					orderHash: 'orderHash'
-				},
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderHash: 'orderHash',
 				inputVaultBalanceChange: {
-					vault: {
-						id: '1',
-						vaultId: 'vault-id1',
-						token: {
-							id: 'output_token',
-							address: 'output_token',
-							name: 'output_token',
-							symbol: 'output_token',
-							decimals: '1'
-						}
-					},
-					amount: '50',
-					id: '1',
-					__typename: 'Withdraw',
-					newVaultBalance: '0',
-					oldVaultBalance: '0',
-					timestamp: '0',
+					vaultId: BigInt(1),
+					token: {
+						id: 'output_token_id',
+						address: '0xoutput_token',
+						name: 'output_token',
+						symbol: 'output_token',
+						decimals: BigInt(1)
+					} as unknown as RaindexVaultToken,
+					amount: BigInt(50),
+					newBalance: BigInt(0),
+					oldBalance: BigInt(0),
+					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
-						from: 'sender_address',
-						timestamp: '1632000000',
-						blockNumber: '0'
-					},
-					orderbook: { id: '1' }
-				},
-				orderbook: {
-					id: '0x00'
-				}
-			}
+						from: '0xsender_address',
+						timestamp: BigInt(1632000000),
+						blockNumber: BigInt(0)
+					} as unknown as RaindexTransaction,
+					orderbook: '0x1'
+				} as unknown as RaindexVaultBalanceChange,
+				orderbook: '0x00'
+			} as unknown as RaindexTrade
 		];
 
 		const result = prepareHistoricalOrderChartData(takeOrderEntities, 'dark');

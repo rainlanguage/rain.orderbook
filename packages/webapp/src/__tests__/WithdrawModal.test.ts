@@ -3,7 +3,7 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import WithdrawModal from '$lib/components/WithdrawModal.svelte';
 import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
-import type { SgVault } from '@rainlanguage/orderbook';
+import type { RaindexVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
 
@@ -30,6 +30,8 @@ vi.mock('@wagmi/core', async (importOriginal) => {
 
 describe('WithdrawModal', () => {
 	const mockVault = {
+		chainId: 1,
+		orderbook: '0x123',
 		token: {
 			address: '0x123',
 			symbol: 'TEST',
@@ -37,18 +39,15 @@ describe('WithdrawModal', () => {
 		},
 		vaultId: '1',
 		balance: BigInt(1000000000000000000) // 1 token
-	};
+	} as unknown as RaindexVault;
 
 	const mockOnSubmit = vi.fn();
 
 	const defaultProps: ModalProps = {
 		open: true,
 		args: {
-			vault: mockVault as unknown as SgVault,
-			chainId: 1,
-			rpcUrls: ['https://example.com'],
-			account: '0x0000000000000000000000000000000000000000' as Hex,
-			subgraphUrl: 'https://default.subgraph.com'
+			vault: mockVault,
+			account: '0x0000000000000000000000000000000000000000' as Hex
 		},
 		onSubmit: mockOnSubmit
 	};
@@ -92,13 +91,13 @@ describe('WithdrawModal', () => {
 		const mockVaultWithBalance = {
 			...mockVault,
 			balance: BigInt(500000000000000000) // 0.5 tokens
-		};
+		} as unknown as RaindexVault;
 
 		render(WithdrawModal, {
 			...defaultProps,
 			args: {
 				...defaultProps.args,
-				vault: mockVaultWithBalance as unknown as SgVault
+				vault: mockVaultWithBalance
 			}
 		});
 
@@ -141,13 +140,13 @@ describe('WithdrawModal', () => {
 		const mockVaultWithBalance = {
 			...mockVault,
 			balance: BigInt(500000000000000000) // 0.5 tokens
-		};
+		} as unknown as RaindexVault;
 
 		render(WithdrawModal, {
 			...defaultProps,
 			args: {
 				...defaultProps.args,
-				vault: mockVaultWithBalance as unknown as SgVault
+				vault: mockVaultWithBalance
 			}
 		});
 
@@ -166,13 +165,13 @@ describe('WithdrawModal', () => {
 		const mockVaultWithZeroBalance = {
 			...mockVault,
 			balance: BigInt(0)
-		};
+		} as unknown as RaindexVault;
 
 		render(WithdrawModal, {
 			...defaultProps,
 			args: {
 				...defaultProps.args,
-				vault: mockVaultWithZeroBalance as unknown as SgVault
+				vault: mockVaultWithZeroBalance
 			}
 		});
 
@@ -195,13 +194,13 @@ describe('WithdrawModal', () => {
 		const mockVaultWithBalance = {
 			...mockVault,
 			balance: BigInt(3700000000000000000) // 3.7 tokens
-		};
+		} as unknown as RaindexVault;
 
 		render(WithdrawModal, {
 			...defaultProps,
 			args: {
 				...defaultProps.args,
-				vault: mockVaultWithBalance as unknown as SgVault
+				vault: mockVaultWithBalance
 			}
 		});
 

@@ -1,12 +1,13 @@
-import { activeChain } from '$lib/stores/settings';
-import { get } from 'svelte/store';
+import * as chains from 'viem/chains';
 
-export function formatBlockExplorerTransactionUrl(txHash: string) {
-  const c = get(activeChain);
-  if (!c || !c.blockExplorers?.default) return;
-
-  return `${c.blockExplorers?.default.url}/tx/${txHash}`;
-}
+export const formatBlockExplorerTransactionUrl = (chainId: number, hash: string) => {
+  const chain = Object.values(chains).find((chain) => chain.id === chainId);
+  if (chain?.blockExplorers) {
+    return chain.blockExplorers.default.url + `/tx/${hash}`;
+  } else {
+    return '';
+  }
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function formatEthersTransactionError(e: any) {

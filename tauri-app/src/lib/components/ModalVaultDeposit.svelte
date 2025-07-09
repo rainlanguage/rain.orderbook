@@ -1,23 +1,18 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { SgVault as TokenVaultDetail } from '@rainlanguage/orderbook';
-  import {
-    vaultDeposit,
-    vaultDepositApproveCalldata,
-    vaultDepositCalldata,
-  } from '$lib/services/vault';
-  import { bigintStringToHex, InputTokenAmount } from '@rainlanguage/ui-components';
-  import { orderbookAddress } from '$lib/stores/settings';
-  import { checkAllowance, ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
+  import type { RaindexVault } from '@rainlanguage/orderbook';
+  import { vaultDeposit } from '$lib/services/vault';
+  import { InputTokenAmount } from '@rainlanguage/ui-components';
+  import { ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import { formatUnits } from 'viem';
+  import { formatUnits, hexToBytes, toHex } from 'viem';
   import { onMount } from 'svelte';
 
   export let open = false;
-  export let vault: TokenVaultDetail;
+  export let vault: RaindexVault;
   export let onDeposit: () => void;
   let amount: bigint;
   let isSubmitting = false;
@@ -35,7 +30,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultDeposit(BigInt(vault.vaultId), vault.token.id, amount);
+      await vaultDeposit(vault.vaultId, vault.token.address, amount);
       onDeposit();
     } catch (e) {
       reportErrorToSentry(e);
@@ -47,25 +42,25 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      if (!$orderbookAddress) throw Error('Select an orderbook to deposit');
-      const allowance = await checkAllowance(vault.token.id, $orderbookAddress);
-      if (allowance.lt(amount)) {
-        const approveCalldata = (await vaultDepositApproveCalldata(
-          BigInt(vault.vaultId),
-          vault.token.id,
-          amount,
-        )) as Uint8Array;
-        const approveTx = await ethersExecute(approveCalldata, vault.token.id);
+      const allowance = await vault.getAllowance();
+      if (allowance.error) {
+        throw new Error(allowance.error.readableMsg);
+      }
+      if (BigInt(allowance.value) < amount) {
+        const calldata = await vault.getApprovalCalldata(amount.toString());
+        if (calldata.error) {
+          throw new Error(calldata.error.readableMsg);
+        }
+        const approveTx = await ethersExecute(hexToBytes(calldata.value), vault.token.address);
         toasts.success('Approve Transaction sent successfully!');
         await approveTx.wait(1);
       }
 
-      const depositCalldata = (await vaultDepositCalldata(
-        BigInt(vault.vaultId),
-        vault.token.id,
-        amount,
-      )) as Uint8Array;
-      const depositTx = await ethersExecute(depositCalldata, $orderbookAddress);
+      const calldata = await vault.getDepositCalldata(amount.toString());
+      if (calldata.error) {
+        throw new Error(calldata.error.readableMsg);
+      }
+      const depositTx = await ethersExecute(hexToBytes(calldata.value), vault.orderbook);
       toasts.success('Transaction sent successfully!');
       await depositTx.wait(1);
       onDeposit();
@@ -79,7 +74,7 @@
 
   async function fetchUserBalance() {
     try {
-      userBalance = (await checkERC20Balance(vault.token.id)).toBigInt();
+      userBalance = (await checkERC20Balance(vault.token.address)).toBigInt();
     } catch (_e) {
       userBalance = 0n;
     }
@@ -97,7 +92,7 @@
         Vault ID
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintStringToHex(vault.vaultId)}
+        {toHex(vault.vaultId)}
       </p>
     </div>
 
@@ -170,6 +165,7 @@
 {/if}
 
 <ModalExecute
+  chainId={vault.chainId}
   bind:open={selectWallet}
   onBack={() => (open = true)}
   title="Deposit to Vault"
