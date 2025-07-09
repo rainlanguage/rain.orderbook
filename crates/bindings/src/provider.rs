@@ -24,6 +24,7 @@ pub enum ReadProviderError {
     NoRpcs,
 }
 
+// TODO: FallbackLayer breaks WASM for some reason. we should file a fix upstream
 #[cfg(target_family = "wasm")]
 pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError> {
     let rpc = rpcs.first().ok_or(ReadProviderError::NoRpcs)?;

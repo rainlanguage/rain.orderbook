@@ -22,6 +22,8 @@ sol!(
     ERC20, "../../out/ERC20.sol/ERC20.json"
 );
 
+pub mod provider;
+
 #[cfg(target_family = "wasm")]
 pub mod js_api;
 
