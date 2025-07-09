@@ -61,7 +61,6 @@ describe('applySettings service', () => {
 
     expect(result.settingsStatus).toBe('error');
     expect(result.errorMessage).toBe('Failed to parse');
-    expect(mockSettingsTextStore.set).toHaveBeenCalledWith(settingsContent);
     expect(mockSettingsStore.set).not.toHaveBeenCalled();
     expect(mockParseConfigSourceFn).toHaveBeenCalledWith(settingsContent);
     expect(vi.mocked(reportErrorToSentry)).toHaveBeenCalledWith(

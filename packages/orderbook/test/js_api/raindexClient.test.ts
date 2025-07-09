@@ -10,10 +10,13 @@ import {
 	SgVault,
 	SgTransaction,
 	SgAddOrderWithOrder,
-	SgRemoveOrderWithOrder
+	SgRemoveOrderWithOrder,
+	Hex
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
+const CHAIN_ID_1_ORDERBOOK_ADDRESS = '0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6';
+const CHAIN_ID_2_ORDERBOOK_ADDRESS = '0xbeedbeedbeedbeedbeedbeedbeedbeedbeedbeed';
 const YAML = `
 networks:
     some-network:
@@ -39,11 +42,11 @@ deployers:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 orderbooks:
     some-orderbook:
-        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS}
         network: some-network
         subgraph: some-sg
     other-orderbook:
-        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        address: ${CHAIN_ID_2_ORDERBOOK_ADDRESS}
         network: other-network
         subgraph: other-sg
 tokens:
@@ -116,29 +119,29 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 	describe('Orders', async function () {
 		const order1: SgOrder = {
-			id: 'order1',
+			id: '0x0123',
 			orderBytes:
-				'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-			orderHash: '0x1',
+				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
+			orderHash: '0x0123',
 			owner: '0x0000000000000000000000000000000000000000',
 			outputs: [
 				{
 					id: '0x0000000000000000000000000000000000000001',
 					token: {
-						id: '0x0000000000000000000000000000000000000000',
-						address: '0x0000000000000000000000000000000000000000',
-						name: 'T1',
-						symbol: 'T1',
-						decimals: '0'
+						id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+						address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+						name: 'Staked FLR',
+						symbol: 'sFLR',
+						decimals: '18'
 					},
 					balance: '0x98723',
-					vaultId: '0x1',
+					vaultId: '0x0123',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				},
 				{
@@ -151,13 +154,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						decimals: '0'
 					},
 					balance: '0x7772',
-					vaultId: '0x3',
+					vaultId: '0x0345',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				}
 			],
@@ -165,20 +168,20 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				{
 					id: '0x0000000000000000000000000000000000000002',
 					token: {
-						id: '0x0000000000000000000000000000000000000000',
-						address: '0x0000000000000000000000000000000000000000',
-						name: 'T2',
-						symbol: 'T2',
-						decimals: '0'
+						id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+						address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+						name: 'Wrapped FLR',
+						symbol: 'WFLR',
+						decimals: '18'
 					},
 					balance: '0x123',
-					vaultId: '0x2',
+					vaultId: '0x0234',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				},
 				{
@@ -191,13 +194,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						decimals: '0'
 					},
 					balance: '0x7772',
-					vaultId: '0x3',
+					vaultId: '0x0345',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				}
 			],
@@ -215,23 +218,23 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			meta: '0xff0a89c674ee7874a3005902252f2a20302e2063616c63756c6174652d696f202a2f200a7573696e672d776f7264732d66726f6d203078466532343131434461313933443945346538334135633233344337466433323031303138383361430a616d743a203130302c0a696f3a2063616c6c3c323e28293b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a63616c6c3c333e28292c0a3a656e7375726528657175616c2d746f286f75747075742d7661756c742d64656372656173652829203130302920226d7573742074616b652066756c6c20616d6f756e7422293b0a0a2f2a20322e206765742d696f2d726174696f2d6e6f77202a2f200a656c61707365643a2063616c6c3c343e28292c0a696f3a2073617475726174696e672d73756228302e3031373733353620646976286d756c28656c61707365642073756228302e3031373733353620302e30313733383434292920363029293b0a0a2f2a20332e206f6e652d73686f74202a2f200a3a656e737572652869732d7a65726f286765742868617368286f726465722d68617368282920226861732d657865637574656422292929202268617320657865637574656422292c0a3a7365742868617368286f726465722d68617368282920226861732d657865637574656422292031293b0a0a2f2a20342e206765742d656c6170736564202a2f200a5f3a20737562286e6f772829206765742868617368286f726465722d68617368282920226465706c6f792d74696d65222929293b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d',
 			timestampAdded: '0',
 			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 			},
 			trades: [],
 			removeEvents: []
 		} as unknown as SgOrder;
 
 		const order2 = {
-			id: 'order2',
+			id: '0x0234',
 			orderBytes:
 				'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-			orderHash: '0x2',
+			orderHash: '0x0234',
 			owner: '0x0000000000000000000000000000000000000000',
 			outputs: [
 				{
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0234',
 					token: {
-						id: '0x0000000000000000000000000000000000000000',
+						id: '0x0123',
 						address: '0x0000000000000000000000000000000000000000',
 						name: 'T1',
 						symbol: 'T1',
@@ -244,15 +247,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_2_ORDERBOOK_ADDRESS
 					}
 				}
 			],
 			inputs: [
 				{
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0234',
 					token: {
-						id: '0x0000000000000000000000000000000000000000',
+						id: '0x0234',
 						address: '0x0000000000000000000000000000000000000000',
 						name: 'T2',
 						symbol: 'T2',
@@ -265,7 +268,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_2_ORDERBOOK_ADDRESS
 					}
 				}
 			],
@@ -283,57 +286,57 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			meta: null,
 			timestampAdded: '0',
 			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
+				id: CHAIN_ID_2_ORDERBOOK_ADDRESS
 			},
 			trades: [],
 			removeEvents: []
 		} as unknown as SgOrder;
 
 		const order3 = {
-			id: 'order1',
+			id: '0x0123',
 			orderBytes:
-				'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-			orderHash: '0x1',
+				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
+			orderHash: '0x0123',
 			owner: '0x0000000000000000000000000000000000000000',
 			outputs: [
 				{
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0123',
 					token: {
-						id: 'token-1',
+						id: '0x0123',
 						address: '0x1111111111111111111111111111111111111111',
 						name: 'Token One',
 						symbol: 'TK1',
 						decimals: '18'
 					},
-					balance: '0',
-					vaultId: '1',
+					balance: '0x0',
+					vaultId: '0x0123',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				}
 			],
 			inputs: [
 				{
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0234',
 					token: {
-						id: 'token-2',
+						id: '0x0234',
 						address: '0x2222222222222222222222222222222222222222',
 						name: 'Token Two',
 						symbol: 'TK2',
 						decimals: '18'
 					},
-					balance: '0',
-					vaultId: '2',
+					balance: '0x0',
+					vaultId: '0x0234',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				}
 			],
@@ -343,7 +346,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					transaction: {
 						blockNumber: '0',
 						timestamp: '0',
-						id: '0x0000000000000000000000000000000000000000',
+						id: '0x0123',
 						from: '0x0000000000000000000000000000000000000000'
 					}
 				}
@@ -351,7 +354,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			meta: null,
 			timestampAdded: '0',
 			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 			},
 			trades: [],
 			removeEvents: []
@@ -373,10 +376,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				outputVaultBalanceChange: {
 					amount: '-100000000000000000000',
 					vault: {
-						id: 'vault-1',
-						vaultId: '1',
+						id: '0x0123',
+						vaultId: '0x0123',
 						token: {
-							id: 'token-1',
+							id: '0x0123',
 							address: '0x1111111111111111111111111111111111111111',
 							name: 'Token One',
 							symbol: 'TK1',
@@ -394,7 +397,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: '0x1234567890abcdef1234567890abcdef12345678' }
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
 				},
 				order: {
 					id: order1.id,
@@ -403,10 +406,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				inputVaultBalanceChange: {
 					amount: '50000000000000000000',
 					vault: {
-						id: 'vault-2',
-						vaultId: '2',
+						id: '0x0234',
+						vaultId: '0x0234',
 						token: {
-							id: 'token-2',
+							id: '0x0234',
 							address: '0x2222222222222222222222222222222222222222',
 							name: 'Token Two',
 							symbol: 'TK2',
@@ -424,24 +427,24 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: '0x1234567890abcdef1234567890abcdef12345678' }
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
 				},
 				orderbook: {
-					id: '0x1234567890abcdef1234567890abcdef12345678'
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 				}
 			}
 		] as unknown as SgTrade[];
 
 		const mockTrade: SgTrade = {
-			id: 'trade1',
+			id: '0x0123',
 			order: {
-				id: 'order1',
-				orderHash: '0x1'
+				id: '0x0123',
+				orderHash: '0x0123'
 			},
 			tradeEvent: {
 				sender: '0x0000000000000000000000000000000000000000',
 				transaction: {
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0123',
 					from: '0x0000000000000000000000000000000000000000',
 					blockNumber: '0',
 					timestamp: '0'
@@ -449,19 +452,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			},
 			timestamp: '0',
 			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 			},
 			outputVaultBalanceChange: {
-				id: '0x0000000000000000000000000000000000000000',
+				id: '0x0123',
 				__typename: 'TradeVaultBalanceChange',
 				amount: '-7',
 				newVaultBalance: '93',
 				oldVaultBalance: '100',
 				vault: {
-					id: '0x0000000000000000000000000000000000000000',
-					vaultId: '1',
+					id: '0x0123',
+					vaultId: '0x0123',
 					token: {
-						id: '0x0000000000000000000000000000000000000000',
+						id: '0x0123',
 						address: '0x0000000000000000000000000000000000000000',
 						name: 'T1',
 						symbol: 'T1',
@@ -470,26 +473,26 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				},
 				timestamp: '0',
 				transaction: {
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0123',
 					from: '0x0000000000000000000000000000000000000000',
 					blockNumber: '0',
 					timestamp: '0'
 				},
 				orderbook: {
-					id: '0x0000000000000000000000000000000000000000'
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 				}
 			},
 			inputVaultBalanceChange: {
-				id: '0x0000000000000000000000000000000000000000',
+				id: '0x0234',
 				__typename: 'TradeVaultBalanceChange',
 				amount: '5',
 				newVaultBalance: '105',
 				oldVaultBalance: '100',
 				vault: {
-					id: '0x0000000000000000000000000000000000000000',
-					vaultId: '2',
+					id: '0x0234',
+					vaultId: '0x0234',
 					token: {
-						id: '0x0000000000000000000000000000000000000000',
+						id: '0x0234',
 						address: '0x0000000000000000000000000000000000000000',
 						name: 'T2',
 						symbol: 'T2',
@@ -498,13 +501,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				},
 				timestamp: '0',
 				transaction: {
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0234',
 					from: '0x0000000000000000000000000000000000000000',
 					blockNumber: '0',
 					timestamp: '0'
 				},
 				orderbook: {
-					id: '0x0000000000000000000000000000000000000000'
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 				}
 			}
 		} as unknown as SgTrade;
@@ -524,7 +527,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(orders[0].id, order1.id);
 			assert.equal(orders[1].id, order2.id);
 
-			orders = extractWasmEncodedData(await raindexClient.getOrders(1));
+			orders = extractWasmEncodedData(await raindexClient.getOrders([1]));
 			assert.equal(orders.length, 1);
 			assert.equal(orders[0].id, order1.id);
 		});
@@ -535,7 +538,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 
-			const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			assert.equal(typeof order, 'object');
 			assert.equal(order.id, order1.id);
 			assert.equal(order.orderbook, order1.orderbook.id);
@@ -552,25 +557,25 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(order.vaults.length, 3);
 
 			assert.equal(order.vaults[0].vaultType, 'input');
-			assert.equal(order.vaults[0].vaultId, BigInt(2));
+			assert.equal(order.vaults[0].vaultId, '0x0234');
 			assert.equal(order.vaults[0].balance, BigInt(291));
-			assert.equal(order.vaults[0].token.id, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[0].token.address, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[0].token.name, 'T2');
-			assert.equal(order.vaults[0].token.symbol, 'T2');
-			assert.equal(order.vaults[0].token.decimals, '0');
+			assert.equal(order.vaults[0].token.id, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
+			assert.equal(order.vaults[0].token.address, '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+			assert.equal(order.vaults[0].token.name, 'Wrapped FLR');
+			assert.equal(order.vaults[0].token.symbol, 'WFLR');
+			assert.equal(order.vaults[0].token.decimals, BigInt(18));
 
 			assert.equal(order.vaults[1].vaultType, 'output');
-			assert.equal(order.vaults[1].vaultId, BigInt(1));
+			assert.equal(order.vaults[1].vaultId, '0x0123');
 			assert.equal(order.vaults[1].balance, BigInt(624419));
-			assert.equal(order.vaults[1].token.id, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[1].token.address, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[1].token.name, 'T1');
-			assert.equal(order.vaults[1].token.symbol, 'T1');
-			assert.equal(order.vaults[1].token.decimals, '0');
+			assert.equal(order.vaults[1].token.id, '0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
+			assert.equal(order.vaults[1].token.address, '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+			assert.equal(order.vaults[1].token.name, 'Staked FLR');
+			assert.equal(order.vaults[1].token.symbol, 'sFLR');
+			assert.equal(order.vaults[1].token.decimals, BigInt(18));
 
 			assert.equal(order.vaults[2].vaultType, 'inputOutput');
-			assert.equal(order.vaults[2].vaultId, BigInt(3));
+			assert.equal(order.vaults[2].vaultId, '0x0345');
 			assert.equal(order.vaults[2].balance, BigInt(30578));
 			assert.equal(order.vaults[2].token.id, '0x0000000000000000000000000000000000000000');
 			assert.equal(order.vaults[2].token.address, '0x0000000000000000000000000000000000000000');
@@ -605,15 +610,17 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			const result = await order.getVaultsVolume(BigInt(1632000000), BigInt(1734571449));
 			if (result.error) assert.fail('expected to resolve, but failed');
 
 			const expected: VaultVolume[] = [
 				{
-					id: '2',
+					id: '0x0234',
 					token: {
-						id: 'token-2',
+						id: '0x0234',
 						address: '0x2222222222222222222222222222222222222222',
 						name: 'Token Two',
 						symbol: 'TK2',
@@ -627,9 +634,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					}
 				},
 				{
-					id: '1',
+					id: '0x0123',
 					token: {
-						id: 'token-1',
+						id: '0x0123',
 						address: '0x1111111111111111111111111111111111111111',
 						name: 'Token One',
 						symbol: 'TK1',
@@ -676,17 +683,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			const result = await order.getPerformance(BigInt(1632000000), BigInt(1734571449));
 			if (result.error) assert.fail('expected to resolve, but failed');
 
 			const expected: OrderPerformance = {
-				orderId: 'order1',
-				orderHash: '0x1',
-				orderbook: '0x0000000000000000000000000000000000000000',
+				orderId: '0x0123',
+				orderHash: '0x0123',
+				orderbook: CHAIN_ID_1_ORDERBOOK_ADDRESS,
 				denominatedPerformance: {
 					token: {
-						id: 'token-2',
+						id: '0x0234',
 						address: '0x2222222222222222222222222222222222222222',
 						name: 'Token Two',
 						symbol: 'TK2',
@@ -702,9 +711,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				endTime: 1734571449,
 				inputsVaults: [
 					{
-						id: '2',
+						id: '0x0234',
 						token: {
-							id: 'token-2',
+							id: '0x0234',
 							address: '0x2222222222222222222222222222222222222222',
 							name: 'Token Two',
 							symbol: 'TK2',
@@ -728,9 +737,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				],
 				outputsVaults: [
 					{
-						id: '1',
+						id: '0x0123',
 						token: {
-							id: 'token-1',
+							id: '0x0123',
 							address: '0x1111111111111111111111111111111111111111',
 							name: 'Token One',
 							symbol: 'TK1',
@@ -756,6 +765,53 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.deepEqual(result.value, expected);
 		});
 
+		it('should get remove calldata', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const calldata = extractWasmEncodedData(order.getRemoveCalldata());
+			assert.equal(
+				calldata,
+				'0x8d7b6beb000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000002e000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb3720000000000000000000000000000000000000000000000000000000000000000'
+			);
+		});
+
+		it('should get order quote', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x01');
+			await mockServer
+				.forPost('/rpc1')
+				.thenSendJsonRpcResult(
+					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002'
+				);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const result = extractWasmEncodedData(await order.getQuotes());
+			assert.deepEqual(result, [
+				{
+					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
+					blockNumber: 1,
+					data: {
+						maxOutput: '0x1',
+						ratio: '0x2'
+					},
+					success: true,
+					error: undefined
+				}
+			]);
+		});
+
 		describe('Trades', async function () {
 			it('should get trades for an order', async function () {
 				await mockServer
@@ -772,13 +828,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				);
 
 				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-				const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
+				const order = extractWasmEncodedData(
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				);
 				const result = extractWasmEncodedData(await order.getTradesList());
 				assert.equal(result.length, 1);
 				assert.equal(result[0].id, mockOrderTradesList[0].id);
 				assert.equal(result[0].orderHash, mockOrderTradesList[0].order.orderHash);
 				assert.equal(result[0].timestamp, BigInt(mockOrderTradesList[0].timestamp));
-				assert.equal(result[0].orderbook, mockOrderTradesList[0].orderbook.id);
+				assert.equal(result[0].orderbook, mockOrderTradesList[0].orderbook.id.toLowerCase());
 				assert.equal(
 					result[0].outputVaultBalanceChange.amount,
 					mockOrderTradesList[0].outputVaultBalanceChange.amount
@@ -860,8 +918,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					.thenReply(200, JSON.stringify({ data: { trade: mockTrade } }));
 
 				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-				const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
-				const result = extractWasmEncodedData(await order.getTradeDetail(mockTrade.id));
+				const order = extractWasmEncodedData(
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				);
+				const result = extractWasmEncodedData(await order.getTradeDetail(mockTrade.id as Hex));
 				assert.equal(result.id, mockTrade.id);
 				assert.equal(result.orderHash, mockTrade.order.orderHash);
 				assert.equal(
@@ -930,7 +990,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					result.transaction.timestamp,
 					BigInt(mockTrade.tradeEvent.transaction.timestamp)
 				);
-				assert.equal(result.orderbook, mockTrade.orderbook.id);
+				assert.equal(result.orderbook, mockTrade.orderbook.id.toLowerCase());
 			});
 
 			it('should get trade count', async function () {
@@ -956,7 +1016,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				);
 
 				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-				const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
+				const order = extractWasmEncodedData(
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				);
 				const result = extractWasmEncodedData(await order.getTradeCount());
 				assert.equal(result, 1);
 			});
@@ -992,7 +1054,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 							decimals: '18'
 						},
 						orderbook: {
-							id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+							id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 						},
 						ordersAsOutput: [
 							{
@@ -1031,7 +1093,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739448802'
 									},
 									orderbook: {
-										id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 									}
 								}
 							},
@@ -1063,7 +1125,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460802'
 									},
 									orderbook: {
-										id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 									}
 								}
 							},
@@ -1095,7 +1157,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460777'
 									},
 									orderbook: {
-										id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 									}
 								}
 							},
@@ -1127,7 +1189,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460481'
 									},
 									orderbook: {
-										id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 									}
 								}
 							}
@@ -1149,7 +1211,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 							decimals: '18'
 						},
 						orderbook: {
-							id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+							id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 						},
 						ordersAsOutput: [],
 						ordersAsInput: [
@@ -1188,7 +1250,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460781'
 									},
 									orderbook: {
-										id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 									}
 								}
 							},
@@ -1220,7 +1282,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460415'
 									},
 									orderbook: {
-										id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 									}
 								}
 							},
@@ -1252,7 +1314,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460627'
 									},
 									orderbook: {
-										id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 									}
 								}
 							},
@@ -1284,7 +1346,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460078'
 									},
 									orderbook: {
-										id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 									}
 								}
 							}
@@ -1292,7 +1354,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					}
 				],
 				orderbook: {
-					id: '0xCEe8Cd002F151A536394E564b84076c41bBBcD4d'
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 				},
 				active: true,
 				timestampAdded: '1739448802',
@@ -1321,10 +1383,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getAddOrdersForTransaction(1, '0x123')
+				await raindexClient.getAddOrdersForTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 			assert.equal(result[0].id, mockAddOrder.order.id);
-			assert.equal(result[0].chain_id, 1);
+			assert.equal(result[0].chainId, BigInt(1));
 			assert.equal(result[0].orderbook, mockAddOrder.order.orderbook.id);
 			assert.equal(result[0].transaction?.id, mockAddOrder.transaction.id);
 		});
@@ -1336,10 +1398,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getRemoveOrdersForTransaction(1, '0x123')
+				await raindexClient.getRemoveOrdersForTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 			assert.equal(result[0].id, mockRemoveOrder.order.id);
-			assert.equal(result[0].chain_id, 1);
+			assert.equal(result[0].chainId, BigInt(1));
 			assert.equal(result[0].orderbook, mockRemoveOrder.order.orderbook.id);
 			assert.equal(result[0].transaction?.id, mockRemoveOrder.transaction.id);
 		});
@@ -1347,38 +1409,38 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 	describe('Vaults', async function () {
 		const vault1: SgVault = {
-			id: 'vault1',
+			id: '0x0123',
 			owner: '0x0000000000000000000000000000000000000000',
 			vaultId: '0x10',
 			balance: '0x10',
 			token: {
-				id: 'token1',
+				id: '0x0123',
 				address: '0x0000000000000000000000000000000000000000',
 				name: 'Token 1',
 				symbol: 'TKN1',
 				decimals: '18'
 			},
 			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 			},
 			ordersAsOutput: [],
 			ordersAsInput: [],
 			balanceChanges: []
 		};
 		const vault2: SgVault = {
-			id: 'vault2',
+			id: '0x0234',
 			owner: '0x0000000000000000000000000000000000000000',
 			vaultId: '0x20',
 			balance: '0x20',
 			token: {
-				id: 'token2',
+				id: '0x0234',
 				address: '0x0000000000000000000000000000000000000000',
 				name: 'Token 2',
 				symbol: 'TKN2',
 				decimals: '18'
 			},
 			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
+				id: CHAIN_ID_2_ORDERBOOK_ADDRESS
 			},
 			ordersAsOutput: [],
 			ordersAsInput: [],
@@ -1428,7 +1490,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const result = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const result = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 
 			assert.equal(result.vaultId, BigInt(vault1.vaultId));
 			assert.equal(result.owner, vault1.owner);
@@ -1450,7 +1514,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					oldVaultBalance: '0',
 					vault: {
 						id: '0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902',
-						vaultId: '1',
+						vaultId: '0x0123',
 						token: {
 							id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
 							address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
@@ -1467,7 +1531,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1734054063'
 					},
 					orderbook: {
-						id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				}
 			];
@@ -1481,7 +1545,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				.thenReply(200, JSON.stringify({ data: { vaultBalanceChanges: mockVaultBalanceChanges } }));
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			const result = extractWasmEncodedData(await vault.getBalanceChanges());
 
 			assert.equal(result[0].type, 'deposit');
@@ -1496,18 +1562,18 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result[0].transaction.from, '0x7177b9d00bB5dbcaaF069CC63190902763783b09');
 			assert.equal(result[0].transaction.blockNumber, BigInt('34407047'));
 			assert.equal(result[0].transaction.timestamp, BigInt('1734054063'));
-			assert.equal(result[0].orderbook, '0xCEe8Cd002F151A536394E564b84076c41bBBcD4d');
+			assert.equal(result[0].orderbook, CHAIN_ID_1_ORDERBOOK_ADDRESS);
 		});
 
 		const order = {
-			id: 'order',
+			id: '0x0123',
 			orderBytes:
 				'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-			orderHash: '0x1',
+			orderHash: '0x0123',
 			owner: '0x0000000000000000000000000000000000000000',
 			outputs: [
 				{
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0123',
 					token: {
 						id: '0x0000000000000000000000000000000000000000',
 						address: '0x1234567890123456789012345678901234567890',
@@ -1522,13 +1588,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				}
 			],
 			inputs: [
 				{
-					id: '0x0000000000000000000000000000000000000000',
+					id: '0x0234',
 					token: {
 						id: '0x0000000000000000000000000000000000000000',
 						address: '0x9876543210987654321098765432109876543210',
@@ -1537,13 +1603,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						decimals: '0'
 					},
 					balance: '999999999999999',
-					vaultId: '0x100',
+					vaultId: '0x0100',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: '0x0000000000000000000000000000000000000000'
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 					}
 				}
 			],
@@ -1553,7 +1619,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					transaction: {
 						blockNumber: '0',
 						timestamp: '0',
-						id: '0x0000000000000000000000000000000000000000',
+						id: '0x0123',
 						from: '0x0000000000000000000000000000000000000000'
 					}
 				}
@@ -1561,7 +1627,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			meta: null,
 			timestampAdded: '0',
 			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 			},
 			trades: [],
 			removeEvents: []
@@ -1578,7 +1644,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				.thenReply(200, JSON.stringify({ data: { order } }));
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			const res = extractWasmEncodedData(await vault.getDepositCalldata('500'));
 			assert.equal(res.length, 330);
 		});
@@ -1591,7 +1659,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order } }));
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 
 			const res = await vault.getDepositCalldata('0');
 			if (!res.error) assert.fail('expected to reject, but resolved');
@@ -1604,7 +1674,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				.once()
 				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 
 			const res = await vault.getDepositCalldata('-100');
 			if (!res.error) assert.fail('expected to reject, but resolved');
@@ -1619,7 +1691,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order } }));
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 
 			let res = await vault.getWithdrawCalldata('500');
 			if (res.error) assert.fail('expected to resolve, but failed');
@@ -1646,7 +1720,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			const res = extractWasmEncodedData(await vault.getAllowance());
 			assert.equal(res, '0x64');
 		});
@@ -1666,7 +1742,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 
 			const res = extractWasmEncodedData(await vault.getApprovalCalldata('600'));
 			assert.ok(res.startsWith('0x'));
@@ -1689,7 +1767,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 
 			const res = await vault.getApprovalCalldata('100');
 			if (!res.error) assert.fail('expected to reject, but resolved');
@@ -1712,7 +1792,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(await raindexClient.getVault(1, 'vault1'));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 
 			const res = await vault.getApprovalCalldata('90');
 			if (!res.error) assert.fail('expected to reject, but resolved');
@@ -1722,7 +1804,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 	describe('Transactions', () => {
 		const transaction = {
-			id: 'tx1',
+			id: '0x0123',
 			from: '0x1000000000000000000000000000000000000000',
 			blockNumber: '2356',
 			timestamp: '1734054063'
@@ -1732,7 +1814,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { transaction } }));
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const result = extractWasmEncodedData(await raindexClient.getTransaction(1, '0x123'));
+			const result = extractWasmEncodedData(
+				await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			assert.equal(result.id, transaction.id);
 			assert.equal(result.from, transaction.from);
 			assert.equal(result.blockNumber, BigInt(transaction.blockNumber));

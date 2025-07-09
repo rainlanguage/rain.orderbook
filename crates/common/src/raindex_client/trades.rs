@@ -4,10 +4,10 @@ use super::*;
 use crate::raindex_client::{
     orders::RaindexOrder, transactions::RaindexTransaction, vaults::RaindexVaultBalanceChange,
 };
-use alloy::primitives::{Address, U256};
+use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::{
     types::{common::SgTrade, Id},
-    OrderbookSubgraphClient, SgPaginationArgs,
+    SgPaginationArgs,
 };
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -18,8 +18,8 @@ const DEFAULT_PAGE_SIZE: u16 = 100;
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexTrade {
-    id: String,
-    order_hash: String,
+    id: Bytes,
+    order_hash: Bytes,
     transaction: RaindexTransaction,
     input_vault_balance_change: RaindexVaultBalanceChange,
     output_vault_balance_change: RaindexVaultBalanceChange,
@@ -29,13 +29,13 @@ pub struct RaindexTrade {
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexTrade {
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
     pub fn id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
-    #[wasm_bindgen(getter = orderHash)]
+    #[wasm_bindgen(getter = orderHash, unchecked_return_type = "Hex")]
     pub fn order_hash(&self) -> String {
-        self.order_hash.clone()
+        self.order_hash.to_string()
     }
     #[wasm_bindgen(getter)]
     pub fn transaction(&self) -> RaindexTransaction {
@@ -61,10 +61,10 @@ impl RaindexTrade {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexTrade {
-    pub fn id(&self) -> String {
+    pub fn id(&self) -> Bytes {
         self.id.clone()
     }
-    pub fn order_hash(&self) -> String {
+    pub fn order_hash(&self) -> Bytes {
         self.order_hash.clone()
     }
     pub fn transaction(&self) -> RaindexTransaction {
@@ -86,20 +86,10 @@ impl RaindexTrade {
 
 #[wasm_export]
 impl RaindexOrder {
-    /// Fetches trade history with optional time filtering.
+    /// Fetches trade history with optional time filtering
     ///
     /// Retrieves a chronological list of trades executed by an order within
     /// an optional time range.
-    ///
-    /// ## Parameters
-    ///
-    /// * `start_timestamp` - Optional start time filter (Unix timestamp in seconds)
-    /// * `end_timestamp` - Optional end time filter (Unix timestamp in seconds)
-    /// * `page` - Optional page number (defaults to 1)
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexTrade[]` - Array of trade records with complete details
     ///
     /// ## Examples
     ///
@@ -112,18 +102,33 @@ impl RaindexOrder {
     /// const trades = result.value;
     /// // Do something with the trades
     /// ```
-    #[wasm_export(js_name = "getTradesList", unchecked_return_type = "RaindexTrade[]")]
+    #[wasm_export(
+        js_name = "getTradesList",
+        return_description = "Array of trade records with complete details",
+        unchecked_return_type = "RaindexTrade[]"
+    )]
     pub async fn get_trades_list(
         &self,
+        #[wasm_export(
+            js_name = "startTimestamp",
+            param_description = "Optional start time filter (Unix timestamp in seconds)"
+        )]
         start_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "endTimestamp",
+            param_description = "Optional end time filter (Unix timestamp in seconds)"
+        )]
         end_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "page",
+            param_description = "Optional page number (defaults to 1)"
+        )]
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
-        let subgraph_url = self.get_subgraph_url()?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         let trades = client
             .order_trades_list(
-                Id::new(self.id().clone()),
+                Id::new(self.id().to_string()),
                 SgPaginationArgs {
                     page: page.unwrap_or(1),
                     page_size: DEFAULT_PAGE_SIZE,
@@ -139,18 +144,10 @@ impl RaindexOrder {
         Ok(trades)
     }
 
-    /// Fetches detailed information for a specific trade.
+    /// Fetches detailed information for a specific trade
     ///
     /// Retrieves complete information about a single trade including vault changes
     /// and transaction details.
-    ///
-    /// ## Parameters
-    ///
-    /// * `trade_id` - Unique trade identifier
-    ///
-    /// ## Returns
-    ///
-    /// * `RaindexTrade` - Complete trade information
     ///
     /// ## Examples
     ///
@@ -163,26 +160,28 @@ impl RaindexOrder {
     /// const trade = result.value;
     /// // Do something with the trade
     /// ```
-    #[wasm_export(js_name = "getTradeDetail", unchecked_return_type = "RaindexTrade")]
-    pub async fn get_trade_detail(&self, trade_id: String) -> Result<RaindexTrade, RaindexError> {
-        let subgraph_url = self.get_subgraph_url()?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
-        RaindexTrade::try_from(client.order_trade_detail(Id::new(trade_id.clone())).await?)
+    #[wasm_export(
+        js_name = "getTradeDetail",
+        return_description = "Complete trade information",
+        unchecked_return_type = "RaindexTrade"
+    )]
+    pub async fn get_trade_detail_wasm_binding(
+        &self,
+        #[wasm_export(
+            js_name = "tradeId",
+            param_description = "Unique trade identifier",
+            unchecked_param_type = "Hex"
+        )]
+        trade_id: String,
+    ) -> Result<RaindexTrade, RaindexError> {
+        let trade_id = Bytes::from_str(&trade_id)?;
+        self.get_trade_detail(trade_id).await
     }
 
-    /// Counts total trades for an order within a time range.
+    /// Counts total trades for an order within a time range
     ///
     /// Efficiently counts the total number of trades executed by an order without
     /// fetching all trade details.
-    ///
-    /// ## Parameters
-    ///
-    /// * `start_timestamp` - Optional start time filter (Unix timestamp in seconds)
-    /// * `end_timestamp` - Optional end time filter (Unix timestamp in seconds)
-    ///
-    /// ## Returns
-    ///
-    /// * `u64` - Total trade count as number
     ///
     /// ## Examples
     ///
@@ -195,18 +194,43 @@ impl RaindexOrder {
     /// const count = result.value;
     /// // Do something with the count
     /// ```
-    #[wasm_export(js_name = "getTradeCount", unchecked_return_type = "number")]
+    #[wasm_export(
+        js_name = "getTradeCount",
+        return_description = "Total trade count as number",
+        unchecked_return_type = "number"
+    )]
     pub async fn get_trade_count(
         &self,
+        #[wasm_export(
+            js_name = "startTimestamp",
+            param_description = "Optional start time filter (Unix timestamp in seconds)"
+        )]
         start_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "endTimestamp",
+            param_description = "Optional end time filter (Unix timestamp in seconds)"
+        )]
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
-        let subgraph_url = self.get_subgraph_url()?;
-        let client = OrderbookSubgraphClient::new(subgraph_url);
+        let client = self.get_orderbook_client()?;
         let trades_count = client
-            .order_trades_list_all(Id::new(self.id().clone()), start_timestamp, end_timestamp)
+            .order_trades_list_all(
+                Id::new(self.id().to_string()),
+                start_timestamp,
+                end_timestamp,
+            )
             .await?;
         Ok(trades_count.len() as u64)
+    }
+}
+impl RaindexOrder {
+    pub async fn get_trade_detail(&self, trade_id: Bytes) -> Result<RaindexTrade, RaindexError> {
+        let client = self.get_orderbook_client()?;
+        RaindexTrade::try_from(
+            client
+                .order_trade_detail(Id::new(trade_id.to_string()))
+                .await?,
+        )
     }
 }
 
@@ -214,8 +238,8 @@ impl TryFrom<SgTrade> for RaindexTrade {
     type Error = RaindexError;
     fn try_from(trade: SgTrade) -> Result<Self, Self::Error> {
         Ok(RaindexTrade {
-            id: trade.id.0,
-            order_hash: trade.order.order_hash.0,
+            id: Bytes::from_str(&trade.id.0)?,
+            order_hash: Bytes::from_str(&trade.order.order_hash.0)?,
             transaction: RaindexTransaction::try_from(trade.trade_event.transaction)?,
             input_vault_balance_change: RaindexVaultBalanceChange::try_from(
                 trade.input_vault_balance_change,
@@ -236,8 +260,8 @@ mod test_helpers {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::get_test_yaml;
-        use alloy::primitives::I256;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use alloy::primitives::{Bytes, I256};
         use httpmock::MockServer;
         use serde_json::{json, Value};
 
@@ -340,7 +364,7 @@ mod test_helpers {
                   }
               ],
               "orderbook": {
-                "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
+                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
               },
               "active": true,
               "timestampAdded": "1739448802",
@@ -362,10 +386,10 @@ mod test_helpers {
 
         fn get_single_trade_json() -> Value {
             json!(              {
-              "id": "trade1",
+              "id": "0x0123",
               "tradeEvent": {
                 "transaction": {
-                  "id": "tx1",
+                  "id": "0x0123",
                   "from": "0x0000000000000000000000000000000000000000",
                   "blockNumber": "0",
                   "timestamp": "0"
@@ -373,14 +397,14 @@ mod test_helpers {
                 "sender": "sender1"
               },
               "outputVaultBalanceChange": {
-                "id": "ovbc1",
+                "id": "0x0123",
                 "__typename": "TradeVaultBalanceChange",
                 "amount": "-2",
                 "newVaultBalance": "0",
                 "oldVaultBalance": "0",
                 "vault": {
-                  "id": "vault1",
-                  "vaultId": "1",
+                  "id": "0x0123",
+                  "vaultId": "0x0123",
                   "token": {
                     "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                     "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -391,7 +415,7 @@ mod test_helpers {
                 },
                 "timestamp": "1700000000",
                 "transaction": {
-                  "id": "tx1",
+                  "id": "0x0123",
                   "from": "0x0000000000000000000000000000000000000000",
                   "blockNumber": "0",
                   "timestamp": "1700000000"
@@ -401,18 +425,18 @@ mod test_helpers {
                 }
               },
               "order": {
-                "id": "order1",
-                "orderHash": "hash1"
+                "id": "0x0123",
+                "orderHash": "0x0123"
               },
               "inputVaultBalanceChange": {
-                "id": "ivbc1",
+                "id": "0x0123",
                 "__typename": "TradeVaultBalanceChange",
                 "amount": "1",
                 "newVaultBalance": "0",
                 "oldVaultBalance": "0",
                 "vault": {
-                  "id": "vault1",
-                  "vaultId": "1",
+                  "id": "0x0123",
+                  "vaultId": "0x0123",
                   "token": {
                     "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                     "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -423,7 +447,7 @@ mod test_helpers {
                 },
                 "timestamp": "1700000000",
                 "transaction": {
-                  "id": "tx1",
+                  "id": "0x0123",
                   "from": "0x0000000000000000000000000000000000000000",
                   "blockNumber": "0",
                   "timestamp": "1700000000"
@@ -442,10 +466,10 @@ mod test_helpers {
             json!([
                 get_single_trade_json(),
               {
-                "id": "trade2",
+                "id": "0x0234",
                 "tradeEvent": {
                   "transaction": {
-                    "id": "tx2",
+                    "id": "0x0234",
                     "from": "0x0000000000000000000000000000000000000001",
                     "blockNumber": "0",
                     "timestamp": "0"
@@ -453,14 +477,14 @@ mod test_helpers {
                   "sender": "sender2"
                 },
                 "outputVaultBalanceChange": {
-                  "id": "ovbc2",
+                  "id": "0x0234",
                   "__typename": "TradeVaultBalanceChange",
                   "amount": "-5",
                   "newVaultBalance": "0",
                   "oldVaultBalance": "0",
                   "vault": {
-                    "id": "vault2",
-                    "vaultId": "2",
+                    "id": "0x0234",
+                    "vaultId": "0x0234",
                     "token": {
                       "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                       "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -471,7 +495,7 @@ mod test_helpers {
                   },
                   "timestamp": "1700086400",
                   "transaction": {
-                    "id": "tx2",
+                    "id": "0x0234",
                     "from": "0x0000000000000000000000000000000000000001",
                     "blockNumber": "0",
                     "timestamp": "1700086400"
@@ -481,18 +505,18 @@ mod test_helpers {
                   }
                 },
                 "order": {
-                  "id": "order2",
-                  "orderHash": "hash2"
+                  "id": "0x0234",
+                  "orderHash": "0x0234"
                 },
                 "inputVaultBalanceChange": {
-                  "id": "ivbc2",
+                  "id": "0x0234",
                   "__typename": "TradeVaultBalanceChange",
                   "amount": "2",
                   "newVaultBalance": "0",
                   "oldVaultBalance": "0",
                   "vault": {
-                    "id": "vault2",
-                    "vaultId": "2",
+                    "id": "0x0234",
+                    "vaultId": "0x0234",
                     "token": {
                       "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                       "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -503,7 +527,7 @@ mod test_helpers {
                   },
                   "timestamp": "0",
                   "transaction": {
-                    "id": "tx2",
+                    "id": "0x0234",
                     "from": "0x0000000000000000000000000000000000000005",
                     "blockNumber": "0",
                     "timestamp": "1700086400"
@@ -559,15 +583,22 @@ mod test_helpers {
             )
             .unwrap();
             let order = raindex_client
-                .get_order_by_hash(1, "order1".to_string())
+                .get_order_by_hash(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
             let trades = order.get_trades_list(None, None, None).await.unwrap();
             assert_eq!(trades.len(), 2);
 
             let trade1 = &trades[0].clone();
-            assert_eq!(trade1.id(), "trade1");
-            assert_eq!(trade1.transaction().id(), "tx1".to_string());
+            assert_eq!(trade1.id(), Bytes::from_str("0x0123").unwrap());
+            assert_eq!(
+                trade1.transaction().id(),
+                Bytes::from_str("0x0123").unwrap()
+            );
             assert_eq!(
                 trade1.transaction().from(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -589,7 +620,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.output_vault_balance_change().vault_id(),
-                U256::from_str("1").unwrap()
+                U256::from_str("0x0123").unwrap()
             );
             assert_eq!(
                 trade1.output_vault_balance_change().token().id(),
@@ -617,7 +648,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.output_vault_balance_change().transaction().id(),
-                "tx1"
+                Bytes::from_str("0x0123").unwrap()
             );
             assert_eq!(
                 trade1.output_vault_balance_change().transaction().from(),
@@ -651,7 +682,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.input_vault_balance_change().vault_id(),
-                U256::from_str("1").unwrap()
+                U256::from_str("0x0123").unwrap()
             );
             assert_eq!(
                 trade1.input_vault_balance_change().token().id(),
@@ -679,7 +710,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.input_vault_balance_change().transaction().id(),
-                "tx1"
+                Bytes::from_str("0x0123").unwrap()
             );
             assert_eq!(
                 trade1
@@ -700,10 +731,10 @@ mod test_helpers {
                 trade1.orderbook(),
                 Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap()
             );
-            assert_eq!(trade1.order_hash(), "hash1");
+            assert_eq!(trade1.order_hash(), Bytes::from_str("0x0123").unwrap());
 
             let trade2 = trades[1].clone();
-            assert_eq!(trade2.id(), "trade2");
+            assert_eq!(trade2.id(), Bytes::from_str("0x0234").unwrap());
         }
 
         #[tokio::test]
@@ -737,12 +768,19 @@ mod test_helpers {
             )
             .unwrap();
             let order = raindex_client
-                .get_order_by_hash(1, "order1".to_string())
+                .get_order_by_hash(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
-            let trade = order.get_trade_detail("trade1".to_string()).await.unwrap();
-            assert_eq!(trade.id(), "trade1");
-            assert_eq!(trade.transaction().id(), "tx1");
+            let trade = order
+                .get_trade_detail(Bytes::from_str("0x0123").unwrap())
+                .await
+                .unwrap();
+            assert_eq!(trade.id(), Bytes::from_str("0x0123").unwrap());
+            assert_eq!(trade.transaction().id(), Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 trade.transaction().from(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -764,7 +802,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.output_vault_balance_change().vault_id(),
-                U256::from_str("1").unwrap()
+                U256::from_str("0x0123").unwrap()
             );
             assert_eq!(
                 trade.output_vault_balance_change().token().id(),
@@ -792,7 +830,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.output_vault_balance_change().transaction().id(),
-                "tx1"
+                Bytes::from_str("0x0123").unwrap()
             );
             assert_eq!(
                 trade
@@ -816,7 +854,7 @@ mod test_helpers {
             assert_eq!(trade.input_vault_balance_change().old_balance(), U256::ZERO);
             assert_eq!(
                 trade.input_vault_balance_change().vault_id(),
-                U256::from_str("1").unwrap()
+                U256::from_str("0x0123").unwrap()
             );
             assert_eq!(
                 trade.input_vault_balance_change().token().id(),
@@ -842,7 +880,10 @@ mod test_helpers {
                 trade.input_vault_balance_change().timestamp(),
                 U256::from_str("1700000000").unwrap()
             );
-            assert_eq!(trade.input_vault_balance_change().transaction().id(), "tx1");
+            assert_eq!(
+                trade.input_vault_balance_change().transaction().id(),
+                Bytes::from_str("0x0123").unwrap()
+            );
             assert_eq!(
                 trade.input_vault_balance_change().transaction().from(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -856,7 +897,7 @@ mod test_helpers {
                 trade.orderbook(),
                 Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap()
             );
-            assert_eq!(trade.order_hash(), "hash1");
+            assert_eq!(trade.order_hash(), Bytes::from_str("0x0123").unwrap());
         }
 
         #[tokio::test]
@@ -900,7 +941,11 @@ mod test_helpers {
             )
             .unwrap();
             let order = raindex_client
-                .get_order_by_hash(1, "order1".to_string())
+                .get_order_by_hash(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
                 .await
                 .unwrap();
             let count = order.get_trade_count(None, None).await.unwrap();

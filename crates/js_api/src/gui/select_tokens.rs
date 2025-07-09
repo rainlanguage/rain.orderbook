@@ -112,38 +112,6 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    /// Gets the network identifier for the current deployment.
-    ///
-    /// Returns the network key used by the deployment's order configuration.
-    /// This determines which blockchain network to query for token information.
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// const result = gui.getNetworkKey();
-    /// if (result.error) {
-    ///   console.error("Error:", result.error.readableMsg);
-    ///   return;
-    /// }
-    ///
-    /// const networkKey = result.value;
-    /// // Do something with the network key
-    /// ```
-    #[wasm_export(
-        js_name = "getNetworkKey",
-        unchecked_return_type = "string",
-        return_description = "Network key from the configuration"
-    )]
-    pub fn get_network_key(&self) -> Result<String, GuiError> {
-        let order_key = DeploymentCfg::parse_order_key(
-            self.dotrain_order.dotrain_yaml().documents,
-            &self.selected_deployment,
-        )?;
-        let network_key =
-            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
-        Ok(network_key)
-    }
-
     /// Sets a custom token address to be used in the order.
     ///
     /// Takes a token address provided by the user and queries the blockchain to get
@@ -289,7 +257,12 @@ impl DotrainOrderGui {
 
     #[wasm_export(js_name = "getAllTokens", unchecked_return_type = "TokenInfo[]")]
     pub async fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
-        let network_key = self.get_network_key()?;
+        let order_key = DeploymentCfg::parse_order_key(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
+        let network_key =
+            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
         let tokens = self.dotrain_order.orderbook_yaml().get_tokens()?;
         let network = self
             .dotrain_order
@@ -459,13 +432,6 @@ mod tests {
             );
 
             assert!(gui.check_select_tokens().is_ok());
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_get_network_key() {
-            let gui = initialize_gui_with_select_tokens().await;
-            let network_key = gui.get_network_key().unwrap();
-            assert_eq!(network_key, "some-network");
         }
 
         #[wasm_bindgen_test]

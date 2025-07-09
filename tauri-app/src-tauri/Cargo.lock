@@ -8358,7 +8358,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "url",
- "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -8367,7 +8367,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "serde",
- "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -8393,6 +8393,7 @@ dependencies = [
  "rain_interpreter_parser",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
+ "rain_orderbook_quote",
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",
  "serde",
@@ -8405,7 +8406,7 @@ dependencies = [
  "tracing",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -8438,7 +8439,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -8459,7 +8460,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "url",
- "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -10593,7 +10594,7 @@ dependencies = [
  "tokio",
  "url",
  "uuid 1.10.0",
- "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -11911,7 +11912,7 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-utils"
 version = "0.0.10"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e#b0ab2000b4953d712d88a402c011d6945c1a093e"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a#06990d85a0b7c55378a1c8cca4dd9e2bc34a596a"
 dependencies = [
  "js-sys",
  "paste",
@@ -11920,7 +11921,7 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros 0.0.5 (git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e)",
+ "wasm-bindgen-utils-macros 0.0.5 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -11937,7 +11938,7 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-utils-macros"
 version = "0.0.5"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=b0ab2000b4953d712d88a402c011d6945c1a093e#b0ab2000b4953d712d88a402c011d6945c1a093e"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a#06990d85a0b7c55378a1c8cca4dd9e2bc34a596a"
 dependencies = [
  "proc-macro2",
  "quote",

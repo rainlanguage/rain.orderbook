@@ -1,15 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
-import type { VaultVolume } from '@rainlanguage/orderbook';
+import type { RaindexOrder, VaultVolume } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 import OrderVaultsVolTable from '../lib/components/tables/OrderVaultsVolTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
-
-// Mock the getOrderVaultsVolume function
-vi.mock('@rainlanguage/orderbook', () => ({
-	getOrderVaultsVolume: vi.fn(() => Promise.resolve({ value: mockVaultsVol }))
-}));
 
 const mockVaultsVol: VaultVolume[] = [
 	{
@@ -48,10 +43,14 @@ const mockVaultsVol: VaultVolume[] = [
 
 test('renders table with correct data', async () => {
 	const queryClient = new QueryClient();
+	const mockOrder: RaindexOrder = {
+		id: '1',
+		getVaultsVolume: vi.fn().mockResolvedValue({ value: mockVaultsVol })
+	} as unknown as RaindexOrder;
 
 	render(OrderVaultsVolTable, {
 		context: new Map([['$$_queryClient', queryClient]]),
-		props: { id: '1', subgraphUrl: 'https://example.com' }
+		props: { order: mockOrder }
 	});
 
 	await waitFor(async () => {

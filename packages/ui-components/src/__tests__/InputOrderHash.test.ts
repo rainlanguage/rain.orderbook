@@ -1,18 +1,19 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { writable, get } from 'svelte/store';
 import InputOrderHash from '../lib/components/input/InputOrderHash.svelte';
+import type { Hex } from '@rainlanguage/orderbook';
 
 describe('InputOrderHash', () => {
 	it('renders with initial value', () => {
-		const orderHash = writable('0x123');
+		const orderHash = writable<Hex>('0x0123');
 		const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
 
 		const input = getByTestId('order-hash-input').querySelector('input');
-		expect(input?.value).toBe('0x123');
+		expect(input?.value).toBe('0x0123');
 	});
 
 	it('updates store value when input changes', async () => {
-		const orderHash = writable('');
+		const orderHash = writable<Hex>('0x0123');
 		const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
 
 		const input = getByTestId('order-hash-input').querySelector('input') as HTMLInputElement;
@@ -23,7 +24,7 @@ describe('InputOrderHash', () => {
 	});
 
 	it('renders with placeholder', () => {
-		const orderHash = writable('');
+		const orderHash = writable<Hex>('0x0345');
 		const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
 
 		const input = getByTestId('order-hash-input').querySelector('input');
