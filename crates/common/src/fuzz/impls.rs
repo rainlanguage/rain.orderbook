@@ -609,18 +609,15 @@ impl FuzzRunner {
                 *cached_block_number
             } else {
                 // Fetch the latest block number, if failed, record the error and continue to next deployment key
-<<<<<<< HEAD
-                match ReadableClient::new_from_http_urls(vec![scenario
-=======
                 let rpcs = scenario
->>>>>>> origin/2024-09-12-i9r
                     .deployer
                     .network
                     .rpcs
                     .iter()
                     .map(|rpc| rpc.to_string())
                     .collect::<Vec<String>>();
-                match ReadableClientHttp::new_from_urls(rpcs) {
+
+                match ReadableClient::new_from_http_urls(rpcs) {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,
                         Err(e) => {
