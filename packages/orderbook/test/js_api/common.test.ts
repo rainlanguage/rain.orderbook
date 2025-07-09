@@ -9,7 +9,7 @@ describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	afterEach(() => mockServer.stop());
 
 	const dotrain = `
-version: 1
+version: 2
 networks:
   some-network:
     rpcs:
