@@ -8,7 +8,7 @@ use alloy::{
     },
     sol_types::SolCall,
 };
-use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, OrderV4, TakeOrdersConfigV4};
+use rain_orderbook_bindings::IOrderBookV4::{takeOrders2Call, OrderV3, TakeOrdersConfigV3};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -36,9 +36,9 @@ impl_wasm_traits!(TakeOrdersCalldata);
 )]
 pub fn get_order_hash(
     #[wasm_export(
-        param_description = "Complete OrderV4 structure containing owner, evaluation logic, valid inputs/outputs, and nonce"
+        param_description = "Complete OrderV3 structure containing owner, evaluation logic, valid inputs/outputs, and nonce"
     )]
-    order: &OrderV4,
+    order: &OrderV3,
 ) -> Result<String, Error> {
     Ok(encode_prefixed(main_keccak256(order.abi_encode())))
 }
@@ -64,9 +64,9 @@ pub fn get_take_orders2_calldata(
     #[wasm_export(
         param_description = "Complete configuration for order execution including minimumInput, maximumInput, maximumIORatio, orders array, and additional data"
     )]
-    take_orders_config: TakeOrdersConfigV4,
+    take_orders_config: TakeOrdersConfigV3,
 ) -> Result<TakeOrdersCalldata, Error> {
-    let calldata = takeOrders3Call {
+    let calldata = takeOrders2Call {
         config: take_orders_config,
     }
     .abi_encode();
@@ -132,7 +132,7 @@ pub enum Error {
 impl Error {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            Self::FromHexError(e) => format!("Failed to decode hex string: {e}"),
+            Self::FromHexError(e) => format!("Failed to decode hex string: {}", e),
         }
     }
 }
@@ -159,7 +159,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_get_order_hash() {
-        let order = OrderV4::default();
+        let order = OrderV3::default();
         let result = get_order_hash(&order).unwrap();
         assert_eq!(
             result,
@@ -169,9 +169,9 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_take_orders_calldata() {
-        let take_orders_config = TakeOrdersConfigV4::default();
+        let take_orders_config = TakeOrdersConfigV3::default();
         let result = get_take_orders2_calldata(take_orders_config.clone()).unwrap();
-        let expected = takeOrders3Call {
+        let expected = takeOrders2Call {
             config: take_orders_config,
         }
         .abi_encode();
@@ -199,7 +199,7 @@ mod tests {
         assert_eq!(err.to_string(), "Failed to decode hex string");
         assert_eq!(
             err.to_readable_msg(),
-            "Failed to decode hex string: odd number of digits"
+            "Failed to decode hex string: Odd number of digits"
         );
     }
 }

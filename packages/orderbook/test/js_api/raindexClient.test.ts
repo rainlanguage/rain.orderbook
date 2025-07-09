@@ -6,10 +6,17 @@ import {
 	SgOrder,
 	SgTrade,
 	OrderPerformance,
-	VaultVolume
+	VaultVolume,
+	SgVault,
+	SgTransaction,
+	SgAddOrderWithOrder,
+	SgRemoveOrderWithOrder,
+	Hex
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
+const CHAIN_ID_1_ORDERBOOK_ADDRESS = '0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6';
+const CHAIN_ID_2_ORDERBOOK_ADDRESS = '0xbeedbeedbeedbeedbeedbeedbeedbeedbeedbeed';
 const YAML = `
 networks:
     some-network:
@@ -35,11 +42,11 @@ deployers:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 orderbooks:
     some-orderbook:
-        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS}
         network: some-network
         subgraph: some-sg
     other-orderbook:
-        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        address: ${CHAIN_ID_2_ORDERBOOK_ADDRESS}
         network: other-network
         subgraph: other-sg
 tokens:
@@ -83,403 +90,8 @@ deployments:
         order: some-order
 `;
 
-const order1: SgOrder = {
-	id: 'order1',
-	orderBytes:
-		'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-	orderHash: '0x1',
-	owner: '0x0000000000000000000000000000000000000000',
-	outputs: [
-		{
-			id: '0x0000000000000000000000000000000000000001',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'T1',
-				symbol: 'T1',
-				decimals: '0'
-			},
-			balance: '0x98723',
-			vaultId: '0x1',
-			owner: '0x0000000000000000000000000000000000000000',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
-			}
-		},
-		{
-			id: '0x0000000000000000000000000000000000000003',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'T3',
-				symbol: 'T3',
-				decimals: '0'
-			},
-			balance: '0x7772',
-			vaultId: '0x3',
-			owner: '0x0000000000000000000000000000000000000000',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	inputs: [
-		{
-			id: '0x0000000000000000000000000000000000000002',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'T2',
-				symbol: 'T2',
-				decimals: '0'
-			},
-			balance: '0x123',
-			vaultId: '0x2',
-			owner: '0x0000000000000000000000000000000000000000',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
-			}
-		},
-		{
-			id: '0x0000000000000000000000000000000000000003',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'T3',
-				symbol: 'T3',
-				decimals: '0'
-			},
-			balance: '0x7772',
-			vaultId: '0x3',
-			owner: '0x0000000000000000000000000000000000000000',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	active: true,
-	addEvents: [
-		{
-			transaction: {
-				blockNumber: '0',
-				timestamp: '0',
-				id: '0x0000000000000000000000000000000000000000',
-				from: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	meta: '0xff0a89c674ee7874a3005902252f2a20302e2063616c63756c6174652d696f202a2f200a7573696e672d776f7264732d66726f6d203078466532343131434461313933443945346538334135633233344337466433323031303138383361430a616d743a203130302c0a696f3a2063616c6c3c323e28293b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a63616c6c3c333e28292c0a3a656e7375726528657175616c2d746f286f75747075742d7661756c742d64656372656173652829203130302920226d7573742074616b652066756c6c20616d6f756e7422293b0a0a2f2a20322e206765742d696f2d726174696f2d6e6f77202a2f200a656c61707365643a2063616c6c3c343e28292c0a696f3a2073617475726174696e672d73756228302e3031373733353620646976286d756c28656c61707365642073756228302e3031373733353620302e30313733383434292920363029293b0a0a2f2a20332e206f6e652d73686f74202a2f200a3a656e737572652869732d7a65726f286765742868617368286f726465722d68617368282920226861732d657865637574656422292929202268617320657865637574656422292c0a3a7365742868617368286f726465722d68617368282920226861732d657865637574656422292031293b0a0a2f2a20342e206765742d656c6170736564202a2f200a5f3a20737562286e6f772829206765742868617368286f726465722d68617368282920226465706c6f792d74696d65222929293b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d',
-	timestampAdded: '0',
-	orderbook: {
-		id: '0x0000000000000000000000000000000000000000'
-	},
-	trades: [],
-	removeEvents: []
-} as unknown as SgOrder;
-
-const order2 = {
-	id: 'order2',
-	orderBytes:
-		'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-	orderHash: '0x2',
-	owner: '0x0000000000000000000000000000000000000000',
-	outputs: [
-		{
-			id: '0x0000000000000000000000000000000000000000',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'T1',
-				symbol: 'T1',
-				decimals: '0'
-			},
-			balance: '0',
-			vaultId: '0',
-			owner: '0x0000000000000000000000000000000000000000',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	inputs: [
-		{
-			id: '0x0000000000000000000000000000000000000000',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'T2',
-				symbol: 'T2',
-				decimals: '0'
-			},
-			balance: '0',
-			vaultId: '0',
-			owner: '0x0000000000000000000000000000000000000000',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	active: true,
-	addEvents: [
-		{
-			transaction: {
-				blockNumber: '0',
-				timestamp: '0',
-				id: '0x0000000000000000000000000000000000000000',
-				from: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	meta: null,
-	timestampAdded: '0',
-	orderbook: {
-		id: '0x0000000000000000000000000000000000000000'
-	},
-	trades: [],
-	removeEvents: []
-} as unknown as SgOrder;
-
-export const order3 = {
-	id: 'order1',
-	orderBytes:
-		'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-	orderHash: '0x1',
-	owner: '0x0000000000000000000000000000000000000000',
-	outputs: [
-		{
-			id: '0x0000000000000000000000000000000000000000',
-			token: {
-				id: 'token-1',
-				address: '0x1111111111111111111111111111111111111111',
-				name: 'Token One',
-				symbol: 'TK1',
-				decimals: '18'
-			},
-			balance: '0',
-			vaultId: '1',
-			owner: '0x0000000000000000000000000000000000000000',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	inputs: [
-		{
-			id: '0x0000000000000000000000000000000000000000',
-			token: {
-				id: 'token-2',
-				address: '0x2222222222222222222222222222222222222222',
-				name: 'Token Two',
-				symbol: 'TK2',
-				decimals: '18'
-			},
-			balance: '0',
-			vaultId: '2',
-			owner: '0x0000000000000000000000000000000000000000',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	active: true,
-	addEvents: [
-		{
-			transaction: {
-				blockNumber: '0',
-				timestamp: '0',
-				id: '0x0000000000000000000000000000000000000000',
-				from: '0x0000000000000000000000000000000000000000'
-			}
-		}
-	],
-	meta: null,
-	timestampAdded: '0',
-	orderbook: {
-		id: '0x0000000000000000000000000000000000000000'
-	},
-	trades: [],
-	removeEvents: []
-} as unknown as SgOrder;
-
-const mockOrderTradesList: SgTrade[] = [
-	{
-		id: '0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
-		timestamp: '1632000000',
-		tradeEvent: {
-			sender: '0x0000000000000000000000000000000000000000',
-			transaction: {
-				id: '0x0000000000000000000000000000000000000000',
-				from: '0x0000000000000000000000000000000000000000',
-				timestamp: '1632000000',
-				blockNumber: '0'
-			}
-		},
-		outputVaultBalanceChange: {
-			amount: '-100000000000000000000',
-			vault: {
-				id: 'vault-1',
-				vaultId: '1',
-				token: {
-					id: 'token-1',
-					address: '0x1111111111111111111111111111111111111111',
-					name: 'Token One',
-					symbol: 'TK1',
-					decimals: '18'
-				}
-			},
-			id: 'output-change-1',
-			__typename: 'TradeVaultBalanceChange',
-			newVaultBalance: '900',
-			oldVaultBalance: '1000',
-			timestamp: '1632000000',
-			transaction: {
-				id: '0x0000000000000000000000000000000000000000',
-				from: '0x0000000000000000000000000000000000000000',
-				timestamp: '1632000000',
-				blockNumber: '0'
-			},
-			orderbook: { id: 'orderbook-1' }
-		},
-		order: {
-			id: order1.id,
-			orderHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
-		},
-		inputVaultBalanceChange: {
-			amount: '50000000000000000000',
-			vault: {
-				id: 'vault-2',
-				vaultId: '2',
-				token: {
-					id: 'token-2',
-					address: '0x2222222222222222222222222222222222222222',
-					name: 'Token Two',
-					symbol: 'TK2',
-					decimals: '18'
-				}
-			},
-			id: 'input-change-1',
-			__typename: 'TradeVaultBalanceChange',
-			newVaultBalance: '150',
-			oldVaultBalance: '100',
-			timestamp: '1632000000',
-			transaction: {
-				id: '0x0000000000000000000000000000000000000000',
-				from: '0x0000000000000000000000000000000000000000',
-				timestamp: '1632000000',
-				blockNumber: '0'
-			},
-			orderbook: { id: 'orderbook-1' }
-		},
-		orderbook: {
-			id: 'orderbook-1'
-		}
-	}
-] as unknown as SgTrade[];
-
-const mockTrade: SgTrade = {
-	id: 'trade1',
-	order: {
-		id: 'order1',
-		orderHash: '0x1'
-	},
-	tradeEvent: {
-		sender: '0x0000000000000000000000000000000000000000',
-		transaction: {
-			id: '0x0000000000000000000000000000000000000000',
-			from: '0x0000000000000000000000000000000000000000',
-			blockNumber: '0',
-			timestamp: '0'
-		}
-	},
-	timestamp: '0',
-	orderbook: {
-		id: '0x0000000000000000000000000000000000000000'
-	},
-	outputVaultBalanceChange: {
-		id: '0x0000000000000000000000000000000000000000',
-		__typename: 'TradeVaultBalanceChange',
-		amount: '-7',
-		newVaultBalance: '93',
-		oldVaultBalance: '100',
-		vault: {
-			id: '0x0000000000000000000000000000000000000000',
-			vaultId: '1',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'T1',
-				symbol: 'T1',
-				decimals: '18'
-			}
-		},
-		timestamp: '0',
-		transaction: {
-			id: '0x0000000000000000000000000000000000000000',
-			from: '0x0000000000000000000000000000000000000000',
-			blockNumber: '0',
-			timestamp: '0'
-		},
-		orderbook: {
-			id: '0x0000000000000000000000000000000000000000'
-		}
-	},
-	inputVaultBalanceChange: {
-		id: '0x0000000000000000000000000000000000000000',
-		__typename: 'TradeVaultBalanceChange',
-		amount: '5',
-		newVaultBalance: '105',
-		oldVaultBalance: '100',
-		vault: {
-			id: '0x0000000000000000000000000000000000000000',
-			vaultId: '2',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'T2',
-				symbol: 'T2',
-				decimals: '6'
-			}
-		},
-		timestamp: '0',
-		transaction: {
-			id: '0x0000000000000000000000000000000000000000',
-			from: '0x0000000000000000000000000000000000000000',
-			blockNumber: '0',
-			timestamp: '0'
-		},
-		orderbook: {
-			id: '0x0000000000000000000000000000000000000000'
-		}
-	}
-} as unknown as SgTrade;
-
 const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {
 	if (result.error) {
-		console.log(result.error);
 		assert.fail(errorMessage ?? result.error.msg);
 	}
 	if (typeof void 0 === typeof result.value) {
@@ -506,6 +118,400 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 	});
 
 	describe('Orders', async function () {
+		const order1: SgOrder = {
+			id: '0x0123',
+			orderBytes:
+				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
+			orderHash: '0x0123',
+			owner: '0x0000000000000000000000000000000000000000',
+			outputs: [
+				{
+					id: '0x0000000000000000000000000000000000000001',
+					token: {
+						id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+						address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+						name: 'Staked FLR',
+						symbol: 'sFLR',
+						decimals: '18'
+					},
+					balance: '0x98723',
+					vaultId: '0x0123',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				},
+				{
+					id: '0x0000000000000000000000000000000000000003',
+					token: {
+						id: '0x0000000000000000000000000000000000000000',
+						address: '0x0000000000000000000000000000000000000000',
+						name: 'T3',
+						symbol: 'T3',
+						decimals: '0'
+					},
+					balance: '0x7772',
+					vaultId: '0x0345',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			inputs: [
+				{
+					id: '0x0000000000000000000000000000000000000002',
+					token: {
+						id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+						address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+						name: 'Wrapped FLR',
+						symbol: 'WFLR',
+						decimals: '18'
+					},
+					balance: '0x123',
+					vaultId: '0x0234',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				},
+				{
+					id: '0x0000000000000000000000000000000000000003',
+					token: {
+						id: '0x0000000000000000000000000000000000000000',
+						address: '0x0000000000000000000000000000000000000000',
+						name: 'T3',
+						symbol: 'T3',
+						decimals: '0'
+					},
+					balance: '0x7772',
+					vaultId: '0x0345',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			active: true,
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '0',
+						timestamp: '0',
+						id: '0x0000000000000000000000000000000000000000',
+						from: '0x0000000000000000000000000000000000000000'
+					}
+				}
+			],
+			meta: '0xff0a89c674ee7874a3005902252f2a20302e2063616c63756c6174652d696f202a2f200a7573696e672d776f7264732d66726f6d203078466532343131434461313933443945346538334135633233344337466433323031303138383361430a616d743a203130302c0a696f3a2063616c6c3c323e28293b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a63616c6c3c333e28292c0a3a656e7375726528657175616c2d746f286f75747075742d7661756c742d64656372656173652829203130302920226d7573742074616b652066756c6c20616d6f756e7422293b0a0a2f2a20322e206765742d696f2d726174696f2d6e6f77202a2f200a656c61707365643a2063616c6c3c343e28292c0a696f3a2073617475726174696e672d73756228302e3031373733353620646976286d756c28656c61707365642073756228302e3031373733353620302e30313733383434292920363029293b0a0a2f2a20332e206f6e652d73686f74202a2f200a3a656e737572652869732d7a65726f286765742868617368286f726465722d68617368282920226861732d657865637574656422292929202268617320657865637574656422292c0a3a7365742868617368286f726465722d68617368282920226861732d657865637574656422292031293b0a0a2f2a20342e206765742d656c6170736564202a2f200a5f3a20737562286e6f772829206765742868617368286f726465722d68617368282920226465706c6f792d74696d65222929293b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d',
+			timestampAdded: '0',
+			orderbook: {
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+			},
+			trades: [],
+			removeEvents: []
+		} as unknown as SgOrder;
+
+		const order2 = {
+			id: '0x0234',
+			orderBytes:
+				'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+			orderHash: '0x0234',
+			owner: '0x0000000000000000000000000000000000000000',
+			outputs: [
+				{
+					id: '0x0234',
+					token: {
+						id: '0x0123',
+						address: '0x0000000000000000000000000000000000000000',
+						name: 'T1',
+						symbol: 'T1',
+						decimals: '0'
+					},
+					balance: '0',
+					vaultId: '0',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_2_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			inputs: [
+				{
+					id: '0x0234',
+					token: {
+						id: '0x0234',
+						address: '0x0000000000000000000000000000000000000000',
+						name: 'T2',
+						symbol: 'T2',
+						decimals: '0'
+					},
+					balance: '0',
+					vaultId: '0',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_2_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			active: true,
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '0',
+						timestamp: '0',
+						id: '0x0000000000000000000000000000000000000000',
+						from: '0x0000000000000000000000000000000000000000'
+					}
+				}
+			],
+			meta: null,
+			timestampAdded: '0',
+			orderbook: {
+				id: CHAIN_ID_2_ORDERBOOK_ADDRESS
+			},
+			trades: [],
+			removeEvents: []
+		} as unknown as SgOrder;
+
+		const order3 = {
+			id: '0x0123',
+			orderBytes:
+				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
+			orderHash: '0x0123',
+			owner: '0x0000000000000000000000000000000000000000',
+			outputs: [
+				{
+					id: '0x0123',
+					token: {
+						id: '0x0123',
+						address: '0x1111111111111111111111111111111111111111',
+						name: 'Token One',
+						symbol: 'TK1',
+						decimals: '18'
+					},
+					balance: '0x0',
+					vaultId: '0x0123',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			inputs: [
+				{
+					id: '0x0234',
+					token: {
+						id: '0x0234',
+						address: '0x2222222222222222222222222222222222222222',
+						name: 'Token Two',
+						symbol: 'TK2',
+						decimals: '18'
+					},
+					balance: '0x0',
+					vaultId: '0x0234',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			active: true,
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '0',
+						timestamp: '0',
+						id: '0x0123',
+						from: '0x0000000000000000000000000000000000000000'
+					}
+				}
+			],
+			meta: null,
+			timestampAdded: '0',
+			orderbook: {
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+			},
+			trades: [],
+			removeEvents: []
+		} as unknown as SgOrder;
+
+		const mockOrderTradesList: SgTrade[] = [
+			{
+				id: '0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
+				timestamp: '1632000000',
+				tradeEvent: {
+					sender: '0x0000000000000000000000000000000000000000',
+					transaction: {
+						id: '0x0000000000000000000000000000000000000000',
+						from: '0x0000000000000000000000000000000000000000',
+						timestamp: '1632000000',
+						blockNumber: '0'
+					}
+				},
+				outputVaultBalanceChange: {
+					amount: '-100000000000000000000',
+					vault: {
+						id: '0x0123',
+						vaultId: '0x0123',
+						token: {
+							id: '0x0123',
+							address: '0x1111111111111111111111111111111111111111',
+							name: 'Token One',
+							symbol: 'TK1',
+							decimals: '18'
+						}
+					},
+					id: 'output-change-1',
+					__typename: 'TradeVaultBalanceChange',
+					newVaultBalance: '900',
+					oldVaultBalance: '1000',
+					timestamp: '1632000000',
+					transaction: {
+						id: '0x0000000000000000000000000000000000000000',
+						from: '0x0000000000000000000000000000000000000000',
+						timestamp: '1632000000',
+						blockNumber: '0'
+					},
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+				},
+				order: {
+					id: order1.id,
+					orderHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+				},
+				inputVaultBalanceChange: {
+					amount: '50000000000000000000',
+					vault: {
+						id: '0x0234',
+						vaultId: '0x0234',
+						token: {
+							id: '0x0234',
+							address: '0x2222222222222222222222222222222222222222',
+							name: 'Token Two',
+							symbol: 'TK2',
+							decimals: '18'
+						}
+					},
+					id: 'input-change-1',
+					__typename: 'TradeVaultBalanceChange',
+					newVaultBalance: '150',
+					oldVaultBalance: '100',
+					timestamp: '1632000000',
+					transaction: {
+						id: '0x0000000000000000000000000000000000000000',
+						from: '0x0000000000000000000000000000000000000000',
+						timestamp: '1632000000',
+						blockNumber: '0'
+					},
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+				},
+				orderbook: {
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				}
+			}
+		] as unknown as SgTrade[];
+
+		const mockTrade: SgTrade = {
+			id: '0x0123',
+			order: {
+				id: '0x0123',
+				orderHash: '0x0123'
+			},
+			tradeEvent: {
+				sender: '0x0000000000000000000000000000000000000000',
+				transaction: {
+					id: '0x0123',
+					from: '0x0000000000000000000000000000000000000000',
+					blockNumber: '0',
+					timestamp: '0'
+				}
+			},
+			timestamp: '0',
+			orderbook: {
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+			},
+			outputVaultBalanceChange: {
+				id: '0x0123',
+				__typename: 'TradeVaultBalanceChange',
+				amount: '-7',
+				newVaultBalance: '93',
+				oldVaultBalance: '100',
+				vault: {
+					id: '0x0123',
+					vaultId: '0x0123',
+					token: {
+						id: '0x0123',
+						address: '0x0000000000000000000000000000000000000000',
+						name: 'T1',
+						symbol: 'T1',
+						decimals: '18'
+					}
+				},
+				timestamp: '0',
+				transaction: {
+					id: '0x0123',
+					from: '0x0000000000000000000000000000000000000000',
+					blockNumber: '0',
+					timestamp: '0'
+				},
+				orderbook: {
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				}
+			},
+			inputVaultBalanceChange: {
+				id: '0x0234',
+				__typename: 'TradeVaultBalanceChange',
+				amount: '5',
+				newVaultBalance: '105',
+				oldVaultBalance: '100',
+				vault: {
+					id: '0x0234',
+					vaultId: '0x0234',
+					token: {
+						id: '0x0234',
+						address: '0x0000000000000000000000000000000000000000',
+						name: 'T2',
+						symbol: 'T2',
+						decimals: '6'
+					}
+				},
+				timestamp: '0',
+				transaction: {
+					id: '0x0234',
+					from: '0x0000000000000000000000000000000000000000',
+					blockNumber: '0',
+					timestamp: '0'
+				},
+				orderbook: {
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				}
+			}
+		} as unknown as SgTrade;
+
 		it('should get orders', async function () {
 			await mockServer
 				.forPost('/sg1')
@@ -521,7 +527,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(orders[0].id, order1.id);
 			assert.equal(orders[1].id, order2.id);
 
-			orders = extractWasmEncodedData(await raindexClient.getOrders(1));
+			orders = extractWasmEncodedData(await raindexClient.getOrders([1]));
 			assert.equal(orders.length, 1);
 			assert.equal(orders[0].id, order1.id);
 		});
@@ -532,7 +538,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 
-			const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			assert.equal(typeof order, 'object');
 			assert.equal(order.id, order1.id);
 			assert.equal(order.orderbook, order1.orderbook.id);
@@ -549,25 +557,25 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(order.vaults.length, 3);
 
 			assert.equal(order.vaults[0].vaultType, 'input');
-			assert.equal(order.vaults[0].vaultId, BigInt(2));
+			assert.equal(order.vaults[0].vaultId, '0x0234');
 			assert.equal(order.vaults[0].balance, BigInt(291));
-			assert.equal(order.vaults[0].token.id, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[0].token.address, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[0].token.name, 'T2');
-			assert.equal(order.vaults[0].token.symbol, 'T2');
-			assert.equal(order.vaults[0].token.decimals, '0');
+			assert.equal(order.vaults[0].token.id, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
+			assert.equal(order.vaults[0].token.address, '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+			assert.equal(order.vaults[0].token.name, 'Wrapped FLR');
+			assert.equal(order.vaults[0].token.symbol, 'WFLR');
+			assert.equal(order.vaults[0].token.decimals, BigInt(18));
 
 			assert.equal(order.vaults[1].vaultType, 'output');
-			assert.equal(order.vaults[1].vaultId, BigInt(1));
+			assert.equal(order.vaults[1].vaultId, '0x0123');
 			assert.equal(order.vaults[1].balance, BigInt(624419));
-			assert.equal(order.vaults[1].token.id, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[1].token.address, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[1].token.name, 'T1');
-			assert.equal(order.vaults[1].token.symbol, 'T1');
-			assert.equal(order.vaults[1].token.decimals, '0');
+			assert.equal(order.vaults[1].token.id, '0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
+			assert.equal(order.vaults[1].token.address, '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+			assert.equal(order.vaults[1].token.name, 'Staked FLR');
+			assert.equal(order.vaults[1].token.symbol, 'sFLR');
+			assert.equal(order.vaults[1].token.decimals, BigInt(18));
 
 			assert.equal(order.vaults[2].vaultType, 'inputOutput');
-			assert.equal(order.vaults[2].vaultId, BigInt(3));
+			assert.equal(order.vaults[2].vaultId, '0x0345');
 			assert.equal(order.vaults[2].balance, BigInt(30578));
 			assert.equal(order.vaults[2].token.id, '0x0000000000000000000000000000000000000000');
 			assert.equal(order.vaults[2].token.address, '0x0000000000000000000000000000000000000000');
@@ -576,7 +584,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(order.vaults[2].token.decimals, '0');
 		});
 
-		it('should measure order performance given an order id and subgraph', async () => {
+		it('should get the get the total volume for an order', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
@@ -602,15 +610,17 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			const result = await order.getVaultsVolume(BigInt(1632000000), BigInt(1734571449));
 			if (result.error) assert.fail('expected to resolve, but failed');
 
 			const expected: VaultVolume[] = [
 				{
-					id: '2',
+					id: '0x0234',
 					token: {
-						id: 'token-2',
+						id: '0x0234',
 						address: '0x2222222222222222222222222222222222222222',
 						name: 'Token Two',
 						symbol: 'TK2',
@@ -624,9 +634,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					}
 				},
 				{
-					id: '1',
+					id: '0x0123',
 					token: {
-						id: 'token-1',
+						id: '0x0123',
 						address: '0x1111111111111111111111111111111111111111',
 						name: 'Token One',
 						symbol: 'TK1',
@@ -643,7 +653,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.deepEqual(result.value, expected);
 		});
 
-		it('should measure order performance given an order id and subgraph', async () => {
+		it('should calculate order performance metrics given an order id and subgraph', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
@@ -673,17 +683,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const order = extractWasmEncodedData(await raindexClient.getOrderByHash(1, 'hash'));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
 			const result = await order.getPerformance(BigInt(1632000000), BigInt(1734571449));
 			if (result.error) assert.fail('expected to resolve, but failed');
 
 			const expected: OrderPerformance = {
-				orderId: 'order1',
-				orderHash: '0x1',
-				orderbook: '0x0000000000000000000000000000000000000000',
+				orderId: '0x0123',
+				orderHash: '0x0123',
+				orderbook: CHAIN_ID_1_ORDERBOOK_ADDRESS,
 				denominatedPerformance: {
 					token: {
-						id: 'token-2',
+						id: '0x0234',
 						address: '0x2222222222222222222222222222222222222222',
 						name: 'Token Two',
 						symbol: 'TK2',
@@ -699,9 +711,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				endTime: 1734571449,
 				inputsVaults: [
 					{
-						id: '2',
+						id: '0x0234',
 						token: {
-							id: 'token-2',
+							id: '0x0234',
 							address: '0x2222222222222222222222222222222222222222',
 							name: 'Token Two',
 							symbol: 'TK2',
@@ -725,9 +737,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				],
 				outputsVaults: [
 					{
-						id: '1',
+						id: '0x0123',
 						token: {
-							id: 'token-1',
+							id: '0x0123',
 							address: '0x1111111111111111111111111111111111111111',
 							name: 'Token One',
 							symbol: 'TK1',
@@ -751,6 +763,1064 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				]
 			};
 			assert.deepEqual(result.value, expected);
+		});
+
+		it('should get remove calldata', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const calldata = extractWasmEncodedData(order.getRemoveCalldata());
+			assert.equal(
+				calldata,
+				'0x8d7b6beb000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000002e000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb3720000000000000000000000000000000000000000000000000000000000000000'
+			);
+		});
+
+		it('should get order quote', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x01');
+			await mockServer
+				.forPost('/rpc1')
+				.thenSendJsonRpcResult(
+					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002'
+				);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const result = extractWasmEncodedData(await order.getQuotes());
+			assert.deepEqual(result, [
+				{
+					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
+					blockNumber: 1,
+					data: {
+						maxOutput: '0x1',
+						ratio: '0x2'
+					},
+					success: true,
+					error: undefined
+				}
+			]);
+		});
+
+		describe('Trades', async function () {
+			it('should get trades for an order', async function () {
+				await mockServer
+					.forPost('/sg1')
+					.once()
+					.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+				await mockServer.forPost('/sg1').thenReply(
+					200,
+					JSON.stringify({
+						data: {
+							trades: mockOrderTradesList
+						}
+					})
+				);
+
+				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+				const order = extractWasmEncodedData(
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				);
+				const result = extractWasmEncodedData(await order.getTradesList());
+				assert.equal(result.length, 1);
+				assert.equal(result[0].id, mockOrderTradesList[0].id);
+				assert.equal(result[0].orderHash, mockOrderTradesList[0].order.orderHash);
+				assert.equal(result[0].timestamp, BigInt(mockOrderTradesList[0].timestamp));
+				assert.equal(result[0].orderbook, mockOrderTradesList[0].orderbook.id.toLowerCase());
+				assert.equal(
+					result[0].outputVaultBalanceChange.amount,
+					mockOrderTradesList[0].outputVaultBalanceChange.amount
+				);
+				assert.equal(
+					result[0].outputVaultBalanceChange.vaultId,
+					BigInt(mockOrderTradesList[0].outputVaultBalanceChange.vault.vaultId)
+				);
+				assert.equal(
+					result[0].outputVaultBalanceChange.token.id,
+					mockOrderTradesList[0].outputVaultBalanceChange.vault.token.id
+				);
+				assert.equal(
+					result[0].outputVaultBalanceChange.token.address,
+					mockOrderTradesList[0].outputVaultBalanceChange.vault.token.address
+				);
+				assert.equal(
+					result[0].outputVaultBalanceChange.token.name,
+					mockOrderTradesList[0].outputVaultBalanceChange.vault.token.name
+				);
+				assert.equal(
+					result[0].outputVaultBalanceChange.token.symbol,
+					mockOrderTradesList[0].outputVaultBalanceChange.vault.token.symbol
+				);
+				assert.equal(
+					result[0].outputVaultBalanceChange.token.decimals,
+					BigInt(mockOrderTradesList[0].outputVaultBalanceChange.vault.token.decimals ?? 0)
+				);
+				assert.equal(
+					result[0].inputVaultBalanceChange.amount,
+					mockOrderTradesList[0].inputVaultBalanceChange.amount
+				);
+				assert.equal(
+					result[0].inputVaultBalanceChange.vaultId,
+					BigInt(mockOrderTradesList[0].inputVaultBalanceChange.vault.vaultId)
+				);
+				assert.equal(
+					result[0].inputVaultBalanceChange.token.id,
+					mockOrderTradesList[0].inputVaultBalanceChange.vault.token.id
+				);
+				assert.equal(
+					result[0].inputVaultBalanceChange.token.address,
+					mockOrderTradesList[0].inputVaultBalanceChange.vault.token.address
+				);
+				assert.equal(
+					result[0].inputVaultBalanceChange.token.name,
+					mockOrderTradesList[0].inputVaultBalanceChange.vault.token.name
+				);
+				assert.equal(
+					result[0].inputVaultBalanceChange.token.symbol,
+					mockOrderTradesList[0].inputVaultBalanceChange.vault.token.symbol
+				);
+				assert.equal(
+					result[0].inputVaultBalanceChange.token.decimals,
+					BigInt(mockOrderTradesList[0].inputVaultBalanceChange.vault.token.decimals ?? 0)
+				);
+				assert.equal(result[0].transaction.id, mockOrderTradesList[0].tradeEvent.transaction.id);
+				assert.equal(
+					result[0].transaction.from,
+					mockOrderTradesList[0].tradeEvent.transaction.from
+				);
+				assert.equal(
+					result[0].transaction.blockNumber,
+					BigInt(mockOrderTradesList[0].tradeEvent.transaction.blockNumber)
+				);
+				assert.equal(
+					result[0].transaction.timestamp,
+					BigInt(mockOrderTradesList[0].tradeEvent.transaction.timestamp)
+				);
+			});
+
+			it('should get trade detail', async function () {
+				await mockServer
+					.forPost('/sg1')
+					.once()
+					.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+				await mockServer
+					.forPost('/sg1')
+					.thenReply(200, JSON.stringify({ data: { trade: mockTrade } }));
+
+				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+				const order = extractWasmEncodedData(
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				);
+				const result = extractWasmEncodedData(await order.getTradeDetail(mockTrade.id as Hex));
+				assert.equal(result.id, mockTrade.id);
+				assert.equal(result.orderHash, mockTrade.order.orderHash);
+				assert.equal(
+					result.outputVaultBalanceChange.amount,
+					mockTrade.outputVaultBalanceChange.amount
+				);
+				assert.equal(
+					result.outputVaultBalanceChange.vaultId,
+					BigInt(mockTrade.outputVaultBalanceChange.vault.vaultId)
+				);
+				assert.equal(
+					result.outputVaultBalanceChange.token.id,
+					mockTrade.outputVaultBalanceChange.vault.token.id
+				);
+				assert.equal(
+					result.outputVaultBalanceChange.token.address,
+					mockTrade.outputVaultBalanceChange.vault.token.address
+				);
+				assert.equal(
+					result.outputVaultBalanceChange.token.name,
+					mockTrade.outputVaultBalanceChange.vault.token.name
+				);
+				assert.equal(
+					result.outputVaultBalanceChange.token.symbol,
+					mockTrade.outputVaultBalanceChange.vault.token.symbol
+				);
+				assert.equal(
+					result.outputVaultBalanceChange.token.decimals,
+					BigInt(mockTrade.outputVaultBalanceChange.vault.token.decimals ?? 0)
+				);
+				assert.equal(
+					result.inputVaultBalanceChange.amount,
+					mockTrade.inputVaultBalanceChange.amount
+				);
+				assert.equal(
+					result.inputVaultBalanceChange.vaultId,
+					BigInt(mockTrade.inputVaultBalanceChange.vault.vaultId)
+				);
+				assert.equal(
+					result.inputVaultBalanceChange.token.id,
+					mockTrade.inputVaultBalanceChange.vault.token.id
+				);
+				assert.equal(
+					result.inputVaultBalanceChange.token.address,
+					mockTrade.inputVaultBalanceChange.vault.token.address
+				);
+				assert.equal(
+					result.inputVaultBalanceChange.token.name,
+					mockTrade.inputVaultBalanceChange.vault.token.name
+				);
+				assert.equal(
+					result.inputVaultBalanceChange.token.symbol,
+					mockTrade.inputVaultBalanceChange.vault.token.symbol
+				);
+				assert.equal(
+					result.inputVaultBalanceChange.token.decimals,
+					BigInt(mockTrade.inputVaultBalanceChange.vault.token.decimals ?? 0)
+				);
+				assert.equal(result.transaction.id, mockTrade.tradeEvent.transaction.id);
+				assert.equal(result.transaction.from, mockTrade.tradeEvent.transaction.from);
+				assert.equal(
+					result.transaction.blockNumber,
+					BigInt(mockTrade.tradeEvent.transaction.blockNumber)
+				);
+				assert.equal(
+					result.transaction.timestamp,
+					BigInt(mockTrade.tradeEvent.transaction.timestamp)
+				);
+				assert.equal(result.orderbook, mockTrade.orderbook.id.toLowerCase());
+			});
+
+			it('should get trade count', async function () {
+				await mockServer
+					.forPost('/sg1')
+					.once()
+					.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+				await mockServer.forPost('/sg1').thenReply(
+					200,
+					JSON.stringify({
+						data: {
+							trades: mockOrderTradesList
+						}
+					})
+				);
+				await mockServer.forPost('/sg1').thenReply(
+					200,
+					JSON.stringify({
+						data: {
+							trades: []
+						}
+					})
+				);
+
+				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+				const order = extractWasmEncodedData(
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				);
+				const result = extractWasmEncodedData(await order.getTradeCount());
+				assert.equal(result, 1);
+			});
+		});
+	});
+
+	describe('Add and remove orders', async function () {
+		const mockOrder = {
+			transaction: {
+				id: '0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af',
+				from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+				blockNumber: '37432554',
+				timestamp: '1739448802'
+			},
+			order: {
+				id: '0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1',
+				orderBytes:
+					'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000f08bcbce72f62c95dcb7c07dcb5ed26acfcfbc1100000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000005c00000000000000000000000000000000000000000000000000000000000000640392c489ef67afdc348209452c338ea5ba2b6152b936e152f610d05e1a20621a40000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae60000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000049d000000000000000000000000000000000000000000000000000000000000000f0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000c7d713b49da0000914d696e20747261646520616d6f756e742e00000000000000000000000000008b616d6f756e742d75736564000000000000000000000000000000000000000000000000000000000000000000000000000000000000000340aad21b3b70000000000000000000000000000000000000000000000000006194049f30f7200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b1a2bc2ec500000000000000000000000000000000000000000000000000000e043da6172500008f6c6173742d74726164652d74696d65000000000000000000000000000000008d6c6173742d74726164652d696f0000000000000000000000000000000000008c696e697469616c2d74696d650000000000000000000000000000000000000000000000000000000000000000000000000000000000000006f05b59d3b200000000000000000000000000000000000000000000000000008ac7230489e80000000000000000000000020000915e36ef882941816356bc3718df868054f868ad000000000000000000000000000000000000000000000000000000000000027d0a00000024007400e0015801b401e001f40218025c080500040b20000200100001001000000b120003001000010b110004001000030b0100051305000201100001011000003d120000011000020010000003100404211200001d02000001100003031000010c1200004911000003100404001000012b12000001100003031000010c1200004a0200001a0b00090b1000060b20000700100000001000011b1200001a10000047120000001000001a1000004712000001100000011000002e12000001100005011000042e120000001000053d12000001100004001000042e1200000010000601100005001000032e120000481200011d0b020a0010000001100000011000062713000001100003031000010c12000049110000001000030010000247120000001000010b110008001000050110000700100001201200001f12000001100000011000004712000000100006001000073d120000011000002b12000000100008001000043b120000160901080b1000070b10000901100008001000013d1200001b12000001100006001000013d1200000b100009001000033a120000001000040010000248120001001000000b110008001000053d12000000100006001000042b1200000a0401011a10000001100009031000010c1200004a020000001000000110000a031000010c1200004a020000040200010110000b031000010c120000491100000803000201100009031000010c120000491100000110000a031000010c12000049110000100c01030110000d001000002e1200000110000c3e120000001000010010000100100001001000010010000100100001001000010010000100100001001000013d1a0000020100010210000e3611000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012a6e3c06415539f92823a18ba63e1c0303040c4892970a0d1e3a27663d7583b33000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012a6e3c06415539f92823a18ba63e1c0303040c4892970a0d1e3a27663d7583b33',
+				orderHash: '0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4',
+				owner: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+				outputs: [
+					{
+						id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
+						owner: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+						vaultId:
+							'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+						balance: '987000000000000000',
+						token: {
+							id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+							address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+							name: 'Staked FLR',
+							symbol: 'sFLR',
+							decimals: '18'
+						},
+						orderbook: {
+							id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						},
+						ordersAsOutput: [
+							{
+								id: '0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1',
+								orderHash: '0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4',
+								active: true
+							}
+						],
+						ordersAsInput: [],
+						balanceChanges: [
+							{
+								__typename: 'deposit',
+								data: {
+									id: '0x1bf9c93f8ac04810e733b61a7d5dabba66fc1a47235e6ab027e76c9758a2a9e8',
+									__typename: 'Deposit',
+									amount: '1000000000000000000',
+									newVaultBalance: '1000000000000000000',
+									oldVaultBalance: '0',
+									vault: {
+										id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
+										vaultId:
+											'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+										token: {
+											id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+											address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+											name: 'Staked FLR',
+											symbol: 'sFLR',
+											decimals: '18'
+										}
+									},
+									timestamp: '1739448802',
+									transaction: {
+										id: '0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af',
+										from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+										blockNumber: '37432554',
+										timestamp: '1739448802'
+									},
+									orderbook: {
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+									}
+								}
+							},
+							{
+								__typename: 'withdrawal',
+								data: {
+									id: '0x252f6727a7a9bf1047cd9764351e9a2514140c5664589b0e5ecc7f9a4c69329c',
+									__typename: 'Withdrawal',
+									amount: '-11000000000000000',
+									newVaultBalance: '987000000000000000',
+									oldVaultBalance: '998000000000000000',
+									vault: {
+										id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
+										vaultId:
+											'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+										token: {
+											id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+											address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+											name: 'Staked FLR',
+											symbol: 'sFLR',
+											decimals: '18'
+										}
+									},
+									timestamp: '1739460802',
+									transaction: {
+										id: '0xf4052dcf0a9ef208be249822c002bf656d273b4583e92928066fd8fb0a67c3f0',
+										from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+										blockNumber: '37439233',
+										timestamp: '1739460802'
+									},
+									orderbook: {
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+									}
+								}
+							},
+							{
+								__typename: 'withdrawal',
+								data: {
+									id: '0x3b272ce8735a1778d584ed2d49532d571a815909b8f89b2d7d2c6744fcf7cb7c',
+									__typename: 'Withdrawal',
+									amount: '-1000000000000000',
+									newVaultBalance: '998000000000000000',
+									oldVaultBalance: '999000000000000000',
+									vault: {
+										id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
+										vaultId:
+											'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+										token: {
+											id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+											address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+											name: 'Staked FLR',
+											symbol: 'sFLR',
+											decimals: '18'
+										}
+									},
+									timestamp: '1739460777',
+									transaction: {
+										id: '0xe3e1be9b3e11420de1f1d34f460c14d8688183b78b2dbcfd9b45560b553e451a',
+										from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+										blockNumber: '37439219',
+										timestamp: '1739460777'
+									},
+									orderbook: {
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+									}
+								}
+							},
+							{
+								__typename: 'withdrawal',
+								data: {
+									id: '0x9d19a7aa2486c2640669eb04c8c4ed3e11073a04767d6dcfc3468ae12f695849',
+									__typename: 'Withdrawal',
+									amount: '-1000000000000000',
+									newVaultBalance: '999000000000000000',
+									oldVaultBalance: '1000000000000000000',
+									vault: {
+										id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
+										vaultId:
+											'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+										token: {
+											id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+											address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+											name: 'Staked FLR',
+											symbol: 'sFLR',
+											decimals: '18'
+										}
+									},
+									timestamp: '1739460481',
+									transaction: {
+										id: '0x3bf239fb20fed202f04da468cc62d762390ab5f80b67b477565f740277f94df3',
+										from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+										blockNumber: '37439068',
+										timestamp: '1739460481'
+									},
+									orderbook: {
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+									}
+								}
+							}
+						]
+					}
+				],
+				inputs: [
+					{
+						id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
+						owner: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+						vaultId:
+							'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+						balance: '797990000000000000',
+						token: {
+							id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+							address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+							name: 'Wrapped Flare',
+							symbol: 'WFLR',
+							decimals: '18'
+						},
+						orderbook: {
+							id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						},
+						ordersAsOutput: [],
+						ordersAsInput: [
+							{
+								id: '0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1',
+								orderHash: '0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4',
+								active: true
+							}
+						],
+						balanceChanges: [
+							{
+								__typename: 'withdrawal',
+								data: {
+									id: '0x3c8de8385099c2f7775cb4695af43d7e38863ae9442402d73f70ebf865da1c4c',
+									__typename: 'Withdrawal',
+									amount: '-2000000000000000',
+									newVaultBalance: '797990000000000000',
+									oldVaultBalance: '799990000000000000',
+									vault: {
+										id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
+										vaultId:
+											'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+										token: {
+											id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+											address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+											name: 'Wrapped Flare',
+											symbol: 'WFLR',
+											decimals: '18'
+										}
+									},
+									timestamp: '1739460781',
+									transaction: {
+										id: '0x6198a5fdf46f37f336bbd8615c18757f3a83ead6ec63ad02d865d46feb284310',
+										from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+										blockNumber: '37439221',
+										timestamp: '1739460781'
+									},
+									orderbook: {
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+									}
+								}
+							},
+							{
+								__typename: 'withdrawal',
+								data: {
+									id: '0x7616be6722758517786fdcd94549ce0172d7d34fd411b5778ee0667cd1b1bdba',
+									__typename: 'Withdrawal',
+									amount: '-10000000000000',
+									newVaultBalance: '999990000000000000',
+									oldVaultBalance: '1000000000000000000',
+									vault: {
+										id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
+										vaultId:
+											'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+										token: {
+											id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+											address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+											name: 'Wrapped Flare',
+											symbol: 'WFLR',
+											decimals: '18'
+										}
+									},
+									timestamp: '1739460415',
+									transaction: {
+										id: '0x8562f41d7d4a8af98ed9db1fbb9575f759846edfab0c4310fc2962b93c5eac7d',
+										from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+										blockNumber: '37439034',
+										timestamp: '1739460415'
+									},
+									orderbook: {
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+									}
+								}
+							},
+							{
+								__typename: 'withdrawal',
+								data: {
+									id: '0x8e0c007bc831906b8b327be965e6aded6f5b8bc4905823b3047dcd2a69f01c83',
+									__typename: 'Withdrawal',
+									amount: '-200000000000000000',
+									newVaultBalance: '799990000000000000',
+									oldVaultBalance: '999990000000000000',
+									vault: {
+										id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
+										vaultId:
+											'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+										token: {
+											id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+											address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+											name: 'Wrapped Flare',
+											symbol: 'WFLR',
+											decimals: '18'
+										}
+									},
+									timestamp: '1739460627',
+									transaction: {
+										id: '0xb330355574bd73c72d61b102ba7d23a0e07d677cb97e71db4495d0472587649b',
+										from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+										blockNumber: '37439143',
+										timestamp: '1739460627'
+									},
+									orderbook: {
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+									}
+								}
+							},
+							{
+								__typename: 'deposit',
+								data: {
+									id: '0xcc853bdf3784e8c2e2ac9a43bdc9a2e56cc0d880a10ae8d25c3d675f6d114e74',
+									__typename: 'Deposit',
+									amount: '1000000000000000000',
+									newVaultBalance: '1000000000000000000',
+									oldVaultBalance: '0',
+									vault: {
+										id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
+										vaultId:
+											'75486334982066122983501547829219246999490818941767825330875804445439814023987',
+										token: {
+											id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+											address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+											name: 'Wrapped Flare',
+											symbol: 'WFLR',
+											decimals: '18'
+										}
+									},
+									timestamp: '1739460078',
+									transaction: {
+										id: '0x1f628ccbe37c1395b81c25cc1d9bfef6266d9782c093e1c42bab225335fe8ba0',
+										from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+										blockNumber: '37438849',
+										timestamp: '1739460078'
+									},
+									orderbook: {
+										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+									}
+								}
+							}
+						]
+					}
+				],
+				orderbook: {
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				},
+				active: true,
+				timestampAdded: '1739448802',
+				meta: '0xff0a89c674ee7874a300590a932f2a20302e2063616c63756c6174652d696f202a2f200a7573696e672d776f7264732d66726f6d20307846653234313143446131393344394534653833413563323334433746643332303130313838336143203078393135453336656638383239343138313633353662433337313844663836383035344638363861440a616d6f756e742d65706f6368730a74726164652d65706f6368733a63616c6c3c323e28292c0a6d61782d6f75747075743a2063616c6c3c333e28616d6f756e742d65706f6368732074726164652d65706f636873292c0a696f3a2063616c6c3c343e2874726164652d65706f636873292c0a3a63616c6c3c353e28696f293b0a0a2f2a20312e2068616e646c652d696f202a2f200a6d696e2d616d6f756e743a206d756c283120302e39292c0a3a656e7375726528677265617465722d7468616e2d6f722d657175616c2d746f286f75747075742d7661756c742d64656372656173652829206d696e2d616d6f756e742920224d696e20747261646520616d6f756e742e22292c0a757365643a206765742868617368286f726465722d6861736828292022616d6f756e742d757365642229292c0a3a7365742868617368286f726465722d6861736828292022616d6f756e742d757365642229206164642875736564206f75747075742d7661756c742d6465637265617365282929293b0a0a2f2a20322e206765742d65706f6368202a2f200a696e697469616c2d74696d653a2063616c6c3c363e28292c0a6c6173742d74696d65205f3a2063616c6c3c373e28292c0a6475726174696f6e3a20737562286e6f77282920616e79286c6173742d74696d6520696e697469616c2d74696d6529292c0a746f74616c2d6475726174696f6e3a20737562286e6f77282920696e697469616c2d74696d65292c0a726174696f2d667265657a652d616d6f756e742d65706f6368733a2064697628312031292c0a726174696f2d667265657a652d74726164652d65706f6368733a206d756c28726174696f2d667265657a652d616d6f756e742d65706f63687320646976283630203138303029292c0a616d6f756e742d65706f6368733a2064697628746f74616c2d6475726174696f6e203630292c0a74726164652d65706f6368733a2073617475726174696e672d73756228646976286475726174696f6e20313830302920726174696f2d667265657a652d74726164652d65706f636873293b0a0a2f2a20332e20616d6f756e742d666f722d65706f6368202a2f200a616d6f756e742d65706f6368730a74726164652d65706f6368733a2c0a746f74616c2d617661696c61626c653a206c696e6561722d67726f7774682830203120616d6f756e742d65706f636873292c0a757365643a206765742868617368286f726465722d6861736828292022616d6f756e742d757365642229292c0a756e757365643a2073756228746f74616c2d617661696c61626c652075736564292c0a64656361793a2063616c6c3c383e2874726164652d65706f636873292c0a7368792d64656361793a20657665727928677265617465722d7468616e2874726164652d65706f63687320302e303529206465636179292c0a7661726961626c652d636f6d706f6e656e743a2073756228312031292c0a7461726765742d616d6f756e743a206164642831206d756c287661726961626c652d636f6d706f6e656e74207368792d646563617929292c0a6361707065642d756e757365643a206d696e28756e75736564207461726765742d616d6f756e74293b0a0a2f2a20342e20696f2d666f722d65706f6368202a2f200a65706f63683a2c0a6c6173742d696f3a2063616c6c3c373e28292c0a6d61782d6e6578742d74726164653a20616e79286d756c286c6173742d696f20312e3031292063616c6c3c393e2829292c0a626173656c696e652d6e6578742d74726164653a206d756c286c6173742d696f2030292c0a7265616c2d626173656c696e653a206d617828626173656c696e652d6e6578742d74726164652063616c6c3c393e2829292c0a7661726961626c652d636f6d706f6e656e743a2073617475726174696e672d737562286d61782d6e6578742d7472616465207265616c2d626173656c696e65292c0a61626f76652d626173656c696e653a206d756c287661726961626c652d636f6d706f6e656e742063616c6c3c383e2865706f636829292c0a5f3a20616464287265616c2d626173656c696e652061626f76652d626173656c696e65293b0a0a2f2a20352e207365742d6c6173742d7472616465202a2f200a6c6173742d696f3a2c0a3a7365742868617368286f726465722d68617368282920226c6173742d74726164652d74696d652229206e6f772829292c0a3a7365742868617368286f726465722d68617368282920226c6173742d74726164652d696f2229206c6173742d696f293b0a0a2f2a20362e206765742d696e697469616c2d74696d65202a2f200a5f3a6765742868617368286f726465722d6861736828292022696e697469616c2d74696d652229293b0a0a2f2a20372e206765742d6c6173742d7472616465202a2f200a6c6173742d74696d653a6765742868617368286f726465722d68617368282920226c6173742d74726164652d74696d652229292c0a6c6173742d696f3a6765742868617368286f726465722d68617368282920226c6173742d74726164652d696f2229293b0a0a2f2a20382e2068616c666c696665202a2f200a65706f63683a2c0a2f2a2a0a202a20536872696e6b696e6720746865206d756c7469706c696572206c696b6520746869730a202a207468656e206170706c79696e672069742031302074696d657320616c6c6f777320666f720a202a2062657474657220707265636973696f6e207768656e206d61782d696f2d726174696f0a202a2069732076657279206c617267652c20652e672e207e31653130206f72207e316532302b0a202a0a202a205468697320776f726b7320626563617573652060706f77657260206c6f7365730a202a20707265636973696f6e206f6e20626173652060302e3560207768656e207468650a202a206578706f6e656e74206973206c6172676520616e642063616e206576656e20676f0a202a20746f20603060207768696c652074686520696f2d726174696f206973207374696c6c0a202a206c617267652e2042657474657220746f206b65657020746865206d756c7469706c6965720a202a2068696768657220707265636973696f6e20616e642064726f702074686520696f2d726174696f0a202a20736d6f6f74686c7920666f72206173206c6f6e672061732077652063616e2e0a202a2f0a6d756c7469706c6965723a0a2020706f77657228302e35206469762865706f636820313029292c0a76616c3a0a20206d756c280a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a2020293b0a0a2f2a20392e2073666c722d626173656c696e652d696e76202a2f200a5f3a20696e762873666c722d65786368616e67652d726174652829293b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d',
+				addEvents: [
+					{
+						transaction: {
+							id: '0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af',
+							from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
+							blockNumber: '37432554',
+							timestamp: '1739448802'
+						}
+					}
+				],
+				trades: [],
+				removeEvents: []
+			}
+		};
+		const mockAddOrder = mockOrder as SgAddOrderWithOrder;
+		const mockRemoveOrder = mockOrder as SgRemoveOrderWithOrder;
+
+		it('should fetch add orders for a given transaction', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { addOrders: [mockAddOrder] } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(
+				await raindexClient.getAddOrdersForTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+			assert.equal(result[0].id, mockAddOrder.order.id);
+			assert.equal(result[0].chainId, BigInt(1));
+			assert.equal(result[0].orderbook, mockAddOrder.order.orderbook.id);
+			assert.equal(result[0].transaction?.id, mockAddOrder.transaction.id);
+		});
+
+		it('should fetch remove orders for a given transaction', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { removeOrders: [mockRemoveOrder] } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(
+				await raindexClient.getRemoveOrdersForTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+			assert.equal(result[0].id, mockRemoveOrder.order.id);
+			assert.equal(result[0].chainId, BigInt(1));
+			assert.equal(result[0].orderbook, mockRemoveOrder.order.orderbook.id);
+			assert.equal(result[0].transaction?.id, mockRemoveOrder.transaction.id);
+		});
+	});
+
+	describe('Vaults', async function () {
+		const vault1: SgVault = {
+			id: '0x0123',
+			owner: '0x0000000000000000000000000000000000000000',
+			vaultId: '0x10',
+			balance: '0x10',
+			token: {
+				id: '0x0123',
+				address: '0x0000000000000000000000000000000000000000',
+				name: 'Token 1',
+				symbol: 'TKN1',
+				decimals: '18'
+			},
+			orderbook: {
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+			},
+			ordersAsOutput: [],
+			ordersAsInput: [],
+			balanceChanges: []
+		};
+		const vault2: SgVault = {
+			id: '0x0234',
+			owner: '0x0000000000000000000000000000000000000000',
+			vaultId: '0x20',
+			balance: '0x20',
+			token: {
+				id: '0x0234',
+				address: '0x0000000000000000000000000000000000000000',
+				name: 'Token 2',
+				symbol: 'TKN2',
+				decimals: '18'
+			},
+			orderbook: {
+				id: CHAIN_ID_2_ORDERBOOK_ADDRESS
+			},
+			ordersAsOutput: [],
+			ordersAsInput: [],
+			balanceChanges: []
+		};
+
+		it('should get vaults', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { vaults: [vault1] } }));
+			await mockServer
+				.forPost('/sg2')
+				.thenReply(200, JSON.stringify({ data: { vaults: [vault2] } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(
+				await raindexClient.getVaults(
+					undefined,
+					{
+						owners: [],
+						hideZeroBalance: false
+					},
+					1
+				)
+			);
+
+			assert.equal(result.length, 2);
+			assert.equal(result[0].vaultId, BigInt(vault1.vaultId));
+			assert.equal(result[0].owner, vault1.owner);
+			assert.equal(result[0].balance, BigInt(vault1.balance));
+			assert.equal(result[0].token.id, vault1.token.id);
+			assert.equal(result[0].token.address, vault1.token.address);
+			assert.equal(result[0].token.name, vault1.token.name);
+			assert.equal(result[0].token.symbol, vault1.token.symbol);
+			assert.equal(result[0].token.decimals, BigInt(vault1.token.decimals ?? 0));
+			assert.equal(result[1].vaultId, BigInt(vault2.vaultId));
+			assert.equal(result[1].owner, vault2.owner);
+			assert.equal(result[1].balance, BigInt(vault2.balance));
+			assert.equal(result[1].token.id, vault2.token.id);
+			assert.equal(result[1].token.address, vault2.token.address);
+			assert.equal(result[1].token.name, vault2.token.name);
+			assert.equal(result[1].token.symbol, vault2.token.symbol);
+			assert.equal(result[1].token.decimals, BigInt(vault2.token.decimals ?? 0));
+		});
+
+		it('should get vault', async function () {
+			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			assert.equal(result.vaultId, BigInt(vault1.vaultId));
+			assert.equal(result.owner, vault1.owner);
+			assert.equal(result.balance, BigInt(vault1.balance));
+			assert.equal(result.token.id, vault1.token.id);
+			assert.equal(result.token.address, vault1.token.address);
+			assert.equal(result.token.name, vault1.token.name);
+			assert.equal(result.token.symbol, vault1.token.symbol);
+			assert.equal(result.token.decimals, BigInt(vault1.token.decimals ?? 0));
+			assert.equal(result.orderbook, vault1.orderbook.id);
+		});
+
+		it('should fetch vault balance changes', async () => {
+			const mockVaultBalanceChanges = [
+				{
+					__typename: 'Deposit',
+					amount: '5000000000000000000',
+					newVaultBalance: '5000000000000000000',
+					oldVaultBalance: '0',
+					vault: {
+						id: '0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902',
+						vaultId: '0x0123',
+						token: {
+							id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+							address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+							name: 'Wrapped Flare',
+							symbol: 'WFLR',
+							decimals: '18'
+						}
+					},
+					timestamp: '1734054063',
+					transaction: {
+						id: '0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22',
+						from: '0x7177b9d00bb5dbcaaf069cc63190902763783b09',
+						blockNumber: '34407047',
+						timestamp: '1734054063'
+					},
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			];
+
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { vaultBalanceChanges: mockVaultBalanceChanges } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+			const result = extractWasmEncodedData(await vault.getBalanceChanges());
+
+			assert.equal(result[0].type, 'deposit');
+			assert.equal(result[0].amount, BigInt('5000000000000000000'));
+			assert.equal(result[0].newBalance, BigInt('5000000000000000000'));
+			assert.equal(result[0].oldBalance, BigInt('0'));
+			assert.equal(result[0].timestamp, BigInt('1734054063'));
+			assert.equal(
+				result[0].transaction.id,
+				'0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22'
+			);
+			assert.equal(result[0].transaction.from, '0x7177b9d00bB5dbcaaF069CC63190902763783b09');
+			assert.equal(result[0].transaction.blockNumber, BigInt('34407047'));
+			assert.equal(result[0].transaction.timestamp, BigInt('1734054063'));
+			assert.equal(result[0].orderbook, CHAIN_ID_1_ORDERBOOK_ADDRESS);
+		});
+
+		const order = {
+			id: '0x0123',
+			orderBytes:
+				'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+			orderHash: '0x0123',
+			owner: '0x0000000000000000000000000000000000000000',
+			outputs: [
+				{
+					id: '0x0123',
+					token: {
+						id: '0x0000000000000000000000000000000000000000',
+						address: '0x1234567890123456789012345678901234567890',
+						name: 'T1',
+						symbol: 'T1',
+						decimals: '0'
+					},
+					balance: '88888888888',
+					vaultId: '0x2523',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			inputs: [
+				{
+					id: '0x0234',
+					token: {
+						id: '0x0000000000000000000000000000000000000000',
+						address: '0x9876543210987654321098765432109876543210',
+						name: 'T2',
+						symbol: 'T2',
+						decimals: '0'
+					},
+					balance: '999999999999999',
+					vaultId: '0x0100',
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			active: true,
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '0',
+						timestamp: '0',
+						id: '0x0123',
+						from: '0x0000000000000000000000000000000000000000'
+					}
+				}
+			],
+			meta: null,
+			timestampAdded: '0',
+			orderbook: {
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+			},
+			trades: [],
+			removeEvents: []
+		};
+
+		it('should get deposit calldata for a vault', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { order } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+			const res = extractWasmEncodedData(await vault.getDepositCalldata('500'));
+			assert.equal(res.length, 330);
+		});
+
+		it('should handle zero deposit amount', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const res = await vault.getDepositCalldata('0');
+			if (!res.error) assert.fail('expected to reject, but resolved');
+			assert.equal(res.error.msg, 'Zero amount');
+		});
+
+		it('should throw error for invalid deposit amount', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const res = await vault.getDepositCalldata('-100');
+			if (!res.error) assert.fail('expected to reject, but resolved');
+			assert.equal(res.error.msg, 'invalid digit: -');
+		});
+
+		it('should get withdraw calldata for a vault', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			let res = await vault.getWithdrawCalldata('500');
+			if (res.error) assert.fail('expected to resolve, but failed');
+			assert.equal(res.value.length, 330);
+
+			res = await vault.getWithdrawCalldata('0');
+			if (!res.error) assert.fail('expected to reject, but resolved');
+			assert.equal(res.error.msg, 'Zero amount');
+			assert.equal(res.error.readableMsg, 'Amount cannot be zero');
+		});
+
+		it('should read allowance for a vault', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer.forPost('/rpc1').thenReply(
+				200,
+				JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+				})
+			);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+			const res = extractWasmEncodedData(await vault.getAllowance());
+			assert.equal(res, '0x64');
+		});
+
+		it('should generate valid approval calldata with correct length', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer.forPost('/rpc1').thenReply(
+				200,
+				JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+				})
+			);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const res = extractWasmEncodedData(await vault.getApprovalCalldata('600'));
+			assert.ok(res.startsWith('0x'));
+			assert.equal(res.length, 138);
+		});
+
+		it('should handle approval amount equal to allowance', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			// Allowance is 100, and user tries to approve 100, so there should be no approval calldata
+			await mockServer.forPost('/rpc1').thenReply(
+				200,
+				JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+				})
+			);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const res = await vault.getApprovalCalldata('100');
+			if (!res.error) assert.fail('expected to reject, but resolved');
+			assert.equal(res.error.msg, 'Existing allowance');
+		});
+
+		it('should handle approval amount less than allowance', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			// Allowance is 100, and user tries to approve 90, so there should be approval calldata
+			await mockServer.forPost('/rpc1').thenReply(
+				200,
+				JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+				})
+			);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const res = await vault.getApprovalCalldata('90');
+			if (!res.error) assert.fail('expected to reject, but resolved');
+			assert.equal(res.error.msg, 'Existing allowance');
+		});
+	});
+
+	describe('Transactions', () => {
+		const transaction = {
+			id: '0x0123',
+			from: '0x1000000000000000000000000000000000000000',
+			blockNumber: '2356',
+			timestamp: '1734054063'
+		} as SgTransaction;
+
+		it('should get transaction', async () => {
+			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { transaction } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(
+				await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+			assert.equal(result.id, transaction.id);
+			assert.equal(result.from, transaction.from);
+			assert.equal(result.blockNumber, BigInt(transaction.blockNumber));
+			assert.equal(result.timestamp, BigInt(transaction.timestamp));
 		});
 	});
 });

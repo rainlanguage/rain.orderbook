@@ -1,51 +1,30 @@
-import type { SgVault } from '@rainlanguage/orderbook';
+import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
 import { formatUnits, type Hex } from 'viem';
 import type {
 	TransactionManager,
 	VaultActionModalProps,
 	TransactionConfirmationProps
 } from '@rainlanguage/ui-components';
-import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook';
 
 export interface VaultDepositHandlerDependencies {
-	vault: SgVault;
+	raindexClient: RaindexClient;
+	vault: RaindexVault;
 	handleDepositModal: (props: VaultActionModalProps) => void;
 	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
-	network: string;
-	orderbookAddress: Hex;
-	subgraphUrl: string;
-	chainId: number;
 	account: Hex;
-	rpcUrls: string[];
 }
 
 export type DepositArgs = VaultDepositHandlerDependencies & { amount: bigint };
 
 async function executeDeposit(args: DepositArgs) {
-	const {
-		amount,
-		vault,
-		handleTransactionConfirmationModal,
-		errToast,
-		manager,
-		network,
-		orderbookAddress,
-		subgraphUrl,
-		chainId
-	} = args;
-
-	// TODO: once the client is ready, we can update getVaultDepositCalldata to
-	// fetch the decimals from the RPC URL
-	if (!vault.token.decimals) {
-		errToast('Token decimals not found');
-		return;
-	}
-
-	const decimals = Number(vault.token.decimals);
-	const calldataResult = await getVaultDepositCalldata(vault, amount.toString(), decimals);
-	const displayAmount = formatUnits(amount, decimals);
+	const { raindexClient, amount, vault, handleTransactionConfirmationModal, errToast, manager } =
+		args;
+	const calldataResult = await vault.getDepositCalldata(amount.toString());
+	const displayAmount = vault.token.decimals
+		? formatUnits(amount, Number(vault.token.decimals))
+		: amount.toString();
 	if (calldataResult.error) {
 		return errToast(calldataResult.error.msg);
 	} else if (calldataResult.value) {
@@ -57,14 +36,13 @@ async function executeDeposit(args: DepositArgs) {
 			closeOnConfirm: false,
 			args: {
 				entity: vault,
-				toAddress: orderbookAddress,
-				chainId: chainId,
+				toAddress: vault.orderbook,
+				chainId: vault.chainId,
 				onConfirm: (txHash: Hex) => {
 					manager.createDepositTransaction({
-						subgraphUrl,
+						raindexClient,
 						txHash,
-						chainId,
-						networkKey: network,
+						chainId: vault.chainId,
 						queryKey: vault.id,
 						entity: vault,
 						amount
@@ -77,30 +55,17 @@ async function executeDeposit(args: DepositArgs) {
 }
 
 export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies): Promise<void> {
-	const {
-		vault,
-		handleDepositModal,
-		handleTransactionConfirmationModal,
-		manager,
-		network,
-		subgraphUrl,
-		chainId,
-		account,
-		rpcUrls
-	} = deps;
+	const { vault, handleDepositModal, handleTransactionConfirmationModal, manager, account } = deps;
 
 	handleDepositModal({
 		open: true,
 		args: {
 			vault,
-			chainId,
-			rpcUrls,
-			subgraphUrl,
 			account
 		},
 		onSubmit: async (amount: bigint) => {
 			const depositArgs = { ...deps, amount };
-			const approvalResult = await getVaultApprovalCalldata(rpcUrls, vault, amount.toString());
+			const approvalResult = await vault.getApprovalCalldata(amount.toString());
 			if (approvalResult.error) {
 				// If getting approval calldata fails, immediately invoke deposit
 				await executeDeposit(depositArgs);
@@ -112,12 +77,11 @@ export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies):
 					args: {
 						entity: vault,
 						toAddress: vault.token.address as Hex,
-						chainId: chainId,
+						chainId: vault.chainId,
 						onConfirm: (txHash: Hex) => {
 							manager.createApprovalTransaction({
 								txHash,
-								chainId: chainId,
-								networkKey: network,
+								chainId: vault.chainId,
 								queryKey: vault.id,
 								entity: vault
 							});

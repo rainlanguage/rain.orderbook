@@ -1,8 +1,7 @@
 use alloy::primitives::Address;
-use alloy_ethers_typecast::ReadableClientError;
+use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
-use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
     gui::{
@@ -17,7 +16,6 @@ use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
-    provider::ReadProviderError,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -619,8 +617,6 @@ pub enum GuiError {
     DotrainMismatch,
     #[error("Vault id not found for output index: {0}")]
     VaultIdNotFound(String),
-    #[error("Decimals not found for output index: {0}")]
-    DecimalsNotFound(String),
     #[error("Deployer not found")]
     DeployerNotFound,
     #[error("Token not found {0}")]
@@ -659,7 +655,7 @@ pub enum GuiError {
     ParseError(#[from] alloy::primitives::ruint::ParseError),
     #[error(transparent)]
     ReadContractParametersBuilderError(
-        #[from] alloy_ethers_typecast::ReadContractParametersBuilderError,
+        #[from] alloy_ethers_typecast::transaction::ReadContractParametersBuilderError,
     ),
     #[error(transparent)]
     UnitsError(#[from] alloy::primitives::utils::UnitsError),
@@ -677,12 +673,6 @@ pub enum GuiError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     YamlError(#[from] YamlError),
-    #[error(transparent)]
-    FloatError(#[from] FloatError),
-    #[error(transparent)]
-    ReadProviderError(#[from] ReadProviderError),
-    #[error("Failed to parse URL: {0}")]
-    UrlParseError(#[from] url::ParseError),
 }
 
 impl GuiError {
@@ -710,8 +700,6 @@ impl GuiError {
                 "There was a mismatch in the dotrain configuration. Please check your YAML configuration for consistency.".to_string(),
             GuiError::VaultIdNotFound(index) =>
                 format!("The vault ID for output index '{}' could not be found in the YAML configuration.", index),
-            GuiError::DecimalsNotFound(index) =>
-                format!("The decimals for output index '{index}' could not be found in the YAML configuration."),
             GuiError::DeployerNotFound =>
                 "The deployer configuration could not be found. Please check your YAML configuration.".to_string(),
             GuiError::TokenNotFound(token) =>
@@ -763,9 +751,6 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
-            GuiError::FloatError(err) => format!("Float error: {err}"),
-            GuiError::ReadProviderError(err) => format!("Read provider error: {err}"),
-            GuiError::UrlParseError(err) => format!("URL parsing error: {err}"),
         }
     }
 }

@@ -22,10 +22,11 @@ impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
 pub struct TransactionStatusNoticeRwLock(RwLock<TransactionStatusNotice>);
 
 impl TransactionStatusNoticeRwLock {
-    pub fn new(label: String) -> Self {
+    pub fn new(label: String, chain_id: u32) -> Self {
         let notice = TransactionStatusNotice {
             id: Uuid::new_v4(),
             status: TransactionStatus::Initialized,
+            chain_id,
             created_at: Utc::now(),
             label,
         };
@@ -77,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let notice = TransactionStatusNoticeRwLock::new("test".to_string());
+        let notice = TransactionStatusNoticeRwLock::new("test".to_string(), 1);
         assert_eq!(
             notice.0.read().unwrap().status,
             TransactionStatus::Initialized
@@ -88,7 +89,7 @@ mod tests {
     #[test]
     fn test_update_status() {
         let app = tauri::test::mock_app();
-        let notice = TransactionStatusNoticeRwLock::new("test".to_string());
+        let notice = TransactionStatusNoticeRwLock::new("test".to_string(), 1);
 
         let Float(zero) = Float::parse("0".to_string()).unwrap();
 
@@ -119,7 +120,7 @@ mod tests {
     #[test]
     fn test_set_failed_status() {
         let app = tauri::test::mock_app();
-        let notice = TransactionStatusNoticeRwLock::new("test".to_string());
+        let notice = TransactionStatusNoticeRwLock::new("test".to_string(), 1);
 
         notice.set_failed_status_and_emit(&app.handle(), "failed".to_string());
         assert_eq!(

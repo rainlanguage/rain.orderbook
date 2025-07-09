@@ -1,10 +1,9 @@
 <script lang="ts" generics="T">
-	import { getMultiSubgraphArgs } from '$lib/utils/configHelpers';
-
+	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { getOrders, type SgOrderWithSubgraphName } from '@rainlanguage/orderbook';
+	import { RaindexOrder } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
@@ -21,27 +20,23 @@
 		TableHeadCell
 	} from 'flowbite-svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export let handleOrderRemoveModal: any = undefined;
 	// End of optional props
 
-	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 	export let settings: AppStoresInterface['settings'];
+	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
-	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
 	const { matchesAccount, account } = useAccount();
-
-	$: multiSubgraphArgs = getMultiSubgraphArgs(
-		Object.keys($activeSubgraphs).length > 0 ? $activeSubgraphs : $settings.orderbook.subgraphs
-	);
+	const raindexClient = useRaindexClient();
 
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
@@ -49,27 +44,20 @@
 			: $showMyItemsOnly && $account
 				? [$account]
 				: [];
+
 	$: query = createInfiniteQuery({
-		queryKey: [
-			QKEY_ORDERS,
-			$activeSubgraphs,
-			$settings,
-			multiSubgraphArgs,
-			owners,
-			$showInactiveOrders,
-			$orderHash
-		],
+		queryKey: [QKEY_ORDERS, $selectedChainIds, $settings, owners, $showInactiveOrders, $orderHash],
 		queryFn: async ({ pageParam }) => {
-			const result = await getOrders(
-				multiSubgraphArgs,
+			const result = await raindexClient.getOrders(
+				$selectedChainIds,
 				{
 					owners,
 					active: $showInactiveOrders ? undefined : true,
 					orderHash: $orderHash || undefined
 				},
-				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
+				pageParam + 1
 			);
-			if (result.error) throw new Error(result.error.msg);
+			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
 		initialPageParam: 0,
@@ -80,11 +68,11 @@
 		enabled: true
 	});
 
-	const AppTable = TanstackAppTable<SgOrderWithSubgraphName>;
+	const AppTable = TanstackAppTable<RaindexOrder>;
 </script>
 
 <ListViewOrderbookFilters
-	{activeSubgraphs}
+	{selectedChainIds}
 	{settings}
 	{accounts}
 	{activeAccountsItems}
@@ -99,9 +87,7 @@
 	queryKey={QKEY_ORDERS}
 	emptyMessage="No Orders Found"
 	on:clickRow={(e) => {
-		activeNetworkRef.set(e.detail.item.subgraphName);
-		activeOrderbookRef.set(e.detail.item.subgraphName);
-		goto(`/orders/${e.detail.item.subgraphName}-${e.detail.item.order.orderHash}`);
+		goto(`/orders/${e.detail.item.chainId}-${e.detail.item.orderbook}-${e.detail.item.orderHash}`);
 	}}
 >
 	<svelte:fragment slot="title">
@@ -129,45 +115,45 @@
 
 	<svelte:fragment slot="bodyRow" let:item>
 		<TableBodyCell data-testid="orderListRowNetwork" tdClass="px-4 py-2">
-			{item.subgraphName}
+			{getNetworkName(Number(item.chainId))}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowActive" tdClass="px-4 py-2">
-			{#if item.order.active}
+			{#if item.active}
 				<Badge color="green">Active</Badge>
 			{:else}
 				<Badge color="yellow">Inactive</Badge>
 			{/if}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4">
-			<Hash type={HashType.Identifier} value={item.order.orderHash} />
+			<Hash type={HashType.Identifier} value={item.orderHash} />
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Wallet} value={item.order.owner} />
+			<Hash type={HashType.Wallet} value={item.owner} />
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Identifier} value={item.order.orderbook.id} />
+			<Hash type={HashType.Identifier} value={item.orderbook} />
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
-			{formatTimestampSecondsAsLocal(BigInt(item.order.timestampAdded))}
+			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
-			{item.order.inputs?.map((t) => t.token.symbol)}
+			{item.inputs.map((t) => t.token.symbol)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
-			{item.order.outputs?.map((t) => t.token.symbol)}
+			{item.outputs.map((t) => t.token.symbol)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
-			>{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
+			>{item.tradesCount > 99 ? '>99' : item.tradesCount}</TableBodyCell
 		>
-		{#if matchesAccount(item.order.owner) && handleOrderRemoveModal}
+		{#if matchesAccount(item.owner) && handleOrderRemoveModal}
 			<div data-testid="wallet-actions">
 				<TableBodyCell tdClass="px-0 text-right">
-					{#if item.order.active}
+					{#if item.active}
 						<Button
 							color="alternative"
 							outline={false}
-							data-testid={`order-menu-${item.order.id}`}
-							id={`order-menu-${item.order.id}`}
+							data-testid={`order-menu-${item.id}`}
+							id={`order-menu-${item.id}`}
 							class="mr-2 border-none px-2"
 							on:click={(e) => {
 								e.stopPropagation();
@@ -177,12 +163,12 @@
 						</Button>
 					{/if}
 				</TableBodyCell>
-				{#if item.order.active}
-					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.order.id}`}>
+				{#if item.active}
+					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
 						<DropdownItem
 							on:click={(e) => {
 								e.stopPropagation();
-								handleOrderRemoveModal(item.order, $query.refetch);
+								handleOrderRemoveModal(item, $query.refetch);
 							}}>Remove</DropdownItem
 						>
 					</Dropdown>

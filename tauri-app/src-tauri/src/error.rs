@@ -10,6 +10,7 @@ use rain_orderbook_app_settings::merge::MergeError;
 use rain_orderbook_app_settings::new_config::ParseConfigError;
 use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
+use rain_orderbook_common::raindex_client::RaindexError;
 use rain_orderbook_common::remove_order::RemoveOrderArgsError;
 use rain_orderbook_common::transaction::WritableTransactionExecuteError;
 use rain_orderbook_common::{
@@ -115,6 +116,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     FloatError(#[from] FloatError),
+
+    #[error(transparent)]
+    RaindexError(#[from] RaindexError),
 
     #[error("Missing RPCs")]
     MissingRpcs,

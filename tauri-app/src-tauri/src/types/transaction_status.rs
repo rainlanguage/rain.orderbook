@@ -24,6 +24,7 @@ pub struct TransactionStatusNotice {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub id: Uuid,
     pub status: TransactionStatus,
+    pub chain_id: u32,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub created_at: DateTime<Utc>,
     /// Human-readable label to display in the UI, describing the transaction i.e. "Approving ERC20 Token Spend"

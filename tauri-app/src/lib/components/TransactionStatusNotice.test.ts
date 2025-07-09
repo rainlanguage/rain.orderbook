@@ -1,15 +1,9 @@
 import { render, screen, within } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { writable, type Writable } from 'svelte/store';
 
 import TransactionStatusNoticeComponent from './TransactionStatusNotice.svelte';
 import type { TransactionStatusNotice } from '$lib/types/tauriBindings';
 import { formatBlockExplorerTransactionUrl } from '$lib/utils/transaction';
-import { activeChainHasBlockExplorer } from '$lib/stores/settings';
-
-vi.mock('$lib/stores/settings', () => ({
-  activeChainHasBlockExplorer: writable(true),
-}));
 
 vi.mock('$lib/utils/transaction', () => ({
   formatBlockExplorerTransactionUrl: vi.fn(),
@@ -24,12 +18,12 @@ const createNotice = (
   label: 'Test Label',
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   status: { type: statusType, payload: payload as any },
+  chain_id: 1,
 });
 
 describe('TransactionStatusNotice.svelte', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (vi.mocked(activeChainHasBlockExplorer) as unknown as Writable<boolean>).set(true);
   });
 
   it('renders the label correctly', () => {
@@ -74,7 +68,6 @@ describe('TransactionStatusNotice.svelte', () => {
     const txHash = '0xabc123def456';
     const notice = createNotice('Confirmed', txHash);
     const expectedUrl = `https://explorer.test/tx/${txHash}`;
-    (vi.mocked(activeChainHasBlockExplorer) as unknown as Writable<boolean>).set(true);
     (vi.mocked(formatBlockExplorerTransactionUrl) as Mock).mockReturnValue(expectedUrl);
 
     render(TransactionStatusNoticeComponent, { transactionStatusNotice: notice });
@@ -89,23 +82,7 @@ describe('TransactionStatusNotice.svelte', () => {
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', expectedUrl);
     expect(link).toHaveAttribute('target', '_blank');
-    expect(vi.mocked(formatBlockExplorerTransactionUrl)).toHaveBeenCalledWith(txHash);
-  });
-
-  it('renders correctly for Confirmed status with block explorer disabled', () => {
-    const txHash = '0xabc123def456';
-    const notice = createNotice('Confirmed', txHash);
-    (vi.mocked(activeChainHasBlockExplorer) as unknown as Writable<boolean>).set(false);
-
-    render(TransactionStatusNoticeComponent, { transactionStatusNotice: notice });
-
-    const icon = screen.getByTestId('status-confirmed');
-    expect(icon).toBeInTheDocument();
-    expect(screen.getByText('Transaction Confirmed')).toBeInTheDocument();
-    expect(screen.getByTestId('confirmed-payload')).toHaveTextContent(`Hash: ${txHash}`);
-
-    expect(screen.queryByTestId('block-explorer-link')).not.toBeInTheDocument();
-    expect(vi.mocked(formatBlockExplorerTransactionUrl)).not.toHaveBeenCalled();
+    expect(vi.mocked(formatBlockExplorerTransactionUrl)).toHaveBeenCalledWith(1, txHash);
   });
 
   it('renders correctly for Failed status', () => {

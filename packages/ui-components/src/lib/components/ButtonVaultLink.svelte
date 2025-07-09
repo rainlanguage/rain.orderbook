@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { SgVault } from '@rainlanguage/orderbook';
-	import { bigintStringToHex } from '../utils/hex';
+	import type { Address, RaindexVault } from '@rainlanguage/orderbook';
+	import { formatUnits, toHex } from 'viem';
 	import Tooltip from './Tooltip.svelte';
-	import { formatUnits } from 'viem';
 
-	export let tokenVault: SgVault;
-	export let subgraphName: string;
+	export let tokenVault: RaindexVault;
+	export let chainId: number;
+	export let orderbookAddress: Address;
 </script>
 
 <div
@@ -14,16 +14,16 @@
 >
 	<div class="flex flex-col items-start gap-y-2">
 		<Tooltip triggeredBy={`#token-info-${tokenVault.vaultId}`}>
-			ID: <span class="font-mono">{bigintStringToHex(tokenVault.vaultId)}</span>
+			ID: <span class="font-mono">{toHex(tokenVault.vaultId)}</span>
 		</Tooltip>
-		<a href={`/vaults/${subgraphName}-${tokenVault.id}`} id={`token-info-${tokenVault.vaultId}`}>
+		<a
+			href={`/vaults/${chainId}-${orderbookAddress}-${tokenVault.id}`}
+			id={`token-info-${tokenVault.vaultId}`}
+		>
 			{tokenVault.token.name} ({tokenVault.token.symbol})
 		</a>
 		<span class="text-sm text-gray-500 dark:text-gray-400">
-			Balance: {formatUnits(
-				BigInt(tokenVault.balance),
-				parseInt(tokenVault.token.decimals || '18')
-			)}
+			Balance: {formatUnits(tokenVault.balance, Number(tokenVault.token.decimals) || 18)}
 		</span>
 	</div>
 	<div>

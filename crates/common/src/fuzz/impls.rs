@@ -568,7 +568,7 @@ impl FuzzRunner {
     pub async fn make_debug_data(
         &mut self,
         context: &mut FuzzRunnerContext,
-        block_numbers: Option<HashMap<u64, u64>>,
+        block_numbers: Option<HashMap<u32, u64>>,
     ) -> Result<DeploymentsDebugDataMap, FuzzRunnerError> {
         let mut data_map: HashMap<String, DeploymentDebugData> = HashMap::new();
         let deployments_keys = context.dotrain_yaml.get_deployment_keys()?;

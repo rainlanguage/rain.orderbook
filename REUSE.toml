@@ -22,6 +22,7 @@ path = [
     "package-lock.json",
     "Cargo.lock",
     "Cargo.toml",
+    ".devcontainer.json",
     ".env.example",
     "tauri-app/.env.example",
     "prep-all.sh",

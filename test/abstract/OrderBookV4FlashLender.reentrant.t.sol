@@ -178,10 +178,10 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         vm.assume(alice != bob);
 
         LibTestAddOrder.conformConfig(aliceConfig, iInterpreter, iStore);
-        aliceConfig.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
+        aliceConfig.evaluable.bytecode = iParserV2.parse2("_ _:1000 1;:;");
 
         LibTestAddOrder.conformConfig(bobConfig, iInterpreter, iStore);
-        bobConfig.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
+        bobConfig.evaluable.bytecode = iParserV2.parse2("_ _:1000 1;:;");
 
         aliceConfig.validInputs[0].token = address(iToken0);
         aliceConfig.validOutputs[0].token = address(iToken1);
@@ -202,6 +202,23 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         (,, OrderV4 memory bobOrder) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
 
         ClearConfigV2 memory clearConfig = ClearConfigV2(0, 0, 0, 0, 0, 0);
+
+        vm.mockCall(aliceOrder.validOutputs[0].token, bytes(""), abi.encode(true));
+        vm.prank(aliceOrder.owner);
+        iOrderbook.deposit3(
+            aliceOrder.validOutputs[0].token,
+            aliceOrder.validOutputs[0].vaultId,
+            LibDecimalFloat.packLossless(type(int64).max, 0),
+            new TaskV2[](0)
+        );
+        vm.mockCall(bobOrder.validOutputs[0].token, bytes(""), abi.encode(true));
+        vm.prank(bobOrder.owner);
+        iOrderbook.deposit3(
+            bobOrder.validOutputs[0].token,
+            bobOrder.validOutputs[0].vaultId,
+            LibDecimalFloat.packLossless(type(int64).max, 0),
+            new TaskV2[](0)
+        );
 
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();

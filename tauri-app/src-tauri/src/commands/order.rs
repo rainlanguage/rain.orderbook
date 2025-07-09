@@ -37,7 +37,8 @@ pub async fn order_add<R: Runtime>(
     deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
-    let tx_status_notice = TransactionStatusNoticeRwLock::new("Add order".into());
+    let tx_status_notice =
+        TransactionStatusNoticeRwLock::new("Add order".into(), deployment.order.network.chain_id);
     let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
     add_order_args
         .execute(transaction_args, |status| {
@@ -55,6 +56,7 @@ pub async fn order_add<R: Runtime>(
 #[tauri::command]
 pub async fn order_remove<R: Runtime>(
     app_handle: AppHandle<R>,
+    chain_id: u32,
     id: String,
     transaction_args: TransactionArgs,
     subgraph_args: SubgraphArgs,
@@ -73,7 +75,7 @@ pub async fn order_remove<R: Runtime>(
         })?;
     let remove_order_args: RemoveOrderArgs = order.into();
 
-    let tx_status_notice = TransactionStatusNoticeRwLock::new("Remove order".into());
+    let tx_status_notice = TransactionStatusNoticeRwLock::new("Remove order".into(), chain_id);
     let _ = remove_order_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(&app_handle, status);
@@ -339,6 +341,7 @@ _ _: 0 0;
 
         order_remove(
             app_handle,
+            123,
             "0x123".to_string(),
             transaction_args,
             subgraph_args,
@@ -358,6 +361,7 @@ _ _: 0 0;
 
         let err = order_remove(
             app_handle,
+            123,
             "0x123".to_string(),
             TransactionArgs::default(),
             subgraph_args,

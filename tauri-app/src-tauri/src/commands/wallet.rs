@@ -8,13 +8,13 @@ pub async fn get_address_from_ledger(
     chain_id: u64,
     rpcs: Vec<String>,
 ) -> CommandResult<Address> {
-    let mut err: Option<CommandError> = None;
     if rpcs.is_empty() {
         return Err(CommandError::MissingRpcs);
     }
 
     let derivation_index = derivation_index.unwrap_or(0);
-
+    
+    let mut last_error = None;
     for rpc in rpcs {
         let ledger_client = LedgerClient::new(
             derivation_index.map(HDPath::LedgerLive),
@@ -31,13 +31,13 @@ pub async fn get_address_from_ledger(
                 return Ok(address);
             }
             Err(e) => {
-                err = Some(CommandError::LedgerClientError(e));
+                last_error = Some(e);
             }
         }
     }
 
     // If we get here, all rpcs failed
-    Err(err.unwrap())
+    Err(CommandError::LedgerClientError(last_error.unwrap()))
 }
 
 #[cfg(test)]

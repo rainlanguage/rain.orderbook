@@ -11,38 +11,30 @@ pub async fn debug_trade(
     tx_hash: String,
     rpcs: Vec<String>,
 ) -> CommandResult<RainEvalResultsTable> {
-    let mut replayer: Option<TradeReplayer> = None;
-    let mut err: Option<CommandError> = None;
-
     if rpcs.is_empty() {
         return Err(CommandError::MissingRpcs);
     }
 
+    let mut last_error = None;
     for rpc in rpcs {
         match TradeReplayer::new(NewTradeReplayer {
             fork_url: rpc.parse()?,
         })
         .await
         {
-            Ok(res) => {
-                replayer = Some(res);
-                err = None;
-                break;
+            Ok(mut replayer) => {
+                let tx_hash = tx_hash.parse::<B256>()?;
+                let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
+                return Ok(res.into_flattened_table()?);
             }
             Err(e) => {
-                err = Some(CommandError::TradeReplayerError(e));
+                last_error = Some(e);
             }
         }
     }
-    if let Some(err) = err {
-        return Err(err);
-    }
-    // replayer should be some here
-    let mut replayer = replayer.unwrap();
 
-    let tx_hash = tx_hash.parse::<B256>()?;
-    let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
-    Ok(res.into_flattened_table())
+    // If we get here, all rpcs failed
+    Err(CommandError::TradeReplayerError(last_error.unwrap()))
 }
 
 #[cfg(test)]

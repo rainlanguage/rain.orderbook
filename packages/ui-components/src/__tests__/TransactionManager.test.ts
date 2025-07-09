@@ -7,14 +7,11 @@ import type { ToastProps } from '../lib/types/toast';
 import { TransactionName, type InternalTransactionArgs } from '../lib/types/transaction';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 import {
-	getTransaction,
-	getTransactionRemoveOrders,
-	type SgRemoveOrderWithOrder,
-	type SgTransaction,
-	type SgVault,
-	type SgOrder,
-	getTransactionAddOrders,
-	type SgAddOrderWithOrder
+	RaindexClient,
+	RaindexOrder,
+	RaindexTransaction,
+	RaindexVault,
+	type Address
 } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
@@ -39,20 +36,27 @@ describe('TransactionManager', () => {
 	let mockWagmiConfig: Config;
 	let manager: TransactionManager;
 
+	const mockRaindexClient = {
+		getRemoveOrdersForTransaction: vi.fn(),
+		getTransaction: vi.fn(),
+		getAddOrdersForTransaction: vi.fn()
+	} as unknown as RaindexClient;
+
 	const mockSgOrderEntity = {
-		id: 'mockOrderEntityId'
-	} as unknown as SgOrder;
+		id: 'mockOrderEntityId',
+		orderbook: 'mockOrderbook',
+		getRemoveOrdersForTransaction: vi.fn()
+	} as unknown as RaindexOrder;
 
 	const mockSgVaultEntity = {
 		token: { symbol: 'MOCKVAULT', decimals: '18' },
 		vaultId: 'mockVaultEntityId',
 		id: 'mockVaultEntityId'
-	} as unknown as SgVault;
+	} as unknown as RaindexVault;
 
 	const mockBaseArgs: InternalTransactionArgs = {
 		txHash: '0xcallbacktxhash' as `0x${string}`,
 		chainId: 1,
-		networkKey: 'ethereum',
 		queryKey: '0xcallbackkey'
 	};
 
@@ -82,26 +86,27 @@ describe('TransactionManager', () => {
 	});
 
 	describe('createRemoveOrderTransaction', () => {
-		const removeOrderMockArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgOrder } =
-			{
-				subgraphUrl: 'https://api.example.com',
-				txHash:
-					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-				chainId: 1,
-				networkKey: 'ethereum',
-				queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-				entity: mockSgOrderEntity
-			};
+		const removeOrderMockArgs: InternalTransactionArgs & {
+			raindexClient: RaindexClient;
+			entity: RaindexOrder;
+		} = {
+			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
+			chainId: 1,
+			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+			entity: mockSgOrderEntity,
+			raindexClient: mockRaindexClient
+		};
 
 		const fullMockArgsForExpectation: InternalTransactionArgs & {
 			awaitSubgraphConfig: AwaitSubgraphConfig;
 		} = {
 			...removeOrderMockArgs,
 			awaitSubgraphConfig: {
-				subgraphUrl: removeOrderMockArgs.subgraphUrl,
+				chainId: removeOrderMockArgs.chainId,
+				orderbook: removeOrderMockArgs.entity.orderbook,
 				txHash: removeOrderMockArgs.txHash,
 				successMessage: 'Order removed successfully.',
-				fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
+				fetchEntityFn: expect.any(Function),
 				isSuccess: expect.any(Function)
 			}
 		};
@@ -121,7 +126,7 @@ describe('TransactionManager', () => {
 			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
 
 			expect(TransactionStore).toHaveBeenCalledWith(
-				{
+				expect.objectContaining({
 					...fullMockArgsForExpectation,
 					name: TransactionName.REMOVAL,
 					errorMessage: 'Order removal failed.',
@@ -129,7 +134,7 @@ describe('TransactionManager', () => {
 					queryKey: removeOrderMockArgs.queryKey,
 					toastLinks: [
 						{
-							link: `/orders/${removeOrderMockArgs.networkKey}-${removeOrderMockArgs.queryKey}`,
+							link: `/orders/${removeOrderMockArgs.chainId}-${removeOrderMockArgs.entity.orderbook}-${removeOrderMockArgs.queryKey}`,
 							label: 'View Order'
 						},
 						{
@@ -138,41 +143,43 @@ describe('TransactionManager', () => {
 						}
 					],
 					config: mockWagmiConfig,
-					awaitSubgraphConfig: {
-						subgraphUrl: removeOrderMockArgs.subgraphUrl,
+					awaitSubgraphConfig: expect.objectContaining({
+						chainId: removeOrderMockArgs.chainId,
+						orderbook: removeOrderMockArgs.entity.orderbook,
 						txHash: removeOrderMockArgs.txHash,
 						successMessage: 'Order removed successfully.',
-						fetchEntityFn: getTransactionRemoveOrders,
+						fetchEntityFn: expect.any(Function),
 						isSuccess: expect.any(Function)
-					}
-				},
+					})
+				}),
 				expect.any(Function),
 				expect.any(Function)
 			);
 
 			const removeOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
 			const removeOrderIsSuccessFn = removeOrderCallArgs.awaitSubgraphConfig!.isSuccess;
+
 			expect(
 				removeOrderIsSuccessFn([
 					{
+						id: 'order1',
 						transaction: {
 							id: 'tx1',
 							from: '0xfrom',
 							blockNumber: '123',
 							timestamp: '1678886400'
-						},
-						order: { id: 'order1' }
+						}
 					}
-				] as SgRemoveOrderWithOrder[])
+				] as unknown as RaindexOrder[])
 			).toBe(true);
-			expect(removeOrderIsSuccessFn([] as SgRemoveOrderWithOrder[])).toBe(false);
+			expect(removeOrderIsSuccessFn([] as RaindexOrder[])).toBe(false);
 			expect(
 				removeOrderIsSuccessFn({
 					id: 'tx1',
 					from: '0xfrom',
 					blockNumber: '123',
 					timestamp: '1678886400'
-				} as SgTransaction)
+				} as unknown as RaindexTransaction)
 			).toBe(false);
 		});
 
@@ -207,13 +214,15 @@ describe('TransactionManager', () => {
 	});
 
 	describe('createWithdrawTransaction', () => {
-		const withdrawMockArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault } = {
-			subgraphUrl: 'https://api.example.com',
+		const withdrawMockArgs: InternalTransactionArgs & {
+			raindexClient: RaindexClient;
+			entity: RaindexVault;
+		} = {
 			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
 			chainId: 1,
-			networkKey: 'ethereum',
 			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-			entity: mockSgVaultEntity // Added entity
+			entity: mockSgVaultEntity,
+			raindexClient: mockRaindexClient
 		};
 
 		const fullMockArgsForExpectation: InternalTransactionArgs & {
@@ -221,10 +230,11 @@ describe('TransactionManager', () => {
 		} = {
 			...withdrawMockArgs, // Spreads withdrawMockArgs including entity
 			awaitSubgraphConfig: {
-				subgraphUrl: withdrawMockArgs.subgraphUrl,
+				chainId: withdrawMockArgs.chainId,
+				orderbook: withdrawMockArgs.entity.orderbook,
 				txHash: withdrawMockArgs.txHash,
 				successMessage: 'Withdrawal successful.',
-				fetchEntityFn: getTransaction as typeof getTransaction,
+				fetchEntityFn: expect.any(Function),
 				isSuccess: expect.any(Function)
 			}
 		};
@@ -244,7 +254,7 @@ describe('TransactionManager', () => {
 			await manager.createWithdrawTransaction(withdrawMockArgs);
 
 			expect(TransactionStore).toHaveBeenCalledWith(
-				{
+				expect.objectContaining({
 					...fullMockArgsForExpectation,
 					name: TransactionName.WITHDRAWAL,
 					errorMessage: 'Withdrawal failed.',
@@ -252,7 +262,7 @@ describe('TransactionManager', () => {
 					queryKey: withdrawMockArgs.queryKey,
 					toastLinks: [
 						{
-							link: `/vaults/${withdrawMockArgs.networkKey}-${withdrawMockArgs.queryKey}`,
+							link: `/vaults/${withdrawMockArgs.chainId}-${withdrawMockArgs.entity.orderbook}-${withdrawMockArgs.queryKey}`,
 							label: 'View vault'
 						},
 						{
@@ -261,25 +271,27 @@ describe('TransactionManager', () => {
 						}
 					],
 					config: mockWagmiConfig,
-					awaitSubgraphConfig: {
-						subgraphUrl: withdrawMockArgs.subgraphUrl,
+					awaitSubgraphConfig: expect.objectContaining({
+						chainId: withdrawMockArgs.chainId,
+						orderbook: withdrawMockArgs.entity.orderbook,
 						txHash: withdrawMockArgs.txHash,
 						successMessage: 'Withdrawal successful.',
-						fetchEntityFn: getTransaction,
+						fetchEntityFn: expect.any(Function),
 						isSuccess: expect.any(Function)
-					}
-				},
+					})
+				}),
 				expect.any(Function),
 				expect.any(Function)
 			);
 
 			const withdrawCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
 			const withdrawIsSuccessFn = withdrawCallArgs.awaitSubgraphConfig!.isSuccess;
-			expect(withdrawIsSuccessFn({ id: 'tx1' } as SgTransaction)).toBe(true);
-			expect(withdrawIsSuccessFn(null as unknown as SgTransaction)).toBe(false);
-			expect(withdrawIsSuccessFn(undefined as unknown as SgTransaction)).toBe(false);
-			expect(withdrawIsSuccessFn('' as unknown as SgTransaction)).toBe(false);
-			expect(withdrawIsSuccessFn(0 as unknown as SgTransaction)).toBe(false);
+
+			expect(withdrawIsSuccessFn({ id: '0x0123' } as unknown as RaindexTransaction)).toBe(true);
+			expect(withdrawIsSuccessFn(null as unknown as RaindexTransaction)).toBe(false);
+			expect(withdrawIsSuccessFn(undefined as unknown as RaindexTransaction)).toBe(false);
+			expect(withdrawIsSuccessFn('' as unknown as RaindexTransaction)).toBe(false);
+			expect(withdrawIsSuccessFn(0 as unknown as RaindexTransaction)).toBe(false);
 		});
 
 		it('should execute the transaction after creation', async () => {
@@ -319,7 +331,10 @@ describe('TransactionManager', () => {
 				return mockTransaction as unknown as TransactionStore;
 			});
 
-			const testSpecificArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault } = {
+			const testSpecificArgs: InternalTransactionArgs & {
+				raindexClient: RaindexClient;
+				entity: RaindexVault;
+			} = {
 				...withdrawMockArgs, // Use base withdraw args
 				queryKey: '0xvaultid' // Override queryKey for this specific test
 			};
@@ -367,7 +382,7 @@ describe('TransactionManager', () => {
 				...mockBaseArgs,
 				queryKey: '0xsuccesskey',
 				entity: mockSgOrderEntity,
-				subgraphUrl: 'https://api.example.com'
+				raindexClient: mockRaindexClient
 			});
 
 			onSuccess!();
@@ -390,7 +405,7 @@ describe('TransactionManager', () => {
 				...mockBaseArgs,
 				queryKey: '0xfailkey',
 				entity: mockSgOrderEntity,
-				subgraphUrl: 'https://api.example.com'
+				raindexClient: mockRaindexClient
 			});
 
 			onError!();
@@ -415,7 +430,7 @@ describe('TransactionManager', () => {
 				...mockBaseArgs,
 				queryKey: '0xclearkey',
 				entity: mockSgOrderEntity,
-				subgraphUrl: 'https://api.example.com'
+				raindexClient: mockRaindexClient
 			});
 
 			manager.clearTransactions();
@@ -436,11 +451,10 @@ describe('TransactionManager', () => {
 				symbol: 'TEST',
 				decimals: '18'
 			}
-		} as SgVault;
+		} as unknown as RaindexVault;
 		const mockArgs: InternalTransactionArgs = {
 			txHash: '0xapprovehash' as `0x${string}`,
 			chainId: 1,
-			networkKey: 'ethereum',
 			queryKey: '0xvaultid'
 		};
 
@@ -466,7 +480,7 @@ describe('TransactionManager', () => {
 					queryKey: mockArgs.queryKey,
 					toastLinks: [
 						{
-							link: `/vaults/${mockArgs.networkKey}-${mockArgs.queryKey}`,
+							link: `/vaults/${mockArgs.chainId}-${mockEntity.orderbook}-${mockArgs.queryKey}`,
 							label: 'View vault'
 						},
 						{
@@ -517,19 +531,18 @@ describe('TransactionManager', () => {
 				symbol: 'TEST',
 				decimals: '18'
 			}
-		} as SgVault;
+		} as unknown as RaindexVault;
 		const mockArgs: InternalTransactionArgs & {
 			amount: bigint;
-			entity: SgVault;
-			subgraphUrl: string;
+			entity: RaindexVault;
+			raindexClient: RaindexClient;
 		} = {
-			subgraphUrl: 'https://api.example.com',
 			txHash: '0xdeposithash' as `0x${string}`,
 			chainId: 1,
-			networkKey: 'ethereum',
 			queryKey: '0xvaultid',
 			entity: mockEntity,
-			amount: 1000000000000000000n
+			amount: 1000000000000000000n,
+			raindexClient: mockRaindexClient
 		};
 
 		beforeEach(() => {
@@ -550,7 +563,7 @@ describe('TransactionManager', () => {
 			await manager.createDepositTransaction(mockArgs);
 
 			expect(TransactionStore).toHaveBeenCalledWith(
-				{
+				expect.objectContaining({
 					...mockArgs,
 					name: `Depositing ${expectedReadableAmount} ${mockEntity.token.symbol}`,
 					errorMessage: 'Deposit failed.',
@@ -558,7 +571,7 @@ describe('TransactionManager', () => {
 					queryKey: mockArgs.queryKey,
 					toastLinks: [
 						{
-							link: `/vaults/${mockArgs.networkKey}-${mockArgs.queryKey}`,
+							link: `/vaults/${mockArgs.chainId}-${mockEntity.orderbook}-${mockArgs.queryKey}`,
 							label: 'View vault'
 						},
 						{
@@ -567,14 +580,15 @@ describe('TransactionManager', () => {
 						}
 					],
 					config: mockWagmiConfig,
-					awaitSubgraphConfig: {
-						subgraphUrl: mockArgs.subgraphUrl,
+					awaitSubgraphConfig: expect.objectContaining({
+						chainId: mockArgs.chainId,
+						orderbook: mockEntity.orderbook,
 						txHash: mockArgs.txHash,
 						successMessage: 'Deposit successful.',
-						fetchEntityFn: getTransaction,
+						fetchEntityFn: expect.any(Function),
 						isSuccess: expect.any(Function)
-					}
-				},
+					})
+				}),
 				expect.any(Function),
 				expect.any(Function)
 			);
@@ -648,12 +662,15 @@ describe('TransactionManager', () => {
 	});
 
 	describe('createAddOrderTransaction', () => {
-		const addOrderMockArgs: InternalTransactionArgs & { subgraphUrl: string } = {
-			subgraphUrl: 'https://api.example.com/orderbook',
+		const addOrderMockArgs: InternalTransactionArgs & {
+			raindexClient: RaindexClient;
+			orderbook: Address;
+		} = {
 			txHash: '0xaddordertxhash' as `0x${string}`,
 			chainId: 1,
-			networkKey: 'ethereum',
-			queryKey: 'myNewStrategyDeployment'
+			queryKey: 'myNewStrategyDeployment',
+			raindexClient: mockRaindexClient,
+			orderbook: '0xorderbook' as Address
 		};
 
 		const fullMockArgsForExpectation: InternalTransactionArgs & {
@@ -661,10 +678,11 @@ describe('TransactionManager', () => {
 		} = {
 			...addOrderMockArgs,
 			awaitSubgraphConfig: {
-				subgraphUrl: addOrderMockArgs.subgraphUrl,
+				chainId: addOrderMockArgs.chainId,
+				orderbook: addOrderMockArgs.orderbook,
 				txHash: addOrderMockArgs.txHash,
 				successMessage: 'Strategy deployed successfully.',
-				fetchEntityFn: getTransactionAddOrders as typeof getTransactionAddOrders,
+				fetchEntityFn: expect.any(Function),
 				isSuccess: expect.any(Function)
 			}
 		};
@@ -684,7 +702,7 @@ describe('TransactionManager', () => {
 			await manager.createAddOrderTransaction(addOrderMockArgs);
 
 			expect(TransactionStore).toHaveBeenCalledWith(
-				{
+				expect.objectContaining({
 					...fullMockArgsForExpectation,
 					name: 'Deploying order',
 					errorMessage: 'Deployment failed.',
@@ -697,29 +715,34 @@ describe('TransactionManager', () => {
 						}
 					],
 					config: mockWagmiConfig,
-					awaitSubgraphConfig: {
-						subgraphUrl: addOrderMockArgs.subgraphUrl,
+					awaitSubgraphConfig: expect.objectContaining({
+						chainId: addOrderMockArgs.chainId,
+						orderbook: addOrderMockArgs.orderbook,
 						txHash: addOrderMockArgs.txHash,
 						successMessage: 'Order deployed successfully.',
-						fetchEntityFn: getTransactionAddOrders,
+						fetchEntityFn: expect.any(Function),
 						isSuccess: expect.any(Function)
-					}
-				},
+					})
+				}),
 				expect.any(Function), // onSuccess
 				expect.any(Function) // onError
 			);
 
 			const addOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
 			const addOrderIsSuccessFn = addOrderCallArgs.awaitSubgraphConfig!.isSuccess;
+			const addOrderFetchEntityFn = addOrderCallArgs.awaitSubgraphConfig!.fetchEntityFn;
+
+			expect(addOrderFetchEntityFn.name).toBe('bound spy');
 			expect(
 				addOrderIsSuccessFn([
 					{
-						transaction: { id: 'tx1' },
-						order: { id: 'order1', orderHash: '0xneworderhash' }
+						id: 'order1',
+						orderHash: '0xneworderhash',
+						transaction: { id: 'tx1' }
 					}
-				] as SgAddOrderWithOrder[])
+				] as unknown as RaindexOrder[])
 			).toBe(true);
-			expect(addOrderIsSuccessFn([] as SgAddOrderWithOrder[])).toBe(false);
+			expect(addOrderIsSuccessFn([] as RaindexOrder[])).toBe(false);
 		});
 
 		it('should execute the transaction after creation', async () => {

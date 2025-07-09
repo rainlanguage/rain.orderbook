@@ -5,23 +5,24 @@
 
 import { TransactionStoreErrorMessage } from '$lib/types/transaction';
 import type {
-	getTransactionRemoveOrders,
-	getTransaction,
-	getTransactionAddOrders,
 	WasmEncodedResult,
-	SgTransaction,
-	SgRemoveOrderWithOrder
+	RaindexTransaction,
+	RaindexOrder,
+	Address,
+	Hex
 } from '@rainlanguage/orderbook';
 
 export type AwaitSubgraphConfig = {
-	subgraphUrl: string;
-	txHash: string;
+	chainId: number;
+	orderbook: Address;
+	txHash: Hex;
 	successMessage: string;
-	fetchEntityFn:
-		| typeof getTransaction
-		| typeof getTransactionRemoveOrders
-		| typeof getTransactionAddOrders;
-	isSuccess: (data: SgTransaction | SgRemoveOrderWithOrder[]) => boolean;
+	fetchEntityFn: (
+		chainId: number,
+		orderbook: Address,
+		txHash: Hex
+	) => Promise<WasmEncodedResult<RaindexTransaction | RaindexOrder[] | null | undefined>>;
+	isSuccess: (data: RaindexTransaction | RaindexOrder[]) => boolean;
 };
 
 /**
@@ -36,7 +37,7 @@ export type IndexingResult<T> = {
 		/**
 		 * The transaction hash
 		 */
-		txHash: string;
+		txHash: Hex;
 		/**
 		 * Message to display on successful indexing
 		 */
@@ -44,7 +45,7 @@ export type IndexingResult<T> = {
 		/**
 		 * Optional order hash if available
 		 */
-		orderHash?: string;
+		orderHash?: Hex;
 		/**
 		 * Optional network key
 		 */
@@ -66,7 +67,8 @@ export type IndexingResult<T> = {
  *
  * @template T The type of data returned by the subgraph
  * @param options Configuration options for the indexing operation
- * @param options.subgraphUrl URL of the subgraph to query
+ * @param options.chainId Chain ID to query
+ * @param options.orderbook Orderbook address to query
  * @param options.txHash Transaction hash to check for indexing
  * @param options.successMessage Message to display on successful indexing
  * @param options.maxAttempts Maximum number of attempts before timing out (default: 10)
@@ -78,13 +80,17 @@ export type IndexingResult<T> = {
  */
 export const awaitSubgraphIndexing = async <T>(options: {
 	/**
-	 * URL of the subgraph to query
+	 * Chain ID to query
 	 */
-	subgraphUrl: string;
+	chainId: number;
+	/**
+	 * Orderbook address to query
+	 */
+	orderbook: Address;
 	/**
 	 * Transaction hash to check for indexing
 	 */
-	txHash: string;
+	txHash: Hex;
 	/**
 	 * Message to display on successful indexing
 	 */
@@ -103,12 +109,14 @@ export const awaitSubgraphIndexing = async <T>(options: {
 	network?: string;
 	/**
 	 * Function to fetch data from the subgraph
-	 * @param subgraphUrl URL of the subgraph
+	 * @param chainId Chain ID to query
+	 * @param orderbook Orderbook address to query
 	 * @param txHash Transaction hash to query
 	 */
 	fetchEntityFn: (
-		subgraphUrl: string,
-		txHash: string
+		chainId: number,
+		orderbook: Address,
+		txHash: Hex
 	) => Promise<WasmEncodedResult<T | null | undefined>>;
 	/**
 	 * Function to determine if the fetched data indicates success
@@ -117,7 +125,8 @@ export const awaitSubgraphIndexing = async <T>(options: {
 	isSuccess: (data: T) => boolean;
 }): Promise<IndexingResult<T>> => {
 	const {
-		subgraphUrl,
+		chainId,
+		orderbook,
 		txHash,
 		successMessage,
 		maxAttempts = 10,
@@ -129,14 +138,14 @@ export const awaitSubgraphIndexing = async <T>(options: {
 
 	const checkIndexing = async (attempt: number): Promise<IndexingResult<T>> => {
 		try {
-			const data = await fetchEntityFn(subgraphUrl, txHash);
+			const data = await fetchEntityFn(chainId, orderbook, txHash);
 
 			if (data.value && isSuccess(data.value)) {
 				let newOrderHash;
 				// Extract orderHash from order data if it exists in the expected format
 				// This only applies to addOrder transactions
-				if (Array.isArray(data.value) && data.value.length > 0 && data.value[0]?.order?.orderHash) {
-					newOrderHash = data.value[0].order.orderHash;
+				if (Array.isArray(data.value) && data.value.length > 0 && data.value[0]?.orderHash) {
+					newOrderHash = data.value[0].orderHash;
 				}
 
 				return {
