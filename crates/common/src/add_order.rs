@@ -101,7 +101,7 @@ impl AddOrderArgs {
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id = B256::random();
 
-        let client = ReadableClientHttp::new_from_urls(
+        let client = ReadableClient::new_from_http_urls(
             deployment
                 .order
                 .network
@@ -152,12 +152,12 @@ impl AddOrderArgs {
         rpcs: Vec<String>,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClientHttp::new_from_http_urls(rpcs)?;
-        let dispair = DISPair::from_deployer(self.deployer, client.clone())
+        let client = ReadableClient::new_from_http_urls(rpcs.clone())?;
+        let dispair = DISPair::from_deployer(self.deployer, client)
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
 
-        let client = ReadableClient::new_from_http_urls(vec![rpc_url])?;
+        let client = ReadableClient::new_from_http_urls(rpcs)?;
         let parser: ParserV2 = dispair.clone().into();
         let rainlang_parsed: parse2Return = parser
             .parse_text(rainlang.as_str(), client)
@@ -209,7 +209,7 @@ impl AddOrderArgs {
     pub async fn try_into_call(
         &self,
         rpcs: Vec<String>,
-    ) -> Result<addOrder2Call, AddOrderArgsError> {
+    ) -> Result<addOrder3Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpcs.clone(), rainlang.clone())
@@ -219,7 +219,7 @@ impl AddOrderArgs {
 
         let deployer = self.deployer;
         let dispair =
-            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_http_urls(rpcs.clone())?)
+            DISPair::from_deployer(deployer, ReadableClient::new_from_http_urls(rpcs.clone())?)
                 .await?;
 
         // get the evaluable for the post action
@@ -259,7 +259,7 @@ impl AddOrderArgs {
     pub async fn get_add_order_call_parameters(
         &self,
         transaction_args: TransactionArgs,
-    ) -> Result<WriteContractParameters<addOrder2Call>, AddOrderArgsError> {
+    ) -> Result<WriteContractParameters<addOrder3Call>, AddOrderArgsError> {
         let add_order_call = self.try_into_call(transaction_args.clone().rpcs).await?;
         let params = transaction_args.try_into_write_contract_parameters(
             add_order_call,

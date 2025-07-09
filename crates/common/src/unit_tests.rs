@@ -61,8 +61,8 @@ pub enum TestRunnerError {
     JoinError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-    #[error(transparent)]
-    RainEvalResultError(#[from] RainEvalResultError),
+    // #[error(transparent)]
+    // RainEvalResultError(#[from] RainEvalResultError),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
 }
@@ -382,11 +382,7 @@ impl TestRunner {
             .clone();
 
         // Fetch the latest block number
-<<<<<<< HEAD:crates/common/src/unit_tests.rs
-        let block_number = ReadableClient::new_from_http_urls(vec![self
-=======
         let rpcs = self
->>>>>>> origin/2024-09-12-i9r:crates/common/src/unit_tests/mod.rs
             .test_setup
             .deployer
             .network
@@ -394,9 +390,11 @@ impl TestRunner {
             .iter()
             .map(|rpc| rpc.to_string())
             .collect::<Vec<String>>();
-        let block_number = ReadableClientHttp::new_from_urls(rpcs.clone())?
+
+        let block_number = ReadableClient::new_from_http_urls(rpcs.clone())?
             .get_block_number()
             .await?;
+
         let blocks = self
             .settings
             .test_config

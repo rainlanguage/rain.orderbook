@@ -34,7 +34,7 @@ pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError
 }
 
 #[cfg(not(target_family = "wasm"))]
-pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError> {
+pub fn mk_read_provider(rpcs: &[Url]) -> Result<ReadProvider, ReadProviderError> {
     let size = rpcs.len();
 
     let fallback_layer = FallbackLayer::default()
@@ -42,7 +42,7 @@ pub fn mk_read_provider(rpcs: &[&str]) -> Result<ReadProvider, ReadProviderError
 
     let transports = rpcs
         .iter()
-        .map(|rpc| Ok::<_, ReadProviderError>(Http::new(Url::parse(rpc)?)))
+        .map(|rpc| Ok::<_, ReadProviderError>(Http::new(rpc.clone())))
         .collect::<Result<Vec<_>, _>>()?;
 
     let transport = ServiceBuilder::new()

@@ -227,7 +227,8 @@ impl FuzzRunner {
             .iter()
             .map(|rpc| rpc.to_string())
             .collect::<Vec<String>>();
-        let block_number = ReadableClientHttp::new_from_http_urls(rpcs.clone())?
+
+        let block_number = ReadableClient::new_from_http_urls(rpcs.clone())?
             .get_block_number()
             .await?;
 

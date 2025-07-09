@@ -220,14 +220,9 @@ mod fork_parse {
         let block_number_val = match block_number {
             Some(b) => b,
             None => {
-                let client = ReadableClientHttp::new_from_http_urls(rpcs.clone())?;
+                let client = ReadableClient::new_from_http_urls(rpcs.clone())?;
                 client.get_block_number().await?
             }
-        };
-
-        let args = NewForkedEvm {
-            fork_url: rpc_url.to_owned(),
-            fork_block_number: Some(block_number_val),
         };
 
         // Lazily initialize the global `FORKER` (if required) and obtain a lock.
@@ -241,6 +236,7 @@ mod fork_parse {
             .clone();
 
         let mut forker = fork_arc.lock().await;
+        let mut err: Option<ForkParseError> = None;
 
         if rpcs.is_empty() {
             return Err(ForkParseError::InvalidArgs("rpcs cannot be empty".into()));

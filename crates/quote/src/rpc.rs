@@ -10,6 +10,7 @@ use alloy::{
 use rain_error_decoding::AbiDecodedErrorType;
 use rain_orderbook_bindings::IOrderBookV5::{quote2Return, IOrderBookV5Instance};
 use rain_orderbook_common::provider::mk_read_provider;
+use url::Url;
 
 /// Quotes array of given quote targets using the given rpc url
 pub async fn batch_quote(
@@ -19,7 +20,12 @@ pub async fn batch_quote(
     _gas: Option<u64>, // TODO: remove or use
     multicall_address: Option<Address>,
 ) -> Result<Vec<QuoteResult>, Error> {
-    let provider = mk_read_provider(rpcs)?;
+    let rpcs = rpcs
+        .into_iter()
+        .map(|rpc| rpc.parse::<Url>())
+        .collect::<Result<Vec<Url>, _>>()?;
+
+    let provider = mk_read_provider(&rpcs)?;
 
     let mut multicall = if let Some(addr) = multicall_address {
         provider.multicall().address(addr).dynamic()

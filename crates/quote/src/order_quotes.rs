@@ -42,7 +42,7 @@ pub async fn get_order_quotes(
     orders: Vec<SgOrder>,
     block_number: Option<u64>,
     rpcs: Vec<String>,
-    gas: Option<U256>,
+    gas: Option<u64>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 

@@ -56,8 +56,8 @@ pub struct TransactionArgs {
     pub derivation_index: Option<usize>,
     pub chain_id: Option<u64>,
     pub rpcs: Vec<String>,
-    pub max_priority_fee_per_gas: Option<U256>,
-    pub max_fee_per_gas: Option<U256>,
+    pub max_priority_fee_per_gas: Option<u128>,
+    pub max_fee_per_gas: Option<u128>,
 }
 
 impl TransactionArgs {
@@ -78,7 +78,7 @@ impl TransactionArgs {
 
     pub async fn try_fill_chain_id(&mut self) -> Result<(), TransactionArgsError> {
         if self.chain_id.is_none() {
-            let chain_id = ReadableClientHttp::new_from_http_urls(self.rpcs.clone())?
+            let chain_id = ReadableClient::new_from_http_urls(self.rpcs.clone())?
                 .get_chainid()
                 .await?;
 
@@ -98,41 +98,37 @@ impl TransactionArgs {
         ),
         TransactionArgsError,
     > {
-        match self.chain_id {
-            Some(chain_id) => {
-                let mut err: Option<TransactionArgsError> = None;
-                if self.rpcs.is_empty() {
-                    return Err(TransactionArgsError::InvalidArgs(
-                        "rpcs cannot be empty".into(),
-                    ));
-                }
-                for rpc in self.rpcs.clone() {
-                    let derivation_index = self.derivation_index.unwrap_or(0);
-                    let signer =
-                        LedgerSigner::new(HDPath::LedgerLive(derivation_index), self.chain_id)
-                            .await;
-
-                    match client {
-                        Ok(client) => {
-                            let address = signer.get_address().await?;
-
-                            let url: url::Url = self.rpc_url.parse()?;
-                            let provider = ProviderBuilder::new_with_network::<AnyNetwork>()
-                                .wallet(signer)
-                                .connect_http(url);
-
-                            return Ok((provider, address));
-                        }
-                        Err(e) => {
-                            err = Some(TransactionArgsError::LedgerClient(e));
-                        }
-                    }
-                }
-                // if we are here, we have tried all rpcs and failed
-                Err(err.unwrap())
-            }
-            None => Err(TransactionArgsError::ChainIdNone),
+        let mut err: Option<TransactionArgsError> = None;
+        if self.rpcs.is_empty() {
+            return Err(TransactionArgsError::InvalidArgs(
+                "rpcs cannot be empty".into(),
+            ));
         }
+
+        for rpc in self.rpcs.clone() {
+            let derivation_index = self.derivation_index.unwrap_or(0);
+            let signer =
+                LedgerSigner::new(HDPath::LedgerLive(derivation_index), self.chain_id).await;
+
+            match signer {
+                Ok(signer) => {
+                    let address = signer.get_address().await?;
+
+                    let url: url::Url = rpc.parse()?;
+                    let provider = ProviderBuilder::new_with_network::<AnyNetwork>()
+                        .wallet(signer)
+                        .connect_http(url);
+
+                    return Ok((provider, address));
+                }
+                Err(e) => {
+                    err = Some(TransactionArgsError::Ledger(e));
+                }
+            }
+        }
+
+        // if we are here, we have tried all rpcs and failed
+        Err(err.unwrap())
     }
 }
 
@@ -175,8 +171,8 @@ mod tests {
             derivation_index: Some(0),
             chain_id: Some(1),
             rpcs: vec!["https://mainnet.infura.io/v3/your-api-key".to_string()],
-            max_priority_fee_per_gas: Some(U256::from(100)),
-            max_fee_per_gas: Some(U256::from(200)),
+            max_priority_fee_per_gas: Some(100),
+            max_fee_per_gas: Some(200),
         };
 
         let call = vaultBalance2Call {
@@ -266,7 +262,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_try_into_ledger_client_err() {
-        let args = TransactionArgs {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.path("/rpc").body_contains("eth_chainId");
+            then.status(200)
+                .body(r#"{ "jsonrpc": "2.0", "id": 1, "result": "0x1" }"#);
+        });
+
+        let mut args = TransactionArgs {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,

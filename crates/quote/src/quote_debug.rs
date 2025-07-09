@@ -26,18 +26,11 @@ pub enum QuoteDebuggerError {
     QuoteError(#[from] crate::error::Error),
     #[error(transparent)]
     RainEvalResultConversion(#[from] RainEvalResultFromRawCallResultError),
-    QuoteError(crate::error::Error),
 }
 
 impl From<ForkCallError> for QuoteDebuggerError {
     fn from(err: ForkCallError) -> Self {
         Self::ForkerError(Box::new(err))
-    }
-}
-
-impl From<crate::error::Error> for QuoteDebuggerError {
-    fn from(err: crate::error::Error) -> Self {
-        Self::QuoteError(err)
     }
 }
 
