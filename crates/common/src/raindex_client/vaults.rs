@@ -1593,6 +1593,60 @@ mod tests {
         }
 
         #[tokio::test]
+        async fn test_get_all_vault_tokens_without_filter() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "erc20S": [
+                            {
+                                "id": "token1",
+                                "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                                "name": "Token 1",
+                                "symbol": "TKN1",
+                                "decimals": "18"
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "erc20S": [
+                            {
+                                "id": "token2",
+                                "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783f",
+                                "name": "Token 2",
+                                "symbol": "TKN2",
+                                "decimals": "18"
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            // Test with specific chain filter (only chain 1)
+            let result = raindex_client.get_all_vault_tokens(None).await.unwrap();
+
+            assert_eq!(result.len(), 2);
+        }
+
+        #[tokio::test]
         async fn test_get_all_vault_tokens_with_chain_filter() {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
