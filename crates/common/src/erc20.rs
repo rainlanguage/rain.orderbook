@@ -326,8 +326,12 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_token_info() {
         let local_evm = LocalEvm::new_with_tokens(1).await;
+        let token = local_evm.tokens[0].clone();
 
-        let erc20 = ERC20::new(vec![Url::parse(&local_evm.url()).unwrap()], Address::ZERO);
+        let erc20 = ERC20::new(
+            vec![Url::parse(&local_evm.url()).unwrap()],
+            *token.address(),
+        );
         let token_info = erc20.token_info(None).await.unwrap();
 
         assert_eq!(token_info.decimals, 18);
