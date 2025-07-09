@@ -7,13 +7,12 @@ import type { ToastLink, ToastProps } from '$lib/types/toast';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { TransactionName } from '$lib/types/transaction';
 import {
-	getTransaction,
-	getTransactionRemoveOrders,
-	type SgRemoveOrderWithOrder,
-	type SgTransaction,
-	type SgVault,
-	type SgOrder,
-	getTransactionAddOrders
+	type RaindexTransaction,
+	type RaindexVault,
+	type RaindexOrder,
+	RaindexClient,
+	type Address,
+	type Hex
 } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 
@@ -60,35 +59,35 @@ export class TransactionManager {
 	 * @param args - Configuration for the remove order transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.networkKey - Network identifier string (e.g., 'mainnet', 'arbitrum').
 	 * @param args.queryKey - The hash of the order to be removed (used for query invalidation and UI links).
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @param args.entity - The `SgOrder` entity associated with this transaction.
 	 * @returns A new Transaction instance configured for order removal.
 	 * @example
 	 * const tx = await manager.createRemoveOrderTransaction({
 	 *   txHash: '0x123...',
 	 *   chainId: 1,
-	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
-	 *   networkKey: 'mainnet',
 	 *   queryKey: '0x456...', // Order hash
 	 *   entity: sgOrderInstance
 	 * });
 	 */
 	public async createRemoveOrderTransaction(
-		args: InternalTransactionArgs & { subgraphUrl: string; entity: SgOrder }
+		args: InternalTransactionArgs & { entity: RaindexOrder; raindexClient: RaindexClient }
 	): Promise<Transaction> {
 		const name = TransactionName.REMOVAL;
 		const errorMessage = 'Order removal failed.';
 		const successMessage = 'Order removed successfully.';
-		const queryKey = args.queryKey;
-		const networkKey = args.networkKey;
-		const subgraphUrl = args.subgraphUrl;
+		const {
+			chainId,
+			entity: { orderbook },
+			queryKey,
+			txHash,
+			raindexClient
+		} = args;
 
-		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
 		const toastLinks: ToastLink[] = [
 			{
-				link: `/orders/${networkKey}-${args.queryKey}`,
+				link: `/orders/${chainId}-${orderbook}-${queryKey}`,
 				label: 'View Order'
 			},
 			{
@@ -104,11 +103,12 @@ export class TransactionManager {
 			queryKey,
 			toastLinks,
 			awaitSubgraphConfig: {
-				subgraphUrl: subgraphUrl,
-				txHash: args.txHash,
+				chainId,
+				orderbook,
+				txHash,
 				successMessage,
-				fetchEntityFn: getTransactionRemoveOrders,
-				isSuccess: (data: SgRemoveOrderWithOrder[] | SgTransaction) => {
+				fetchEntityFn: raindexClient.getRemoveOrdersForTransaction.bind(raindexClient),
+				isSuccess: (data: RaindexOrder[] | RaindexTransaction) => {
 					return Array.isArray(data) ? data.length > 0 : false;
 				}
 			}
@@ -120,34 +120,35 @@ export class TransactionManager {
 	 * @param args - Configuration for the withdrawal transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.networkKey - Network identifier string.
 	 * @param args.queryKey - The ID of the vault from which funds are withdrawn (used for query invalidation and UI links).
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @param args.entity - The `SgVault` entity associated with this transaction.
 	 * @returns A new Transaction instance configured for withdrawal.
 	 * @example
 	 * const tx = await manager.createWithdrawTransaction({
 	 *   txHash: '0x123...',
 	 *   chainId: 1,
-	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
-	 *   networkKey: 'mainnet',
 	 *   queryKey: '0x789...', // Vault ID
 	 *   entity: sgVaultInstance
 	 * });
 	 */
 	public async createWithdrawTransaction(
-		args: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault }
+		args: InternalTransactionArgs & { entity: RaindexVault; raindexClient: RaindexClient }
 	): Promise<Transaction> {
 		const name = TransactionName.WITHDRAWAL;
 		const errorMessage = 'Withdrawal failed.';
 		const successMessage = 'Withdrawal successful.';
-		const queryKey = args.queryKey;
-		const networkKey = args.networkKey;
+		const {
+			chainId,
+			entity: { orderbook },
+			queryKey,
+			txHash,
+			raindexClient
+		} = args;
 
-		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
 		const toastLinks: ToastLink[] = [
 			{
-				link: `/vaults/${networkKey}-${args.queryKey}`,
+				link: `/vaults/${chainId}-${orderbook}-${queryKey}`,
 				label: 'View vault'
 			},
 			{
@@ -163,10 +164,12 @@ export class TransactionManager {
 			queryKey,
 			toastLinks,
 			awaitSubgraphConfig: {
-				subgraphUrl: args.subgraphUrl,
-				txHash: args.txHash,
+				chainId,
+				orderbook,
+				txHash,
 				successMessage,
-				fetchEntityFn: getTransaction,
+				fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
+					raindexClient.getTransaction(orderbook, txHash),
 				isSuccess: (data) => !!data
 			}
 		});
@@ -177,7 +180,6 @@ export class TransactionManager {
 	 * @param args - Configuration for the approval transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.networkKey - Network identifier string.
 	 * @param args.queryKey - The ID of the vault or context for which approval is made (used for query invalidation and UI links).
 	 * @param args.tokenSymbol - The symbol of the token being approved.
 	 * @param args.entity - The `SgVault` entity associated with this transaction. (Optional, used for approvals to pre-existing vaults).
@@ -186,15 +188,14 @@ export class TransactionManager {
 	 * const tx = await manager.createApprovalTransaction({
 	 *   txHash: '0xabc...',
 	 *   chainId: 1,
-	 *   networkKey: 'mainnet',
 	 *   queryKey: '0x789...', // Vault ID
 	 *   entity: sgVaultInstance
 	 * });
 	 */
 	public async createApprovalTransaction(
-		args: InternalTransactionArgs & { entity?: SgVault }
+		args: InternalTransactionArgs & { entity?: RaindexVault }
 	): Promise<Transaction> {
-		const { entity, queryKey, networkKey } = args;
+		const { entity, queryKey, chainId } = args;
 		const tokenSymbol = entity?.token.symbol || 'token';
 		const name = `Approving ${tokenSymbol} spend`;
 		const errorMessage = 'Approval failed.';
@@ -211,7 +212,7 @@ export class TransactionManager {
 		if (entity) {
 			toastLinks = [
 				{
-					link: `/vaults/${networkKey}-${args.queryKey}`,
+					link: `/vaults/${chainId}-${entity.orderbook}-${queryKey}`,
 					label: 'View vault'
 				},
 				...toastLinks
@@ -233,38 +234,43 @@ export class TransactionManager {
 	 * @param args - Configuration for the deposit transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.networkKey - Network identifier string.
 	 * @param args.queryKey - The ID of the vault into which funds are deposited (used for query invalidation and UI links).
 	 * @param args.entity - The `SgVault` entity associated with this transaction.
 	 * @param args.amount - The amount of tokens being deposited.
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @returns A new Transaction instance configured for deposit.
 	 * @example
 	 * const tx = await manager.createDepositTransaction({
 	 *   txHash: '0xdef...',
 	 *   chainId: 1,
-	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
-	 *   networkKey: 'mainnet',
 	 *   queryKey: '0x789...', // Vault ID
 	 *   entity: sgVaultInstance,
 	 *   amount: 1000n
 	 * });
 	 */
 	public async createDepositTransaction(
-		args: InternalTransactionArgs & { amount: bigint; entity: SgVault; subgraphUrl: string }
+		args: InternalTransactionArgs & {
+			amount: bigint;
+			entity: RaindexVault;
+			raindexClient: RaindexClient;
+		}
 	): Promise<Transaction> {
 		const tokenSymbol = args.entity.token.symbol;
 		const readableAmount = formatUnits(args.amount, Number(args.entity.token.decimals));
 		const name = `Depositing ${readableAmount} ${tokenSymbol}`;
 		const errorMessage = 'Deposit failed.';
 		const successMessage = 'Deposit successful.';
-		const queryKey = args.queryKey;
-		const networkKey = args.networkKey;
+		const {
+			chainId,
+			entity: { orderbook },
+			txHash,
+			queryKey,
+			raindexClient
+		} = args;
 
-		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
 		const toastLinks: ToastLink[] = [
 			{
-				link: `/vaults/${networkKey}-${args.queryKey}`,
+				link: `/vaults/${chainId}-${orderbook}-${queryKey}`,
 				label: 'View vault'
 			},
 			{
@@ -281,10 +287,12 @@ export class TransactionManager {
 			queryKey,
 			toastLinks,
 			awaitSubgraphConfig: {
-				subgraphUrl: args.subgraphUrl,
-				txHash: args.txHash,
+				chainId,
+				orderbook,
+				txHash,
 				successMessage,
-				fetchEntityFn: getTransaction,
+				fetchEntityFn: (_chainId: number, orderbook: `0x${string}`, txHash: `0x${string}`) =>
+					raindexClient.getTransaction(orderbook, txHash),
 				isSuccess: (data) => !!data
 			}
 		});
@@ -295,24 +303,20 @@ export class TransactionManager {
 	 * @param args - Configuration for the deployment transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.networkKey - Network identifier string.
 	 * @param args.queryKey - The ID of the vault into which funds are deposited (used for query invalidation and UI links).
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @returns A new Transaction instance configured for deposit.
 	 * @example
 	 * const tx = await manager.createAddOrderTransaction({
 	 *   txHash: '0xdeploytxhash',
 	 *   chainId: 1,
-	 *   networkKey: 'mainnet',
 	 *   queryKey: '0x789...', // Vault ID
-	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
 	 * });
 	 */
 
 	public async createAddOrderTransaction(
-		args: InternalTransactionArgs & { subgraphUrl: string }
+		args: InternalTransactionArgs & { orderbook: Address; raindexClient: RaindexClient }
 	): Promise<Transaction> {
-		const { queryKey, txHash, chainId, subgraphUrl } = args;
+		const { queryKey, txHash, chainId, orderbook, raindexClient } = args;
 		const name = 'Deploying order';
 		const errorMessage = 'Deployment failed.';
 		const successMessage = 'Order deployed successfully.';
@@ -333,10 +337,11 @@ export class TransactionManager {
 			queryKey,
 			toastLinks,
 			awaitSubgraphConfig: {
-				subgraphUrl,
+				chainId,
+				orderbook,
 				txHash,
 				successMessage,
-				fetchEntityFn: getTransactionAddOrders,
+				fetchEntityFn: raindexClient.getAddOrdersForTransaction.bind(raindexClient),
 				isSuccess: (data) => {
 					return Array.isArray(data) ? data.length > 0 : false;
 				}

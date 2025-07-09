@@ -1,22 +1,22 @@
 <script lang="ts">
-  import { orderbookAddress } from '$lib/stores/settings';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
-  import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
+  import { orderRemove } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import type { SgOrder as OrderDetailOrder } from '@rainlanguage/orderbook';
+  import type { RaindexOrder } from '@rainlanguage/orderbook';
+  import { hexToBytes } from 'viem';
 
   let openOrderRemoveModal = true;
-  export let order: OrderDetailOrder;
+  export let order: RaindexOrder;
   let isSubmitting = false;
   export let onOrderRemoved: () => void;
 
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await orderRemove(order.id);
+      await orderRemove(order);
       onOrderRemoved();
     } catch (e) {
       reportErrorToSentry(e);
@@ -26,8 +26,11 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const calldata = (await orderRemoveCalldata(order.id)) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      const calldata = order.getRemoveCalldata();
+      if (calldata.error) {
+        throw new Error(calldata.error.readableMsg);
+      }
+      const tx = await ethersExecute(hexToBytes(calldata.value), order.orderbook);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
       onOrderRemoved();
@@ -40,6 +43,7 @@
 </script>
 
 <ModalExecute
+  chainId={order.chainId}
   bind:open={openOrderRemoveModal}
   title="Remove Order"
   execButtonLabel="Remove Order"

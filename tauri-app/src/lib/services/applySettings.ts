@@ -16,8 +16,8 @@ export async function applySettings(
   parseConfigSourceFn: ParseConfigSourceFn,
 ): Promise<ApplySettingsResult> {
   try {
-    settingsTextStore.set(settingsContent);
     const parsedConfig = await parseConfigSourceFn(settingsContent);
+    settingsTextStore.set(settingsContent);
     settingsStore.set(parsedConfig);
     return { settingsStatus: 'success' };
   } catch (error) {

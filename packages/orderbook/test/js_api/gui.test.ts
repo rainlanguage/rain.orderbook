@@ -955,7 +955,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_72OvU7DMBSF44KKhBgQYkVCYsXEcX4IVRkrFRBBSBZiTVO3ieLaqeNQFR6CkZUXqHgCVjaeB7EhhE2bqnPvcs695_r6A9Zf7WhVtFSwl_F-xodAz5C1vZg-xKyiDT1pmkTklDuWqU2tPjoJaiv4f2VDq4PQ6mP1zgCWYkQhp2oiZG4AD7SmShUt22YiiVkqStUKUejbskhgJdmT-RgYBwxCh3T3tR2sKNAEWzomvyyHDjDEpE6J692amJ_bX7Ojz_bs_cV_-75v4LOP1wTsLTHjOTM2buGc67pg3gVBcKxt2BGPN_lVBq9j7653ezGFUXSqslzGrFsJMvYuB15E6FhMhue7-o1QKZWwTwsmpiPK1Q8kJMgjZQIAAA==';
+			'H4sIAAAAAAAA_7WOTUvDMBjHmykTxIOIV0HwamybvljHPA6mYkUI4rXrsrU0S7o0dUw_hEevfoHhJ_Dqzc8j3qSYbOvYdc8h_-fln-f5AeM_9pRKUkjYS1k_ZUOgepaxuzx9imhJGqrT1BOeEWYbOraVetaZX7OguWVLqW1Z65fVKw1Y8BGBjMgJF5kGPFKaSJm3TJPyOKIJL2QrsALPFHkMS0FfKgeoXqBPd3D3UKWDNQGaYEeNccVwbANNiut0qF5tmPW1_TM7-W7PPt-8j9_HBrr4eo_BwQorWrAinS2tcxwHLCrf909VGnT48112k8LbyH3o3V9NYRieyzQTEe2WHI_d64EbYjLmk-HlvvrDZUIE7JOc8umIMPkHbEaANVUCAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1963,11 +1963,6 @@ ${dotrainWithoutVaultIds}`;
 			expect(stateUpdateCallback).toHaveBeenCalledWith(
 				extractWasmEncodedData(gui.serializeState())
 			);
-		});
-
-		it('should get network key', async () => {
-			const networkKey = extractWasmEncodedData<string>(gui.getNetworkKey());
-			assert.equal(networkKey, 'some-network');
 		});
 
 		it('should get all tokens for current network', async () => {

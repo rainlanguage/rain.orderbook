@@ -24,6 +24,14 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   };
 });
 
+vi.mock('$lib/utils/getOrderbookByChainId', () => ({
+  getOrderbookByChainId: vi.fn().mockReturnValue({
+    network: {
+      rpcs: ['http://localhost:8545'],
+    },
+  }),
+}));
+
 vi.mock('@tanstack/svelte-query', () => ({
   useQueryClient: vi.fn().mockReturnValue({
     invalidateQueries: vi.fn(),
@@ -102,18 +110,6 @@ describe('Order Page', () => {
       mockSettingsStore.mockSetSubscribeValue(EMPTY_SETTINGS);
     });
 
-    it('displays error when all settings are missing', () => {
-      render(Page);
-
-      expect(screen.getByText('Failed to load order')).toBeTruthy();
-      expect(screen.getByText(/Missing the following items from settings for/)).toBeTruthy();
-      expect(screen.getByText('ethereum')).toBeTruthy();
-
-      expect(screen.getByText('RPC URLs')).toBeTruthy();
-      expect(screen.getByText('Subgraph URL')).toBeTruthy();
-      expect(screen.getByText('Orderbook Address')).toBeTruthy();
-    });
-
     it('only displays actually missing items', async () => {
       // Set partial settings
       mockSettingsStore.mockSetSubscribeValue({
@@ -135,19 +131,7 @@ describe('Order Page', () => {
 
       render(Page);
 
-      expect(screen.getByText('Subgraph URL')).toBeTruthy();
-
-      expect(screen.queryByText('RPC URLs')).toBeFalsy();
       expect(screen.queryByText('Orderbook Address')).toBeFalsy();
-    });
-
-    it('has a link to settings when clicking Go to settings button', async () => {
-      render(Page);
-
-      const settingsLink = screen.getByText('Go to settings').closest('a');
-
-      expect(settingsLink).toBeTruthy();
-      expect(settingsLink?.getAttribute('href')).toBe('/settings');
     });
   });
 });

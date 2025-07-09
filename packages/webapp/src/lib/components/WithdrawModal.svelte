@@ -32,7 +32,7 @@
 	export let args: VaultActionArgs;
 	export let onSubmit: (amount: bigint) => void;
 
-	const { vault, chainId, account } = args;
+	const { vault, account } = args;
 
 	let amount: bigint = 0n;
 	let userBalance: bigint = 0n;
@@ -40,9 +40,9 @@
 	let isCheckingCalldata = false;
 
 	const getUserBalance = async () => {
-		const targetChain = getTargetChain(chainId);
+		const targetChain = getTargetChain(vault.chainId);
 		try {
-			await switchChain($wagmiConfig, { chainId });
+			await switchChain($wagmiConfig, { chainId: vault.chainId });
 		} catch {
 			errorMessage = `Switch to ${targetChain.name} to check your balance.`;
 			return;

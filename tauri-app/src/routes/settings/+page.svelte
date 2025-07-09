@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Alert, Spinner } from 'flowbite-svelte';
-  import { settingsText, settings, settingsFile, hasRequiredSettings } from '$lib/stores/settings';
+  import { settingsText, settings, settingsFile } from '$lib/stores/settings';
   import { PageHeader } from '@rainlanguage/ui-components';
   import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
@@ -23,8 +23,9 @@
   onMount(() => {
     updateHeight();
     window.addEventListener('resize', updateHeight);
-    if (get(settingsFile).text) {
-      handleApply(get(settingsFile).text);
+    const fileText = get(settingsFile).text;
+    if (fileText && fileText.trim() !== '') {
+      handleApply(fileText);
     } else {
       settingsStatus = 'success';
       errorMessage = undefined;
@@ -46,7 +47,11 @@
 
   const { debouncedFn: debouncedHandleApply } = useDebouncedFn(handleApply, 1000);
 
-  $: if ($settingsFile.text !== undefined && typeof $settingsFile.text === 'string') {
+  $: if (
+    $settingsFile.text !== undefined &&
+    typeof $settingsFile.text === 'string' &&
+    $settingsFile.text.trim() !== ''
+  ) {
     debouncedHandleApply($settingsFile.text);
   }
 </script>
@@ -62,16 +67,6 @@
     >
   </Alert>
 </div>
-
-{#await hasRequiredSettings}
-  <!-- -->
-{:then val}
-  {#if !val}
-    <Alert color="red" class="my-8 text-lg">
-      Please fill in all the settings to use the Orderbook.
-    </Alert>
-  {/if}
-{/await}
 
 <FileTextarea textFile={settingsFile}>
   <svelte:fragment slot="alert">

@@ -109,7 +109,7 @@ impl OrderbookYaml {
         let context = self.initialize_context_and_expand_remote_data()?;
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
-    pub fn get_network_by_chain_id(&self, chain_id: u64) -> Result<NetworkCfg, YamlError> {
+    pub fn get_network_by_chain_id(&self, chain_id: u32) -> Result<NetworkCfg, YamlError> {
         let networks = self.get_networks()?;
         for network in networks.values() {
             if network.chain_id == chain_id {
@@ -182,20 +182,25 @@ impl OrderbookYaml {
             address
         )))
     }
-    pub fn get_orderbook_by_network_key(
+    pub fn get_orderbooks_by_network_key(
         &self,
         network_key: &str,
-    ) -> Result<OrderbookCfg, YamlError> {
-        let orderbooks = self.get_orderbooks()?;
-        for (_, orderbook) in orderbooks {
-            if orderbook.network.key == network_key {
-                return Ok(orderbook);
-            }
+    ) -> Result<Vec<OrderbookCfg>, YamlError> {
+        let mut orderbooks: Vec<_> = self
+            .get_orderbooks()?
+            .into_iter()
+            .filter(|(_, ob)| ob.network.key == network_key)
+            .map(|(_, ob)| ob)
+            .collect();
+        orderbooks.sort_by(|a, b| a.key.cmp(&b.key));
+
+        if orderbooks.is_empty() {
+            return Err(YamlError::NotFound(format!(
+                "orderbook with network key: {}",
+                network_key
+            )));
         }
-        Err(YamlError::NotFound(format!(
-            "orderbook with network key: {}",
-            network_key
-        )))
+        Ok(orderbooks)
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -665,17 +670,18 @@ test: test
         let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
 
         // Test successful lookup
-        let orderbook = ob_yaml.get_orderbook_by_network_key("mainnet").unwrap();
-        assert_eq!(orderbook.key, "orderbook1");
-        assert_eq!(orderbook.network.key, "mainnet");
+        let orderbooks = ob_yaml.get_orderbooks_by_network_key("mainnet").unwrap();
+        assert_eq!(orderbooks.len(), 1);
+        assert_eq!(orderbooks[0].key, "orderbook1");
+        assert_eq!(orderbooks[0].network.key, "mainnet");
         assert_eq!(
-            orderbook.address,
+            orderbooks[0].address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
 
         // Test error case - network key not found
         let error = ob_yaml
-            .get_orderbook_by_network_key("nonexistent")
+            .get_orderbooks_by_network_key("nonexistent")
             .unwrap_err();
         assert_eq!(
             error,
@@ -721,6 +727,10 @@ test: test
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
             subgraph: mainnet
+        other-orderbook:
+            address: 0x1234567890123456789012345678901234567891
+            network: mainnet
+            subgraph: mainnet
         polygon-orderbook:
             address: 0x0987654321098765432109876543210987654321
             network: polygon
@@ -745,17 +755,21 @@ test: test
         assert_eq!(arbitrum.chain_id, 42161);
 
         // Test orderbook lookup by network key
-        let mainnet_orderbook = ob_yaml.get_orderbook_by_network_key("mainnet").unwrap();
-        assert_eq!(mainnet_orderbook.key, "mainnet-orderbook");
-        assert_eq!(mainnet_orderbook.network.key, "mainnet");
+        let orderbooks = ob_yaml.get_orderbooks_by_network_key("mainnet").unwrap();
+        assert_eq!(orderbooks.len(), 2);
+        assert_eq!(orderbooks[0].key, "mainnet-orderbook");
+        assert_eq!(orderbooks[0].network.key, "mainnet");
+        assert_eq!(orderbooks[1].key, "other-orderbook");
+        assert_eq!(orderbooks[1].network.key, "mainnet");
 
-        let polygon_orderbook = ob_yaml.get_orderbook_by_network_key("polygon").unwrap();
-        assert_eq!(polygon_orderbook.key, "polygon-orderbook");
-        assert_eq!(polygon_orderbook.network.key, "polygon");
+        let orderbooks = ob_yaml.get_orderbooks_by_network_key("polygon").unwrap();
+        assert_eq!(orderbooks.len(), 1);
+        assert_eq!(orderbooks[0].key, "polygon-orderbook");
+        assert_eq!(orderbooks[0].network.key, "polygon");
 
         // Test error for network without orderbook
         let error = ob_yaml
-            .get_orderbook_by_network_key("arbitrum")
+            .get_orderbooks_by_network_key("arbitrum")
             .unwrap_err();
         assert_eq!(
             error,
