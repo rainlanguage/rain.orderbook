@@ -658,7 +658,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         handleIO(bobOrderIOCalculation);
 
         // Do this last so we don't swallow errors from the handle IO.
-        if (clearStateChange.aliceOutput == 0 && clearStateChange.bobOutput == 0) {
+        if (clearStateChange.aliceOutput.isZero() && clearStateChange.bobOutput.isZero()) {
             revert ClearZeroAmount();
         }
     }

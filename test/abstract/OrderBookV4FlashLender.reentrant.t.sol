@@ -188,10 +188,6 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
         bobConfig.validInputs[0] = aliceConfig.validOutputs[0];
         bobConfig.validOutputs[0] = aliceConfig.validInputs[0];
-        aliceConfig.validOutputs[0].decimals = 18;
-        aliceConfig.validInputs[0].decimals = 18;
-        bobConfig.validOutputs[0].decimals = 18;
-        bobConfig.validInputs[0].decimals = 18;
 
         vm.recordLogs();
         vm.prank(alice);
@@ -207,15 +203,21 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
         ClearConfigV2 memory clearConfig = ClearConfigV2(0, 0, 0, 0, 0, 0);
 
-        vm.mockCall(aliceOrder.validOutputs[0].token, "", abi.encode(true));
+        vm.mockCall(aliceOrder.validOutputs[0].token, bytes(""), abi.encode(true));
         vm.prank(aliceOrder.owner);
-        iOrderbook.deposit2(
-            aliceOrder.validOutputs[0].token, aliceOrder.validOutputs[0].vaultId, type(uint256).max, new TaskV1[](0)
+        iOrderbook.deposit3(
+            aliceOrder.validOutputs[0].token,
+            aliceOrder.validOutputs[0].vaultId,
+            LibDecimalFloat.packLossless(type(int64).max, 0),
+            new TaskV2[](0)
         );
-        vm.mockCall(bobOrder.validOutputs[0].token, "", abi.encode(true));
+        vm.mockCall(bobOrder.validOutputs[0].token, bytes(""), abi.encode(true));
         vm.prank(bobOrder.owner);
-        iOrderbook.deposit2(
-            bobOrder.validOutputs[0].token, bobOrder.validOutputs[0].vaultId, type(uint256).max, new TaskV1[](0)
+        iOrderbook.deposit3(
+            bobOrder.validOutputs[0].token,
+            bobOrder.validOutputs[0].vaultId,
+            LibDecimalFloat.packLossless(type(int64).max, 0),
+            new TaskV2[](0)
         );
 
         // Create a flash borrower.
