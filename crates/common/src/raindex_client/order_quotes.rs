@@ -265,7 +265,11 @@ mod tests {
                 "unexpected error: {}",
                 err.to_string()
             );
-            assert!(err.to_readable_msg().contains("Invalid number format"),);
+            assert!(
+                err.to_readable_msg().contains("Failed to parse an integer"),
+                "unexpected error message: \"{}\"",
+                err.to_readable_msg()
+            );
         }
     }
 }

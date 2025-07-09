@@ -913,8 +913,10 @@ mod tests {
         use super::*;
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
+        use alloy::hex::encode_prefixed;
         use alloy::sol_types::SolCall;
         use httpmock::MockServer;
+        use rain_orderbook_bindings::IERC20::decimalsCall;
         use rain_orderbook_bindings::{
             IOrderBookV5::{deposit3Call, withdraw3Call},
             IERC20::approveCall,
@@ -1197,8 +1199,8 @@ mod tests {
 
         #[tokio::test]
         async fn test_get_vault_deposit_calldata() {
-            let sg_server = MockServer::start_async().await;
-            sg_server.mock(|when, then| {
+            let server = MockServer::start_async().await;
+            server.mock(|when, then| {
                 when.path("/sg1");
                 then.status(200).json_body_obj(&json!({
                     "data": {
@@ -1207,13 +1209,22 @@ mod tests {
                 }));
             });
 
+            server.mock(|when, then| {
+                when.path("/rpc1");
+                then.status(200).json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": encode_prefixed(decimalsCall::abi_encode_returns(&18))
+                }));
+            });
+
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
-                    &sg_server.url("/sg1"),
-                    &sg_server.url("/sg2"),
+                    &server.url("/sg1"),
+                    &server.url("/sg2"),
+                    &server.url("/rpc1"),
                     // not used
-                    &sg_server.url("/rpc1"),
-                    &sg_server.url("/rpc2"),
+                    &server.url("/rpc2"),
                 )],
                 None,
             )
@@ -1234,7 +1245,7 @@ mod tests {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x10").unwrap()),
-                        depositAmount: Float::parse("500".to_string()).unwrap().0,
+                        depositAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
                         tasks: vec![],
                     }
                     .abi_encode()
@@ -1250,8 +1261,8 @@ mod tests {
 
         #[tokio::test]
         async fn test_get_vault_withdraw_calldata() {
-            let sg_server = MockServer::start_async().await;
-            sg_server.mock(|when, then| {
+            let server = MockServer::start_async().await;
+            server.mock(|when, then| {
                 when.path("/sg1");
                 then.status(200).json_body_obj(&json!({
                     "data": {
@@ -1260,13 +1271,22 @@ mod tests {
                 }));
             });
 
+            server.mock(|when, then| {
+                when.path("/rpc1");
+                then.status(200).json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": encode_prefixed(decimalsCall::abi_encode_returns(&18))
+                }));
+            });
+
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
-                    &sg_server.url("/sg1"),
-                    &sg_server.url("/sg2"),
+                    &server.url("/sg1"),
+                    &server.url("/sg2"),
+                    &server.url("/rpc1"),
                     // not used
-                    &sg_server.url("/rpc1"),
-                    &sg_server.url("/rpc2"),
+                    &server.url("/rpc2"),
                 )],
                 None,
             )
@@ -1290,7 +1310,7 @@ mod tests {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x10").unwrap()),
-                        targetAmount: Float::parse("500".to_string()).unwrap().0,
+                        targetAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
                         tasks: vec![],
                     }
                     .abi_encode()

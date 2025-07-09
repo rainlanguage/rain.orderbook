@@ -235,7 +235,7 @@ pub enum RaindexError {
     Erc20(#[from] crate::erc20::Error),
     #[error("Float error: {0}")]
     Float(#[from] FloatError),
-    #[error("Failed to parse integer: {0}")]
+    #[error("Failed to parse an integer: {0}")]
     ParseInt(#[from] ParseIntError),
 }
 
@@ -343,7 +343,7 @@ impl RaindexError {
             }
             RaindexError::Erc20(err) => format!("Failed to get ERC20 info: {err}"),
             RaindexError::Float(err) => format!("Float error: {err}"),
-            RaindexError::ParseInt(err) => format!("Failed to parse integer: {err}"),
+            RaindexError::ParseInt(err) => format!("Failed to parse an integer: {err}"),
         }
     }
 }
