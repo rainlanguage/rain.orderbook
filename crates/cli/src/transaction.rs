@@ -52,8 +52,8 @@ mod tests {
             derivation_index: Some(1),
             chain_id: Some(2),
             rpcs: vec!["http://localhost:8545".to_string()],
-            max_priority_fee_per_gas: Some(U256::from(100)),
-            max_fee_per_gas: Some(U256::from(1000)),
+            max_priority_fee_per_gas: Some(100),
+            max_fee_per_gas: Some(1000),
         };
 
         let transaction_args: TransactionArgs = cli_args.into();
@@ -62,11 +62,8 @@ mod tests {
         assert_eq!(transaction_args.derivation_index, Some(1));
         assert_eq!(transaction_args.chain_id, Some(2));
         assert_eq!(transaction_args.rpcs, vec!["http://localhost:8545"]);
-        assert_eq!(
-            transaction_args.max_priority_fee_per_gas,
-            Some(U256::from(100))
-        );
-        assert_eq!(transaction_args.max_fee_per_gas, Some(U256::from(1000)));
+        assert_eq!(transaction_args.max_priority_fee_per_gas, Some(100));
+        assert_eq!(transaction_args.max_fee_per_gas, Some(1000));
 
         let orderbook_address = Address::random();
         let cli_args = CliTransactionArgs {

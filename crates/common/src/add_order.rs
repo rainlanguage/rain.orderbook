@@ -101,16 +101,6 @@ impl AddOrderArgs {
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id = B256::random();
 
-        let client = ReadableClient::new_from_http_urls(
-            deployment
-                .order
-                .network
-                .rpcs
-                .iter()
-                .map(|rpc| rpc.to_string())
-                .collect::<Vec<String>>(),
-        )?;
-
         let mut inputs = vec![];
         for (i, input) in deployment.order.inputs.iter().enumerate() {
             let input_token = input

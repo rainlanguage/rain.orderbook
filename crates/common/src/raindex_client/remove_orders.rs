@@ -2,7 +2,7 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use alloy::primitives::{hex::decode, Bytes};
 use alloy::sol_types::{SolCall, SolValue};
-use rain_orderbook_bindings::IOrderBookV4::{removeOrder2Call, OrderV3};
+use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, OrderV4};
 use rain_orderbook_subgraph_client::types::{order_detail_traits::OrderDetailError, Id};
 use std::sync::{Arc, RwLock};
 
@@ -105,20 +105,18 @@ impl RaindexOrder {
         unchecked_return_type = "Hex"
     )]
     pub fn get_remove_calldata(&self) -> Result<Bytes, RaindexError> {
-        let remove_order_call = removeOrder2Call {
+        let remove_order_call = removeOrder3Call {
             order: self.try_into()?,
             tasks: vec![],
         };
         Ok(Bytes::copy_from_slice(&remove_order_call.abi_encode()))
     }
 }
-impl TryInto<OrderV3> for &RaindexOrder {
+
+impl TryInto<OrderV4> for &RaindexOrder {
     type Error = OrderDetailError;
-    fn try_into(self) -> Result<OrderV3, Self::Error> {
-        let order = rain_orderbook_bindings::IOrderBookV4::OrderV3::abi_decode(
-            &decode(self.order_bytes().to_string())?,
-            true,
-        )?;
+    fn try_into(self) -> Result<OrderV4, Self::Error> {
+        let order = OrderV4::abi_decode(&decode(self.order_bytes().to_string())?)?;
         Ok(order)
     }
 }

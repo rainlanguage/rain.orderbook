@@ -3,14 +3,13 @@ use alloy::primitives::{Address, U256};
 use alloy::providers::{MulticallError, Provider};
 use alloy_ethers_typecast::ReadContractParametersBuilderError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
+use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider, ReadProviderError};
 use rain_orderbook_bindings::IERC20::IERC20Instance;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
-
-use crate::provider::{mk_read_provider, ReadProvider, ReadProviderError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]

@@ -8,8 +8,8 @@ use alloy::{
     primitives::Address,
 };
 use rain_error_decoding::AbiDecodedErrorType;
+use rain_orderbook_bindings::provider::mk_read_provider;
 use rain_orderbook_bindings::IOrderBookV5::{quote2Return, IOrderBookV5Instance};
-use rain_orderbook_common::provider::mk_read_provider;
 use url::Url;
 
 /// Quotes array of given quote targets using the given rpc url
@@ -78,8 +78,8 @@ mod tests {
     use alloy::transports::TransportError;
     use httpmock::{Method::POST, MockServer};
     use rain_math_float::Float;
+    use rain_orderbook_bindings::provider::ReadProviderError;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return};
-    use rain_orderbook_common::provider::ReadProviderError;
     use serde_json::json;
 
     #[tokio::test]

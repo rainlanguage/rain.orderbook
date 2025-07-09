@@ -1,11 +1,15 @@
 use super::*;
 use crate::{
     deposit::DepositArgs,
+    erc20::ERC20,
     raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use alloy::primitives::{Address, Bytes, I256, U256};
+use alloy::primitives::{Address, Bytes, B256, I256, U256};
+use alloy::sol_types::SolCall;
+use rain_math_float::Float;
+use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
     types::{
         common::{
@@ -301,15 +305,12 @@ impl RaindexVault {
         amount: String,
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
-        Ok(Bytes::copy_from_slice(
-            &DepositArgs {
-                token: self.token.address,
-                vault_id: self.vault_id,
-                amount,
-            }
-            .get_deposit_calldata()
-            .await?,
-        ))
+
+        let (deposit_args, _) = self.get_deposit_and_transaction_args(amount).await?;
+
+        let call = deposit3Call::try_from(deposit_args)?;
+
+        Ok(Bytes::copy_from_slice(&call.abi_encode()))
     }
 
     /// Generates transaction calldata for withdrawing tokens from a vault
@@ -343,18 +344,32 @@ impl RaindexVault {
         amount: String,
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
+
+        let rpcs = {
+            let raindex_client = self
+                .raindex_client
+                .read()
+                .map_err(|_| YamlError::ReadLockError)?;
+            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
+        };
+
+        let erc20 = ERC20::new(rpcs.clone(), self.token.address);
+        let decimals = erc20.decimals().await?;
+
+        let target_amount = Float::from_fixed_decimal(amount, decimals)?;
+
         Ok(Bytes::copy_from_slice(
             &WithdrawArgs {
                 token: self.token.address,
-                vault_id: self.vault_id,
-                target_amount: amount,
+                vault_id: B256::from(self.vault_id),
+                target_amount,
             }
             .get_withdraw_calldata()
             .await?,
         ))
     }
 
-    fn get_deposit_and_transaction_args(
+    async fn get_deposit_and_transaction_args(
         &self,
         amount: U256,
     ) -> Result<(DepositArgs, TransactionArgs), RaindexError> {
@@ -365,9 +380,14 @@ impl RaindexVault {
                 .map_err(|_| YamlError::ReadLockError)?;
             raindex_client.get_rpc_urls_for_chain(self.chain_id)?
         };
+
+        let erc20 = ERC20::new(rpcs.clone(), self.token.address);
+        let decimals = erc20.decimals().await?;
+
         let deposit_args = DepositArgs {
             token: self.token.address,
-            vault_id: self.vault_id,
+            vault_id: B256::from(self.vault_id),
+            decimals,
             amount,
         };
         let transaction_args = TransactionArgs {
@@ -410,7 +430,8 @@ impl RaindexVault {
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
 
-        let (deposit_args, transaction_args) = self.get_deposit_and_transaction_args(amount)?;
+        let (deposit_args, transaction_args) =
+            self.get_deposit_and_transaction_args(amount).await?;
 
         let allowance = deposit_args
             .read_allowance(self.owner, transaction_args.clone())
@@ -419,9 +440,13 @@ impl RaindexVault {
             return Err(RaindexError::ExistingAllowance);
         }
 
-        Ok(Bytes::copy_from_slice(
-            &deposit_args.get_approve_calldata(transaction_args).await?,
-        ))
+        let calldata = approveCall {
+            spender: transaction_args.orderbook_address,
+            amount,
+        }
+        .abi_encode();
+
+        Ok(Bytes::copy_from_slice(&calldata))
     }
 
     /// Gets the current ERC20 allowance for a vault
@@ -445,7 +470,8 @@ impl RaindexVault {
         return_description = "Current allowance amount in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
     )]
     pub async fn get_allowance(&self) -> Result<RaindexVaultAllowance, RaindexError> {
-        let (deposit_args, transaction_args) = self.get_deposit_and_transaction_args(U256::ZERO)?;
+        let (deposit_args, transaction_args) =
+            self.get_deposit_and_transaction_args(U256::ZERO).await?;
         let allowance = deposit_args
             .read_allowance(self.owner, transaction_args.clone())
             .await?;
@@ -888,10 +914,9 @@ mod tests {
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
         use alloy::sol_types::SolCall;
-        use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_bindings::{
-            IOrderBookV4::{deposit2Call, withdraw2Call},
+            IOrderBookV5::{deposit3Call, withdraw3Call},
             IERC20::approveCall,
         };
         use serde_json::{json, Value};
@@ -1205,11 +1230,11 @@ mod tests {
             assert_eq!(
                 result,
                 Bytes::copy_from_slice(
-                    &deposit2Call {
+                    &deposit3Call {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
-                        vaultId: U256::from_str("0x10").unwrap(),
-                        amount: U256::from_str("500").unwrap(),
+                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        depositAmount: Float::parse("500".to_string()).unwrap().0,
                         tasks: vec![],
                     }
                     .abi_encode()
@@ -1261,11 +1286,11 @@ mod tests {
             assert_eq!(
                 result,
                 Bytes::copy_from_slice(
-                    &withdraw2Call {
+                    &withdraw3Call {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
-                        vaultId: U256::from_str("0x10").unwrap(),
-                        targetAmount: U256::from_str("500").unwrap(),
+                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        targetAmount: Float::parse("500".to_string()).unwrap().0,
                         tasks: vec![],
                     }
                     .abi_encode()
@@ -1284,14 +1309,11 @@ mod tests {
             let rpc_server = MockServer::start_async().await;
             rpc_server.mock(|when, then| {
                 when.path("/rpc1");
-                then.status(200).body(
-                    Response::new_success(
-                        1,
-                        "0x0000000000000000000000000000000000000000000000000000000000000064",
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.status(200).json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x0000000000000000000000000000000000000000000000000000000000000064",
+                }));
             });
 
             let sg_server = MockServer::start_async().await;
@@ -1361,14 +1383,11 @@ mod tests {
             let rpc_server = MockServer::start_async().await;
             rpc_server.mock(|when, then| {
                 when.path("/rpc1");
-                then.status(200).body(
-                    Response::new_success(
-                        1,
-                        "0x0000000000000000000000000000000000000000000000000000000000000001",
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                then.status(200).json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                }));
             });
 
             let sg_server = MockServer::start_async().await;

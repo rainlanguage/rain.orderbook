@@ -299,8 +299,8 @@ mod tests {
     use alloy::transports::TransportError;
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::AbiDecodedErrorType;
+    use rain_orderbook_bindings::provider::ReadProviderError;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, QuoteV2, IOV2};
-    use rain_orderbook_common::provider::ReadProviderError;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{json, Value};
 
@@ -1042,9 +1042,8 @@ mod tests {
 
         assert!(matches!(
             err,
-            Error::MulticallError(MulticallError::DecodeError(
-                alloy::sol_types::Error::Overrun
-            ))
+            FailedQuote::CorruptReturnData(msg)
+            if msg == *"buffer overrun while deserializing"
         ));
     }
 

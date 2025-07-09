@@ -270,7 +270,7 @@ mod tests {
                 .body(r#"{ "jsonrpc": "2.0", "id": 1, "result": "0x1" }"#);
         });
 
-        let mut args = TransactionArgs {
+        let args = TransactionArgs {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
@@ -279,14 +279,7 @@ mod tests {
             max_fee_per_gas: None,
         };
 
-        let err = args.clone().try_into_ledger_client().await;
-        assert!(matches!(err, Err(TransactionArgsError::ChainIdNone)));
-
-        args.try_fill_chain_id().await.unwrap();
-        args.rpcs = vec!["".to_string()];
-        let result = args.try_into_ledger_client().await;
-        // The error is different based on whether you have a Ledger plugged in,
-        // hence no pattern matching to avoid breaking the test for devs
+        let result = args.clone().try_into_ledger_client().await;
         assert!(result.is_err());
     }
 

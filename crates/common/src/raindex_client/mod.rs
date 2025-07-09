@@ -6,6 +6,7 @@ use alloy::{
     hex::FromHexError,
     primitives::{ruint::ParseError, Address, ParseSignedError},
 };
+use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     new_config::ParseConfigError,
     yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable},
@@ -15,7 +16,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, str::FromStr};
+use std::{collections::BTreeMap, num::ParseIntError, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
@@ -230,6 +231,12 @@ pub enum RaindexError {
     SubgraphNotFound(String, String),
     #[error("Invalid vault balance change type: {0}")]
     InvalidVaultBalanceChangeType(String),
+    #[error(transparent)]
+    Erc20(#[from] crate::erc20::Error),
+    #[error("Float error: {0}")]
+    Float(#[from] FloatError),
+    #[error("Failed to parse integer: {0}")]
+    ParseInt(#[from] ParseIntError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -334,6 +341,9 @@ impl RaindexError {
             RaindexError::InvalidVaultBalanceChangeType(typ) => {
                 format!("Invalid vault balance change type: {}", typ)
             }
+            RaindexError::Erc20(err) => format!("Failed to get ERC20 info: {err}"),
+            RaindexError::Float(err) => format!("Float error: {err}"),
+            RaindexError::ParseInt(err) => format!("Failed to parse integer: {err}"),
         }
     }
 }

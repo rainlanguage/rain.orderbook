@@ -33,8 +33,13 @@ impl Execute for CliVaultDepositArgs {
         let decimals = if let Some(decimals) = self.decimals {
             decimals
         } else {
-            let rpc_url: url::Url = tx_args.rpc_url.parse()?;
-            let erc20 = ERC20::new(rpc_url, self.token);
+            let rpcs = tx_args
+                .rpcs
+                .iter()
+                .map(|rpc| url::Url::parse(rpc))
+                .collect::<Result<_, url::ParseError>>()?;
+
+            let erc20 = ERC20::new(rpcs, self.token);
             erc20.decimals().await?
         };
 
