@@ -1,4 +1,4 @@
-use crate::remote::tokens::{RemoteTokensError, Tokens};
+use crate::remote::tokens::{RemoteTokensError, Token, Tokens};
 use crate::yaml::context::Context;
 use crate::yaml::{
     default_document, optional_vec, require_string, FieldErrorKind, YamlError, YamlParseableValue,
@@ -41,17 +41,24 @@ impl RemoteTokensCfg {
                 .json::<Tokens>()
                 .await?;
 
+            let mut unique_tokens: HashMap<(u32, String), Token> = HashMap::new();
             for token in &tokens_res.tokens {
-                let token_cfg = token
-                    .clone()
-                    .try_into_token_cfg(networks, remote_tokens.document.clone())?;
+                let token_id = (token.chain_id, token.address.to_lowercase());
+                unique_tokens.insert(token_id, token.clone());
+            }
 
-                if tokens.contains_key(&token_cfg.key) {
-                    return Err(ParseRemoteTokensError::ConflictingTokens(
-                        token_cfg.key.clone(),
-                    ));
+            for token in unique_tokens.values() {
+                if let Some(token_cfg) = token
+                    .clone()
+                    .try_into_token_cfg(networks, remote_tokens.document.clone())?
+                {
+                    if tokens.contains_key(&token_cfg.key) {
+                        return Err(ParseRemoteTokensError::ConflictingTokens(
+                            token_cfg.key.clone(),
+                        ));
+                    }
+                    tokens.insert(token_cfg.key.clone(), token_cfg);
                 }
-                tokens.insert(token_cfg.key.clone(), token_cfg);
             }
         }
 
@@ -343,7 +350,7 @@ using-tokens-from:
             "decimals": 18
         }
     ],
-    "logoUri": "http://localhost.com"
+    "logoURI": "http://localhost.com"
 }
         "#;
 
@@ -373,7 +380,7 @@ using-tokens-from:
             "decimals": 18
         }
     ],
-    "logoUri": "http://localhost.com"
+    "logoURI": "http://localhost.com"
 }
         "#;
 
