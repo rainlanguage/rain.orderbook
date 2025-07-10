@@ -461,8 +461,6 @@ using-tokens-from:
 
         assert_eq!(tokens.len(), 4_usize);
 
-        println!("Tokens: {:?}", tokens.keys());
-
         let token3_key = "remote3-network-Token3-0x0000000000000000000000000000000000000003";
         let token = tokens.get(token3_key).unwrap();
         assert_eq!(token.key, token3_key);
