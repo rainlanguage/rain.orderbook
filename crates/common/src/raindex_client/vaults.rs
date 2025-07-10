@@ -346,7 +346,7 @@ impl RaindexVault {
         let amount = self.validate_amount(&amount)?;
 
         let decimals: u8 = match self.token.decimals {
-            Some(d) => u8::try_from(d)? ,
+            Some(d) => u8::try_from(d)?,
             None => {
                 let rpcs = {
                     let raindex_client = self
@@ -390,7 +390,7 @@ impl RaindexVault {
             None => {
                 let erc20 = ERC20::new(rpcs.clone(), self.token.address);
                 erc20.decimals().await?
-            },
+            }
         };
 
         let deposit_args = DepositArgs {
