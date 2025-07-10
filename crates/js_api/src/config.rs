@@ -41,7 +41,7 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
 
     const ORDERBOOK_YAML: &str = r#"
-    version: 1
+    version: 2
     networks:
         mainnet:
             rpcs:

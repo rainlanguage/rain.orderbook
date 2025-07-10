@@ -744,7 +744,7 @@ gui:
         assert_eq!(order.deployer, expected_order.deployer);
         assert_eq!(order.orderbook, expected_order.orderbook);
 
-        assert_eq!(config.version, "1".to_string());
+        assert_eq!(config.version, "2".to_string());
 
         let accounts = config.accounts.unwrap();
         assert_eq!(accounts.get("name-one").unwrap(), "address-one");
@@ -883,7 +883,7 @@ orderbooks: *orderbooks
                 .unwrap();
 
         // Asserting a few values to verify successful parsing for config
-        assert_eq!(config.clone().version, "1".to_string());
+        assert_eq!(config.clone().version, "2".to_string());
         assert_eq!(
             config.clone().networks.get("mainnet").unwrap().rpcs,
             vec![Url::parse("https://mainnet.node").unwrap()]
@@ -904,7 +904,7 @@ orderbooks: *orderbooks
         );
 
         // Asserting a few values to verify successful parsing for other config
-        assert_eq!(top_config.clone().version, "1".to_string());
+        assert_eq!(top_config.clone().version, "2".to_string());
         assert_eq!(
             top_config.clone().networks.get("mainnet").unwrap().rpcs,
             vec![Url::parse("https://mainnet.node").unwrap()]
