@@ -1383,7 +1383,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_validate_spec_version_unhappy() {
         let dotrain = "
-                version: 2
+                version: 3
                 networks:
                     sepolia:
                         rpc: http://example.com
@@ -1406,7 +1406,7 @@ _ _: 0 0;
             DotrainOrderError::SpecVersionMismatch(
                 ref expected,
                 ref got
-            ) if expected == &SpecVersion::current() && got == "2"
+            ) if expected == &SpecVersion::current() && got == "3"
         ));
     }
 

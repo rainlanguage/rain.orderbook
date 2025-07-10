@@ -25,6 +25,8 @@ contract OrderBookClearZeroAmountTest is OrderBookExternalRealTest {
 
         LibTestAddOrder.conformConfig(configAlice, iInterpreter, iStore);
         LibTestAddOrder.conformConfig(configBob, iInterpreter, iStore);
+        configAlice.validOutputs[0].token = address(iToken0);
+        configAlice.validInputs[0].token = address(iToken1);
         configBob.validInputs[0].token = configAlice.validOutputs[0].token;
         configBob.validOutputs[0].token = configAlice.validInputs[0].token;
 

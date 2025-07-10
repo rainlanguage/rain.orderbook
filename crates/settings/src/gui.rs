@@ -10,7 +10,7 @@ use crate::{
 use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     sync::{Arc, RwLock},
 };
 use strict_yaml_rust::StrictYaml;
@@ -430,8 +430,8 @@ impl GuiCfg {
 
     pub fn parse_deployment_details(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-    ) -> Result<HashMap<String, NameAndDescriptionCfg>, YamlError> {
-        let mut deployment_details = HashMap::new();
+    ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, YamlError> {
+        let mut deployment_details = BTreeMap::new();
 
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
