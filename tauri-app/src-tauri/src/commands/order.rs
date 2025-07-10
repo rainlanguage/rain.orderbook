@@ -774,7 +774,7 @@ _ _: 0 0;
         ));
 
         let dotrain = r#"
-version: 2
+version: 3
 networks:
     sepolia:
         rpcs:
@@ -796,7 +796,7 @@ _ _: 0 0;
         assert!(matches!(
             err,
             CommandError::DotrainOrderError(DotrainOrderError::SpecVersionMismatch(ref expected, ref actual))
-            if expected == "1" && actual == "2"
+            if expected == "2" && actual == "3"
         ));
     }
 }
