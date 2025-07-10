@@ -25,7 +25,7 @@ pub async fn debug_trade(
             Ok(mut replayer) => {
                 let tx_hash = tx_hash.parse::<B256>()?;
                 let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
-                return Ok(res.into_flattened_table()?);
+                return Ok(res.into_flattened_table());
             }
             Err(e) => {
                 last_error = Some(e);

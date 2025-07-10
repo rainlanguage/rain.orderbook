@@ -17,7 +17,7 @@ pub async fn debug_order_quote(
 ) -> CommandResult<(RainEvalResultsTable, Option<String>)> {
     let quote_target = QuoteTarget {
         orderbook: Address::from_str(&order.orderbook.id.0)?,
-        quote_config: Quote {
+        quote_config: QuoteV2 {
             order: order.try_into()?,
             inputIOIndex: U256::from(input_io_index),
             outputIOIndex: U256::from(output_io_index),
@@ -38,7 +38,7 @@ pub async fn debug_order_quote(
                 let eval_res: RainEvalResults = vec![res.0.clone()].into();
 
                 return Ok((
-                    eval_res.into_flattened_table()?,
+                    eval_res.into_flattened_table(),
                     res.1.map(|v| match v {
                         Ok(e) => e.to_string(),
                         Err(e) => e.to_string(),
@@ -66,51 +66,10 @@ mod tests {
     };
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_common::{
-        add_order::AddOrderArgs, dotrain_order::DotrainOrder, raindex_client::RaindexClient,
-    };
+    use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes, SgOrder, SgOrderbook};
     use rain_orderbook_test_fixtures::LocalEvm;
     use serde_json::json;
-    use std::sync::{Arc, RwLock};
-
-    pub fn get_test_yaml(subgraph: &str, rpc: &str) -> String {
-        format!(
-            r#"
-version: {spec_version}
-networks:
-    mainnet:
-        rpcs:
-            - {rpc}
-        chain-id: 1
-        label: Ethereum Mainnet
-        network-id: 1
-        currency: ETH
-subgraphs:
-    mainnet: {subgraph}
-metaboards:
-    mainnet: https://api.thegraph.com/subgraphs/name/xyz
-orderbooks:
-    mainnet-orderbook:
-        address: 0x1234567890123456789012345678901234567890
-        network: mainnet
-        subgraph: mainnet
-        label: Primary Orderbook
-tokens:
-    weth:
-        network: mainnet
-        address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-        decimals: 18
-        label: Wrapped Ether
-        symbol: WETH
-deployers:
-    mainnet-deployer:
-        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-        network: mainnet
-"#,
-            spec_version = SpecVersion::current()
-        )
-    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_debug_order_quote() {

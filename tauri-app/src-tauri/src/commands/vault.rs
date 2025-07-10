@@ -109,9 +109,8 @@ pub async fn vault_deposit_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
-    let deposit_call: deposit3Call = deposit_args.try_into().map_err(|e: FloatError| {
+    let deposit_call: deposit3Call = deposit_args.try_into().inspect_err(|e: &FloatError| {
         toast_error(&app_handle, e.to_string());
-        e
     })?;
     Ok(Bytes::from(deposit_call.abi_encode()))
 }
@@ -142,10 +141,12 @@ pub async fn vault_withdraw_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     withdraw_args: WithdrawArgs,
 ) -> CommandResult<Bytes> {
-    let calldata = withdraw_args.get_withdraw_calldata().await.map_err(|e| {
-        toast_error(&app_handle, e.to_string());
-        e
-    })?;
+    let calldata = withdraw_args
+        .get_withdraw_calldata()
+        .await
+        .inspect_err(|e| {
+            toast_error(&app_handle, e.to_string());
+        })?;
 
     Ok(Bytes::from(calldata))
 }

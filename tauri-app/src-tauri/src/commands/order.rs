@@ -45,9 +45,8 @@ pub async fn order_add<R: Runtime>(
             tx_status_notice.update_status_and_emit(&app_handle, status);
         })
         .await
-        .map_err(|e| {
+        .inspect_err(|e| {
             toast_error(&app_handle, e.to_string());
-            e
         })?;
 
     Ok(())
@@ -63,15 +62,13 @@ pub async fn order_remove<R: Runtime>(
 ) -> CommandResult<()> {
     let order = subgraph_args
         .to_subgraph_client()
-        .map_err(|e| {
+        .inspect_err(|_err| {
             toast_error(&app_handle, String::from("Subgraph URL is invalid"));
-            e
         })?
         .order_detail(&id.into())
         .await
-        .map_err(|e| {
+        .inspect_err(|e| {
             toast_error(&app_handle, e.to_string());
-            e
         })?;
     let remove_order_args: RemoveOrderArgs = order.into();
 
@@ -99,9 +96,8 @@ pub async fn order_add_calldata<R: Runtime>(
     let calldata = add_order_args
         .get_add_order_calldata(transaction_args)
         .await
-        .map_err(|e| {
+        .inspect_err(|e| {
             toast_error(&app_handle, e.to_string());
-            e
         })?;
 
     Ok(Bytes::from(calldata))
@@ -115,23 +111,20 @@ pub async fn order_remove_calldata<R: Runtime>(
 ) -> CommandResult<Bytes> {
     let order = subgraph_args
         .to_subgraph_client()
-        .map_err(|e| {
+        .inspect_err(|_err| {
             toast_error(&app_handle, String::from("Subgraph URL is invalid"));
-            e
         })?
         .order_detail(&id.into())
         .await
-        .map_err(|e| {
+        .inspect_err(|e| {
             toast_error(&app_handle, e.to_string());
-            e
         })?;
     let remove_order_args: RemoveOrderArgs = order.into();
     let calldata = remove_order_args
         .get_rm_order_calldata()
         .await
-        .map_err(|e| {
+        .inspect_err(|e| {
             toast_error(&app_handle, e.to_string());
-            e
         })?;
 
     Ok(Bytes::from(calldata))
@@ -303,8 +296,9 @@ _ _: 0 0;
             matches!(
                 err,
                 CommandError::AddOrderArgsError(AddOrderArgsError::TransactionArgs(
-                    TransactionArgsError::Ledger(_)
+                    TransactionArgsError::InvalidArgs(ref msg)
                 ))
+                if msg.contains("rpcs cannot be empty")
             ),
             "expected a different error: {err:?}"
         );
