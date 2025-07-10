@@ -1,10 +1,10 @@
 [package]
 name = "rain_orderbook_js_api"
 description = "Javascript bindings for common functions accross the app."
+homepage = "https://github.com/rainprotocol/rain.orderbook"
+license = "LicenseRef-DCL-1.0"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
-homepage.workspace = true
 publish = false
 
 [lib]
