@@ -1187,7 +1187,7 @@ ${dotrain}`;
 			assert.equal(
 				// @ts-expect-error - result is valid
 				result.Calldatas[0].calldata,
-				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
 			);
 
 			// Test no deposits case
@@ -1235,7 +1235,7 @@ ${dotrain}`;
 			assert.equal(
 				// @ts-expect-error - result is valid
 				result.Calldatas[0],
-				'0x7921a9620000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a0630000000000000000000000000000000000000000000000000000000000000001ffffffee000000000000000000000000000000000000010f0cf064dd5920000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000'
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
 			);
 
 			// Test no deposits case
@@ -1351,7 +1351,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 2826);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1394,7 +1394,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 2826);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1454,7 +1454,7 @@ ${dotrainWithoutVaultIds}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 2826);
 
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1654,7 +1654,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 			expect(result.error.msg).toContain("index '0' of inputs");
 			expect(result.error.readableMsg).toBe(
-				"YAML configuration error: Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
+				"YAML configuration error: Invalid value for field 'vault-id': Failed to parse vault id: digit 29 is out of range for base 10 in index '0' of inputs in order 'some-order'"
 			);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
@@ -1725,7 +1725,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(result.approvals.length, 1);
 			assert.equal(
 				result.approvals[0].calldata,
-				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
 			assert.ok(result.deploymentCalldata.length > 2000);
