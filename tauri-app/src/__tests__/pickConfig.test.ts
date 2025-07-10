@@ -12,12 +12,12 @@ export const config: Config = {
   networks: {
     network1: {
       key: 'network1',
-      rpc: 'rpc-url',
+      rpcs: ['rpc-url'],
       chainId: 14,
     },
     network2: {
       key: 'network2',
-      rpc: 'rpc-url',
+      rpcs: ['rpc-url'],
       chainId: 137,
     },
   },
@@ -36,7 +36,7 @@ export const config: Config = {
       address: '0x123456',
       network: {
         key: 'network1',
-        rpc: 'rpc-url',
+        rpcs: ['rpc-url'],
         chainId: 14,
       },
       subgraph: {
@@ -51,7 +51,7 @@ export const config: Config = {
       address: '0xabcdef',
       network: {
         key: 'network1',
-        rpc: 'rpc-url',
+        rpcs: ['rpc-url'],
         chainId: 14,
       },
     },
@@ -64,7 +64,7 @@ export const config: Config = {
       outputs: [],
       network: {
         key: 'network1',
-        rpc: 'rpc-url',
+        rpcs: ['rpc-url'],
         chainId: 14,
       },
     },
@@ -74,7 +74,7 @@ export const config: Config = {
       outputs: [],
       network: {
         key: 'network1',
-        rpc: 'rpc-url',
+        rpcs: ['rpc-url'],
         chainId: 14,
       },
     },
@@ -88,7 +88,7 @@ export const config: Config = {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -101,7 +101,7 @@ export const config: Config = {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -114,7 +114,7 @@ export const config: Config = {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -132,7 +132,7 @@ export const config: Config = {
           address: '0xabcdef',
           network: {
             key: 'network1',
-            rpc: 'rpc-url',
+            rpcs: ['rpc-url'],
             chainId: 14,
           },
         },
@@ -143,7 +143,7 @@ export const config: Config = {
         outputs: [],
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -158,7 +158,7 @@ export const config: Config = {
           address: '0xabcdef',
           network: {
             key: 'network1',
-            rpc: 'rpc-url',
+            rpcs: ['rpc-url'],
             chainId: 14,
           },
         },
@@ -169,7 +169,7 @@ export const config: Config = {
         outputs: [],
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -185,11 +185,11 @@ export const configSource: ConfigSource = {
   version: '1',
   networks: {
     network1: {
-      rpc: 'rpc-url',
+      rpcs: ['rpc-url'],
       'chain-id': 14,
     },
     network2: {
-      rpc: 'rpc-url',
+      rpcs: ['rpc-url'],
       'chain-id': 137,
     },
   },
@@ -250,7 +250,7 @@ export const configSource: ConfigSource = {
 };
 
 test('pick deployments', () => {
-  const activeNetwork = 'network1';
+  const activeNetwork = 14;
   const result = pickDeployments(configSource, config, activeNetwork);
   const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {
     sell: {
@@ -267,7 +267,7 @@ test('pick deployments', () => {
 });
 
 test('pick deployments when empty', () => {
-  const activeNetwork = 'network2';
+  const activeNetwork = 137;
   const result = pickDeployments(configSource, config, activeNetwork);
   const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {};
 
@@ -275,7 +275,7 @@ test('pick deployments when empty', () => {
 });
 
 test('pick scenarios', () => {
-  const activeNetwork = 'network1';
+  const activeNetwork = 14;
   const result = pickScenarios(config, activeNetwork);
   const expectedPickedScenarios: Dictionary<ScenarioCfg> = {
     'network1.sell': {
@@ -286,7 +286,7 @@ test('pick scenarios', () => {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -299,7 +299,7 @@ test('pick scenarios', () => {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -312,7 +312,7 @@ test('pick scenarios', () => {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -323,7 +323,7 @@ test('pick scenarios', () => {
 });
 
 test('pick scenarios when empty', () => {
-  const activeNetwork = 'network2';
+  const activeNetwork = 137;
   const result = pickScenarios(config, activeNetwork);
   const expectedPickedScenarios: Dictionary<ScenarioCfg> = {};
 

@@ -1,22 +1,11 @@
 import type { Hex } from 'viem';
-import type {
-	SgVault,
-	VaultCalldataResult,
-	DeploymentTransactionArgs
-} from '@rainlanguage/orderbook';
-import type { Config } from '@wagmi/core';
+import type { RaindexVault } from '@rainlanguage/orderbook';
 import type { ToastLink } from './toast';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
-export type DeploymentArgs = DeploymentTransactionArgs & { subgraphUrl: string; network: string };
-
 export type VaultActionArgs = {
-	vault: SgVault;
-	chainId: number;
+	vault: RaindexVault;
 	onDeposit?: () => void;
-	// rpcUrl is used to check balances
-	rpcUrl: string;
-	subgraphUrl: string;
 	account: Hex;
 };
 
@@ -49,20 +38,9 @@ export enum TransactionStoreErrorMessage {
 	RECEIPT_FAILED = 'Failed to get transaction receipt.'
 }
 
-export type DepositOrWithdrawTransactionArgs = {
-	config: Config;
-	approvalCalldata?: VaultCalldataResult;
-	transactionCalldata: VaultCalldataResult;
-	action: 'deposit' | 'withdraw';
-	chainId: number;
-	vault: SgVault;
-	subgraphUrl: string;
-};
-
 export type InternalTransactionArgs = {
 	chainId: number;
 	txHash: Hex;
-	networkKey: string;
 	queryKey: string;
 };
 

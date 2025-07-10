@@ -1,0 +1,8 @@
+{
+  "name": "rain.orderbook dev",
+  "image": "ghcr.io/zombiezen/codespaces-nix",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  }
+}

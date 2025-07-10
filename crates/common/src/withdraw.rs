@@ -55,7 +55,7 @@ impl WithdrawArgs {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use alloy_ethers_typecast::gas_fee_middleware::GasFeeSpeed;
@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn test_withdraw_call_try_into_write_contract_parameters() {
         let args = TransactionArgs {
-            rpc_url: "http://test.com".to_string(),
+            rpcs: vec!["http://test.com".to_string()],
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),

@@ -7,9 +7,11 @@ import type { ComponentProps } from 'svelte';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores.ts'));
 
+const mockAccount = writable(null);
+
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: () => ({
-		account: writable(null),
+		account: mockAccount,
 		matchesAccount: vi.fn()
 	})
 }));
@@ -32,7 +34,7 @@ describe('ListViewOrderbookFilters', () => {
 			networks: {
 				ethereum: {
 					key: 'ethereum',
-					rpc: 'https://rpc.ankr.com/eth',
+					rpcs: ['https://rpc.ankr.com/eth'],
 					chainId: 1,
 					networkId: 1,
 					currency: 'ETH'
@@ -52,9 +54,9 @@ describe('ListViewOrderbookFilters', () => {
 		accounts: writable({}),
 		hideZeroBalanceVaults: writable(false),
 		activeAccountsItems: writable({}),
-		activeSubgraphs: writable({}),
+		selectedChainIds: writable([]),
 		showInactiveOrders: writable(true),
-		orderHash: writable(''),
+		orderHash: writable('0x0234'),
 		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;
 
@@ -64,7 +66,7 @@ describe('ListViewOrderbookFilters', () => {
 				networks: {
 					ethereum: {
 						key: 'ethereum',
-						rpc: 'https://rpc.ankr.com/eth',
+						rpcs: ['https://rpc.ankr.com/eth'],
 						chainId: 1,
 						networkId: 1,
 						currency: 'ETH'
@@ -78,6 +80,7 @@ describe('ListViewOrderbookFilters', () => {
 				}
 			}
 		} as unknown as NewConfig);
+		mockAccount.set(null);
 	});
 
 	test('shows no networks alert when networks are empty', () => {
@@ -138,5 +141,84 @@ describe('ListViewOrderbookFilters', () => {
 		expect(screen.queryByTestId('zero-balance-vault-checkbox')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-hash-input')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-status-checkbox')).not.toBeInTheDocument();
+	});
+
+	test('shows accounts dropdown when accounts exist', () => {
+		const props = {
+			...defaultProps,
+			accounts: writable({
+				'0x123': { key: '0x123', address: '0x123', name: 'Account 1' },
+				'0x456': { key: '0x456', address: '0x456', name: 'Account 2' }
+			})
+		};
+		render(ListViewOrderbookFilters, props);
+
+		expect(screen.getByTestId('accounts-dropdown')).toBeInTheDocument();
+	});
+
+	test('does not show accounts dropdown when no accounts exist', () => {
+		const props = {
+			...defaultProps,
+			accounts: writable({})
+		};
+		render(ListViewOrderbookFilters, props);
+
+		expect(screen.queryByTestId('accounts-dropdown')).not.toBeInTheDocument();
+	});
+
+	test('shows My Items Only checkbox when no accounts (current logic)', () => {
+		const props = {
+			...defaultProps,
+			accounts: writable({})
+		};
+		render(ListViewOrderbookFilters, props);
+
+		expect(screen.getByTestId('my-items-only')).toBeInTheDocument();
+	});
+
+	test('hides My Items Only checkbox when accounts exist (current logic)', () => {
+		const props = {
+			...defaultProps,
+			accounts: writable({
+				'0x123': { key: '0x123', address: '0x123', name: 'Account 1' }
+			})
+		};
+		render(ListViewOrderbookFilters, props);
+
+		expect(screen.queryByTestId('my-items-only')).not.toBeInTheDocument();
+	});
+
+	test('passes correct context to CheckboxMyItemsOnly on vaults page', () => {
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/vaults'
+			} as URL
+		});
+
+		const props = {
+			...defaultProps,
+			accounts: writable({})
+		};
+		render(ListViewOrderbookFilters, props);
+
+		const myItemsElement = screen.getByTestId('my-items-only');
+		expect(myItemsElement).toBeInTheDocument();
+	});
+
+	test('passes correct context to CheckboxMyItemsOnly on orders page', () => {
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/orders'
+			} as URL
+		});
+
+		const props = {
+			...defaultProps,
+			accounts: writable({})
+		};
+		render(ListViewOrderbookFilters, props);
+
+		const myItemsElement = screen.getByTestId('my-items-only');
+		expect(myItemsElement).toBeInTheDocument();
 	});
 });

@@ -17,7 +17,8 @@ export enum DeploymentStepsErrorCode {
 	SERIALIZE_ERROR = 'Error serializing state',
 	ADD_ORDER_FAILED = 'Failed to add order',
 	NO_WALLET = 'No account address found',
-	NO_GUI_CONFIG = 'Error getting GUI configuration'
+	NO_GUI_CONFIG = 'Error getting GUI configuration',
+	NO_RAINDEX_CLIENT_PROVIDER = 'No Raindex client provider found'
 }
 
 export class DeploymentStepsError extends Error {

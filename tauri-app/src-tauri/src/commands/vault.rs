@@ -57,11 +57,12 @@ pub async fn vault_balance_changes_list_write_csv(
 #[tauri::command]
 pub async fn vault_deposit(
     app_handle: AppHandle,
+    chain_id: u32,
     deposit_args: DepositArgs,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
     let tx_status_notice =
-        TransactionStatusNoticeRwLock::new("Approve ERC20 token transfer".into());
+        TransactionStatusNoticeRwLock::new("Approve ERC20 token transfer".into(), chain_id);
     let _ = deposit_args
         .execute_approve(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(&app_handle, status);
@@ -71,7 +72,8 @@ pub async fn vault_deposit(
             tx_status_notice.set_failed_status_and_emit(&app_handle, e.to_string());
         });
 
-    let tx_status_notice = TransactionStatusNoticeRwLock::new("Deposit tokens into vault".into());
+    let tx_status_notice =
+        TransactionStatusNoticeRwLock::new("Deposit tokens into vault".into(), chain_id);
     let _ = deposit_args
         .execute_deposit(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(&app_handle, status);
@@ -115,10 +117,12 @@ pub async fn vault_deposit_calldata<R: Runtime>(
 #[tauri::command]
 pub async fn vault_withdraw(
     app_handle: AppHandle,
+    chain_id: u32,
     withdraw_args: WithdrawArgs,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
-    let tx_status_notice = TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into());
+    let tx_status_notice =
+        TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into(), chain_id);
     let _ = withdraw_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(&app_handle, status);

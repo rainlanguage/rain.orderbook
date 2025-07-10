@@ -57,13 +57,15 @@ mod tests {
 version: {spec_version}
 networks:
     mainnet: &mainnet
-        rpc: https://mainnet.node
+        rpcs:
+            - https://mainnet.node
         chain-id: 1
         label: Mainnet
         network-id: 1
         currency: ETH
     testnet: &testnet
-        rpc: https://testnet.node
+        rpcs:
+            - https://testnet.node
         chain-id: 2
         label: Testnet
         network-id: 2
@@ -89,7 +91,7 @@ orderbooks: &orderbooks
             (
                 "mainnet".to_string(),
                 NetworkConfigSource {
-                    rpc: Url::parse("https://mainnet.node").unwrap(),
+                    rpcs: vec![Url::parse("https://mainnet.node").unwrap()],
                     chain_id: 1,
                     label: Some("Mainnet".to_string()),
                     network_id: Some(1),
@@ -99,7 +101,7 @@ orderbooks: &orderbooks
             (
                 "testnet".to_string(),
                 NetworkConfigSource {
-                    rpc: Url::parse("https://testnet.node").unwrap(),
+                    rpcs: vec![Url::parse("https://testnet.node").unwrap()],
                     chain_id: 2,
                     label: Some("Testnet".to_string()),
                     network_id: Some(2),
@@ -141,7 +143,7 @@ orderbooks: &orderbooks
         assert_eq!(config_src.deployments, HashMap::new());
         assert_eq!(config_src.metaboards, HashMap::new());
         assert_eq!(config_src.sentry, None);
-        assert_eq!(config_src.version, "1".to_string());
+        assert_eq!(config_src.version, "2".to_string());
         assert_eq!(config_src.accounts, None);
         assert_eq!(config_src.gui, None);
 
@@ -167,8 +169,8 @@ orderbooks: &orderbooks
 
         let mainnet_network_cfg = config.networks.get("mainnet").unwrap();
         assert_eq!(
-            mainnet_network_cfg.rpc,
-            Url::parse("https://mainnet.node").unwrap()
+            mainnet_network_cfg.rpcs,
+            vec![Url::parse("https://mainnet.node").unwrap()]
         );
         assert_eq!(mainnet_network_cfg.chain_id, 1);
         assert_eq!(mainnet_network_cfg.label, Some("Mainnet".to_string()));
@@ -181,8 +183,8 @@ orderbooks: &orderbooks
 
         let testnet_network_cfg = config.networks.get("testnet").unwrap();
         assert_eq!(
-            testnet_network_cfg.rpc,
-            Url::parse("https://testnet.node").unwrap()
+            testnet_network_cfg.rpcs,
+            vec![Url::parse("https://testnet.node").unwrap()]
         );
         assert_eq!(testnet_network_cfg.chain_id, 2);
         assert_eq!(testnet_network_cfg.label, Some("Testnet".to_string()));
@@ -291,7 +293,7 @@ orderbooks: &orderbooks
         // Inspect sentry
         assert_eq!(config.sentry, None);
         // Inspect spec_version
-        assert_eq!(config.version, "1".to_string());
+        assert_eq!(config.version, "2".to_string());
         // Inspect accounts
         assert_eq!(config.accounts, None);
         // Inspect gui
@@ -309,7 +311,8 @@ networks:
         network-id: 1
         currency: ETH
     testnet: &testnet
-        rpc: https://testnet.node
+        rpcs:
+            - https://testnet.node
         chain-id: 2
         label: Testnet
         network-id: 2
@@ -322,7 +325,7 @@ networks:
         assert!(matches!(
             err,
             CommandError::ConfigSourceError(ConfigSourceError::YamlDeserializerError(msg))
-            if msg.to_string().contains("missing field `rpc`")
+            if msg.to_string().contains("missing field `rpcs`")
         ));
 
         let yaml = format!(
@@ -330,13 +333,15 @@ networks:
 version: {spec_version}
 networks:
     mainnet: &mainnet
-        rpc: https://mainnet.node
+        rpcs:
+            - https://mainnet.node
         chain-id: 1
         label: Mainnet
         network-id: 1
         currency: ETH
     testnet: &testnet
-        rpc: https://testnet.node
+        rpcs:
+            - https://testnet.node
         label: Testnet
         network-id: 2
         currency: ETH
@@ -359,7 +364,8 @@ networks:
 version: {spec_version}
 networks:
     mainnet: &mainnet
-        rpc: https://mainnet.node
+        rpcs:
+            - https://mainnet.node
         chain-id: 1
         label: Mainnet
         network-id: 1
@@ -382,7 +388,8 @@ orderbooks:
 version: {spec_version}
 networks:
     testnet: &testnet
-        rpc: https://testnet.node
+        rpcs:
+            - https://testnet.node
         chain-id: 2
         label: Testnet
         network-id: 2
@@ -419,7 +426,7 @@ orderbooks:
         assert!(merged_config.orderbooks.contains_key("testnetOrderbook"));
 
         // Verify raindex version was preserved
-        assert_eq!(merged_config.version, "1".to_string());
+        assert_eq!(merged_config.version, "2".to_string());
     }
 
     #[tokio::test]
@@ -429,7 +436,8 @@ orderbooks:
 version: {spec_version}
 networks:
     mainnet: &mainnet
-        rpc: https://mainnet.node
+        rpcs:
+            - https://mainnet.node
         chain-id: 1
         label: Mainnet
         network-id: 1
@@ -446,7 +454,8 @@ subgraphs:
 version: {spec_version}
 networks:
     mainnet: &mainnet
-        rpc: https://mainnet.node
+        rpcs:
+            - https://mainnet.node
         chain-id: 1
         label: Mainnet
         network-id: 1
@@ -475,7 +484,8 @@ subgraphs:
 version: {spec_version}
 networks:
     mainnet: &mainnet
-        rpc: https://mainnet.node
+        rpcs:
+            - https://mainnet.node
         chain-id: 1
         label: Mainnet
         network-id: 1
@@ -505,7 +515,7 @@ networks:
         assert!(matches!(
             err,
             CommandError::ConfigSourceError(ConfigSourceError::YamlDeserializerError(msg))
-            if msg.to_string().contains("missing field `rpc`")
+            if msg.to_string().contains("missing field `rpcs`")
         ));
     }
 }

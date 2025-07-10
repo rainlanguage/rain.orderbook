@@ -1,9 +1,13 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, chainId } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
+import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
+import { walletConnectNetwork } from '$lib/stores/walletconnect';
 
 export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
+  const chainId = get(walletConnectNetwork);
+  const orderbook = getOrderbookByChainId(chainId);
+
   await invoke('vault_deposit', {
     depositArgs: {
       vault_id: vaultId.toString(),
@@ -11,42 +15,30 @@ export async function vaultDeposit(vaultId: bigint, token: string, amount: bigin
       amount: amount.toString(),
     },
     transactionArgs: {
-      rpc_url: get(rpcUrl),
-      orderbook_address: get(orderbookAddress),
+      rpcs: orderbook.network.rpcs,
+      orderbook_address: orderbook.address,
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: get(chainId),
+      chain_id: chainId,
     },
   });
 }
 
 export async function vaultWithdraw(vaultId: bigint, token: string, targetAmount: bigint) {
-  await invoke('vault_withdraw', {
-    withdrawArgs: {
-      vault_id: vaultId.toString(),
-      token,
-      target_amount: targetAmount.toString(),
-    },
-    transactionArgs: {
-      rpc_url: get(rpcUrl),
-      orderbook_address: get(orderbookAddress),
-      derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: get(chainId),
-    },
-  });
-}
+  const chainId = get(walletConnectNetwork);
+  const orderbook = getOrderbookByChainId(chainId);
 
-export async function vaultWithdrawCalldata(vaultId: bigint, token: string, targetAmount: bigint) {
-  return await invoke('vault_withdraw_calldata', {
+  await invoke('vault_withdraw', {
+    chainId,
     withdrawArgs: {
       vault_id: vaultId.toString(),
       token,
       target_amount: targetAmount.toString(),
     },
     transactionArgs: {
-      rpc_url: get(rpcUrl),
-      orderbook_address: get(orderbookAddress),
+      rpcs: orderbook.network.rpcs,
+      orderbook_address: orderbook.address,
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: get(chainId),
+      chain_id: chainId,
     },
   });
 }
@@ -62,17 +54,20 @@ export async function vaultDepositCalldata(vaultId: bigint, token: string, amoun
 }
 
 export async function vaultDepositApproveCalldata(vaultId: bigint, token: string, amount: bigint) {
-  return await invoke('vault_deposit_approve_calldata', {
+  const chainId = get(walletConnectNetwork);
+  const orderbook = getOrderbookByChainId(get(walletConnectNetwork));
+
+  return invoke('vault_deposit_approve_calldata', {
     depositArgs: {
       vault_id: vaultId.toString(),
       token,
       amount: amount.toString(),
     },
     transactionArgs: {
-      rpc_url: get(rpcUrl),
-      orderbook_address: get(orderbookAddress),
+      rpcs: orderbook.network.rpcs,
+      orderbook_address: orderbook.address,
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: get(chainId),
+      chain_id: chainId,
     },
   });
 }

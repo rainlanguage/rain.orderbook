@@ -136,10 +136,11 @@ gui:
 `;
 
 const dotrain = `
-version: 1
+version: 2
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -213,10 +214,11 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 1
+version: 2
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -283,10 +285,11 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 1
+version: 2
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -338,7 +341,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
-version: 1
+version: 2
 gui:
   name: Test
   description: Fixed limit order strategy
@@ -364,7 +367,8 @@ gui:
           default: some-default-value
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 999
         network-id: 999
         currency: ZZ
@@ -393,7 +397,8 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
-using-tokens-from: http://localhost:8085/remote-tokens
+using-tokens-from:
+  - http://localhost:8085/remote-tokens
 tokens:
     token1:
         network: remote-network
@@ -950,7 +955,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOy0rDQBSGM1UqiAsRt4Lg1pjJxKS11IWCILEpESK6jem0EzqZiTPTensIl259geITuHXn84g7EWdsI932bM5_zn8uH7B-Y01nhaWyr3PWy9kA6B60VmfdcUpHuKY7dePwIWauZWJZZx_uBZUR9DeypLML4fxj1coASl5gm2F1y8VwS_eIUmXLcSjPUkq4VK0mbPqOKDN7JOijeQiMAub1SXK6qWV_ToA6WNF28sOw7QJDmlTpULVaMOtT-3Oy89GevD37r19XNXTw_pKBjX-saMqKjJo553kemFZBEOxqKUIyjh6izhGNO2l-HLNQ9i_PQnJnI3mT7J_HRaPbLeBFYxAdrusdrggWdg-XlN8XmKlvA8_cgFUCAAA=';
+			'H4sIAAAAAAAA_7WOTUvDMBjHmykTxIOIV0HwamybvljHPA6mYkUI4rXrsrU0S7o0dUw_hEevfoHhJ_Dqzc8j3qSYbOvYdc8h_-fln-f5AeM_9pRKUkjYS1k_ZUOgepaxuzx9imhJGqrT1BOeEWYbOraVetaZX7OguWVLqW1Z65fVKw1Y8BGBjMgJF5kGPFKaSJm3TJPyOKIJL2QrsALPFHkMS0FfKgeoXqBPd3D3UKWDNQGaYEeNccVwbANNiut0qF5tmPW1_TM7-W7PPt-8j9_HBrr4eo_BwQorWrAinS2tcxwHLCrf909VGnT48112k8LbyH3o3V9NYRieyzQTEe2WHI_d64EbYjLmk-HlvvrDZUIE7JOc8umIMPkHbEaANVUCAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1958,11 +1963,6 @@ ${dotrainWithoutVaultIds}`;
 			expect(stateUpdateCallback).toHaveBeenCalledWith(
 				extractWasmEncodedData(gui.serializeState())
 			);
-		});
-
-		it('should get network key', async () => {
-			const networkKey = extractWasmEncodedData<string>(gui.getNetworkKey());
-			assert.equal(networkKey, 'some-network');
 		});
 
 		it('should get all tokens for current network', async () => {

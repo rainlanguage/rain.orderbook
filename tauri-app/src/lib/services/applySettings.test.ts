@@ -27,7 +27,7 @@ describe('applySettings service', () => {
     const parsedConfig: NewConfig = {
       orderbook: {
         version: '1',
-        networks: { mainnet: { key: 'mainnet', chainId: 1, rpc: 'rpc' } },
+        networks: { mainnet: { key: 'mainnet', chainId: 1, rpcs: ['rpc'] } },
       },
     } as unknown as NewConfig;
     mockParseConfigSourceFn = vi.fn().mockResolvedValue(parsedConfig);
@@ -61,7 +61,6 @@ describe('applySettings service', () => {
 
     expect(result.settingsStatus).toBe('error');
     expect(result.errorMessage).toBe('Failed to parse');
-    expect(mockSettingsTextStore.set).toHaveBeenCalledWith(settingsContent);
     expect(mockSettingsStore.set).not.toHaveBeenCalled();
     expect(mockParseConfigSourceFn).toHaveBeenCalledWith(settingsContent);
     expect(vi.mocked(reportErrorToSentry)).toHaveBeenCalledWith(

@@ -37,7 +37,8 @@ pub async fn order_add<R: Runtime>(
     deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
-    let tx_status_notice = TransactionStatusNoticeRwLock::new("Add order".into());
+    let tx_status_notice =
+        TransactionStatusNoticeRwLock::new("Add order".into(), deployment.order.network.chain_id);
     let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
     add_order_args
         .execute(transaction_args, |status| {
@@ -55,6 +56,7 @@ pub async fn order_add<R: Runtime>(
 #[tauri::command]
 pub async fn order_remove<R: Runtime>(
     app_handle: AppHandle<R>,
+    chain_id: u32,
     id: String,
     transaction_args: TransactionArgs,
     subgraph_args: SubgraphArgs,
@@ -73,7 +75,7 @@ pub async fn order_remove<R: Runtime>(
         })?;
     let remove_order_args: RemoveOrderArgs = order.into();
 
-    let tx_status_notice = TransactionStatusNoticeRwLock::new("Remove order".into());
+    let tx_status_notice = TransactionStatusNoticeRwLock::new("Remove order".into(), chain_id);
     let _ = remove_order_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(&app_handle, status);
@@ -277,7 +279,8 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
         let dotrain = r#"
 networks:
     sepolia:
-        rpc: http://example.com
+        rpcs:
+            - http://example.com
         chain-id: 0
 deployers:
     sepolia:
@@ -329,12 +332,13 @@ _ _: 0 0;
         });
 
         let transaction_args = TransactionArgs {
-            rpc_url: rpc_server.url("/rpc"),
+            rpcs: vec![rpc_server.url("/rpc")],
             ..Default::default()
         };
 
         order_remove(
             app_handle,
+            123,
             "0x123".to_string(),
             transaction_args,
             subgraph_args,
@@ -354,6 +358,7 @@ _ _: 0 0;
 
         let err = order_remove(
             app_handle,
+            123,
             "0x123".to_string(),
             TransactionArgs::default(),
             subgraph_args,
@@ -383,7 +388,8 @@ _ _: 0 0;
 version: {spec_version}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -443,7 +449,7 @@ _ _: 16 52;
 
         let transaction_args = TransactionArgs {
             orderbook_address: *orderbook.address(),
-            rpc_url: local_evm.url(),
+            rpcs: vec![local_evm.url()],
             ..Default::default()
         };
 
@@ -566,7 +572,8 @@ _ _: 16 52;
 version: {spec_version}
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -615,7 +622,8 @@ _ _: 0 0;
 version: {spec_version}
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -665,7 +673,8 @@ _ _: 0 0;
 version: {spec_version}
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -715,7 +724,8 @@ _ _: invalid syntax;
 version: {spec_version}
 networks:
     sepolia:
-        rpc: http://example.com
+        rpcs:
+            - http://example.com
         chain-id: 0
 deployers:
     sepolia:
@@ -739,7 +749,8 @@ _ _: 0 0;
         let dotrain = r#"
 networks:
     sepolia:
-        rpc: http://example.com
+        rpcs:
+            - http://example.com
         chain-id: 0
 deployers:
     sepolia:
@@ -763,10 +774,11 @@ _ _: 0 0;
         ));
 
         let dotrain = r#"
-version: 2
+version: 3
 networks:
     sepolia:
-        rpc: http://example.com
+        rpcs:
+            - http://example.com
         chain-id: 0
 deployers:
     sepolia:
@@ -784,7 +796,7 @@ _ _: 0 0;
         assert!(matches!(
             err,
             CommandError::DotrainOrderError(DotrainOrderError::SpecVersionMismatch(ref expected, ref actual))
-            if expected == "1" && actual == "2"
+            if expected == "2" && actual == "3"
         ));
     }
 }

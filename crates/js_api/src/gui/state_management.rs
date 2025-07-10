@@ -88,12 +88,7 @@ impl DotrainOrderGui {
     /// selected tokens, and vault IDs into a compact format for persistence
     /// or sharing. The output is gzipped and base64-encoded.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(String)` - Compressed, base64-encoded state data
-    /// - `Err(GuiError)` - If serialization fails
-    ///
-    /// # State Contents
+    /// ## State Contents
     ///
     /// - Field values with preset information
     /// - Deposit amounts with preset references
@@ -101,7 +96,7 @@ impl DotrainOrderGui {
     /// - Vault ID assignments
     /// - Configuration hash for validation
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.serializeState();
@@ -112,7 +107,11 @@ impl DotrainOrderGui {
     /// const state = result.value;
     /// // Do something with the state
     /// ```
-    #[wasm_export(js_name = "serializeState", unchecked_return_type = "string")]
+    #[wasm_export(
+        js_name = "serializeState",
+        unchecked_return_type = "string",
+        return_description = "Compressed, base64-encoded state data"
+    )]
     pub fn serialize_state(&self) -> Result<String, GuiError> {
         let mut field_values = BTreeMap::new();
         for (k, v) in self.field_values.iter() {
@@ -194,24 +193,12 @@ impl DotrainOrderGui {
     /// Creates a new GUI instance with all configuration restored from a saved state.
     /// The dotrain content must match the original for security validation.
     ///
-    /// # Parameters
-    ///
-    /// - `dotrain` - Must match the original dotrain content exactly
-    /// - `serialized` - Previously serialized state string
-    /// - `state_update_callback` - Optional callback for future state changes
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(DotrainOrderGui)` - Fully restored GUI instance
-    /// - `Err(DotrainMismatch)` - Dotrain content has changed since serialization
-    /// - `Err(GuiError)` - Deserialization or validation error
-    ///
-    /// # Security
+    /// ## Security
     ///
     /// The function validates that the dotrain content hasn't changed by comparing
     /// hashes. This prevents state injection attacks and ensures consistency.
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = await DotrainOrderGui.newFromState(dotrainYaml, savedState);
@@ -222,10 +209,16 @@ impl DotrainOrderGui {
     /// const gui = result.value;
     /// // Do something with the gui
     /// ```
-    #[wasm_export(js_name = "newFromState", preserve_js_class)]
+    #[wasm_export(
+        js_name = "newFromState",
+        preserve_js_class,
+        return_description = "Fully restored GUI instance"
+    )]
     pub async fn new_from_state(
+        #[wasm_export(param_description = "Must match the original dotrain content exactly")]
         dotrain: String,
-        serialized: String,
+        #[wasm_export(param_description = "Previously serialized state string")] serialized: String,
+        #[wasm_export(param_description = "Optional callback for future state changes")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
@@ -298,7 +291,7 @@ impl DotrainOrderGui {
             dotrain_order_gui
                 .dotrain_order
                 .dotrain_yaml()
-                .get_order(&order_key)
+                .get_order_for_gui_deployment(&order_key, &state.selected_deployment)
                 .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
         }
 
@@ -311,12 +304,7 @@ impl DotrainOrderGui {
     /// This is typically called automatically after state-changing operations,
     /// but can be triggered manually if needed.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(())` - Callback executed successfully or no callback registered
-    /// - `Err(JsError)` - JavaScript callback threw an error
-    ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// // Manual state update trigger
@@ -325,7 +313,11 @@ impl DotrainOrderGui {
     ///   console.error("Callback error:", result.error.readableMsg);
     /// }
     /// ```
-    #[wasm_export(js_name = "executeStateUpdateCallback", unchecked_return_type = "void")]
+    #[wasm_export(
+        js_name = "executeStateUpdateCallback",
+        unchecked_return_type = "void",
+        return_description = "Callback executed successfully or no callback registered"
+    )]
     pub fn execute_state_update_callback(&self) -> Result<(), GuiError> {
         if let Some(callback) = &self.state_update_callback {
             let state = to_js_value(&self.serialize_state()?)?;
@@ -341,12 +333,7 @@ impl DotrainOrderGui {
     /// Provides all configuration data needed to build a complete order interface,
     /// organized by requirement type for progressive UI construction.
     ///
-    /// # Returns
-    ///
-    /// - `Ok(AllGuiConfig)` - Complete configuration package
-    /// - `Err(GuiError)` - If deployment configuration is invalid
-    ///
-    /// # Configuration Structure
+    /// ## Configuration Structure
     ///
     /// - `fieldDefinitionsWithoutDefaults` - Required fields needing user input
     /// - `fieldDefinitionsWithDefaults` - Optional fields with fallback values
@@ -354,7 +341,7 @@ impl DotrainOrderGui {
     /// - `orderInputs` - Input token configurations
     /// - `orderOutputs` - Output token configurations
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```javascript
     /// const result = gui.getAllGuiConfig();
@@ -387,7 +374,11 @@ impl DotrainOrderGui {
     ///   // Do something with the order outputs
     /// });
     /// ```
-    #[wasm_export(js_name = "getAllGuiConfig", unchecked_return_type = "AllGuiConfig")]
+    #[wasm_export(
+        js_name = "getAllGuiConfig",
+        unchecked_return_type = "AllGuiConfig",
+        return_description = "Complete configuration package"
+    )]
     pub fn get_all_gui_config(&self) -> Result<AllGuiConfig, GuiError> {
         let deployment = self.get_current_deployment()?;
 
@@ -418,7 +409,7 @@ mod tests {
     use js_sys::{eval, Reflect};
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21P22rCQBDN2tJS6JMU-lToB3TJblIhEXxQEcRLQNSAjxoXo9nshs2Kt5_wk0WdjSjOw5xzZoaZOSXrGh-As6WYL8UCU8vECyAl5HHIQVAgVsEMeQPUMmHCfbbt-eS9-gSVy5RhwfRGquQHarHWWdW2uYymPJa5rnrEq9gqi_Ba8YM5iAxD5nRr1P4CWv4Pt8eHhMroHdqj8w-_Lno1uhu4pcJKsdDxfXRT1Pf_gDZyd7gKw_qqvx80SbpR3b4MvIXqRQ4VeZA0Y7pdT8aTTrtV-zZOGWeRxhf7eM4yLncpE_oEuDNXhqgBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PXWvCMBRt3NgY7EkGexrsByw0NW4zwh7GVlEsflF9LVqDStOktBG__oQ_Wao3FcX7cM85ycnNPSXrVE-Ak4WcLuQMO5apO0CHkGtTBcEBsQpmyAOgVhGX9Na0285L9QwqUzHHkuuVSiPz7g1wrnVSt22hwrGYq0zXa6T2aadJiJep2OUOlHdkvnb95gvQcnW03l81VEaPcO3nO7xTdG90u0NLRZRiYIUxdFYOYx9A_8mwr3wvGHu-q4JGP6v2esuuiL4G21Z3HTDXpd7f7zel8fDn1STlgocaH-PjKU-E2sRc6gN7v9qEqAEAAA==";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {

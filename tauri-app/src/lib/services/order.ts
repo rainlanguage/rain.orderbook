@@ -1,15 +1,15 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, chainId, subgraph } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
-import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
+import type { DeploymentCfg, RaindexOrder, ScenarioCfg } from '@rainlanguage/orderbook';
+import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
 
 export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
   await invoke('order_add', {
     dotrain,
     deployment,
     transactionArgs: {
-      rpc_url: deployment.order.network.rpc,
+      rpcs: deployment.order.network.rpcs,
       orderbook_address: deployment.order.orderbook?.address,
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: deployment.order.network.chainId,
@@ -17,21 +17,19 @@ export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
   });
 }
 
-export async function orderRemove(id: string) {
-  const value = get(subgraph);
-  if (!value) {
-    throw new Error('Subgraph not found');
-  }
+export async function orderRemove(order: RaindexOrder) {
+  const orderbook = getOrderbookByChainId(order.chainId);
+
   await invoke('order_remove', {
-    id,
+    order,
     transactionArgs: {
-      rpc_url: get(rpcUrl),
-      orderbook_address: get(orderbookAddress),
+      rpcs: orderbook.network.rpcs,
+      orderbook_address: order.orderbook,
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: get(chainId),
+      chain_id: order.id,
     },
     subgraphArgs: {
-      url: value.url,
+      url: orderbook.subgraph.url,
     },
   });
 }
@@ -41,23 +39,10 @@ export async function orderAddCalldata(dotrain: string, deployment: DeploymentCf
     dotrain,
     deployment,
     transactionArgs: {
-      rpc_url: deployment.order.network.rpc,
+      rpcs: deployment.order.network.rpcs,
       orderbook_address: deployment.order.orderbook?.address,
       derivation_index: undefined,
       chain_id: deployment.order.network.chainId,
-    },
-  });
-}
-
-export async function orderRemoveCalldata(id: string) {
-  const value = get(subgraph);
-  if (!value) {
-    throw new Error('Subgraph not found');
-  }
-  return await invoke('order_remove_calldata', {
-    id,
-    subgraphArgs: {
-      url: value.url,
     },
   });
 }

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import OrdersListTable from '../lib/components/tables/OrdersListTable.svelte';
 import { readable } from 'svelte/store';
-import type { SgOrderWithSubgraphName } from '@rainlanguage/orderbook';
+import { RaindexOrder } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -21,41 +21,34 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
 
-const mockOrderWithSubgraph: SgOrderWithSubgraphName = {
-	order: {
-		id: '0x1234567890abcdef1234567890abcdef12345678',
-		orderHash: '0x4444444444444444444444444444444444444444',
-		owner: '0xabcdef1234567890abcdef1234567890abcdef12',
-		active: true,
-		orderbook: {
-			id: '0x2222222222222222222222222222222222222222'
-		},
-		timestampAdded: '1678901234',
-		inputs: [
-			{
-				token: {
-					symbol: 'ETH'
-				}
+const mockOrder = {
+	chainId: 1,
+	id: '0x1234567890abcdef1234567890abcdef12345678',
+	orderBytes: '',
+	orderHash: '0x4444444444444444444444444444444444444444',
+	owner: '0xabcdef1234567890abcdef1234567890abcdef12',
+	inputs: [
+		{
+			token: {
+				symbol: 'ETH'
 			}
-		],
-		outputs: [
-			{
-				token: {
-					symbol: 'DAI'
-				}
+		}
+	],
+	outputs: [
+		{
+			token: {
+				symbol: 'DAI'
 			}
-		],
-		trades: [
-			{
-				id: '0x5555555555555555555555555555555555555555'
-			},
-			{
-				id: '0x6666666666666666666666666666666666666666'
-			}
-		]
-	},
-	subgraphName: 'mock-subgraph-mainnet'
-} as SgOrderWithSubgraphName;
+		}
+	],
+	vaults: [],
+	orderbook: '0x2222222222222222222222222222222222222222',
+	active: true,
+	timestampAdded: BigInt(1678901234),
+	meta: '',
+	rainlang: '',
+	tradesCount: 2
+} as unknown as RaindexOrder;
 
 vi.mock('@tanstack/svelte-query');
 
@@ -68,16 +61,15 @@ const {
 	mockAccountsStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockActiveSubgraphsStore,
 	mockSettingsStore,
-	mockShowMyItemsOnlyStore
+	mockShowMyItemsOnlyStore,
+	mockSelectedChainIdsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OrdersListTableProps = ComponentProps<OrdersListTable<any>>;
 
 const defaultProps: OrdersListTableProps = {
-	activeSubgraphs: mockActiveSubgraphsStore,
 	settings: mockSettingsStore,
 	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
@@ -86,7 +78,8 @@ const defaultProps: OrdersListTableProps = {
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	showMyItemsOnly: mockShowMyItemsOnlyStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
-	activeOrderbookRef: mockActiveOrderbookRefStore
+	activeOrderbookRef: mockActiveOrderbookRefStore,
+	selectedChainIds: mockSelectedChainIdsStore
 } as unknown as OrdersListTableProps;
 
 const mockMatchesAccount = vi.fn();
@@ -106,7 +99,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrderWithSubgraph]] },
+					data: { pages: [[mockOrder]] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -116,7 +109,7 @@ describe('OrdersListTable', () => {
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 
-		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('mock-subgraph-mainnet');
+		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('Ethereum');
 		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Active');
 		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('ETH');
 		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
@@ -130,7 +123,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrderWithSubgraph]] },
+					data: { pages: [[mockOrder]] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true,
@@ -146,7 +139,7 @@ describe('OrdersListTable', () => {
 		} as OrdersListTableProps);
 
 		await waitFor(() => {
-			const menuButton = screen.getByTestId(`order-menu-${mockOrderWithSubgraph.order.id}`);
+			const menuButton = screen.getByTestId(`order-menu-${mockOrder.id}`);
 			userEvent.click(menuButton);
 			expect(screen.getByText('Remove')).toBeInTheDocument();
 		});
@@ -160,7 +153,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrderWithSubgraph]] },
+					data: { pages: [[mockOrder]] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true,
@@ -177,23 +170,20 @@ describe('OrdersListTable', () => {
 			handleOrderRemoveModal
 		} as OrdersListTableProps);
 
-		const menuButton = screen.getByTestId(`order-menu-${mockOrderWithSubgraph.order.id}`);
+		const menuButton = screen.getByTestId(`order-menu-${mockOrder.id}`);
 		await userEvent.click(menuButton);
 
 		const removeButton = screen.getByText('Remove');
 		await userEvent.click(removeButton);
 
-		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrderWithSubgraph.order, mockRefetch);
+		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, mockRefetch);
 	});
 
 	it('shows inactive badge for inactive orders', async () => {
 		mockMatchesAccount.mockReturnValue(true);
 		const inactiveOrder = {
-			...mockOrderWithSubgraph,
-			order: {
-				...mockOrderWithSubgraph.order,
-				active: false
-			}
+			...mockOrder,
+			active: false
 		};
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -216,11 +206,8 @@ describe('OrdersListTable', () => {
 	it('does not show action menu for inactive orders', async () => {
 		mockMatchesAccount.mockReturnValue(true);
 		const inactiveOrder = {
-			...mockOrderWithSubgraph,
-			order: {
-				...mockOrderWithSubgraph.order,
-				active: false
-			}
+			...mockOrder,
+			active: false
 		};
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -243,9 +230,7 @@ describe('OrdersListTable', () => {
 			handleOrderRemoveModal
 		} as OrdersListTableProps);
 
-		expect(
-			screen.queryByTestId(`order-menu-${mockOrderWithSubgraph.order.id}`)
-		).not.toBeInTheDocument();
+		expect(screen.queryByTestId(`order-menu-${mockOrder.id}`)).not.toBeInTheDocument();
 	});
 
 	it('displays empty state when no orders are found', async () => {
@@ -279,7 +264,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrderWithSubgraph]] },
+					data: { pages: [[mockOrder]] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -293,7 +278,7 @@ describe('OrdersListTable', () => {
 		// Simulate row click
 		const event = new CustomEvent('clickRow', {
 			detail: {
-				item: mockOrderWithSubgraph
+				item: mockOrder
 			}
 		});
 
@@ -302,7 +287,7 @@ describe('OrdersListTable', () => {
 		if (appTable) {
 			appTable.dispatchEvent(event);
 			expect(gotoMock.goto).toHaveBeenCalledWith(
-				`/orders/${mockOrderWithSubgraph.subgraphName}-${mockOrderWithSubgraph.order.orderHash}`
+				`/orders/${mockOrder.chainId}-${mockOrder.orderbook}-${mockOrder.orderHash}`
 			);
 		}
 	});
@@ -311,13 +296,8 @@ describe('OrdersListTable', () => {
 		mockMatchesAccount.mockReturnValue(true);
 
 		const orderWithManyTrades = {
-			...mockOrderWithSubgraph,
-			order: {
-				...mockOrderWithSubgraph.order,
-				trades: Array(100).fill({
-					id: '0x5555555555555555555555555555555555555555'
-				})
-			}
+			...mockOrder,
+			tradesCount: 100
 		};
 
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));

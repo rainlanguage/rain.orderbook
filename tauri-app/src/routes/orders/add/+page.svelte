@@ -6,7 +6,7 @@
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
   import type { ChartData } from '@rainlanguage/orderbook';
-  import { settingsText, activeNetworkRef } from '$lib/stores/settings';
+  import { settingsText } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
@@ -37,6 +37,7 @@
   import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
+  import { walletConnectNetwork } from '$lib/stores/walletconnect';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -59,7 +60,7 @@
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: if ($globalDotrainFile.text) updateMergedConfig();
 
-  $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
+  $: scenarios = pickScenarios(mergedConfig, $walletConnectNetwork);
 
   let openTab: Record<string, boolean> = {};
 
@@ -270,8 +271,8 @@
 </Tabs>
 
 <ModalExecute
+  chainId={deployment?.order.network.chainId}
   bind:open={openAddOrderModal}
-  overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
   executeWalletconnect={handleExecuteWalletConnect}

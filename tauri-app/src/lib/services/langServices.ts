@@ -7,10 +7,11 @@ import {
   Hover,
   CompletionItem,
 } from 'codemirror-rainlang';
-import { rpcUrl } from '$lib/stores/settings';
 import { get } from 'svelte/store';
 import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
+import { walletConnectNetwork } from '$lib/stores/walletconnect';
+import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
 
 /**
  * Provides problems callback by invoking related tauri command
@@ -21,9 +22,11 @@ export async function problemsCallback(
   deployerAddress: string | undefined,
 ): Promise<Problem[]> {
   try {
+    const orderbook = getOrderbookByChainId(get(walletConnectNetwork));
+
     return await invoke('call_lsp_problems', {
       textDocument,
-      rpcUrl: get(rpcUrl),
+      rpcs: orderbook.network.rpcs,
       blockNumber: get(forkBlockNumber).value,
       bindings,
       deployer: deployerAddress,

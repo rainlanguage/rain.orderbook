@@ -9,8 +9,8 @@
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
 		type OrderIOCfg,
-		type NewConfig,
-		DotrainOrderGui
+		DotrainOrderGui,
+		RaindexClient
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
@@ -27,6 +27,7 @@
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { useRegistry } from '$lib/providers/registry/useRegistry';
 	import type { Account } from '$lib/types/account';
+	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 	interface Deployment {
 		key: string;
@@ -39,10 +40,9 @@
 	/** Strategy details containing name and description configuration */
 	export let strategyDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
-	export let onDeploy: (gui: DotrainOrderGui, subgraphUrl?: string) => void;
+	export let onDeploy: (raindexClient: RaindexClient, gui: DotrainOrderGui) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let settings: Writable<NewConfig>;
 	export let account: Account;
 
 	let allDepositFields: GuiDepositCfg[] = [];
@@ -55,12 +55,12 @@
 	let allTokenInfos: TokenInfo[] = [];
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let checkingDeployment: boolean = false;
-	let subgraphUrl: string | undefined = undefined;
 	let availableTokens: TokenInfo[] = [];
 	let loadingTokens: boolean = false;
 
 	const gui = useGui();
 	const registry = useRegistry();
+	const raindexClient = useRaindexClient();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -70,14 +70,8 @@
 			throw new Error(selectTokensResult.error.msg);
 		}
 		selectTokens = selectTokensResult.value;
-		const { value, error } = gui.getNetworkKey();
-		if (error) {
-			DeploymentStepsError.catch(error, DeploymentStepsErrorCode.NO_NETWORK_KEY);
-		} else if (value) {
-			subgraphUrl = $settings.orderbook.subgraphs[value].url;
-		}
-		await loadAvailableTokens();
 		await areAllTokensSelected();
+		await loadAvailableTokens();
 	});
 
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
@@ -194,7 +188,7 @@
 			}
 			DeploymentStepsError.clear();
 
-			return onDeploy(gui, subgraphUrl);
+			return onDeploy(raindexClient, gui);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {

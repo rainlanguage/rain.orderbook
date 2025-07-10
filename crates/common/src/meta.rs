@@ -1,6 +1,5 @@
 use alloy::primitives::hex::{decode, FromHexError};
 use rain_metadata::{Error as RainMetadataError, KnownMagic, RainMetaDocumentV1Item};
-use rain_orderbook_subgraph_client::types::common::SgRainMetaV1;
 use std::string::FromUtf8Error;
 use thiserror::Error;
 
@@ -22,10 +21,10 @@ pub trait TryDecodeRainlangSource {
     fn try_decode_rainlangsource(&self) -> Result<String, TryDecodeRainlangSourceError>;
 }
 
-impl TryDecodeRainlangSource for SgRainMetaV1 {
+impl TryDecodeRainlangSource for String {
     fn try_decode_rainlangsource(&self) -> Result<String, TryDecodeRainlangSourceError> {
         // Ensure meta has expected magic prefix
-        let meta_bytes = decode(self.clone().0)?;
+        let meta_bytes = decode(self)?;
         if !meta_bytes
             .clone()
             .starts_with(&KnownMagic::RainMetaDocumentV1.to_prefix_bytes())
@@ -48,6 +47,7 @@ impl TryDecodeRainlangSource for SgRainMetaV1 {
 #[cfg(test)]
 mod tests {
     use rain_orderbook_subgraph_client::types::common::SgBytes;
+    use rain_orderbook_subgraph_client::types::common::SgRainMetaV1;
 
     use super::*;
 
@@ -70,14 +70,14 @@ io: if(
     #[test]
     fn test_try_decode_rainlangsource() {
         let meta: SgRainMetaV1 = SgBytes(META.to_string());
-        let source = meta.try_decode_rainlangsource().unwrap();
+        let source = meta.0.try_decode_rainlangsource().unwrap();
         assert_eq!(source, RAINLANG_SOURCE);
     }
 
     #[test]
     fn test_try_decode_rainlangsource_missing() {
         let meta: SgRainMetaV1 = SgBytes("".to_string());
-        let source = meta.try_decode_rainlangsource().unwrap_err();
+        let source = meta.0.try_decode_rainlangsource().unwrap_err();
         assert_eq!(
             source.to_string(),
             TryDecodeRainlangSourceError::MissingRainlangSourceV1.to_string()
@@ -87,7 +87,7 @@ io: if(
     #[test]
     fn test_try_decode_rainlangsource_invalid() {
         let meta: SgRainMetaV1 = SgBytes("invalid".to_string());
-        let source = meta.try_decode_rainlangsource().unwrap_err();
+        let source = meta.0.try_decode_rainlangsource().unwrap_err();
         assert_eq!(
             source.to_string(),
             TryDecodeRainlangSourceError::FromHexError(FromHexError::OddLength).to_string()
@@ -97,7 +97,7 @@ io: if(
     #[test]
     fn test_try_decode_rainlangsource_corrupt() {
         let meta: SgRainMetaV1 = SgBytes("0xff0a89c674ee7874".to_string());
-        let source = meta.try_decode_rainlangsource().unwrap_err();
+        let source = meta.0.try_decode_rainlangsource().unwrap_err();
         assert_eq!(
             source.to_string(),
             TryDecodeRainlangSourceError::RainMetadataError(RainMetadataError::CorruptMeta)

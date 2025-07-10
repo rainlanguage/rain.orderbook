@@ -1,9 +1,10 @@
 <script lang="ts" generics="T">
+	import DropdownActiveNetworks from './dropdown/DropdownActiveNetworks.svelte';
+
 	import { page } from '$app/stores';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
 	import Tooltip from './Tooltip.svelte';
-	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
@@ -17,7 +18,7 @@
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
+	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 
@@ -59,6 +60,6 @@
 		{#if $accounts && Object.values($accounts).length > 0}
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
-		<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
+		<DropdownActiveNetworks settings={$settings} {selectedChainIds} />
 	{/if}
 </div>

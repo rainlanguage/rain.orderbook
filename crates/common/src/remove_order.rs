@@ -75,7 +75,7 @@ impl RemoveOrderArgs {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use alloy::primitives::{Address, U256};
@@ -154,7 +154,7 @@ mod tests {
         };
 
         let args = TransactionArgs {
-            rpc_url: "http://test.com".to_string(),
+            rpcs: vec!["http://test.com".to_string()],
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),

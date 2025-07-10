@@ -4,17 +4,36 @@ use rain_orderbook_common::{
     replays::{NewTradeReplayer, TradeReplayer},
 };
 
-use crate::error::CommandResult;
+use crate::error::{CommandError, CommandResult};
 
 #[tauri::command]
-pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<RainEvalResultsTable> {
-    let mut replayer: TradeReplayer = TradeReplayer::new(NewTradeReplayer {
-        fork_url: rpc_url.parse()?,
-    })
-    .await?;
-    let tx_hash = tx_hash.parse::<B256>()?;
-    let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
-    Ok(res.into_flattened_table()?)
+pub async fn debug_trade(
+    tx_hash: String,
+    rpcs: Vec<String>,
+) -> CommandResult<RainEvalResultsTable> {
+    if rpcs.is_empty() {
+        return Err(CommandError::MissingRpcs);
+    }
+
+    let mut last_error = None;
+    for rpc in rpcs {
+        match TradeReplayer::new(NewTradeReplayer {
+            fork_url: rpc.parse()?,
+        })
+        .await
+        {
+            Ok(mut replayer) => {
+                let tx_hash = tx_hash.parse::<B256>()?;
+                let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
+                return Ok(res.into_flattened_table()?);
+            }
+            Err(e) => {
+                last_error = Some(e);
+            }
+        }
+    }
+    // If we get here, all rpcs failed
+    Err(CommandError::TradeReplayerError(last_error.unwrap()))
 }
 
 #[cfg(test)]
@@ -63,7 +82,8 @@ mod tests {
 version: {spec_version}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -128,7 +148,7 @@ amount price: 7 4;
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(local_evm.url())
+            .try_into_call(vec![local_evm.url()])
             .await
             .unwrap()
             .abi_encode();
@@ -172,7 +192,7 @@ amount price: 7 4;
             .await
             .unwrap();
 
-        let res = debug_trade(tx.transaction_hash.to_string(), local_evm.url())
+        let res = debug_trade(tx.transaction_hash.to_string(), vec![local_evm.url()])
             .await
             .unwrap();
 

@@ -20,8 +20,8 @@ pub struct ChainId {
     #[serde(rename = "infoURL")]
     pub info_url: String,
     pub short_name: String,
-    pub chain_id: u64,
-    pub network_id: u64,
+    pub chain_id: u32,
+    pub network_id: u32,
     pub slip44: Option<u64>,
     pub ens: Option<ENS>,
     pub explorers: Option<Vec<Explorer>>,
@@ -74,9 +74,9 @@ impl TryFrom<ChainId> for NetworkConfigSource {
         for rpc in &value.rpc {
             if !rpc.path().contains("API_KEY") && !rpc.scheme().starts_with("ws") {
                 return Ok(NetworkConfigSource {
-                    chain_id: value.chain_id,
-                    rpc: rpc.clone(),
-                    network_id: Some(value.network_id),
+                    chain_id: value.chain_id as u64,
+                    rpcs: vec![rpc.clone()],
+                    network_id: Some(value.network_id as u64),
                     currency: Some(value.native_currency.symbol),
                     label: Some(value.name),
                 });
@@ -99,7 +99,7 @@ impl ChainId {
                 return Ok(NetworkCfg {
                     document: document.clone(),
                     key: self.short_name,
-                    rpc: rpc.clone(),
+                    rpcs: vec![rpc.clone()],
                     chain_id: self.chain_id,
                     label: Some(self.name),
                     network_id: Some(self.network_id),
@@ -164,7 +164,7 @@ mod tests {
             network_cfg_source,
             Ok(NetworkConfigSource {
                 chain_id: 1,
-                rpc: Url::parse("https://cloudflare-eth.com").unwrap(),
+                rpcs: vec![Url::parse("https://cloudflare-eth.com").unwrap()],
                 network_id: Some(1),
                 currency: Some("ETH".to_string()),
                 label: Some("Ethereum Mainnet".to_string()),
@@ -180,7 +180,7 @@ mod tests {
             Ok(NetworkCfg {
                 document: strict_yaml_arc,
                 key: "short_name".to_string(),
-                rpc: Url::parse("https://cloudflare-eth.com").unwrap(),
+                rpcs: vec![Url::parse("https://cloudflare-eth.com").unwrap()],
                 chain_id: 1,
                 label: Some("Ethereum Mainnet".to_string()),
                 network_id: Some(1),
