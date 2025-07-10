@@ -286,8 +286,9 @@ using-tokens-from:
 
         assert_eq!(tokens.len(), 2_usize);
 
-        let token = tokens.get("token1").unwrap();
-        assert_eq!(token.key, "token1");
+        let token1_key = "remote-network-Token1-0x0000000000000000000000000000000000000001";
+        let token = tokens.get(token1_key).unwrap();
+        assert_eq!(token.key, token1_key);
         assert_eq!(
             token.address,
             Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
@@ -295,8 +296,9 @@ using-tokens-from:
         assert_eq!(token.network.key, "remote-network");
         assert_eq!(token.network.chain_id, 123);
 
-        let token = tokens.get("token2").unwrap();
-        assert_eq!(token.key, "token2");
+        let token2_key = "remote2-network-Token2-0x0000000000000000000000000000000000000002";
+        let token = tokens.get(token2_key).unwrap();
+        assert_eq!(token.key, token2_key);
         assert_eq!(
             token.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
@@ -459,8 +461,11 @@ using-tokens-from:
 
         assert_eq!(tokens.len(), 4_usize);
 
-        let token = tokens.get("token3").unwrap();
-        assert_eq!(token.key, "token3");
+        println!("Tokens: {:?}", tokens.keys());
+
+        let token3_key = "remote3-network-Token3-0x0000000000000000000000000000000000000003";
+        let token = tokens.get(token3_key).unwrap();
+        assert_eq!(token.key, token3_key);
         assert_eq!(
             token.address,
             Address::from_str("0x0000000000000000000000000000000000000003").unwrap()
@@ -468,8 +473,9 @@ using-tokens-from:
         assert_eq!(token.network.key, "remote3-network");
         assert_eq!(token.network.chain_id, 345);
 
-        let token = tokens.get("token4").unwrap();
-        assert_eq!(token.key, "token4");
+        let token4_key = "remote4-network-Token4-0x0000000000000000000000000000000000000004";
+        let token = tokens.get(token4_key).unwrap();
+        assert_eq!(token.key, token4_key);
         assert_eq!(
             token.address,
             Address::from_str("0x0000000000000000000000000000000000000004").unwrap()

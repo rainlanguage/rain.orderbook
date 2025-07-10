@@ -87,17 +87,10 @@ mod tests {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::{
-            hex::encode_prefixed,
-            primitives::{Address, B256, U256},
-            sol_types::SolValue,
-        };
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
-        use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_bindings::IOrderBookV4::IO;
         use serde_json::json;
-        use std::{collections::HashMap, str::FromStr};
+        use std::str::FromStr;
 
         #[tokio::test]
         async fn test_get_transaction_add_orders() {
