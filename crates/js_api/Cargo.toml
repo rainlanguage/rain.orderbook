@@ -21,6 +21,7 @@ rain_orderbook_app_settings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_quote = { workspace = true }
+rain-metaboard-subgraph = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
 wasm-bindgen-utils = { workspace = true }
 tokio = { workspace = true, features = [

@@ -6847,6 +6847,7 @@ dependencies = [
  "futures",
  "httpmock",
  "rain-math-float",
+ "rain-metaboard-subgraph",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
