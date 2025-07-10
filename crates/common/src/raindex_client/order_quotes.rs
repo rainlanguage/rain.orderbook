@@ -263,8 +263,7 @@ mod tests {
                 .unwrap_err();
             assert!(
                 err.to_string().contains("invalid digit"),
-                "unexpected error: {}",
-                err.to_string()
+                "unexpected error: {err}",
             );
             assert!(
                 err.to_readable_msg().contains("Failed to parse an integer"),
