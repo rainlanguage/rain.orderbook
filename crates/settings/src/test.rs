@@ -91,7 +91,7 @@ pub fn mock_subgraph() -> Arc<SubgraphCfg> {
 }
 
 pub const MOCK_ORDERBOOK_YAML: &str = r#"
-version: 1
+version: 2
 networks:
     mainnet:
         rpcs:
