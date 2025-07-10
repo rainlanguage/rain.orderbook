@@ -351,6 +351,9 @@ impl DotrainOrderGui {
             Some(false) => field_definitions.retain(|field| field.default.is_none()),
             None => (),
         }
+
+        field_definitions.sort_by(|a, b| a.binding.cmp(&b.binding));
+
         Ok(field_definitions)
     }
 

@@ -345,16 +345,20 @@ impl RaindexVault {
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
 
-        let rpcs = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
+        let decimals: u8 = match self.token.decimals {
+            Some(d) => u8::try_from(d)? ,
+            None => {
+                let rpcs = {
+                    let raindex_client = self
+                        .raindex_client
+                        .read()
+                        .map_err(|_| YamlError::ReadLockError)?;
+                    raindex_client.get_rpc_urls_for_chain(self.chain_id)?
+                };
+                let erc20 = ERC20::new(rpcs.clone(), self.token.address);
+                erc20.decimals().await?
+            }
         };
-
-        let erc20 = ERC20::new(rpcs.clone(), self.token.address);
-        let decimals = erc20.decimals().await?;
 
         let target_amount = Float::from_fixed_decimal(amount, decimals)?;
 
@@ -381,8 +385,13 @@ impl RaindexVault {
             raindex_client.get_rpc_urls_for_chain(self.chain_id)?
         };
 
-        let erc20 = ERC20::new(rpcs.clone(), self.token.address);
-        let decimals = erc20.decimals().await?;
+        let decimals: u8 = match self.token.decimals {
+            Some(d) => u8::try_from(d)?,
+            None => {
+                let erc20 = ERC20::new(rpcs.clone(), self.token.address);
+                erc20.decimals().await?
+            },
+        };
 
         let deposit_args = DepositArgs {
             token: self.token.address,
@@ -906,6 +915,7 @@ impl TryFrom<RaindexVaultToken> for SgErc20 {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
 
     #[cfg(not(target_family = "wasm"))]

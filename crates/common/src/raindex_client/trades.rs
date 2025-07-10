@@ -255,6 +255,7 @@ impl TryFrom<SgTrade> for RaindexTrade {
 
 #[cfg(test)]
 mod test_helpers {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
 
     #[cfg(not(target_family = "wasm"))]

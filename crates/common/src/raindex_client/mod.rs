@@ -4,7 +4,10 @@ use crate::{
 };
 use alloy::{
     hex::FromHexError,
-    primitives::{ruint::ParseError, Address, ParseSignedError},
+    primitives::{
+        ruint::{FromUintError, ParseError},
+        Address, ParseSignedError,
+    },
 };
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
@@ -237,6 +240,8 @@ pub enum RaindexError {
     Float(#[from] FloatError),
     #[error("Failed to parse an integer: {0}")]
     ParseInt(#[from] ParseIntError),
+    #[error("Failed to convert to u8: {0}")]
+    TryFromUint(#[from] FromUintError<u8>),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -344,6 +349,7 @@ impl RaindexError {
             RaindexError::Erc20(err) => format!("Failed to get ERC20 info: {err}"),
             RaindexError::Float(err) => format!("Float error: {err}"),
             RaindexError::ParseInt(err) => format!("Failed to parse an integer: {err}"),
+            RaindexError::TryFromUint(err) => format!("Failed to convert to u8: {err}"),
         }
     }
 }
