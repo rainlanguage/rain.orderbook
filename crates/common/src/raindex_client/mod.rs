@@ -369,6 +369,7 @@ mod tests {
     use super::*;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
 
+    #[cfg(not(target_family = "wasm"))]
     pub const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
     pub fn get_test_yaml(subgraph1: &str, subgraph2: &str, rpc1: &str, rpc2: &str) -> String {
         format!(
@@ -431,9 +432,7 @@ deployers:
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use alloy::primitives::Address;
         use rain_orderbook_app_settings::yaml::YamlError;
-        use std::str::FromStr;
         use url::Url;
         use wasm_bindgen_test::wasm_bindgen_test;
 
