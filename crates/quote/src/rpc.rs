@@ -174,9 +174,7 @@ mod tests {
         assert!(
             matches!(
                 err,
-                Error::ReadProviderError(ReadProviderError::UrlParse(
-                    url::ParseError::RelativeUrlWithoutBase
-                ))
+                Error::UrlParseError(url::ParseError::RelativeUrlWithoutBase)
             ),
             "unexpected error: {err:?}"
         );
