@@ -105,8 +105,9 @@ impl TransactionArgs {
             ));
         }
 
+        let derivation_index = self.derivation_index.unwrap_or(0);
+
         for rpc in self.rpcs.clone() {
-            let derivation_index = self.derivation_index.unwrap_or(0);
             let signer =
                 LedgerSigner::new(HDPath::LedgerLive(derivation_index), self.chain_id).await;
 
