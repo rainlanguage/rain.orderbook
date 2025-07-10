@@ -166,7 +166,7 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    /// Unsets a deposit for a specific token.
+    /// Unsets the deposit amount for a specific token.
     ///
     /// Use this to clear a deposit that's no longer needed.
     ///
