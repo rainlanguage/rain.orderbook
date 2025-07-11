@@ -424,6 +424,7 @@ mod tests {
             "TKN3".to_string(),
         );
         gui.save_deposit("token3".to_string(), "100".to_string())
+            .await
             .unwrap();
         gui.save_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();
@@ -521,6 +522,7 @@ mod tests {
         assert_eq!(callback_called, JsValue::from_bool(false));
 
         gui.save_deposit("token1".to_string(), "100".to_string())
+            .await
             .unwrap();
         gui.save_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();

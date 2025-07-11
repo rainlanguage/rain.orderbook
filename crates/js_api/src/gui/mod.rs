@@ -28,6 +28,7 @@ mod field_values;
 mod order_operations;
 mod select_tokens;
 mod state_management;
+mod validation;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
@@ -673,6 +674,8 @@ pub enum GuiError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error(transparent)]
+    ValidationError(#[from] validation::GuiValidationError),
 }
 
 impl GuiError {
@@ -751,6 +754,7 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
+            GuiError::ValidationError(err) => format!("Validation error: {}", err),
         }
     }
 }

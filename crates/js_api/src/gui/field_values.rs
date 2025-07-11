@@ -77,6 +77,10 @@ impl DotrainOrderGui {
     ) -> Result<(), GuiError> {
         let field_definition = self.get_field_definition(&binding)?;
 
+        if let Some(validation) = &field_definition.validation {
+            validation::validate_field_value(&field_definition.name, &value, validation)?;
+        }
+
         let value = match field_definition.presets.as_ref() {
             Some(presets) => match presets.iter().position(|p| p.value == value) {
                 Some(index) => field_values::PairValue {
@@ -469,6 +473,7 @@ mod tests {
             ])),
             default: Some(String::from("some-default-value")),
             show_custom_field: None,
+            validation: None,
         }
     }
 
@@ -496,6 +501,7 @@ mod tests {
             ])),
             default: None,
             show_custom_field: Some(true),
+            validation: None,
         }
     }
 

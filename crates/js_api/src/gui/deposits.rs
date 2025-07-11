@@ -128,7 +128,7 @@ impl DotrainOrderGui {
     /// }
     /// ```
     #[wasm_export(js_name = "saveDeposit", unchecked_return_type = "void")]
-    pub fn save_deposit(
+    pub async fn save_deposit(
         &mut self,
         #[wasm_export(param_description = "Token key from the deposits configuration")]
         token: String,
@@ -142,6 +142,16 @@ impl DotrainOrderGui {
         if amount.is_empty() {
             self.remove_deposit(token)?;
             return Ok(());
+        }
+
+        if let Some(validation) = &gui_deposit.validation {
+            let token_info = self.get_token_info(token.clone()).await?;
+            validation::validate_deposit_amount(
+                &token_info.name,
+                &amount,
+                validation,
+                token_info.decimals,
+            )?;
         }
 
         let value = match gui_deposit.presets.as_ref() {
@@ -337,6 +347,7 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         gui.save_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
 
         let deposit = gui.get_deposits().unwrap();
@@ -354,6 +365,7 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         gui.save_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
 
         let deposit = gui.get_deposits().unwrap();
@@ -366,6 +378,7 @@ mod tests {
         );
 
         gui.save_deposit("token1".to_string(), "".to_string())
+            .await
             .unwrap();
         let deposit = gui.get_deposits().unwrap();
         assert_eq!(deposit.len(), 0);
@@ -373,6 +386,7 @@ mod tests {
         let mut gui = initialize_gui_with_select_tokens().await;
         let err = gui
             .save_deposit("token3".to_string(), "999".to_string())
+            .await
             .unwrap_err();
         assert_eq!(
             err.to_string(),
@@ -389,6 +403,7 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         gui.save_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
         let deposit = gui.get_deposits().unwrap();
         assert_eq!(deposit.len(), 1);
@@ -429,6 +444,7 @@ mod tests {
         assert!(!has_any_deposit);
 
         gui.save_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
         let has_any_deposit = gui.has_any_deposit().unwrap();
         assert!(has_any_deposit);
@@ -439,6 +455,7 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         gui.save_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
         gui.check_deposits().unwrap();
         gui.remove_deposit("token1".to_string()).unwrap();
