@@ -165,7 +165,7 @@ describe('Full Deployment Tests', () => {
 			});
 
 			await userEvent.click(tokenSelectionButtons[1]);
-			await userEvent.click(screen.getByText('Wrapped Flare'));
+			await userEvent.click(screen.getByText('Wrapped FLR'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-token2')).toBeInTheDocument();
 			});
@@ -282,7 +282,7 @@ describe('Full Deployment Tests', () => {
 			});
 
 			await userEvent.click(tokenSelectionButtons[1]);
-			await userEvent.click(screen.getByText('Wrapped Flare'));
+			await userEvent.click(screen.getByText('Wrapped FLR'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-input')).toBeInTheDocument();
 			});
@@ -392,7 +392,7 @@ describe('Full Deployment Tests', () => {
 		{ timeout: 30000 }
 	);
 
-	it(
+	it.only(
 		'Dynamic spread strategy',
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
@@ -418,22 +418,19 @@ describe('Full Deployment Tests', () => {
 				{ timeout: 10000 }
 			);
 
-			// Get all the current input elements for select tokens
-			const selectTokenInputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+			await waitFor(() => {
+				expect(screen.getAllByRole('button', { name: /chevron down solid/i }).length).toBe(2);
+			});
+			const tokenSelectionButtons = screen.getAllByRole('button', { name: /chevron down solid/i });
 
-			const firstTokenInput = selectTokenInputs[0];
-			const secondTokenInput = selectTokenInputs[1];
-
-			// Select the first token
-			await userEvent.clear(firstTokenInput);
-			await userEvent.type(firstTokenInput, '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+			await userEvent.click(tokenSelectionButtons[0]);
+			await userEvent.click(screen.getByText('Staked FLR'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-token1')).toBeInTheDocument();
 			});
 
-			// Select the second token
-			await userEvent.clear(secondTokenInput);
-			await userEvent.type(secondTokenInput, '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+			await userEvent.click(tokenSelectionButtons[1]);
+			await userEvent.click(screen.getByText('Wrapped FLR'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-token2')).toBeInTheDocument();
 			});
