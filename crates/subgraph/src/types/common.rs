@@ -139,9 +139,9 @@ impl_wasm_traits!(SgVaultsListFilterArgs);
 pub struct SgVaultsListQueryFilters {
     #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
     pub owner_in: Vec<SgBytes>,
-    #[cynic(rename = "balance_gt", skip_serializing_if = "Option::is_none")]
+    #[cynic(rename = "balance_not", skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    pub balance_gt: Option<SgBytes>,
+    pub balance_not: Option<SgBytes>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]

@@ -111,6 +111,7 @@ mod tests {
     use crate::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgOrdersListFilterArgs, SgVault,
     };
+    use crate::utils::float::*;
     use httpmock::prelude::*;
     use reqwest::Url;
     use serde_json::json;
@@ -447,7 +448,7 @@ mod tests {
         SgVault {
             id: SgBytes(format!("0xvault_id_{}", id_suffix)),
             owner: SgBytes(format!("0xowner_vault_{}", id_suffix)),
-            vault_id: SgBigInt(format!(
+            vault_id: SgBytes(format!(
                 "{}",
                 id_suffix
                     .chars()
@@ -455,7 +456,7 @@ mod tests {
                     .fold(0, |acc, digit| acc * 10 + digit)
                     + 1000
             )),
-            balance: SgBigInt("1000000000000000000".to_string()),
+            balance: SgBytes(float_hex(*F1)),
             token: sample_sg_erc20(id_suffix),
             orderbook: sample_sg_orderbook(id_suffix),
             orders_as_output: vec![],

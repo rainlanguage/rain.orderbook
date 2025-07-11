@@ -1,3 +1,5 @@
+use rain_math_float::Float;
+
 use super::*;
 
 impl OrderbookSubgraphClient {
@@ -19,14 +21,16 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<SgVault>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
-        let mut filters = SgVaultsListQueryFilters {
-            owner_in: filter_args.owners.clone(),
-            balance_gt: None,
+        let balance_not = if filter_args.hide_zero_balance {
+            Some(SgBytes(Float::default().0.to_string()))
+        } else {
+            None
         };
 
-        if filter_args.hide_zero_balance {
-            filters.balance_gt = Some(SgBigInt("0".to_string()));
-        }
+        let filters = SgVaultsListQueryFilters {
+            owner_in: filter_args.owners.clone(),
+            balance_not,
+        };
 
         let variables = SgVaultsListQueryVariables {
             first: pagination_variables.first,
@@ -130,6 +134,7 @@ mod tests {
         SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction, SgVault,
         SgVaultBalanceChangeUnwrapped, SgVaultBalanceChangeVault, SgVaultsListFilterArgs,
     };
+    use crate::utils::float::*;
     use cynic::Id;
     use httpmock::prelude::*;
     use reqwest::Url;
@@ -168,8 +173,8 @@ mod tests {
         SgVault {
             id: SgBytes("0xVaultIdDefault".to_string()),
             owner: SgBytes("0xOwnerAddressDefault".to_string()),
-            vault_id: SgBigInt("1234567890".to_string()),
-            balance: SgBigInt("1000000000000000000".to_string()),
+            vault_id: SgBytes("1234567890".to_string()),
+            balance: SgBytes(float_hex(*F1)),
             token: default_sg_erc20(),
             orderbook: default_sg_orderbook(),
             orders_as_output: vec![default_sg_order_as_io()],
@@ -249,7 +254,7 @@ mod tests {
     fn default_sg_vault_balance_change_vault_ref() -> SgVaultBalanceChangeVault {
         SgVaultBalanceChangeVault {
             id: SgBytes("0xVaultIdForBalanceChange".to_string()),
-            vault_id: SgBigInt("12345".to_string()),
+            vault_id: SgBytes("12345".to_string()),
             token: default_sg_erc20(),
         }
     }
@@ -257,9 +262,9 @@ mod tests {
     fn default_sg_vault_balance_change_unwrapped() -> SgVaultBalanceChangeUnwrapped {
         SgVaultBalanceChangeUnwrapped {
             __typename: "Deposit".to_string(),
-            amount: SgBigInt("500000000000000000".to_string()),
-            new_vault_balance: SgBigInt("1500000000000000000".to_string()),
-            old_vault_balance: SgBigInt("1000000000000000000".to_string()),
+            amount: SgBytes(float_hex(*F0_5)),
+            new_vault_balance: SgBytes(float_hex(*F1_5)),
+            old_vault_balance: SgBytes(float_hex(*F1)),
             vault: default_sg_vault_balance_change_vault_ref(),
             timestamp: SgBigInt("1700000100".to_string()),
             transaction: default_sg_transaction(),
@@ -556,7 +561,6 @@ mod tests {
             then.status(200).json_body(json!({"data": {"vaults": []}}));
         });
         let result = client.vaults_list_all().await;
-        assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
 
