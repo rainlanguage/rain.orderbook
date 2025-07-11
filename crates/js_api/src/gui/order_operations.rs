@@ -4,7 +4,10 @@ use alloy::{
     primitives::{utils::parse_units, Bytes, U256},
     sol_types::SolCall,
 };
-use rain_orderbook_app_settings::{order::OrderIOCfg, orderbook::OrderbookCfg};
+use rain_orderbook_app_settings::{
+    order::{OrderIOCfg, VaultType},
+    orderbook::OrderbookCfg,
+};
 use rain_orderbook_bindings::OrderBook::multicallCall;
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
@@ -517,29 +520,31 @@ impl DotrainOrderGui {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result1 = gui.setVaultId(true, 0, "42");
+    /// const result1 = gui.setVaultId("input", "token1", "42");
     /// if (result1.error) {
     ///   console.error("Error:", result1.error.readableMsg);
     ///   return;
     /// }
-    /// const result2 = gui.setVaultId(false, 0, "43");
-    /// const result3 = gui.setVaultId(false, 0, undefined);
+    /// const result2 = gui.setVaultId("output", "token2", "43");
+    /// const result3 = gui.setVaultId("output", "token2", undefined);
     /// ```
     #[wasm_export(js_name = "setVaultId", unchecked_return_type = "void")]
     pub fn set_vault_id(
         &mut self,
-        #[wasm_export(param_description = "True for input vaults, false for output vaults")]
-        is_input: bool,
-        #[wasm_export(param_description = "Zero-based index in the inputs/outputs array")]
-        index: u8,
-        #[wasm_export(param_description = "Vault ID number as string, or None to clear")]
+        #[wasm_export(param_description = "Vault type: 'input' or 'output'")] r#type: VaultType,
+        #[wasm_export(param_description = "Token key to identify which token to set vault for")]
+        token: String,
+        #[wasm_export(
+            js_name = "vaultId",
+            param_description = "Vault ID number as string. Omit to clear vault ID"
+        )]
         vault_id: Option<String>,
     ) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
         self.dotrain_order
             .dotrain_yaml()
             .get_order(&deployment.deployment.order.key)?
-            .update_vault_id(is_input, index, vault_id)?;
+            .update_vault_id(r#type, token, vault_id)?;
 
         self.execute_state_update_callback()?;
         Ok(())
@@ -861,8 +866,18 @@ mod tests {
         assert_eq!(res.0["input"][0], None);
         assert_eq!(res.0["output"][0], None);
 
-        gui.set_vault_id(true, 0, Some("999".to_string())).unwrap();
-        gui.set_vault_id(false, 0, Some("888".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("999".to_string()),
+        )
+        .unwrap();
+        gui.set_vault_id(
+            VaultType::Output,
+            "token1".to_string(),
+            Some("888".to_string()),
+        )
+        .unwrap();
 
         let res = gui.get_vault_ids().unwrap();
         assert_eq!(res.0.len(), 2);
@@ -874,7 +889,12 @@ mod tests {
     async fn test_has_any_vault_id() {
         let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
         assert!(!gui.has_any_vault_id().unwrap());
-        gui.set_vault_id(true, 0, Some("1".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("1".to_string()),
+        )
+        .unwrap();
         assert!(gui.has_any_vault_id().unwrap());
     }
 

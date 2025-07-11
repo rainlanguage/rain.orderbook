@@ -225,7 +225,7 @@ mod tests {
     use crate::{
         BinXOptionsCfg, BinXTransformCfg, DotOptionsCfg, GuiSelectTokensCfg, HexBinOptionsCfg,
         HexBinTransformCfg, LineOptionsCfg, MarkCfg, RectYOptionsCfg, TransformCfg,
-        TransformOutputsCfg,
+        TransformOutputsCfg, VaultType,
     };
     use alloy::primitives::U256;
     use orderbook::OrderbookYaml;
@@ -462,11 +462,11 @@ mod tests {
         let input_vault_ids =
             OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, true).unwrap();
         assert_eq!(input_vault_ids.len(), 1);
-        assert_eq!(input_vault_ids[0], Some("1".to_string()));
+        assert_eq!(input_vault_ids.get("token1"), Some(&Some("1".to_string())));
         let output_vault_ids =
             OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, false).unwrap();
         assert_eq!(output_vault_ids.len(), 1);
-        assert_eq!(output_vault_ids[0], Some("2".to_string()));
+        assert_eq!(output_vault_ids.get("token2"), Some(&Some("2".to_string())));
         let io_token_keys =
             OrderCfg::parse_io_token_keys(dotrain_yaml.documents.clone(), &order.key).unwrap();
         assert_eq!(io_token_keys.len(), 2);
@@ -783,10 +783,18 @@ mod tests {
         assert!(order.outputs[0].vault_id.is_none());
 
         let mut updated_order = order
-            .update_vault_id(true, 0, Some("1".to_string()))
+            .update_vault_id(
+                VaultType::Input,
+                "token1".to_string(),
+                Some("1".to_string()),
+            )
             .unwrap();
         let updated_order = updated_order
-            .update_vault_id(false, 0, Some("11".to_string()))
+            .update_vault_id(
+                VaultType::Output,
+                "token2".to_string(),
+                Some("11".to_string()),
+            )
             .unwrap();
 
         assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(1)));
@@ -797,10 +805,18 @@ mod tests {
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(11)));
 
         let mut updated_order = order
-            .update_vault_id(true, 0, Some("3".to_string()))
+            .update_vault_id(
+                VaultType::Input,
+                "token1".to_string(),
+                Some("3".to_string()),
+            )
             .unwrap();
         let updated_order = updated_order
-            .update_vault_id(false, 0, Some("33".to_string()))
+            .update_vault_id(
+                VaultType::Output,
+                "token2".to_string(),
+                Some("33".to_string()),
+            )
             .unwrap();
         assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(3)));
         assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(33)));
