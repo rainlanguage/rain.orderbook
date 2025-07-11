@@ -990,15 +990,11 @@ ${dotrain}`;
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			gui.setVaultId(true, 0, '666');
 			gui.setVaultId(false, 0, '333');
-			// capture the freshly serialized state based on current implementation
-			serializedState = extractWasmEncodedData<string>(gui.serializeState());
 		});
 
 		it('should serialize gui state', async () => {
 			const serialized = extractWasmEncodedData<string>(gui.serializeState());
 			assert.equal(serialized, serializedState);
-			// at minimum it should be a non empty string
-			assert.notEqual(serialized.length, 0);
 		});
 
 		it('should deserialize gui state', async () => {
@@ -1026,8 +1022,8 @@ ${dotrain}`;
 
 			const result = gui.getCurrentDeployment();
 			const guiDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
-			assert.ok(guiDeployment.deployment.order.inputs[0].vaultId?.startsWith('0x'));
-			assert.ok(guiDeployment.deployment.order.outputs[0].vaultId?.startsWith('0x'));
+			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
+			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x14d');
 		});
 
 		it('should throw error if given dotrain is different', async () => {
@@ -1090,7 +1086,7 @@ ${dotrainWithoutVaultIds}
 
 ${dotrain}`;
 			const result = await DotrainOrderGui.newWithDeployment(dotrain3, 'other-deployment');
-			gui = extractWasmEncodedData(result);
+			const gui = extractWasmEncodedData(result);
 
 			const {
 				fieldDefinitionsWithoutDefaults,
@@ -1100,8 +1096,8 @@ ${dotrain}`;
 				orderOutputs
 			} = extractWasmEncodedData<AllGuiConfig>(await gui.getAllGuiConfig());
 
-			assert.ok(fieldDefinitionsWithoutDefaults.length >= 1);
-			assert.ok(fieldDefinitionsWithoutDefaults.some((fd) => fd.binding === 'binding-2'));
+			assert.equal(fieldDefinitionsWithoutDefaults.length, 1);
+			assert.equal(fieldDefinitionsWithoutDefaults[0].binding, 'binding-2');
 
 			assert.equal(fieldDefinitionsWithDefaults.length, 1);
 			assert.equal(fieldDefinitionsWithDefaults[0].binding, 'binding-1');
@@ -1729,7 +1725,7 @@ ${dotrainWithoutVaultIds}`;
 				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
-			assert.ok(result.deploymentCalldata.length > 2000);
+			assert.equal(result.deploymentCalldata.length, 2826);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 
@@ -1739,7 +1735,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(result.approvals.length, 0);
-			assert.ok(result.deploymentCalldata.length > 2000);
+			assert.equal(result.deploymentCalldata.length, 2826);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 		});
