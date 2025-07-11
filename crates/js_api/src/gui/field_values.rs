@@ -172,8 +172,8 @@ impl DotrainOrderGui {
     ///   return;
     /// }
     ///
-    /// const { binding, value, isPreset } = result.value;
-    /// // binding is the field identifier
+    /// const { field, value, isPreset } = result.value;
+    /// // field is the field identifier
     /// // value is the field value
     /// // isPreset is a boolean indicating if the value is a preset
     /// ```
