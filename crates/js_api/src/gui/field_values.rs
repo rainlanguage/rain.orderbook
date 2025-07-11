@@ -400,7 +400,9 @@ impl DotrainOrderGui {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gui::tests::initialize_gui;
+    use crate::gui::tests::{initialize_gui, initialize_validation_gui};
+    use crate::gui::validation;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
@@ -591,5 +593,472 @@ mod tests {
             .unwrap();
         let res = gui.check_field_values();
         assert!(res.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_number_minimum_maximum() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("price-field".to_string(), "50.00".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("price-field".to_string(), "5.00".to_string());
+        match result {
+            Err(GuiError::ValidationError(validation::GuiValidationError::BelowMinimum {
+                name,
+                value,
+                minimum,
+            })) => {
+                assert_eq!(name, "Price Field");
+                assert_eq!(value, "5.00");
+                assert_eq!(minimum, "10");
+            }
+            _ => panic!("Expected BelowMinimum error"),
+        }
+
+        let result = gui.save_field_value("price-field".to_string(), "1500.00".to_string());
+        match result {
+            Err(GuiError::ValidationError(validation::GuiValidationError::AboveMaximum {
+                name,
+                value,
+                maximum,
+            })) => {
+                assert_eq!(name, "Price Field");
+                assert_eq!(value, "1500.00");
+                assert_eq!(maximum, "1000");
+            }
+            _ => panic!("Expected AboveMaximum error"),
+        }
+
+        let result = gui.save_field_value("price-field".to_string(), "10".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("price-field".to_string(), "1000".to_string());
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_number_multiple_of() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("price-field".to_string(), "99.99".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("price-field".to_string(), "99.999".to_string());
+        match result {
+            Err(GuiError::ValidationError(validation::GuiValidationError::NotMultipleOf {
+                name,
+                value,
+                multiple_of,
+            })) => {
+                assert_eq!(name, "Price Field");
+                assert_eq!(value, "99.999");
+                assert_eq!(multiple_of, "0.01");
+            }
+            _ => panic!("Expected NotMultipleOf error"),
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_number_exclusive_bounds() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("quantity-field".to_string(), "0".to_string());
+        match result {
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::BelowExclusiveMinimum {
+                    name,
+                    value,
+                    exclusive_minimum,
+                },
+            )) => {
+                assert_eq!(name, "Quantity Field");
+                assert_eq!(value, "0");
+                assert_eq!(exclusive_minimum, "0");
+            }
+            _ => panic!("Expected BelowExclusiveMinimum error"),
+        }
+
+        let result = gui.save_field_value("quantity-field".to_string(), "0.001".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("quantity-field".to_string(), "100000".to_string());
+        match result {
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::AboveExclusiveMaximum {
+                    name,
+                    value,
+                    exclusive_maximum,
+                },
+            )) => {
+                assert_eq!(name, "Quantity Field");
+                assert_eq!(value, "100000");
+                assert_eq!(exclusive_maximum, "100000");
+            }
+            _ => panic!("Expected AboveExclusiveMaximum error"),
+        }
+
+        let result = gui.save_field_value("quantity-field".to_string(), "99999.999".to_string());
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_number_complex_constraints() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("percentage-field".to_string(), "50.5".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("percentage-field".to_string(), "50.55".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::NotMultipleOf { .. }
+            ))
+        ));
+
+        let result = gui.save_field_value("percentage-field".to_string(), "0".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("percentage-field".to_string(), "100".to_string());
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_number_invalid_formats() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("simple-number".to_string(), "".to_string());
+        match result {
+            Err(GuiError::ValidationError(validation::GuiValidationError::InvalidNumber {
+                name,
+                value,
+            })) => {
+                assert_eq!(name, "Simple Number");
+                assert_eq!(value, "");
+            }
+            _ => panic!("Expected InvalidNumber error"),
+        }
+
+        let result = gui.save_field_value("simple-number".to_string(), "abc".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::InvalidNumber { .. }
+            ))
+        ));
+
+        let result = gui.save_field_value("simple-number".to_string(), "12.34.56".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::InvalidNumber { .. }
+            ))
+        ));
+
+        let result = gui.save_field_value("simple-number".to_string(), "1e10".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::InvalidNumber { .. }
+            ))
+        ));
+
+        let result = gui.save_field_value("simple-number".to_string(), "١٢٣".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::InvalidNumber { .. }
+            ))
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_string_length_constraints() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("username-field".to_string(), "john_doe".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("username-field".to_string(), "jo".to_string());
+        match result {
+            Err(GuiError::ValidationError(validation::GuiValidationError::StringTooShort {
+                name,
+                length,
+                minimum,
+            })) => {
+                assert_eq!(name, "Username");
+                assert_eq!(length, 2);
+                assert_eq!(minimum, 3);
+            }
+            _ => panic!("Expected StringTooShort error"),
+        }
+
+        let result = gui.save_field_value(
+            "username-field".to_string(),
+            "this_username_is_way_too_long".to_string(),
+        );
+        match result {
+            Err(GuiError::ValidationError(validation::GuiValidationError::StringTooLong {
+                name,
+                length,
+                maximum,
+            })) => {
+                assert_eq!(name, "Username");
+                assert_eq!(length, 29);
+                assert_eq!(maximum, 20);
+            }
+            _ => panic!("Expected StringTooLong error"),
+        }
+
+        let result = gui.save_field_value("username-field".to_string(), "abc".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("username-field".to_string(), "a".repeat(20));
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_string_edge_cases() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("description-field".to_string(), "".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("code-field".to_string(), "".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::StringTooShort { .. }
+            ))
+        ));
+
+        let result = gui.save_field_value("description-field".to_string(), "a".repeat(500));
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("description-field".to_string(), "a".repeat(501));
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::StringTooLong { .. }
+            ))
+        ));
+
+        let result =
+            gui.save_field_value("username-field".to_string(), "🦀🦀🦀rust🦀🦀🦀".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::StringTooLong { .. }
+            ))
+        ));
+
+        let result = gui.save_field_value(
+            "any-string".to_string(),
+            "Any value at all!@#$%^&*()".to_string(),
+        );
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_boolean() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("enabled-field".to_string(), "1".to_string());
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("enabled-field".to_string(), "0".to_string());
+        assert!(result.is_ok());
+
+        let test_cases = vec![
+            "True", "FALSE", "yes", "no", "true", "false", "on", "off", "", " true", "true ",
+        ];
+
+        for test_value in test_cases {
+            let result = gui.save_field_value("enabled-field".to_string(), test_value.to_string());
+            match result {
+                Err(GuiError::ValidationError(
+                    validation::GuiValidationError::InvalidBoolean { name, value },
+                )) => {
+                    assert_eq!(name, "Enabled");
+                    assert_eq!(value, test_value);
+                }
+                _ => panic!("Expected InvalidBoolean error for value: {}", test_value),
+            }
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_preset_with_validation() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("preset-number-field".to_string(), "100".to_string());
+        assert!(result.is_ok());
+        let field_value = gui
+            .get_field_value("preset-number-field".to_string())
+            .unwrap();
+        assert!(field_value.is_preset);
+        assert_eq!(field_value.value, "100");
+
+        let result = gui.save_field_value("preset-number-field".to_string(), "120".to_string());
+        assert!(result.is_ok());
+        let field_value = gui
+            .get_field_value("preset-number-field".to_string())
+            .unwrap();
+        assert!(!field_value.is_preset);
+        assert_eq!(field_value.value, "120");
+
+        let result = gui.save_field_value("preset-number-field".to_string(), "125".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::NotMultipleOf { .. }
+            ))
+        ));
+
+        let result = gui.save_field_value("preset-number-field".to_string(), "5".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::BelowMinimum { .. }
+            ))
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_string_preset_with_validation() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value("preset-string-field".to_string(), "alpha".to_string());
+        assert!(result.is_ok());
+        let field_value = gui
+            .get_field_value("preset-string-field".to_string())
+            .unwrap();
+        assert!(field_value.is_preset);
+
+        let result = gui.save_field_value("preset-string-field".to_string(), "custom".to_string());
+        assert!(result.is_ok());
+        let field_value = gui
+            .get_field_value("preset-string-field".to_string())
+            .unwrap();
+        assert!(!field_value.is_preset);
+
+        let result = gui.save_field_value("preset-string-field".to_string(), "xyz".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::StringTooShort { .. }
+            ))
+        ));
+
+        let result = gui.save_field_value(
+            "preset-string-field".to_string(),
+            "verylongvalue".to_string(),
+        );
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::StringTooLong { .. }
+            ))
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_value_no_validation() {
+        let mut gui = initialize_validation_gui().await;
+
+        let test_values = vec![
+            "123",
+            "abc",
+            "true",
+            "false",
+            "",
+            "!@#$%^&*()",
+            "very long string with many characters",
+            "0",
+            "🦀 Rust 🦀",
+        ];
+
+        for value in test_values {
+            let result = gui.save_field_value("no-validation-field".to_string(), value.to_string());
+            assert!(result.is_ok(), "Failed to save value: {}", value);
+
+            let field_value = gui
+                .get_field_value("no-validation-field".to_string())
+                .unwrap();
+            assert_eq!(field_value.value, value);
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_field_values_batch_with_validation() {
+        let mut gui = initialize_validation_gui().await;
+
+        let valid_batch = vec![
+            FieldValuePair {
+                binding: "price-field".to_string(),
+                value: "100.00".to_string(),
+            },
+            FieldValuePair {
+                binding: "username-field".to_string(),
+                value: "valid_user".to_string(),
+            },
+            FieldValuePair {
+                binding: "enabled-field".to_string(),
+                value: "1".to_string(),
+            },
+        ];
+
+        let result = gui.save_field_values(valid_batch);
+        assert!(result.is_ok());
+
+        let invalid_batch = vec![
+            FieldValuePair {
+                binding: "price-field".to_string(),
+                value: "100.00".to_string(),
+            },
+            FieldValuePair {
+                binding: "username-field".to_string(),
+                value: "ab".to_string(), // Too short
+            },
+            FieldValuePair {
+                binding: "enabled-field".to_string(),
+                value: "true".to_string(),
+            },
+        ];
+
+        let result = gui.save_field_values(invalid_batch);
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::StringTooShort { .. }
+            ))
+        ));
+
+        let field_result = gui.get_field_value("price-field".to_string());
+        assert!(field_result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_very_precise_decimal_validation() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui.save_field_value(
+            "simple-number".to_string(),
+            "0.123456789012345678".to_string(),
+        );
+        assert!(result.is_ok());
+
+        let result = gui.save_field_value("price-field".to_string(), "999.99".to_string());
+        assert!(result.is_ok());
+
+        let result =
+            gui.save_field_value("price-field".to_string(), "100.00000000000001".to_string());
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::NotMultipleOf { .. }
+            ))
+        ));
     }
 }

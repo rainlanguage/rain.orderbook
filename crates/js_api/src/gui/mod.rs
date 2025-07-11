@@ -961,6 +961,184 @@ _ _: 0 0;
         )
     }
 
+    pub fn get_yaml_with_validation() -> String {
+        format!(
+            r#"
+version: {spec_version}
+gui:
+  name: Validation Test
+  description: Test deployment with various validation rules
+  deployments:
+    validation-deployment:
+      name: Validation Test Deployment
+      description: Testing all validation scenarios
+      fields:
+        # Number validation tests
+        - binding: price-field
+          name: Price Field
+          description: Field with number validation
+          validation:
+            type: number
+            minimum: "10"
+            maximum: "1000"
+            multiple-of: "0.01"
+        
+        - binding: quantity-field
+          name: Quantity Field
+          description: Field with exclusive bounds
+          validation:
+            type: number
+            exclusive-minimum: "0"
+            exclusive-maximum: "100000"
+        
+        - binding: percentage-field
+          name: Percentage Field
+          description: Field with all number constraints
+          validation:
+            type: number
+            minimum: "0"
+            maximum: "100"
+            exclusive-maximum: "101"
+            multiple-of: "0.1"
+        
+        - binding: simple-number
+          name: Simple Number
+          description: Number field with no constraints
+          validation:
+            type: number
+        
+        # String validation tests
+        - binding: username-field
+          name: Username
+          description: Field with string length validation
+          validation:
+            type: string
+            min-length: 3
+            max-length: 20
+        
+        - binding: description-field
+          name: Description
+          description: Field with only max length
+          validation:
+            type: string
+            max-length: 500
+        
+        - binding: code-field
+          name: Code
+          description: Field with only min length
+          validation:
+            type: string
+            min-length: 5
+        
+        - binding: any-string
+          name: Any String
+          description: String field with no constraints
+          validation:
+            type: string
+        
+        # Boolean validation test
+        - binding: enabled-field
+          name: Enabled
+          description: Boolean field
+          validation:
+            type: boolean
+        
+        # Fields with presets and validation
+        - binding: preset-number-field
+          name: Preset Number
+          description: Number field with presets and validation
+          presets:
+            - name: "Low"
+              value: "50"
+            - name: "Medium"
+              value: "100"
+            - name: "High"
+              value: "150"
+          validation:
+            type: number
+            minimum: "10"
+            maximum: "200"
+            multiple-of: "10"
+        
+        - binding: preset-string-field
+          name: Preset String
+          description: String field with presets and validation
+          presets:
+            - name: "Option A"
+              value: "alpha"
+            - name: "Option B"
+              value: "beta"
+            - name: "Option C"
+              value: "gamma"
+          validation:
+            type: string
+            min-length: 4
+            max-length: 10
+        
+        # Field without validation
+        - binding: no-validation-field
+          name: No Validation
+          description: Field without any validation
+          
+      deposits:
+        - token: token1
+networks:
+    test-network:
+        rpcs:
+            - http://localhost:8085
+        chain-id: 1
+        network-id: 1
+        currency: ETH
+subgraphs:
+    test-sg: https://test.subgraph.com
+deployers:
+    test-deployer:
+        network: test-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+    test-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: test-network
+        subgraph: test-sg
+tokens:
+    token1:
+        network: test-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: Token 1
+        symbol: T1
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            test: 1
+orders:
+    test-order:
+      inputs:
+        - token: token1
+          vault-id: 1
+      outputs:
+        - token: token1
+          vault-id: 1
+      deployer: test-deployer
+      orderbook: test-orderbook
+deployments:
+    validation-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#test !
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#,
+            spec_version = SpecVersion::current()
+        )
+    }
+
     pub async fn initialize_gui(deployment_name: Option<String>) -> DotrainOrderGui {
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
@@ -975,6 +1153,16 @@ _ _: 0 0;
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
             "select-token-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap()
+    }
+
+    pub async fn initialize_validation_gui() -> DotrainOrderGui {
+        DotrainOrderGui::new_with_deployment(
+            get_yaml_with_validation(),
+            "validation-deployment".to_string(),
             None,
         )
         .await

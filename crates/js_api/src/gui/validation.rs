@@ -93,7 +93,6 @@ pub fn validate_field_value(
     }
 }
 
-/// Validates a deposit amount against its validation configuration
 pub fn validate_deposit_amount(
     token_name: &str,
     amount: &str,
@@ -122,7 +121,6 @@ fn validate_number(
     exclusive_maximum: &Option<String>,
     multiple_of: &Option<String>,
 ) -> Result<(), GuiValidationError> {
-    // Check for empty string explicitly
     if value.is_empty() {
         return Err(GuiValidationError::InvalidNumber {
             name: name.to_string(),
@@ -130,21 +128,18 @@ fn validate_number(
         });
     }
 
-    // Parse the value as a decimal number (accepting string input)
     let parsed_value =
         parse_units(value, decimals).map_err(|_| GuiValidationError::InvalidNumber {
             name: name.to_string(),
             value: value.to_string(),
         })?;
 
-    // Validate minimum (inclusive)
     if let Some(min) = minimum {
         let min_value =
             parse_units(min, decimals).map_err(|_| GuiValidationError::InvalidNumber {
                 name: name.to_string(),
                 value: min.clone(),
             })?;
-        // Compare ParseUnits values directly
         if parsed_value < min_value {
             return Err(GuiValidationError::BelowMinimum {
                 name: name.to_string(),
@@ -154,7 +149,6 @@ fn validate_number(
         }
     }
 
-    // Validate exclusive minimum
     if let Some(exclusive_min) = exclusive_minimum {
         let exclusive_min_value = parse_units(exclusive_min, decimals).map_err(|_| {
             GuiValidationError::InvalidNumber {
@@ -162,7 +156,6 @@ fn validate_number(
                 value: exclusive_min.clone(),
             }
         })?;
-        // Compare ParseUnits values directly
         if parsed_value <= exclusive_min_value {
             return Err(GuiValidationError::BelowExclusiveMinimum {
                 name: name.to_string(),
@@ -172,14 +165,12 @@ fn validate_number(
         }
     }
 
-    // Validate maximum (inclusive)
     if let Some(max) = maximum {
         let max_value =
             parse_units(max, decimals).map_err(|_| GuiValidationError::InvalidNumber {
                 name: name.to_string(),
                 value: max.clone(),
             })?;
-        // Compare ParseUnits values directly
         if parsed_value > max_value {
             return Err(GuiValidationError::AboveMaximum {
                 name: name.to_string(),
@@ -189,7 +180,6 @@ fn validate_number(
         }
     }
 
-    // Validate exclusive maximum
     if let Some(exclusive_max) = exclusive_maximum {
         let exclusive_max_value = parse_units(exclusive_max, decimals).map_err(|_| {
             GuiValidationError::InvalidNumber {
@@ -197,7 +187,6 @@ fn validate_number(
                 value: exclusive_max.clone(),
             }
         })?;
-        // Compare ParseUnits values directly
         if parsed_value >= exclusive_max_value {
             return Err(GuiValidationError::AboveExclusiveMaximum {
                 name: name.to_string(),
@@ -207,14 +196,12 @@ fn validate_number(
         }
     }
 
-    // Validate multiple_of
     if let Some(multiple) = multiple_of {
         let multiple_value =
             parse_units(multiple, decimals).map_err(|_| GuiValidationError::InvalidNumber {
                 name: name.to_string(),
                 value: multiple.clone(),
             })?;
-        // Extract U256 values from ParseUnits for comparison
         let multiple_u256 = match multiple_value {
             ParseUnits::U256(v) => v,
             _ => {
@@ -278,7 +265,7 @@ fn validate_string(
 
 fn validate_boolean(name: &str, value: &str) -> Result<(), GuiValidationError> {
     match value {
-        "true" | "false" => Ok(()),
+        "1" | "0" => Ok(()),
         _ => Err(GuiValidationError::InvalidBoolean {
             name: name.to_string(),
             value: value.to_string(),
@@ -292,7 +279,6 @@ mod tests {
     use rain_orderbook_app_settings::gui::FieldValueValidationCfg;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    // Number validation tests
     #[wasm_bindgen_test]
     fn test_validate_number_minimum() {
         let result = validate_number(
@@ -518,7 +504,6 @@ mod tests {
         );
         assert!(result.is_ok());
 
-        // Test with decimal multiples
         let result = validate_number(
             "Price Step",
             "1.05",
@@ -549,20 +534,18 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_validate_number_combined_constraints() {
-        // Test with all constraints
         let result = validate_number(
             "Complex Field",
             "50",
             18,
-            &Some("10".to_string()),  // minimum
-            &None,                    // exclusive_minimum
-            &Some("100".to_string()), // maximum
-            &None,                    // exclusive_maximum
-            &Some("10".to_string()),  // multiple_of
+            &Some("10".to_string()),
+            &None,
+            &Some("100".to_string()),
+            &None,
+            &Some("10".to_string()),
         );
         assert!(result.is_ok());
 
-        // Violate minimum
         let result = validate_number(
             "Complex Field",
             "5",
@@ -578,7 +561,6 @@ mod tests {
             Err(GuiValidationError::BelowMinimum { .. })
         ));
 
-        // Violate maximum
         let result = validate_number(
             "Complex Field",
             "105",
@@ -594,7 +576,6 @@ mod tests {
             Err(GuiValidationError::AboveMaximum { .. })
         ));
 
-        // Violate multiple_of
         let result = validate_number(
             "Complex Field",
             "53",
@@ -613,7 +594,6 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_validate_number_parsing() {
-        // Valid decimal inputs
         let result = validate_number("Test Field", "100.5", 18, &None, &None, &None, &None, &None);
         assert!(result.is_ok());
 
@@ -641,7 +621,6 @@ mod tests {
         );
         assert!(result.is_ok());
 
-        // Invalid inputs
         let result = validate_number(
             "Test Field",
             "not a number",
@@ -690,7 +669,6 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_validate_number_decimals() {
-        // Test with different decimal places
         let result = validate_number(
             "USDC Amount",
             "100.123456",
@@ -730,11 +708,9 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_validate_number_edge_cases() {
-        // Zero value
         let result = validate_number("Amount", "0", 18, &None, &None, &None, &None, &None);
         assert!(result.is_ok());
 
-        // Very small number
         let result = validate_number(
             "Amount",
             "0.000000000000000001",
@@ -747,7 +723,6 @@ mod tests {
         );
         assert!(result.is_ok());
 
-        // Very large number
         let result = validate_number(
             "Amount",
             "999999999999999999999999999",
@@ -760,7 +735,6 @@ mod tests {
         );
         assert!(result.is_ok());
 
-        // Multiple of zero should be handled gracefully
         let result = validate_number(
             "Amount",
             "100",
@@ -771,10 +745,9 @@ mod tests {
             &None,
             &Some("0".to_string()),
         );
-        assert!(result.is_ok()); // Any number is a multiple of 0 (handled by checking multiple_u256 > U256::ZERO)
+        assert!(result.is_ok());
     }
 
-    // String validation tests
     #[wasm_bindgen_test]
     fn test_validate_string_length() {
         let result = validate_string("Username", "hello", &Some(10), &None);
@@ -814,7 +787,6 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_validate_string_edge_cases() {
-        // Empty string
         let result = validate_string("Field", "", &None, &None);
         assert!(result.is_ok());
 
@@ -824,13 +796,11 @@ mod tests {
             Err(GuiValidationError::StringTooShort { .. })
         ));
 
-        // Exact length boundaries
         let result = validate_string("Field", "12345", &Some(5), &Some(5));
         assert!(result.is_ok());
 
-        // Unicode characters (length is in bytes for Rust strings)
         let result = validate_string("Field", "🦀", &Some(4), &None);
-        assert!(result.is_ok()); // Emoji is 4 bytes
+        assert!(result.is_ok());
 
         let result = validate_string("Field", "🦀", &Some(5), &None);
         assert!(matches!(
@@ -839,13 +809,12 @@ mod tests {
         ));
     }
 
-    // Boolean validation tests
     #[wasm_bindgen_test]
     fn test_validate_boolean() {
-        let result = validate_boolean("Enable Feature", "true");
+        let result = validate_boolean("Enable Feature", "1");
         assert!(result.is_ok());
 
-        let result = validate_boolean("Enable Feature", "false");
+        let result = validate_boolean("Enable Feature", "0");
         assert!(result.is_ok());
 
         let result = validate_boolean("Enable Feature", "yes");
@@ -869,13 +838,13 @@ mod tests {
             Err(GuiValidationError::InvalidBoolean { .. })
         ));
 
-        let result = validate_boolean("Enable Feature", "1");
+        let result = validate_boolean("Enable Feature", "true");
         assert!(matches!(
             result,
             Err(GuiValidationError::InvalidBoolean { .. })
         ));
 
-        let result = validate_boolean("Enable Feature", "0");
+        let result = validate_boolean("Enable Feature", "false");
         assert!(matches!(
             result,
             Err(GuiValidationError::InvalidBoolean { .. })
@@ -888,7 +857,6 @@ mod tests {
         ));
     }
 
-    // Field value validation tests
     #[wasm_bindgen_test]
     fn test_validate_field_value_number() {
         let validation = FieldValueValidationCfg::Number {
@@ -948,10 +916,10 @@ mod tests {
     fn test_validate_field_value_boolean() {
         let validation = FieldValueValidationCfg::Boolean;
 
-        let result = validate_field_value("Toggle Field", "true", &validation);
+        let result = validate_field_value("Toggle Field", "1", &validation);
         assert!(result.is_ok());
 
-        let result = validate_field_value("Toggle Field", "false", &validation);
+        let result = validate_field_value("Toggle Field", "0", &validation);
         assert!(result.is_ok());
 
         let result = validate_field_value("Toggle Field", "maybe", &validation);
@@ -961,7 +929,6 @@ mod tests {
         ));
     }
 
-    // Deposit amount validation tests
     #[wasm_bindgen_test]
     fn test_validate_deposit_amount() {
         let validation = DepositValidationCfg {
@@ -1000,7 +967,6 @@ mod tests {
             multiple_of: None,
         };
 
-        // Test with 18 decimals (ETH)
         let result = validate_deposit_amount("Ethereum", "0.000000000000000001", &validation, 18);
         assert!(matches!(
             result,
@@ -1010,7 +976,6 @@ mod tests {
         let result = validate_deposit_amount("Ethereum", "0.000001", &validation, 18);
         assert!(result.is_ok());
 
-        // Test with 8 decimals (BTC)
         let result = validate_deposit_amount("Bitcoin", "0.00000001", &validation, 8);
         assert!(matches!(
             result,
