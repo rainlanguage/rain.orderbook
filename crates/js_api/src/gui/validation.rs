@@ -48,15 +48,15 @@ pub enum GuiValidationError {
     #[error("{name} length {length} is less than minimum {minimum}")]
     StringTooShort {
         name: String,
-        length: u64,
-        minimum: u64,
+        length: u32,
+        minimum: u32,
     },
 
     #[error("{name} length {length} exceeds maximum {maximum}")]
     StringTooLong {
         name: String,
-        length: u64,
-        maximum: u64,
+        length: u32,
+        maximum: u32,
     },
 
     #[error("{name} value '{value}' is not a valid boolean (must be '1' or '0')")]
@@ -235,10 +235,10 @@ fn validate_number(
 fn validate_string(
     name: &str,
     value: &str,
-    min_length: &Option<u64>,
-    max_length: &Option<u64>,
+    min_length: &Option<u32>,
+    max_length: &Option<u32>,
 ) -> Result<(), GuiValidationError> {
-    let length = value.len() as u64;
+    let length = value.len() as u32;
 
     if let Some(min) = min_length {
         if length < *min {
