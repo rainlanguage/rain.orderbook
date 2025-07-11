@@ -1,6 +1,7 @@
 use alloy::primitives::{ruint::ParseError, U256};
 use chrono::TimeDelta;
 use once_cell::sync::Lazy;
+use rain_math_float::FloatError;
 use rain_orderbook_math::{MathError, ONE18};
 use std::num::ParseIntError;
 use thiserror::Error;
@@ -27,4 +28,6 @@ pub enum PerformanceError {
     DivByZero,
     #[error("Found no trades")]
     NoTrades,
+    #[error("Float error: {0}")]
+    FloatError(#[from] FloatError),
 }

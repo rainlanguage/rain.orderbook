@@ -700,13 +700,17 @@ mod test {
         let trades = get_trades();
         let [token1, token2] = get_tokens();
         let [vault1, vault2] = get_vault_ids();
+
+        let token1_net_vol =
+            Float::from_fixed_decimal(U256::from(5000000000000000000), DECIMALS).unwrap();
+
         let token1_perf = VaultPerformance {
             id: vault1.to_string(),
             token: token1.clone(),
             apy_details: Some(APYDetails {
                 start_time: 1,
                 end_time: 10000001,
-                net_vol: U256::from_str("5000000000000000000").unwrap(),
+                net_vol: token1_net_vol,
                 capital: U256::from_str("5000000000000000000").unwrap(),
                 apy: Some(U256::from_str("3153600000000000000").unwrap()),
                 is_neg: false,
@@ -764,6 +768,9 @@ mod test {
             B256::from_slice(&[0x22u8; 32]),
         ]
     }
+
+    const DECIMALS: u8 = 18;
+
     fn get_tokens() -> [SgErc20; 2] {
         let token1_address = Address::from_slice(&[0x11u8; 20]);
         let token2_address = Address::from_slice(&[0x22u8; 20]);
@@ -772,14 +779,14 @@ mod test {
             address: SgBytes(token1_address.to_string()),
             name: Some("Token1".to_string()),
             symbol: Some("Token1".to_string()),
-            decimals: Some(SgBigInt(18.to_string())),
+            decimals: Some(SgBigInt(DECIMALS.to_string())),
         };
         let token2 = SgErc20 {
             id: SgBytes(token2_address.to_string()),
             address: SgBytes(token2_address.to_string()),
             name: Some("Token2".to_string()),
             symbol: Some("Token2".to_string()),
-            decimals: Some(SgBigInt(18.to_string())),
+            decimals: Some(SgBigInt(DECIMALS.to_string())),
         };
         [token1, token2]
     }

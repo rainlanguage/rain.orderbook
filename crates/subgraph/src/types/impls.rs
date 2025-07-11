@@ -1,8 +1,6 @@
 use super::common::*;
 use crate::performance::PerformanceError;
-use alloy::primitives::U256;
-use rain_orderbook_math::BigUintMath;
-use std::str::FromStr;
+use rain_math_float::Float;
 
 impl SgErc20 {
     pub fn get_decimals(&self) -> Result<u8, PerformanceError> {
@@ -16,47 +14,27 @@ impl SgErc20 {
 }
 
 impl SgTrade {
-    /// Scales this trade's io to 18 point decimals in U256
-    pub fn scale_18_io(&self) -> Result<(U256, U256), PerformanceError> {
-        let input_amount = if self.input_vault_balance_change.amount.0.starts_with('-') {
-            &self.input_vault_balance_change.amount.0[1..]
-        } else {
-            &self.input_vault_balance_change.amount.0
-        };
-        let output_amount = if self.output_vault_balance_change.amount.0.starts_with('-') {
-            &self.output_vault_balance_change.amount.0[1..]
-        } else {
-            &self.output_vault_balance_change.amount.0
-        };
-        Ok((
-            U256::from_str(input_amount)?
-                .scale_18(self.input_vault_balance_change.vault.token.get_decimals()?)?,
-            U256::from_str(output_amount)?.scale_18(
-                self.output_vault_balance_change
-                    .vault
-                    .token
-                    .get_decimals()?,
-            )?,
-        ))
-    }
-
     /// Calculates the trade's I/O ratio
-    pub fn ratio(&self) -> Result<U256, PerformanceError> {
-        let (input, output) = self.scale_18_io()?;
-        if output.is_zero() {
+    pub fn ratio(&self) -> Result<Float, PerformanceError> {
+        let input = Float::parse(self.input_vault_balance_change.amount.0.clone())?;
+        let output = Float::parse(self.output_vault_balance_change.amount.0.clone())?;
+
+        if output.is_zero()? {
             Err(PerformanceError::DivByZero)
         } else {
-            Ok(input.div_18(output)?)
+            Ok((input / output)?)
         }
     }
 
     /// Calculates the trade's O/I ratio (inverse)
-    pub fn inverse_ratio(&self) -> Result<U256, PerformanceError> {
-        let (input, output) = self.scale_18_io()?;
-        if output.is_zero() {
+    pub fn inverse_ratio(&self) -> Result<Float, PerformanceError> {
+        let input = Float::parse(self.input_vault_balance_change.amount.0.clone())?;
+        let output = Float::parse(self.output_vault_balance_change.amount.0.clone())?;
+
+        if output.is_zero()? {
             Err(PerformanceError::DivByZero)
         } else {
-            Ok(output.div_18(input)?)
+            Ok((output / input)?)
         }
     }
 }
@@ -68,6 +46,7 @@ mod tests {
         SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
+
     use alloy::primitives::{
         ruint::{BaseConvertError, ParseError},
         Address,
@@ -132,72 +111,34 @@ mod tests {
     }
 
     #[test]
-    fn test_scale_18_io_ok() {
-        let (input, output) = get_trade().scale_18_io().unwrap();
-        let expected_input = U256::from_str("3000000000000000000").unwrap();
-        let expected_output = U256::from_str("6000000000000000000").unwrap();
-        assert_eq!(input, expected_input);
-        assert_eq!(output, expected_output);
-    }
-
-    #[test]
-    fn test_scale_18_io_err() {
-        let mut trade = get_trade();
-        trade.output_vault_balance_change.amount = SgBigInt("bad int".to_string());
-        let err = trade.scale_18_io().unwrap_err();
-        assert!(matches!(
-            err,
-            PerformanceError::ParseUnsignedError(ParseError::BaseConvertError(
-                BaseConvertError::InvalidDigit(_, _)
-            ))
-        ));
-
-        let mut trade = get_trade();
-        trade.input_vault_balance_change.amount = SgBigInt("-1.1".to_string());
-        let err = trade.scale_18_io().unwrap_err();
-        assert!(matches!(
-            err,
-            PerformanceError::ParseUnsignedError(ParseError::InvalidDigit('.'))
-        ));
-
-        let mut trade = get_trade();
-        trade.input_vault_balance_change.vault.token.decimals =
-            Some(SgBigInt("bad int".to_string()));
-        let err = trade.scale_18_io().unwrap_err();
-        assert!(matches!(err, PerformanceError::ParseIntError(_)));
-
-        let mut trade = get_trade();
-        trade.output_vault_balance_change.vault.token.decimals =
-            Some(SgBigInt("bad int".to_string()));
-        let err = trade.scale_18_io().unwrap_err();
-        assert!(matches!(err, PerformanceError::ParseIntError(_)));
-    }
-
-    #[test]
     fn test_ratio_happy() {
         let result = get_trade().ratio().unwrap();
-        let expected = U256::from_str("500000000000000000").unwrap();
-        assert_eq!(result, expected);
+        let expected = Float::parse("500000000000000000".to_string()).unwrap();
+        assert!(result.eq(expected).unwrap());
     }
 
     #[test]
     fn test_ratio_unhappy() {
         let mut trade = get_trade();
-        trade.output_vault_balance_change.amount = SgBigInt("0".to_string());
+        let amount = Float::parse("0".to_string()).unwrap();
+        let amount_str = serde_json::to_string(&amount).unwrap();
+        trade.output_vault_balance_change.amount = SgBytes(amount_str);
         matches!(trade.ratio().unwrap_err(), PerformanceError::DivByZero);
     }
 
     #[test]
     fn test_inverse_ratio_happy() {
         let result = get_trade().inverse_ratio().unwrap();
-        let expected = U256::from_str("2000000000000000000").unwrap();
-        assert_eq!(result, expected);
+        let expected = Float::parse("2000000000000000000".to_string()).unwrap();
+        assert!(result.eq(expected).unwrap());
     }
 
     #[test]
     fn test_inverse_ratio_unhappy() {
         let mut trade = get_trade();
-        trade.input_vault_balance_change.amount = SgBigInt("0".to_string());
+        let amount = Float::parse("0".to_string()).unwrap();
+        let amount_str = serde_json::to_string(&amount).unwrap();
+        trade.input_vault_balance_change.amount = SgBytes(amount_str);
         matches!(
             trade.inverse_ratio().unwrap_err(),
             PerformanceError::DivByZero
@@ -214,15 +155,19 @@ mod tests {
             symbol: Some("Token1".to_string()),
             decimals: Some(SgBigInt(6.to_string())),
         };
+
+        let amount = Float::parse("3000000".to_string()).unwrap();
+        let amount_str = serde_json::to_string(&amount).unwrap();
+
         let input_trade_vault_balance_change = SgTradeVaultBalanceChange {
             id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: SgBigInt("3000000".to_string()),
-            new_vault_balance: SgBigInt("".to_string()),
-            old_vault_balance: SgBigInt("".to_string()),
+            amount: SgBytes(amount_str),
+            new_vault_balance: SgBytes("".to_string()),
+            old_vault_balance: SgBytes("".to_string()),
             vault: SgVaultBalanceChangeVault {
                 id: SgBytes("".to_string()),
-                vault_id: SgBigInt("".to_string()),
+                vault_id: SgBytes("".to_string()),
                 token: token.clone(),
             },
             timestamp: SgBigInt("".to_string()),
@@ -236,15 +181,19 @@ mod tests {
                 id: SgBytes("".to_string()),
             },
         };
+
+        let amount = Float::parse("-6000000".to_string()).unwrap();
+        let amount_str = serde_json::to_string(&amount).unwrap();
+
         let output_trade_vault_balance_change = SgTradeVaultBalanceChange {
             id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: SgBigInt("-6000000".to_string()),
-            new_vault_balance: SgBigInt("".to_string()),
-            old_vault_balance: SgBigInt("".to_string()),
+            amount: SgBytes(amount_str),
+            new_vault_balance: SgBytes("".to_string()),
+            old_vault_balance: SgBytes("".to_string()),
             vault: SgVaultBalanceChangeVault {
                 id: SgBytes("".to_string()),
-                vault_id: SgBigInt("".to_string()),
+                vault_id: SgBytes("".to_string()),
                 token: token.clone(),
             },
             timestamp: SgBigInt("".to_string()),
@@ -258,6 +207,7 @@ mod tests {
                 id: SgBytes("".to_string()),
             },
         };
+
         SgTrade {
             id: SgBytes("".to_string()),
             trade_event: SgTradeEvent {

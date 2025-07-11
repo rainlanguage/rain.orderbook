@@ -9012,6 +9012,7 @@ dependencies = [
  "cynic-introspection",
  "futures",
  "once_cell",
+ "rain-math-float",
  "rain_orderbook_bindings",
  "rain_orderbook_math",
  "reqwest 0.12.20",

@@ -141,7 +141,7 @@ pub struct SgVaultsListQueryFilters {
     pub owner_in: Vec<SgBytes>,
     #[cynic(rename = "balance_gt", skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    pub balance_gt: Option<SgBigInt>,
+    pub balance_gt: Option<SgBytes>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
@@ -161,8 +161,8 @@ pub struct SgVaultsListQueryVariables {
 pub struct SgVault {
     pub id: SgBytes,
     pub owner: SgBytes,
-    pub vault_id: SgBigInt,
-    pub balance: SgBigInt,
+    pub vault_id: SgBytes,
+    pub balance: SgBytes,
     pub token: SgErc20,
     pub orderbook: SgOrderbook,
     // latest orders
@@ -187,7 +187,7 @@ pub struct SgVaultWithSubgraphName {
 #[serde(rename_all = "camelCase")]
 pub struct SgVaultBalanceChangeVault {
     pub id: SgBytes,
-    pub vault_id: SgBigInt,
+    pub vault_id: SgBytes,
     pub token: SgErc20,
 }
 
@@ -197,9 +197,9 @@ pub struct SgVaultBalanceChangeVault {
 pub struct SgVaultBalanceChangeUnwrapped {
     #[serde(rename = "__typename")]
     pub __typename: String,
-    pub amount: SgBigInt,
-    pub new_vault_balance: SgBigInt,
-    pub old_vault_balance: SgBigInt,
+    pub amount: SgBytes,
+    pub new_vault_balance: SgBytes,
+    pub old_vault_balance: SgBytes,
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
@@ -226,9 +226,9 @@ pub struct SgDeposit {
     pub id: SgBytes,
     #[serde(rename = "__typename")]
     pub __typename: String,
-    pub amount: SgBigInt,
-    pub new_vault_balance: SgBigInt,
-    pub old_vault_balance: SgBigInt,
+    pub amount: SgBytes,
+    pub new_vault_balance: SgBytes,
+    pub old_vault_balance: SgBytes,
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
@@ -242,9 +242,9 @@ pub struct SgWithdrawal {
     pub id: SgBytes,
     #[serde(rename = "__typename")]
     pub __typename: String,
-    pub amount: SgBigInt,
-    pub new_vault_balance: SgBigInt,
-    pub old_vault_balance: SgBigInt,
+    pub amount: SgBytes,
+    pub new_vault_balance: SgBytes,
+    pub old_vault_balance: SgBytes,
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
@@ -258,9 +258,9 @@ pub struct SgTradeVaultBalanceChange {
     pub id: SgBytes,
     #[serde(rename = "__typename")]
     pub __typename: String,
-    pub amount: SgBigInt,
-    pub new_vault_balance: SgBigInt,
-    pub old_vault_balance: SgBigInt,
+    pub amount: SgBytes,
+    pub new_vault_balance: SgBytes,
+    pub old_vault_balance: SgBytes,
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
@@ -274,9 +274,9 @@ pub struct SgClearBounty {
     pub id: SgBytes,
     #[serde(rename = "__typename")]
     pub __typename: String,
-    pub amount: SgBigInt,
-    pub new_vault_balance: SgBigInt,
-    pub old_vault_balance: SgBigInt,
+    pub amount: SgBytes,
+    pub new_vault_balance: SgBytes,
+    pub old_vault_balance: SgBytes,
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
