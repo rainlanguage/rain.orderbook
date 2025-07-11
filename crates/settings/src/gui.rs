@@ -34,6 +34,8 @@ pub enum FieldValueValidationCfg {
         exclusive_maximum: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         multiple_of: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        decimals: Option<u8>,
     },
     String {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -957,6 +959,18 @@ fn parse_field_validation(
                 .get(&StrictYaml::String("multiple-of".to_string()))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
+            decimals: yaml
+                .get(&StrictYaml::String("decimals".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.parse::<u8>())
+                .transpose()
+                .map_err(|_| YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "decimals".to_string(),
+                        expected: "a valid number".to_string(),
+                    },
+                    location: location.to_string(),
+                })?,
         }),
         "string" => Ok(FieldValueValidationCfg::String {
             min_length: yaml

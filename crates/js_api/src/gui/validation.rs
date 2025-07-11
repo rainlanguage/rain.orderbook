@@ -75,10 +75,11 @@ pub fn validate_field_value(
             maximum,
             exclusive_maximum,
             multiple_of,
+            decimals,
         } => validate_number(
             field_name,
             value,
-            18,
+            decimals.unwrap_or(18),
             minimum,
             exclusive_minimum,
             maximum,
@@ -865,6 +866,7 @@ mod tests {
             maximum: Some("100".to_string()),
             exclusive_maximum: None,
             multiple_of: Some("5".to_string()),
+            decimals: None,
         };
 
         let result = validate_field_value("Price Field", "50", &validation);
@@ -954,6 +956,72 @@ mod tests {
         assert!(matches!(
             result,
             Err(GuiValidationError::AboveMaximum { .. })
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    fn test_validate_field_value_custom_decimals() {
+        // Test with 6 decimals (like USDC)
+        let validation = FieldValueValidationCfg::Number {
+            minimum: Some("0.01".to_string()),
+            exclusive_minimum: None,
+            maximum: Some("1000".to_string()),
+            exclusive_maximum: None,
+            multiple_of: Some("0.01".to_string()),
+            decimals: Some(6),
+        };
+
+        let result = validate_field_value("USDC Amount", "100.12", &validation);
+        assert!(result.is_ok());
+
+        let result = validate_field_value("USDC Amount", "0.005", &validation);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::BelowMinimum { .. })
+        ));
+
+        let result = validate_field_value("USDC Amount", "100.125", &validation);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::NotMultipleOf { .. })
+        ));
+
+        // Test with 8 decimals (like BTC)
+        let validation = FieldValueValidationCfg::Number {
+            minimum: Some("0.00000001".to_string()),
+            exclusive_minimum: None,
+            maximum: Some("21000000".to_string()),
+            exclusive_maximum: None,
+            multiple_of: None,
+            decimals: Some(8),
+        };
+
+        let result = validate_field_value("BTC Amount", "0.12345678", &validation);
+        assert!(result.is_ok());
+
+        let result = validate_field_value("BTC Amount", "0.000000005", &validation);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::BelowMinimum { .. })
+        ));
+
+        // Test with default decimals (18) when None
+        let validation = FieldValueValidationCfg::Number {
+            minimum: Some("0.000000000000000001".to_string()),
+            exclusive_minimum: None,
+            maximum: None,
+            exclusive_maximum: None,
+            multiple_of: None,
+            decimals: None,
+        };
+
+        let result = validate_field_value("ETH Amount", "0.000000000000000001", &validation);
+        assert!(result.is_ok());
+
+        let result = validate_field_value("ETH Amount", "0.0000000000000000005", &validation);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::BelowMinimum { .. })
         ));
     }
 
