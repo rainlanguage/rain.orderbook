@@ -156,7 +156,7 @@
 				{#if isEmpty(filteredTokens)}
 					<div class="ml-2 w-full rounded-lg p-3">No tokens match your search</div>
 				{:else}
-					{#each sortedFilteredTokens as token, index}
+					{#each sortedFilteredTokens as token, index (`${token.address}-${token.chainId}`)}
 						<Checkbox
 							data-testid="dropdown-tokens-filter-option"
 							class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600 {selectedIndex ===
