@@ -13,10 +13,57 @@ use std::{
     collections::{BTreeMap, HashMap},
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_object};
+
+// Validation types
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "kebab-case", tag = "type")]
+pub enum FieldValueValidationCfg {
+    Number {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        minimum: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        exclusive_minimum: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        maximum: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        exclusive_maximum: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        multiple_of: Option<String>,
+    },
+    String {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        min_length: Option<u64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_length: Option<u64>,
+    },
+    Boolean,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(FieldValueValidationCfg);
+
+// For deposits, we use a simpler type since type is implicit
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "kebab-case")]
+pub struct DepositValidationCfg {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimum: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exclusive_minimum: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub maximum: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exclusive_maximum: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub multiple_of: Option<String>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DepositValidationCfg);
 
 // Config source for Gui
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -37,6 +84,8 @@ pub struct GuiDepositSourceCfg {
     pub token: TokenCfgRef,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<String>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub validation: Option<DepositValidationCfg>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -53,6 +102,8 @@ pub struct GuiFieldDefinitionSourceCfg {
     pub default: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub show_custom_field: Option<bool>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub validation: Option<FieldValueValidationCfg>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -111,6 +162,7 @@ impl GuiConfigSourceCfg {
                         Ok(GuiDepositCfg {
                             token: Some(token.clone()),
                             presets: deposit_source.presets.clone(),
+                            validation: deposit_source.validation.clone(),
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -142,6 +194,7 @@ impl GuiConfigSourceCfg {
                                 .transpose()?,
                             default: field_source.default.clone(),
                             show_custom_field: field_source.show_custom_field,
+                            validation: field_source.validation.clone(),
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -201,6 +254,8 @@ pub struct GuiDepositCfg {
     pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<String>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub validation: Option<DepositValidationCfg>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(GuiDepositCfg);
@@ -258,6 +313,8 @@ pub struct GuiFieldDefinitionCfg {
     pub default: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub show_custom_field: Option<bool>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub validation: Option<FieldValueValidationCfg>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(GuiFieldDefinitionCfg);
@@ -727,9 +784,14 @@ impl YamlParseableValue for GuiCfg {
                             None => None,
                         };
 
+                        let validation = optional_hash(deposit_value, "validation").map(|validation_yaml| {
+                            parse_deposit_validation(validation_yaml)
+                        }).transpose()?;
+
                         let gui_deposit = GuiDepositCfg {
                             token: deposit_token,
                             presets,
+                            validation,
                         };
                         Ok(gui_deposit)
                     })
@@ -785,13 +847,20 @@ impl YamlParseableValue for GuiCfg {
                         let default = optional_string(field_yaml, "default");
                         let show_custom_field = optional_string(field_yaml, "show-custom-field").map(|v| v.eq("true"));
 
+                        let validation = optional_hash(field_yaml, "validation").map(|validation_yaml| {
+                            parse_field_validation(validation_yaml, &format!(
+                                "validation for field index '{field_index}' in {location}"
+                            ))
+                        }).transpose()?;
+
                         let gui_field_definition = GuiFieldDefinitionCfg {
                             binding,
                             name: interpolated_name,
                             description: interpolated_description,
                             presets,
                             default,
-                            show_custom_field
+                            show_custom_field,
+                            validation,
                         };
                         Ok(gui_field_definition)
                     })
@@ -826,6 +895,106 @@ impl YamlParseableValue for GuiCfg {
     }
 }
 
+fn parse_deposit_validation(yaml: &Hash) -> Result<DepositValidationCfg, YamlError> {
+    Ok(DepositValidationCfg {
+        minimum: yaml
+            .get(&StrictYaml::String("minimum".to_string()))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        exclusive_minimum: yaml
+            .get(&StrictYaml::String("exclusive-minimum".to_string()))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        maximum: yaml
+            .get(&StrictYaml::String("maximum".to_string()))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        exclusive_maximum: yaml
+            .get(&StrictYaml::String("exclusive-maximum".to_string()))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        multiple_of: yaml
+            .get(&StrictYaml::String("multiple-of".to_string()))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+    })
+}
+
+fn parse_field_validation(
+    yaml: &Hash,
+    location: &str,
+) -> Result<FieldValueValidationCfg, YamlError> {
+    let validation_type = yaml
+        .get(&StrictYaml::String("type".to_string()))
+        .and_then(|v| v.as_str())
+        .ok_or(YamlError::Field {
+            kind: FieldErrorKind::InvalidType {
+                field: "type".to_string(),
+                expected: "a string".to_string(),
+            },
+            location: location.to_string(),
+        })?;
+
+    match validation_type {
+        "number" => Ok(FieldValueValidationCfg::Number {
+            minimum: yaml
+                .get(&StrictYaml::String("minimum".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            exclusive_minimum: yaml
+                .get(&StrictYaml::String("exclusive-minimum".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            maximum: yaml
+                .get(&StrictYaml::String("maximum".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            exclusive_maximum: yaml
+                .get(&StrictYaml::String("exclusive-maximum".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            multiple_of: yaml
+                .get(&StrictYaml::String("multiple-of".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+        }),
+        "string" => Ok(FieldValueValidationCfg::String {
+            min_length: yaml
+                .get(&StrictYaml::String("min-length".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.parse::<u64>())
+                .transpose()
+                .map_err(|_| YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "min-length".to_string(),
+                        expected: "a valid u64".to_string(),
+                    },
+                    location: location.to_string(),
+                })?,
+            max_length: yaml
+                .get(&StrictYaml::String("max-length".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.parse::<u64>())
+                .transpose()
+                .map_err(|_| YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "max-length".to_string(),
+                        expected: "a valid u64".to_string(),
+                    },
+                    location: location.to_string(),
+                })?,
+        }),
+        "boolean" => Ok(FieldValueValidationCfg::Boolean),
+        _ => Err(YamlError::Field {
+            kind: FieldErrorKind::InvalidType {
+                field: "type".to_string(),
+                expected: "one of: number, string, boolean".to_string(),
+            },
+            location: location.to_string(),
+        }),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -851,6 +1020,7 @@ mod tests {
                     deposits: vec![GuiDepositSourceCfg {
                         token: "test-token".to_string(),
                         presets: Some(vec!["1.3".to_string(), "2.7".to_string()]),
+                        validation: None,
                     }],
                     fields: vec![
                         GuiFieldDefinitionSourceCfg {
@@ -869,6 +1039,7 @@ mod tests {
                             ]),
                             default: None,
                             show_custom_field: None,
+                            validation: None,
                         },
                         GuiFieldDefinitionSourceCfg {
                             binding: "test-binding-2".to_string(),
@@ -886,6 +1057,7 @@ mod tests {
                             ]),
                             default: Some("0.015".to_string()),
                             show_custom_field: Some(true),
+                            validation: None,
                         },
                         GuiFieldDefinitionSourceCfg {
                             binding: "test-binding-3".to_string(),
@@ -907,6 +1079,7 @@ mod tests {
                             ]),
                             default: Some("0.25".to_string()),
                             show_custom_field: Some(false),
+                            validation: None,
                         },
                     ],
                     select_tokens: Some(vec![GuiSelectTokensCfg {
