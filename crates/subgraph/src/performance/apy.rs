@@ -12,7 +12,7 @@ use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct APYDetails {
@@ -27,7 +27,7 @@ pub struct APYDetails {
     pub is_neg: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VaultAPY {
@@ -36,7 +36,7 @@ pub struct VaultAPY {
     pub apy_details: Option<APYDetails>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenPair {
     pub input: SgErc20,
@@ -61,7 +61,6 @@ pub fn get_vaults_apy(
 ) -> Result<Vec<VaultAPY>, PerformanceError> {
     let mut token_vaults_apy: Vec<VaultAPY> = vec![];
     for vol in vols {
-        let vol = vol.scale_18()?;
         // this token vault trades in desc order by timestamp
         let vault_trades = trades
             .iter()

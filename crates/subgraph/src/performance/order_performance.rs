@@ -7,6 +7,7 @@ use crate::{
     types::common::{SgErc20, SgOrder, SgTrade},
 };
 use alloy::primitives::U256;
+use rain_math_float::Float;
 use rain_orderbook_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -14,7 +15,7 @@ use std::collections::HashMap;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VaultPerformance {
@@ -28,7 +29,7 @@ pub struct VaultPerformance {
     pub apy_details: Option<APYDetails>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct DenominatedPerformance {
@@ -49,7 +50,7 @@ pub struct DenominatedPerformance {
     pub starting_capital: U256,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderPerformance {
@@ -379,12 +380,13 @@ fn accumulate(new_val: (U256, bool), old_val: (U256, bool)) -> (U256, bool) {
 }
 
 /// helper struct that provides sorting tokens based on a given net vol
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
 struct TokenBasedVol<'a> {
     token: &'a SgErc20,
-    net_vol: U256,
+    net_vol: Float,
     is_neg: bool,
 }
+
 impl<'a> Ord for TokenBasedVol<'a> {
     fn clamp(self, _min: Self, _max: Self) -> Self
     where
@@ -459,6 +461,7 @@ impl<'a> PartialOrd for TokenBasedVol<'a> {
 
 #[cfg(test)]
 mod test {
+    use super::super::*;
     use super::*;
     use crate::types::common::{
         SgBigInt, SgBytes, SgOrder, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
@@ -672,7 +675,7 @@ mod test {
     fn test_get_pairs_ratio_unhappy() {
         let mut trades = get_trades();
         // set some corrupt value
-        trades[0].input_vault_balance_change.amount = SgBigInt("abcd".to_string());
+        trades[0].input_vault_balance_change.amount = SgBytes("abcd".to_string());
         let [token1, token2] = get_tokens();
         let result = get_order_pairs_ratio(&get_order(), &trades);
         let mut expected = HashMap::new();
@@ -701,18 +704,15 @@ mod test {
         let [token1, token2] = get_tokens();
         let [vault1, vault2] = get_vault_ids();
 
-        let token1_net_vol =
-            Float::from_fixed_decimal(U256::from(5000000000000000000), DECIMALS).unwrap();
-
         let token1_perf = VaultPerformance {
             id: vault1.to_string(),
             token: token1.clone(),
             apy_details: Some(APYDetails {
                 start_time: 1,
                 end_time: 10000001,
-                net_vol: token1_net_vol,
-                capital: U256::from_str("5000000000000000000").unwrap(),
-                apy: Some(U256::from_str("3153600000000000000").unwrap()),
+                net_vol: *F5,
+                capital: *F5,
+                apy: Some(Float::parse("3.1536".to_string()).unwrap()),
                 is_neg: false,
             }),
             vol_details: VolumeDetails {
@@ -796,8 +796,8 @@ mod test {
         let vault1 = SgVault {
             id: SgBytes("".to_string()),
             owner: SgBytes("".to_string()),
-            vault_id: SgBigInt(vault_id1.to_string()),
-            balance: SgBigInt("".to_string()),
+            vault_id: SgBytes(vault_id1.to_string()),
+            balance: SgBytes("".to_string()),
             token: token1,
             orderbook: SgOrderbook {
                 id: SgBytes("".to_string()),
@@ -809,8 +809,8 @@ mod test {
         let vault2 = SgVault {
             id: SgBytes("".to_string()),
             owner: SgBytes("".to_string()),
-            vault_id: SgBigInt(vault_id2.to_string()),
-            balance: SgBigInt("".to_string()),
+            vault_id: SgBytes(vault_id2.to_string()),
+            balance: SgBytes("".to_string()),
             token: token2,
             orderbook: SgOrderbook {
                 id: SgBytes("".to_string()),
@@ -830,7 +830,7 @@ mod test {
                 id: SgBytes("".to_string()),
             },
             active: true,
-            timestamp_added: SgBigInt("".to_string()),
+            timestamp_added: SgBytes("".to_string()),
             meta: None,
             add_events: vec![],
             trades: vec![],
@@ -843,6 +843,7 @@ mod test {
         let bigint = SgBigInt("".to_string());
         let [vault_id1, vault_id2] = get_vault_ids();
         let [token1, token2] = get_tokens();
+
         let trade1 = SgTrade {
             id: bytes.clone(),
             order: SgTradeStructPartialOrder {
@@ -863,13 +864,13 @@ mod test {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBigInt("-2000000000000000000".to_string()),
-                new_vault_balance: SgBigInt("2000000000000000000".to_string()),
-                old_vault_balance: bigint.clone(),
+                amount: SgBytes(float_hex(*F5)),
+                new_vault_balance: SgBytes(float_hex(*F2)),
+                old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
                     token: token1.clone(),
-                    vault_id: SgBigInt(vault_id1.to_string()),
+                    vault_id: SgBytes(vault_id1.to_string()),
                 },
                 timestamp: SgBigInt("1".to_string()),
                 transaction: SgTransaction {
@@ -883,13 +884,13 @@ mod test {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBigInt("5000000000000000000".to_string()),
-                new_vault_balance: SgBigInt("2000000000000000000".to_string()),
-                old_vault_balance: bigint.clone(),
+                amount: SgBytes(float_hex(*F5)),
+                new_vault_balance: SgBytes(float_hex(*F2)),
+                old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
                     token: token2.clone(),
-                    vault_id: SgBigInt(vault_id2.to_string()),
+                    vault_id: SgBytes(vault_id2.to_string()),
                 },
                 timestamp: SgBigInt("1".to_string()),
                 transaction: SgTransaction {
@@ -901,6 +902,7 @@ mod test {
                 orderbook: SgOrderbook { id: bytes.clone() },
             },
         };
+
         let trade2 = SgTrade {
             id: bytes.clone(),
             order: SgTradeStructPartialOrder {
@@ -921,13 +923,13 @@ mod test {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBigInt("-2000000000000000000".to_string()),
-                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
-                old_vault_balance: bigint.clone(),
+                amount: SgBytes(float_hex(*NEG2)),
+                new_vault_balance: SgBytes(float_hex(*F5)),
+                old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
                     token: token2.clone(),
-                    vault_id: SgBigInt(vault_id2.to_string()),
+                    vault_id: SgBytes(vault_id2.to_string()),
                 },
                 timestamp: SgBigInt("2".to_string()),
                 transaction: SgTransaction {
@@ -941,13 +943,13 @@ mod test {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBigInt("7000000000000000000".to_string()),
-                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
-                old_vault_balance: bigint.clone(),
+                amount: SgBytes(float_hex(*F7)),
+                new_vault_balance: SgBytes(float_hex(*F5)),
+                old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
                     token: token1.clone(),
-                    vault_id: SgBigInt(vault_id1.to_string()),
+                    vault_id: SgBytes(vault_id1.to_string()),
                 },
                 timestamp: SgBigInt("2".to_string()),
                 transaction: SgTransaction {

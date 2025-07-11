@@ -25,6 +25,9 @@ futures = "0.3.17"
 wasm-bindgen-utils = { workspace = true }
 rain-math-float.workspace = true
 
+[dev-dependencies]
+lazy_static = "1.5.0"
+
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 insta = { workspace = true }
 tokio = { workspace = true, features = ["full"] }

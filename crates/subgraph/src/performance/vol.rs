@@ -137,14 +137,14 @@ impl VaultVolume {
 
 #[cfg(test)]
 mod tests {
-    use std::i32;
+    use alloy::primitives::{Address, B256};
 
+    use super::super::*;
     use super::*;
     use crate::types::common::{
         SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
-    use alloy::primitives::{aliases::I224, Address, B256};
     use rain_math_float::Float;
 
     #[test]
@@ -238,20 +238,6 @@ mod tests {
             decimals: Some(SgBigInt(18.to_string())),
         };
 
-        let two = Float::parse("2".to_string()).unwrap();
-        let two_str = serde_json::to_string(&two).unwrap();
-        let minus_two = (-two).unwrap();
-        let minus_two_str = serde_json::to_string(&minus_two).unwrap();
-        let three = Float::parse("3".to_string()).unwrap();
-        let three_str = serde_json::to_string(&three).unwrap();
-        let five = Float::parse("5".to_string()).unwrap();
-        let five_str = serde_json::to_string(&five).unwrap();
-        let seven = Float::parse("7".to_string()).unwrap();
-        let seven_str = serde_json::to_string(&seven).unwrap();
-        let minus_seven = (-seven).unwrap();
-        let minus_seven_str = serde_json::to_string(&minus_seven).unwrap();
-        let twelve = Float::parse("12".to_string()).unwrap();
-
         let trade1 = SgTrade {
             id: bytes.clone(),
             order: SgTradeStructPartialOrder {
@@ -272,7 +258,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(minus_two_str.clone()),
+                amount: SgBytes(float_hex(*NEG2)),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -292,7 +278,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(five_str.clone()),
+                amount: SgBytes(float_hex(*F5)),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -331,7 +317,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(minus_seven_str.clone()),
+                amount: SgBytes(float_hex(*NEG7)),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -351,7 +337,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(three_str.clone()),
+                amount: SgBytes(float_hex(*F3)),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -376,20 +362,20 @@ mod tests {
                 id: vault_id2.to_string(),
                 token: token2,
                 vol_details: VolumeDetails {
-                    total_in: five,
-                    total_out: seven,
-                    total_vol: twelve,
-                    net_vol: two,
+                    total_in: *F5,
+                    total_out: *F7,
+                    total_vol: *F12,
+                    net_vol: *F2,
                 },
             },
             VaultVolume {
                 id: vault_id1.to_string(),
                 token: token1,
                 vol_details: VolumeDetails {
-                    total_in: three,
-                    total_out: two,
-                    total_vol: five,
-                    net_vol: one,
+                    total_in: *F3,
+                    total_out: *F2,
+                    total_vol: *F5,
+                    net_vol: *F1,
                 },
             },
         ];
@@ -468,14 +454,6 @@ mod tests {
             decimals: Some(SgBigInt(18.to_string())),
         };
 
-        let one = Float::parse("1".to_string()).unwrap();
-        let minus_one = (-one).unwrap();
-        let one_str = serde_json::to_string(&one).unwrap();
-        let minus_one_str = serde_json::to_string(&minus_one).unwrap();
-
-        let max = Float::pack_lossless(I224::MAX, i32::MAX).unwrap();
-        let max_str = serde_json::to_string(&max).unwrap();
-
         // Test overflow on addition
         let trade1 = SgTrade {
             id: bytes.clone(),
@@ -497,7 +475,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(minus_one_str.clone()),
+                amount: SgBytes(float_hex(*NEG1)),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -517,7 +495,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(max_str.clone()),
+                amount: SgBytes(float_hex(*FMAX)),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -556,7 +534,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(one_str.clone()),
+                amount: SgBytes(float_hex(*F1)),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -576,7 +554,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(one_str.clone()),
+                amount: SgBytes(float_hex(*F1)),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -604,105 +582,44 @@ mod tests {
     }
 
     #[test]
-    fn test_to_18_decimals_ok() {
-        let token_address = Address::random();
-        let token = SgErc20 {
-            id: SgBytes(token_address.to_string()),
-            address: SgBytes(token_address.to_string()),
-            name: Some("Token".to_string()),
-            symbol: Some("Token".to_string()),
-            decimals: Some(SgBigInt(6.to_string())),
-        };
-        let vault_vol = VaultVolume {
-            id: "vault-id".to_string(),
-            token: token.clone(),
-            vol_details: VolumeDetails {
-                total_in: U256::from(20_500_000),
-                total_out: U256::from(30_000_000),
-                total_vol: U256::from(50_500_000),
-                net_vol: U256::from(9_500_000),
-            },
-        };
-
-        let result = vault_vol.scale_18().unwrap();
-        let expected = VaultVolume {
-            id: "vault-id".to_string(),
-            token,
-            vol_details: VolumeDetails {
-                total_in: U256::from_str("20_500_000_000_000_000_000").unwrap(),
-                total_out: U256::from_str("30_000_000_000_000_000_000").unwrap(),
-                total_vol: U256::from_str("50_500_000_000_000_000_000").unwrap(),
-                net_vol: U256::from_str("9_500_000_000_000_000_000").unwrap(),
-            },
-        };
-
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_to_18_decimals_err() {
-        let token_address = Address::random();
-        let token = SgErc20 {
-            id: SgBytes(token_address.to_string()),
-            address: SgBytes(token_address.to_string()),
-            name: Some("Token".to_string()),
-            symbol: Some("Token".to_string()),
-            decimals: Some(SgBigInt("bad int".to_string())),
-        };
-        let vault_vol = VaultVolume {
-            id: "vault-id".to_string(),
-            token: token.clone(),
-            vol_details: VolumeDetails {
-                total_in: U256::from(20_500_000),
-                total_out: U256::from(30_000_000),
-                total_vol: U256::from(50_500_000),
-                net_vol: U256::from(9_500_000),
-            },
-        };
-
-        let err = vault_vol.scale_18().unwrap_err();
-        assert!(matches!(err, PerformanceError::ParseIntError(_)));
-    }
-
-    #[test]
     fn test_update_volume_details() {
         let mut vol_details = VolumeDetails {
-            total_in: U256::from(10),
-            total_out: U256::from(5),
-            total_vol: U256::from(15),
-            net_vol: U256::from(5),
+            total_in: *F1,
+            total_out: *F5,
+            total_vol: *F15,
+            net_vol: *F5,
         };
 
         // Test positive amount
         update_volume_details(&mut vol_details, "20").unwrap();
-        assert_eq!(vol_details.total_in, U256::from(30));
-        assert_eq!(vol_details.total_out, U256::from(5));
-        assert_eq!(vol_details.total_vol, U256::from(35));
-        assert_eq!(vol_details.net_vol, U256::from(25));
+        assert!(vol_details.total_in.eq(*F30).unwrap());
+        assert!(vol_details.total_out.eq(*F5).unwrap());
+        assert!(vol_details.total_vol.eq(*F35).unwrap());
+        assert!(vol_details.net_vol.eq(*F25).unwrap());
 
         // Test negative amount
         update_volume_details(&mut vol_details, "-15").unwrap();
-        assert_eq!(vol_details.total_in, U256::from(30));
-        assert_eq!(vol_details.total_out, U256::from(20));
-        assert_eq!(vol_details.total_vol, U256::from(50));
-        assert_eq!(vol_details.net_vol, U256::from(10));
+        assert!(vol_details.total_in.eq(*F30).unwrap());
+        assert!(vol_details.total_out.eq(*F20).unwrap());
+        assert!(vol_details.total_vol.eq(*F50).unwrap());
+        assert!(vol_details.net_vol.eq(*F10).unwrap());
     }
 
     #[test]
     fn test_create_volume_details() {
         // Test positive amount
         let vol_details = create_volume_details("20").unwrap();
-        assert_eq!(vol_details.total_in, U256::from(20));
-        assert_eq!(vol_details.total_out, U256::from(0));
-        assert_eq!(vol_details.total_vol, U256::from(20));
-        assert_eq!(vol_details.net_vol, U256::from(20));
+        assert!(vol_details.total_in.eq(*F20).unwrap());
+        assert!(vol_details.total_out.eq(*F0).unwrap());
+        assert!(vol_details.total_vol.eq(*F20).unwrap());
+        assert!(vol_details.net_vol.eq(*F20).unwrap());
 
         // Test negative amount
         let vol_details = create_volume_details("-15").unwrap();
-        assert_eq!(vol_details.total_in, U256::from(0));
-        assert_eq!(vol_details.total_out, U256::from(15));
-        assert_eq!(vol_details.total_vol, U256::from(15));
-        assert_eq!(vol_details.net_vol, U256::from(15));
+        assert!(vol_details.total_in.eq(*F0).unwrap());
+        assert!(vol_details.total_out.eq(*F15).unwrap());
+        assert!(vol_details.total_vol.eq(*F15).unwrap());
+        assert!(vol_details.net_vol.eq(*F15).unwrap());
 
         // Test invalid amount
         let err = create_volume_details("bad int").unwrap_err();
@@ -724,13 +641,13 @@ mod tests {
         process_vault_balance_change(&mut vaults_vol, "vault1", &token, "20").unwrap();
         assert_eq!(vaults_vol.len(), 1);
         assert_eq!(vaults_vol[0].id, "vault1");
-        assert_eq!(vaults_vol[0].vol_details.total_in, U256::from(20));
+        assert!(vaults_vol[0].vol_details.total_in.eq(*F20).unwrap());
 
         // Test existing vault
         process_vault_balance_change(&mut vaults_vol, "vault1", &token, "-10").unwrap();
         assert_eq!(vaults_vol.len(), 1);
-        assert_eq!(vaults_vol[0].vol_details.total_in, U256::from(20));
-        assert_eq!(vaults_vol[0].vol_details.total_out, U256::from(10));
+        assert!(vaults_vol[0].vol_details.total_in.eq(*F20).unwrap());
+        assert!(vaults_vol[0].vol_details.total_out.eq(*F10).unwrap());
     }
 
     #[test]
