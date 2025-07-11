@@ -4,12 +4,9 @@ use alloy::providers::{
 };
 use alloy::rpc::client::RpcClient;
 use alloy::transports::http::Http;
-#[cfg(not(target_family = "wasm"))]
 use alloy::transports::layers::FallbackLayer;
-#[cfg(not(target_family = "wasm"))]
 use std::num::NonZeroUsize;
 use thiserror::Error;
-#[cfg(not(target_family = "wasm"))]
 use tower::ServiceBuilder;
 use url::Url;
 
