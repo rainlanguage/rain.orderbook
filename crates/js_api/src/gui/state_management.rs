@@ -476,8 +476,14 @@ mod tests {
             }
         );
         let vault_ids = gui.get_vault_ids().unwrap().0;
-        assert_eq!(vault_ids.get("input").unwrap()[0], Some(U256::from(199)));
-        assert_eq!(vault_ids.get("output").unwrap()[0], Some(U256::from(299)));
+        assert_eq!(
+            vault_ids.get("input").unwrap()["token1"],
+            Some(U256::from(199))
+        );
+        assert_eq!(
+            vault_ids.get("output").unwrap()["token2"],
+            Some(U256::from(299))
+        );
     }
 
     #[wasm_bindgen_test]
