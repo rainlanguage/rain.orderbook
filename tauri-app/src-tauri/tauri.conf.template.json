@@ -53,10 +53,10 @@
       "macOS": {
         "minimumSystemVersion": "11",
         "frameworks": [
-          "../lib/libintl.8.dylib",
-          "../lib/libiconv.2.dylib",
-          "../lib/libcharset.1.dylib",
-          "../lib/libusb-1.0.0.dylib"
+          "$OB_TAURI_PRELUDE_PATH/lib/libintl.8.dylib",
+          "$OB_TAURI_PRELUDE_PATH/lib/libiconv.2.dylib",
+          "$OB_TAURI_PRELUDE_PATH/lib/libcharset.1.dylib",
+          "$OB_TAURI_PRELUDE_PATH/lib/libusb-1.0.0.dylib"
         ]
       }
     },
