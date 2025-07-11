@@ -31,7 +31,7 @@ describe('DepositInput', () => {
 			getDeposits: vi.fn().mockReturnValue({
 				value: [{ token: 'output', amount: '10', address: '0x1234' }]
 			}),
-			saveDeposit: vi.fn().mockImplementation(() => {
+			setDeposit: vi.fn().mockImplementation(() => {
 				mockStateUpdateCallback();
 			}),
 			getTokenInfo: vi.fn()
@@ -70,7 +70,7 @@ describe('DepositInput', () => {
 		});
 
 		await fireEvent.click(getByText('100'));
-		expect(guiInstance.saveDeposit).toHaveBeenCalledWith('TEST', '100');
+		expect(guiInstance.setDeposit).toHaveBeenCalledWith('TEST', '100');
 	});
 
 	it('handles custom input changes and triggers state update', async () => {
@@ -84,7 +84,7 @@ describe('DepositInput', () => {
 		const input = getByPlaceholderText('Enter deposit amount');
 		await fireEvent.input(input, { target: { value: '150' } });
 
-		expect(guiInstance.saveDeposit).toHaveBeenCalledWith('TEST', '150');
+		expect(guiInstance.setDeposit).toHaveBeenCalledWith('TEST', '150');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 });
