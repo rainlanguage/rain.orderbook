@@ -57,7 +57,7 @@
 	async function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
 			inputValue = preset;
-			await gui.saveDeposit(deposit.token?.key, preset);
+			await gui.setDeposit(deposit.token?.key, preset);
 
 			try {
 				currentDeposit = getCurrentDeposit();
@@ -71,7 +71,7 @@
 		if (deposit.token?.key) {
 			if (e.currentTarget instanceof HTMLInputElement) {
 				inputValue = e.currentTarget.value;
-				await gui.saveDeposit(deposit.token.key, e.currentTarget.value);
+				await gui.setDeposit(deposit.token.key, e.currentTarget.value);
 				try {
 					currentDeposit = getCurrentDeposit();
 				} catch (e) {
