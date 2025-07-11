@@ -1,15 +1,29 @@
 # Raindex SDK
 
-A TypeScript/JavaScript SDK for interacting with orderbook contracts, providing comprehensive functionality for order management, configuration parsing, and blockchain interactions.
+A TypeScript/JavaScript SDK for interacting with Raindex orderbook contracts, providing comprehensive functionality for order management, configuration parsing, and blockchain interactions.
 
-## Overview
+## What is Raindex?
+
+Raindex is an **onchain orderbook contract** that enables users to deploy complex, perpetual trading strategies using **Rainlang**, a domain-specific language interpreted onchain. Learn more about Rainlang in the [official documentation](https://docs.rainlang.xyz/intro).
+
+### How It Works
+
+- **Dynamic Orders**: Unlike traditional orderbooks, Raindex orders contain algorithms that determine token movements based on real-time conditions
+- **Vault System**: Users deposit tokens into vaults (virtual accounts) instead of using token approvals
+- **Multi-Token Strategies**: Orders can reference multiple input/output vaults for sophisticated trading scenarios
+- **Perpetual Execution**: Strategies remain active until explicitly removed by the owner
+- **Decentralized Execution**: Third-party fillers execute trades by capitalizing on arbitrage opportunities
+
+## SDK Overview
 
 This SDK provides Rust-powered WebAssembly bindings for orderbook functionality, enabling developers to:
 
-- Parse and validate YAML configuration files
-- Generate order hashes and calldata
-- Interact with orderbook contracts
-- Handle complex order operations and quotes
+- **Query Orders & Trades**: Search orders across multiple networks, fetch order details, and track trade history
+- **Execute Quotes**: Get real-time quotes for trading pairs with maximum output amounts and IO ratios
+- **Manage Vaults**: Query vault balances, generate deposit/withdraw calldata, and track vault activity
+- **Parse Configurations**: Validate YAML files defining networks, tokens, orderbooks, and subgraph endpoints
+- **Generate Transactions**: Create ABI-encoded calldata for adding/removing orders and vault operations
+- **Track Performance**: Monitor order volume, vault balance changes, and trading metrics over time
 
 ## Prerequisites
 
@@ -17,7 +31,6 @@ Before using this SDK, ensure you have:
 
 - Node.js >= 22
 - A Web3 provider (e.g., ethers.js, viem)
-- Access to orderbook contracts on your target network
 - A YAML configuration file (see [example configuration](https://github.com/rainlanguage/rain.strategies/blob/main/settings.yaml))
 
 ## Installation
