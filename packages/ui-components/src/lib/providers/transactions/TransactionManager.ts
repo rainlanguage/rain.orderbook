@@ -87,10 +87,6 @@ export class TransactionManager {
 		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
 		const toastLinks: ToastLink[] = [
 			{
-				link: `/orders/${chainId}-${orderbook}-${queryKey}`,
-				label: 'View Order'
-			},
-			{
 				link: explorerLink,
 				label: 'View on explorer'
 			}
