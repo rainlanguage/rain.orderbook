@@ -202,8 +202,8 @@ describe('Full Deployment Tests', () => {
 					.value as DotrainOrderGui;
 				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-				gui.setVaultId(false, 0, '0x123');
-				gui.setVaultId(true, 0, '0x234');
+				gui.setVaultId('output', 'token1', '0x123');
+				gui.setVaultId('input', 'token2', '0x234');
 				gui.setFieldValue('fixed-io', '10');
 				const args = await gui.getDeploymentTransactionArgs(
 					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
@@ -345,8 +345,8 @@ describe('Full Deployment Tests', () => {
 					.value as DotrainOrderGui;
 				await gui.setSelectToken('input', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('output', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-				gui.setVaultId(false, 0, '0x123');
-				gui.setVaultId(true, 0, '0x234');
+				gui.setVaultId('output', 'output', '0x123');
+				gui.setVaultId('input', 'input', '0x234');
 				gui.setFieldValue('time-per-amount-epoch', '60');
 				gui.setFieldValue('amount-per-epoch', '10');
 				gui.setFieldValue('max-trade-amount', '100');
@@ -483,8 +483,8 @@ describe('Full Deployment Tests', () => {
 					.value as DotrainOrderGui;
 				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-				gui.setVaultId(false, 0, '0x123');
-				gui.setVaultId(true, 0, '0x234');
+				gui.setVaultId('output', 'token2', '0x123');
+				gui.setVaultId('input', 'token1', '0x234');
 				gui.setFieldValue('amount-is-fast-exit', '1');
 				gui.setFieldValue('not-amount-is-fast-exit', '0');
 				gui.setFieldValue('initial-io', '100');

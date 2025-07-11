@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import { type OrderIOCfg, type TokenInfo } from '@rainlanguage/orderbook';
+	import { type OrderIOCfg, type TokenInfo, type VaultType } from '@rainlanguage/orderbook';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
@@ -47,10 +47,13 @@
 	};
 
 	const handleInput = async () => {
-		const isInput = label === 'Input';
+		if (!vault.token) {
+			error = 'Vault token is not set.';
+			return;
+		}
 		error = '';
 		try {
-			gui?.setVaultId(isInput, i, inputValue);
+			gui.setVaultId(label.toLowerCase() as VaultType, vault.token.key, inputValue);
 		} catch (e) {
 			const errorMessage = (e as Error).message ? (e as Error).message : 'Error setting vault ID.';
 			error = errorMessage;

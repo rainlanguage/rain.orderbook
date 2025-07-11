@@ -96,14 +96,14 @@ describe('TokenInput', () => {
 	it('calls setVaultId when input changes', async () => {
 		const input = render(TokenIOInput, mockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault1' } });
-		expect(guiInstance.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
+		expect(guiInstance.setVaultId).toHaveBeenCalledWith('input', 'test', 'vault1');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
 	it('calls setVaultId on output vault when input changes', async () => {
 		const input = render(TokenIOInput, outputMockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault2' } });
-		expect(guiInstance.setVaultId).toHaveBeenCalledWith(false, 0, 'vault2');
+		expect(guiInstance.setVaultId).toHaveBeenCalledWith('output', 'test', 'vault2');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
