@@ -1,27 +1,19 @@
-const fs = require('fs');
-const { execSync } = require('child_process');
-const path = require('path');
+const fs = require("fs");
+const { execSync } = require("child_process");
 
-const packagePrefix = 'rain_orderbook_';
+const packagePrefix = "rain_orderbook_";
 const [package] = process.argv.slice(2);
-
-// Ensure output directories exist prior to running wasm-bindgen as it will not
-// create intermediary folders automatically.
-const outDirNode = path.join('temp', 'node', package);
-const outDirWeb = path.join('temp', 'web', package);
-require('fs').mkdirSync(outDirNode, { recursive: true });
-require('fs').mkdirSync(outDirWeb, { recursive: true });
 
 // generate node/web bindgens
 execSync(
-	`wasm-bindgen --target nodejs ../../target/wasm32-unknown-unknown/release/${
-		packagePrefix + package
-	}.wasm --out-dir ./temp/node/${package} --out-name ${package}`
+  `wasm-bindgen --target nodejs ../../target/wasm32-unknown-unknown/release/${
+    packagePrefix + package
+  }.wasm --out-dir ./temp/node/${package} --out-name ${package}`
 );
 execSync(
-	`wasm-bindgen --target web ../../target/wasm32-unknown-unknown/release/${
-		packagePrefix + package
-	}.wasm --out-dir ./temp/web/${package} --out-name ${package}`
+  `wasm-bindgen --target web ../../target/wasm32-unknown-unknown/release/${
+    packagePrefix + package
+  }.wasm --out-dir ./temp/web/${package} --out-name ${package}`
 );
 
 // encode wasm as base64 into a json for cjs and esm that can be natively imported
@@ -43,36 +35,36 @@ fs.writeFileSync(
 
 // prepare the dts
 let dts = fs.readFileSync(`./temp/node/${package}/${package}.d.ts`, {
-	encoding: 'utf-8'
+  encoding: "utf-8",
 });
 dts = dts.replace(
-	`/* tslint:disable */
+  `/* tslint:disable */
 /* eslint-disable */`,
-	''
+  ""
 );
-dts = '/* this file is auto-generated, do not modify */\n' + dts;
+dts = "/* this file is auto-generated, do not modify */\n" + dts;
 fs.writeFileSync(`./dist/cjs/index.d.ts`, dts);
 fs.writeFileSync(`./dist/esm/index.d.ts`, dts);
 
 // prepare cjs
 let cjs = fs.readFileSync(`./temp/node/${package}/${package}.js`, {
-	encoding: 'utf-8'
+  encoding: "utf-8",
 });
 cjs = cjs.replace(
-	`const path = require('path').join(__dirname, '${package}_bg.wasm');
+  `const path = require('path').join(__dirname, '${package}_bg.wasm');
 const bytes = require('fs').readFileSync(path);`,
-	`
+  `
 const { Buffer } = require('buffer');
 const wasmB64 = require('../cjs/orderbook_wbg.json');
 const bytes = Buffer.from(wasmB64.wasm, 'base64');`
 );
-cjs = cjs.replace('const { TextEncoder, TextDecoder } = require(`util`);', '');
-cjs = '/* this file is auto-generated, do not modify */\n' + cjs;
+cjs = cjs.replace("const { TextEncoder, TextDecoder } = require(`util`);", "");
+cjs = "/* this file is auto-generated, do not modify */\n" + cjs;
 fs.writeFileSync(`./dist/cjs/index.js`, cjs);
 
 // prepare esm
 let esm = fs.readFileSync(`./temp/web/${package}/${package}.js`, {
-	encoding: 'utf-8'
+  encoding: "utf-8",
 });
 esm = esm.replace(
   `export { initSync };
