@@ -37,9 +37,9 @@ pub enum FieldValueValidationCfg {
     },
     String {
         #[serde(skip_serializing_if = "Option::is_none")]
-        min_length: Option<u64>,
+        min_length: Option<u32>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        max_length: Option<u64>,
+        max_length: Option<u32>,
     },
     Boolean,
 }
@@ -962,24 +962,24 @@ fn parse_field_validation(
             min_length: yaml
                 .get(&StrictYaml::String("min-length".to_string()))
                 .and_then(|v| v.as_str())
-                .map(|s| s.parse::<u64>())
+                .map(|s| s.parse::<u32>())
                 .transpose()
                 .map_err(|_| YamlError::Field {
                     kind: FieldErrorKind::InvalidType {
                         field: "min-length".to_string(),
-                        expected: "a valid u64".to_string(),
+                        expected: "a valid number".to_string(),
                     },
                     location: location.to_string(),
                 })?,
             max_length: yaml
                 .get(&StrictYaml::String("max-length".to_string()))
                 .and_then(|v| v.as_str())
-                .map(|s| s.parse::<u64>())
+                .map(|s| s.parse::<u32>())
                 .transpose()
                 .map_err(|_| YamlError::Field {
                     kind: FieldErrorKind::InvalidType {
                         field: "max-length".to_string(),
-                        expected: "a valid u64".to_string(),
+                        expected: "a valid number".to_string(),
                     },
                     location: location.to_string(),
                 })?,
