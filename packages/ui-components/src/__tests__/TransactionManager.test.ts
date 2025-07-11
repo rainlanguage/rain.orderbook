@@ -134,10 +134,6 @@ describe('TransactionManager', () => {
 					queryKey: removeOrderMockArgs.queryKey,
 					toastLinks: [
 						{
-							link: `/orders/${removeOrderMockArgs.chainId}-${removeOrderMockArgs.entity.orderbook}-${removeOrderMockArgs.queryKey}`,
-							label: 'View Order'
-						},
-						{
 							link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
 							label: 'View on explorer'
 						}

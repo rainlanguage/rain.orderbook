@@ -136,7 +136,7 @@ gui:
 `;
 
 const dotrain = `
-version: 1
+version: 2
 networks:
     some-network:
         rpcs:
@@ -214,7 +214,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 1
+version: 2
 networks:
     some-network:
         rpcs:
@@ -285,7 +285,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 1
+version: 2
 networks:
     some-network:
         rpcs:
@@ -341,7 +341,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
-version: 1
+version: 2
 gui:
   name: Test
   description: Fixed limit order strategy
@@ -397,7 +397,8 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
-using-tokens-from: http://localhost:8085/remote-tokens
+using-tokens-from:
+  - http://localhost:8085/remote-tokens
 tokens:
     token1:
         network: remote-network
@@ -661,7 +662,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		it('should add deposit', async () => {
 			assert.equal(extractWasmEncodedData<boolean>(gui.hasAnyDeposit()), false);
 
-			gui.saveDeposit('token1', '50.6');
+			gui.setDeposit('token1', '50.6');
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 1);
 
@@ -674,8 +675,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should update deposit', async () => {
-			gui.saveDeposit('token1', '50.6');
-			gui.saveDeposit('token1', '100.6');
+			gui.setDeposit('token1', '50.6');
+			gui.setDeposit('token1', '100.6');
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 1);
 			assert.equal(deposits[0].amount, '100.6');
@@ -696,22 +697,29 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should remove deposit', async () => {
-			gui.saveDeposit('token1', '50.6');
+			gui.setDeposit('token1', '50.6');
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 1);
 
-			gui.removeDeposit('token1');
+			gui.unsetDeposit('token1');
 			const depositsAfterRemove = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(depositsAfterRemove.length, 0);
 
-			gui.saveDeposit('token1', '50.6');
+			gui.setDeposit('token1', '50.6');
 			assert.equal(extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits()).length, 1);
-			gui.saveDeposit('token1', '');
-			assert.equal(extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits()).length, 0);
 
-			assert.equal(stateUpdateCallback.mock.calls.length, 4);
+			assert.equal(stateUpdateCallback.mock.calls.length, 3);
 			expect(stateUpdateCallback).toHaveBeenCalledWith(
 				extractWasmEncodedData(gui.serializeState())
+			);
+		});
+
+		it('should throw error if deposit amount is empty', () => {
+			const result = gui.setDeposit('token1', '');
+			if (!result.error) expect.fail('Expected error');
+			expect(result.error.msg).toBe('Deposit amount cannot be an empty string');
+			expect(result.error.readableMsg).toBe(
+				'The deposit amount cannot be an empty string. Please set a valid amount.'
 			);
 		});
 
@@ -758,21 +766,21 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			const allFieldDefinitions = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
 				gui.getAllFieldDefinitions()
 			);
-			gui.saveFieldValue('binding-1', allFieldDefinitions[0].presets?.[0]?.value || '');
+			gui.setFieldValue('binding-1', allFieldDefinitions[0].presets?.[0]?.value || '');
 			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: allFieldDefinitions[0].presets?.[0]?.value || '',
 				is_preset: true
 			});
-			gui.saveFieldValue('binding-1', allFieldDefinitions[0].presets?.[1]?.value || '');
+			gui.setFieldValue('binding-1', allFieldDefinitions[0].presets?.[1]?.value || '');
 			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: allFieldDefinitions[0].presets?.[1]?.value || '',
 				is_preset: true
 			});
-			gui.saveFieldValue('binding-1', allFieldDefinitions[0].presets?.[2]?.value || '');
+			gui.setFieldValue('binding-1', allFieldDefinitions[0].presets?.[2]?.value || '');
 			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: allFieldDefinitions[0].presets?.[2]?.value || '',
 				is_preset: true
 			});
@@ -784,35 +792,35 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should save field value as custom values', async () => {
-			gui.saveFieldValues([
+			gui.setFieldValues([
 				{
-					binding: 'binding-1',
+					field: 'binding-1',
 					value: '0x1234567890abcdef1234567890abcdef12345678'
 				},
 				{
-					binding: 'binding-2',
+					field: 'binding-2',
 					value: '100'
 				}
 			]);
-			gui.saveFieldValues([
+			gui.setFieldValues([
 				{
-					binding: 'binding-1',
+					field: 'binding-1',
 					value: 'some-string'
 				},
 				{
-					binding: 'binding-2',
+					field: 'binding-2',
 					value: 'true'
 				}
 			]);
 			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 2);
 			assert.deepEqual(fieldValues[0], {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: 'some-string',
 				is_preset: true
 			});
 			assert.deepEqual(fieldValues[1], {
-				binding: 'binding-2',
+				field: 'binding-2',
 				value: 'true',
 				is_preset: false
 			});
@@ -824,7 +832,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should throw error during save if field binding is not found in field definitions', () => {
-			const result = gui.saveFieldValue('binding-3', '1');
+			const result = gui.setFieldValue('binding-3', '1');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Field binding not found: binding-3');
 			expect(result.error.readableMsg).toBe(
@@ -833,34 +841,34 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should get field value', async () => {
-			gui.saveFieldValue('binding-1', '0x1234567890abcdef1234567890abcdef12345678');
+			gui.setFieldValue('binding-1', '0x1234567890abcdef1234567890abcdef12345678');
 			let fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1'));
 			assert.deepEqual(fieldValue, {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: '0x1234567890abcdef1234567890abcdef12345678',
 				is_preset: true
 			});
 
-			gui.saveFieldValue('binding-2', 'true');
+			gui.setFieldValue('binding-2', 'true');
 			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-2'));
 			assert.deepEqual(fieldValue, {
-				binding: 'binding-2',
+				field: 'binding-2',
 				value: 'true',
 				is_preset: false
 			});
 
-			gui.saveFieldValue('binding-1', 'some-string');
+			gui.setFieldValue('binding-1', 'some-string');
 			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1'));
 			assert.deepEqual(fieldValue, {
-				binding: 'binding-1',
+				field: 'binding-1',
 				value: 'some-string',
 				is_preset: true
 			});
 
-			gui.saveFieldValue('binding-2', '100.5');
+			gui.setFieldValue('binding-2', '100.5');
 			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-2'));
 			assert.deepEqual(fieldValue, {
-				binding: 'binding-2',
+				field: 'binding-2',
 				value: '100.5',
 				is_preset: false
 			});
@@ -954,7 +962,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOu07DMBSG44KKhBgQYkVCYiUkcZSQVmVBipQJBizEVuXi4iSuHRKnEHgIRlZeoOIJWNl4HsSGImzaoK49g_9z-X3OB7Tf2JEqcCX0KGVJym6B7Jna9vJ0FtIa92SnryY8x8zSVGxKdcwTt2OBf5YNqZZprl7WrRRgxadYZ1jc8zJXgAdSiRDF0DAoj0NKeCWGnuk5RlnEel3Sp9YB2heo0z4K9mU6WRGgD7bkGLUMhxZQpKhLB7vVmlmfR1_zo8_R_P3Fefu-6cHBx2sM9v6xwgUrVNnSOtu2waJyXfdYpll2N46iWXCeXJFsMPHGsV0_oMfrJjkNKMH5ZRpavo2aC-if7co_XBBc6gkuKG-mmIkf-pUp41UCAAA=';
+			'H4sIAAAAAAAA_7WOTUvDMBjHmykTxIOIV0HwamybvljHPA6mYkUI4rXrsrU0S7o0dUw_hEevfoHhJ_Dqzc8j3qSYbOvYdc8h_-fln-f5AeM_9pRKUkjYS1k_ZUOgepaxuzx9imhJGqrT1BOeEWYbOraVetaZX7OguWVLqW1Z65fVKw1Y8BGBjMgJF5kGPFKaSJm3TJPyOKIJL2QrsALPFHkMS0FfKgeoXqBPd3D3UKWDNQGaYEeNccVwbANNiut0qF5tmPW1_TM7-W7PPt-8j9_HBrr4eo_BwQorWrAinS2tcxwHLCrf909VGnT48112k8LbyH3o3V9NYRieyzQTEe2WHI_d64EbYjLmk-HlvvrDZUIE7JOc8umIMPkHbEaANVUCAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -985,15 +993,15 @@ ${dotrain}`;
 			const result = await DotrainOrderGui.newWithDeployment(dotrain3, 'other-deployment');
 			gui = extractWasmEncodedData(result);
 
-			gui.saveFieldValue(
+			gui.setFieldValue(
 				'test-binding',
 				extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
 					.presets?.[0].value || ''
 			);
-			gui.saveDeposit('token1', '50.6');
-			gui.saveDeposit('token2', '100');
-			gui.removeSelectToken('token1');
-			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
+			gui.setDeposit('token1', '50.6');
+			gui.setDeposit('token2', '100');
+			gui.unsetSelectToken('token1');
+			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			gui.setVaultId(true, 0, '666');
 			gui.setVaultId(false, 0, '333');
 		});
@@ -1010,7 +1018,7 @@ ${dotrain}`;
 			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 1);
 			assert.deepEqual(fieldValues[0], {
-				binding: 'test-binding',
+				field: 'test-binding',
 				value: 'test-value',
 				is_preset: true
 			});
@@ -1165,7 +1173,7 @@ ${dotrain}`;
 					'0x0000000000000000000000000000000000000000000000000000000000000001'
 				);
 
-			gui.saveDeposit('token2', '200');
+			gui.setDeposit('token2', '200');
 
 			const allowances = extractWasmEncodedData<TokenAllowance[]>(
 				await gui.checkAllowances('0x1234567890abcdef1234567890abcdef12345678')
@@ -1183,8 +1191,8 @@ ${dotrain}`;
 					'0x00000000000000000000000000000000000000000000003635C9ADC5DEA00000'
 				);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			gui.setDeposit('token1', '1000');
+			gui.setDeposit('token2', '5000');
 
 			const result = extractWasmEncodedData<ApprovalCalldataResult>(
 				await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
@@ -1201,8 +1209,8 @@ ${dotrain}`;
 			);
 
 			// Test no deposits case
-			gui.removeDeposit('token1');
-			gui.removeDeposit('token2');
+			gui.unsetDeposit('token1');
+			gui.unsetDeposit('token2');
 			const emptyResult = extractWasmEncodedData<ApprovalCalldataResult>(
 				await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
 			);
@@ -1233,8 +1241,8 @@ ${dotrain}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			gui.setDeposit('token1', '1000');
+			gui.setDeposit('token2', '5000');
 
 			const result = extractWasmEncodedData<DepositCalldataResult>(
 				await gui.generateDepositCalldatas()
@@ -1249,8 +1257,8 @@ ${dotrain}`;
 			);
 
 			// Test no deposits case
-			gui.removeDeposit('token1');
-			gui.removeDeposit('token2');
+			gui.unsetDeposit('token1');
+			gui.unsetDeposit('token2');
 			const emptyResult = extractWasmEncodedData<DepositCalldataResult>(
 				await gui.generateDepositCalldatas()
 			);
@@ -1281,7 +1289,7 @@ ${dotrain}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveFieldValue('test-binding', '10');
+			gui.setFieldValue('test-binding', '10');
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
 			assert.equal(addOrderCalldata.length, 2314);
@@ -1353,10 +1361,10 @@ ${dotrain}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			gui.setDeposit('token1', '1000');
+			gui.setDeposit('token2', '5000');
 
-			gui.saveFieldValue('test-binding', '0xbeef');
+			gui.setFieldValue('test-binding', '0xbeef');
 
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
@@ -1395,11 +1403,11 @@ ${dotrain}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.removeFieldValue('test-binding');
+			gui.unsetFieldValue('test-binding');
 			assert.deepEqual(extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues()), []);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			gui.setDeposit('token1', '1000');
+			gui.setDeposit('token2', '5000');
 
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
@@ -1456,10 +1464,10 @@ ${dotrainWithoutVaultIds}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			gui.setDeposit('token1', '1000');
+			gui.setDeposit('token2', '5000');
 
-			gui.saveFieldValue('test-binding', '0');
+			gui.setFieldValue('test-binding', '0');
 
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
@@ -1555,8 +1563,8 @@ ${dotrainWithoutVaultIds}`;
 			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
 			const gui = extractWasmEncodedData(result);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			gui.setDeposit('token1', '1000');
+			gui.setDeposit('token2', '5000');
 
 			let result1 = await gui.generateAddOrderCalldata();
 			if (result1.error) {
@@ -1574,9 +1582,14 @@ ${dotrainWithoutVaultIds}`;
 				);
 			} else expect.fail('Expected error');
 
-			let missingFieldValues = extractWasmEncodedData<string[]>(gui.getMissingFieldValues());
+			let missingFieldValues = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+				gui.getMissingFieldValues()
+			);
 			assert.equal(missingFieldValues.length, 1);
-			assert.equal(missingFieldValues[0], 'Test binding');
+			assert.deepEqual(
+				missingFieldValues[0],
+				extractWasmEncodedData(gui.getFieldDefinition('test-binding'))
+			);
 		});
 
 		it('should set vault ids', async () => {
@@ -1690,8 +1703,8 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token1', '0');
-			gui.saveDeposit('token2', '0');
+			gui.setDeposit('token1', '0');
+			gui.setDeposit('token2', '0');
 			const calldatas = extractWasmEncodedData<DepositCalldataResult>(
 				await gui.generateDepositCalldatas()
 			);
@@ -1724,8 +1737,8 @@ ${dotrainWithoutVaultIds}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token2', '5000');
-			gui.saveFieldValue('test-binding', '10');
+			gui.setDeposit('token2', '5000');
+			gui.setFieldValue('test-binding', '10');
 
 			let result = extractWasmEncodedData<DeploymentTransactionArgs>(
 				await gui.getDeploymentTransactionArgs('0x1234567890abcdef1234567890abcdef12345678')
@@ -1741,7 +1754,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 
-			gui.removeDeposit('token2');
+			gui.unsetDeposit('token2');
 			result = extractWasmEncodedData<DeploymentTransactionArgs>(
 				await gui.getDeploymentTransactionArgs('0x1234567890abcdef1234567890abcdef12345678')
 			);
@@ -1794,7 +1807,7 @@ ${dotrainWithoutVaultIds}`;
 				0
 			);
 
-			const result = await testGui.saveSelectToken('token1', '0x1');
+			const result = await testGui.setSelectToken('token1', '0x1');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Select tokens not set');
 			expect(result.error.readableMsg).toBe(
@@ -1803,7 +1816,7 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should throw error if token not found', async () => {
-			const result = await gui.saveSelectToken('token3', '0x1');
+			const result = await gui.setSelectToken('token3', '0x1');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Token not found token3');
 			expect(result.error.readableMsg).toBe(
@@ -1846,8 +1859,8 @@ ${dotrainWithoutVaultIds}`;
 				"YAML configuration error: Missing required field 'tokens' in root"
 			);
 
-			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
-			await gui.saveSelectToken('token2', '0x8888888888888888888888888888888888888888');
+			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
+			await gui.setSelectToken('token2', '0x8888888888888888888888888888888888888888');
 
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token2')), true);
@@ -1887,7 +1900,7 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
+			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
 
 			let result = await gui.getTokenInfo('token1');
@@ -1896,7 +1909,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo1.symbol, 'T1');
 			assert.equal(tokenInfo1.decimals, 6);
 
-			await gui.saveSelectToken('token1', '0x8888888888888888888888888888888888888888');
+			await gui.setSelectToken('token1', '0x8888888888888888888888888888888888888888');
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
 
 			result = await gui.getTokenInfo('token1');
@@ -1940,7 +1953,7 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
+			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
 
 			const tokenInfo = extractWasmEncodedData<TokenInfo>(await gui.getTokenInfo('token1'));
@@ -1948,7 +1961,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo.symbol, 'T1');
 			assert.equal(tokenInfo.decimals, 6);
 
-			gui.removeSelectToken('token1');
+			gui.unsetSelectToken('token1');
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), false);
 
 			let result1 = await gui.getTokenInfo('token1');
@@ -1980,8 +1993,8 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
-			await gui.saveSelectToken('token2', '0x8888888888888888888888888888888888888888');
+			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
+			await gui.setSelectToken('token2', '0x8888888888888888888888888888888888888888');
 
 			const allTokens = extractWasmEncodedData<TokenInfo[]>(await gui.getAllTokens());
 			assert.equal(allTokens.length, 2);
