@@ -34,13 +34,25 @@
 				? allLabel
 				: `${selectedCount} token${selectedCount > 1 ? 's' : ''}`;
 
-	// Filter tokens based on search term
+	// Filter tokens based on search term and remove duplicates
 	$: {
+		let tokensToFilter = availableTokens;
+		// Remove duplicates by address and chain
+		const getKey = (token: RaindexVaultToken) => `${token.address}-${token.chainId}`;
+		const uniqueTokensMap = new Map<string, RaindexVaultToken>();
+		tokensToFilter.forEach((token) => {
+			const key = getKey(token);
+			if (token.address && !uniqueTokensMap.has(key)) {
+				uniqueTokensMap.set(key, token);
+			}
+		});
+		const uniqueTokens = Array.from(uniqueTokensMap.values());
+
 		if (searchTerm.trim() === '') {
-			filteredTokens = availableTokens;
+			filteredTokens = uniqueTokens;
 		} else {
 			const term = searchTerm.toLowerCase();
-			filteredTokens = availableTokens.filter(
+			filteredTokens = uniqueTokens.filter(
 				(token) =>
 					token.symbol?.toLowerCase().includes(term) ||
 					token.name?.toLowerCase().includes(term) ||
