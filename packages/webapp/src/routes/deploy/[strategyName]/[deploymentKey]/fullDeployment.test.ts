@@ -200,11 +200,11 @@ describe('Full Deployment Tests', () => {
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitStrategy, 'flare'))
 					.value as DotrainOrderGui;
-				await gui.saveSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
-				await gui.saveSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
 				gui.setVaultId(false, 0, '0x123');
 				gui.setVaultId(true, 0, '0x234');
-				gui.saveFieldValue('fixed-io', '10');
+				gui.setFieldValue('fixed-io', '10');
 				const args = await gui.getDeploymentTransactionArgs(
 					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
 				);
@@ -344,16 +344,16 @@ describe('Full Deployment Tests', () => {
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(auctionStrategy, 'flare'))
 					.value as DotrainOrderGui;
-				await gui.saveSelectToken('input', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
-				await gui.saveSelectToken('output', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+				await gui.setSelectToken('input', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+				await gui.setSelectToken('output', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
 				gui.setVaultId(false, 0, '0x123');
 				gui.setVaultId(true, 0, '0x234');
-				gui.saveFieldValue('time-per-amount-epoch', '60');
-				gui.saveFieldValue('amount-per-epoch', '10');
-				gui.saveFieldValue('max-trade-amount', '100');
-				gui.saveFieldValue('min-trade-amount', '1');
-				gui.saveFieldValue('baseline', '10');
-				gui.saveFieldValue('initial-io', '10');
+				gui.setFieldValue('time-per-amount-epoch', '60');
+				gui.setFieldValue('amount-per-epoch', '10');
+				gui.setFieldValue('max-trade-amount', '100');
+				gui.setFieldValue('min-trade-amount', '1');
+				gui.setFieldValue('baseline', '10');
+				gui.setFieldValue('initial-io', '10');
 				const args = await gui.getDeploymentTransactionArgs(
 					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
 				);
@@ -482,15 +482,15 @@ describe('Full Deployment Tests', () => {
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(dynamicSpreadStrategy, 'flare'))
 					.value as DotrainOrderGui;
-				await gui.saveSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
-				await gui.saveSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
 				gui.setVaultId(false, 0, '0x123');
 				gui.setVaultId(true, 0, '0x234');
-				gui.saveFieldValue('amount-is-fast-exit', '1');
-				gui.saveFieldValue('not-amount-is-fast-exit', '0');
-				gui.saveFieldValue('initial-io', '100');
-				gui.saveFieldValue('max-amount', '1000');
-				gui.saveFieldValue('min-amount', '10');
+				gui.setFieldValue('amount-is-fast-exit', '1');
+				gui.setFieldValue('not-amount-is-fast-exit', '0');
+				gui.setFieldValue('initial-io', '100');
+				gui.setFieldValue('max-amount', '1000');
+				gui.setFieldValue('min-amount', '10');
 				const args = await gui.getDeploymentTransactionArgs(
 					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
 				);

@@ -616,6 +616,8 @@ pub enum GuiError {
     DepositNotSet(String),
     #[error("Missing deposit token for current deployment: {0}")]
     MissingDepositToken(String),
+    #[error("Deposit amount cannot be an empty string")]
+    DepositAmountCannotBeEmpty,
     #[error("Orderbook not found")]
     OrderbookNotFound,
     #[error("Order not found: {0}")]
@@ -699,6 +701,8 @@ impl GuiError {
                 format!("A deposit for token '{}' is required but has not been set.", token),
             GuiError::MissingDepositToken(deployment) =>
                 format!("A deposit for token is required but has not been set for deployment '{}'.", deployment),
+            GuiError::DepositAmountCannotBeEmpty =>
+                "The deposit amount cannot be an empty string. Please set a valid amount.".to_string(),
             GuiError::OrderbookNotFound =>
                 "The orderbook configuration could not be found. Please check your YAML configuration.".to_string(),
             GuiError::OrderNotFound(order) =>
@@ -1761,7 +1765,7 @@ networks:
                 "YAML configuration error: Missing required field 'tokens' in root"
             );
 
-            gui.save_select_token(
+            gui.set_select_token(
                 "token3".to_string(),
                 "0x0000000000000000000000000000000000000001".to_string(),
             )

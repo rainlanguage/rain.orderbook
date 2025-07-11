@@ -9,9 +9,9 @@ import { useGui } from '$lib/hooks/useGui';
 type SelectTokenComponentProps = ComponentProps<SelectToken>;
 
 const mockGui: DotrainOrderGui = {
-	saveSelectToken: vi.fn(),
+	setSelectToken: vi.fn(),
 	isSelectTokenSet: vi.fn(),
-	removeSelectToken: vi.fn(),
+	unsetSelectToken: vi.fn(),
 	getTokenInfo: vi.fn().mockResolvedValue({
 		value: {
 			name: 'Ethereum',
@@ -57,7 +57,7 @@ describe('SelectToken', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		mockGui.saveSelectToken = vi.fn().mockImplementation(() => {
+		mockGui.setSelectToken = vi.fn().mockImplementation(() => {
 			mockStateUpdateCallback();
 			return Promise.resolve();
 		});
@@ -75,7 +75,7 @@ describe('SelectToken', () => {
 		expect(getByText('Select a token...')).toBeInTheDocument();
 	});
 
-	it('calls saveSelectToken and updates token info when custom input changes', async () => {
+	it('calls setSelectToken and updates token info when input changes', async () => {
 		const user = userEvent.setup();
 		const mockGuiWithNoToken = {
 			...mockGui,
@@ -97,7 +97,7 @@ describe('SelectToken', () => {
 		await user.paste('0x456');
 
 		await waitFor(() => {
-			expect(mockGuiWithNoToken.saveSelectToken).toHaveBeenCalledWith('input', '0x456');
+			expect(mockGuiWithNoToken.setSelectToken).toHaveBeenCalledWith('input', '0x456');
 		});
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
@@ -106,7 +106,7 @@ describe('SelectToken', () => {
 		const user = userEvent.setup();
 		const mockGuiWithError = {
 			...mockGui,
-			saveSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
+			setSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
 		} as unknown as DotrainOrderGui;
 
 		(useGui as Mock).mockReturnValue(mockGuiWithError);
@@ -142,7 +142,7 @@ describe('SelectToken', () => {
 		}
 
 		await waitFor(() => {
-			expect(input).toBeInTheDocument();
+			expect(mockGui.setSelectToken).not.toHaveBeenCalled();
 		});
 	});
 
@@ -167,7 +167,7 @@ describe('SelectToken', () => {
 		await userEvent.clear(input);
 		await user.paste('invalid');
 		await waitFor(() => {
-			expect(mockGuiWithTokenSet.saveSelectToken).toHaveBeenCalled();
+			expect(mockGuiWithTokenSet.setSelectToken).toHaveBeenCalled();
 			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 		});
 	});
@@ -289,7 +289,7 @@ describe('SelectToken', () => {
 			const customInput = screen.getByPlaceholderText('Enter token address (0x...)');
 			expect(customInput).toHaveValue('');
 
-			expect(mockGuiNoToken.removeSelectToken).toHaveBeenCalledWith('input');
+			expect(mockGuiNoToken.unsetSelectToken).toHaveBeenCalledWith('input');
 		});
 
 		it('clears state when switching from custom to dropdown mode', async () => {
@@ -305,7 +305,7 @@ describe('SelectToken', () => {
 			const dropdownButton = screen.getByTestId('dropdown-mode-button');
 			await user.click(dropdownButton);
 
-			expect(mockGui.removeSelectToken).toHaveBeenCalledWith('input');
+			expect(mockGui.unsetSelectToken).toHaveBeenCalledWith('input');
 		});
 
 		it('handles token selection from dropdown', async () => {
@@ -341,7 +341,7 @@ describe('SelectToken', () => {
 			const secondToken = screen.getByText('Test Token 2');
 			await user.click(secondToken);
 
-			expect(mockGuiNoToken.saveSelectToken).toHaveBeenCalledWith('input', '0x789');
+			expect(mockGuiNoToken.setSelectToken).toHaveBeenCalledWith('input', '0x789');
 		});
 
 		it('shows loading state when tokens are loading', () => {

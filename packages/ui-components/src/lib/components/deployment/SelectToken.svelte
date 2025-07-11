@@ -100,7 +100,7 @@
 		checking = true;
 		error = '';
 		try {
-			await gui.saveSelectToken(token.key, address);
+			await gui.setSelectToken(token.key, address);
 			await getInfoForSelectedToken();
 		} catch (e) {
 			const errorMessage = (e as Error).message || 'Invalid token address.';
@@ -112,7 +112,7 @@
 	}
 
 	function clearTokenSelection() {
-		gui.removeSelectToken(token.key);
+		gui.unsetSelectToken(token.key);
 		onSelectTokenSelect();
 	}
 

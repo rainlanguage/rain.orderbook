@@ -739,7 +739,7 @@ mod tests {
             DepositCalldataResult::NoDeposits => {}
         }
 
-        gui.save_deposit("token1".to_string(), "1200".to_string())
+        gui.set_deposit("token1".to_string(), "1200".to_string())
             .unwrap();
 
         let res = gui.generate_deposit_calldatas().await.unwrap();
@@ -753,7 +753,7 @@ mod tests {
             }
         }
 
-        gui.save_deposit("token1".to_string(), "0".to_string())
+        gui.set_deposit("token1".to_string(), "0".to_string())
             .unwrap();
 
         let res = gui.generate_deposit_calldatas().await.unwrap();
@@ -894,9 +894,9 @@ mod tests {
             .bindings
             .contains_key("binding-2"));
 
-        gui.save_field_value("binding-1".to_string(), "100".to_string())
+        gui.set_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();
-        gui.save_field_value("binding-2".to_string(), "200".to_string())
+        gui.set_field_value("binding-2".to_string(), "200".to_string())
             .unwrap();
         gui.update_scenario_bindings().unwrap();
 
