@@ -1621,24 +1621,24 @@ ${dotrainWithoutVaultIds}`;
 
 			assert.equal(extractWasmEncodedData<boolean>(gui.hasAnyVaultId()), false);
 
-			gui.setVaultId('input', "token1", '0x123');
+			gui.setVaultId('input', 'token1', '0x123');
 
 			assert.equal(extractWasmEncodedData<boolean>(gui.hasAnyVaultId()), true);
 
 			assert.equal(
-				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds()).get(
-					'input'
-				)?.get('token1'),
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds())
+					.get('input')
+					?.get('token1'),
 				'0x123'
 			);
 			assert.equal(
-				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds()).get(
-					'output'
-				)?.get('token2'),
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds())
+					.get('output')
+					?.get('token2'),
 				undefined
 			);
 
-			gui.setVaultId('output', "token2", '0x234');
+			gui.setVaultId('output', 'token2', '0x234');
 
 			const newCurrentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1656,17 +1656,17 @@ ${dotrainWithoutVaultIds}`;
 
 			gui.setVaultId('input', 'token1', undefined);
 			assert.equal(
-				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds()).get(
-					'input'
-				)?.get('token1'),
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds())
+					.get('input')
+					?.get('token1'),
 				undefined
 			);
 
 			gui.setVaultId('output', 'token2', '');
 			assert.equal(
-				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds()).get(
-					'output'
-				)?.get('token2'),
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds())
+					.get('output')
+					?.get('token2'),
 				undefined
 			);
 

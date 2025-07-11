@@ -16,7 +16,7 @@
 
 	onMount(() => {
 		if (!vault.token?.key) return;
-		
+
 		const result = gui.getVaultIds();
 		if (result.error) {
 			error = result.error.msg;
