@@ -54,10 +54,10 @@
 		}
 	};
 
-	function handlePresetClick(preset: string) {
+	async function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
 			inputValue = preset;
-			gui.saveDeposit(deposit.token?.key, preset);
+			await gui.saveDeposit(deposit.token?.key, preset);
 
 			try {
 				currentDeposit = getCurrentDeposit();
@@ -67,11 +67,11 @@
 		}
 	}
 
-	function handleInput(e: Event) {
+	async function handleInput(e: Event) {
 		if (deposit.token?.key) {
 			if (e.currentTarget instanceof HTMLInputElement) {
 				inputValue = e.currentTarget.value;
-				gui.saveDeposit(deposit.token.key, e.currentTarget.value);
+				await gui.saveDeposit(deposit.token.key, e.currentTarget.value);
 				try {
 					currentDeposit = getCurrentDeposit();
 				} catch (e) {

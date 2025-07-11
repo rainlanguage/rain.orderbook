@@ -662,7 +662,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		it('should add deposit', async () => {
 			assert.equal(extractWasmEncodedData<boolean>(gui.hasAnyDeposit()), false);
 
-			gui.saveDeposit('token1', '50.6');
+			await gui.saveDeposit('token1', '50.6');
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 1);
 
@@ -675,8 +675,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should update deposit', async () => {
-			gui.saveDeposit('token1', '50.6');
-			gui.saveDeposit('token1', '100.6');
+			await gui.saveDeposit('token1', '50.6');
+			await gui.saveDeposit('token1', '100.6');
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 1);
 			assert.equal(deposits[0].amount, '100.6');
@@ -697,7 +697,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should remove deposit', async () => {
-			gui.saveDeposit('token1', '50.6');
+			await gui.saveDeposit('token1', '50.6');
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 1);
 
@@ -705,9 +705,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			const depositsAfterRemove = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(depositsAfterRemove.length, 0);
 
-			gui.saveDeposit('token1', '50.6');
+			await gui.saveDeposit('token1', '50.6');
 			assert.equal(extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits()).length, 1);
-			gui.saveDeposit('token1', '');
+			await gui.saveDeposit('token1', '');
 			assert.equal(extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits()).length, 0);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
@@ -991,8 +991,8 @@ ${dotrain}`;
 				extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
 					.presets?.[0].value || ''
 			);
-			gui.saveDeposit('token1', '50.6');
-			gui.saveDeposit('token2', '100');
+			await gui.saveDeposit('token1', '50.6');
+			await gui.saveDeposit('token2', '100');
 			gui.removeSelectToken('token1');
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			gui.setVaultId(true, 0, '666');
@@ -1166,7 +1166,7 @@ ${dotrain}`;
 					'0x0000000000000000000000000000000000000000000000000000000000000001'
 				);
 
-			gui.saveDeposit('token2', '200');
+			await gui.saveDeposit('token2', '200');
 
 			const allowances = extractWasmEncodedData<TokenAllowance[]>(
 				await gui.checkAllowances('0x1234567890abcdef1234567890abcdef12345678')
@@ -1184,8 +1184,8 @@ ${dotrain}`;
 					'0x00000000000000000000000000000000000000000000003635C9ADC5DEA00000'
 				);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			await gui.saveDeposit('token1', '1000');
+			await gui.saveDeposit('token2', '5000');
 
 			const result = extractWasmEncodedData<ApprovalCalldataResult>(
 				await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
@@ -1234,8 +1234,8 @@ ${dotrain}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			await gui.saveDeposit('token1', '1000');
+			await gui.saveDeposit('token2', '5000');
 
 			const result = extractWasmEncodedData<DepositCalldataResult>(
 				await gui.generateDepositCalldatas()
@@ -1354,8 +1354,8 @@ ${dotrain}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			await gui.saveDeposit('token1', '1000');
+			await gui.saveDeposit('token2', '5000');
 
 			gui.saveFieldValue('test-binding', '0xbeef');
 
@@ -1399,8 +1399,8 @@ ${dotrain}`;
 			gui.removeFieldValue('test-binding');
 			assert.deepEqual(extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues()), []);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			await gui.saveDeposit('token1', '1000');
+			await gui.saveDeposit('token2', '5000');
 
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
@@ -1457,8 +1457,8 @@ ${dotrainWithoutVaultIds}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			await gui.saveDeposit('token1', '1000');
+			await gui.saveDeposit('token2', '5000');
 
 			gui.saveFieldValue('test-binding', '0');
 
@@ -1556,8 +1556,8 @@ ${dotrainWithoutVaultIds}`;
 			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
 			const gui = extractWasmEncodedData(result);
 
-			gui.saveDeposit('token1', '1000');
-			gui.saveDeposit('token2', '5000');
+			await gui.saveDeposit('token1', '1000');
+			await gui.saveDeposit('token2', '5000');
 
 			let result1 = await gui.generateAddOrderCalldata();
 			if (result1.error) {
@@ -1691,8 +1691,8 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token1', '0');
-			gui.saveDeposit('token2', '0');
+			await gui.saveDeposit('token1', '0');
+			await gui.saveDeposit('token2', '0');
 			const calldatas = extractWasmEncodedData<DepositCalldataResult>(
 				await gui.generateDepositCalldatas()
 			);
@@ -1725,7 +1725,7 @@ ${dotrainWithoutVaultIds}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveDeposit('token2', '5000');
+			await gui.saveDeposit('token2', '5000');
 			gui.saveFieldValue('test-binding', '10');
 
 			let result = extractWasmEncodedData<DeploymentTransactionArgs>(

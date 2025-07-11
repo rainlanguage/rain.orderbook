@@ -121,7 +121,7 @@ impl DotrainOrderGui {
     ///
     /// ```javascript
     /// // Save a custom deposit amount
-    /// const result = gui.saveDeposit("usdc", "1000.50");
+    /// const result = await gui.saveDeposit("usdc", "1000.50");
     /// if (result.error) {
     ///   console.error("Deposit error:", result.error.readableMsg);
     ///   return;
