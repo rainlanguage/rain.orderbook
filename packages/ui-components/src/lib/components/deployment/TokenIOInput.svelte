@@ -7,7 +7,6 @@
 
 	const gui = useGui();
 
-	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIOCfg;
 
@@ -16,16 +15,18 @@
 	let error: string = '';
 
 	onMount(() => {
+		if (!vault.token?.key) return;
+		
 		const result = gui.getVaultIds();
 		if (result.error) {
 			error = result.error.msg;
 			return;
 		}
 		const vaultIds = result.value;
-		if (label === 'Input') {
-			inputValue = vaultIds.get('input')?.[i] as unknown as string;
-		} else if (label === 'Output') {
-			inputValue = vaultIds.get('output')?.[i] as unknown as string;
+		const vaultMap = vaultIds.get(label.toLowerCase());
+		if (vaultMap) {
+			const vaultId = vaultMap.get(vault.token.key);
+			inputValue = vaultId || '';
 		}
 	});
 
@@ -67,8 +68,8 @@
 
 <div class="flex w-full flex-col gap-6">
 	<DeploymentSectionHeader
-		title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
-		description={`${tokenInfo?.symbol} vault ID`}
+		title={`${label} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
+		description={`${tokenInfo?.symbol || 'Token'} vault ID`}
 	/>
 	<div class="flex flex-col gap-2">
 		<Input

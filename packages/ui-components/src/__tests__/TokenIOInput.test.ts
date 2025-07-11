@@ -53,8 +53,8 @@ describe('TokenInput', () => {
 			}),
 			getVaultIds: vi.fn().mockReturnValue({
 				value: new Map([
-					['input', ['vault1']],
-					['output', ['vault2']]
+					['input', new Map([['test', 'vault1']])],
+					['output', new Map([['test', 'vault2']])]
 				])
 			})
 		} as unknown as DotrainOrderGui;
@@ -64,12 +64,10 @@ describe('TokenInput', () => {
 		(useGui as Mock).mockReturnValue(guiInstance);
 
 		mockProps = {
-			i: 0,
 			label: 'Input',
 			vault: mockInput
 		} as unknown as TokenIOInputComponentProps;
 		outputMockProps = {
-			i: 0,
 			label: 'Output',
 			vault: mockInput
 		} as unknown as TokenIOInputComponentProps;
@@ -77,7 +75,7 @@ describe('TokenInput', () => {
 
 	it('renders with correct label and no token symbol', () => {
 		const { getByText } = render(TokenIOInput, mockProps);
-		expect(getByText('Input 1')).toBeInTheDocument();
+		expect(getByText('Input')).toBeInTheDocument();
 	});
 
 	it('renders input field with correct placeholder', () => {
@@ -116,7 +114,7 @@ describe('TokenInput', () => {
 			TokenIOInput,
 			propsWithUnknownToken as unknown as TokenIOInputComponentProps
 		);
-		expect(getByText('Input 1')).toBeInTheDocument();
+		expect(getByText('Input')).toBeInTheDocument();
 	});
 
 	it('fetches and displays token symbol when token key is present', async () => {
@@ -131,7 +129,7 @@ describe('TokenInput', () => {
 
 		const { findByText } = render(TokenIOInput, propsWithTokenKey);
 
-		const labelWithSymbol = await findByText('Input 1 (MOCK)');
+		const labelWithSymbol = await findByText('Input (MOCK)');
 		expect(labelWithSymbol).toBeInTheDocument();
 		expect(guiInstance.getTokenInfo).toHaveBeenCalledWith('0x456');
 	});

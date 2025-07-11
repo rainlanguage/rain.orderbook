@@ -1626,15 +1626,15 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(extractWasmEncodedData<boolean>(gui.hasAnyVaultId()), true);
 
 			assert.equal(
-				extractWasmEncodedData<Map<string, (string | undefined)[]>>(gui.getVaultIds()).get(
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds()).get(
 					'input'
-				)?.[0],
+				)?.get('token1'),
 				'0x123'
 			);
 			assert.equal(
-				extractWasmEncodedData<Map<string, (string | undefined)[]>>(gui.getVaultIds()).get(
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds()).get(
 					'output'
-				)?.[0],
+				)?.get('token2'),
 				undefined
 			);
 
@@ -1648,25 +1648,25 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123');
 			assert.equal(newCurrentDeployment.deployment.order.outputs[0].vaultId, '0x234');
 
-			const vaultIds = extractWasmEncodedData<Map<string, (string | undefined)[]>>(
+			const vaultIds = extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(
 				gui.getVaultIds()
 			);
-			assert.equal(vaultIds.get('input')?.[0], '0x123');
-			assert.equal(vaultIds.get('output')?.[0], '0x234');
+			assert.equal(vaultIds.get('input')?.get('token1'), '0x123');
+			assert.equal(vaultIds.get('output')?.get('token2'), '0x234');
 
 			gui.setVaultId('input', 'token1', undefined);
 			assert.equal(
-				extractWasmEncodedData<Map<string, (string | undefined)[]>>(gui.getVaultIds()).get(
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds()).get(
 					'input'
-				)?.[0],
+				)?.get('token1'),
 				undefined
 			);
 
 			gui.setVaultId('output', 'token2', '');
 			assert.equal(
-				extractWasmEncodedData<Map<string, (string | undefined)[]>>(gui.getVaultIds()).get(
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds()).get(
 					'output'
-				)?.[0],
+				)?.get('token2'),
 				undefined
 			);
 
