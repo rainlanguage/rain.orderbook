@@ -24,17 +24,17 @@ pub enum ReadProviderError {
     NoRpcs,
 }
 
-// TODO: FallbackLayer breaks WASM for some reason. we should file a fix upstream
-#[cfg(target_family = "wasm")]
-pub fn mk_read_provider(rpcs: &[Url]) -> Result<ReadProvider, ReadProviderError> {
-    let rpc = rpcs.first().ok_or(ReadProviderError::NoRpcs)?;
-    let transport = Http::new(rpc.to_owned());
-    let client = RpcClient::builder().transport(transport, false);
-    let provider = ProviderBuilder::new_with_network::<AnyNetwork>().connect_client(client);
-    Ok(provider)
-}
+// // TODO: FallbackLayer breaks WASM for some reason. we should file a fix upstream
+// #[cfg(target_family = "wasm")]
+// pub fn mk_read_provider(rpcs: &[Url]) -> Result<ReadProvider, ReadProviderError> {
+//     let rpc = rpcs.first().ok_or(ReadProviderError::NoRpcs)?;
+//     let transport = Http::new(rpc.to_owned());
+//     let client = RpcClient::builder().transport(transport, false);
+//     let provider = ProviderBuilder::new_with_network::<AnyNetwork>().connect_client(client);
+//     Ok(provider)
+// }
 
-#[cfg(not(target_family = "wasm"))]
+// #[cfg(not(target_family = "wasm"))]
 pub fn mk_read_provider(rpcs: &[Url]) -> Result<ReadProvider, ReadProviderError> {
     let size = rpcs.len();
 
