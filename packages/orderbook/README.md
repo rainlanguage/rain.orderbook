@@ -138,8 +138,8 @@ const filteredOrders = filteredResult.value;
 // - id: unique identifier
 // - orderHash: the keccak256 hash of the order
 // - owner: address that deployed the order
-// - inputs: vaults that are sold
-// - outputs: vaults that are bought
+// - inputs: vaults for tokens that can be sold by the order
+// - outputs: vaults for tokens that can be bought by the order
 // - vaults: all the vaults combined from inputs and outputs
 // More details can be found in the RaindexOrder class documentation
 ```
@@ -263,7 +263,12 @@ const balanceChanges = await vault.getBalanceChanges(); // RaindexVaultBalanceCh
 import { parseUnits } from 'viem';
 
 // Get the vault using the raindex client
-const vault = await raindexClient.getVault(14, "0x59401C93239a3D8956C7881f0dB45B5727241872", "0x01");
+const result = await raindexClient.getVault(14, "0x59401C93239a3D8956C7881f0dB45B5727241872", "0x01");
+if (result.error) {
+  console.error("Failed to get vault:", result.error.readableMsg);
+  return;
+}
+const vault = result.value; // RaindexVault instance
 
 // Get calldata to deposit tokens into this vault
 const depositAmount = parseUnits("10.5", 6); // 10.5 USDC with 6 decimals = "10500000"
