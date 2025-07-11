@@ -144,6 +144,7 @@ describe('DeploymentSteps', () => {
 			}),
 			isSelectTokenSet: vi.fn().mockReturnValue({ value: false }),
 			setSelectToken: vi.fn(),
+			unsetSelectToken: vi.fn(),
 			getDeploymentTransactionArgs: vi.fn()
 		} as unknown as DotrainOrderGui;
 
