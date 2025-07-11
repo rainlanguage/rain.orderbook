@@ -1081,7 +1081,36 @@ gui:
           description: Field without any validation
           
       deposits:
+        # Deposit with minimum amount validation
         - token: token1
+          validation:
+            minimum: "100"
+        
+        # Deposit with maximum amount validation
+        - token: token2
+          validation:
+            maximum: "10000"
+        
+        # Deposit with exclusive bounds
+        - token: token3
+          validation:
+            exclusive-minimum: "0"
+            exclusive-maximum: "50000"
+        
+        # Deposit with all constraints
+        - token: token4
+          validation:
+            minimum: "10"
+            maximum: "1000"
+            multiple-of: "5"
+        
+        # Deposit with multiple-of constraint only
+        - token: token5
+          validation:
+            multiple-of: "0.1"
+        
+        # Deposit without validation
+        - token: token6
 networks:
     test-network:
         rpcs:
@@ -1107,6 +1136,36 @@ tokens:
         decimals: 6
         label: Token 1
         symbol: T1
+    token2:
+        network: test-network
+        address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+        decimals: 6
+        label: Token 2
+        symbol: T2
+    token3:
+        network: test-network
+        address: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+        decimals: 6
+        label: Token 3
+        symbol: T3
+    token4:
+        network: test-network
+        address: 0x6B175474E89094C44Da98b954EedeAC495271d0F
+        decimals: 18
+        label: Token 4
+        symbol: T4
+    token5:
+        network: test-network
+        address: 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+        decimals: 18
+        label: Token 5
+        symbol: T5
+    token6:
+        network: test-network
+        address: 0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39
+        decimals: 8
+        label: Token 6
+        symbol: T6
 scenarios:
     test-scenario:
         deployer: test-deployer
