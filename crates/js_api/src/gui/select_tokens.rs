@@ -126,7 +126,7 @@ impl DotrainOrderGui {
     ///
     /// ```javascript
     /// // User selects token
-    /// const result = await gui.saveSelectToken(
+    /// const result = await gui.setSelectToken(
     ///   "stable-token",
     ///   "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
     /// );
@@ -137,8 +137,8 @@ impl DotrainOrderGui {
     /// }
     /// // Do something with the token
     /// ```
-    #[wasm_export(js_name = "saveSelectToken", unchecked_return_type = "void")]
-    pub async fn save_select_token(
+    #[wasm_export(js_name = "setSelectToken", unchecked_return_type = "void")]
+    pub async fn set_select_token(
         &mut self,
         #[wasm_export(param_description = "Token key from select-tokens configuration")]
         key: String,
@@ -197,14 +197,14 @@ impl DotrainOrderGui {
     ///
     /// ```javascript
     /// // Remove token selection
-    /// const result = gui.removeSelectToken("stable-token");
+    /// const result = gui.unsetSelectToken("stable-token");
     /// if (result.error) {
     ///   console.error("Remove failed:", result.error.readableMsg);
     ///   return;
     /// }
     /// ```
-    #[wasm_export(js_name = "removeSelectToken", unchecked_return_type = "void")]
-    pub fn remove_select_token(
+    #[wasm_export(js_name = "unsetSelectToken", unchecked_return_type = "void")]
+    pub fn unset_select_token(
         &mut self,
         #[wasm_export(param_description = "Token key to clear")] key: String,
     ) -> Result<(), GuiError> {
@@ -435,10 +435,10 @@ mod tests {
         }
 
         #[wasm_bindgen_test]
-        async fn test_save_select_token() {
+        async fn test_set_select_token() {
             let mut gui = initialize_gui_with_select_tokens().await;
             let err = gui
-                .save_select_token(
+                .set_select_token(
                     "token5".to_string(),
                     "0x0000000000000000000000000000000000000001".to_string(),
                 )
@@ -466,7 +466,7 @@ mod tests {
                 "T3".to_string(),
             );
 
-            let err = gui.remove_select_token("token5".to_string()).unwrap_err();
+            let err = gui.unset_select_token("token5".to_string()).unwrap_err();
             assert_eq!(
                 err.to_string(),
                 GuiError::TokenNotFound("token5".to_string()).to_string()
@@ -476,11 +476,11 @@ mod tests {
                 "The token 'token5' could not be found in the YAML configuration."
             );
 
-            assert!(gui.remove_select_token("token3".to_string()).is_ok());
+            assert!(gui.unset_select_token("token3".to_string()).is_ok());
             assert!(!gui.is_select_token_set("token3".to_string()).unwrap());
 
             let mut gui = initialize_gui(None).await;
-            let err = gui.remove_select_token("token3".to_string()).unwrap_err();
+            let err = gui.unset_select_token("token3".to_string()).unwrap_err();
             assert_eq!(err.to_string(), GuiError::SelectTokensNotSet.to_string());
             assert_eq!(
                 err.to_readable_msg(),
@@ -585,7 +585,7 @@ mod tests {
         use std::str::FromStr;
 
         #[tokio::test]
-        async fn test_save_select_token() {
+        async fn test_set_select_token() {
             let server = MockServer::start_async().await;
             let yaml = format!(
                 r#"
@@ -700,7 +700,7 @@ _ _: 0 0;
             assert_eq!(deployment.deployment.order.inputs[0].token, None);
             assert_eq!(deployment.deployment.order.outputs[0].token, None);
 
-            gui.save_select_token(
+            gui.set_select_token(
                 "token3".to_string(),
                 "0x0000000000000000000000000000000000000001".to_string(),
             )
@@ -722,7 +722,7 @@ _ _: 0 0;
             assert_eq!(token.symbol, Some("T1".to_string()));
 
             let err = gui
-                .save_select_token(
+                .set_select_token(
                     "token4".to_string(),
                     "0x0000000000000000000000000000000000000002".to_string(),
                 )
@@ -746,7 +746,7 @@ _ _: 0 0;
             .unwrap();
 
             let err = gui
-                .save_select_token(
+                .set_select_token(
                     "token3".to_string(),
                     "0x0000000000000000000000000000000000000002".to_string(),
                 )

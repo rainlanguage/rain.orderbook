@@ -35,7 +35,7 @@ describe('FieldDefinitionInput', () => {
 
 		guiInstance = {
 			getFieldValue: vi.fn().mockReturnValue({}),
-			saveFieldValue: vi.fn().mockImplementation(() => {
+			setFieldValue: vi.fn().mockImplementation(() => {
 				mockStateUpdateCallback();
 			})
 		} as unknown as DotrainOrderGui;
@@ -74,7 +74,7 @@ describe('FieldDefinitionInput', () => {
 
 		await fireEvent.click(getByText('Preset 1'));
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'value1');
+		expect(guiInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'value1');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -88,7 +88,7 @@ describe('FieldDefinitionInput', () => {
 		const input = getByPlaceholderText('Enter custom value');
 		await fireEvent.input(input, { target: { value: 'custom value' } });
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'custom value');
+		expect(guiInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'custom value');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -123,7 +123,7 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'default value@');
+		expect(guiInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'default value@');
 	});
 	it('renders selected value instead of default value', async () => {
 		(guiInstance.getFieldValue as Mock).mockReturnValue({
@@ -149,6 +149,6 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'preset1@');
+		expect(guiInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'preset1@');
 	});
 });
