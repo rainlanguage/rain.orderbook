@@ -392,7 +392,7 @@ describe('Full Deployment Tests', () => {
 		{ timeout: 30000 }
 	);
 
-	it.only(
+	it(
 		'Dynamic spread strategy',
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
