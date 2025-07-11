@@ -18,7 +18,7 @@ use rain_orderbook_common::{
     erc20::ERC20,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::io::prelude::*;
 use thiserror::Error;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
@@ -442,7 +442,7 @@ impl DotrainOrderGui {
     )]
     pub async fn get_deployment_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
-    ) -> Result<HashMap<String, NameAndDescriptionCfg>, GuiError> {
+    ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         Ok(GuiCfg::parse_deployment_details(
             dotrain_order.dotrain_yaml().documents.clone(),
@@ -609,6 +609,8 @@ pub enum GuiError {
     DepositNotSet(String),
     #[error("Missing deposit token for current deployment: {0}")]
     MissingDepositToken(String),
+    #[error("Deposit amount cannot be an empty string")]
+    DepositAmountCannotBeEmpty,
     #[error("Orderbook not found")]
     OrderbookNotFound,
     #[error("Order not found: {0}")]
@@ -692,6 +694,8 @@ impl GuiError {
                 format!("A deposit for token '{}' is required but has not been set.", token),
             GuiError::MissingDepositToken(deployment) =>
                 format!("A deposit for token is required but has not been set for deployment '{}'.", deployment),
+            GuiError::DepositAmountCannotBeEmpty =>
+                "The deposit amount cannot be an empty string. Please set a valid amount.".to_string(),
             GuiError::OrderbookNotFound =>
                 "The orderbook configuration could not be found. Please check your YAML configuration.".to_string(),
             GuiError::OrderNotFound(order) =>
@@ -1754,7 +1758,7 @@ networks:
                 "YAML configuration error: Missing required field 'tokens' in root"
             );
 
-            gui.save_select_token(
+            gui.set_select_token(
                 "token3".to_string(),
                 "0x0000000000000000000000000000000000000001".to_string(),
             )

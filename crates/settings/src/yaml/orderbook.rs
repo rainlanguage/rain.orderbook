@@ -330,7 +330,7 @@ mod tests {
     use url::Url;
 
     const FULL_YAML: &str = r#"
-    version: 1
+    version: 2
     networks:
         mainnet:
             rpcs:

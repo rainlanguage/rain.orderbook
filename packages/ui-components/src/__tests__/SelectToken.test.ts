@@ -9,7 +9,7 @@ import { useGui } from '$lib/hooks/useGui';
 type SelectTokenComponentProps = ComponentProps<SelectToken>;
 
 const mockGui: DotrainOrderGui = {
-	saveSelectToken: vi.fn(),
+	setSelectToken: vi.fn(),
 	isSelectTokenSet: vi.fn(),
 	getTokenInfo: vi.fn().mockResolvedValue({
 		symbol: 'ETH',
@@ -36,7 +36,7 @@ describe('SelectToken', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		mockGui.saveSelectToken = vi.fn().mockImplementation(() => {
+		mockGui.setSelectToken = vi.fn().mockImplementation(() => {
 			mockStateUpdateCallback();
 			return Promise.resolve();
 		});
@@ -53,7 +53,7 @@ describe('SelectToken', () => {
 		expect(getByRole('textbox')).toBeInTheDocument();
 	});
 
-	it('calls saveSelectToken and updates token info when input changes', async () => {
+	it('calls setSelectToken and updates token info when input changes', async () => {
 		const user = userEvent.setup();
 		const mockGuiWithNoToken = {
 			...mockGui,
@@ -71,7 +71,7 @@ describe('SelectToken', () => {
 		await user.paste('0x456');
 
 		await waitFor(() => {
-			expect(mockGui.saveSelectToken).toHaveBeenCalledWith('input', '0x456');
+			expect(mockGui.setSelectToken).toHaveBeenCalledWith('input', '0x456');
 		});
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
@@ -80,7 +80,7 @@ describe('SelectToken', () => {
 		const user = userEvent.setup();
 		const mockGuiWithError = {
 			...mockGui,
-			saveSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
+			setSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
 		} as unknown as DotrainOrderGui;
 
 		(useGui as Mock).mockReturnValue(mockGuiWithError);
@@ -109,7 +109,7 @@ describe('SelectToken', () => {
 		await user.paste('0x456');
 
 		await waitFor(() => {
-			expect(mockGui.saveSelectToken).not.toHaveBeenCalled();
+			expect(mockGui.setSelectToken).not.toHaveBeenCalled();
 		});
 	});
 
@@ -131,7 +131,7 @@ describe('SelectToken', () => {
 		await userEvent.clear(input);
 		await user.paste('invalid');
 		await waitFor(() => {
-			expect(mockGui.saveSelectToken).toHaveBeenCalled();
+			expect(mockGui.setSelectToken).toHaveBeenCalled();
 			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 		});
 	});
