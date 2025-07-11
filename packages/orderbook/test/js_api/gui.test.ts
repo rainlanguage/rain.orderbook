@@ -714,7 +714,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			);
 		});
 
-		it('should throw error if deposit amount is empty', () => {
+		it('should throw error if deposit amount is empty', async () => {
 			const result = await gui.setDeposit('token1', '');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Deposit amount cannot be an empty string');
