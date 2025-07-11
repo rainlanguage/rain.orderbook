@@ -423,11 +423,11 @@ mod tests {
             "Token 3".to_string(),
             "TKN3".to_string(),
         );
-        gui.save_deposit("token3".to_string(), "100".to_string())
+        gui.set_deposit("token3".to_string(), "100".to_string())
             .unwrap();
-        gui.save_field_value("binding-1".to_string(), "100".to_string())
+        gui.set_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();
-        gui.save_field_value("binding-2".to_string(), "0".to_string())
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
             .unwrap();
         gui.set_vault_id(true, 0, Some("199".to_string())).unwrap();
         gui.set_vault_id(false, 0, Some("299".to_string())).unwrap();
@@ -448,7 +448,7 @@ mod tests {
         assert_eq!(
             gui.get_field_value("binding-1".to_string()).unwrap(),
             FieldValue {
-                binding: "binding-1".to_string(),
+                field: "binding-1".to_string(),
                 value: "100".to_string(),
                 is_preset: false,
             }
@@ -456,7 +456,7 @@ mod tests {
         assert_eq!(
             gui.get_field_value("binding-2".to_string()).unwrap(),
             FieldValue {
-                binding: "binding-2".to_string(),
+                field: "binding-2".to_string(),
                 value: "0".to_string(),
                 is_preset: true,
             }
@@ -520,11 +520,11 @@ mod tests {
             .expect("should have callbackCalled flag on globalThis");
         assert_eq!(callback_called, JsValue::from_bool(false));
 
-        gui.save_deposit("token1".to_string(), "100".to_string())
+        gui.set_deposit("token1".to_string(), "100".to_string())
             .unwrap();
-        gui.save_field_value("binding-1".to_string(), "100".to_string())
+        gui.set_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();
-        gui.save_field_value("binding-2".to_string(), "582.1".to_string())
+        gui.set_field_value("binding-2".to_string(), "582.1".to_string())
             .unwrap();
         gui.set_vault_id(true, 0, Some("199".to_string())).unwrap();
         gui.set_vault_id(false, 0, Some("299".to_string())).unwrap();
