@@ -22,6 +22,9 @@ impl SgTrade {
         let output: Float =
             serde_json::from_str(&self.output_vault_balance_change.amount.0.clone())?;
 
+        let input = input.abs()?;
+        let output = output.abs()?;
+
         if output.is_zero()? {
             Err(PerformanceError::DivByZero)
         } else {
@@ -34,6 +37,9 @@ impl SgTrade {
         let input: Float = serde_json::from_str(&self.input_vault_balance_change.amount.0.clone())?;
         let output: Float =
             serde_json::from_str(&self.output_vault_balance_change.amount.0.clone())?;
+
+        let input = input.abs()?;
+        let output = output.abs()?;
 
         if output.is_zero()? {
             Err(PerformanceError::DivByZero)
@@ -50,12 +56,12 @@ mod tests {
         SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
+    use crate::utils::float::*;
 
     use alloy::primitives::Address;
 
     #[test]
     fn test_token_get_decimals_ok() {
-        // known decimals
         let token = SgErc20 {
             id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
             address: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
@@ -65,8 +71,10 @@ mod tests {
         };
         let result = token.get_decimals().unwrap();
         assert_eq!(result, 6);
+    }
 
-        // unknown decimals, defaults to 18
+    #[test]
+    fn test_token_get_decimals_err() {
         let token = SgErc20 {
             id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
             address: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
@@ -74,12 +82,9 @@ mod tests {
             symbol: Some("Token1".to_string()),
             decimals: None,
         };
-        let result = token.get_decimals().unwrap();
-        assert_eq!(result, 18);
-    }
+        let result = token.get_decimals().unwrap_err();
+        assert!(matches!(result, PerformanceError::MissingDecimals));
 
-    #[test]
-    fn test_token_get_decimals_err() {
         let token = SgErc20 {
             id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
             address: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
@@ -114,8 +119,11 @@ mod tests {
     #[test]
     fn test_ratio_happy() {
         let result = get_trade().ratio().unwrap();
-        let expected = Float::parse("500000000000000000".to_string()).unwrap();
-        assert!(result.eq(expected).unwrap());
+        assert!(
+            result.eq(*F0_5).unwrap(),
+            "unexpected result: {}",
+            result.format().unwrap()
+        );
     }
 
     #[test]
@@ -161,13 +169,10 @@ mod tests {
             decimals: Some(SgBigInt(6.to_string())),
         };
 
-        let amount = Float::parse("3000000".to_string()).unwrap();
-        let amount_str = serde_json::to_string(&amount).unwrap();
-
         let input_trade_vault_balance_change = SgTradeVaultBalanceChange {
             id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: SgBytes(amount_str),
+            amount: SgBytes(float_hex(*F3)),
             new_vault_balance: SgBytes("".to_string()),
             old_vault_balance: SgBytes("".to_string()),
             vault: SgVaultBalanceChangeVault {
@@ -187,13 +192,10 @@ mod tests {
             },
         };
 
-        let amount = Float::parse("-6000000".to_string()).unwrap();
-        let amount_str = serde_json::to_string(&amount).unwrap();
-
         let output_trade_vault_balance_change = SgTradeVaultBalanceChange {
             id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: SgBytes(amount_str),
+            amount: SgBytes(float_hex(*NEG6)),
             new_vault_balance: SgBytes("".to_string()),
             old_vault_balance: SgBytes("".to_string()),
             vault: SgVaultBalanceChangeVault {
