@@ -92,6 +92,7 @@ mod tests {
         primitives::{Address, B256},
     };
     use httpmock::MockServer;
+    use rain_orderbook_subgraph_client::utils::float::*;
     use serde_json::{json, Value};
 
     #[tokio::test]
@@ -143,7 +144,7 @@ mod tests {
         };
 
         // should succeed
-        assert!(cli_vault_balance_changes_list_args.execute().await.is_ok());
+        cli_vault_balance_changes_list_args.execute().await.unwrap();
     }
 
     #[tokio::test]
@@ -170,9 +171,9 @@ mod tests {
             "data": {
                 "vaultBalanceChanges": [{
                     "__typename": "Deposit",
-                    "amount": "0",
-                    "newVaultBalance": "0",
-                    "oldVaultBalance": "0",
+                    "amount": float_hex(*F0),
+                    "newVaultBalance": float_hex(*F0),
+                    "oldVaultBalance": float_hex(*F0),
                     "vault": {
                         "id": encode_prefixed(B256::random()),
                         "vaultId": encode_prefixed(B256::random()),

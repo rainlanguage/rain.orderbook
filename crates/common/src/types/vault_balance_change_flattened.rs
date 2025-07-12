@@ -126,7 +126,7 @@ mod tests {
         let result = VaultBalanceChangeFlattened::try_from(val);
         assert!(result.is_ok());
         let flattened = result.unwrap();
-        assert_eq!(flattened.amount_display_signed, "500.0");
+        assert_eq!(flattened.amount_display_signed, "500");
         assert_eq!(flattened.change_type_display, "Withdrawal");
     }
 
@@ -143,7 +143,7 @@ mod tests {
         let result = VaultBalanceChangeFlattened::try_from(val);
         assert!(result.is_ok());
         let flattened = result.unwrap();
-        assert_eq!(flattened.amount_display_signed, "12345.0");
+        assert_eq!(flattened.amount_display_signed, "12345");
     }
 
     #[test]
@@ -151,7 +151,7 @@ mod tests {
         let val = mock_sg_vault_balance_change_unwrapped(
             "1678886400",
             "0xghi789",
-            "-500000000000000000",
+            "-0.500000000000000000",
             "Trade",
             "500000000000000000",
             Some("18"),
