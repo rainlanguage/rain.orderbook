@@ -242,8 +242,6 @@ pub enum RaindexError {
     ParseInt(#[from] ParseIntError),
     #[error("Failed to convert to u8: {0}")]
     TryFromUint(#[from] FromUintError<u8>),
-    #[error("serde error: {0}")]
-    Serde(#[from] serde_json::Error),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -352,7 +350,6 @@ impl RaindexError {
             RaindexError::Float(err) => format!("Float error: {err}"),
             RaindexError::ParseInt(err) => format!("Failed to parse an integer: {err}"),
             RaindexError::TryFromUint(err) => format!("Failed to convert to u8: {err}"),
-            RaindexError::Serde(err) => format!("Serde error: {err}"),
         }
     }
 }

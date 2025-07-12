@@ -171,9 +171,9 @@ mod tests {
             "data": {
                 "vaultBalanceChanges": [{
                     "__typename": "Deposit",
-                    "amount": float_hex(*F0),
-                    "newVaultBalance": float_hex(*F0),
-                    "oldVaultBalance": float_hex(*F0),
+                    "amount": *F0,
+                    "newVaultBalance": *F0,
+                    "oldVaultBalance": *F0,
                     "vault": {
                         "id": encode_prefixed(B256::random()),
                         "vaultId": encode_prefixed(B256::random()),

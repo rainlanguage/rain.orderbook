@@ -258,7 +258,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*NEG2)),
+                amount: SgBytes((*NEG2).as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -278,7 +278,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F5)),
+                amount: SgBytes((*F5).as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -317,7 +317,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*NEG7)),
+                amount: SgBytes((*NEG7).as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -337,7 +337,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F3)),
+                amount: SgBytes((*F3).as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -475,7 +475,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*NEG1)),
+                amount: SgBytes((*NEG1).as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -495,7 +495,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*FMAX)),
+                amount: SgBytes((*FMAX).as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -534,7 +534,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F1)),
+                amount: SgBytes((*F1).as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -554,7 +554,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F1)),
+                amount: SgBytes((*F1).as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {

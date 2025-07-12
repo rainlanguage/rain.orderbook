@@ -864,8 +864,8 @@ mod test {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F5)),
-                new_vault_balance: SgBytes(float_hex(*F2)),
+                amount: SgBytes((*F5).as_hex()),
+                new_vault_balance: SgBytes((*F2).as_hex()),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
@@ -884,8 +884,8 @@ mod test {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F5)),
-                new_vault_balance: SgBytes(float_hex(*F2)),
+                amount: SgBytes((*F5).as_hex()),
+                new_vault_balance: SgBytes((*F2).as_hex()),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
@@ -923,8 +923,8 @@ mod test {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*NEG2)),
-                new_vault_balance: SgBytes(float_hex(*F5)),
+                amount: SgBytes((*NEG2).as_hex()),
+                new_vault_balance: SgBytes((*F5).as_hex()),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
@@ -943,8 +943,8 @@ mod test {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F7)),
-                new_vault_balance: SgBytes(float_hex(*F5)),
+                amount: SgBytes((*F7).as_hex()),
+                new_vault_balance: SgBytes((*F5).as_hex()),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),

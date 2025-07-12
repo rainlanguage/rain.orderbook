@@ -131,9 +131,9 @@ mod tests {
         SgTradeVaultBalanceChange {
             id: SgBytes(format!("0xtrade_vbc_{}_id_default", type_name)),
             __typename: "TradeVaultBalanceChange".to_string(),
-            amount: SgBytes(float_hex(*F1)),
-            new_vault_balance: SgBytes(float_hex(*F5)),
-            old_vault_balance: SgBytes(float_hex(*F4)),
+            amount: SgBytes((*F1).as_hex()),
+            new_vault_balance: SgBytes((*F5).as_hex()),
+            old_vault_balance: SgBytes((*F4).as_hex()),
             vault: default_sg_vault_balance_change_vault(),
             timestamp: SgBigInt("1600000100".to_string()),
             transaction: default_sg_transaction(),

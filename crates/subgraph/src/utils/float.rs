@@ -29,7 +29,3 @@ lazy_static::lazy_static! {
     pub static ref F1000: Float = Float::parse("1000".to_string()).unwrap();
     pub static ref FMAX: Float = Float::pack_lossless(I224::MAX, std::i32::MAX).unwrap();
 }
-
-pub fn float_hex(f: Float) -> String {
-    serde_json::to_string(&f).unwrap()
-}

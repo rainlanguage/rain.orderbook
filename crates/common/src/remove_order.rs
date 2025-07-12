@@ -102,7 +102,7 @@ mod tests {
                     id: SgBytes("0xfd661f641ed6f13210fa83be991d7afc8e290202473f1fa9548a8e5654984575".to_string()),
                     owner: SgBytes("0x18a62a3ac2ca9f775a4a12380eda03245270b73e".to_string()),
                     vault_id: SgBytes("95091534377674853556918913044061641909871616138258204934350492514947914962501".to_string()),
-                    balance: SgBytes(float_hex(*F50)),
+                    balance: SgBytes((*F50).as_hex()),
                     token: SgErc20 {
                         id: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
                         address: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),

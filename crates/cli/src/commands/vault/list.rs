@@ -188,7 +188,7 @@ mod tests {
                     "id": encode_prefixed(B256::random()),
                     "vaultId": encode_prefixed(B256::random()),
                     "owner": encode_prefixed(Address::random()),
-                    "balance": float_hex(*F0),
+                    "balance": *F0,
                     "token": {
                         "name": "T1",
                         "symbol": "T1",

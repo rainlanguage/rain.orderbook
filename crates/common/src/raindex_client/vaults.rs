@@ -612,9 +612,9 @@ impl_wasm_traits!(RaindexVaultAllowance);
 impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
     type Error = RaindexError;
     fn try_from(balance_change: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
-        let amount: Float = serde_json::from_str(&balance_change.amount.0)?;
-        let new_balance: Float = serde_json::from_str(&balance_change.new_vault_balance.0)?;
-        let old_balance: Float = serde_json::from_str(&balance_change.old_vault_balance.0)?;
+        let amount = Float::from_hex(&balance_change.amount.0)?;
+        let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
+        let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
@@ -633,9 +633,9 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
 impl TryFrom<SgTradeVaultBalanceChange> for RaindexVaultBalanceChange {
     type Error = RaindexError;
     fn try_from(balance_change: SgTradeVaultBalanceChange) -> Result<Self, Self::Error> {
-        let amount: Float = serde_json::from_str(&balance_change.amount.0)?;
-        let new_balance: Float = serde_json::from_str(&balance_change.new_vault_balance.0)?;
-        let old_balance: Float = serde_json::from_str(&balance_change.old_vault_balance.0)?;
+        let amount = Float::from_hex(&balance_change.amount.0)?;
+        let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
+        let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
@@ -830,7 +830,7 @@ impl RaindexVault {
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
-        let balance = Format::from_hex(&balance_str)?;
+        let balance = Float::from_hex(&vault.balance.0)?;
 
         Ok(Self {
             raindex_client,
@@ -875,7 +875,7 @@ impl RaindexVault {
         Ok(SgVault {
             id: SgBytes(self.id.to_string()),
             vault_id: SgBytes(self.vault_id.to_string()),
-            balance: SgBytes(serde_json::to_string(&self.balance)?),
+            balance: SgBytes(self.balance.as_hex()),
             owner: SgBytes(self.owner.to_string()),
             token: self.token.try_into()?,
             orderbook: SgOrderbook {

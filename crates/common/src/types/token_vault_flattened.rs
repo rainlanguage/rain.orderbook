@@ -22,7 +22,7 @@ impl TryFrom<SgVault> for TokenVaultFlattened {
     type Error = FlattenError;
 
     fn try_from(val: SgVault) -> Result<Self, Self::Error> {
-        let balance: Float = serde_json::from_str(&val.balance.0)?;
+        let balance = Float::from_hex(&val.balance.0)?;
         let balance_display = balance.format18()?;
 
         Ok(Self {
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn test_normal_case_all_fields_present() {
         let balance = Float::parse("123.45".to_string()).unwrap();
-        let balance_str = float_hex(balance);
+        let balance_str = balance.as_hex();
 
         let sg_vault = create_sg_vault(
             "vault_test_001",
@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn test_normal_case_optional_token_fields_none() {
         let balance = Float::parse("7890".to_string()).unwrap();
-        let balance_str = float_hex(balance);
+        let balance_str = balance.as_hex();
 
         let sg_vault = create_sg_vault(
             "vault_test_002",
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_edge_case_zero_balance() {
-        let balance_str = float_hex(*F0);
+        let balance_str = (*F0).as_hex();
 
         let sg_vault = create_sg_vault(
             "vault_test_003",
@@ -168,7 +168,7 @@ mod tests {
     #[test]
     fn test_edge_case_zero_decimals_specified() {
         let balance = Float::parse("98765".to_string()).unwrap();
-        let balance_str = float_hex(balance);
+        let balance_str = balance.as_hex();
 
         let sg_vault = create_sg_vault(
             "vault_test_004",
@@ -209,7 +209,7 @@ mod tests {
     #[test]
     fn test_edge_case_19_decimals() {
         let balance = Float::parse("98765.0000000000000000001".to_string()).unwrap();
-        let balance_str = float_hex(balance);
+        let balance_str = balance.as_hex();
 
         let sg_vault = create_sg_vault(
             "vault_test_004",

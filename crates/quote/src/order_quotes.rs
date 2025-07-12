@@ -311,7 +311,7 @@ amount price: context<3 0>() context<4 0>();
         SgVault {
             id: SgBytes(vault_id.to_string()),
             token: token.clone(),
-            balance: SgBytes(float_hex(*F6)),
+            balance: SgBytes((*F6).as_hex()),
             vault_id: SgBytes(vault_id.to_string()),
             owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
             orderbook: SgOrderbook {

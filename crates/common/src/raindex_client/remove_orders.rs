@@ -161,7 +161,7 @@ mod tests {
                                     "id": "0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf",
                                     "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                                     "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                                    "balance": float_hex(*F10),
+                                    "balance": *F10,
                                     "token": {
                                       "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                                       "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -188,7 +188,7 @@ mod tests {
                                     "id": "0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac",
                                     "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                                     "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                                    "balance": float_hex(*F0_5),
+                                    "balance": *F0_5,
                                     "token": {
                                       "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                       "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",

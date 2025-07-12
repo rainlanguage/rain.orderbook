@@ -18,9 +18,8 @@ impl SgErc20 {
 impl SgTrade {
     /// Calculates the trade's I/O ratio
     pub fn ratio(&self) -> Result<Float, PerformanceError> {
-        let input: Float = serde_json::from_str(&self.input_vault_balance_change.amount.0.clone())?;
-        let output: Float =
-            serde_json::from_str(&self.output_vault_balance_change.amount.0.clone())?;
+        let input = Float::from_hex(&self.input_vault_balance_change.amount.0.clone())?;
+        let output = Float::from_hex(&self.output_vault_balance_change.amount.0.clone())?;
 
         let input = input.abs()?;
         let output = output.abs()?;
@@ -34,9 +33,8 @@ impl SgTrade {
 
     /// Calculates the trade's O/I ratio (inverse)
     pub fn inverse_ratio(&self) -> Result<Float, PerformanceError> {
-        let input: Float = serde_json::from_str(&self.input_vault_balance_change.amount.0.clone())?;
-        let output: Float =
-            serde_json::from_str(&self.output_vault_balance_change.amount.0.clone())?;
+        let input = Float::from_hex(&self.input_vault_balance_change.amount.0.clone())?;
+        let output = Float::from_hex(&self.output_vault_balance_change.amount.0.clone())?;
 
         let input = input.abs()?;
         let output = output.abs()?;
@@ -172,7 +170,7 @@ mod tests {
         let input_trade_vault_balance_change = SgTradeVaultBalanceChange {
             id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: SgBytes(float_hex(*F3)),
+            amount: SgBytes((*F3).as_hex()),
             new_vault_balance: SgBytes("".to_string()),
             old_vault_balance: SgBytes("".to_string()),
             vault: SgVaultBalanceChangeVault {
@@ -195,7 +193,7 @@ mod tests {
         let output_trade_vault_balance_change = SgTradeVaultBalanceChange {
             id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: SgBytes(float_hex(*NEG6)),
+            amount: SgBytes((*NEG6).as_hex()),
             new_vault_balance: SgBytes("".to_string()),
             old_vault_balance: SgBytes("".to_string()),
             vault: SgVaultBalanceChangeVault {

@@ -20,7 +20,7 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
     type Error = FlattenError;
 
     fn try_from(val: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
-        let amount: Float = serde_json::from_str(&val.amount.0)?;
+        let amount = Float::from_hex(&val.amount.0)?;
         let amount_display_signed = amount.format18()?;
 
         Ok(Self {
@@ -63,12 +63,10 @@ mod tests {
                 block_number: SgBigInt("100".to_string()),
                 timestamp: SgBigInt(timestamp_val.to_string()),
             },
-            amount: SgBytes(float_hex(Float::parse(amount_val.to_string()).unwrap())),
+            amount: SgBytes(Float::parse(amount_val.to_string()).unwrap().as_hex()),
             __typename: typename_val.to_string(),
-            new_vault_balance: SgBytes(float_hex(
-                Float::parse(new_balance_val.to_string()).unwrap(),
-            )),
-            old_vault_balance: SgBytes(float_hex(*F0)),
+            new_vault_balance: SgBytes(Float::parse(new_balance_val.to_string()).unwrap().as_hex()),
+            old_vault_balance: SgBytes((*F0).as_hex()),
             vault: SgVaultBalanceChangeVault {
                 id: SgBytes("0xvaultid".to_string()),
                 vault_id: SgBytes("1".to_string()),
@@ -123,7 +121,6 @@ mod tests {
             Some("0"),
         );
         let result = VaultBalanceChangeFlattened::try_from(val);
-        assert!(result.is_ok());
         let flattened = result.unwrap();
         assert_eq!(flattened.amount_display_signed, "500");
         assert_eq!(flattened.change_type_display, "Withdrawal");

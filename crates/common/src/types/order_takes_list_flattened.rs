@@ -31,8 +31,8 @@ impl TryFrom<SgTrade> for OrderTakeFlattened {
         let input_vault_balance_change = val.input_vault_balance_change.clone();
         let output_vault_balance_change = val.output_vault_balance_change.clone();
 
-        let input_amount: Float = serde_json::from_str(&input_vault_balance_change.amount.0)?;
-        let output_amount: Float = serde_json::from_str(&output_vault_balance_change.amount.0)?;
+        let input_amount = Float::from_hex(&input_vault_balance_change.amount.0)?;
+        let output_amount = Float::from_hex(&output_vault_balance_change.amount.0)?;
 
         Ok(Self {
             id: val.id.0,
@@ -85,9 +85,9 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("inputVBC001".to_string()),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F1)),
-                new_vault_balance: SgBytes(float_hex(*F5)),
-                old_vault_balance: SgBytes(float_hex(*F6)),
+                amount: SgBytes((*F1).as_hex()),
+                new_vault_balance: SgBytes((*F5).as_hex()),
+                old_vault_balance: SgBytes((*F6).as_hex()),
                 vault: SgVaultBalanceChangeVault {
                     id: SgBytes("inputVault001".to_string()),
                     vault_id: SgBytes("101".to_string()),
@@ -113,9 +113,9 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("outputVBC001".to_string()),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes(float_hex(*F2)),
-                new_vault_balance: SgBytes(float_hex(*F3)),
-                old_vault_balance: SgBytes(float_hex(*F4)),
+                amount: SgBytes((*F2).as_hex()),
+                new_vault_balance: SgBytes((*F3).as_hex()),
+                old_vault_balance: SgBytes((*F4).as_hex()),
                 vault: SgVaultBalanceChangeVault {
                     id: SgBytes("outputVault001".to_string()),
                     vault_id: SgBytes("202".to_string()),
@@ -212,8 +212,8 @@ mod tests {
     #[test]
     fn test_zero_amounts() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.amount = SgBytes(float_hex(*F0));
-        trade_data.output_vault_balance_change.amount = SgBytes(float_hex(*F0));
+        trade_data.input_vault_balance_change.amount = SgBytes((*F0).as_hex());
+        trade_data.output_vault_balance_change.amount = SgBytes((*F0).as_hex());
 
         let result = OrderTakeFlattened::try_from(trade_data.clone());
         assert!(result.is_ok());
@@ -293,8 +293,8 @@ mod tests {
         let output_display = "-0.98765432".to_string();
         let output_amount = Float::parse(output_display.clone()).unwrap();
 
-        trade_data.input_vault_balance_change.amount = SgBytes(float_hex(input_amount));
-        trade_data.output_vault_balance_change.amount = SgBytes(float_hex(output_amount));
+        trade_data.input_vault_balance_change.amount = SgBytes(input_amount.as_hex());
+        trade_data.output_vault_balance_change.amount = SgBytes(output_amount.as_hex());
 
         let result = OrderTakeFlattened::try_from(trade_data);
         let flattened = result.unwrap();
