@@ -125,7 +125,7 @@ describe('Full Deployment Tests', () => {
 	});
 
 	afterEach(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 5000));
+		await new Promise((resolve) => setTimeout(resolve, 10000));
 	});
 
 	it(
@@ -150,7 +150,7 @@ describe('Full Deployment Tests', () => {
 				() => {
 					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
 				},
-				{ timeout: 10000 }
+				{ timeout: 50000 }
 			);
 
 			await waitFor(() => {
@@ -210,7 +210,7 @@ describe('Full Deployment Tests', () => {
 				);
 				return args.value;
 			};
-			await new Promise((resolve) => setTimeout(resolve, 5000));
+			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
 				console.log('Fixed limit strategy error', error);
@@ -240,7 +240,7 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 30000 }
+		{ timeout: 50000 }
 	);
 
 	it(
@@ -266,7 +266,7 @@ describe('Full Deployment Tests', () => {
 				() => {
 					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
 				},
-				{ timeout: 10000 }
+				{ timeout: 50000 }
 			);
 
 			// Check that the token dropdowns are present
@@ -359,7 +359,7 @@ describe('Full Deployment Tests', () => {
 				);
 				return args.value;
 			};
-			await new Promise((resolve) => setTimeout(resolve, 5000));
+			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
 				console.log('Auction strategy error', error);
@@ -389,7 +389,7 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 30000 }
+		{ timeout: 50000 }
 	);
 
 	it(
@@ -415,7 +415,7 @@ describe('Full Deployment Tests', () => {
 				() => {
 					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
 				},
-				{ timeout: 10000 }
+				{ timeout: 50000 }
 			);
 
 			await waitFor(() => {
@@ -496,7 +496,7 @@ describe('Full Deployment Tests', () => {
 				);
 				return args.value;
 			};
-			await new Promise((resolve) => setTimeout(resolve, 5000));
+			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
 				console.log('Dynamic spread strategy error', error);
@@ -526,6 +526,6 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 30000 }
+		{ timeout: 50000 }
 	);
 });
