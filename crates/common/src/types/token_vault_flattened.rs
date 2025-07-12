@@ -34,13 +34,13 @@ impl TryFrom<SgVault> for TokenVaultFlattened {
         Ok(Self {
             id: val.id.0,
             owner: val.owner,
-            vault_id: val.vault_id,
+            vault_id: SgBigInt(val.vault_id.0),
             token_name: val.token.name,
             token_symbol: val.token.symbol,
             token_decimals: val.token.decimals,
             token_address: val.token.address.0,
             balance_display: format_units(balance_parsed, decimals)?,
-            balance: val.balance,
+            balance: SgBigInt(val.balance.0),
         })
     }
 }

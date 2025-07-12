@@ -861,8 +861,8 @@ impl RaindexVault {
     pub fn into_sg_vault(self) -> Result<SgVault, RaindexError> {
         Ok(SgVault {
             id: SgBytes(self.id.to_string()),
-            vault_id: SgBigInt(self.vault_id.to_string()),
-            balance: SgBigInt(self.balance.to_string()),
+            vault_id: SgBytes(self.vault_id.to_string()),
+            balance: SgBytes(self.balance.to_string()),
             owner: SgBytes(self.owner.to_string()),
             token: self.token.try_into()?,
             orderbook: SgOrderbook {
