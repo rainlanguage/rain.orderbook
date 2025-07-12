@@ -32,4 +32,6 @@ pub enum PerformanceError {
     FloatError(#[from] FloatError),
     #[error("Parsing error: {0}")]
     ParsingError(#[from] serde_json::Error),
+    #[error("Missing decimals in subgraph response")]
+    MissingDecimals,
 }

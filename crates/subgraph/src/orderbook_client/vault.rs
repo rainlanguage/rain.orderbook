@@ -420,13 +420,12 @@ mod tests {
         sg_server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200)
                 .json_body(json!({"data": {"vaults": expected_vaults}}));
         });
 
         let result = client.vaults_list(filter_args, pagination_args).await;
-        assert!(result.is_ok());
         let vaults = result.unwrap();
         assert_eq!(vaults.len(), expected_vaults.len());
     }
@@ -520,7 +519,7 @@ mod tests {
                 .path("/")
                 .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
                 .body_contains("\"skip\":0")
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200)
                 .json_body(json!({"data": {"vaults": vaults_page1}}));
         });
@@ -529,7 +528,7 @@ mod tests {
                 .path("/")
                 .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
                 .body_contains(format!("\"skip\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200)
                 .json_body(json!({"data": {"vaults": vaults_page2}}));
         });
@@ -538,12 +537,11 @@ mod tests {
                 .path("/")
                 .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
                 .body_contains(format!("\"skip\":{}", ALL_PAGES_QUERY_PAGE_SIZE * 2))
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200).json_body(json!({"data": {"vaults": []}}));
         });
 
         let result = client.vaults_list_all().await;
-        assert!(result.is_ok());
         let vaults = result.unwrap();
         assert_eq!(vaults.len(), ALL_PAGES_QUERY_PAGE_SIZE as usize + 50);
     }
@@ -557,7 +555,7 @@ mod tests {
                 .path("/")
                 .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
                 .body_contains("\"skip\":0")
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200).json_body(json!({"data": {"vaults": []}}));
         });
         let result = client.vaults_list_all().await;

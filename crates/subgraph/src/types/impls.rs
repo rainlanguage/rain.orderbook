@@ -4,20 +4,23 @@ use rain_math_float::Float;
 
 impl SgErc20 {
     pub fn get_decimals(&self) -> Result<u8, PerformanceError> {
-        Ok(self
+        let decimalstr = self
             .decimals
             .as_ref()
             .map(|v| v.0.as_str())
-            .unwrap_or("18")
-            .parse()?)
+            .ok_or(PerformanceError::MissingDecimals)?;
+
+        let decimals = decimalstr.parse::<u8>()?;
+        Ok(decimals)
     }
 }
 
 impl SgTrade {
     /// Calculates the trade's I/O ratio
     pub fn ratio(&self) -> Result<Float, PerformanceError> {
-        let input = Float::parse(self.input_vault_balance_change.amount.0.clone())?;
-        let output = Float::parse(self.output_vault_balance_change.amount.0.clone())?;
+        let input: Float = serde_json::from_str(&self.input_vault_balance_change.amount.0.clone())?;
+        let output: Float =
+            serde_json::from_str(&self.output_vault_balance_change.amount.0.clone())?;
 
         if output.is_zero()? {
             Err(PerformanceError::DivByZero)
@@ -28,8 +31,9 @@ impl SgTrade {
 
     /// Calculates the trade's O/I ratio (inverse)
     pub fn inverse_ratio(&self) -> Result<Float, PerformanceError> {
-        let input = Float::parse(self.input_vault_balance_change.amount.0.clone())?;
-        let output = Float::parse(self.output_vault_balance_change.amount.0.clone())?;
+        let input: Float = serde_json::from_str(&self.input_vault_balance_change.amount.0.clone())?;
+        let output: Float =
+            serde_json::from_str(&self.output_vault_balance_change.amount.0.clone())?;
 
         if output.is_zero()? {
             Err(PerformanceError::DivByZero)
@@ -47,10 +51,7 @@ mod tests {
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
 
-    use alloy::primitives::{
-        ruint::{BaseConvertError, ParseError},
-        Address,
-    };
+    use alloy::primitives::Address;
 
     #[test]
     fn test_token_get_decimals_ok() {
@@ -129,8 +130,12 @@ mod tests {
     #[test]
     fn test_inverse_ratio_happy() {
         let result = get_trade().inverse_ratio().unwrap();
-        let expected = Float::parse("2000000000000000000".to_string()).unwrap();
-        assert!(result.eq(expected).unwrap());
+        let expected = Float::parse("2".to_string()).unwrap();
+        assert!(
+            result.eq(expected).unwrap(),
+            "unexpected result: {}",
+            result.format().unwrap()
+        );
     }
 
     #[test]
