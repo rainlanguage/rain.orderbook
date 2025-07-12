@@ -165,6 +165,7 @@ mod tests {
         IOrderBookV5::{deposit3Call, withdraw3Call},
         IERC20::approveCall,
     };
+    use rain_orderbook_subgraph_client::utils::float::*;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{json, Value};
     use tauri::Manager;
@@ -174,7 +175,7 @@ mod tests {
           "id": "vault1",
           "owner": "0x0000000000000000000000000000000000000000",
           "vaultId": "0x10",
-          "balance": "0x10",
+          "balance": *F1,
           "token": {
             "id": "token1",
             "address": "0x0000000000000000000000000000000000000000",
@@ -195,7 +196,7 @@ mod tests {
             "id": "vault2",
             "owner": "0x0000000000000000000000000000000000000000",
             "vaultId": "0x20",
-            "balance": "0x20",
+            "balance": *F2,
             "token": {
                 "id": "token2",
                 "address": "0x0000000000000000000000000000000000000000",
@@ -240,18 +241,23 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let path = temp_dir.path().join("./test.csv");
 
-        let res = vaults_list_write_csv(
+        vaults_list_write_csv(
             path.clone(),
             SubgraphArgs {
                 url: sg_server.url("/sg"),
             },
         )
-        .await;
-        assert!(res.is_ok());
+        .await
+        .unwrap();
 
-        let expected_content = "id,owner,vault_id,token_name,token_symbol,token_decimals,token_address,balance_display,balance\nvault1,0x0000000000000000000000000000000000000000,0x10,Token 1,TKN1,18,0x0000000000000000000000000000000000000000,0.000000000000000016,0x10\nvault2,0x0000000000000000000000000000000000000000,0x20,Token 2,TKN2,18,0x0000000000000000000000000000000000000000,0.000000000000000032,0x20\n";
+        let expected_content = "
+id,owner,vault_id,token_name,token_symbol,token_decimals,token_address,balance_display,balance
+vault1,0x0000000000000000000000000000000000000000,0x10,Token 1,TKN1,18,0x0000000000000000000000000000000000000000,1,0x0000000000000000000000000000000000000000000000000000000000000001
+vault2,0x0000000000000000000000000000000000000000,0x20,Token 2,TKN2,18,0x0000000000000000000000000000000000000000,2,0x0000000000000000000000000000000000000000000000000000000000000002
+";
+
         let content = fs::read_to_string(path).unwrap();
-        assert_eq!(content, expected_content);
+        assert_eq!(content.trim(), expected_content.trim());
     }
 
     #[tokio::test]
@@ -339,9 +345,9 @@ mod tests {
                     "vaultBalanceChanges": [
                         {
                             "__typename": "Deposit",
-                            "amount": "5000000000000000000",
-                            "newVaultBalance": "5000000000000000000",
-                            "oldVaultBalance": "0",
+                            "amount": *F5,
+                            "newVaultBalance": *F5,
+                            "oldVaultBalance": *F0,
                             "vault": {
                                 "id": "0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902",
                                 "vaultId": "1",
@@ -368,6 +374,7 @@ mod tests {
                 }
             }));
         });
+
         sg_server.mock(|when, then| {
             when.path("/sg")
                 .body_contains("\"first\":200")
@@ -382,19 +389,22 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let path = temp_dir.path().join("./test.csv");
 
-        let res = vault_balance_changes_list_write_csv(
+        vault_balance_changes_list_write_csv(
             "id".to_string(),
             path.clone(),
             SubgraphArgs {
                 url: sg_server.url("/sg"),
             },
         )
-        .await;
-        assert!(res.is_ok());
+        .await
+        .unwrap();
 
-        let expected_content = "timestamp,timestamp_display,from,amount,amount_display_signed,change_type_display,balance\n1734054063,2024-12-13 01:41:03 UTC,0x7177b9d00bb5dbcaaf069cc63190902763783b09,5000000000000000000,5.000000000000000000,Deposit,5000000000000000000\n";
+        let expected_content = "
+timestamp,timestamp_display,from,amount,amount_display_signed,change_type_display,balance
+1734054063,2024-12-13 01:41:03 UTC,0x7177b9d00bb5dbcaaf069cc63190902763783b09,0x0000000000000000000000000000000000000000000000000000000000000005,5,Deposit,0x0000000000000000000000000000000000000000000000000000000000000005
+";
         let content = fs::read_to_string(path).unwrap();
-        assert_eq!(content, expected_content);
+        assert_eq!(content.trim(), expected_content.trim());
     }
 
     #[tokio::test]
