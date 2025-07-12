@@ -41,6 +41,7 @@ impl TryIntoCsv<VaultBalanceChangeFlattened> for Vec<VaultBalanceChangeFlattened
 mod tests {
     use super::*;
     use crate::utils::timestamp::format_bigint_timestamp_display;
+    use rain_math_float::FloatError;
     use rain_orderbook_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTransaction, SgVaultBalanceChangeUnwrapped,
         SgVaultBalanceChangeVault,
@@ -174,7 +175,7 @@ mod tests {
 
         let err = VaultBalanceChangeFlattened::try_from(val).unwrap_err();
         assert!(
-            matches!(err, FlattenError::ParseError(_)),
+            matches!(err, FlattenError::FloatError(FloatError::InvalidHex(_))),
             "Unexpected error: {err:?}"
         );
     }
@@ -197,7 +198,7 @@ mod tests {
         let err = VaultBalanceChangeFlattened::try_from(mock).unwrap_err();
 
         assert!(
-            matches!(err, FlattenError::ParseError(_)),
+            matches!(err, FlattenError::FloatError(FloatError::InvalidHex(_))),
             "Unexpected error: {err:?}",
         );
     }

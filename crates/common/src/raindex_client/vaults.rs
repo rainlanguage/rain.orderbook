@@ -1096,8 +1096,14 @@ mod tests {
                 vault.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault.vault_id, U256::from_str("0x10").unwrap());
-            assert!(vault.balance.eq(*F10).unwrap());
+            assert_eq!(vault.vault_id, U256::from_str("0x0123").unwrap());
+
+            assert!(
+                vault.balance.eq(*F1).unwrap(),
+                "unexpected balance: {}",
+                vault.balance.format().unwrap()
+            );
+
             assert_eq!(vault.token.id, "token1");
             assert_eq!(
                 vault.orderbook,

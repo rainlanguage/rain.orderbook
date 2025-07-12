@@ -5,6 +5,7 @@ lazy_static::lazy_static! {
     pub static ref FMIN: Float = Float::pack_lossless(I224::MIN, std::i32::MIN).unwrap();
     pub static ref NEG7: Float = Float::parse("-7".to_string()).unwrap();
     pub static ref NEG6: Float = Float::parse("-6".to_string()).unwrap();
+    pub static ref NEG5: Float = Float::parse("-5".to_string()).unwrap();
     pub static ref NEG2: Float = Float::parse("-2".to_string()).unwrap();
     pub static ref NEG1: Float = Float::parse("-1".to_string()).unwrap();
     pub static ref F0: Float = Float::parse("0".to_string()).unwrap();

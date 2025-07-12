@@ -58,6 +58,7 @@ impl TryIntoCsv<OrderTakeFlattened> for Vec<OrderTakeFlattened> {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_math_float::FloatError;
     use rain_orderbook_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTrade, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
@@ -255,7 +256,10 @@ mod tests {
         trade_data.input_vault_balance_change.amount = SgBytes("not_a_number".to_string());
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(
-            matches!(result, Err(FlattenError::ParseError(_))),
+            matches!(
+                result,
+                Err(FlattenError::FloatError(FloatError::InvalidHex(_)))
+            ),
             "Expected ParseError for unparseable input amount, got {result:?}",
         );
     }
@@ -266,7 +270,10 @@ mod tests {
         trade_data.output_vault_balance_change.amount = SgBytes("not_a_number".to_string());
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(
-            matches!(result, Err(FlattenError::ParseError(_))),
+            matches!(
+                result,
+                Err(FlattenError::FloatError(FloatError::InvalidHex(_)))
+            ),
             "Expected ParseError for unparseable output amount, got {result:?}",
         );
     }

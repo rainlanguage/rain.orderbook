@@ -20,8 +20,6 @@ pub enum FlattenError {
     AbiDecodeError(#[from] alloy::sol_types::Error),
     #[error("Order is missing add events, cannot determine transaction ID")]
     MissingAddEvent,
-    #[error("serde error: {0}")]
-    ParseError(#[from] serde_json::Error),
     #[error("Float error: {0}")]
     FloatError(#[from] rain_math_float::FloatError),
 }
