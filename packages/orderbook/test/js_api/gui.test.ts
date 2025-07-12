@@ -962,7 +962,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOTUvDMBjHmykTxIOIV0HwamybvljHPA6mYkUI4rXrsrU0S7o0dUw_hEevfoHhJ_Dqzc8j3qSYbOvYdc8h_-fln-f5AeM_9pRKUkjYS1k_ZUOgepaxuzx9imhJGqrT1BOeEWYbOraVetaZX7OguWVLqW1Z65fVKw1Y8BGBjMgJF5kGPFKaSJm3TJPyOKIJL2QrsALPFHkMS0FfKgeoXqBPd3D3UKWDNQGaYEeNccVwbANNiut0qF5tmPW1_TM7-W7PPt-8j9_HBrr4eo_BwQorWrAinS2tcxwHLCrf909VGnT48112k8LbyH3o3V9NYRieyzQTEe2WHI_d64EbYjLmk-HlvvrDZUIE7JOc8umIMPkHbEaANVUCAAA=';
+			'H4sIAAAAAAAA_7WQv07DMBDG44KKhBgQYkVCYsUkcf4QqjJWKiCCkCzEmqZuE8W1U8ehKjwEIysvUPEErGw8D2JDEXYgpSs3-Lu773z-ycD4ji2lkhQSDlI2TNkYqJ5lbP527yJakpbqtLXDM8JsQ8e6Us868hsjqB5ZU2pb1uplzUoDFnxCICNyxkWmAfeUJlLmHdOkPI5owgvZCazAM0Uew1LQh2oCVCfQT_dwf1eloxUB2mBD2bhi2LeBJsVNOtSs_pn1sfuxOHjvLl6fvJfP2xY6eXuOwc4SK_phRTr7-8f1et_3wbKLatdxnEOVBj1-f5VdpPAycm8G12dzGIbHMs1ERPslx1P3fOSGmEz5bHy6re5wmRABhySnfD4hTH4BiI0HenUCAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1002,8 +1002,8 @@ ${dotrain}`;
 			gui.setDeposit('token2', '100');
 			gui.unsetSelectToken('token1');
 			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
-			gui.setVaultId(true, 0, '666');
-			gui.setVaultId(false, 0, '333');
+			gui.setVaultId('input', 'token1', '666');
+			gui.setVaultId('output', 'token2', '333');
 		});
 
 		it('should serialize gui state', async () => {
@@ -1621,24 +1621,24 @@ ${dotrainWithoutVaultIds}`;
 
 			assert.equal(extractWasmEncodedData<boolean>(gui.hasAnyVaultId()), false);
 
-			gui.setVaultId(true, 0, '0x123');
+			gui.setVaultId('input', 'token1', '0x123');
 
 			assert.equal(extractWasmEncodedData<boolean>(gui.hasAnyVaultId()), true);
 
 			assert.equal(
-				extractWasmEncodedData<Map<string, (string | undefined)[]>>(gui.getVaultIds()).get(
-					'input'
-				)?.[0],
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds())
+					.get('input')
+					?.get('token1'),
 				'0x123'
 			);
 			assert.equal(
-				extractWasmEncodedData<Map<string, (string | undefined)[]>>(gui.getVaultIds()).get(
-					'output'
-				)?.[0],
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds())
+					.get('output')
+					?.get('token2'),
 				undefined
 			);
 
-			gui.setVaultId(false, 0, '0x234');
+			gui.setVaultId('output', 'token2', '0x234');
 
 			const newCurrentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1648,35 +1648,35 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123');
 			assert.equal(newCurrentDeployment.deployment.order.outputs[0].vaultId, '0x234');
 
-			const vaultIds = extractWasmEncodedData<Map<string, (string | undefined)[]>>(
+			const vaultIds = extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(
 				gui.getVaultIds()
 			);
-			assert.equal(vaultIds.get('input')?.[0], '0x123');
-			assert.equal(vaultIds.get('output')?.[0], '0x234');
+			assert.equal(vaultIds.get('input')?.get('token1'), '0x123');
+			assert.equal(vaultIds.get('output')?.get('token2'), '0x234');
 
-			gui.setVaultId(true, 0, undefined);
+			gui.setVaultId('input', 'token1', undefined);
 			assert.equal(
-				extractWasmEncodedData<Map<string, (string | undefined)[]>>(gui.getVaultIds()).get(
-					'input'
-				)?.[0],
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds())
+					.get('input')
+					?.get('token1'),
 				undefined
 			);
 
-			gui.setVaultId(false, 0, '');
+			gui.setVaultId('output', 'token2', '');
 			assert.equal(
-				extractWasmEncodedData<Map<string, (string | undefined)[]>>(gui.getVaultIds()).get(
-					'output'
-				)?.[0],
+				extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(gui.getVaultIds())
+					.get('output')
+					?.get('token2'),
 				undefined
 			);
 
-			const result = gui.setVaultId(true, 0, 'test');
+			const result = gui.setVaultId('input', 'token1', 'test');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
-				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
+				"Invalid value for field 'vault-id': Failed to parse vault id in token 'token1' in inputs of order 'some-order'"
 			);
 			expect(result.error.readableMsg).toBe(
-				"YAML configuration error: Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
+				"YAML configuration error: Invalid value for field 'vault-id': Failed to parse vault id in token 'token1' in inputs of order 'some-order'"
 			);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);

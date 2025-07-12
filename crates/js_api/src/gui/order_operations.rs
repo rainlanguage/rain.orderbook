@@ -4,7 +4,10 @@ use alloy::{
     primitives::{utils::parse_units, Bytes, U256},
     sol_types::SolCall,
 };
-use rain_orderbook_app_settings::{order::OrderIOCfg, orderbook::OrderbookCfg};
+use rain_orderbook_app_settings::{
+    order::{OrderIOCfg, VaultType},
+    orderbook::OrderbookCfg,
+};
 use rain_orderbook_bindings::OrderBook::multicallCall;
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
@@ -56,7 +59,8 @@ impl_wasm_traits!(DepositAndAddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct IOVaultIds(
-    #[tsify(type = "Map<string, (string | undefined)[]>")] pub HashMap<String, Vec<Option<U256>>>,
+    #[tsify(type = "Map<string, Map<string, string | undefined>>")]
+    pub  HashMap<String, HashMap<String, Option<U256>>>,
 );
 impl_wasm_traits!(IOVaultIds);
 
@@ -517,29 +521,31 @@ impl DotrainOrderGui {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result1 = gui.setVaultId(true, 0, "42");
+    /// const result1 = gui.setVaultId("input", "token1", "42");
     /// if (result1.error) {
     ///   console.error("Error:", result1.error.readableMsg);
     ///   return;
     /// }
-    /// const result2 = gui.setVaultId(false, 0, "43");
-    /// const result3 = gui.setVaultId(false, 0, undefined);
+    /// const result2 = gui.setVaultId("output", "token2", "43");
+    /// const result3 = gui.setVaultId("output", "token2", undefined);
     /// ```
     #[wasm_export(js_name = "setVaultId", unchecked_return_type = "void")]
     pub fn set_vault_id(
         &mut self,
-        #[wasm_export(param_description = "True for input vaults, false for output vaults")]
-        is_input: bool,
-        #[wasm_export(param_description = "Zero-based index in the inputs/outputs array")]
-        index: u8,
-        #[wasm_export(param_description = "Vault ID number as string, or None to clear")]
+        #[wasm_export(param_description = "Vault type: 'input' or 'output'")] r#type: VaultType,
+        #[wasm_export(param_description = "Token key to identify which token to set vault for")]
+        token: String,
+        #[wasm_export(
+            js_name = "vaultId",
+            param_description = "Vault ID number as string. Omit to clear vault ID"
+        )]
         vault_id: Option<String>,
     ) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
         self.dotrain_order
             .dotrain_yaml()
             .get_order(&deployment.deployment.order.key)?
-            .update_vault_id(is_input, index, vault_id)?;
+            .update_vault_id(r#type, token, vault_id)?;
 
         self.execute_state_update_callback()?;
         Ok(())
@@ -547,8 +553,8 @@ impl DotrainOrderGui {
 
     /// Gets all configured vault IDs for inputs and outputs.
     ///
-    /// Returns the current vault ID configuration showing which vaults are
-    /// assigned to each input and output token position.
+    /// Returns a map with 'input' and 'output' keys, where each value is a map
+    /// of token keys to their configured vault IDs (or undefined if not set).
     ///
     /// ## Examples
     ///
@@ -559,41 +565,47 @@ impl DotrainOrderGui {
     ///   return;
     /// }
     ///
-    /// // key is either 'input' or 'output'
-    /// // value is either undefined or the vault ID
-    /// for (const [key, value] of result.value) {
-    ///   console.log("Key:", key);
-    ///   console.log("Value:", value);
+    /// // Access input token vault IDs
+    /// for (const [tokenKey, vaultId] of result.value.get('input')) {
+    ///   console.log(`Input token ${tokenKey} uses vault ${vaultId || 'none'}`);
+    /// }
+    ///
+    /// // Access output token vault IDs
+    /// for (const [tokenKey, vaultId] of result.value.get('output')) {
+    ///   console.log(`Output token ${tokenKey} uses vault ${vaultId || 'none'}`);
     /// }
     /// ```
     #[wasm_export(
         js_name = "getVaultIds",
         unchecked_return_type = "IOVaultIds",
-        return_description = "Map with 'input' and 'output' arrays of vault IDs"
+        return_description = "Map with 'input' and 'output' keys containing token-to-vault-ID maps"
     )]
     pub fn get_vault_ids(&self) -> Result<IOVaultIds, GuiError> {
         let deployment = self.get_current_deployment()?;
+
+        let mut input_map = HashMap::new();
+        for input in deployment.deployment.order.inputs.iter() {
+            let token_key = input
+                .token
+                .as_ref()
+                .map(|t| t.key.clone())
+                .ok_or(GuiError::SelectTokensNotSet)?;
+            input_map.insert(token_key, input.vault_id);
+        }
+
+        let mut output_map = HashMap::new();
+        for output in deployment.deployment.order.outputs.iter() {
+            let token_key = output
+                .token
+                .as_ref()
+                .map(|t| t.key.clone())
+                .ok_or(GuiError::SelectTokensNotSet)?;
+            output_map.insert(token_key, output.vault_id);
+        }
+
         let map = HashMap::from([
-            (
-                "input".to_string(),
-                deployment
-                    .deployment
-                    .order
-                    .inputs
-                    .iter()
-                    .map(|input| input.vault_id)
-                    .collect(),
-            ),
-            (
-                "output".to_string(),
-                deployment
-                    .deployment
-                    .order
-                    .outputs
-                    .iter()
-                    .map(|output| output.vault_id)
-                    .collect(),
-            ),
+            ("input".to_string(), input_map),
+            ("output".to_string(), output_map),
         ]);
         Ok(IOVaultIds(map))
     }
@@ -622,7 +634,10 @@ impl DotrainOrderGui {
     )]
     pub fn has_any_vault_id(&self) -> Result<bool, GuiError> {
         let map = self.get_vault_ids()?;
-        Ok(map.0.values().any(|ids| ids.iter().any(|id| id.is_some())))
+        Ok(map
+            .0
+            .values()
+            .any(|token_map| token_map.values().any(|vault_id| vault_id.is_some())))
     }
 
     #[wasm_export(skip)]
@@ -851,30 +866,45 @@ mod tests {
         let gui = initialize_gui(None).await;
         let res = gui.get_vault_ids().unwrap();
         assert_eq!(res.0.len(), 2);
-        assert_eq!(res.0["input"][0], Some(U256::from(1)));
-        assert_eq!(res.0["output"][0], Some(U256::from(1)));
+        assert_eq!(res.0["input"]["token1"], Some(U256::from(1)));
+        assert_eq!(res.0["output"]["token2"], Some(U256::from(1)));
 
         let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
 
         let res = gui.get_vault_ids().unwrap();
         assert_eq!(res.0.len(), 2);
-        assert_eq!(res.0["input"][0], None);
-        assert_eq!(res.0["output"][0], None);
+        assert_eq!(res.0["input"]["token1"], None);
+        assert_eq!(res.0["output"]["token1"], None);
 
-        gui.set_vault_id(true, 0, Some("999".to_string())).unwrap();
-        gui.set_vault_id(false, 0, Some("888".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("999".to_string()),
+        )
+        .unwrap();
+        gui.set_vault_id(
+            VaultType::Output,
+            "token1".to_string(),
+            Some("888".to_string()),
+        )
+        .unwrap();
 
         let res = gui.get_vault_ids().unwrap();
         assert_eq!(res.0.len(), 2);
-        assert_eq!(res.0["input"][0], Some(U256::from(999)));
-        assert_eq!(res.0["output"][0], Some(U256::from(888)));
+        assert_eq!(res.0["input"]["token1"], Some(U256::from(999)));
+        assert_eq!(res.0["output"]["token1"], Some(U256::from(888)));
     }
 
     #[wasm_bindgen_test]
     async fn test_has_any_vault_id() {
         let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
         assert!(!gui.has_any_vault_id().unwrap());
-        gui.set_vault_id(true, 0, Some("1".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("1".to_string()),
+        )
+        .unwrap();
         assert!(gui.has_any_vault_id().unwrap());
     }
 
