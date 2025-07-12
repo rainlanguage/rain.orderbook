@@ -546,19 +546,16 @@ impl RaindexVaultBalanceChange {
         self.token.clone()
     }
     #[wasm_bindgen(getter)]
-    pub fn amount(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.amount.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn amount(&self) -> Float {
+        self.amount
     }
     #[wasm_bindgen(getter = newBalance)]
-    pub fn new_balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.new_balance.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn new_balance(&self) -> Float {
+        self.new_balance
     }
     #[wasm_bindgen(getter = oldBalance)]
-    pub fn old_balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.old_balance.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn old_balance(&self) -> Float {
+        self.old_balance
     }
     #[wasm_bindgen(getter)]
     pub fn timestamp(&self) -> Result<BigInt, RaindexError> {
