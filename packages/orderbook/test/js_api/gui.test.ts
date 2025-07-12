@@ -962,7 +962,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOTUvDMBjHmykTxIOIV0HwamybvljHPA6mYkUI4rXrsrU0S7o0dUw_hEevfoHhJ_Dqzc8j3qSYbOvYdc8h_-fln-f5AeM_9pRKUkjYS1k_ZUOgepaxuzx9imhJGqrT1BOeEWYbOraVetaZX7OguWVLqW1Z65fVKw1Y8BGBjMgJF5kGPFKaSJm3TJPyOKIJL2QrsALPFHkMS0FfKgeoXqBPd3D3UKWDNQGaYEeNccVwbANNiut0qF5tmPW1_TM7-W7PPt-8j9_HBrr4eo_BwQorWrAinS2tcxwHLCrf909VGnT48112k8LbyH3o3V9NYRieyzQTEe2WHI_d64EbYjLmk-HlvvrDZUIE7JOc8umIMPkHbEaANVUCAAA=';
+			'H4sIAAAAAAAA_21PwUrDQBDNRlEQDyJeBcGra5Il0VjqsVAVI8IiXtN0bUK2O-lmY6l-hEev_kDxC7x683vEmwRnSwvOYd_beW923xDnr7YRjagNHRRqWKgRwZ7vbC2rj6lshIudDatAKVTg2FpHjPzjkxULW1jWEAPfJ_89xlZvNmANY0GVMFPQpZ3bR8yNqTqeJyFLZQ616cR-HHm6ymij5XPrIO1J7Nc93t9D-tL9nh9-decfr9H7z73Lzj7fMrJLNlHmbYYDRuzanLmLRYiNEZAlfoQk7sHTTXlV0Os0vBvcXsxokpyaotSp7DfAJ-HlQ5hwMYHp6HwHZ8DkQtOhqCTMxkKZX1tQCO-lAQAA';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1022,7 +1022,7 @@ ${dotrain}`;
 			assert.equal(deposits.length, 2);
 			assert.equal(deposits[0].token, 'token1');
 			assert.equal(deposits[0].amount, '50.6');
-			assert.equal(deposits[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
+			assert.equal(deposits[0].address, '0x6666666666666666666666666666666666666666');
 			assert.equal(deposits[1].token, 'token2');
 			assert.equal(deposits[1].amount, '100');
 			assert.equal(deposits[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
@@ -1747,7 +1747,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(result.approvals.length, 0);
-			assert.equal(result.deploymentCalldata.length, 2826);
+			assert.equal(result.deploymentCalldata.length, 2506);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 		});
