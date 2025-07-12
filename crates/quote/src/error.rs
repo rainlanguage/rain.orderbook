@@ -1,6 +1,10 @@
-use alloy::primitives::{hex::FromHexError, U256};
-use alloy_ethers_typecast::transaction::ReadableClientError;
+use alloy::{
+    primitives::{hex::FromHexError, U256},
+    providers::MulticallError,
+};
+use alloy_ethers_typecast::ReadableClientError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
+use rain_orderbook_bindings::provider::ReadProviderError;
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, OrderbookSubgraphClientError,
 };
@@ -43,6 +47,10 @@ pub enum Error {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error("Invalid quote target: index {0} is out of bounds for this Order")]
     InvalidQuoteTarget(U256),
+    #[error(transparent)]
+    ReadProviderError(#[from] ReadProviderError),
+    #[error("Multicall failed: {0}")]
+    MulticallError(#[from] MulticallError),
 }
 
 #[cfg(target_family = "wasm")]

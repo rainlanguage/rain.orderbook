@@ -3,15 +3,17 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
-use alloy::primitives::{hex::FromHexError, private::rand, Address, U256};
+use alloy::primitives::{hex::FromHexError, Address, B256};
+#[cfg(not(target_family = "wasm"))]
+use alloy::primitives::{FixedBytes, U256};
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::{
-    ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
-    WriteContractParameters,
+use alloy_ethers_typecast::{
+    ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
 };
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use dotrain::error::ComposeError;
+use rain_interpreter_bindings::IParserV2::parse2Return;
 use rain_interpreter_dispair::{DISPair, DISPairError};
 #[cfg(not(target_family = "wasm"))]
 use rain_interpreter_eval::{
@@ -24,9 +26,8 @@ use rain_metadata::{
     RainMetaDocumentV1Item,
 };
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
-use rain_orderbook_bindings::{
-    IOrderBookV4::{addOrder2Call, EvaluableV3, OrderConfigV3, TaskV1, IO},
-    ERC20::decimalsCall,
+use rain_orderbook_bindings::IOrderBookV5::{
+    addOrder3Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -86,8 +87,8 @@ impl From<ForkCallError> for AddOrderArgsError {
 #[serde(rename = "kebab-case")]
 pub struct AddOrderArgs {
     pub dotrain: String,
-    pub inputs: Vec<IO>,
-    pub outputs: Vec<IO>,
+    pub inputs: Vec<IOV2>,
+    pub outputs: Vec<IOV2>,
     pub deployer: Address,
     pub bindings: HashMap<String, String>,
 }
@@ -98,17 +99,7 @@ impl AddOrderArgs {
         dotrain: String,
         deployment: DeploymentCfg,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
-        let random_vault_id: U256 = rand::random();
-
-        let client = ReadableClientHttp::new_from_urls(
-            deployment
-                .order
-                .network
-                .rpcs
-                .iter()
-                .map(|rpc| rpc.to_string())
-                .collect::<Vec<String>>(),
-        )?;
+        let random_vault_id = B256::random();
 
         let mut inputs = vec![];
         for (i, input) in deployment.order.inputs.iter().enumerate() {
@@ -117,26 +108,10 @@ impl AddOrderArgs {
                 .as_ref()
                 .ok_or_else(|| AddOrderArgsError::InputTokenNotFound(i.to_string()))?;
 
-            if let Some(decimals) = input_token.decimals {
-                inputs.push(IO {
-                    token: input_token.address,
-                    vaultId: input.vault_id.unwrap_or(random_vault_id),
-                    decimals,
-                });
-            } else {
-                let parameters = ReadContractParameters {
-                    address: input_token.address,
-                    call: decimalsCall {},
-                    block_number: None,
-                    gas: None,
-                };
-                let decimals = client.read(parameters).await?._0;
-                inputs.push(IO {
-                    token: input_token.address,
-                    vaultId: input.vault_id.unwrap_or(random_vault_id),
-                    decimals,
-                });
-            }
+            inputs.push(IOV2 {
+                token: input_token.address,
+                vaultId: input.vault_id.map(B256::from).unwrap_or(random_vault_id),
+            });
         }
 
         let mut outputs = vec![];
@@ -146,26 +121,10 @@ impl AddOrderArgs {
                 .as_ref()
                 .ok_or_else(|| AddOrderArgsError::OutputTokenNotFound(i.to_string()))?;
 
-            if let Some(decimals) = output_token.decimals {
-                outputs.push(IO {
-                    token: output_token.address,
-                    vaultId: output.vault_id.unwrap_or(random_vault_id),
-                    decimals,
-                });
-            } else {
-                let parameters = ReadContractParameters {
-                    address: output_token.address,
-                    call: decimalsCall {},
-                    block_number: None,
-                    gas: None,
-                };
-                let decimals = client.read(parameters).await?._0;
-                outputs.push(IO {
-                    token: output_token.address,
-                    vaultId: output.vault_id.unwrap_or(random_vault_id),
-                    decimals,
-                });
-            }
+            outputs.push(IOV2 {
+                token: output_token.address,
+                vaultId: output.vault_id.map(B256::from).unwrap_or(random_vault_id),
+            });
         }
 
         Ok(AddOrderArgs {
@@ -183,13 +142,14 @@ impl AddOrderArgs {
         rpcs: Vec<String>,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClientHttp::new_from_urls(rpcs)?;
-        let dispair = DISPair::from_deployer(self.deployer, client.clone())
+        let client = ReadableClient::new_from_http_urls(rpcs.clone())?;
+        let dispair = DISPair::from_deployer(self.deployer, client)
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
 
+        let client = ReadableClient::new_from_http_urls(rpcs)?;
         let parser: ParserV2 = dispair.clone().into();
-        let rainlang_parsed = parser
+        let rainlang_parsed: parse2Return = parser
             .parse_text(rainlang.as_str(), client)
             .await
             .map_err(AddOrderArgsError::ParserError)?;
@@ -239,7 +199,7 @@ impl AddOrderArgs {
     pub async fn try_into_call(
         &self,
         rpcs: Vec<String>,
-    ) -> Result<addOrder2Call, AddOrderArgsError> {
+    ) -> Result<addOrder3Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpcs.clone(), rainlang.clone())
@@ -249,7 +209,7 @@ impl AddOrderArgs {
 
         let deployer = self.deployer;
         let dispair =
-            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_urls(rpcs.clone())?)
+            DISPair::from_deployer(deployer, ReadableClient::new_from_http_urls(rpcs.clone())?)
                 .await?;
 
         // get the evaluable for the post action
@@ -258,29 +218,29 @@ impl AddOrderArgs {
             .try_parse_rainlang(rpcs.clone(), post_rainlang.clone())
             .await?;
 
-        let post_evaluable = EvaluableV3 {
+        let post_evaluable = EvaluableV4 {
             interpreter: dispair.interpreter,
             store: dispair.store,
             bytecode: post_bytecode.into(),
         };
 
-        let post_task = TaskV1 {
+        let post_task = TaskV2 {
             evaluable: post_evaluable,
             signedContext: vec![],
         };
 
-        Ok(addOrder2Call {
-            config: OrderConfigV3 {
+        Ok(addOrder3Call {
+            config: OrderConfigV4 {
                 validInputs: self.inputs.clone(),
                 validOutputs: self.outputs.clone(),
-                evaluable: EvaluableV3 {
+                evaluable: EvaluableV4 {
                     interpreter: dispair.interpreter,
                     store: dispair.store,
                     bytecode: bytecode.into(),
                 },
                 meta: meta.into(),
-                nonce: alloy::primitives::private::rand::random::<U256>().into(),
-                secret: alloy::primitives::private::rand::random::<U256>().into(),
+                nonce: B256::random(),
+                secret: B256::random(),
             },
             tasks: vec![post_task],
         })
@@ -289,7 +249,7 @@ impl AddOrderArgs {
     pub async fn get_add_order_call_parameters(
         &self,
         transaction_args: TransactionArgs,
-    ) -> Result<WriteContractParameters<addOrder2Call>, AddOrderArgsError> {
+    ) -> Result<WriteContractParameters<addOrder3Call>, AddOrderArgsError> {
         let add_order_call = self.try_into_call(transaction_args.clone().rpcs).await?;
         let params = transaction_args.try_into_write_contract_parameters(
             add_order_call,
@@ -299,16 +259,16 @@ impl AddOrderArgs {
     }
 
     #[cfg(not(target_family = "wasm"))]
-    pub async fn execute<S: Fn(WriteTransactionStatus<addOrder2Call>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<addOrder3Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), AddOrderArgsError> {
-        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
+        let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
         let params = self.get_add_order_call_parameters(transaction_args).await?;
 
-        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+        WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
             .execute()
             .await?;
 
@@ -334,13 +294,9 @@ impl AddOrderArgs {
         let from_address = if let Some(v) = from {
             v.0 .0
         } else {
-            transaction_args
-                .clone()
-                .try_into_ledger_client()
-                .await?
-                .client
-                .address()
-                .0
+            let (_, Address(FixedBytes(address))) =
+                transaction_args.clone().try_into_ledger_client().await?;
+            address
         };
 
         let mut err: Option<AddOrderArgsError> = None;
@@ -582,7 +538,10 @@ _ _: 0 0;
             .unwrap();
 
         // input1 vault id should be same as known_vault_id
-        assert_eq!(result.inputs[1].vaultId, known_vault_id);
+        assert_eq!(
+            result.inputs[1].vaultId,
+            B256::from(U256::from(known_vault_id))
+        );
 
         // input0 and output0 vaults should be the same random value
         assert_eq!(result.inputs[0].vaultId, result.outputs[0].vaultId);
@@ -698,9 +657,18 @@ _ _: 0 0;
         assert_eq!(add_order_call.config.validOutputs.len(), 1);
         assert_eq!(add_order_call.tasks.len(), 1);
 
-        assert_eq!(add_order_call.config.validInputs[0].vaultId, U256::from(2));
-        assert_eq!(add_order_call.config.validInputs[1].vaultId, U256::from(1));
-        assert_eq!(add_order_call.config.validOutputs[0].vaultId, U256::from(4));
+        assert_eq!(
+            add_order_call.config.validInputs[0].vaultId,
+            B256::from(U256::from(2))
+        );
+        assert_eq!(
+            add_order_call.config.validInputs[1].vaultId,
+            B256::from(U256::from(1))
+        );
+        assert_eq!(
+            add_order_call.config.validOutputs[0].vaultId,
+            B256::from(U256::from(4))
+        );
 
         assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
 
@@ -1253,7 +1221,7 @@ _ _: 0 0;
                 if msg.get(&rpc_url).is_some()
                     && matches!(
                         msg.get(&rpc_url).unwrap(),
-                        ReadableClientError::ReadCallError(_)
+                        ReadableClientError::RpcTransportKindError(_)
                     )
             ),
             "unexpected error variant: {err:?}"
@@ -1428,23 +1396,21 @@ _ _: 0 0;
         );
         let add_order_args = AddOrderArgs {
             dotrain: dotrain.to_string(),
-            inputs: vec![IO {
+            inputs: vec![IOV2 {
                 token: *local_evm.tokens[0].address(),
-                decimals: 18,
-                vaultId: U256::from(2),
+                vaultId: B256::from(U256::from(2)),
             }],
-            outputs: vec![IO {
+            outputs: vec![IOV2 {
                 token: *local_evm.tokens[1].address(),
-                decimals: 18,
-                vaultId: U256::from(4),
+                vaultId: B256::from(U256::from(4)),
             }],
             deployer: *local_evm.deployer.address(),
             bindings: HashMap::new(),
         };
 
-        let add_order_call = addOrder2Call {
-            config: OrderConfigV3 {
-                evaluable: EvaluableV3 {
+        let add_order_call = addOrder3Call {
+            config: OrderConfigV4 {
+                evaluable: EvaluableV4 {
                     interpreter: *local_evm.interpreter.address(),
                     store: *local_evm.store.address(),
                     bytecode: Bytes::from_str(
@@ -1452,23 +1418,21 @@ _ _: 0 0;
                     )
                     .unwrap(),
                 },
-                validInputs: vec![IO {
+                validInputs: vec![IOV2 {
                     token: *local_evm.tokens[0].address(),
-                    decimals: 18,
-                    vaultId: U256::from(2),
+                    vaultId: B256::from(U256::from(2)),
                 }],
-                validOutputs: vec![IO {
+                validOutputs: vec![IOV2 {
                     token: *local_evm.tokens[1].address(),
-                    decimals: 18,
-                    vaultId: U256::from(4),
+                    vaultId: B256::from(U256::from(4)),
                 }],
                 nonce: alloy::primitives::private::rand::random::<U256>().into(),
                 secret: alloy::primitives::private::rand::random::<U256>().into(),
                 meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
             tasks: vec![
-                TaskV1 {
-                    evaluable: EvaluableV3 {
+                TaskV2 {
+                    evaluable: EvaluableV4 {
                         interpreter: *local_evm.interpreter.address(),
                         store: *local_evm.store.address(),
                         bytecode: Bytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000701000000000000").unwrap(),
@@ -1482,8 +1446,8 @@ _ _: 0 0;
             .get_add_order_call_parameters(TransactionArgs {
                 rpcs: vec![local_evm.url().to_string()],
                 orderbook_address: *local_evm.orderbook.address(),
-                max_priority_fee_per_gas: Some(U256::from(100)),
-                max_fee_per_gas: Some(U256::from(200)),
+                max_priority_fee_per_gas: Some(100),
+                max_fee_per_gas: Some(200),
                 ..Default::default()
             })
             .await
@@ -1501,8 +1465,8 @@ _ _: 0 0;
         assert_eq!(res.call.config.meta, add_order_call.config.meta);
         assert_eq!(res.call.tasks, add_order_call.tasks);
         assert_eq!(res.address, *local_evm.orderbook.address());
-        assert_eq!(res.max_priority_fee_per_gas, Some(U256::from(100)));
-        assert_eq!(res.max_fee_per_gas, Some(U256::from(200)));
+        assert_eq!(res.max_priority_fee_per_gas, Some(100));
+        assert_eq!(res.max_fee_per_gas, Some(200));
     }
 
     #[tokio::test]
@@ -1534,36 +1498,33 @@ _ _: 0 0;
             .unwrap()
             .into();
 
-        let expected_bytes: Bytes = addOrder2Call {
-            config: OrderConfigV3 {
-                evaluable: EvaluableV3 {
+        let expected_bytes: Bytes = addOrder3Call {
+            config: OrderConfigV4 {
+                evaluable: EvaluableV4 {
                     interpreter: *local_evm.interpreter.address(),
                     store: *local_evm.store.address(),
                     bytecode: Bytes::from_str("0x000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000").unwrap(),
                 },
                 validInputs: vec![
-                    IO {
+                    IOV2 {
                         token: Address::default(),
-                        decimals: 18,
-                        vaultId: U256::from(2),
+                        vaultId: B256::from(U256::from(2)),
                     },
-                    IO {
+                    IOV2 {
                         token: Address::default(),
-                        decimals: 18,
-                        vaultId: U256::from(1),
+                        vaultId: B256::from(U256::from(1)),
                     },
                 ],
-                validOutputs: vec![IO {
+                validOutputs: vec![IOV2 {
                     token: Address::default(),
-                    decimals: 18,
-                    vaultId: U256::from(4),
+                    vaultId: B256::from(U256::from(4)),
                 }],
                 nonce: U256::from(0).into(),
                 secret: U256::from(0).into(),
                 meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
-            tasks: vec![TaskV1 {
-                evaluable: EvaluableV3 {
+            tasks: vec![TaskV2 {
+                evaluable: EvaluableV4 {
                     interpreter: *local_evm.interpreter.address(),
                     store: *local_evm.store.address(),
                     bytecode: Bytes::from_str("0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f010000020200020110000001100000").unwrap(),
@@ -1607,6 +1568,7 @@ _ _: 0 0;
             })
             .await
             .unwrap_err();
+
         assert!(
             matches!(
                 &err,
@@ -1616,7 +1578,7 @@ _ _: 0 0;
                 if msg.get(&rpc_url).is_some()
                     && matches!(
                         msg.get(&rpc_url).unwrap(),
-                        ReadableClientError::ReadCallError(_)
+                        ReadableClientError::RpcTransportKindError(_)
                     )
             ),
             "unexpected error variant: {err:?}"

@@ -4,8 +4,12 @@ use crate::{
 };
 use alloy::{
     hex::FromHexError,
-    primitives::{ruint::ParseError, Address, ParseSignedError},
+    primitives::{
+        ruint::{FromUintError, ParseError},
+        Address, ParseSignedError,
+    },
 };
+use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     new_config::ParseConfigError,
     yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable},
@@ -15,7 +19,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, str::FromStr};
+use std::{collections::BTreeMap, num::ParseIntError, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
@@ -230,6 +234,14 @@ pub enum RaindexError {
     SubgraphNotFound(String, String),
     #[error("Invalid vault balance change type: {0}")]
     InvalidVaultBalanceChangeType(String),
+    #[error(transparent)]
+    Erc20(#[from] crate::erc20::Error),
+    #[error("Float error: {0}")]
+    Float(#[from] FloatError),
+    #[error("Failed to parse an integer: {0}")]
+    ParseInt(#[from] ParseIntError),
+    #[error("Failed to convert to u8: {0}")]
+    TryFromUint(#[from] FromUintError<u8>),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -334,6 +346,10 @@ impl RaindexError {
             RaindexError::InvalidVaultBalanceChangeType(typ) => {
                 format!("Invalid vault balance change type: {}", typ)
             }
+            RaindexError::Erc20(err) => format!("Failed to get ERC20 info: {err}"),
+            RaindexError::Float(err) => format!("Float error: {err}"),
+            RaindexError::ParseInt(err) => format!("Failed to parse an integer: {err}"),
+            RaindexError::TryFromUint(err) => format!("Failed to convert to u8: {err}"),
         }
     }
 }
@@ -355,9 +371,11 @@ impl From<RaindexError> for WasmEncodedError {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
 
+    #[cfg(not(target_family = "wasm"))]
     pub const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
     pub fn get_test_yaml(subgraph1: &str, subgraph2: &str, rpc1: &str, rpc2: &str) -> String {
         format!(
@@ -420,9 +438,7 @@ deployers:
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use alloy::primitives::Address;
         use rain_orderbook_app_settings::yaml::YamlError;
-        use std::str::FromStr;
         use url::Url;
         use wasm_bindgen_test::wasm_bindgen_test;
 

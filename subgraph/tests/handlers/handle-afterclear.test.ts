@@ -13,7 +13,7 @@ import {
   makeClearBountyId,
 } from "../../src/clear";
 import {
-  IO,
+  IOV2,
   Evaluable,
   createOrder,
   createClearEvent,
@@ -26,21 +26,42 @@ import {
   describe,
   afterEach,
   clearInBlockStore,
+  beforeEach,
 } from "matchstick-as";
+import {
+  FLOAT_10,
+  FLOAT_15,
+  FLOAT_20,
+  FLOAT_5,
+  FLOAT_NEG_10,
+  FLOAT_NEG_20,
+  FLOAT_0,
+  createMockDecimalFloatFunctions,
+} from "../float.test";
 
 const alice = Address.fromString("0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce");
 const bob = Address.fromString("0x813aef302Ebad333EDdef619C6f8eD7FeF51BA7c");
 
-const aliceVaultId = BigInt.fromString("1");
-const bobVaultId = BigInt.fromString("2");
-const aliceBountyVaultId = BigInt.fromString("8");
-const bobBountyVaultId = BigInt.fromString("9");
+const aliceVaultId = Bytes.fromHexString(
+  "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+);
+const bobVaultId = Bytes.fromHexString(
+  "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+);
+const aliceBountyVaultId = Bytes.fromHexString(
+  "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+);
+const bobBountyVaultId = Bytes.fromHexString(
+  "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+);
 
 const token1 = Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB");
 const token2 = Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Bc");
 const token3 = Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Ba");
 
 describe("Handle AfterClear", () => {
+  beforeEach(createMockDecimalFloatFunctions);
+
   afterEach(() => {
     clearStore();
     clearInBlockStore();
@@ -51,10 +72,10 @@ describe("Handle AfterClear", () => {
     createMockERC20Functions(token2);
     createMockERC20Functions(token3);
 
-    let aliceOutputAmount = BigInt.fromString("10");
-    let bobOutputAmount = BigInt.fromString("20");
-    let aliceInputAmount = BigInt.fromString("15");
-    let bobInputAmount = BigInt.fromString("10");
+    let aliceOutputAmount = FLOAT_10;
+    let bobOutputAmount = FLOAT_20;
+    let aliceInputAmount = FLOAT_15;
+    let bobInputAmount = FLOAT_10;
 
     let evaluable = new Evaluable(
       Address.fromString("0x5fB33D710F8B58DE4c9fDEC703B5c2487a5219d6"),
@@ -70,18 +91,15 @@ describe("Handle AfterClear", () => {
       createOrder(
         alice,
         evaluable,
-        [new IO(token1, BigInt.fromString("18"), aliceVaultId)],
-        [new IO(token2, BigInt.fromString("18"), aliceVaultId)],
+        [new IOV2(token1, aliceVaultId)],
+        [new IOV2(token2, aliceVaultId)],
         nonce
       ),
       createOrder(
         bob,
         evaluable,
-        [new IO(token2, BigInt.fromString("18"), bobVaultId)],
-        [
-          new IO(token3, BigInt.fromString("18"), bobVaultId),
-          new IO(token1, BigInt.fromString("18"), bobVaultId),
-        ],
+        [new IOV2(token2, bobVaultId)],
+        [new IOV2(token3, bobVaultId), new IOV2(token1, bobVaultId)],
         nonce
       ),
       BigInt.fromString("0"),
@@ -116,39 +134,30 @@ describe("Handle AfterClear", () => {
       "Clear",
       id,
       "aliceInputAmount",
-      aliceInputAmount.toString()
+      aliceInputAmount.toHexString()
     );
     assert.fieldEquals(
       "Clear",
       id,
       "aliceOutputAmount",
-      aliceOutputAmount.toString()
+      aliceOutputAmount.toHexString()
     );
-    assert.fieldEquals(
-      "Clear",
-      id,
-      "aliceBountyAmount",
-      aliceOutputAmount.minus(bobInputAmount).toString()
-    );
+    assert.fieldEquals("Clear", id, "aliceBountyAmount", FLOAT_0.toHexString());
+
     // bob
     assert.fieldEquals(
       "Clear",
       id,
       "bobInputAmount",
-      bobInputAmount.toString()
+      bobInputAmount.toHexString()
     );
     assert.fieldEquals(
       "Clear",
       id,
       "bobOutputAmount",
-      bobOutputAmount.toString()
+      bobOutputAmount.toHexString()
     );
-    assert.fieldEquals(
-      "Clear",
-      id,
-      "bobBountyAmount",
-      bobOutputAmount.minus(aliceInputAmount).toString()
-    );
+    assert.fieldEquals("Clear", id, "bobBountyAmount", FLOAT_5.toHexString());
 
     // bounty
     let bountyVaultId = vaultEntityId(
@@ -184,19 +193,19 @@ describe("Handle AfterClear", () => {
       "ClearBounty",
       clearBountyId,
       "amount",
-      bobOutputAmount.minus(aliceInputAmount).toString()
+      FLOAT_5.toHexString()
     );
     assert.fieldEquals(
       "ClearBounty",
       clearBountyId,
       "newVaultBalance",
-      bobOutputAmount.minus(aliceInputAmount).toString()
+      FLOAT_5.toHexString()
     );
     assert.fieldEquals(
       "ClearBounty",
       clearBountyId,
       "oldVaultBalance",
-      BigInt.fromString("0").toString()
+      FLOAT_0.toHexString()
     );
     assert.fieldEquals(
       "ClearBounty",
@@ -256,13 +265,13 @@ describe("Handle AfterClear", () => {
       "TradeVaultBalanceChange",
       aliceInputVaultBalanceChangeId,
       "amount",
-      aliceInputAmount.toString()
+      aliceInputAmount.toHexString()
     );
     assert.fieldEquals(
       "TradeVaultBalanceChange",
       aliceOutputVaultBalanceChangeId,
       "amount",
-      aliceOutputAmount.neg().toString()
+      FLOAT_NEG_10.toHexString()
     );
 
     // bob trade and balance change
@@ -309,13 +318,13 @@ describe("Handle AfterClear", () => {
       "TradeVaultBalanceChange",
       bobInputVaultBalanceChangeId,
       "amount",
-      bobInputAmount.toString()
+      bobInputAmount.toHexString()
     );
     assert.fieldEquals(
       "TradeVaultBalanceChange",
       bobOutputVaultBalanceChangeId,
       "amount",
-      bobOutputAmount.neg().toString()
+      FLOAT_NEG_20.toHexString()
     );
   });
 });

@@ -1,20 +1,18 @@
 use crate::error::CommandResult;
-use alloy_ethers_typecast::transaction::ReadableClientHttp;
+use alloy_ethers_typecast::ReadableClient;
 
 #[tauri::command]
 pub async fn get_chainid(rpcs: Vec<String>) -> CommandResult<u64> {
-    let chain_id = ReadableClientHttp::new_from_urls(rpcs)?
+    let chain_id = ReadableClient::new_from_http_urls(rpcs)?
         .get_chainid()
         .await?;
 
-    let chain_id_u64: u64 = chain_id.try_into()?;
-
-    Ok(chain_id_u64)
+    Ok(chain_id)
 }
 
 #[tauri::command]
 pub async fn get_block_number(rpcs: Vec<String>) -> CommandResult<u64> {
-    let block_number = ReadableClientHttp::new_from_urls(rpcs)?
+    let block_number = ReadableClient::new_from_http_urls(rpcs)?
         .get_block_number()
         .await?;
     Ok(block_number)
@@ -22,7 +20,7 @@ pub async fn get_block_number(rpcs: Vec<String>) -> CommandResult<u64> {
 
 #[cfg(test)]
 mod tests {
-    use alloy_ethers_typecast::transaction::ReadableClientError;
+    use alloy_ethers_typecast::ReadableClientError;
     use httpmock::prelude::*;
     use serde_json::json;
 
@@ -60,7 +58,7 @@ mod tests {
 
         server.mock(|when, then| {
             when.path("/rpc-1").body_contains("eth_chainId");
-            let res_body = json!({ "jsonrpc":"2.0", "id":1, "result": 1 });
+            let res_body = json!({ "jsonrpc":"2.0", "id":1, "result": "bad result" });
             then.status(200).body(res_body.to_string());
         });
 
@@ -94,10 +92,10 @@ mod tests {
                         && matches!(
                             msg.get(&rpc_url).unwrap(),
                             ReadableClientError::ReadChainIdError(msg)
-                            if msg.contains("Deserialization Error: EOF")
+                            if msg.contains("404 with empty body")
                         )
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
 
         server.mock(|when, then| {
@@ -116,10 +114,10 @@ mod tests {
                     && matches!(
                         msg.get(&rpc_url).unwrap(),
                         ReadableClientError::ReadChainIdError(msg)
-                        if msg.contains("Deserialization Error: invalid hex character")
+                        if msg.contains("invalid value")
                     )
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
     }
 
@@ -210,10 +208,10 @@ mod tests {
                     && matches!(
                         msg.get(&rpc_url).unwrap(),
                         ReadableClientError::ReadBlockNumberError(msg)
-                        if msg.contains("Deserialization Error: invalid hex character")
+                        if msg.contains("deserialization error: invalid value")
                     )
             ),
-            "unexpected error: {err}"
+            "unexpected error: {err:?}"
         );
     }
 }

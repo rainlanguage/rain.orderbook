@@ -1,6 +1,5 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
-use alloy::primitives::U256;
 use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse};
 
 #[wasm_export]
@@ -40,7 +39,7 @@ impl RaindexOrder {
         )]
         gas: Option<String>,
     ) -> Result<Vec<BatchOrderQuotesResponse>, RaindexError> {
-        let gas_amount = gas.map(|v| U256::from_str(&v)).transpose()?;
+        let gas_amount = gas.map(|v| v.parse::<u64>()).transpose()?;
         let rpcs = self.get_rpc_urls()?;
         let order_quotes = get_order_quotes(
             vec![self.clone().into_sg_order()?],
@@ -55,6 +54,7 @@ impl RaindexOrder {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
 
     #[cfg(not(target_family = "wasm"))]
@@ -62,10 +62,10 @@ mod tests {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::hex::encode_prefixed;
-        use alloy::primitives::{Address, Bytes};
+        use alloy::primitives::{Address, Bytes, U256};
         use alloy::{sol, sol_types::SolValue};
-        use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
+        use rain_math_float::Float;
         use serde_json::{json, Value};
 
         sol!(
@@ -93,7 +93,7 @@ mod tests {
                   "id": "0x0000000000000000000000000000000000000000",
                   "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                   "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                  "balance": "987000000000000000",
+                  "balance": Float::parse("0.987".to_string()).unwrap(),
                   "token": {
                     "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                     "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -114,7 +114,7 @@ mod tests {
                   "id": "0x0000000000000000000000000000000000000000",
                   "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                   "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                  "balance": "797990000000000000",
+                  "balance": Float::parse("0.79799".to_string()).unwrap(),
                   "token": {
                     "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                     "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -157,7 +157,11 @@ mod tests {
             // block number 1
             server.mock(|when, then| {
                 when.path("/rpc").body_contains("blockNumber");
-                then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x1",
+                }));
             });
 
             let aggreate_result = vec![Result {
@@ -173,11 +177,11 @@ mod tests {
             let response_hex = encode_prefixed(aggreate_result.abi_encode());
             server.mock(|when, then| {
                 when.path("/rpc");
-                then.body(
-                    Response::new_success(1, &response_hex)
-                        .to_json_string()
-                        .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": response_hex,
+                }));
             });
 
             let raindex_client = RaindexClient::new(
@@ -200,8 +204,21 @@ mod tests {
                 .unwrap();
             let res = order.get_quotes(None, None).await.unwrap();
             assert_eq!(res.len(), 1);
-            assert_eq!(res[0].data.unwrap().max_output, U256::from(1));
-            assert_eq!(res[0].data.unwrap().ratio, U256::from(2));
+
+            assert!(res[0]
+                .data
+                .unwrap()
+                .max_output
+                .eq(Float::parse("1".to_string()).unwrap())
+                .unwrap());
+
+            assert!((res[0]
+                .data
+                .unwrap()
+                .ratio
+                .eq(Float::parse("2".to_string()).unwrap()))
+            .unwrap());
+
             assert!(res[0].success);
             assert_eq!(res[0].error, None);
             assert_eq!(res[0].pair.pair_name, "WFLR/sFLR");
@@ -244,10 +261,14 @@ mod tests {
                 .get_quotes(None, Some("invalid-gas".to_string()))
                 .await
                 .unwrap_err();
-            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
-            assert_eq!(
-                err.to_readable_msg(),
-                "Invalid number format: digit 18 is out of range for base 10. Please provide a valid numeric value."
+            assert!(
+                err.to_string().contains("invalid digit"),
+                "unexpected error: {err}",
+            );
+            assert!(
+                err.to_readable_msg().contains("Failed to parse an integer"),
+                "unexpected error message: \"{}\"",
+                err.to_readable_msg()
             );
         }
     }

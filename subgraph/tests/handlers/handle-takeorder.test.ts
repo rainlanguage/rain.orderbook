@@ -5,13 +5,17 @@ import {
   afterEach,
   clearInBlockStore,
   assert,
+  beforeEach,
 } from "matchstick-as";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
-import { Evaluable, IO, createTakeOrderEvent } from "../event-mocks.test";
+import { Evaluable, IOV2, createTakeOrderEvent } from "../event-mocks.test";
 import { createMockERC20Functions } from "../erc20.test";
 import { handleTakeOrder } from "../../src/handlers";
+import { createMockDecimalFloatFunctions, FLOAT_1 } from "../float.test";
 
 describe("Add and remove orders", () => {
+  beforeEach(createMockDecimalFloatFunctions);
+
   afterEach(() => {
     clearStore();
     clearInBlockStore();
@@ -29,17 +33,15 @@ describe("Add and remove orders", () => {
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x3333333333333333333333333333333333333333"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x4444444444444444444444444444444444444444"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
         ),
       ],
       Bytes.fromHexString("0x5555555555555555555555555555555555555555"),
@@ -48,8 +50,8 @@ describe("Add and remove orders", () => {
         Address.fromString("0x7777777777777777777777777777777777777777"),
         Bytes.fromHexString("0x8888888888888888888888888888888888888888")
       ),
-      BigInt.fromI32(1),
-      BigInt.fromI32(1)
+      FLOAT_1,
+      FLOAT_1
     );
 
     handleTakeOrder(event);

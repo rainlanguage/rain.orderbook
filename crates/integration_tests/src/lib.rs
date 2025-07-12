@@ -1,14 +1,17 @@
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::B256;
+    use alloy::serde::WithOtherFields;
     use alloy::sol_types::SolCall;
     use alloy::{
         network::TransactionBuilder,
         primitives::{utils::parse_ether, U256},
         rpc::types::TransactionRequest,
     };
+    use rain_math_float::Float;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook::*};
+    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook::QuoteV2};
 
     #[tokio::test]
     async fn test_post_task_set() {
@@ -104,14 +107,15 @@ amount price: get("amount") 52;
                 token1_holder,
                 *token1.address(),
                 parse_ether("1000").unwrap(),
-                U256::from(1),
+                18,
+                B256::from(U256::from(1)),
             )
             .await
             .0
             .order;
 
         let quote = local_evm
-            .call_contract(orderbook.quote(Quote {
+            .call_contract(orderbook.quote2(QuoteV2 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
@@ -121,11 +125,14 @@ amount price: get("amount") 52;
             .unwrap()
             .unwrap();
 
-        let amount = quote._1;
-        let price = quote._2;
+        let amount = Float(quote._1);
+        let price = Float(quote._2);
 
-        assert_eq!(amount, parse_ether("100").unwrap());
-        assert_eq!(price, parse_ether("52").unwrap());
+        let expected_amount = Float::parse("100".to_string()).unwrap();
+        let expected_price = Float::parse("52".to_string()).unwrap();
+
+        assert!(amount.eq(expected_amount).unwrap());
+        assert!(price.eq(expected_price).unwrap());
     }
 
     #[tokio::test]
@@ -210,7 +217,7 @@ amount price: get("amount") 52;
             .with_to(*orderbook.address());
 
         let res = local_evm
-            .send_transaction(tx)
+            .send_transaction(WithOtherFields::new(tx))
             .await
             .expect_err("Transaction should have reverted");
 

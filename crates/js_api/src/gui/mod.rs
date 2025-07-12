@@ -1,5 +1,5 @@
 use alloy::primitives::Address;
-use alloy_ethers_typecast::transaction::ReadableClientError;
+use alloy_ethers_typecast::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
@@ -657,7 +657,7 @@ pub enum GuiError {
     ParseError(#[from] alloy::primitives::ruint::ParseError),
     #[error(transparent)]
     ReadContractParametersBuilderError(
-        #[from] alloy_ethers_typecast::transaction::ReadContractParametersBuilderError,
+        #[from] alloy_ethers_typecast::ReadContractParametersBuilderError,
     ),
     #[error(transparent)]
     UnitsError(#[from] alloy::primitives::utils::UnitsError),
@@ -675,6 +675,8 @@ pub enum GuiError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error(transparent)]
+    UrlParseError(#[from] url::ParseError),
 }
 
 impl GuiError {
@@ -755,6 +757,7 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
+            GuiError::UrlParseError(err) => format!("URL parsing error: {err}"),
         }
     }
 }

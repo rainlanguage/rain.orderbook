@@ -7,10 +7,11 @@ import {
   clearInBlockStore,
 } from "matchstick-as";
 import { BigInt, Address, Bytes, ethereum } from "@graphprotocol/graph-ts";
-import { Evaluable, IO, createTakeOrderEvent } from "./event-mocks.test";
+import { Evaluable, IOV2, createTakeOrderEvent } from "./event-mocks.test";
 import { createTakeOrderEntity } from "../src/takeorder";
 import { eventId } from "../src/interfaces/event";
 import { createMockERC20Functions } from "./erc20.test";
+import { FLOAT_2, FLOAT_3 } from "./float.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -31,17 +32,19 @@ describe("Deposits", () => {
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x3333333333333333333333333333333333333333"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x4444444444444444444444444444444444444444"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x5555555555555555555555555555555555555555"),
@@ -50,8 +53,12 @@ describe("Deposits", () => {
         Address.fromString("0x7777777777777777777777777777777777777777"),
         Bytes.fromHexString("0x8888888888888888888888888888888888888888")
       ),
-      BigInt.fromI32(1),
-      BigInt.fromI32(1)
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      ),
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      )
     );
 
     assert.addressEquals(
@@ -83,17 +90,36 @@ describe("Deposits", () => {
       input.token,
       Address.fromString("0x3333333333333333333333333333333333333333")
     );
-    assert.bigIntEquals(input.vaultId, BigInt.fromI32(1));
-    assert.bigIntEquals(BigInt.fromI32(input.decimals), BigInt.fromI32(18));
+    assert.bytesEquals(
+      input.vaultId,
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      )
+    );
     let output = event.params.config.order.validOutputs[0];
     assert.addressEquals(
       output.token,
       Address.fromString("0x4444444444444444444444444444444444444444")
     );
-    assert.bigIntEquals(output.vaultId, BigInt.fromI32(1));
-    assert.bigIntEquals(BigInt.fromI32(output.decimals), BigInt.fromI32(18));
-    assert.bigIntEquals(event.params.input, BigInt.fromI32(1));
-    assert.bigIntEquals(event.params.output, BigInt.fromI32(1));
+
+    assert.bytesEquals(
+      output.vaultId,
+      Bytes.fromHexString(
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      )
+    );
+    assert.bytesEquals(
+      event.params.input,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      )
+    );
+    assert.bytesEquals(
+      event.params.output,
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      )
+    );
   });
 
   test("createTakeOrderEntity()", () => {
@@ -109,17 +135,19 @@ describe("Deposits", () => {
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x3333333333333333333333333333333333333333"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x4444444444444444444444444444444444444444"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x5555555555555555555555555555555555555555"),
@@ -128,8 +156,12 @@ describe("Deposits", () => {
         Address.fromString("0x7777777777777777777777777777777777777777"),
         Bytes.fromHexString("0x8888888888888888888888888888888888888888")
       ),
-      BigInt.fromI32(2),
-      BigInt.fromI32(3)
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000002"
+      ),
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000003"
+      )
     );
 
     createTakeOrderEntity(event);
@@ -144,8 +176,8 @@ describe("Deposits", () => {
       "sender",
       "0x1111111111111111111111111111111111111111"
     );
-    assert.fieldEquals("TakeOrder", id, "inputAmount", "2");
-    assert.fieldEquals("TakeOrder", id, "outputAmount", "3");
+    assert.fieldEquals("TakeOrder", id, "inputAmount", FLOAT_2.toHexString());
+    assert.fieldEquals("TakeOrder", id, "outputAmount", FLOAT_3.toHexString());
     assert.fieldEquals(
       "TakeOrder",
       id,
