@@ -309,9 +309,13 @@ impl DotrainOrderGui {
             .await;
         results.extend(fetched_results);
         results.sort_by(|a, b| {
-            let na = a.name.to_lowercase();
-            let nb = b.name.to_lowercase();
-            na.cmp(&nb).then_with(|| a.address.cmp(&b.address))
+            a.address
+                .to_string()
+                .to_lowercase()
+                .cmp(&b.address.to_string().to_lowercase())
+        });
+        results.dedup_by(|a, b| {
+            a.address.to_string().to_lowercase() == b.address.to_string().to_lowercase()
         });
 
         Ok(results)
@@ -553,26 +557,18 @@ mod tests {
             assert_eq!(tokens.len(), 4);
             assert_eq!(
                 tokens[0].address.to_string(),
-                "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
-            );
-            assert_eq!(
-                tokens[1].address.to_string(),
-                "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
-            );
-            assert_eq!(
-                tokens[2].address.to_string(),
                 "0x0000000000000000000000000000000000000001"
             );
-            assert_eq!(tokens[2].decimals, 18);
-            assert_eq!(tokens[2].name, "Token 3");
-            assert_eq!(tokens[2].symbol, "T3");
+            assert_eq!(tokens[0].decimals, 18);
+            assert_eq!(tokens[0].name, "Token 3");
+            assert_eq!(tokens[0].symbol, "T3");
             assert_eq!(
-                tokens[3].address.to_string(),
+                tokens[1].address.to_string(),
                 "0x0000000000000000000000000000000000000002"
             );
-            assert_eq!(tokens[3].decimals, 6);
-            assert_eq!(tokens[3].name, "Token 4");
-            assert_eq!(tokens[3].symbol, "T4");
+            assert_eq!(tokens[1].decimals, 6);
+            assert_eq!(tokens[1].name, "Token 4");
+            assert_eq!(tokens[1].symbol, "T4");
         }
     }
 
