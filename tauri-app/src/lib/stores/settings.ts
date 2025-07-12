@@ -161,3 +161,22 @@ export const orderHash = cachedWritableStore<Hex>(
   (value) => value,
   (str) => (str || '') as Hex,
 );
+
+/**
+ * Store for managing selected token addresses for filtering
+ * Stores an array of token addresses that are currently selected for filtering
+ * @default [] - Empty array by default
+ * @returns A writable store containing selected tokens mapped by address
+ */
+export const activeTokens = cachedWritableStore<Address[]>(
+  'settings.selectedTokens',
+  [],
+  JSON.stringify,
+  (str) => {
+    try {
+      return JSON.parse(str);
+    } catch {
+      return [];
+    }
+  },
+);
