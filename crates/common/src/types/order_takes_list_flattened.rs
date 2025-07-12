@@ -1,5 +1,5 @@
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
-use alloy::primitives::{utils::format_units, I256};
+use rain_math_float::Float;
 use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
@@ -13,11 +13,11 @@ pub struct OrderTakeFlattened {
     pub transaction: SgBytes,
     pub sender: SgBytes,
     pub order_id: SgBytes,
-    pub input: SgBigInt,
+    pub input: SgBytes,
     pub input_display: String,
     pub input_token_id: SgBytes,
     pub input_token_symbol: Option<String>,
-    pub output: SgBigInt,
+    pub output: SgBytes,
     pub output_display: String,
     pub output_token_id: SgBytes,
     pub output_token_symbol: Option<String>,
@@ -30,24 +30,9 @@ impl TryFrom<SgTrade> for OrderTakeFlattened {
         let timestamp = val.timestamp.clone();
         let input_vault_balance_change = val.input_vault_balance_change.clone();
         let output_vault_balance_change = val.output_vault_balance_change.clone();
-        let input_amount = input_vault_balance_change.amount.0.parse::<I256>()?;
-        let output_amount = output_vault_balance_change.amount.0.parse::<I256>()?;
-        let input_decimals = input_vault_balance_change
-            .vault
-            .token
-            .decimals
-            .clone()
-            .unwrap_or(SgBigInt("0".into()))
-            .0
-            .parse::<u8>()?;
-        let output_decimals = output_vault_balance_change
-            .vault
-            .token
-            .decimals
-            .clone()
-            .unwrap_or(SgBigInt("0".into()))
-            .0
-            .parse::<u8>()?;
+
+        let input_amount: Float = serde_json::from_str(&input_vault_balance_change.amount.0)?;
+        let output_amount: Float = serde_json::from_str(&output_vault_balance_change.amount.0)?;
 
         Ok(Self {
             id: val.id.0,
@@ -57,11 +42,11 @@ impl TryFrom<SgTrade> for OrderTakeFlattened {
             sender: val.trade_event.sender,
             order_id: val.order.order_hash,
             input: input_vault_balance_change.amount,
-            input_display: format_units(input_amount, input_decimals)?,
+            input_display: input_amount.format18()?,
             input_token_id: input_vault_balance_change.vault.token.id,
             input_token_symbol: input_vault_balance_change.vault.token.symbol,
             output: output_vault_balance_change.amount,
-            output_display: format_units(output_amount, output_decimals)?,
+            output_display: output_amount.format18()?,
             output_token_id: output_vault_balance_change.vault.token.address,
             output_token_symbol: output_vault_balance_change.vault.token.symbol,
         })
@@ -77,6 +62,7 @@ mod tests {
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTrade, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
+    use rain_orderbook_subgraph_client::utils::float::*;
 
     // Helper to build a default, valid SgTrade instance
     fn mock_sg_trade_default() -> SgTrade {
@@ -99,12 +85,12 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("inputVBC001".to_string()),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBigInt("1000000000000000000".to_string()),
-                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
-                old_vault_balance: SgBigInt("6000000000000000000".to_string()),
+                amount: SgBytes(float_hex(*F1)),
+                new_vault_balance: SgBytes(float_hex(*F5)),
+                old_vault_balance: SgBytes(float_hex(*F6)),
                 vault: SgVaultBalanceChangeVault {
                     id: SgBytes("inputVault001".to_string()),
-                    vault_id: SgBigInt("101".to_string()),
+                    vault_id: SgBytes("101".to_string()),
                     token: SgErc20 {
                         id: SgBytes("inputTokenId001".to_string()),
                         address: SgBytes("0xinputTokenAddress".to_string()),
@@ -127,12 +113,12 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("outputVBC001".to_string()),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBigInt("200000000".to_string()),
-                new_vault_balance: SgBigInt("300000000".to_string()),
-                old_vault_balance: SgBigInt("100000000".to_string()),
+                amount: SgBytes(float_hex(*F2)),
+                new_vault_balance: SgBytes(float_hex(*F3)),
+                old_vault_balance: SgBytes(float_hex(*F4)),
                 vault: SgVaultBalanceChangeVault {
                     id: SgBytes("outputVault001".to_string()),
-                    vault_id: SgBigInt("202".to_string()),
+                    vault_id: SgBytes("202".to_string()),
                     token: SgErc20 {
                         id: SgBytes("outputTokenId001".to_string()),
                         address: SgBytes("0xoutputTokenAddress".to_string()),
@@ -226,8 +212,8 @@ mod tests {
     #[test]
     fn test_zero_amounts() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.amount = SgBigInt("0".to_string());
-        trade_data.output_vault_balance_change.amount = SgBigInt("0".to_string());
+        trade_data.input_vault_balance_change.amount = SgBytes(float_hex(*F0));
+        trade_data.output_vault_balance_change.amount = SgBytes(float_hex(*F0));
 
         let result = OrderTakeFlattened::try_from(trade_data.clone());
         assert!(result.is_ok());
@@ -266,7 +252,7 @@ mod tests {
     #[test]
     fn test_unparseable_input_amount() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.amount = SgBigInt("not_a_number".to_string());
+        trade_data.input_vault_balance_change.amount = SgBytes("not_a_number".to_string());
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(
             matches!(result, Err(FlattenError::ParseSignedError(_))),
@@ -278,89 +264,11 @@ mod tests {
     #[test]
     fn test_unparseable_output_amount() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.output_vault_balance_change.amount = SgBigInt("not_a_number".to_string());
+        trade_data.output_vault_balance_change.amount = SgBytes("not_a_number".to_string());
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(
             matches!(result, Err(FlattenError::ParseSignedError(_))),
             "Expected ParseSignedError for unparseable output amount, got {:?}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_unparseable_input_decimals() {
-        let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.vault.token.decimals =
-            Some(SgBigInt("not_a_u8".to_string()));
-        let result = OrderTakeFlattened::try_from(trade_data);
-        assert!(
-            matches!(result, Err(FlattenError::ParseIntError(_))),
-            "Expected ParseIntError for unparseable input decimals, got {:?}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_input_decimals_out_of_range_positive() {
-        let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.vault.token.decimals =
-            Some(SgBigInt("256".to_string())); // u8 max is 255
-        let result = OrderTakeFlattened::try_from(trade_data);
-        assert!(
-            matches!(result, Err(FlattenError::ParseIntError(_))),
-            "Expected ParseIntError for input decimals out of range (256), got {:?}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_input_decimals_out_of_range_negative() {
-        let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.vault.token.decimals =
-            Some(SgBigInt("-1".to_string()));
-        let result = OrderTakeFlattened::try_from(trade_data);
-        assert!(
-            matches!(result, Err(FlattenError::ParseIntError(_))),
-            "Expected ParseIntError for input decimals out of range (-1), got {:?}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_unparseable_output_decimals() {
-        let mut trade_data = mock_sg_trade_default();
-        trade_data.output_vault_balance_change.vault.token.decimals =
-            Some(SgBigInt("not_a_u8".to_string()));
-        let result = OrderTakeFlattened::try_from(trade_data);
-        assert!(
-            matches!(result, Err(FlattenError::ParseIntError(_))),
-            "Expected ParseIntError for unparseable output decimals, got {:?}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_output_decimals_out_of_range_positive() {
-        let mut trade_data = mock_sg_trade_default();
-        trade_data.output_vault_balance_change.vault.token.decimals =
-            Some(SgBigInt("256".to_string()));
-        let result = OrderTakeFlattened::try_from(trade_data);
-        assert!(
-            matches!(result, Err(FlattenError::ParseIntError(_))),
-            "Expected ParseIntError for output decimals out of range (256), got {:?}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_output_decimals_out_of_range_negative() {
-        let mut trade_data = mock_sg_trade_default();
-        trade_data.output_vault_balance_change.vault.token.decimals =
-            Some(SgBigInt("-1".to_string()));
-        let result = OrderTakeFlattened::try_from(trade_data);
-        assert!(
-            matches!(result, Err(FlattenError::ParseIntError(_))),
-            "Expected ParseIntError for output decimals out of range (-1), got {:?}",
             result
         );
     }
@@ -380,58 +288,38 @@ mod tests {
     #[test]
     fn test_amount_i256_boundaries() {
         let mut trade_data_max_input = mock_sg_trade_default();
-        trade_data_max_input.input_vault_balance_change.amount = SgBigInt(I256::MAX.to_string());
+        trade_data_max_input.input_vault_balance_change.amount = SgBytes(float_hex(*FMAX));
         let mut trade_data_min_output = mock_sg_trade_default();
-        trade_data_min_output.output_vault_balance_change.amount = SgBigInt(I256::MIN.to_string());
+        trade_data_min_output.output_vault_balance_change.amount = SgBytes(float_hex(*FMIN));
 
         let result_max = OrderTakeFlattened::try_from(trade_data_max_input.clone());
         assert!(result_max.is_ok());
         let flattened_max = result_max.unwrap();
-        let input_decimals = trade_data_max_input
-            .input_vault_balance_change
-            .vault
-            .token
-            .decimals
-            .clone()
-            .unwrap_or(SgBigInt("0".into()))
-            .0
-            .parse::<u8>()
-            .unwrap();
-        assert_eq!(
-            flattened_max.input_display,
-            format_units(I256::MAX, input_decimals).unwrap()
-        );
+        assert_eq!(flattened_max.input_display, FMAX.format18().unwrap());
 
         let result_min = OrderTakeFlattened::try_from(trade_data_min_output.clone());
         assert!(result_min.is_ok());
         let flattened_min = result_min.unwrap();
-        let output_decimals = trade_data_min_output
-            .output_vault_balance_change
-            .vault
-            .token
-            .decimals
-            .clone()
-            .unwrap_or(SgBigInt("0".into()))
-            .0
-            .parse::<u8>()
-            .unwrap();
-        assert_eq!(
-            flattened_min.output_display,
-            format_units(I256::MIN, output_decimals).unwrap()
-        );
+        assert_eq!(flattened_min.output_display, FMIN.format18().unwrap());
     }
 
     #[test]
     fn test_negative_amounts_formatting() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.amount = SgBigInt("-1234567890123456789".to_string());
-        trade_data.output_vault_balance_change.amount = SgBigInt("-98765432".to_string());
+
+        let input_display = "-1.234567890123456789".to_string();
+        let input_amount = Float::parse(input_display.clone()).unwrap();
+
+        let output_display = "-0.98765432".to_string();
+        let output_amount = Float::parse(output_display.clone()).unwrap();
+
+        trade_data.input_vault_balance_change.amount = SgBytes(float_hex(input_amount));
+        trade_data.output_vault_balance_change.amount = SgBytes(float_hex(output_amount));
 
         let result = OrderTakeFlattened::try_from(trade_data);
-        assert!(result.is_ok());
         let flattened = result.unwrap();
 
-        assert_eq!(flattened.input_display, "-1.234567890123456789");
-        assert_eq!(flattened.output_display, "-0.98765432");
+        assert_eq!(flattened.input_display, input_display);
+        assert_eq!(flattened.output_display, output_display);
     }
 }

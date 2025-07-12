@@ -8,14 +8,16 @@ use crate::{
 };
 use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::{
-    performance::{vol::VaultVolume, OrderPerformance},
+    // performance::{vol::VaultVolume, OrderPerformance},
     types::{
         common::{
             SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
         },
-        Id,
+        // Id,
     },
-    MultiOrderbookSubgraphClient, OrderbookSubgraphClient, SgPaginationArgs,
+    MultiOrderbookSubgraphClient,
+    OrderbookSubgraphClient,
+    SgPaginationArgs,
 };
 use std::{
     collections::HashSet,
@@ -238,94 +240,94 @@ impl RaindexOrder {
         raindex_client.get_rpc_urls_for_chain(self.chain_id)
     }
 
-    /// Retrieves volume data for all vaults associated with this order over a specified time period
-    ///
-    /// Queries historical volume information across all vaults that belong to this order,
-    /// allowing analysis of trading activity and liquidity patterns over time.
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// const result = await order.getVaultsVolume(
-    ///   Math.floor(Date.now() / 1000) - 86400, // 24 hours ago
-    ///   Math.floor(Date.now() / 1000)
-    /// );
-    /// if (result.error) {
-    ///   console.error("Error fetching volume:", result.error.readableMsg);
-    ///   return;
-    /// }
-    /// const volumes = result.value;
-    /// // Do something with volumes
-    /// ```
-    #[wasm_export(
-        js_name = "getVaultsVolume",
-        return_description = "Volume data for each vault over the specified period",
-        unchecked_return_type = "VaultVolume[]",
-        preserve_js_class
-    )]
-    pub async fn get_vaults_volume(
-        &self,
-        #[wasm_export(
-            js_name = "startTimestamp",
-            param_description = "Unix timestamp for the start of the query period (optional)"
-        )]
-        start_timestamp: Option<u64>,
-        #[wasm_export(
-            js_name = "endTimestamp",
-            param_description = "Unix timestamp for the end of the query period (optional)"
-        )]
-        end_timestamp: Option<u64>,
-    ) -> Result<Vec<VaultVolume>, RaindexError> {
-        let client = self.get_orderbook_client()?;
-        let volumes = client
-            .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
-            .await?;
-        Ok(volumes)
-    }
+    // /// Retrieves volume data for all vaults associated with this order over a specified time period
+    // ///
+    // /// Queries historical volume information across all vaults that belong to this order,
+    // /// allowing analysis of trading activity and liquidity patterns over time.
+    // ///
+    // /// ## Examples
+    // ///
+    // /// ```javascript
+    // /// const result = await order.getVaultsVolume(
+    // ///   Math.floor(Date.now() / 1000) - 86400, // 24 hours ago
+    // ///   Math.floor(Date.now() / 1000)
+    // /// );
+    // /// if (result.error) {
+    // ///   console.error("Error fetching volume:", result.error.readableMsg);
+    // ///   return;
+    // /// }
+    // /// const volumes = result.value;
+    // /// // Do something with volumes
+    // /// ```
+    // #[wasm_export(
+    //     js_name = "getVaultsVolume",
+    //     return_description = "Volume data for each vault over the specified period",
+    //     unchecked_return_type = "VaultVolume[]",
+    //     preserve_js_class
+    // )]
+    // pub async fn get_vaults_volume(
+    //     &self,
+    //     #[wasm_export(
+    //         js_name = "startTimestamp",
+    //         param_description = "Unix timestamp for the start of the query period (optional)"
+    //     )]
+    //     start_timestamp: Option<u64>,
+    //     #[wasm_export(
+    //         js_name = "endTimestamp",
+    //         param_description = "Unix timestamp for the end of the query period (optional)"
+    //     )]
+    //     end_timestamp: Option<u64>,
+    // ) -> Result<Vec<VaultVolume>, RaindexError> {
+    //     let client = self.get_orderbook_client()?;
+    //     let volumes = client
+    //         .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
+    //         .await?;
+    //     Ok(volumes)
+    // }
 
-    /// Gets comprehensive performance metrics and analytics for this order over a specified time period
-    ///
-    /// Retrieves detailed performance data including profit/loss, volume statistics, and other
-    /// key metrics that help assess the effectiveness of the trading strategy implemented by this order.
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// const result = await order.getPerformance(
-    ///   Math.floor(Date.now() / 1000) - 604800, // 1 week ago
-    ///   Math.floor(Date.now() / 1000)
-    /// );
-    /// if (result.error) {
-    ///   console.error("Error fetching performance:", result.error.readableMsg);
-    ///   return;
-    /// }
-    /// const performance = result.value;
-    /// // Do something with performance
-    /// ```
-    #[wasm_export(
-        js_name = "getPerformance",
-        return_description = "Comprehensive performance metrics for the order",
-        unchecked_return_type = "OrderPerformance"
-    )]
-    pub async fn get_performance(
-        &self,
-        #[wasm_export(
-            js_name = "startTimestamp",
-            param_description = "Unix timestamp for the start of the analysis period (optional, defaults to order creation)"
-        )]
-        start_timestamp: Option<u64>,
-        #[wasm_export(
-            js_name = "endTimestamp",
-            param_description = "Unix timestamp for the end of the analysis period (optional, defaults to current time)"
-        )]
-        end_timestamp: Option<u64>,
-    ) -> Result<OrderPerformance, RaindexError> {
-        let client = self.get_orderbook_client()?;
-        let performance = client
-            .order_performance(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
-            .await?;
-        Ok(performance)
-    }
+    // /// Gets comprehensive performance metrics and analytics for this order over a specified time period
+    // ///
+    // /// Retrieves detailed performance data including profit/loss, volume statistics, and other
+    // /// key metrics that help assess the effectiveness of the trading strategy implemented by this order.
+    // ///
+    // /// ## Examples
+    // ///
+    // /// ```javascript
+    // /// const result = await order.getPerformance(
+    // ///   Math.floor(Date.now() / 1000) - 604800, // 1 week ago
+    // ///   Math.floor(Date.now() / 1000)
+    // /// );
+    // /// if (result.error) {
+    // ///   console.error("Error fetching performance:", result.error.readableMsg);
+    // ///   return;
+    // /// }
+    // /// const performance = result.value;
+    // /// // Do something with performance
+    // /// ```
+    // #[wasm_export(
+    //     js_name = "getPerformance",
+    //     return_description = "Comprehensive performance metrics for the order",
+    //     unchecked_return_type = "OrderPerformance"
+    // )]
+    // pub async fn get_performance(
+    //     &self,
+    //     #[wasm_export(
+    //         js_name = "startTimestamp",
+    //         param_description = "Unix timestamp for the start of the analysis period (optional, defaults to order creation)"
+    //     )]
+    //     start_timestamp: Option<u64>,
+    //     #[wasm_export(
+    //         js_name = "endTimestamp",
+    //         param_description = "Unix timestamp for the end of the analysis period (optional, defaults to current time)"
+    //     )]
+    //     end_timestamp: Option<u64>,
+    // ) -> Result<OrderPerformance, RaindexError> {
+    //     let client = self.get_orderbook_client()?;
+    //     let performance = client
+    //         .order_performance(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
+    //         .await?;
+    //     Ok(performance)
+    // }
 
     /// Converts the order from RaindexOrder to an SgOrder type
     ///
@@ -667,10 +669,12 @@ mod tests {
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::U256;
         use httpmock::MockServer;
+        use rain_math_float::Float;
+        use rain_orderbook_subgraph_client::utils::float::*;
         use rain_orderbook_subgraph_client::{
-            performance::{
-                apy::APYDetails, vol::VolumeDetails, DenominatedPerformance, VaultPerformance,
-            },
+            // performance::{
+            //     apy::APYDetails, vol::VolumeDetails, DenominatedPerformance, VaultPerformance,
+            // },
             types::common::{
                 SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
                 SgVault,
@@ -796,6 +800,7 @@ mod tests {
               "removeEvents": []
             })
         }
+
         fn get_order1() -> SgOrder {
             SgOrder {
             id: SgBytes("0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()),
@@ -805,8 +810,8 @@ mod tests {
             outputs: vec![SgVault {
                 id: SgBytes("0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf".to_string()),
                 owner: SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string()),
-                vault_id: SgBigInt("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
-                balance: SgBigInt("987000000000000000".to_string()),
+                vault_id: SgBytes("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
+                balance: SgBytes(float_hex(Float::parse("0.987".to_string()).unwrap())),
                 token: SgErc20 {
                     id: SgBytes("0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string()),
                     address: SgBytes("0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string()),
@@ -834,8 +839,8 @@ mod tests {
                     symbol: Some("T1".to_string()),
                     decimals: Some(SgBigInt("0".to_string())),
                 },
-                balance: SgBigInt("0".to_string()),
-                vault_id: SgBigInt("0".to_string()),
+                balance: SgBytes(float_hex(*F0)),
+                vault_id: SgBytes("0".to_string()),
                 owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                 orders_as_output: vec![],
                 orders_as_input: vec![],
@@ -847,8 +852,8 @@ mod tests {
             inputs: vec![SgVault {
                 id: SgBytes("0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac".to_string()),
                 owner: SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string()),
-                vault_id: SgBigInt("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
-                balance: SgBigInt("797990000000000000".to_string()),
+                vault_id: SgBytes("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
+                balance: SgBytes(float_hex(Float::parse("0.79799".to_string()).unwrap())),
                 token: SgErc20 {
                     id: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
                     address: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
@@ -876,8 +881,8 @@ mod tests {
                     symbol: Some("T1".to_string()),
                     decimals: Some(SgBigInt("0".to_string())),
                 },
-                balance: SgBigInt("0".to_string()),
-                vault_id: SgBigInt("0".to_string()),
+                balance: SgBytes(float_hex(*F0)),
+                vault_id: SgBytes("0".to_string()),
                 owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                 orders_as_output: vec![],
                 orders_as_input: vec![],
@@ -1400,418 +1405,418 @@ mod tests {
             assert_eq!(res.rainlang, Some("/* 0. calculate-io */ \nusing-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC\namt: 100,\nio: call<2>();\n\n/* 1. handle-io */ \n:call<3>(),\n:ensure(equal-to(output-vault-decrease() 100) \"must take full amount\");\n\n/* 2. get-io-ratio-now */ \nelapsed: call<4>(),\nio: saturating-sub(0.0177356 div(mul(elapsed sub(0.0177356 0.0173844)) 60));\n\n/* 3. one-shot */ \n:ensure(is-zero(get(hash(order-hash() \"has-executed\"))) \"has executed\"),\n:set(hash(order-hash() \"has-executed\") 1);\n\n/* 4. get-elapsed */ \n_: sub(now() get(hash(order-hash() \"deploy-time\")));".to_string()));
         }
 
-        #[tokio::test]
-        async fn test_order_vaults_volume() {
-            let sg_server = MockServer::start_async().await;
-            sg_server.mock(|when, then| {
-                when.path("/sg1")
-                    .body_contains("\"first\":200")
-                    .body_contains("\"skip\":0");
-                then.status(200).json_body_obj(&json!({
-                  "data": {
-                    "trades": get_trades_json()
-                  }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1")
-                    .body_contains("\"first\":200")
-                    .body_contains("\"skip\":200");
-                then.status(200).json_body_obj(&json!({
-                    "data": { "trades": [] }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
-                    "data": {
-                        "orders": [get_order1_json()]
-                    }
-                }));
-            });
+        // #[tokio::test]
+        // async fn test_order_vaults_volume() {
+        //     let sg_server = MockServer::start_async().await;
+        //     sg_server.mock(|when, then| {
+        //         when.path("/sg1")
+        //             .body_contains("\"first\":200")
+        //             .body_contains("\"skip\":0");
+        //         then.status(200).json_body_obj(&json!({
+        //           "data": {
+        //             "trades": get_trades_json()
+        //           }
+        //         }));
+        //     });
+        //     sg_server.mock(|when, then| {
+        //         when.path("/sg1")
+        //             .body_contains("\"first\":200")
+        //             .body_contains("\"skip\":200");
+        //         then.status(200).json_body_obj(&json!({
+        //             "data": { "trades": [] }
+        //         }));
+        //     });
+        //     sg_server.mock(|when, then| {
+        //         when.path("/sg1");
+        //         then.status(200).json_body_obj(&json!({
+        //             "data": {
+        //                 "orders": [get_order1_json()]
+        //             }
+        //         }));
+        //     });
 
-            let raindex_client = RaindexClient::new(
-                vec![get_test_yaml(
-                    &sg_server.url("/sg1"),
-                    &sg_server.url("/sg2"),
-                    // not used
-                    &sg_server.url("/rpc1"),
-                    &sg_server.url("/rpc2"),
-                )],
-                None,
-            )
-            .unwrap();
-            let order = raindex_client
-                .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                    Bytes::from_str("0x0123").unwrap(),
-                )
-                .await
-                .unwrap();
-            let res = order.get_vaults_volume(None, None).await.unwrap();
+        //     let raindex_client = RaindexClient::new(
+        //         vec![get_test_yaml(
+        //             &sg_server.url("/sg1"),
+        //             &sg_server.url("/sg2"),
+        //             // not used
+        //             &sg_server.url("/rpc1"),
+        //             &sg_server.url("/rpc2"),
+        //         )],
+        //         None,
+        //     )
+        //     .unwrap();
+        //     let order = raindex_client
+        //         .get_order_by_hash(
+        //             1,
+        //             Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+        //             Bytes::from_str("0x0123").unwrap(),
+        //         )
+        //         .await
+        //         .unwrap();
+        //     let res = order.get_vaults_volume(None, None).await.unwrap();
 
-            assert_eq!(res.len(), 4);
+        //     assert_eq!(res.len(), 4);
 
-            let volume1 = res[0].clone();
-            assert_eq!(volume1.id, "1");
-            assert_eq!(
-                volume1.token.address.0,
-                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
-            );
-            assert_eq!(volume1.token.name, Some("Wrapped Flare".to_string()));
-            assert_eq!(volume1.token.symbol, Some("WFLR".to_string()));
-            assert_eq!(volume1.token.decimals, Some(SgBigInt("18".to_string())));
-            assert_eq!(
-                volume1.vol_details,
-                VolumeDetails {
-                    total_in: U256::from(1),
-                    total_out: U256::from(0),
-                    total_vol: U256::from(1),
-                    net_vol: U256::from(1),
-                }
-            );
+        //     let volume1 = res[0].clone();
+        //     assert_eq!(volume1.id, "1");
+        //     assert_eq!(
+        //         volume1.token.address.0,
+        //         "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+        //     );
+        //     assert_eq!(volume1.token.name, Some("Wrapped Flare".to_string()));
+        //     assert_eq!(volume1.token.symbol, Some("WFLR".to_string()));
+        //     assert_eq!(volume1.token.decimals, Some(SgBigInt("18".to_string())));
+        //     assert_eq!(
+        //         volume1.vol_details,
+        //         VolumeDetails {
+        //             total_in: U256::from(1),
+        //             total_out: U256::from(0),
+        //             total_vol: U256::from(1),
+        //             net_vol: U256::from(1),
+        //         }
+        //     );
 
-            let volume2 = res[1].clone();
-            assert_eq!(volume2.id, "1");
-            assert_eq!(
-                volume2.token.address.0,
-                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
-            );
-            assert_eq!(volume2.token.name, Some("Staked FLR".to_string()));
-            assert_eq!(volume2.token.symbol, Some("sFLR".to_string()));
-            assert_eq!(volume2.token.decimals, Some(SgBigInt("18".to_string())));
-            assert_eq!(
-                volume2.vol_details,
-                VolumeDetails {
-                    total_in: U256::from(0),
-                    total_out: U256::from(2),
-                    total_vol: U256::from(2),
-                    net_vol: U256::from(2),
-                }
-            );
+        //     let volume2 = res[1].clone();
+        //     assert_eq!(volume2.id, "1");
+        //     assert_eq!(
+        //         volume2.token.address.0,
+        //         "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
+        //     );
+        //     assert_eq!(volume2.token.name, Some("Staked FLR".to_string()));
+        //     assert_eq!(volume2.token.symbol, Some("sFLR".to_string()));
+        //     assert_eq!(volume2.token.decimals, Some(SgBigInt("18".to_string())));
+        //     assert_eq!(
+        //         volume2.vol_details,
+        //         VolumeDetails {
+        //             total_in: U256::from(0),
+        //             total_out: U256::from(2),
+        //             total_vol: U256::from(2),
+        //             net_vol: U256::from(2),
+        //         }
+        //     );
 
-            let volume3 = res[2].clone();
-            assert_eq!(volume3.id, "2");
-            assert_eq!(
-                volume3.token.address.0,
-                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
-            );
-            assert_eq!(volume3.token.name, Some("Wrapped Flare".to_string()));
-            assert_eq!(volume3.token.symbol, Some("WFLR".to_string()));
-            assert_eq!(volume3.token.decimals, Some(SgBigInt("18".to_string())));
-            assert_eq!(
-                volume3.vol_details,
-                VolumeDetails {
-                    total_in: U256::from(2),
-                    total_out: U256::from(0),
-                    total_vol: U256::from(2),
-                    net_vol: U256::from(2),
-                }
-            );
+        //     let volume3 = res[2].clone();
+        //     assert_eq!(volume3.id, "2");
+        //     assert_eq!(
+        //         volume3.token.address.0,
+        //         "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+        //     );
+        //     assert_eq!(volume3.token.name, Some("Wrapped Flare".to_string()));
+        //     assert_eq!(volume3.token.symbol, Some("WFLR".to_string()));
+        //     assert_eq!(volume3.token.decimals, Some(SgBigInt("18".to_string())));
+        //     assert_eq!(
+        //         volume3.vol_details,
+        //         VolumeDetails {
+        //             total_in: U256::from(2),
+        //             total_out: U256::from(0),
+        //             total_vol: U256::from(2),
+        //             net_vol: U256::from(2),
+        //         }
+        //     );
 
-            let volume4 = res[3].clone();
-            assert_eq!(volume4.id, "2");
-            assert_eq!(
-                volume4.token.address.0,
-                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
-            );
-            assert_eq!(volume4.token.name, Some("Staked FLR".to_string()));
-            assert_eq!(volume4.token.symbol, Some("sFLR".to_string()));
-            assert_eq!(volume4.token.decimals, Some(SgBigInt("18".to_string())));
-            assert_eq!(
-                volume4.vol_details,
-                VolumeDetails {
-                    total_in: U256::from(0),
-                    total_out: U256::from(5),
-                    total_vol: U256::from(5),
-                    net_vol: U256::from(5),
-                }
-            );
-        }
+        //     let volume4 = res[3].clone();
+        //     assert_eq!(volume4.id, "2");
+        //     assert_eq!(
+        //         volume4.token.address.0,
+        //         "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
+        //     );
+        //     assert_eq!(volume4.token.name, Some("Staked FLR".to_string()));
+        //     assert_eq!(volume4.token.symbol, Some("sFLR".to_string()));
+        //     assert_eq!(volume4.token.decimals, Some(SgBigInt("18".to_string())));
+        //     assert_eq!(
+        //         volume4.vol_details,
+        //         VolumeDetails {
+        //             total_in: U256::from(0),
+        //             total_out: U256::from(5),
+        //             total_vol: U256::from(5),
+        //             net_vol: U256::from(5),
+        //         }
+        //     );
+        // }
 
-        #[tokio::test]
-        async fn test_order_performance() {
-            let sg_server = MockServer::start_async().await;
-            sg_server.mock(|when, then| {
-                when.path("/sg1").body_contains("SgOrderDetailByIdQuery");
-                then.status(200).json_body_obj(&json!({
-                  "data": {
-                    "order": {
-                      "id": "order1",
-                      "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-                      "orderHash": "0x1",
-                      "owner": "0x0000000000000000000000000000000000000000",
-                      "outputs": [
-                        {
-                          "id": "0x0000000000000000000000000000000000000000",
-                          "token": {
-                            "id": "token-1",
-                            "address": "0x1111111111111111111111111111111111111111",
-                            "name": "Token One",
-                            "symbol": "TK1",
-                            "decimals": "18"
-                          },
-                          "balance": "0",
-                          "vaultId": "1",
-                          "owner": "0x0000000000000000000000000000000000000000",
-                          "ordersAsOutput": [],
-                          "ordersAsInput": [],
-                          "balanceChanges": [],
-                          "orderbook": {
-                            "id": "0x0000000000000000000000000000000000000000"
-                          }
-                        }
-                      ],
-                      "inputs": [
-                        {
-                          "id": "0x0000000000000000000000000000000000000000",
-                          "token": {
-                            "id": "token-2",
-                            "address": "0x2222222222222222222222222222222222222222",
-                            "name": "Token Two",
-                            "symbol": "TK2",
-                            "decimals": "18"
-                          },
-                          "balance": "0",
-                          "vaultId": "2",
-                          "owner": "0x0000000000000000000000000000000000000000",
-                          "ordersAsOutput": [],
-                          "ordersAsInput": [],
-                          "balanceChanges": [],
-                          "orderbook": {
-                            "id": "0x0000000000000000000000000000000000000000"
-                          }
-                        }
-                      ],
-                      "active": true,
-                      "addEvents": [
-                        {
-                          "transaction": {
-                            "blockNumber": "0",
-                            "timestamp": "0",
-                            "id": "0x0000000000000000000000000000000000000000",
-                            "from": "0x0000000000000000000000000000000000000000"
-                          }
-                        }
-                      ],
-                      "meta": null,
-                      "timestampAdded": "0",
-                      "orderbook": {
-                        "id": "0x0000000000000000000000000000000000000000"
-                      },
-                      "trades": [],
-                      "removeEvents": []
-                    }
-                  }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1")
-                    .body_contains("\"first\":200")
-                    .body_contains("\"skip\":0");
-                then.status(200).json_body_obj(&json!({
-                  "data": {
-                    "trades": [
-                      {
-                        "id": "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
-                        "timestamp": "1632000000",
-                        "tradeEvent": {
-                          "sender": "0x0000000000000000000000000000000000000000",
-                          "transaction": {
-                            "id": "0x0000000000000000000000000000000000000000",
-                            "from": "0x0000000000000000000000000000000000000000",
-                            "timestamp": "1632000000",
-                            "blockNumber": "0"
-                          }
-                        },
-                        "outputVaultBalanceChange": {
-                          "amount": "-100000000000000000000",
-                          "vault": {
-                            "id": "vault-1",
-                            "vaultId": "1",
-                            "token": {
-                              "id": "token-1",
-                              "address": "0x1111111111111111111111111111111111111111",
-                              "name": "Token One",
-                              "symbol": "TK1",
-                              "decimals": "18"
-                            }
-                          },
-                          "id": "output-change-1",
-                          "__typename": "TradeVaultBalanceChange",
-                          "newVaultBalance": "900",
-                          "oldVaultBalance": "1000",
-                          "timestamp": "1632000000",
-                          "transaction": {
-                            "id": "0x0000000000000000000000000000000000000000",
-                            "from": "0x0000000000000000000000000000000000000000",
-                            "timestamp": "1632000000",
-                            "blockNumber": "0"
-                          },
-                          "orderbook": {
-                            "id": "orderbook-1"
-                          }
-                        },
-                        "order": {
-                          "id": "order1.id",
-                          "orderHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
-                        },
-                        "inputVaultBalanceChange": {
-                          "amount": "50000000000000000000",
-                          "vault": {
-                            "id": "vault-2",
-                            "vaultId": "2",
-                            "token": {
-                              "id": "token-2",
-                              "address": "0x2222222222222222222222222222222222222222",
-                              "name": "Token Two",
-                              "symbol": "TK2",
-                              "decimals": "18"
-                            }
-                          },
-                          "id": "input-change-1",
-                          "__typename": "TradeVaultBalanceChange",
-                          "newVaultBalance": "150",
-                          "oldVaultBalance": "100",
-                          "timestamp": "1632000000",
-                          "transaction": {
-                            "id": "0x0000000000000000000000000000000000000000",
-                            "from": "0x0000000000000000000000000000000000000000",
-                            "timestamp": "1632000000",
-                            "blockNumber": "0"
-                          },
-                          "orderbook": {
-                            "id": "orderbook-1"
-                          }
-                        },
-                        "orderbook": {
-                          "id": "orderbook-1"
-                        }
-                      }
-                    ]
-                  }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1")
-                    .body_contains("\"first\":200")
-                    .body_contains("\"skip\":200");
-                then.status(200).json_body_obj(&json!({
-                    "data": { "trades": [] }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
-                    "data": {
-                        "orders": [get_order1_json()]
-                    }
-                }));
-            });
+        // #[tokio::test]
+        // async fn test_order_performance() {
+        //     let sg_server = MockServer::start_async().await;
+        //     sg_server.mock(|when, then| {
+        //         when.path("/sg1").body_contains("SgOrderDetailByIdQuery");
+        //         then.status(200).json_body_obj(&json!({
+        //           "data": {
+        //             "order": {
+        //               "id": "order1",
+        //               "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        //               "orderHash": "0x1",
+        //               "owner": "0x0000000000000000000000000000000000000000",
+        //               "outputs": [
+        //                 {
+        //                   "id": "0x0000000000000000000000000000000000000000",
+        //                   "token": {
+        //                     "id": "token-1",
+        //                     "address": "0x1111111111111111111111111111111111111111",
+        //                     "name": "Token One",
+        //                     "symbol": "TK1",
+        //                     "decimals": "18"
+        //                   },
+        //                   "balance": "0",
+        //                   "vaultId": "1",
+        //                   "owner": "0x0000000000000000000000000000000000000000",
+        //                   "ordersAsOutput": [],
+        //                   "ordersAsInput": [],
+        //                   "balanceChanges": [],
+        //                   "orderbook": {
+        //                     "id": "0x0000000000000000000000000000000000000000"
+        //                   }
+        //                 }
+        //               ],
+        //               "inputs": [
+        //                 {
+        //                   "id": "0x0000000000000000000000000000000000000000",
+        //                   "token": {
+        //                     "id": "token-2",
+        //                     "address": "0x2222222222222222222222222222222222222222",
+        //                     "name": "Token Two",
+        //                     "symbol": "TK2",
+        //                     "decimals": "18"
+        //                   },
+        //                   "balance": "0",
+        //                   "vaultId": "2",
+        //                   "owner": "0x0000000000000000000000000000000000000000",
+        //                   "ordersAsOutput": [],
+        //                   "ordersAsInput": [],
+        //                   "balanceChanges": [],
+        //                   "orderbook": {
+        //                     "id": "0x0000000000000000000000000000000000000000"
+        //                   }
+        //                 }
+        //               ],
+        //               "active": true,
+        //               "addEvents": [
+        //                 {
+        //                   "transaction": {
+        //                     "blockNumber": "0",
+        //                     "timestamp": "0",
+        //                     "id": "0x0000000000000000000000000000000000000000",
+        //                     "from": "0x0000000000000000000000000000000000000000"
+        //                   }
+        //                 }
+        //               ],
+        //               "meta": null,
+        //               "timestampAdded": "0",
+        //               "orderbook": {
+        //                 "id": "0x0000000000000000000000000000000000000000"
+        //               },
+        //               "trades": [],
+        //               "removeEvents": []
+        //             }
+        //           }
+        //         }));
+        //     });
+        //     sg_server.mock(|when, then| {
+        //         when.path("/sg1")
+        //             .body_contains("\"first\":200")
+        //             .body_contains("\"skip\":0");
+        //         then.status(200).json_body_obj(&json!({
+        //           "data": {
+        //             "trades": [
+        //               {
+        //                 "id": "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
+        //                 "timestamp": "1632000000",
+        //                 "tradeEvent": {
+        //                   "sender": "0x0000000000000000000000000000000000000000",
+        //                   "transaction": {
+        //                     "id": "0x0000000000000000000000000000000000000000",
+        //                     "from": "0x0000000000000000000000000000000000000000",
+        //                     "timestamp": "1632000000",
+        //                     "blockNumber": "0"
+        //                   }
+        //                 },
+        //                 "outputVaultBalanceChange": {
+        //                   "amount": "-100000000000000000000",
+        //                   "vault": {
+        //                     "id": "vault-1",
+        //                     "vaultId": "1",
+        //                     "token": {
+        //                       "id": "token-1",
+        //                       "address": "0x1111111111111111111111111111111111111111",
+        //                       "name": "Token One",
+        //                       "symbol": "TK1",
+        //                       "decimals": "18"
+        //                     }
+        //                   },
+        //                   "id": "output-change-1",
+        //                   "__typename": "TradeVaultBalanceChange",
+        //                   "newVaultBalance": "900",
+        //                   "oldVaultBalance": "1000",
+        //                   "timestamp": "1632000000",
+        //                   "transaction": {
+        //                     "id": "0x0000000000000000000000000000000000000000",
+        //                     "from": "0x0000000000000000000000000000000000000000",
+        //                     "timestamp": "1632000000",
+        //                     "blockNumber": "0"
+        //                   },
+        //                   "orderbook": {
+        //                     "id": "orderbook-1"
+        //                   }
+        //                 },
+        //                 "order": {
+        //                   "id": "order1.id",
+        //                   "orderHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+        //                 },
+        //                 "inputVaultBalanceChange": {
+        //                   "amount": "50000000000000000000",
+        //                   "vault": {
+        //                     "id": "vault-2",
+        //                     "vaultId": "2",
+        //                     "token": {
+        //                       "id": "token-2",
+        //                       "address": "0x2222222222222222222222222222222222222222",
+        //                       "name": "Token Two",
+        //                       "symbol": "TK2",
+        //                       "decimals": "18"
+        //                     }
+        //                   },
+        //                   "id": "input-change-1",
+        //                   "__typename": "TradeVaultBalanceChange",
+        //                   "newVaultBalance": "150",
+        //                   "oldVaultBalance": "100",
+        //                   "timestamp": "1632000000",
+        //                   "transaction": {
+        //                     "id": "0x0000000000000000000000000000000000000000",
+        //                     "from": "0x0000000000000000000000000000000000000000",
+        //                     "timestamp": "1632000000",
+        //                     "blockNumber": "0"
+        //                   },
+        //                   "orderbook": {
+        //                     "id": "orderbook-1"
+        //                   }
+        //                 },
+        //                 "orderbook": {
+        //                   "id": "orderbook-1"
+        //                 }
+        //               }
+        //             ]
+        //           }
+        //         }));
+        //     });
+        //     sg_server.mock(|when, then| {
+        //         when.path("/sg1")
+        //             .body_contains("\"first\":200")
+        //             .body_contains("\"skip\":200");
+        //         then.status(200).json_body_obj(&json!({
+        //             "data": { "trades": [] }
+        //         }));
+        //     });
+        //     sg_server.mock(|when, then| {
+        //         when.path("/sg1");
+        //         then.status(200).json_body_obj(&json!({
+        //             "data": {
+        //                 "orders": [get_order1_json()]
+        //             }
+        //         }));
+        //     });
 
-            let raindex_client = RaindexClient::new(
-                vec![get_test_yaml(
-                    &sg_server.url("/sg1"),
-                    &sg_server.url("/sg2"),
-                    // not used
-                    &sg_server.url("/rpc1"),
-                    &sg_server.url("/rpc2"),
-                )],
-                None,
-            )
-            .unwrap();
-            let order = raindex_client
-                .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                    Bytes::from_str("0x0123").unwrap(),
-                )
-                .await
-                .unwrap();
-            let res = order
-                .get_performance(Some(1632000000), Some(1734571449))
-                .await
-                .unwrap();
+        //     let raindex_client = RaindexClient::new(
+        //         vec![get_test_yaml(
+        //             &sg_server.url("/sg1"),
+        //             &sg_server.url("/sg2"),
+        //             // not used
+        //             &sg_server.url("/rpc1"),
+        //             &sg_server.url("/rpc2"),
+        //         )],
+        //         None,
+        //     )
+        //     .unwrap();
+        //     let order = raindex_client
+        //         .get_order_by_hash(
+        //             1,
+        //             Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+        //             Bytes::from_str("0x0123").unwrap(),
+        //         )
+        //         .await
+        //         .unwrap();
+        //     let res = order
+        //         .get_performance(Some(1632000000), Some(1734571449))
+        //         .await
+        //         .unwrap();
 
-            assert_eq!(res.order_id, "order1");
-            assert_eq!(res.order_hash, "0x1");
-            assert_eq!(res.orderbook, "0x0000000000000000000000000000000000000000");
-            assert_eq!(
-                res.denominated_performance,
-                Some(DenominatedPerformance {
-                    token: SgErc20 {
-                        id: SgBytes("token-2".to_string()),
-                        address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
-                        name: Some("Token Two".to_string()),
-                        symbol: Some("TK2".to_string()),
-                        decimals: Some(SgBigInt("18".to_string())),
-                    },
-                    apy: U256::from(0),
-                    apy_is_neg: false,
-                    net_vol: U256::from(0),
-                    net_vol_is_neg: false,
-                    starting_capital: U256::from(600),
-                })
-            );
-            assert_eq!(res.start_time, 1632000000);
-            assert_eq!(res.end_time, 1734571449);
-            assert_eq!(res.inputs_vaults.len(), 1);
-            assert_eq!(
-                res.inputs_vaults[0],
-                VaultPerformance {
-                    id: "2".to_string(),
-                    token: SgErc20 {
-                        id: SgBytes("token-2".to_string()),
-                        address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
-                        name: Some("Token Two".to_string()),
-                        symbol: Some("TK2".to_string()),
-                        decimals: Some(SgBigInt("18".to_string())),
-                    },
-                    vol_details: VolumeDetails {
-                        total_in: U256::from(50000000000000000000u128),
-                        total_out: U256::from(0u8),
-                        total_vol: U256::from(50000000000000000000u128),
-                        net_vol: U256::from(50000000000000000000u128),
-                    },
-                    apy_details: Some(APYDetails {
-                        start_time: 1632000000,
-                        end_time: 1734571449,
-                        net_vol: U256::from(50000000000000000000u128),
-                        capital: U256::from(150u8),
-                        apy: Some(U256::from(102484659254448087225972733172491493u128)),
-                        is_neg: false,
-                    }),
-                }
-            );
-            assert_eq!(res.outputs_vaults.len(), 1);
-            assert_eq!(
-                res.outputs_vaults[0],
-                VaultPerformance {
-                    id: "1".to_string(),
-                    token: SgErc20 {
-                        id: SgBytes("token-1".to_string()),
-                        address: SgBytes("0x1111111111111111111111111111111111111111".to_string()),
-                        name: Some("Token One".to_string()),
-                        symbol: Some("TK1".to_string()),
-                        decimals: Some(SgBigInt("18".to_string())),
-                    },
-                    vol_details: VolumeDetails {
-                        total_in: U256::from(0),
-                        total_out: U256::from(100000000000000000000u128),
-                        total_vol: U256::from(100000000000000000000u128),
-                        net_vol: U256::from(100000000000000000000u128),
-                    },
-                    apy_details: Some(APYDetails {
-                        start_time: 1632000000,
-                        end_time: 1734571449,
-                        net_vol: U256::from(100000000000000000000u128),
-                        capital: U256::from(900u16),
-                        apy: Some(U256::from(34161553084816029075324244390830497u128)),
-                        is_neg: true,
-                    }),
-                }
-            );
-        }
+        //     assert_eq!(res.order_id, "order1");
+        //     assert_eq!(res.order_hash, "0x1");
+        //     assert_eq!(res.orderbook, "0x0000000000000000000000000000000000000000");
+        //     assert_eq!(
+        //         res.denominated_performance,
+        //         Some(DenominatedPerformance {
+        //             token: SgErc20 {
+        //                 id: SgBytes("token-2".to_string()),
+        //                 address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
+        //                 name: Some("Token Two".to_string()),
+        //                 symbol: Some("TK2".to_string()),
+        //                 decimals: Some(SgBigInt("18".to_string())),
+        //             },
+        //             apy: U256::from(0),
+        //             apy_is_neg: false,
+        //             net_vol: U256::from(0),
+        //             net_vol_is_neg: false,
+        //             starting_capital: U256::from(600),
+        //         })
+        //     );
+        //     assert_eq!(res.start_time, 1632000000);
+        //     assert_eq!(res.end_time, 1734571449);
+        //     assert_eq!(res.inputs_vaults.len(), 1);
+        //     assert_eq!(
+        //         res.inputs_vaults[0],
+        //         VaultPerformance {
+        //             id: "2".to_string(),
+        //             token: SgErc20 {
+        //                 id: SgBytes("token-2".to_string()),
+        //                 address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
+        //                 name: Some("Token Two".to_string()),
+        //                 symbol: Some("TK2".to_string()),
+        //                 decimals: Some(SgBigInt("18".to_string())),
+        //             },
+        //             vol_details: VolumeDetails {
+        //                 total_in: U256::from(50000000000000000000u128),
+        //                 total_out: U256::from(0u8),
+        //                 total_vol: U256::from(50000000000000000000u128),
+        //                 net_vol: U256::from(50000000000000000000u128),
+        //             },
+        //             apy_details: Some(APYDetails {
+        //                 start_time: 1632000000,
+        //                 end_time: 1734571449,
+        //                 net_vol: U256::from(50000000000000000000u128),
+        //                 capital: U256::from(150u8),
+        //                 apy: Some(U256::from(102484659254448087225972733172491493u128)),
+        //                 is_neg: false,
+        //             }),
+        //         }
+        //     );
+        //     assert_eq!(res.outputs_vaults.len(), 1);
+        //     assert_eq!(
+        //         res.outputs_vaults[0],
+        //         VaultPerformance {
+        //             id: "1".to_string(),
+        //             token: SgErc20 {
+        //                 id: SgBytes("token-1".to_string()),
+        //                 address: SgBytes("0x1111111111111111111111111111111111111111".to_string()),
+        //                 name: Some("Token One".to_string()),
+        //                 symbol: Some("TK1".to_string()),
+        //                 decimals: Some(SgBigInt("18".to_string())),
+        //             },
+        //             vol_details: VolumeDetails {
+        //                 total_in: U256::from(0),
+        //                 total_out: U256::from(100000000000000000000u128),
+        //                 total_vol: U256::from(100000000000000000000u128),
+        //                 net_vol: U256::from(100000000000000000000u128),
+        //             },
+        //             apy_details: Some(APYDetails {
+        //                 start_time: 1632000000,
+        //                 end_time: 1734571449,
+        //                 net_vol: U256::from(100000000000000000000u128),
+        //                 capital: U256::from(900u16),
+        //                 apy: Some(U256::from(34161553084816029075324244390830497u128)),
+        //                 is_neg: true,
+        //             }),
+        //         }
+        //     );
+        // }
     }
 }

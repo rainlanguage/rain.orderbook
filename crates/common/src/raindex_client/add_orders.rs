@@ -90,6 +90,7 @@ mod tests {
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
+        use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::json;
         use std::str::FromStr;
 
@@ -118,7 +119,7 @@ mod tests {
                                     "id": "0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf",
                                     "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                                     "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                                    "balance": "987000000000000000",
+                                    "balance": *F10,
                                     "token": {
                                       "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                                       "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -145,7 +146,7 @@ mod tests {
                                     "id": "0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac",
                                     "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                                     "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                                    "balance": "797990000000000000",
+                                    "balance": *F0_5,
                                     "token": {
                                       "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                       "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -280,10 +281,7 @@ mod tests {
                 )
                 .unwrap()
             );
-            assert_eq!(
-                output.balance(),
-                U256::from_str("987000000000000000").unwrap()
-            );
+            assert!(output.balance().eq(*F10).unwrap());
             assert_eq!(
                 output.token().id(),
                 "0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string()
@@ -337,10 +335,7 @@ mod tests {
                 )
                 .unwrap()
             );
-            assert_eq!(
-                input.balance(),
-                U256::from_str("797990000000000000").unwrap()
-            );
+            assert!(input.balance().eq(*F0_5).unwrap());
             assert_eq!(
                 input.token().id(),
                 "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()

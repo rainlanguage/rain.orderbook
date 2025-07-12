@@ -1,5 +1,5 @@
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
-use alloy::primitives::{utils::format_units, I256};
+use rain_math_float::Float;
 use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
@@ -10,25 +10,18 @@ pub struct VaultBalanceChangeFlattened {
     pub timestamp: SgBigInt,
     pub timestamp_display: String,
     pub from: SgBytes,
-    pub amount: SgBigInt,
+    pub amount: SgBytes,
     pub amount_display_signed: String,
     pub change_type_display: String,
-    pub balance: SgBigInt,
+    pub balance: SgBytes,
 }
 
 impl TryFrom<SgVaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
     type Error = FlattenError;
 
     fn try_from(val: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
-        let amount_display_signed = format_units(
-            val.amount.0.parse::<I256>()?,
-            val.vault
-                .token
-                .decimals
-                .unwrap_or(SgBigInt("0".into()))
-                .0
-                .parse::<u8>()?,
-        )?;
+        let amount: Float = serde_json::from_str(&val.amount.0)?;
+        let amount_display_signed = amount.format18()?;
 
         Ok(Self {
             timestamp: val.timestamp.clone(),
@@ -53,6 +46,7 @@ mod tests {
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTransaction, SgVaultBalanceChangeUnwrapped,
         SgVaultBalanceChangeVault,
     };
+    use rain_orderbook_subgraph_client::utils::float::*;
 
     fn mock_sg_vault_balance_change_unwrapped(
         timestamp_val: &str,
@@ -70,13 +64,15 @@ mod tests {
                 block_number: SgBigInt("100".to_string()),
                 timestamp: SgBigInt(timestamp_val.to_string()),
             },
-            amount: SgBigInt(amount_val.to_string()),
+            amount: SgBytes(float_hex(Float::parse(amount_val.to_string()).unwrap())),
             __typename: typename_val.to_string(),
-            new_vault_balance: SgBigInt(new_balance_val.to_string()),
-            old_vault_balance: SgBigInt("0".into()),
+            new_vault_balance: SgBytes(float_hex(
+                Float::parse(new_balance_val.to_string()).unwrap(),
+            )),
+            old_vault_balance: SgBytes(float_hex(*F0)),
             vault: SgVaultBalanceChangeVault {
                 id: SgBytes("0xvaultid".to_string()),
-                vault_id: SgBigInt("1".to_string()),
+                vault_id: SgBytes("1".to_string()),
                 token: SgErc20 {
                     id: SgBytes("0xtokenid".to_string()),
                     address: SgBytes("0xtokenaddress".to_string()),

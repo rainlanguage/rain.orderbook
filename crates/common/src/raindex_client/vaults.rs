@@ -56,7 +56,7 @@ pub struct RaindexVault {
     id: Bytes,
     owner: Address,
     vault_id: U256,
-    balance: U256,
+    balance: Float,
     token: RaindexVaultToken,
     orderbook: Address,
     orders_as_inputs: Vec<RaindexOrderAsIO>,
@@ -93,8 +93,8 @@ impl RaindexVault {
         Self::u256_to_bigint(self.vault_id)
     }
     #[wasm_bindgen(getter)]
-    pub fn balance(&self) -> Result<BigInt, RaindexError> {
-        Self::u256_to_bigint(self.balance)
+    pub fn balance(&self) -> Float {
+        self.balance
     }
     #[wasm_bindgen(getter)]
     pub fn token(&self) -> RaindexVaultToken {
@@ -113,6 +113,7 @@ impl RaindexVault {
         self.orders_as_outputs.clone()
     }
 }
+
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVault {
     pub fn chain_id(&self) -> u32 {
@@ -130,7 +131,7 @@ impl RaindexVault {
     pub fn vault_id(&self) -> U256 {
         self.vault_id
     }
-    pub fn balance(&self) -> U256 {
+    pub fn balance(&self) -> Float {
         self.balance
     }
     pub fn token(&self) -> RaindexVaultToken {
@@ -163,6 +164,7 @@ pub struct RaindexVaultToken {
     symbol: Option<String>,
     decimals: Option<U256>,
 }
+
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVaultToken {
@@ -192,6 +194,7 @@ impl RaindexVaultToken {
             .transpose()
     }
 }
+
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultToken {
     pub fn id(&self) -> String {
@@ -819,6 +822,8 @@ impl RaindexVault {
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
+        let balance: Float = serde_json::from_str(&vault.balance.0)?;
+
         Ok(Self {
             raindex_client,
             chain_id,
@@ -826,7 +831,7 @@ impl RaindexVault {
             id: Bytes::from_str(&vault.id.0)?,
             owner: Address::from_str(&vault.owner.0)?,
             vault_id: U256::from_str(&vault.vault_id.0)?,
-            balance: U256::from_str(&vault.balance.0)?,
+            balance,
             token: vault.token.try_into()?,
             orderbook: Address::from_str(&vault.orderbook.id.0)?,
             orders_as_inputs: vault
@@ -861,8 +866,8 @@ impl RaindexVault {
     pub fn into_sg_vault(self) -> Result<SgVault, RaindexError> {
         Ok(SgVault {
             id: SgBytes(self.id.to_string()),
-            vault_id: SgBigInt(self.vault_id.to_string()),
-            balance: SgBigInt(self.balance.to_string()),
+            vault_id: SgBytes(self.vault_id.to_string()),
+            balance: SgBytes(serde_json::to_string(&self.balance)?),
             owner: SgBytes(self.owner.to_string()),
             token: self.token.try_into()?,
             orderbook: SgOrderbook {
@@ -931,6 +936,7 @@ mod tests {
             IOrderBookV5::{deposit3Call, withdraw3Call},
             IERC20::approveCall,
         };
+        use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
 
         fn get_vault1_json() -> Value {
@@ -1017,7 +1023,7 @@ mod tests {
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(vault1.vault_id, U256::from_str("0x10").unwrap());
-            assert_eq!(vault1.balance, U256::from_str("0x10").unwrap());
+            assert!(vault1.balance.eq(*F10).unwrap());
             assert_eq!(vault1.token.id, "token1");
             assert_eq!(
                 vault1.orderbook,
@@ -1032,7 +1038,7 @@ mod tests {
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(vault2.vault_id, U256::from_str("0x20").unwrap());
-            assert_eq!(vault2.balance, U256::from_str("0x20").unwrap());
+            assert!(vault2.balance.eq(*F20).unwrap());
             assert_eq!(vault2.token.id, "token2");
             assert_eq!(
                 vault2.orderbook,
@@ -1063,6 +1069,7 @@ mod tests {
                 None,
             )
             .unwrap();
+
             let vault = raindex_client
                 .get_vault(
                     1,
@@ -1071,6 +1078,7 @@ mod tests {
                 )
                 .await
                 .unwrap();
+
             assert_eq!(vault.chain_id, 1);
             assert_eq!(vault.id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
@@ -1078,7 +1086,7 @@ mod tests {
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(vault.vault_id, U256::from_str("0x10").unwrap());
-            assert_eq!(vault.balance, U256::from_str("0x10").unwrap());
+            assert!(vault.balance.eq(*F10).unwrap());
             assert_eq!(vault.token.id, "token1");
             assert_eq!(
                 vault.orderbook,
