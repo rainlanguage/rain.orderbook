@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn test_normal_case_optional_token_fields_none() {
-        let balance = Float::parse("7890.0".to_string()).unwrap();
+        let balance = Float::parse("7890".to_string()).unwrap();
         let balance_str = float_hex(balance);
 
         let sg_vault = create_sg_vault(
@@ -138,7 +138,7 @@ mod tests {
         assert_eq!(flattened.token_name, None);
         assert_eq!(flattened.token_symbol, None);
         assert_eq!(flattened.token_decimals, None);
-        assert_eq!(flattened.balance_display, "7890.0");
+        assert_eq!(flattened.balance_display, "7890");
         assert_eq!(flattened.balance, SgBytes(balance_str.to_string()));
     }
 
@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_edge_case_zero_decimals_specified() {
-        let balance = Float::parse("98765.0".to_string()).unwrap();
+        let balance = Float::parse("98765".to_string()).unwrap();
         let balance_str = float_hex(balance);
 
         let sg_vault = create_sg_vault(

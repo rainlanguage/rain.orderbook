@@ -6,7 +6,7 @@ use crate::{
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use alloy::primitives::{Address, Bytes, B256, I256, U256};
+use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
@@ -522,9 +522,9 @@ pub struct RaindexVaultBalanceChange {
     r#type: RaindexVaultBalanceChangeType,
     vault_id: U256,
     token: RaindexVaultToken,
-    amount: I256,
-    new_balance: U256,
-    old_balance: U256,
+    amount: Float,
+    new_balance: Float,
+    old_balance: Float,
     timestamp: U256,
     transaction: RaindexTransaction,
     orderbook: Address,
@@ -585,13 +585,13 @@ impl RaindexVaultBalanceChange {
     pub fn token(&self) -> RaindexVaultToken {
         self.token.clone()
     }
-    pub fn amount(&self) -> I256 {
+    pub fn amount(&self) -> Float {
         self.amount
     }
-    pub fn new_balance(&self) -> U256 {
+    pub fn new_balance(&self) -> Float {
         self.new_balance
     }
-    pub fn old_balance(&self) -> U256 {
+    pub fn old_balance(&self) -> Float {
         self.old_balance
     }
     pub fn timestamp(&self) -> U256 {
@@ -612,13 +612,17 @@ impl_wasm_traits!(RaindexVaultAllowance);
 impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
     type Error = RaindexError;
     fn try_from(balance_change: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
+        let amount: Float = serde_json::from_str(&balance_change.amount.0)?;
+        let new_balance: Float = serde_json::from_str(&balance_change.new_vault_balance.0)?;
+        let old_balance: Float = serde_json::from_str(&balance_change.old_vault_balance.0)?;
+
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
             token: RaindexVaultToken::try_from(balance_change.vault.token)?,
-            amount: I256::from_str(&balance_change.amount.0)?,
-            new_balance: U256::from_str(&balance_change.new_vault_balance.0)?,
-            old_balance: U256::from_str(&balance_change.old_vault_balance.0)?,
+            amount,
+            new_balance,
+            old_balance,
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
@@ -629,13 +633,17 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
 impl TryFrom<SgTradeVaultBalanceChange> for RaindexVaultBalanceChange {
     type Error = RaindexError;
     fn try_from(balance_change: SgTradeVaultBalanceChange) -> Result<Self, Self::Error> {
+        let amount: Float = serde_json::from_str(&balance_change.amount.0)?;
+        let new_balance: Float = serde_json::from_str(&balance_change.new_vault_balance.0)?;
+        let old_balance: Float = serde_json::from_str(&balance_change.old_vault_balance.0)?;
+
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
             token: RaindexVaultToken::try_from(balance_change.vault.token)?,
-            amount: I256::from_str(&balance_change.amount.0)?,
-            new_balance: U256::from_str(&balance_change.new_vault_balance.0)?,
-            old_balance: U256::from_str(&balance_change.old_vault_balance.0)?,
+            amount,
+            new_balance,
+            old_balance,
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
@@ -822,7 +830,7 @@ impl RaindexVault {
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
-        let balance: Float = serde_json::from_str(&vault.balance.0)?;
+        let balance = Format::from_hex(&balance_str)?;
 
         Ok(Self {
             raindex_client,
@@ -943,8 +951,8 @@ mod tests {
             json!({
               "id": "0x0123",
               "owner": "0x0000000000000000000000000000000000000000",
-              "vaultId": "0x10",
-              "balance": "0x10",
+              "vaultId": "0x0123",
+              "balance": *F1,
               "token": {
                 "id": "token1",
                 "address": "0x0000000000000000000000000000000000000000",
@@ -960,12 +968,13 @@ mod tests {
               "balanceChanges": []
             })
         }
+
         fn get_vault2_json() -> Value {
             json!({
                 "id": "0x0234",
                 "owner": "0x0000000000000000000000000000000000000000",
-                "vaultId": "0x20",
-                "balance": "0x20",
+                "vaultId": "0x0234",
+                "balance": *F2,
                 "token": {
                     "id": "token2",
                     "address": "0x0000000000000000000000000000000000000000",
@@ -981,6 +990,7 @@ mod tests {
                 "balanceChanges": []
             })
         }
+
         #[tokio::test]
         async fn test_get_vaults() {
             let sg_server = MockServer::start_async().await;
@@ -1012,6 +1022,7 @@ mod tests {
                 None,
             )
             .unwrap();
+
             let result = raindex_client.get_vaults(None, None, None).await.unwrap();
             assert_eq!(result.len(), 2);
 
@@ -1022,8 +1033,8 @@ mod tests {
                 vault1.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault1.vault_id, U256::from_str("0x10").unwrap());
-            assert!(vault1.balance.eq(*F10).unwrap());
+            assert_eq!(vault1.vault_id, U256::from_str("0x0123").unwrap());
+            assert!(vault1.balance.eq(*F1).unwrap());
             assert_eq!(vault1.token.id, "token1");
             assert_eq!(
                 vault1.orderbook,
@@ -1037,8 +1048,8 @@ mod tests {
                 vault2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault2.vault_id, U256::from_str("0x20").unwrap());
-            assert!(vault2.balance.eq(*F20).unwrap());
+            assert_eq!(vault2.vault_id, U256::from_str("0x0234").unwrap());
+            assert!(vault2.balance.eq(*F2).unwrap());
             assert_eq!(vault2.token.id, "token2");
             assert_eq!(
                 vault2.orderbook,
@@ -1106,9 +1117,9 @@ mod tests {
                         "vaultBalanceChanges": [
                             {
                                 "__typename": "Deposit",
-                                "amount": "5000000000000000000",
-                                "newVaultBalance": "5000000000000000000",
-                                "oldVaultBalance": "0",
+                                "amount": *F5,
+                                "newVaultBalance": *F5,
+                                "oldVaultBalance": *F0,
                                 "vault": {
                                     "id": "0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902",
                                     "vaultId": "1",
@@ -1186,15 +1197,9 @@ mod tests {
             assert_eq!(result[0].token.name, Some("Wrapped Flare".to_string()));
             assert_eq!(result[0].token.symbol, Some("WFLR".to_string()));
             assert_eq!(result[0].token.decimals, Some(U256::from(18)));
-            assert_eq!(
-                result[0].amount,
-                I256::from_str("5000000000000000000").unwrap()
-            );
-            assert_eq!(
-                result[0].new_balance,
-                U256::from_str("5000000000000000000").unwrap()
-            );
-            assert_eq!(result[0].old_balance, U256::from_str("0").unwrap());
+            assert!(result[0].amount.eq(*F5).unwrap());
+            assert!(result[0].new_balance.eq(*F5).unwrap());
+            assert!(result[0].old_balance.eq(*F0).unwrap());
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
                 result[0].transaction.id(),
@@ -1262,7 +1267,7 @@ mod tests {
                     &deposit3Call {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
-                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        vaultId: B256::from(U256::from_str("0x0123").unwrap()),
                         depositAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
                         tasks: vec![],
                     }
@@ -1327,7 +1332,7 @@ mod tests {
                     &withdraw3Call {
                         token: Address::from_str("0x0000000000000000000000000000000000000000")
                             .unwrap(),
-                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        vaultId: B256::from(U256::from_str("0x0123").unwrap()),
                         targetAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
                         tasks: vec![],
                     }

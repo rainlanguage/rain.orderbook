@@ -166,7 +166,7 @@ mod tests {
             flattened.input,
             trade_data.input_vault_balance_change.amount
         );
-        assert_eq!(flattened.input_display, "1.000000000000000000");
+        assert_eq!(flattened.input_display, "1");
         assert_eq!(
             flattened.input_token_id,
             trade_data.input_vault_balance_change.vault.token.id
@@ -180,7 +180,7 @@ mod tests {
             flattened.output,
             trade_data.output_vault_balance_change.amount
         );
-        assert_eq!(flattened.output_display, "2.00000000");
+        assert_eq!(flattened.output_display, "2");
         assert_eq!(
             flattened.output_token_id,
             trade_data.output_vault_balance_change.vault.token.address
@@ -203,9 +203,9 @@ mod tests {
         assert!(result.is_ok());
         let flattened = result.unwrap();
 
-        assert_eq!(flattened.input_display, "1000000000000000000.0");
+        assert_eq!(flattened.input_display, "1");
         assert_eq!(flattened.input_token_symbol, None);
-        assert_eq!(flattened.output_display, "200000000.0");
+        assert_eq!(flattened.output_display, "2");
         assert_eq!(flattened.output_token_symbol, None);
     }
 
@@ -219,8 +219,8 @@ mod tests {
         assert!(result.is_ok());
         let flattened = result.unwrap();
 
-        assert_eq!(flattened.input_display, "0.000000000000000000");
-        assert_eq!(flattened.output_display, "0.00000000");
+        assert_eq!(flattened.input_display, "0");
+        assert_eq!(flattened.output_display, "0");
     }
 
     #[test]
@@ -255,9 +255,8 @@ mod tests {
         trade_data.input_vault_balance_change.amount = SgBytes("not_a_number".to_string());
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(
-            matches!(result, Err(FlattenError::ParseSignedError(_))),
-            "Expected ParseSignedError for unparseable input amount, got {:?}",
-            result
+            matches!(result, Err(FlattenError::ParseError(_))),
+            "Expected ParseError for unparseable input amount, got {result:?}",
         );
     }
 
@@ -267,9 +266,8 @@ mod tests {
         trade_data.output_vault_balance_change.amount = SgBytes("not_a_number".to_string());
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(
-            matches!(result, Err(FlattenError::ParseSignedError(_))),
-            "Expected ParseSignedError for unparseable output amount, got {:?}",
-            result
+            matches!(result, Err(FlattenError::ParseError(_))),
+            "Expected ParseError for unparseable output amount, got {result:?}",
         );
     }
 
@@ -283,24 +281,6 @@ mod tests {
             "Expected FormatTimestampDisplayError for invalid timestamp for display format, got {:?}",
             result
         );
-    }
-
-    #[test]
-    fn test_amount_i256_boundaries() {
-        let mut trade_data_max_input = mock_sg_trade_default();
-        trade_data_max_input.input_vault_balance_change.amount = SgBytes(float_hex(*FMAX));
-        let mut trade_data_min_output = mock_sg_trade_default();
-        trade_data_min_output.output_vault_balance_change.amount = SgBytes(float_hex(*FMIN));
-
-        let result_max = OrderTakeFlattened::try_from(trade_data_max_input.clone());
-        assert!(result_max.is_ok());
-        let flattened_max = result_max.unwrap();
-        assert_eq!(flattened_max.input_display, FMAX.format18().unwrap());
-
-        let result_min = OrderTakeFlattened::try_from(trade_data_min_output.clone());
-        assert!(result_min.is_ok());
-        let flattened_min = result_min.unwrap();
-        assert_eq!(flattened_min.output_display, FMIN.format18().unwrap());
     }
 
     #[test]

@@ -262,8 +262,9 @@ mod test_helpers {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::primitives::{Bytes, I256};
+        use alloy::primitives::Bytes;
         use httpmock::MockServer;
+        use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
 
         fn get_order1_json() -> Value {
@@ -607,18 +608,23 @@ mod test_helpers {
             assert_eq!(trade1.transaction().block_number(), U256::ZERO);
             assert_eq!(trade1.transaction().timestamp(), U256::ZERO);
             // assert_eq!(trade1.trade_event.sender.0, "sender1");
-            assert_eq!(
-                trade1.output_vault_balance_change().amount(),
-                I256::from_str("-2").unwrap()
-            );
-            assert_eq!(
-                trade1.output_vault_balance_change().new_balance(),
-                U256::ZERO
-            );
-            assert_eq!(
-                trade1.output_vault_balance_change().old_balance(),
-                U256::ZERO
-            );
+
+            assert!(trade1
+                .output_vault_balance_change()
+                .amount()
+                .eq(*NEG2)
+                .unwrap());
+            assert!(trade1
+                .output_vault_balance_change()
+                .new_balance()
+                .eq(*F0)
+                .unwrap());
+            assert!(trade1
+                .output_vault_balance_change()
+                .old_balance()
+                .eq(*F0)
+                .unwrap());
+
             assert_eq!(
                 trade1.output_vault_balance_change().vault_id(),
                 U256::from_str("0x0123").unwrap()
@@ -669,18 +675,23 @@ mod test_helpers {
                     .timestamp(),
                 U256::from_str("1700000000").unwrap()
             );
-            assert_eq!(
-                trade1.input_vault_balance_change().amount(),
-                I256::from_str("1").unwrap()
-            );
-            assert_eq!(
-                trade1.input_vault_balance_change().new_balance(),
-                U256::ZERO
-            );
-            assert_eq!(
-                trade1.input_vault_balance_change().old_balance(),
-                U256::ZERO
-            );
+
+            assert!(trade1
+                .input_vault_balance_change()
+                .amount()
+                .eq(*F1)
+                .unwrap());
+            assert!(trade1
+                .input_vault_balance_change()
+                .new_balance()
+                .eq(*F0)
+                .unwrap());
+            assert!(trade1
+                .input_vault_balance_change()
+                .old_balance()
+                .eq(*F0)
+                .unwrap());
+
             assert_eq!(
                 trade1.input_vault_balance_change().vault_id(),
                 U256::from_str("0x0123").unwrap()
@@ -789,18 +800,23 @@ mod test_helpers {
             assert_eq!(trade.transaction().block_number(), U256::ZERO);
             assert_eq!(trade.transaction().timestamp(), U256::ZERO);
             // assert_eq!(trade.trade_event.sender.0, "sender1");
-            assert_eq!(
-                trade.output_vault_balance_change().amount(),
-                I256::from_str("-2").unwrap()
-            );
-            assert_eq!(
-                trade.output_vault_balance_change().new_balance(),
-                U256::ZERO
-            );
-            assert_eq!(
-                trade.output_vault_balance_change().old_balance(),
-                U256::ZERO
-            );
+
+            assert!(trade
+                .output_vault_balance_change()
+                .amount()
+                .eq(*NEG2)
+                .unwrap());
+            assert!(trade
+                .output_vault_balance_change()
+                .new_balance()
+                .eq(*F0)
+                .unwrap());
+            assert!(trade
+                .output_vault_balance_change()
+                .old_balance()
+                .eq(*F0)
+                .unwrap());
+
             assert_eq!(
                 trade.output_vault_balance_change().vault_id(),
                 U256::from_str("0x0123").unwrap()
@@ -847,12 +863,19 @@ mod test_helpers {
                     .timestamp(),
                 U256::from_str("1700000000").unwrap()
             );
-            assert_eq!(
-                trade.input_vault_balance_change().amount(),
-                I256::from_str("1").unwrap()
-            );
-            assert_eq!(trade.input_vault_balance_change().new_balance(), U256::ZERO);
-            assert_eq!(trade.input_vault_balance_change().old_balance(), U256::ZERO);
+
+            assert!(trade.input_vault_balance_change().amount().eq(*F1).unwrap());
+            assert!(trade
+                .input_vault_balance_change()
+                .new_balance()
+                .eq(*F0)
+                .unwrap());
+            assert!(trade
+                .input_vault_balance_change()
+                .old_balance()
+                .eq(*F0)
+                .unwrap());
+
             assert_eq!(
                 trade.input_vault_balance_change().vault_id(),
                 U256::from_str("0x0123").unwrap()
