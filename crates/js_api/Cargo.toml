@@ -37,6 +37,7 @@ bincode = "1.3.3"
 strict-yaml-rust = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 rain-math-float.workspace = true
+rain-metadata = { workspace = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

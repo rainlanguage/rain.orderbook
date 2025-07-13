@@ -1,7 +1,7 @@
 use rain_metadata::{
     types::{
         dotrain::instance_v1::{DotrainInstanceV1, TokenCfg, ValueCfg},
-        source_v1::DotrainSourceV1,
+        dotrain::source_v1::DotrainSourceV1,
     },
     RainMetaDocumentV1Item,
 };
