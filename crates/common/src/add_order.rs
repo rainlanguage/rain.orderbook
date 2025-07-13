@@ -22,8 +22,8 @@ use rain_interpreter_eval::{
 };
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
 use rain_metadata::{
-    types::dotrain::instance_v1::DotrainInstanceV1, ContentEncoding, ContentLanguage, ContentType,
-    Error as RainMetaError, KnownMagic, RainMetaDocumentV1Item,
+    ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
+    RainMetaDocumentV1Item,
 };
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
 use rain_orderbook_bindings::IOrderBookV5::{
@@ -91,7 +91,7 @@ pub struct AddOrderArgs {
     pub outputs: Vec<IOV2>,
     pub deployer: Address,
     pub bindings: HashMap<String, String>,
-    pub dotrain_instance_data: Option<DotrainInstanceV1>,
+    pub meta: Option<Vec<RainMetaDocumentV1Item>>,
 }
 
 impl AddOrderArgs {
@@ -99,7 +99,9 @@ impl AddOrderArgs {
     pub async fn new_from_deployment(
         dotrain: String,
         deployment: DeploymentCfg,
-        dotrain_instance_data: Option<DotrainInstanceV1>,
+        // Additional meta documents to include in the order
+        // RainlangSourceV1 will be included automatically
+        additional_meta: Option<Vec<RainMetaDocumentV1Item>>,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id = B256::random();
 
@@ -135,7 +137,7 @@ impl AddOrderArgs {
             outputs,
             deployer: deployment.scenario.deployer.address,
             bindings: deployment.scenario.bindings.to_owned(),
-            dotrain_instance_data,
+            meta: additional_meta,
         })
     }
 
@@ -174,10 +176,11 @@ impl AddOrderArgs {
         };
         meta_docs.push(rainlang_meta_doc);
 
-        // Create DotrainInstanceV1 meta if data is available
-        if let Some(dotrain_instance) = &self.dotrain_instance_data {
-            let dotrain_instance_meta_doc: RainMetaDocumentV1Item = dotrain_instance.clone().into();
-            meta_docs.push(dotrain_instance_meta_doc);
+        // Add existing meta documents if any
+        if let Some(existing_meta) = &self.meta {
+            if !existing_meta.is_empty() {
+                meta_docs.extend(existing_meta.iter().cloned());
+            }
         }
 
         let meta_doc_bytes =
@@ -371,7 +374,7 @@ impl AddOrderArgs {
 mod tests {
     use super::*;
     use crate::dotrain_order::DotrainOrder;
-    use alloy::primitives::Bytes;
+    use alloy::{hex::encode, primitives::Bytes};
     use rain_orderbook_app_settings::{
         deployer::DeployerCfg,
         network::NetworkCfg,
@@ -382,6 +385,7 @@ mod tests {
         yaml::default_document,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
+    use std::collections::BTreeMap;
     use std::{
         str::FromStr,
         sync::{Arc, RwLock},
@@ -408,7 +412,7 @@ price: 2e18;
             outputs: vec![],
             bindings: HashMap::new(),
             deployer: Address::default(),
-            dotrain_instance_data: None,
+            meta: None,
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
@@ -428,14 +432,14 @@ price: 2e18;
     }
 
     #[test]
-    fn test_try_generate_meta_empty_dotrain() {
+    fn test_try_generate_meta_without_additional() {
         let args = AddOrderArgs {
             dotrain: "".into(),
             inputs: vec![],
             outputs: vec![],
             bindings: HashMap::new(),
             deployer: Address::default(),
-            dotrain_instance_data: None,
+            meta: None,
         };
         let meta_bytes = args.try_generate_meta("".to_string()).unwrap();
         assert_eq!(
@@ -1318,7 +1322,7 @@ _ _: key1 key2;
                 ("key1".to_string(), "10".to_string()),
                 ("key2".to_string(), "20".to_string()),
             ]),
-            dotrain_instance_data: None,
+            meta: None,
         };
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         assert_eq!(
@@ -1338,7 +1342,7 @@ _ _: key1 key2;
                 ("key1".to_string(), "10".to_string()),
                 ("key2".to_string(), "20".to_string()),
             ]),
-            dotrain_instance_data: None,
+            meta: None,
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
         assert!(matches!(
@@ -1381,7 +1385,7 @@ _ _: key1 key2;
             outputs: vec![],
             deployer: Address::random(),
             bindings: HashMap::new(),
-            dotrain_instance_data: None,
+            meta: None,
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
         assert!(matches!(
@@ -1429,7 +1433,7 @@ _ _: 0 0;
             }],
             deployer: *local_evm.deployer.address(),
             bindings: HashMap::new(),
-            dotrain_instance_data: None,
+            meta: None,
         };
 
         let add_order_call = addOrder3Call {
@@ -1664,7 +1668,7 @@ price: 2e18;
             outputs: vec![],
             bindings: HashMap::new(),
             deployer: Address::default(),
-            dotrain_instance_data: Some(dotrain_instance_data),
+            meta: Some(vec![dotrain_instance_data.into()]),
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
