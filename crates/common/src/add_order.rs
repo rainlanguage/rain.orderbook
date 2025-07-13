@@ -372,6 +372,7 @@ mod tests {
     use super::*;
     use crate::dotrain_order::DotrainOrder;
     use alloy::primitives::Bytes;
+    use std::collections::BTreeMap;
     use rain_orderbook_app_settings::{
         deployer::DeployerCfg,
         network::NetworkCfg,

@@ -70,13 +70,13 @@ mod tests {
                 block_number: SgBigInt("100".to_string()),
                 timestamp: SgBigInt(timestamp_val.to_string()),
             },
-            amount: SgBigInt(amount_val.to_string()),
+            amount: SgBytes(amount_val.to_string()),
             __typename: typename_val.to_string(),
-            new_vault_balance: SgBigInt(new_balance_val.to_string()),
-            old_vault_balance: SgBigInt("0".into()),
+            new_vault_balance: SgBytes(new_balance_val.to_string()),
+            old_vault_balance: SgBytes("0".into()),
             vault: SgVaultBalanceChangeVault {
                 id: SgBytes("0xvaultid".to_string()),
-                vault_id: SgBigInt("1".to_string()),
+                vault_id: SgBytes("1".to_string()),
                 token: SgErc20 {
                     id: SgBytes("0xtokenid".to_string()),
                     address: SgBytes("0xtokenaddress".to_string()),
@@ -111,10 +111,10 @@ mod tests {
             format_bigint_timestamp_display(val.timestamp.0).unwrap()
         );
         assert_eq!(flattened.from, val.transaction.from);
-        assert_eq!(flattened.amount, val.amount);
+        assert_eq!(flattened.amount, SgBigInt(val.amount.0));
         assert_eq!(flattened.amount_display_signed, "1.000000000000000000");
         assert_eq!(flattened.change_type_display, val.__typename);
-        assert_eq!(flattened.balance, val.new_vault_balance);
+        assert_eq!(flattened.balance, SgBigInt(val.new_vault_balance.0));
     }
 
     #[test]

@@ -135,8 +135,8 @@ mod tests {
             outputs: vec![SgVault {
                 id: SgBytes("vault-out-id".into()),
                 owner: SgBytes("vault-owner".into()),
-                vault_id: SgBigInt("222".into()),
-                balance: SgBigInt("1000".into()),
+                vault_id: SgBytes("222".into()),
+                balance: SgBytes("1000".into()),
                 token: SgErc20 {
                     id: SgBytes("token-out-id".into()),
                     address: SgBytes(format!("{:?}", Address::repeat_byte(0x22))),
@@ -154,8 +154,8 @@ mod tests {
             inputs: vec![SgVault {
                 id: SgBytes("vault-in-id".into()),
                 owner: SgBytes("vault-owner".into()),
-                vault_id: SgBigInt("111".into()),
-                balance: SgBigInt("1000".into()),
+                vault_id: SgBytes("111".into()),
+                balance: SgBytes("1000".into()),
                 token: SgErc20 {
                     id: SgBytes("token-in-id".into()),
                     address: SgBytes(format!("{:?}", Address::repeat_byte(0x11))),
@@ -240,14 +240,14 @@ mod tests {
         sg_order.inputs.push(SgVault {
             id: SgBytes("vault-in-id-2".into()),
             owner: SgBytes("vault-owner-2".into()),
-            balance: SgBigInt("1000".into()),
+            balance: SgBytes("1000".into()),
             orderbook: SgOrderbook {
                 id: SgBytes("ob-id".into()),
             },
             orders_as_output: vec![],
             orders_as_input: vec![],
             balance_changes: vec![],
-            vault_id: SgBigInt("112".into()),
+            vault_id: SgBytes("112".into()),
             token: SgErc20 {
                 address: SgBytes("0x112".into()),
                 symbol: Some("TIN2".into()),
@@ -259,14 +259,14 @@ mod tests {
         sg_order.outputs.push(SgVault {
             id: SgBytes("vault-out-id-2".into()),
             owner: SgBytes("vault-owner-2".into()),
-            balance: SgBigInt("1000".into()),
+            balance: SgBytes("1000".into()),
             orderbook: SgOrderbook {
                 id: SgBytes("ob-id".into()),
             },
             orders_as_output: vec![],
             orders_as_input: vec![],
             balance_changes: vec![],
-            vault_id: SgBigInt("223".into()),
+            vault_id: SgBytes("223".into()),
             token: SgErc20 {
                 address: SgBytes("0x223".into()),
                 symbol: None,
@@ -351,14 +351,14 @@ mod tests {
         sg_order.inputs = vec![SgVault {
             id: SgBytes("vault-in-id".into()),
             owner: SgBytes("vault-owner".into()),
-            balance: SgBigInt("1000".into()),
+            balance: SgBytes("1000".into()),
             orderbook: SgOrderbook {
                 id: SgBytes("ob-id".into()),
             },
             orders_as_output: vec![],
             orders_as_input: vec![],
             balance_changes: vec![],
-            vault_id: SgBigInt("111".into()),
+            vault_id: SgBytes("111".into()),
             token: SgErc20 {
                 symbol: None,
                 id: SgBytes("token-in-id".into()),
@@ -370,11 +370,11 @@ mod tests {
         sg_order.outputs = vec![SgVault {
             id: SgBytes("vault-out-id".into()),
             owner: SgBytes("vault-owner".into()),
-            balance: SgBigInt("1000".into()),
+            balance: SgBytes("1000".into()),
             orderbook: SgOrderbook {
                 id: SgBytes("ob-id".into()),
             },
-            vault_id: SgBigInt("222".into()),
+            vault_id: SgBytes("222".into()),
             token: SgErc20 {
                 symbol: None,
                 id: SgBytes("token-out-id".into()),

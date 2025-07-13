@@ -99,12 +99,12 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("inputVBC001".to_string()),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBigInt("1000000000000000000".to_string()),
-                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
-                old_vault_balance: SgBigInt("6000000000000000000".to_string()),
+                amount: SgBytes("1000000000000000000".to_string()),
+                new_vault_balance: SgBytes("5000000000000000000".to_string()),
+                old_vault_balance: SgBytes("6000000000000000000".to_string()),
                 vault: SgVaultBalanceChangeVault {
                     id: SgBytes("inputVault001".to_string()),
-                    vault_id: SgBigInt("101".to_string()),
+                    vault_id: SgBytes("101".to_string()),
                     token: SgErc20 {
                         id: SgBytes("inputTokenId001".to_string()),
                         address: SgBytes("0xinputTokenAddress".to_string()),
@@ -127,12 +127,12 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("outputVBC001".to_string()),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBigInt("200000000".to_string()),
-                new_vault_balance: SgBigInt("300000000".to_string()),
-                old_vault_balance: SgBigInt("100000000".to_string()),
+                amount: SgBytes("200000000".to_string()),
+                new_vault_balance: SgBytes("300000000".to_string()),
+                old_vault_balance: SgBytes("100000000".to_string()),
                 vault: SgVaultBalanceChangeVault {
                     id: SgBytes("outputVault001".to_string()),
-                    vault_id: SgBigInt("202".to_string()),
+                    vault_id: SgBytes("202".to_string()),
                     token: SgErc20 {
                         id: SgBytes("outputTokenId001".to_string()),
                         address: SgBytes("0xoutputTokenAddress".to_string()),
@@ -178,7 +178,7 @@ mod tests {
 
         assert_eq!(
             flattened.input,
-            trade_data.input_vault_balance_change.amount
+            SgBigInt(trade_data.input_vault_balance_change.amount.0)
         );
         assert_eq!(flattened.input_display, "1.000000000000000000");
         assert_eq!(
@@ -192,7 +192,7 @@ mod tests {
 
         assert_eq!(
             flattened.output,
-            trade_data.output_vault_balance_change.amount
+            SgBigInt(trade_data.output_vault_balance_change.amount.0)
         );
         assert_eq!(flattened.output_display, "2.00000000");
         assert_eq!(
@@ -226,8 +226,8 @@ mod tests {
     #[test]
     fn test_zero_amounts() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.amount = SgBigInt("0".to_string());
-        trade_data.output_vault_balance_change.amount = SgBigInt("0".to_string());
+        trade_data.input_vault_balance_change.amount = SgBytes("0".to_string());
+        trade_data.output_vault_balance_change.amount = SgBytes("0".to_string());
 
         let result = OrderTakeFlattened::try_from(trade_data.clone());
         assert!(result.is_ok());
@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn test_unparseable_input_amount() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.amount = SgBigInt("not_a_number".to_string());
+        trade_data.input_vault_balance_change.amount = SgBytes("not_a_number".to_string());
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(
             matches!(result, Err(FlattenError::ParseSignedError(_))),
@@ -278,7 +278,7 @@ mod tests {
     #[test]
     fn test_unparseable_output_amount() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.output_vault_balance_change.amount = SgBigInt("not_a_number".to_string());
+        trade_data.output_vault_balance_change.amount = SgBytes("not_a_number".to_string());
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(
             matches!(result, Err(FlattenError::ParseSignedError(_))),
@@ -380,9 +380,9 @@ mod tests {
     #[test]
     fn test_amount_i256_boundaries() {
         let mut trade_data_max_input = mock_sg_trade_default();
-        trade_data_max_input.input_vault_balance_change.amount = SgBigInt(I256::MAX.to_string());
+        trade_data_max_input.input_vault_balance_change.amount = SgBytes(I256::MAX.to_string());
         let mut trade_data_min_output = mock_sg_trade_default();
-        trade_data_min_output.output_vault_balance_change.amount = SgBigInt(I256::MIN.to_string());
+        trade_data_min_output.output_vault_balance_change.amount = SgBytes(I256::MIN.to_string());
 
         let result_max = OrderTakeFlattened::try_from(trade_data_max_input.clone());
         assert!(result_max.is_ok());
@@ -424,8 +424,8 @@ mod tests {
     #[test]
     fn test_negative_amounts_formatting() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.amount = SgBigInt("-1234567890123456789".to_string());
-        trade_data.output_vault_balance_change.amount = SgBigInt("-98765432".to_string());
+        trade_data.input_vault_balance_change.amount = SgBytes("-1234567890123456789".to_string());
+        trade_data.output_vault_balance_change.amount = SgBytes("-98765432".to_string());
 
         let result = OrderTakeFlattened::try_from(trade_data);
         assert!(result.is_ok());

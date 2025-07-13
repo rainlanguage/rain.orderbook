@@ -70,8 +70,8 @@ mod tests {
         SgVault {
             id: SgBytes(id.into()),
             owner: SgBytes(owner.into()),
-            vault_id: SgBigInt(vault_id_str.into()),
-            balance: SgBigInt(balance_str.into()),
+            vault_id: SgBytes(vault_id_str.into()),
+            balance: SgBytes(balance_str.into()),
             token: SgErc20 {
                 id: SgBytes(token_id.into()),
                 address: SgBytes(token_address.into()),
