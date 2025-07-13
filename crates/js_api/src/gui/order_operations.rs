@@ -8,7 +8,7 @@ use rain_metadata::{
 
 use super::*;
 use alloy::{
-    primitives::{utils::parse_units, Bytes, B256, U256},
+    primitives::{utils::parse_units, Bytes, FixedBytes, B256, U256},
     sol_types::SolCall,
 };
 use rain_orderbook_app_settings::{order::OrderIOCfg, orderbook::OrderbookCfg};
@@ -16,7 +16,11 @@ use rain_orderbook_bindings::{OrderBook::multicallCall, IERC20::approveCall};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
 };
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    str::FromStr,
+    sync::Arc,
+};
 use url::Url;
 
 pub enum CalldataFunction {
@@ -438,7 +442,8 @@ impl DotrainOrderGui {
     }
 
     fn generate_dotrain_instance_v1(&self) -> Result<DotrainInstanceV1, GuiError> {
-        let dotrain_source: RainMetaDocumentV1Item = DotrainSourceV1(self.dotrain_order).into();
+        let dotrain_source: RainMetaDocumentV1Item =
+            DotrainSourceV1(self.dotrain_order.dotrain()?.clone()).into();
         let dotrain_hash = dotrain_source.hash(true)?;
 
         // Convert deposits to ValueCfg format directly
@@ -519,7 +524,7 @@ impl DotrainOrderGui {
             .collect();
 
         Ok(DotrainInstanceV1 {
-            dotrain_hash,
+            dotrain_hash: FixedBytes(dotrain_hash),
             field_values,
             deposits,
             select_tokens,

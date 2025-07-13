@@ -2,6 +2,7 @@ use alloy::primitives::Address;
 use alloy_ethers_typecast::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
+use rain_metadata;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
     gui::{
@@ -677,6 +678,8 @@ pub enum GuiError {
     YamlError(#[from] YamlError),
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
+    #[error(transparent)]
+    RainMetadataError(#[from] rain_metadata::Error),
 }
 
 impl GuiError {
@@ -758,6 +761,7 @@ impl GuiError {
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
             GuiError::UrlParseError(err) => format!("URL parsing error: {err}"),
+            GuiError::RainMetadataError(err) => format!("Rain metadata error: {err}"),
         }
     }
 }
