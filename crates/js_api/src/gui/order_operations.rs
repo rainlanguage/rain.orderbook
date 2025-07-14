@@ -1,6 +1,6 @@
 use rain_metadata::{
     types::{
-        dotrain::instance_v1::{DotrainInstanceV1, TokenCfg, ValueCfg},
+        dotrain::gui_state_v1::{DotrainGuiStateV1, TokenCfg, ValueCfg},
         dotrain::source_v1::DotrainSourceV1,
     },
     RainMetaDocumentV1Item,
@@ -470,7 +470,7 @@ impl DotrainOrderGui {
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
-    fn generate_dotrain_instance_v1(&self) -> Result<DotrainInstanceV1, GuiError> {
+    fn generate_dotrain_instance_v1(&self) -> Result<DotrainGuiStateV1, GuiError> {
         let dotrain_source: RainMetaDocumentV1Item =
             DotrainSourceV1(self.dotrain_order.dotrain()?.clone()).into();
         let dotrain_hash = dotrain_source.hash(true)?;
@@ -552,7 +552,7 @@ impl DotrainOrderGui {
             })
             .collect();
 
-        Ok(DotrainInstanceV1 {
+        Ok(DotrainGuiStateV1 {
             dotrain_hash: FixedBytes(dotrain_hash),
             field_values,
             deposits,
@@ -1083,7 +1083,7 @@ mod tests {
     async fn test_generate_add_order_calldata_with_dotrain_instance_v1() {
         let mut gui = initialize_gui(Some("some-deployment".to_string())).await;
 
-        // Set up some field values, deposits, and vault IDs to test DotrainInstanceV1
+        // Set up some field values, deposits, and vault IDs to test DotrainGuiStateV1
         gui.save_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();
         gui.save_deposit("token1".to_string(), "500".to_string())
@@ -1095,10 +1095,10 @@ mod tests {
 
         assert!(
             result.is_ok(),
-            "generate_add_order_calldata should succeed with complete DotrainInstanceV1"
+            "generate_add_order_calldata should succeed with complete DotrainGuiStateV1"
         );
 
-        // Verify that DotrainInstanceV1 is being generated correctly
+        // Verify that DotrainGuiStateV1 is being generated correctly
         let dotrain_instance_v1 = gui.generate_dotrain_instance_v1().unwrap();
         assert!(
             !dotrain_instance_v1.field_values.is_empty(),

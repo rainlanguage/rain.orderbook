@@ -162,7 +162,7 @@ impl AddOrderArgs {
         Ok(rainlang_parsed.bytecode.into())
     }
 
-    /// Generate RainlangSource meta and optionally DotrainInstanceV1 meta
+    /// Generate RainlangSource meta and optionally DotrainGuiStateV1 meta
     fn try_generate_meta(&self, rainlang: String) -> Result<Vec<u8>, AddOrderArgsError> {
         let mut meta_docs = Vec::new();
 
@@ -375,7 +375,7 @@ mod tests {
     use super::*;
     use crate::dotrain_order::DotrainOrder;
     use alloy::primitives::Bytes;
-    use rain_metadata::types::dotrain::instance_v1::DotrainInstanceV1;
+    use rain_metadata::types::dotrain::gui_state_v1::DotrainGuiStateV1;
     use rain_orderbook_app_settings::{
         deployer::DeployerCfg,
         network::NetworkCfg,
@@ -1630,12 +1630,12 @@ price: 2e18;
 ",
         );
 
-        // Create test DotrainInstanceV1
-        let dotrain_instance_data = DotrainInstanceV1 {
+        // Create test DotrainGuiStateV1 instance
+        let dotrain_instance_data = DotrainGuiStateV1 {
             dotrain_hash: B256::from_slice(&[42u8; 32]),
             field_values: BTreeMap::from([(
                 "amount".to_string(),
-                rain_metadata::types::dotrain::instance_v1::ValueCfg {
+                rain_metadata::types::dotrain::gui_state_v1::ValueCfg {
                     id: "amount_field".to_string(),
                     name: Some("Amount".to_string()),
                     value: "100".to_string(),
@@ -1643,7 +1643,7 @@ price: 2e18;
             )]),
             deposits: BTreeMap::from([(
                 "deposit1".to_string(),
-                rain_metadata::types::dotrain::instance_v1::ValueCfg {
+                rain_metadata::types::dotrain::gui_state_v1::ValueCfg {
                     id: "deposit1_field".to_string(),
                     name: Some("Deposit 1".to_string()),
                     value: "1000".to_string(),
@@ -1651,7 +1651,7 @@ price: 2e18;
             )]),
             select_tokens: BTreeMap::from([(
                 "token1".to_string(),
-                rain_metadata::types::dotrain::instance_v1::TokenCfg {
+                rain_metadata::types::dotrain::gui_state_v1::TokenCfg {
                     network: "ethereum".to_string(),
                     address: Address::default(),
                 },
@@ -1674,7 +1674,7 @@ price: 2e18;
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
 
-        // Meta should contain both RainlangSourceV1 and DotrainInstanceV1 documents
+        // Meta should contain both RainlangSourceV1 and DotrainGuiStateV1 documents
         // The bytes should be longer than the original test since we have additional meta
         assert!(meta_bytes.len() > 105);
 
@@ -1685,8 +1685,8 @@ price: 2e18;
         // First should be RainlangSourceV1
         assert_eq!(decoded_docs[0].magic, KnownMagic::RainlangSourceV1);
 
-        // Second should be DotrainInstanceV1
-        assert_eq!(decoded_docs[1].magic, KnownMagic::DotrainInstanceV1);
+        // Second should be DotrainGuiStateV1
+        assert_eq!(decoded_docs[1].magic, KnownMagic::DotrainGuiStateV1);
         assert_eq!(decoded_docs[1].content_type, ContentType::OctetStream);
     }
 }

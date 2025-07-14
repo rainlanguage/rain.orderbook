@@ -8,7 +8,6 @@ use crate::{
     },
 };
 use alloy::primitives::{Address, Bytes, U256};
-use rain_metadata::UnpackedMetadata;
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -56,7 +55,6 @@ pub struct RaindexOrder {
     active: bool,
     timestamp_added: U256,
     meta: Option<Bytes>,
-    parsed_meta: Vec<UnpackedMetadata>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
@@ -110,7 +108,6 @@ impl RaindexOrder {
     pub fn meta(&self) -> Option<String> {
         self.meta.clone().map(|meta| meta.to_string())
     }
-
     #[wasm_bindgen(getter)]
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
@@ -180,15 +177,6 @@ impl RaindexOrder {
     pub fn meta(&self) -> Option<Bytes> {
         self.meta.clone()
     }
-
-    /// Gets the parsed metadata documents
-    ///
-    /// Returns the pre-parsed metadata documents that were processed during order creation.
-    /// This is more efficient than parsing on each access.
-    pub fn parsed_meta(&self) -> &Vec<UnpackedMetadata> {
-        &self.parsed_meta
-    }
-
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
     }
@@ -629,20 +617,6 @@ impl RaindexOrder {
             .as_ref()
             .map(|meta| meta.0.try_decode_rainlangsource())
             .transpose()?;
-
-        let meta_bytes = order
-            .meta
-            .map(|meta| Bytes::from_str(&meta.0))
-            .transpose()?;
-
-        let parsed_meta = match &meta_bytes {
-            Some(bytes) => {
-                let meta_hex = bytes.to_string();
-                UnpackedMetadata::parse_from_hex(&meta_hex).unwrap_or_else(|_| Vec::new())
-            }
-            None => Vec::new(),
-        };
-
         Ok(Self {
             raindex_client: raindex_client.clone(),
             chain_id,
@@ -681,8 +655,10 @@ impl RaindexOrder {
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
-            meta: meta_bytes,
-            parsed_meta,
+            meta: order
+                .meta
+                .map(|meta| Bytes::from_str(&meta.0))
+                .transpose()?,
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
