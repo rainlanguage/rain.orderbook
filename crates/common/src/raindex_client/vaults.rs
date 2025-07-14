@@ -638,10 +638,12 @@ impl RaindexVaultBalanceChange {
         let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
 
         let (formatted_amount, formatted_new_balance, formatted_old_balance) = {
-            let client = raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            let rpcs = client.get_rpc_urls_for_chain(chain_id)?;
+            let rpcs = {
+                let client = raindex_client
+                    .read()
+                    .map_err(|_| YamlError::ReadLockError)?;
+                client.get_rpc_urls_for_chain(chain_id)?
+            };
 
             let decimals = match token.decimals {
                 Some(d) => d.try_into()?,
@@ -684,10 +686,12 @@ impl RaindexVaultBalanceChange {
         let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
 
         let (formatted_amount, formatted_new_balance, formatted_old_balance) = {
-            let client = raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            let rpcs = client.get_rpc_urls_for_chain(chain_id)?;
+            let rpcs = {
+                let client = raindex_client
+                    .read()
+                    .map_err(|_| YamlError::ReadLockError)?;
+                client.get_rpc_urls_for_chain(chain_id)?
+            };
 
             let decimals = match token.decimals {
                 Some(d) => d.try_into()?,
@@ -974,10 +978,12 @@ impl RaindexVault {
         let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?;
 
         let formatted_balance = {
-            let client = raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            let rpcs = client.get_rpc_urls_for_chain(chain_id)?;
+            let rpcs = {
+                let client = raindex_client
+                    .read()
+                    .map_err(|_| YamlError::ReadLockError)?;
+                client.get_rpc_urls_for_chain(chain_id)?
+            };
 
             let decimals = match token.decimals {
                 Some(d) => d.try_into()?,

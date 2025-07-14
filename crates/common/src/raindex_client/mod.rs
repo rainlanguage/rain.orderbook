@@ -237,7 +237,7 @@ pub enum RaindexError {
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
     #[error(transparent)]
-    Erc20Error(#[from] Erc20Error),
+    Erc20Error(Box<Erc20Error>),
     #[error(transparent)]
     FromUint8Error(#[from] FromUintError<u8>),
 }
@@ -245,6 +245,12 @@ pub enum RaindexError {
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<Erc20Error> for RaindexError {
+    fn from(err: Erc20Error) -> Self {
+        Self::Erc20Error(Box::new(err))
     }
 }
 
