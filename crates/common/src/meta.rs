@@ -1,4 +1,6 @@
 use alloy::primitives::hex::{decode, FromHexError};
+#[cfg(test)]
+use rain_metadata::UnpackedMetadata;
 use rain_metadata::{Error as RainMetadataError, KnownMagic, RainMetaDocumentV1Item};
 use std::string::FromUtf8Error;
 use thiserror::Error;
@@ -103,5 +105,13 @@ io: if(
             TryDecodeRainlangSourceError::RainMetadataError(RainMetadataError::CorruptMeta)
                 .to_string()
         );
+    }
+
+    #[test]
+    fn test_parse_metadata_with_data() {
+        let result = UnpackedMetadata::parse_from_hex(META).unwrap();
+        assert!(!result.is_empty());
+        // Should contain at least one document
+        assert!(result.len() >= 1);
     }
 }

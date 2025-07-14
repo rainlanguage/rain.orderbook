@@ -374,7 +374,8 @@ impl AddOrderArgs {
 mod tests {
     use super::*;
     use crate::dotrain_order::DotrainOrder;
-    use alloy::{hex::encode, primitives::Bytes};
+    use alloy::primitives::Bytes;
+    use rain_metadata::types::dotrain::instance_v1::DotrainInstanceV1;
     use rain_orderbook_app_settings::{
         deployer::DeployerCfg,
         network::NetworkCfg,
