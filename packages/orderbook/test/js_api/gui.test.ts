@@ -1022,7 +1022,7 @@ ${dotrain}`;
 			assert.equal(deposits.length, 2);
 			assert.equal(deposits[0].token, 'token1');
 			assert.equal(deposits[0].amount, '50.6');
-			assert.equal(deposits[0].address, '0x6666666666666666666666666666666666666666');
+			assert.equal(deposits[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
 			assert.equal(deposits[1].token, 'token2');
 			assert.equal(deposits[1].amount, '100');
 			assert.equal(deposits[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
