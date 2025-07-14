@@ -64,18 +64,19 @@ impl RaindexClient {
         let orders = client
             .transaction_add_orders(Id::new(tx_hash.to_string()))
             .await?;
-        let orders = orders
-            .into_iter()
-            .map(|value| {
-                RaindexOrder::try_from_sg_order(
-                    raindex_client.clone(),
-                    chain_id,
-                    value.order,
-                    Some(value.transaction.try_into()?),
-                )
-            })
-            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
-        Ok(orders)
+
+        let mut result_orders = Vec::new();
+        for value in orders {
+            let order = RaindexOrder::try_from_sg_order(
+                raindex_client.clone(),
+                chain_id,
+                value.order,
+                Some(value.transaction.try_into()?),
+            )
+            .await?;
+            result_orders.push(order);
+        }
+        Ok(result_orders)
     }
 }
 
