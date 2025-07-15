@@ -2,19 +2,17 @@ use alloy::primitives::{ruint::ParseError, utils::format_units, ParseSignedError
 use thiserror::Error;
 
 pub fn format_amount_u256(amount: U256, decimals: u8) -> Result<String, AmountFormatterError> {
-    let formatted = format_units(amount, decimals).unwrap_or_else(|_| amount.to_string());
+    let formatted = format_units(amount, decimals)?;
     Ok(remove_trailing_zeros(&formatted))
 }
 
 pub fn format_amount_i256(amount: I256, decimals: u8) -> Result<String, AmountFormatterError> {
     if amount.is_negative() {
         let abs_amount = amount.abs();
-        let formatted =
-            format_units(abs_amount, decimals).unwrap_or_else(|_| abs_amount.to_string());
+        let formatted = format_units(abs_amount, decimals)?;
         Ok(format!("-{}", remove_trailing_zeros(&formatted)))
     } else {
-        let formatted =
-            format_units(amount.into_raw(), decimals).unwrap_or_else(|_| amount.to_string());
+        let formatted = format_units(amount.into_raw(), decimals)?;
         Ok(remove_trailing_zeros(&formatted))
     }
 }
