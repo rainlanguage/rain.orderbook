@@ -121,6 +121,52 @@ impl RaindexClient {
         Ok(RaindexClient { orderbook_yaml })
     }
 
+    fn get_metaboards_by_chain_id(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
+        let networks = match chain_ids {
+            Some(ids) if !ids.is_empty() => {
+                let mut nets = Vec::new();
+                for id in ids {
+                    nets.push(self.orderbook_yaml.get_network_by_chain_id(id)?);
+                }
+                nets
+            }
+            Some(_) | None => {
+                let all_nets = self.orderbook_yaml.get_networks()?;
+                let mut nets = Vec::new();
+                for network in all_nets.values() {
+                    nets.push(network.clone());
+                }
+                nets
+            }
+        };
+
+        let mut result = BTreeMap::new();
+        let metaboards: std::collections::HashMap<
+            String,
+            rain_orderbook_app_settings::metaboard::MetaboardCfg,
+        > = self.orderbook_yaml.get_metaboards()?;
+
+        for net in &networks {
+            if let Some(metaboard) = metaboards.get(&net.key) {
+                let label = net.label.clone().unwrap_or(net.key.clone());
+                result.insert(
+                    net.chain_id,
+                    vec![MultiSubgraphArgs {
+                        url: metaboard.url.clone(),
+                        name: label,
+                    }],
+                );
+            }
+        }
+        if result.is_empty() {
+            return Err(RaindexError::NoNetworksConfigured);
+        }
+        Ok(result)
+    }
+
     fn get_multi_subgraph_args(
         &self,
         chain_ids: Option<Vec<u32>>,
@@ -255,6 +301,8 @@ pub enum RaindexError {
     MissingErc20Decimals(String),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
+    #[error("Cannot parse metadata: {0}")]
+    ParseMetaError(#[from] rain_metadata::Error),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -365,6 +413,7 @@ impl RaindexError {
                 format!("Missing decimal information for the token address: {token}")
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
+            RaindexError::ParseMetaError(err) => format!("Cannot parse metadata: {err}"),
         }
     }
 }
@@ -664,6 +713,151 @@ accounts:
             assert!(err
                 .to_readable_msg()
                 .contains("orderbook with network key: isolated not found"));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_metaboards_by_chain_id_single_chain() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let args = client.get_metaboards_by_chain_id(Some(vec![1])).unwrap();
+            assert_eq!(args.len(), 1);
+            assert_eq!(
+                args.get(&1).unwrap()[0].url,
+                Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
+            );
+            assert_eq!(args.get(&1).unwrap()[0].name, "Ethereum Mainnet");
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_metaboards_by_chain_id_all_chains() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let args = client.get_metaboards_by_chain_id(None).unwrap();
+            assert_eq!(args.len(), 2);
+
+            let urls: Vec<&str> = args.iter().map(|(_, arg)| arg[0].url.as_str()).collect();
+            assert!(urls.contains(&"https://api.thegraph.com/subgraphs/name/xyz"));
+            assert!(urls.contains(&"https://api.thegraph.com/subgraphs/name/polygon"));
+
+            let names: Vec<&str> = args.iter().map(|(_, arg)| arg[0].name.as_str()).collect();
+            assert!(names.contains(&"Ethereum Mainnet"));
+            assert!(names.contains(&"Polygon Mainnet"));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_metaboards_by_chain_id_multiple_chains() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let args = client
+                .get_metaboards_by_chain_id(Some(vec![1, 137]))
+                .unwrap();
+            assert_eq!(args.len(), 2);
+
+            let args1 = args.get(&1).unwrap();
+            assert_eq!(args1.len(), 1);
+            assert_eq!(
+                args1[0].url,
+                Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
+            );
+            assert_eq!(args1[0].name, "Ethereum Mainnet");
+
+            let args2 = args.get(&137).unwrap();
+            assert_eq!(args2.len(), 1);
+            assert_eq!(
+                args2[0].url,
+                Url::parse("https://api.thegraph.com/subgraphs/name/polygon").unwrap()
+            );
+            assert_eq!(args2[0].name, "Polygon Mainnet");
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_metaboards_by_chain_id_invalid_chain() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let err = client
+                .get_metaboards_by_chain_id(Some(vec![999]))
+                .unwrap_err();
+            assert!(
+                matches!(err, RaindexError::YamlError(YamlError::NotFound(ref msg)) if msg.contains("network with chain-id: 999"))
+            );
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_metaboards_by_chain_id_no_metaboards() {
+            let yaml = format!(
+                r#"
+version: {spec_version}
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+        label: Ethereum Mainnet
+        network-id: 1
+        currency: ETH
+subgraphs:
+    mainnet: https://api.thegraph.com/subgraphs/name/test
+orderbooks:
+    mainnet-orderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+        subgraph: mainnet
+        label: Primary Orderbook
+tokens:
+    weth:
+        network: mainnet
+        address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+        decimals: 18
+        label: Wrapped Ether
+        symbol: WETH
+deployers:
+    mainnet-deployer:
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+        network: mainnet
+"#,
+                spec_version = SpecVersion::current()
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let err = client.get_metaboards_by_chain_id(None).unwrap_err();
+            assert!(matches!(err, RaindexError::NoNetworksConfigured));
         }
     }
 }
