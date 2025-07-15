@@ -5,6 +5,7 @@ import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
+import { readable } from 'svelte/store';
 
 type SelectTokenComponentProps = ComponentProps<SelectToken>;
 
@@ -52,7 +53,8 @@ describe('SelectToken', () => {
 		},
 		onSelectTokenSelect: vi.fn(),
 		availableTokens: mockTokens,
-		loading: false
+		loading: false,
+		account: readable('0x1234567890123456789012345678901234567890')
 	};
 
 	beforeEach(() => {
@@ -381,6 +383,100 @@ describe('SelectToken', () => {
 			});
 
 			expect(screen.getByTestId(`select-token-success-${mockProps.token.key}`)).toBeInTheDocument();
+		});
+	});
+
+	describe('Balance Display', () => {
+		it('displays balance when token is selected and account is connected', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'Test Token',
+					symbol: 'TEST',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 18
+				}
+			});
+			mockGui.getTokenBalance = vi.fn().mockResolvedValue({
+				value: '1000000000000000000' // 1 TEST token
+			});
+
+			render(SelectToken, mockProps);
+
+			await waitFor(() => {
+				expect(screen.getByText('Test Token')).toBeInTheDocument();
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Balance: 1')).toBeInTheDocument();
+			});
+		});
+
+		it('shows error message when balance fetch fails', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'Test Token',
+					symbol: 'TEST',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 18
+				}
+			});
+
+			(mockGui.getTokenBalance as Mock).mockRejectedValue(new Error('Network error'));
+
+			render(SelectToken, mockProps);
+
+			await waitFor(() => {
+				expect(screen.getByText('Test Token')).toBeInTheDocument();
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Failed to fetch balance')).toBeInTheDocument();
+			});
+		});
+
+		it('does not display balance when account is not connected', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'Test Token',
+					symbol: 'TEST',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 18
+				}
+			});
+
+			render(SelectToken, {
+				...mockProps,
+				account: readable(null) // Simulate disconnected account
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Test Token')).toBeInTheDocument();
+			});
+
+			expect(screen.queryByText(/Balance:/)).not.toBeInTheDocument();
+		});
+
+		it('formats balance correctly with token decimals', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'USDC',
+					symbol: 'USDC',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 6
+				}
+			});
+
+			mockGui.getTokenBalance = vi.fn().mockResolvedValue({ value: '1500000' }); // 1.5 USDC
+
+			render(SelectToken, mockProps);
+
+			await waitFor(() => {
+				expect(screen.getByText('USDC')).toBeInTheDocument();
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Balance: 1.5')).toBeInTheDocument();
+			});
 		});
 	});
 });

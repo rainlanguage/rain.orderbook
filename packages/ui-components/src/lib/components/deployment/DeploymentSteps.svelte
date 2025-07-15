@@ -218,7 +218,13 @@
 						description="Select the tokens that you want to use in your order."
 					/>
 					{#each selectTokens as token}
-						<SelectToken {token} {onSelectTokenSelect} {availableTokens} loading={loadingTokens} />
+						<SelectToken
+							{account}
+							{token}
+							{onSelectTokenSelect}
+							{availableTokens}
+							loading={loadingTokens}
+						/>
 					{/each}
 				</div>
 			{/if}

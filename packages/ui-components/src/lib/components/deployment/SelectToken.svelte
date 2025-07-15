@@ -7,11 +7,14 @@
 	import { useGui } from '$lib/hooks/useGui';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import TokenSelectionModal from './TokenSelectionModal.svelte';
+	import { formatUnits } from 'viem';
+	import type { Account } from '$lib/types/account';
 
 	export let token: GuiSelectTokensCfg;
 	export let onSelectTokenSelect: () => void;
 	export let availableTokens: TokenInfo[] = [];
 	export let loading: boolean = false;
+	export let account: Account;
 
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
@@ -20,8 +23,32 @@
 	let selectionMode: 'dropdown' | 'custom' = 'dropdown';
 	let searchQuery: string = '';
 	let selectedToken: TokenInfo | null = null;
+	let userBalance: bigint | null = null;
+	let balanceLoading = false;
+	let balanceError = '';
 
 	const gui = useGui();
+
+	const getUserBalance = async (tokenAddress: string) => {
+		balanceLoading = true;
+		balanceError = '';
+
+		try {
+			const balance = await gui.getTokenBalance(tokenAddress, $account);
+			if (balance.error) {
+				throw new Error(balance.error.readableMsg);
+			}
+
+			userBalance = BigInt(balance.value);
+			return balance;
+		} catch (error) {
+			balanceError = 'Failed to fetch balance';
+			userBalance = null;
+			return null;
+		} finally {
+			balanceLoading = false;
+		}
+	};
 
 	onMount(async () => {
 		try {
@@ -30,8 +57,10 @@
 				throw new Error(result.error.msg);
 			}
 			tokenInfo = result.value;
-			if (result.value?.address) {
+			if (result.value.address) {
 				inputValue = result.value.address;
+				// Fetch balance if token info is available
+				await getUserBalance(result.value.address);
 			}
 		} catch {
 			// do nothing
@@ -125,6 +154,11 @@
 			}
 			tokenInfo = result.value;
 			error = '';
+
+			// Fetch balance after successfully getting token info
+			if (tokenInfo.address) {
+				await getUserBalance(tokenInfo.address);
+			}
 		} catch {
 			return (error = 'No token exists at this address.');
 		}
@@ -227,6 +261,17 @@
 			>
 				<CheckCircleSolid class="h-5 w-5" color="green" />
 				<span>{tokenInfo.name}</span>
+				{#if balanceLoading}
+					<Spinner class="h-4 w-4" />
+				{:else if userBalance !== null && !balanceError}
+					<span class="text-gray-600 dark:text-gray-400">
+						Balance: {formatUnits(userBalance, tokenInfo.decimals)}
+					</span>
+				{:else if balanceError}
+					<span class="text-red-600 dark:text-red-400">
+						{balanceError}
+					</span>
+				{/if}
 			</div>
 		{:else if error}
 			<div class="flex h-5 flex-row items-center gap-2" data-testid="error">
