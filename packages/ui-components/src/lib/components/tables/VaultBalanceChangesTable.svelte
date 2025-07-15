@@ -59,7 +59,7 @@
 			tdClass="break-word p-0 text-left"
 			data-testid="vaultBalanceChangesTableBalanceChange"
 		>
-			{formatUnits(BigInt(item.amount), Number(item.token.decimals ?? 0))}
+			{formatUnits(item.amount, Number(item.token.decimals ?? 0))}
 			{item.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableBalance">
