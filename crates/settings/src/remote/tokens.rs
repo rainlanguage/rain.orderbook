@@ -35,6 +35,7 @@ pub struct Tokens {
     pub keywords: Vec<String>,
     pub version: Version,
     pub tokens: Vec<Token>,
+    #[serde(rename = "logoURI")]
     pub logo_uri: String,
 }
 
@@ -43,28 +44,31 @@ impl Token {
         self,
         networks: &HashMap<String, NetworkCfg>,
         document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<TokenCfg, RemoteTokensError> {
-        let network = networks
+    ) -> Result<Option<TokenCfg>, RemoteTokensError> {
+        match networks
             .values()
             .find(|network| network.chain_id == self.chain_id)
-            .ok_or(RemoteTokensError::NetworkNotFound(format!(
-                "network with chain_id {}",
-                self.chain_id
-            )))
-            .cloned()?;
-
-        let token_cfg = TokenCfg {
-            document: document.clone(),
-            key: self.name.to_lowercase().replace(' ', "-").clone(),
-            network: Arc::new(network),
-            address: Address::from_str(&self.address)
-                .map_err(|e| RemoteTokensError::ParseTokenAddressError(e.to_string()))?,
-            decimals: Some(self.decimals as u8),
-            label: Some(self.name.clone()),
-            symbol: Some(self.symbol),
-        };
-
-        Ok(token_cfg)
+        {
+            Some(network) => {
+                let token_cfg = TokenCfg {
+                    document: document.clone(),
+                    key: format!(
+                        "{}-{}-{}",
+                        network.key,
+                        self.name.replace(' ', "-").clone(),
+                        self.address.to_lowercase()
+                    ),
+                    network: Arc::new(network.clone()),
+                    address: Address::from_str(&self.address)
+                        .map_err(|e| RemoteTokensError::ParseTokenAddressError(e.to_string()))?,
+                    decimals: Some(self.decimals as u8),
+                    label: Some(self.name.clone()),
+                    symbol: Some(self.symbol),
+                };
+                Ok(Some(token_cfg))
+            }
+            None => Ok(None),
+        }
     }
 }
 

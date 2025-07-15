@@ -30,12 +30,16 @@ impl OrderbookSubgraphClient {
         let filters = SgVaultsListQueryFilters {
             owner_in: filter_args.owners.clone(),
             balance_not,
+            token_in: filter_args.tokens.clone(),
         };
 
         let variables = SgVaultsListQueryVariables {
             first: pagination_variables.first,
             skip: pagination_variables.skip,
-            filters: if !filter_args.owners.is_empty() || filter_args.hide_zero_balance {
+            filters: if !filter_args.owners.is_empty()
+                || filter_args.hide_zero_balance
+                || !filter_args.tokens.is_empty()
+            {
                 Some(filters)
             } else {
                 None
@@ -60,6 +64,7 @@ impl OrderbookSubgraphClient {
                     SgVaultsListFilterArgs {
                         owners: vec![],
                         hide_zero_balance: true,
+                        tokens: vec![],
                     },
                     SgPaginationArgs {
                         page,
@@ -349,6 +354,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -382,6 +388,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![owner_address.clone()],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -410,6 +417,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: true,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -437,6 +445,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 2,
@@ -464,6 +473,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -487,6 +497,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -739,5 +750,99 @@ mod tests {
         let result = client.vault_balance_changes_list_all(vault_id).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_token_filter() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let token_address = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913".to_string();
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: vec![token_address.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"token_in\":[\"{}\"]", token_address));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_multiple_token_filters() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let token1 = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913".to_string();
+        let token2 = "0xa0b86a33e6441f8c5e1e2a9f8c5e1e2a9f8c5e1e".to_string();
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: vec![token1.clone(), token2.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault(), default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"token_in\":[\"{}\",\"{}\"]", token1, token2));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_token_and_other_filters() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let token_address = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913".to_string();
+        let owner_address = SgBytes("0xowner123".to_string());
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![owner_address.clone()],
+            hide_zero_balance: true,
+            tokens: vec![token_address.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 5,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains("\"owner_in\":[\"0xowner123\"]")
+                .body_contains("\"balance_gt\":\"0\"")
+                .body_contains(format!("\"token_in\":[\"{}\"]", token_address));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
     }
 }

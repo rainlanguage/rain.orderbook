@@ -1837,6 +1837,91 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Existing allowance');
 		});
+
+		it('should get all vault tokens', async function () {
+			const tokens1 = [
+				{
+					id: 'token1',
+					address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+					name: 'Token 1',
+					symbol: 'TKN1',
+					decimals: '18'
+				},
+				{
+					id: 'token2',
+					address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+					name: 'Token 2',
+					symbol: 'TKN2',
+					decimals: '18'
+				}
+			];
+
+			const tokens2 = [
+				{
+					id: 'token3',
+					address: '0x3333333333333333333333333333333333333333',
+					name: 'Token 3',
+					symbol: 'TKN3',
+					decimals: '6'
+				}
+			];
+
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { erc20S: tokens1 } }));
+			await mockServer
+				.forPost('/sg2')
+				.thenReply(200, JSON.stringify({ data: { erc20S: tokens2 } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(await raindexClient.getAllVaultTokens());
+
+			assert.equal(result.length, 3);
+
+			assert.equal(result[0].id, 'token1');
+			assert.equal(result[0].symbol, 'TKN1');
+			assert.equal(result[0].name, 'Token 1');
+			assert.equal(result[0].chainId, 1);
+			assert.equal(result[0].address, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
+			assert.equal(result[0].decimals, BigInt(18));
+
+			assert.equal(result[1].id, 'token2');
+			assert.equal(result[1].symbol, 'TKN2');
+			assert.equal(result[1].name, 'Token 2');
+			assert.equal(result[1].chainId, 1);
+			assert.equal(result[1].address, '0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
+
+			assert.equal(result[2].id, 'token3');
+			assert.equal(result[2].symbol, 'TKN3');
+			assert.equal(result[2].name, 'Token 3');
+			assert.equal(result[2].chainId, 2);
+			assert.equal(result[2].address, '0x3333333333333333333333333333333333333333');
+			assert.equal(result[2].decimals, BigInt(6));
+		});
+
+		it('should get all vault tokens with chain filter', async function () {
+			const tokens1 = [
+				{
+					id: 'token1',
+					address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+					name: 'Token 1',
+					symbol: 'TKN1',
+					decimals: '18'
+				}
+			];
+
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { erc20S: tokens1 } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(await raindexClient.getAllVaultTokens([1]));
+
+			// Should have only 1 token from chain 1
+			assert.equal(result.length, 1);
+			assert.equal(result[0].id, 'token1');
+			assert.equal(result[0].chainId, 1);
+		});
 	});
 
 	describe('Transactions', () => {

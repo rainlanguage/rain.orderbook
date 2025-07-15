@@ -23,6 +23,7 @@ use wasm_bindgen_utils::prelude::*;
 mod order;
 mod order_trade;
 // mod performance;
+mod token;
 mod transaction;
 mod vault;
 
