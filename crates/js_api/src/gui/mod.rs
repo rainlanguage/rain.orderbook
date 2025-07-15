@@ -18,8 +18,12 @@ use rain_orderbook_common::{
     erc20::ERC20,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::io::prelude::*;
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, RwLock},
+};
+use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
@@ -98,10 +102,8 @@ impl DotrainOrderGui {
         )]
         dotrain: String,
     ) -> Result<Vec<String>, GuiError> {
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
-        Ok(GuiCfg::parse_deployment_keys(
-            dotrain_order.dotrain_yaml().documents.clone(),
-        )?)
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
+        Ok(GuiCfg::parse_deployment_keys(documents)?)
     }
 
     /// Creates a new GUI instance for managing a specific deployment configuration.
@@ -402,10 +404,8 @@ impl DotrainOrderGui {
     pub async fn get_strategy_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
-        let details =
-            GuiCfg::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(details)
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
+        Ok(GuiCfg::parse_strategy_details(documents)?)
     }
 
     /// Gets metadata for all deployments defined in the configuration.
@@ -443,10 +443,8 @@ impl DotrainOrderGui {
     pub async fn get_deployment_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, GuiError> {
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
-        Ok(GuiCfg::parse_deployment_details(
-            dotrain_order.dotrain_yaml().documents.clone(),
-        )?)
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
+        Ok(GuiCfg::parse_deployment_details(documents)?)
     }
 
     /// Gets metadata for a specific deployment by key.
@@ -590,6 +588,15 @@ impl DotrainOrderGui {
             .compose_deployment_to_rainlang(self.selected_deployment.clone())
             .await?;
         Ok(rainlang)
+    }
+}
+impl DotrainOrderGui {
+    pub fn get_yaml_documents(dotrain: &str) -> Result<Vec<Arc<RwLock<StrictYaml>>>, GuiError> {
+        let frontmatter = RainDocument::get_front_matter(&dotrain)
+            .unwrap_or("")
+            .to_string();
+        let dotrain_yaml = DotrainYaml::new(vec![frontmatter.clone()], false)?;
+        Ok(dotrain_yaml.documents)
     }
 }
 

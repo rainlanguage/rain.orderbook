@@ -92,6 +92,7 @@ mod tests {
         primitives::{Address, B256},
     };
     use httpmock::MockServer;
+    use rain_orderbook_subgraph_client::utils::float::*;
     use serde_json::{json, Value};
 
     #[tokio::test]
@@ -120,11 +121,12 @@ mod tests {
                 active: Some(true),
                 hide_zero_balance: Some(true),
                 order_hash: None,
+                tokens: vec![],
             },
         };
 
         // should succeed
-        assert!(cli_vault_list_args.execute().await.is_ok());
+        cli_vault_list_args.execute().await.unwrap();
     }
 
     #[tokio::test]
@@ -149,11 +151,12 @@ mod tests {
                 active: Some(true),
                 hide_zero_balance: Some(true),
                 order_hash: None,
+                tokens: vec![],
             },
         };
 
         // should succeed
-        assert!(cli_vault_list_args.execute().await.is_ok());
+        cli_vault_list_args.execute().await.unwrap();
     }
 
     #[tokio::test]
@@ -172,11 +175,12 @@ mod tests {
                 active: Some(true),
                 hide_zero_balance: Some(true),
                 order_hash: None,
+                tokens: vec![],
             },
         };
 
         // should error
-        assert!(cli_vault_list_args.execute().await.is_err());
+        cli_vault_list_args.execute().await.unwrap_err();
     }
 
     // helper function that returns mocked sg response in json
@@ -187,7 +191,7 @@ mod tests {
                     "id": encode_prefixed(B256::random()),
                     "vaultId": encode_prefixed(B256::random()),
                     "owner": encode_prefixed(Address::random()),
-                    "balance": "0",
+                    "balance": *F0,
                     "token": {
                         "name": "T1",
                         "symbol": "T1",

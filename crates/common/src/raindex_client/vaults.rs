@@ -6,7 +6,7 @@ use crate::{
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use alloy::primitives::{Address, Bytes, B256, I256, U256};
+use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
@@ -56,7 +56,7 @@ pub struct RaindexVault {
     id: Bytes,
     owner: Address,
     vault_id: U256,
-    balance: U256,
+    balance: Float,
     token: RaindexVaultToken,
     orderbook: Address,
     orders_as_inputs: Vec<RaindexOrderAsIO>,
@@ -93,8 +93,8 @@ impl RaindexVault {
         Self::u256_to_bigint(self.vault_id)
     }
     #[wasm_bindgen(getter)]
-    pub fn balance(&self) -> Result<BigInt, RaindexError> {
-        Self::u256_to_bigint(self.balance)
+    pub fn balance(&self) -> Float {
+        self.balance
     }
     #[wasm_bindgen(getter)]
     pub fn token(&self) -> RaindexVaultToken {
@@ -113,6 +113,7 @@ impl RaindexVault {
         self.orders_as_outputs.clone()
     }
 }
+
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVault {
     pub fn chain_id(&self) -> u32 {
@@ -130,7 +131,7 @@ impl RaindexVault {
     pub fn vault_id(&self) -> U256 {
         self.vault_id
     }
-    pub fn balance(&self) -> U256 {
+    pub fn balance(&self) -> Float {
         self.balance
     }
     pub fn token(&self) -> RaindexVaultToken {
@@ -157,15 +158,21 @@ impl RaindexVault {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultToken {
+    chain_id: u32,
     id: String,
     address: Address,
     name: Option<String>,
     symbol: Option<String>,
     decimals: Option<U256>,
 }
+
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVaultToken {
+    #[wasm_bindgen(getter = chainId)]
+    pub fn chain_id(&self) -> u32 {
+        self.chain_id
+    }
     #[wasm_bindgen(getter)]
     pub fn id(&self) -> String {
         self.id.clone()
@@ -192,8 +199,12 @@ impl RaindexVaultToken {
             .transpose()
     }
 }
+
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultToken {
+    pub fn chain_id(&self) -> u32 {
+        self.chain_id
+    }
     pub fn id(&self) -> String {
         self.id.clone()
     }
@@ -260,7 +271,9 @@ impl RaindexVault {
             .await?;
         let balance_changes = balance_changes
             .into_iter()
-            .map(|balance_change| balance_change.try_into())
+            .map(|balance_change| {
+                RaindexVaultBalanceChange::try_from_sg_balance_change(self.chain_id, balance_change)
+            })
             .collect::<Result<Vec<RaindexVaultBalanceChange>, RaindexError>>()?;
         Ok(balance_changes)
     }
@@ -519,9 +532,9 @@ pub struct RaindexVaultBalanceChange {
     r#type: RaindexVaultBalanceChangeType,
     vault_id: U256,
     token: RaindexVaultToken,
-    amount: I256,
-    new_balance: U256,
-    old_balance: U256,
+    amount: Float,
+    new_balance: Float,
+    old_balance: Float,
     timestamp: U256,
     transaction: RaindexTransaction,
     orderbook: Address,
@@ -543,19 +556,16 @@ impl RaindexVaultBalanceChange {
         self.token.clone()
     }
     #[wasm_bindgen(getter)]
-    pub fn amount(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.amount.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn amount(&self) -> Float {
+        self.amount
     }
     #[wasm_bindgen(getter = newBalance)]
-    pub fn new_balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.new_balance.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn new_balance(&self) -> Float {
+        self.new_balance
     }
     #[wasm_bindgen(getter = oldBalance)]
-    pub fn old_balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.old_balance.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn old_balance(&self) -> Float {
+        self.old_balance
     }
     #[wasm_bindgen(getter)]
     pub fn timestamp(&self) -> Result<BigInt, RaindexError> {
@@ -582,13 +592,13 @@ impl RaindexVaultBalanceChange {
     pub fn token(&self) -> RaindexVaultToken {
         self.token.clone()
     }
-    pub fn amount(&self) -> I256 {
+    pub fn amount(&self) -> Float {
         self.amount
     }
-    pub fn new_balance(&self) -> U256 {
+    pub fn new_balance(&self) -> Float {
         self.new_balance
     }
-    pub fn old_balance(&self) -> U256 {
+    pub fn old_balance(&self) -> Float {
         self.old_balance
     }
     pub fn timestamp(&self) -> U256 {
@@ -606,16 +616,22 @@ impl RaindexVaultBalanceChange {
 pub struct RaindexVaultAllowance(#[tsify(type = "string")] U256);
 impl_wasm_traits!(RaindexVaultAllowance);
 
-impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
-    type Error = RaindexError;
-    fn try_from(balance_change: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
+impl RaindexVaultBalanceChange {
+    pub fn try_from_sg_balance_change(
+        chain_id: u32,
+        balance_change: SgVaultBalanceChangeUnwrapped,
+    ) -> Result<Self, RaindexError> {
+        let amount = Float::from_hex(&balance_change.amount.0)?;
+        let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
+        let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
+
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
-            token: RaindexVaultToken::try_from(balance_change.vault.token)?,
-            amount: I256::from_str(&balance_change.amount.0)?,
-            new_balance: U256::from_str(&balance_change.new_vault_balance.0)?,
-            old_balance: U256::from_str(&balance_change.old_vault_balance.0)?,
+            token: RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?,
+            amount,
+            new_balance,
+            old_balance,
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
@@ -623,16 +639,22 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for RaindexVaultBalanceChange {
     }
 }
 
-impl TryFrom<SgTradeVaultBalanceChange> for RaindexVaultBalanceChange {
-    type Error = RaindexError;
-    fn try_from(balance_change: SgTradeVaultBalanceChange) -> Result<Self, Self::Error> {
+impl RaindexVaultBalanceChange {
+    pub fn try_from_sg_trade_balance_change(
+        chain_id: u32,
+        balance_change: SgTradeVaultBalanceChange,
+    ) -> Result<Self, RaindexError> {
+        let amount = Float::from_hex(&balance_change.amount.0)?;
+        let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
+        let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
+
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
-            token: RaindexVaultToken::try_from(balance_change.vault.token)?,
-            amount: I256::from_str(&balance_change.amount.0)?,
-            new_balance: U256::from_str(&balance_change.new_vault_balance.0)?,
-            old_balance: U256::from_str(&balance_change.old_vault_balance.0)?,
+            token: RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?,
+            amount,
+            new_balance,
+            old_balance,
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
@@ -671,7 +693,10 @@ impl RaindexClient {
     )]
     pub async fn get_vaults(
         &self,
-        #[wasm_export(param_description = "Specific networks to query (optional)")]
+        #[wasm_export(
+            js_name = "chainIds",
+            param_description = "Specific networks to query (optional)"
+        )]
         chain_ids: Option<ChainIds>,
         #[wasm_export(
             param_description = "Optional filtering options including owners and hide_zero_balance"
@@ -694,6 +719,7 @@ impl RaindexClient {
                     .unwrap_or(GetVaultsFilters {
                         owners: vec![],
                         hide_zero_balance: false,
+                        tokens: None,
                     })
                     .try_into()?,
                 SgPaginationArgs {
@@ -770,6 +796,62 @@ impl RaindexClient {
         let vault_id = Bytes::from_str(&vault_id)?;
         self.get_vault(chain_id, orderbook_address, vault_id).await
     }
+
+    /// Fetches all unique tokens that exist in vaults.
+    ///
+    /// Retrieves all unique ERC20 tokens that have associated vaults by querying
+    /// all vaults and extracting their token information, removing duplicates.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = await client.getAllVaultTokens();
+    /// if (result.error) {
+    ///   console.error("Error fetching tokens:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const tokens = result.value;
+    /// console.log(`Found ${tokens.length} unique tokens`);
+    /// console.log(`Token ${tokens[0].name} in ${tokens[0].chainId}`);
+    /// ```
+    #[wasm_export(
+        js_name = "getAllVaultTokens",
+        return_description = "Array of raindex vault token instances",
+        unchecked_return_type = "RaindexVaultToken[]"
+    )]
+    pub async fn get_all_vault_tokens(
+        &self,
+        #[wasm_export(
+            js_name = "chainIds",
+            param_description = "Specific networks to query (optional)"
+        )]
+        chain_ids: Option<ChainIds>,
+    ) -> Result<Vec<RaindexVaultToken>, RaindexError> {
+        let multi_subgraph_args =
+            self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
+        let token_list = client.tokens_list().await;
+        let tokens = token_list
+            .iter()
+            .map(|v| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == v.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .ok_or(RaindexError::SubgraphNotFound(
+                        v.subgraph_name.clone(),
+                        v.token.address.0.clone(),
+                    ))?;
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, v.token.clone())?;
+                Ok(token)
+            })
+            .collect::<Result<Vec<RaindexVaultToken>, RaindexError>>()?;
+
+        Ok(tokens)
+    }
 }
 impl RaindexClient {
     pub async fn get_vault(
@@ -795,6 +877,8 @@ pub struct GetVaultsFilters {
     #[tsify(type = "Address[]")]
     pub owners: Vec<Address>,
     pub hide_zero_balance: bool,
+    #[tsify(optional, type = "Address[]")]
+    pub tokens: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -808,6 +892,15 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                 .map(|owner| SgBytes(owner.to_string()))
                 .collect(),
             hide_zero_balance: filters.hide_zero_balance,
+            tokens: filters
+                .tokens
+                .map(|tokens| {
+                    tokens
+                        .into_iter()
+                        .map(|token| token.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     }
 }
@@ -819,6 +912,8 @@ impl RaindexVault {
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
+        let balance = Float::from_hex(&vault.balance.0)?;
+
         Ok(Self {
             raindex_client,
             chain_id,
@@ -826,8 +921,8 @@ impl RaindexVault {
             id: Bytes::from_str(&vault.id.0)?,
             owner: Address::from_str(&vault.owner.0)?,
             vault_id: U256::from_str(&vault.vault_id.0)?,
-            balance: U256::from_str(&vault.balance.0)?,
-            token: vault.token.try_into()?,
+            balance,
+            token: RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?,
             orderbook: Address::from_str(&vault.orderbook.id.0)?,
             orders_as_inputs: vault
                 .orders_as_input
@@ -861,8 +956,8 @@ impl RaindexVault {
     pub fn into_sg_vault(self) -> Result<SgVault, RaindexError> {
         Ok(SgVault {
             id: SgBytes(self.id.to_string()),
-            vault_id: SgBigInt(self.vault_id.to_string()),
-            balance: SgBigInt(self.balance.to_string()),
+            vault_id: SgBytes(self.vault_id.to_string()),
+            balance: SgBytes(self.balance.as_hex()),
             owner: SgBytes(self.owner.to_string()),
             token: self.token.try_into()?,
             orderbook: SgOrderbook {
@@ -883,10 +978,10 @@ impl RaindexVault {
     }
 }
 
-impl TryFrom<SgErc20> for RaindexVaultToken {
-    type Error = RaindexError;
-    fn try_from(erc20: SgErc20) -> Result<Self, Self::Error> {
+impl RaindexVaultToken {
+    fn try_from_sg_erc20(chain_id: u32, erc20: SgErc20) -> Result<Self, RaindexError> {
         Ok(Self {
+            chain_id,
             id: erc20.id.0,
             address: Address::from_str(&erc20.address.0)?,
             name: erc20.name,
@@ -931,17 +1026,18 @@ mod tests {
             IOrderBookV5::{deposit3Call, withdraw3Call},
             IERC20::approveCall,
         };
+        use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
 
         fn get_vault1_json() -> Value {
             json!({
               "id": "0x0123",
               "owner": "0x0000000000000000000000000000000000000000",
-              "vaultId": "0x10",
-              "balance": "0x10",
+              "vaultId": "0x0123",
+              "balance": *F1,
               "token": {
                 "id": "token1",
-                "address": "0x0000000000000000000000000000000000000000",
+                "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 "name": "Token 1",
                 "symbol": "TKN1",
                 "decimals": "18"
@@ -954,15 +1050,16 @@ mod tests {
               "balanceChanges": []
             })
         }
+
         fn get_vault2_json() -> Value {
             json!({
                 "id": "0x0234",
                 "owner": "0x0000000000000000000000000000000000000000",
-                "vaultId": "0x20",
-                "balance": "0x20",
+                "vaultId": "0x0234",
+                "balance": *F2,
                 "token": {
                     "id": "token2",
-                    "address": "0x0000000000000000000000000000000000000000",
+                    "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                     "name": "Token 2",
                     "symbol": "TKN2",
                     "decimals": "18"
@@ -975,6 +1072,7 @@ mod tests {
                 "balanceChanges": []
             })
         }
+
         #[tokio::test]
         async fn test_get_vaults() {
             let sg_server = MockServer::start_async().await;
@@ -1006,6 +1104,7 @@ mod tests {
                 None,
             )
             .unwrap();
+
             let result = raindex_client.get_vaults(None, None, None).await.unwrap();
             assert_eq!(result.len(), 2);
 
@@ -1016,8 +1115,8 @@ mod tests {
                 vault1.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault1.vault_id, U256::from_str("0x10").unwrap());
-            assert_eq!(vault1.balance, U256::from_str("0x10").unwrap());
+            assert_eq!(vault1.vault_id, U256::from_str("0x0123").unwrap());
+            assert!(vault1.balance.eq(*F1).unwrap());
             assert_eq!(vault1.token.id, "token1");
             assert_eq!(
                 vault1.orderbook,
@@ -1031,8 +1130,8 @@ mod tests {
                 vault2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault2.vault_id, U256::from_str("0x20").unwrap());
-            assert_eq!(vault2.balance, U256::from_str("0x20").unwrap());
+            assert_eq!(vault2.vault_id, U256::from_str("0x0234").unwrap());
+            assert!(vault2.balance.eq(*F2).unwrap());
             assert_eq!(vault2.token.id, "token2");
             assert_eq!(
                 vault2.orderbook,
@@ -1063,6 +1162,7 @@ mod tests {
                 None,
             )
             .unwrap();
+
             let vault = raindex_client
                 .get_vault(
                     1,
@@ -1071,14 +1171,21 @@ mod tests {
                 )
                 .await
                 .unwrap();
+
             assert_eq!(vault.chain_id, 1);
             assert_eq!(vault.id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 vault.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault.vault_id, U256::from_str("0x10").unwrap());
-            assert_eq!(vault.balance, U256::from_str("0x10").unwrap());
+            assert_eq!(vault.vault_id, U256::from_str("0x0123").unwrap());
+
+            assert!(
+                vault.balance.eq(*F1).unwrap(),
+                "unexpected balance: {}",
+                vault.balance.format().unwrap()
+            );
+
             assert_eq!(vault.token.id, "token1");
             assert_eq!(
                 vault.orderbook,
@@ -1098,9 +1205,9 @@ mod tests {
                         "vaultBalanceChanges": [
                             {
                                 "__typename": "Deposit",
-                                "amount": "5000000000000000000",
-                                "newVaultBalance": "5000000000000000000",
-                                "oldVaultBalance": "0",
+                                "amount": *F5,
+                                "newVaultBalance": *F5,
+                                "oldVaultBalance": *F0,
                                 "vault": {
                                     "id": "0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902",
                                     "vaultId": "1",
@@ -1178,15 +1285,9 @@ mod tests {
             assert_eq!(result[0].token.name, Some("Wrapped Flare".to_string()));
             assert_eq!(result[0].token.symbol, Some("WFLR".to_string()));
             assert_eq!(result[0].token.decimals, Some(U256::from(18)));
-            assert_eq!(
-                result[0].amount,
-                I256::from_str("5000000000000000000").unwrap()
-            );
-            assert_eq!(
-                result[0].new_balance,
-                U256::from_str("5000000000000000000").unwrap()
-            );
-            assert_eq!(result[0].old_balance, U256::from_str("0").unwrap());
+            assert!(result[0].amount.eq(*F5).unwrap());
+            assert!(result[0].new_balance.eq(*F5).unwrap());
+            assert!(result[0].old_balance.eq(*F0).unwrap());
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
                 result[0].transaction.id(),
@@ -1252,9 +1353,9 @@ mod tests {
                 result,
                 Bytes::copy_from_slice(
                     &deposit3Call {
-                        token: Address::from_str("0x0000000000000000000000000000000000000000")
+                        token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
-                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        vaultId: B256::from(U256::from_str("0x0123").unwrap()),
                         depositAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
                         tasks: vec![],
                     }
@@ -1317,9 +1418,9 @@ mod tests {
                 result,
                 Bytes::copy_from_slice(
                     &withdraw3Call {
-                        token: Address::from_str("0x0000000000000000000000000000000000000000")
+                        token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
-                        vaultId: B256::from(U256::from_str("0x10").unwrap()),
+                        vaultId: B256::from(U256::from_str("0x0123").unwrap()),
                         targetAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
                         tasks: vec![],
                     }
@@ -1450,6 +1551,206 @@ mod tests {
                 .unwrap();
             let result = vault.get_allowance().await.unwrap();
             assert_eq!(result.0, U256::from(1));
+        }
+
+        #[tokio::test]
+        async fn test_get_vaults_with_token_filter() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaults": [get_vault1_json()]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaults": []
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: Some(vec![Address::from_str(
+                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                )
+                .unwrap()]),
+            };
+
+            let result = raindex_client
+                .get_vaults(None, Some(filters), None)
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 1);
+            assert_eq!(result[0].id, Bytes::from_str("0x0123").unwrap());
+            assert_eq!(
+                result[0].token.address,
+                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_vaults_with_multiple_token_filters() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("\"token_in\":[\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\",\"0x12e605bc104e93b45e1ad99f9e555f659051c2bb\"]");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaults": [get_vault1_json(), get_vault2_json()]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaults": []
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: Some(vec![
+                    Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
+                    Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
+                ]),
+            };
+
+            let result = raindex_client
+                .get_vaults(None, Some(filters), None)
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 2);
+        }
+
+        #[tokio::test]
+        async fn test_get_all_vault_tokens_without_filter() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "erc20S": [
+                            {
+                                "id": "token1",
+                                "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                                "name": "Token 1",
+                                "symbol": "TKN1",
+                                "decimals": "18"
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "erc20S": [
+                            {
+                                "id": "token2",
+                                "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783f",
+                                "name": "Token 2",
+                                "symbol": "TKN2",
+                                "decimals": "18"
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            // Test with specific chain filter (only chain 1)
+            let result = raindex_client.get_all_vault_tokens(None).await.unwrap();
+
+            assert_eq!(result.len(), 2);
+        }
+
+        #[tokio::test]
+        async fn test_get_all_vault_tokens_with_chain_filter() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "erc20S": [
+                            {
+                                "id": "token1",
+                                "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                                "name": "Token 1",
+                                "symbol": "TKN1",
+                                "decimals": "18"
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            // Test with specific chain filter (only chain 1)
+            let result = raindex_client
+                .get_all_vault_tokens(Some(ChainIds(vec![1])))
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 1);
+            assert_eq!(result[0].id(), "token1");
+            assert_eq!(result[0].chain_id(), 1);
         }
     }
 }

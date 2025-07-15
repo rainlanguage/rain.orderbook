@@ -62,6 +62,7 @@ mod tests {
         SgAddOrderWithOrder, SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook,
         SgRemoveOrderWithOrder, SgTransaction, SgVault,
     };
+    use crate::utils::float::*;
     use cynic::Id;
     use httpmock::prelude::*;
     use reqwest::Url;
@@ -105,8 +106,8 @@ mod tests {
             inputs: vec![SgVault {
                 id: SgBytes("input_vault_id_order".to_string()),
                 owner: SgBytes("0xowner_default_order".to_string()),
-                vault_id: SgBigInt("input_vault_sg_id_order".to_string()),
-                balance: SgBigInt("1000".to_string()),
+                vault_id: SgBytes("input_vault_sg_id_order".to_string()),
+                balance: SgBytes((*F1000).as_hex()),
                 token: default_sg_erc20("input_order"),
                 orderbook: SgOrderbook {
                     id: SgBytes("0xorderbook_default_order".to_string()),
@@ -118,8 +119,8 @@ mod tests {
             outputs: vec![SgVault {
                 id: SgBytes("output_vault_id_order".to_string()),
                 owner: SgBytes("0xowner_default_order".to_string()),
-                vault_id: SgBigInt("output_vault_sg_id_order".to_string()),
-                balance: SgBigInt("0".to_string()),
+                vault_id: SgBytes("output_vault_sg_id_order".to_string()),
+                balance: SgBytes((*F0).as_hex()),
                 token: default_sg_erc20("output_order"),
                 orderbook: SgOrderbook {
                     id: SgBytes("0xorderbook_default_order".to_string()),

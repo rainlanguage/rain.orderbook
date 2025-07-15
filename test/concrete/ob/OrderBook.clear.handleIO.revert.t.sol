@@ -123,8 +123,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         bytes memory aliceErr = "";
         bytes memory bobErr = "";
 
-        bytes memory aliceString = "_ _:div(max-value() 2) 1;:ensure(1 \"alice err\");";
-        bytes memory bobString = "_ _:div(max-value() 2) 1;:ensure(1 \"bob err\");";
+        bytes memory aliceString = "_ _:1000000 1;:ensure(1 \"alice err\");";
+        bytes memory bobString = "_ _:1000000 1;:ensure(1 \"bob err\");";
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -133,8 +133,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         bytes memory aliceErr = "";
         bytes memory bobErr = "";
 
-        bytes memory aliceString = "_ _:div(max-value() 2) 1;:;";
-        bytes memory bobString = "_ _:div(max-value() 2) 1;:;";
+        bytes memory aliceString = "_ _:1000000 1;:;";
+        bytes memory bobString = "_ _:1000000 1;:;";
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -148,9 +148,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021710000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021710000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -164,9 +164,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021710000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021710000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -180,9 +180,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021710000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021710000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }

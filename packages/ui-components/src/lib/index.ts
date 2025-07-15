@@ -3,6 +3,7 @@ export { default as CardProperty } from './components/CardProperty.svelte';
 export { default as Hash, HashType } from './components/Hash.svelte';
 export { default as TanstackAppTable } from './components/TanstackAppTable.svelte';
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
+export { default as DropdownTokensFilter } from './components/dropdown/DropdownTokensFilter.svelte';
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
 export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';

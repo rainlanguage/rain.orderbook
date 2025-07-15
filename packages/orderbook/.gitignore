@@ -1,0 +1,20 @@
+# Generated documentation
+docs/
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

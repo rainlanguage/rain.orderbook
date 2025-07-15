@@ -1,5 +1,5 @@
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import { type Hex, type NewConfig } from '@rainlanguage/orderbook';
+import { type Address, type Hex, type NewConfig } from '@rainlanguage/orderbook';
 
 export const EMPTY_CONFIG: NewConfig = {
 	orderbook: {
@@ -133,6 +133,27 @@ export const showInactiveOrders = cachedWritableStore<boolean>(
 			return typeof value === 'boolean' ? value : false;
 		} catch {
 			return false;
+		}
+	}
+);
+
+/**
+ * A persistent store that holds the currently selected tokens for filtering.
+ *
+ * This setting is saved to local storage and persists between sessions.
+ *
+ * @default [] - Empty array by default
+ * @returns A writable store containing selected tokens mapped by address
+ */
+export const activeTokens = cachedWritableStore<Address[]>(
+	'settings.selectedTokens',
+	[],
+	JSON.stringify,
+	(str) => {
+		try {
+			return JSON.parse(str);
+		} catch {
+			return [];
 		}
 	}
 );

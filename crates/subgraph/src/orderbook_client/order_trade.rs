@@ -83,6 +83,7 @@ mod tests {
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
+    use crate::utils::float::*;
     use cynic::Id;
     use httpmock::prelude::*;
     use reqwest::Url;
@@ -121,7 +122,7 @@ mod tests {
     fn default_sg_vault_balance_change_vault() -> SgVaultBalanceChangeVault {
         SgVaultBalanceChangeVault {
             id: SgBytes("0xvault_id_default".to_string()),
-            vault_id: SgBigInt("12345".to_string()),
+            vault_id: SgBytes("12345".to_string()),
             token: default_sg_erc20(),
         }
     }
@@ -130,9 +131,9 @@ mod tests {
         SgTradeVaultBalanceChange {
             id: SgBytes(format!("0xtrade_vbc_{}_id_default", type_name)),
             __typename: "TradeVaultBalanceChange".to_string(),
-            amount: SgBigInt("1000".to_string()),
-            new_vault_balance: SgBigInt("5000".to_string()),
-            old_vault_balance: SgBigInt("4000".to_string()),
+            amount: SgBytes((*F1).as_hex()),
+            new_vault_balance: SgBytes((*F5).as_hex()),
+            old_vault_balance: SgBytes((*F4).as_hex()),
             vault: default_sg_vault_balance_change_vault(),
             timestamp: SgBigInt("1600000100".to_string()),
             transaction: default_sg_transaction(),

@@ -74,6 +74,7 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.prototype.getAllFieldDefinitions = vi.fn();
 	DotrainOrderGui.prototype.isSelectTokenSet = vi.fn();
 	DotrainOrderGui.prototype.setSelectToken = vi.fn();
+	DotrainOrderGui.prototype.unsetSelectToken = vi.fn();
 	DotrainOrderGui.prototype.hasAnyDeposit = vi.fn();
 	DotrainOrderGui.prototype.hasAnyVaultId = vi.fn();
 	DotrainOrderGui.prototype.areAllTokensSelected = vi.fn();

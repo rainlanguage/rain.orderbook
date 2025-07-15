@@ -6582,6 +6582,7 @@ dependencies = [
  "revm 25.0.0",
  "serde",
  "thiserror 2.0.12",
+ "wasm-bindgen-utils 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -6916,7 +6917,9 @@ dependencies = [
  "futures",
  "httpmock",
  "insta",
+ "lazy_static",
  "once_cell",
+ "rain-math-float",
  "rain_orderbook_bindings",
  "rain_orderbook_math",
  "reqwest 0.12.20",

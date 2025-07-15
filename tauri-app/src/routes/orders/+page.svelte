@@ -11,6 +11,7 @@
     showInactiveOrders,
     orderHash,
     hideZeroBalanceVaults,
+    activeTokens,
   } from '$lib/stores/settings';
   import { page } from '$app/stores';
   import { writable } from 'svelte/store';
@@ -27,5 +28,6 @@
   {showInactiveOrders}
   {orderHash}
   {hideZeroBalanceVaults}
+  {activeTokens}
   showMyItemsOnly={writable(false)}
 />

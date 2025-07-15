@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import { beforeEach, expect, test, describe, vi } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { NewConfig } from '@rainlanguage/orderbook';
+import type { NewConfig, RaindexVaultToken } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
+import type { QueryObserverResult } from '@tanstack/svelte-query';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores.ts'));
 
@@ -57,7 +58,15 @@ describe('ListViewOrderbookFilters', () => {
 		selectedChainIds: writable([]),
 		showInactiveOrders: writable(true),
 		orderHash: writable('0x0234'),
-		showMyItemsOnly: writable(false)
+		showMyItemsOnly: writable(false),
+		activeTokens: writable([]),
+		selectedTokens: [],
+		tokensQuery: readable({
+			isLoading: false,
+			isError: false,
+			data: [] as RaindexVaultToken[],
+			error: null
+		} as QueryObserverResult<RaindexVaultToken[], Error>)
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
