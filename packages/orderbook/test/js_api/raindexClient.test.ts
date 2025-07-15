@@ -1498,7 +1498,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result.length, 2);
 			assert.equal(result[0].vaultId, BigInt(vault1.vaultId));
 			assert.equal(result[0].owner, vault1.owner);
-			assert.equal(result[0].balance, BigInt(vault1.balance));
+			assert.equal(result[0].balance, vault1.balance);
 			assert.equal(result[0].token.id, vault1.token.id);
 			assert.equal(result[0].token.address, vault1.token.address);
 			assert.equal(result[0].token.name, vault1.token.name);
@@ -1506,7 +1506,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result[0].token.decimals, BigInt(vault1.token.decimals ?? 0));
 			assert.equal(result[1].vaultId, BigInt(vault2.vaultId));
 			assert.equal(result[1].owner, vault2.owner);
-			assert.equal(result[1].balance, BigInt(vault2.balance));
+			assert.equal(result[1].balance, vault2.balance);
 			assert.equal(result[1].token.id, vault2.token.id);
 			assert.equal(result[1].token.address, vault2.token.address);
 			assert.equal(result[1].token.name, vault2.token.name);
@@ -1524,7 +1524,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			assert.equal(result.vaultId, BigInt(vault1.vaultId));
 			assert.equal(result.owner, vault1.owner);
-			assert.equal(result.balance, BigInt(vault1.balance));
+			assert.equal(result.balance, vault1.balance);
 			assert.equal(result.token.id, vault1.token.id);
 			assert.equal(result.token.address, vault1.token.address);
 			assert.equal(result.token.name, vault1.token.name);
