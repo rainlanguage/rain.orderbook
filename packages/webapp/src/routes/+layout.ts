@@ -73,29 +73,19 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	const accounts = derived(settings, ($settings) => $settings.orderbook.accounts || {});
 	const activeAccountsItems = writable<Record<string, Address>>({});
 
-	const activeAccounts = derived(
-		[accounts, activeAccountsItems],
-		([$accounts, $activeAccountsItems]) =>
-			Object.keys($activeAccountsItems).length === 0
-				? {}
-				: Object.fromEntries(
-						Object.entries($accounts || {}).filter(([key]) => key in $activeAccountsItems)
-					)
-	);
-
 	return {
 		stores: {
 			settings,
 			selectedChainIds: writable<number[]>([]),
 			accounts,
 			activeAccountsItems,
-			activeAccounts,
 			// Instantiate with false to show only active orders
 			showInactiveOrders: writable<boolean>(false),
 			// @ts-expect-error initially the value is empty
 			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
-			showMyItemsOnly: writable<boolean>(false)
+			showMyItemsOnly: writable<boolean>(false),
+			activeTokens: writable<Address[]>([])
 		},
 		raindexClient
 	};
@@ -247,7 +237,6 @@ subgraphs:
 			expect(stores).toHaveProperty('settings');
 			expect(stores).toHaveProperty('accounts');
 			expect(stores).toHaveProperty('activeAccountsItems');
-			expect(stores).toHaveProperty('activeAccounts');
 			expect(stores).toHaveProperty('showInactiveOrders');
 			expect(stores).toHaveProperty('orderHash');
 			expect(stores).toHaveProperty('hideZeroBalanceVaults');
@@ -258,48 +247,6 @@ subgraphs:
 			}
 			expect(get(stores.orderHash)).toEqual('');
 			expect(get(stores.hideZeroBalanceVaults)).toEqual(false);
-		});
-
-		it('should handle derived store: activeAccounts with empty activeAccountsItems', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeAccounts)).toEqual({});
-		});
-
-		it('should handle derived store: activeAccounts with filled activeAccountsItems', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			stores.activeAccountsItems?.set({ account1: '0x1234567890123456789012345678901234567890' });
-
-			const accounts = get(stores.activeAccounts);
-			expect(accounts).toHaveProperty('account1');
-			expect(accounts).not.toHaveProperty('account2');
 		});
 
 		it('should return errorMessage if fetch fails with non-OK status', async () => {
@@ -365,37 +312,6 @@ subgraphs:
 			expect(result).toHaveProperty('errorMessage');
 			expect(result.errorMessage).toContain('Malformed settings');
 			expect(result.errorMessage).toContain('Malformed settings');
-		});
-
-		it('should handle multiple interrelated store updates correctly', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			stores.activeAccountsItems?.set({ account1: '0x1234567890123456789012345678901234567890' });
-
-			expect(get(stores.activeAccounts)).toHaveProperty('account1');
-
-			stores.activeAccountsItems?.set({
-				account1: '0x1234567890123456789012345678901234567890',
-				account2: '0x1234567890123456789012345678901234567890'
-			});
-
-			const finalAccounts = get(stores.activeAccounts);
-			expect(Object.keys(finalAccounts).length).toBe(2);
-			expect(finalAccounts).toHaveProperty('account1');
-			expect(finalAccounts).toHaveProperty('account2');
 		});
 	});
 }

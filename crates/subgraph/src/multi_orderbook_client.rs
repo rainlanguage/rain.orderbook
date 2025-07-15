@@ -1,7 +1,7 @@
 use crate::{
     types::common::{
-        SgOrderWithSubgraphName, SgOrdersListFilterArgs, SgVaultWithSubgraphName,
-        SgVaultsListFilterArgs,
+        SgErc20WithSubgraphName, SgOrderWithSubgraphName, SgOrdersListFilterArgs,
+        SgVaultWithSubgraphName, SgVaultsListFilterArgs,
     },
     OrderbookSubgraphClient, OrderbookSubgraphClientError, SgPaginationArgs,
 };
@@ -103,6 +103,34 @@ impl MultiOrderbookSubgraphClient {
 
         all_vaults
     }
+
+    pub async fn tokens_list(&self) -> Vec<SgErc20WithSubgraphName> {
+        let futures = self.subgraphs.iter().map(|subgraph| {
+            let url = subgraph.url.clone();
+            async move {
+                let client = self.get_orderbook_subgraph_client(url);
+                let tokens = client.tokens_list_all().await?;
+                let wrapped_tokens: Vec<SgErc20WithSubgraphName> = tokens
+                    .into_iter()
+                    .map(|token| SgErc20WithSubgraphName {
+                        token,
+                        subgraph_name: subgraph.name.clone(),
+                    })
+                    .collect();
+                Ok::<_, OrderbookSubgraphClientError>(wrapped_tokens)
+            }
+        });
+
+        let results = join_all(futures).await;
+
+        let all_tokens: Vec<SgErc20WithSubgraphName> = results
+            .into_iter()
+            .filter_map(Result::ok)
+            .flatten()
+            .collect();
+
+        all_tokens
+    }
 }
 
 #[cfg(test)]
@@ -140,6 +168,7 @@ mod tests {
             owners: vec![],
             active: None,
             order_hash: None,
+            tokens: vec![],
         }
     }
 
@@ -468,6 +497,7 @@ mod tests {
         SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         }
     }
 
