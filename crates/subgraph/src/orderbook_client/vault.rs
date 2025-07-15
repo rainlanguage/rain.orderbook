@@ -834,14 +834,13 @@ mod tests {
             when.method(POST)
                 .path("/")
                 .body_contains("\"owner_in\":[\"0xowner123\"]")
-                .body_contains("\"balance_gt\":\"0\"")
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"")
                 .body_contains(format!("\"token_in\":[\"{}\"]", token_address));
             then.status(200)
                 .json_body(json!({"data": {"vaults": expected_vaults}}));
         });
 
         let result = client.vaults_list(filter_args, pagination_args).await;
-        assert!(result.is_ok());
         let vaults = result.unwrap();
         assert_eq!(vaults.len(), expected_vaults.len());
     }
