@@ -1911,7 +1911,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 		});
 
-		it.only('should remove select token', async () => {
+		it('should remove select token', async () => {
 			stateUpdateCallback = vi.fn();
 			let dotrain3 = `
       ${guiConfig3}
