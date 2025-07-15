@@ -1,4 +1,5 @@
 use super::*;
+use alloy::primitives::U256;
 use futures::StreamExt;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
@@ -320,6 +321,49 @@ impl DotrainOrderGui {
 
         Ok(results)
     }
+
+    /// Gets the balance of a specific token for a given owner address.
+    ///
+    /// Retrieves the ERC20 token balance by connecting to the current deployment's network RPC
+    /// and querying the token contract.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.getTokenBalance("0x123...", "0xabc...");
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const balance = result.value;
+    /// console.log("Token balance:", balance);
+    /// ```
+    #[wasm_export(
+        js_name = "getTokenBalance",
+        unchecked_return_type = "string",
+        return_description = "Balance of the specified token for the given owner"
+    )]
+    pub async fn get_token_balance(
+        &self,
+        #[wasm_export(js_name = "tokenAddress", param_description = "Token contract address")]
+        token_address: String,
+        #[wasm_export(param_description = "Owner address to check balance for")] owner: String,
+    ) -> Result<U256, GuiError> {
+        let order_key = DeploymentCfg::parse_order_key(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
+        let network_key =
+            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+        let network = self
+            .dotrain_order
+            .orderbook_yaml()
+            .get_network(&network_key)?;
+        let erc20 = ERC20::new(network.rpcs, Address::from_str(&token_address)?);
+        let balance = erc20.get_balance(Address::from_str(&owner)?).await?;
+        Ok(balance)
+    }
 }
 
 #[cfg(test)]
@@ -580,11 +624,7 @@ mod tests {
         use httpmock::MockServer;
         use std::str::FromStr;
 
-        #[tokio::test]
-        async fn test_set_select_token() {
-            let server = MockServer::start_async().await;
-            let yaml = format!(
-                r#"
+        const TEST_YAML_TEMPLATE: &str = r#"
 gui:
   name: Fixed limit
   description: Fixed limit order strategy
@@ -675,9 +715,12 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#,
-                rpc_url = server.url("/rpc")
-            );
+"#;
+
+        #[tokio::test]
+        async fn test_set_select_token() {
+            let server = MockServer::start_async().await;
+            let yaml = TEST_YAML_TEMPLATE.replace("{rpc_url}", &server.url("/rpc"));
 
             server.mock(|when, then| {
             when.method("POST").path("/rpc").body_contains("0x82ad56cb");
@@ -753,6 +796,42 @@ _ _: 0 0;
             err.to_readable_msg(),
             "No tokens have been configured for selection. Please check your YAML configuration."
         );
+        }
+
+        #[tokio::test]
+        async fn test_get_token_balance() {
+            let server = MockServer::start_async().await;
+            let yaml = TEST_YAML_TEMPLATE.replace("{rpc_url}", &server.url("/rpc"));
+
+            server.mock(|when, then| {
+                when.method("POST").path("/rpc").body_contains("0x70a08231");
+                then.body(
+                    Response::new_success(
+                        1,
+                        "0x00000000000000000000000000000000000000000000000000000000000003e8",
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+            });
+
+            let gui = DotrainOrderGui::new_with_deployment(
+                yaml.to_string(),
+                "some-deployment".to_string(),
+                None,
+            )
+            .await
+            .unwrap();
+
+            let balance = gui
+                .get_token_balance(
+                    "0x0000000000000000000000000000000000000001".to_string(),
+                    "0x0000000000000000000000000000000000000002".to_string(),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(balance, alloy::primitives::U256::from(1000u64));
         }
     }
 }
