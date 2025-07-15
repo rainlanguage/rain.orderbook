@@ -1440,7 +1440,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			id: '0x0123',
 			owner: '0x0000000000000000000000000000000000000000',
 			vaultId: '0x10',
-			balance: '0x000000000000000000000000000000000000000000000000000000000000000a',
+			balance: '0xfffffffa000000000000000000000000000000000000000000000000000f4241',
 			token: {
 				id: '0x0123',
 				address: '0x0000000000000000000000000000000000000000',
@@ -1459,7 +1459,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			id: '0x0234',
 			owner: '0x0000000000000000000000000000000000000000',
 			vaultId: '0x20',
-			balance: '0x000000000000000000000000000000000000000000000000000000000000000c',
+			balance: '0xfffffffa000000000000000000000000000000000000000000000000000f4241',
 			token: {
 				id: '0x0234',
 				address: '0x0000000000000000000000000000000000000000',
@@ -1618,7 +1618,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						symbol: 'T1',
 						decimals: '0'
 					},
-					balance: '88888888888',
+					balance: '0x0000000000000000000000000000000000000000000000000000000000000008',
 					vaultId: '0x2523',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
@@ -1639,7 +1639,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						symbol: 'T2',
 						decimals: '0'
 					},
-					balance: '999999999999999',
+					balance: '0x0000000000000000000000000000000000000000000000000000000000000009',
 					vaultId: '0x0100',
 					owner: '0x0000000000000000000000000000000000000000',
 					ordersAsOutput: [],
