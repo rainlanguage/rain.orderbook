@@ -603,7 +603,7 @@ impl RaindexOrder {
                     raindex_client.clone(),
                     chain_id,
                     input.clone(),
-                    Some(RaindexVaultType::Output),
+                    Some(RaindexVaultType::Input),
                 )
                 .await?,
             );
@@ -614,7 +614,7 @@ impl RaindexOrder {
                     raindex_client.clone(),
                     chain_id,
                     output.clone(),
-                    Some(RaindexVaultType::Input),
+                    Some(RaindexVaultType::Output),
                 )
                 .await?,
             );

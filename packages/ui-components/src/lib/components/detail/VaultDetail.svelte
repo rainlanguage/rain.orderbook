@@ -12,7 +12,7 @@
 		type RaindexVault
 	} from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits, toHex } from 'viem';
+	import { toHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
@@ -141,8 +141,7 @@
 		<CardProperty data-testid="vaultDetailBalance">
 			<svelte:fragment slot="key">Balance</svelte:fragment>
 			<svelte:fragment slot="value"
-				>{formatUnits(BigInt(data.balance), Number(data.token.decimals ?? 0))}
-				{data.token.symbol}</svelte:fragment
+				>{`${data.formattedBalance} ${data.token.symbol}`}</svelte:fragment
 			>
 		</CardProperty>
 
