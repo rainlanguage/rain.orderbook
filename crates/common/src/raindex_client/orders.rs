@@ -8,6 +8,8 @@ use crate::{
     },
 };
 use alloy::primitives::{Address, Bytes, U256};
+#[cfg(not(target_family = "wasm"))]
+use rain_metadata::UnpackedMetadata;
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -29,6 +31,63 @@ use std::{
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
+
+/// Helper function to map TryDecodeRainlangSourceError to rain_metadata::Error
+/// This ensures consistent error handling by wrapping all metadata parsing errors
+/// in the same ParseMetaError variant
+#[cfg(not(target_family = "wasm"))]
+fn map_decode_error_to_rain_metadata_error(
+    e: crate::meta::TryDecodeRainlangSourceError,
+) -> rain_metadata::Error {
+    use crate::meta::TryDecodeRainlangSourceError;
+    match e {
+        TryDecodeRainlangSourceError::FromHexError(_) => {
+            rain_metadata::Error::DecodeHexStringError(
+                alloy::primitives::hex::FromHexError::InvalidHexCharacter { c: '?', index: 0 },
+            )
+        }
+        TryDecodeRainlangSourceError::FromUtf8Error(_) => rain_metadata::Error::CorruptMeta,
+        TryDecodeRainlangSourceError::MissingRainlangSourceV1 => rain_metadata::Error::UnknownMeta,
+        TryDecodeRainlangSourceError::RainMetadataError(err) => err,
+        TryDecodeRainlangSourceError::RainlangSourceMismatch => rain_metadata::Error::CorruptMeta,
+    }
+}
+
+#[cfg(target_family = "wasm")]
+fn map_decode_error_to_rain_metadata_error(
+    e: crate::meta::TryDecodeRainlangSourceError,
+) -> rain_metadata::Error {
+    use crate::meta::TryDecodeRainlangSourceError;
+    match e {
+        TryDecodeRainlangSourceError::FromHexError(_) => {
+            rain_metadata::Error::DecodeHexStringError(
+                alloy::primitives::hex::FromHexError::InvalidHexCharacter { c: '?', index: 0 },
+            )
+        }
+        TryDecodeRainlangSourceError::FromUtf8Error(_) => rain_metadata::Error::CorruptMeta,
+        TryDecodeRainlangSourceError::MissingRainlangSourceV1 => rain_metadata::Error::UnknownMeta,
+        TryDecodeRainlangSourceError::RainMetadataError(err) => err,
+        TryDecodeRainlangSourceError::RainlangSourceMismatch => rain_metadata::Error::CorruptMeta,
+    }
+}
+
+#[cfg(target_family = "wasm")]
+fn map_decode_error_to_rain_metadata_error(
+    e: crate::meta::TryDecodeRainlangSourceError,
+) -> rain_metadata::Error {
+    use crate::meta::TryDecodeRainlangSourceError;
+    match e {
+        TryDecodeRainlangSourceError::FromHexError(_) => {
+            rain_metadata::Error::DecodeHexStringError(
+                alloy::primitives::hex::FromHexError::InvalidHexCharacter { c: '?', index: 0 },
+            )
+        }
+        TryDecodeRainlangSourceError::FromUtf8Error(_) => rain_metadata::Error::CorruptMeta,
+        TryDecodeRainlangSourceError::MissingRainlangSourceV1 => rain_metadata::Error::UnknownMeta,
+        TryDecodeRainlangSourceError::RainMetadataError(err) => err,
+        TryDecodeRainlangSourceError::RainlangSourceMismatch => rain_metadata::Error::CorruptMeta,
+    }
+}
 
 /// A single order representation within a given orderbook.
 ///
@@ -55,6 +114,7 @@ pub struct RaindexOrder {
     active: bool,
     timestamp_added: U256,
     meta: Option<Bytes>,
+    parsed_meta: Vec<UnpackedMetadata>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
@@ -200,6 +260,8 @@ impl RaindexOrder {
     }
     pub fn inputs_outputs_list(&self) -> RaindexVaultsList {
         RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::InputOutput))
+    pub fn parsed_meta(&self) -> Vec<UnpackedMetadata> {
+        self.parsed_meta.clone()
     }
 }
 
@@ -616,7 +678,10 @@ impl RaindexOrder {
             .meta
             .as_ref()
             .map(|meta| meta.0.try_decode_rainlangsource())
-            .transpose()?;
+            .transpose()
+            .map_err(|e| {
+                RaindexError::ParseMetaError(map_decode_error_to_rain_metadata_error(e))
+            })?;
         Ok(Self {
             raindex_client: raindex_client.clone(),
             chain_id,
@@ -657,11 +722,19 @@ impl RaindexOrder {
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
             meta: order
                 .meta
+                .clone()
                 .map(|meta| Bytes::from_str(&meta.0))
                 .transpose()?,
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .map(|meta| UnpackedMetadata::parse_from_hex(&meta.0))
+                .transpose()
+                .map_err(RaindexError::ParseMetaError)?
+                .unwrap_or_default(),
         })
     }
 
@@ -1130,6 +1203,11 @@ mod tests {
 
             assert_eq!(order1.orderbook(), expected_order1.orderbook());
             assert_eq!(order1.timestamp_added(), expected_order1.timestamp_added());
+            assert_eq!(order1.parsed_meta.len(), 1);
+            assert!(
+                order1.parsed_meta[0].is_rainlang_source_v1(),
+                "Expected to have RainlangSourceV1 meta"
+            );
 
             let order2 = result[1].clone();
             assert_eq!(order2.chain_id, 137);
@@ -1198,6 +1276,7 @@ mod tests {
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(order2.timestamp_added(), U256::from(0));
+            assert_eq!(order2.parsed_meta.len(), 0);
         }
 
         #[tokio::test]
