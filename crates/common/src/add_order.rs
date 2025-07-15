@@ -1669,7 +1669,7 @@ price: 2e18;
             outputs: vec![],
             bindings: HashMap::new(),
             deployer: Address::default(),
-            meta: Some(vec![dotrain_instance_data.into()]),
+            meta: Some(vec![dotrain_instance_data.try_into().unwrap()]),
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
