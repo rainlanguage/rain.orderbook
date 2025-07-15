@@ -983,6 +983,7 @@ gui:
           description: Field with number validation
           validation:
             type: number
+            decimals: 18
             minimum: "10"
             maximum: "1000"
             multiple-of: "0.01"
@@ -992,6 +993,7 @@ gui:
           description: Field with exclusive bounds
           validation:
             type: number
+            decimals: 18
             exclusive-minimum: "0"
             exclusive-maximum: "100000"
         
@@ -1000,6 +1002,7 @@ gui:
           description: Field with all number constraints
           validation:
             type: number
+            decimals: 18
             minimum: "0"
             maximum: "100"
             exclusive-maximum: "101"
@@ -1010,6 +1013,7 @@ gui:
           description: Number field with no constraints
           validation:
             type: number
+            decimals: 18
         
         # String validation tests
         - binding: username-field
@@ -1060,6 +1064,7 @@ gui:
               value: "150"
           validation:
             type: number
+            decimals: 18
             minimum: "10"
             maximum: "200"
             multiple-of: "10"

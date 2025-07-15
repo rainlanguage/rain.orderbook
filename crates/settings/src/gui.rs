@@ -34,8 +34,7 @@ pub enum FieldValueValidationCfg {
         exclusive_maximum: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         multiple_of: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        decimals: Option<u8>,
+        decimals: u8,
     },
     String {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -939,31 +938,31 @@ fn parse_field_validation(
 
     match validation_type {
         "number" => Ok(FieldValueValidationCfg::Number {
-            minimum: yaml
-                .get(&StrictYaml::String("minimum".to_string()))
+            minimum: get_hash_value_as_option(yaml, "minimum")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            exclusive_minimum: yaml
-                .get(&StrictYaml::String("exclusive-minimum".to_string()))
+            exclusive_minimum: get_hash_value_as_option(yaml, "exclusive-minimum")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            maximum: yaml
-                .get(&StrictYaml::String("maximum".to_string()))
+            maximum: get_hash_value_as_option(yaml, "maximum")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            exclusive_maximum: yaml
-                .get(&StrictYaml::String("exclusive-maximum".to_string()))
+            exclusive_maximum: get_hash_value_as_option(yaml, "exclusive-maximum")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            multiple_of: yaml
-                .get(&StrictYaml::String("multiple-of".to_string()))
+            multiple_of: get_hash_value_as_option(yaml, "multiple-of")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            decimals: yaml
-                .get(&StrictYaml::String("decimals".to_string()))
-                .and_then(|v| v.as_str())
-                .map(|s| s.parse::<u8>())
-                .transpose()
+            decimals: get_hash_value(yaml, "decimals", Some(location.to_string()))?
+                .as_str()
+                .ok_or(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "decimals".to_string(),
+                        expected: "a string".to_string(),
+                    },
+                    location: location.to_string(),
+                })?
+                .parse::<u8>()
                 .map_err(|_| YamlError::Field {
                     kind: FieldErrorKind::InvalidType {
                         field: "decimals".to_string(),
@@ -973,8 +972,7 @@ fn parse_field_validation(
                 })?,
         }),
         "string" => Ok(FieldValueValidationCfg::String {
-            min_length: yaml
-                .get(&StrictYaml::String("min-length".to_string()))
+            min_length: get_hash_value_as_option(yaml, "min-length")
                 .and_then(|v| v.as_str())
                 .map(|s| s.parse::<u32>())
                 .transpose()
@@ -985,8 +983,7 @@ fn parse_field_validation(
                     },
                     location: location.to_string(),
                 })?,
-            max_length: yaml
-                .get(&StrictYaml::String("max-length".to_string()))
+            max_length: get_hash_value_as_option(yaml, "max-length")
                 .and_then(|v| v.as_str())
                 .map(|s| s.parse::<u32>())
                 .transpose()

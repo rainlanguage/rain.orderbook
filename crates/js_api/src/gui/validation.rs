@@ -79,7 +79,7 @@ pub fn validate_field_value(
         } => validate_number(
             field_name,
             value,
-            decimals.unwrap_or(18),
+            *decimals,
             minimum,
             exclusive_minimum,
             maximum,
@@ -866,7 +866,7 @@ mod tests {
             maximum: Some("100".to_string()),
             exclusive_maximum: None,
             multiple_of: Some("5".to_string()),
-            decimals: None,
+            decimals: 18,
         };
 
         let result = validate_field_value("Price Field", "50", &validation);
@@ -968,7 +968,7 @@ mod tests {
             maximum: Some("1000".to_string()),
             exclusive_maximum: None,
             multiple_of: Some("0.01".to_string()),
-            decimals: Some(6),
+            decimals: 6,
         };
 
         let result = validate_field_value("USDC Amount", "100.12", &validation);
@@ -993,7 +993,7 @@ mod tests {
             maximum: Some("21000000".to_string()),
             exclusive_maximum: None,
             multiple_of: None,
-            decimals: Some(8),
+            decimals: 8,
         };
 
         let result = validate_field_value("BTC Amount", "0.12345678", &validation);
@@ -1012,7 +1012,7 @@ mod tests {
             maximum: None,
             exclusive_maximum: None,
             multiple_of: None,
-            decimals: None,
+            decimals: 18,
         };
 
         let result = validate_field_value("ETH Amount", "0.000000000000000001", &validation);
