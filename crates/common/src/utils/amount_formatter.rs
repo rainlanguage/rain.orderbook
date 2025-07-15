@@ -1,4 +1,8 @@
-use alloy::primitives::{ruint::ParseError, utils::format_units, ParseSignedError, I256, U256};
+use alloy::primitives::{
+    ruint::ParseError,
+    utils::{format_units, UnitsError},
+    ParseSignedError, I256, U256,
+};
 use thiserror::Error;
 
 pub fn format_amount_u256(amount: U256, decimals: u8) -> Result<String, AmountFormatterError> {
@@ -37,6 +41,8 @@ pub fn remove_trailing_zeros(value: &str) -> String {
 
 #[derive(Error, Debug)]
 pub enum AmountFormatterError {
+    #[error(transparent)]
+    UnitsError(#[from] UnitsError),
     #[error(transparent)]
     U256ParseError(#[from] ParseError),
     #[error(transparent)]
