@@ -1,3 +1,4 @@
+use alloy::primitives::U256;
 use alloy::sol_types::SolCall;
 use alloy::{hex::FromHex, primitives::Address};
 use alloy_ethers_typecast::transaction::{
@@ -11,7 +12,7 @@ use alloy_ethers_typecast::{
     transaction::ReadContractParametersBuilderError,
 };
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_orderbook_bindings::IERC20::{decimalsCall, nameCall, symbolCall};
+use rain_orderbook_bindings::IERC20::{balanceOfCall, decimalsCall, nameCall, symbolCall};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use thiserror::Error;
@@ -158,6 +159,24 @@ impl ERC20 {
                 })?
                 ._0,
         })
+    }
+
+    pub async fn get_balance(&self, account: Address) -> Result<U256, Error> {
+        let client = self.get_client().await?;
+        let parameters = ReadContractParameters {
+            address: self.address,
+            call: balanceOfCall { account },
+            block_number: None,
+            gas: None,
+        };
+        Ok(client
+            .read(parameters)
+            .await
+            .map_err(|err| Error::ReadableClientError {
+                msg: format!("address: {}", self.address),
+                source: err,
+            })?
+            ._0)
     }
 }
 
@@ -412,5 +431,30 @@ mod tests {
             );
         });
         assert!(erc20.token_info(None).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_balance() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x70a08231");
+            then.body(
+                Response::new_success(
+                    1,
+                    "0x00000000000000000000000000000000000000000000000000000000000003e8",
+                )
+                .to_json_string()
+                .unwrap(),
+            );
+        });
+
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
+
+        let balance = erc20.get_balance(Address::ZERO).await.unwrap();
+        assert_eq!(balance, alloy::primitives::U256::from(1000u64));
     }
 }
