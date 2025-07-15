@@ -30,6 +30,8 @@
 	const gui = useGui();
 
 	const getUserBalance = async (tokenAddress: string) => {
+		if (!$account) return;
+
 		balanceLoading = true;
 		balanceError = '';
 
@@ -41,7 +43,7 @@
 
 			userBalance = BigInt(balance.value);
 			return balance;
-		} catch (error) {
+		} catch {
 			balanceError = 'Failed to fetch balance';
 			userBalance = null;
 			return null;
