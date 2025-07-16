@@ -11,7 +11,8 @@ import {
 	SgTransaction,
 	SgAddOrderWithOrder,
 	SgRemoveOrderWithOrder,
-	Hex
+	Hex,
+	RaindexVaultVolume
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
@@ -584,7 +585,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(order.vaults[2].token.decimals, '0');
 		});
 
-		it('should get the get the total volume for an order', async () => {
+		it('should get the total volume for an order', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
@@ -616,41 +617,36 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const result = await order.getVaultsVolume(BigInt(1632000000), BigInt(1734571449));
 			if (result.error) assert.fail('expected to resolve, but failed');
 
-			const expected: VaultVolume[] = [
-				{
-					id: '0x0234',
-					token: {
-						id: '0x0234',
-						address: '0x2222222222222222222222222222222222222222',
-						name: 'Token Two',
-						symbol: 'TK2',
-						decimals: '18'
-					},
-					volDetails: {
-						netVol: '0x2b5e3af16b1880000',
-						totalIn: '0x2b5e3af16b1880000',
-						totalOut: '0x0',
-						totalVol: '0x2b5e3af16b1880000'
-					}
-				},
-				{
-					id: '0x0123',
-					token: {
-						id: '0x0123',
-						address: '0x1111111111111111111111111111111111111111',
-						name: 'Token One',
-						symbol: 'TK1',
-						decimals: '18'
-					},
-					volDetails: {
-						netVol: '0x56bc75e2d63100000',
-						totalIn: '0x0',
-						totalOut: '0x56bc75e2d63100000',
-						totalVol: '0x56bc75e2d63100000'
-					}
-				}
-			];
-			assert.deepEqual(result.value, expected);
+			assert.equal(result.value.length, 2);
+			assert.equal(result.value[0].id, '0x0234');
+			assert.equal(result.value[0].token.id, '0x0234');
+			assert.equal(result.value[0].token.address, '0x2222222222222222222222222222222222222222');
+			assert.equal(result.value[0].token.name, 'Token Two');
+			assert.equal(result.value[0].token.symbol, 'TK2');
+			assert.equal(result.value[0].token.decimals, BigInt(18));
+			assert.equal(result.value[0].details.netVol, BigInt('0x2b5e3af16b1880000'));
+			assert.equal(result.value[0].details.formattedNetVol, '50');
+			assert.equal(result.value[0].details.totalIn, BigInt('0x2b5e3af16b1880000'));
+			assert.equal(result.value[0].details.formattedTotalIn, '50');
+			assert.equal(result.value[0].details.totalOut, BigInt('0x0'));
+			assert.equal(result.value[0].details.formattedTotalOut, '0');
+			assert.equal(result.value[0].details.totalVol, BigInt('0x2b5e3af16b1880000'));
+			assert.equal(result.value[0].details.formattedTotalVol, '50');
+
+			assert.equal(result.value[1].id, '0x0123');
+			assert.equal(result.value[1].token.id, '0x0123');
+			assert.equal(result.value[1].token.address, '0x1111111111111111111111111111111111111111');
+			assert.equal(result.value[1].token.name, 'Token One');
+			assert.equal(result.value[1].token.symbol, 'TK1');
+			assert.equal(result.value[1].token.decimals, BigInt(18));
+			assert.equal(result.value[1].details.netVol, BigInt('0x56bc75e2d63100000'));
+			assert.equal(result.value[1].details.formattedNetVol, '100');
+			assert.equal(result.value[1].details.totalIn, BigInt('0x0'));
+			assert.equal(result.value[1].details.formattedTotalIn, '0');
+			assert.equal(result.value[1].details.totalOut, BigInt('0x56bc75e2d63100000'));
+			assert.equal(result.value[1].details.formattedTotalOut, '100');
+			assert.equal(result.value[1].details.totalVol, BigInt('0x56bc75e2d63100000'));
+			assert.equal(result.value[1].details.formattedTotalVol, '100');
 		});
 
 		it('should calculate order performance metrics given an order id and subgraph', async () => {

@@ -98,8 +98,7 @@
 							<div class="flex justify-between">
 								<p>Balance of vault</p>
 								<p in:fade>
-									{formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}
-									{vault.token.symbol}
+									{`${vault.formattedBalance} ${vault.token.symbol}`}
 								</p>
 							</div>
 						</div>

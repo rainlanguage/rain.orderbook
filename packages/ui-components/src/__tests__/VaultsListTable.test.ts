@@ -25,6 +25,7 @@ const mockVault = {
 	owner: '0xabcdef1234567890abcdef1234567890abcdef12',
 	vaultId: BigInt(42),
 	balance: BigInt('1000000000000000000'),
+	formattedBalance: '1',
 	token: {
 		id: '0x1111111111111111111111111111111111111111',
 		address: '0x1111111111111111111111111111111111111111',

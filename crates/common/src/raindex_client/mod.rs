@@ -1,10 +1,14 @@
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
-    meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
+    erc20::Error as Erc20Error, meta::TryDecodeRainlangSourceError,
+    transaction::WritableTransactionExecuteError, utils::amount_formatter::AmountFormatterError,
 };
 use alloy::{
     hex::FromHexError,
-    primitives::{ruint::ParseError, Address, ParseSignedError},
+    primitives::{
+        ruint::{FromUintError, ParseError},
+        Address, ParseSignedError,
+    },
 };
 use rain_orderbook_app_settings::{
     new_config::ParseConfigError,
@@ -230,11 +234,25 @@ pub enum RaindexError {
     SubgraphNotFound(String, String),
     #[error("Invalid vault balance change type: {0}")]
     InvalidVaultBalanceChangeType(String),
+    #[error(transparent)]
+    AmountFormatterError(#[from] AmountFormatterError),
+    #[error(transparent)]
+    Erc20Error(Box<Erc20Error>),
+    #[error(transparent)]
+    FromUint8Error(#[from] FromUintError<u8>),
+    #[error("Missing decimals for token {0}")]
+    MissingErc20Decimals(String),
 }
 
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<Erc20Error> for RaindexError {
+    fn from(err: Erc20Error) -> Self {
+        Self::Erc20Error(Box::new(err))
     }
 }
 
@@ -333,6 +351,21 @@ impl RaindexError {
             }
             RaindexError::InvalidVaultBalanceChangeType(typ) => {
                 format!("Invalid vault balance change type: {}", typ)
+            }
+            RaindexError::AmountFormatterError(err) => {
+                format!("There was a problem formatting the amount: {}", err)
+            }
+            RaindexError::Erc20Error(err) => {
+                format!("There was an error with the ERC20 token: {}", err)
+            }
+            RaindexError::FromUint8Error(err) => {
+                format!("There was an error converting from u8 number: {}", err)
+            }
+            RaindexError::MissingErc20Decimals(token) => {
+                format!(
+                    "Missing decimal information for the token address: {}",
+                    token
+                )
             }
         }
     }

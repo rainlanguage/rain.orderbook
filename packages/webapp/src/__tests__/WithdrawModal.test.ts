@@ -38,7 +38,8 @@ describe('WithdrawModal', () => {
 			decimals: '18'
 		},
 		vaultId: '1',
-		balance: BigInt(1000000000000000000) // 1 token
+		balance: BigInt(1000000000000000000), // 1 token
+		formattedBalance: '1'
 	} as unknown as RaindexVault;
 
 	const mockOnSubmit = vi.fn();
@@ -164,7 +165,8 @@ describe('WithdrawModal', () => {
 	it('handles zero vault balance correctly', async () => {
 		const mockVaultWithZeroBalance = {
 			...mockVault,
-			balance: BigInt(0)
+			balance: BigInt(0),
+			formattedBalance: '0'
 		} as unknown as RaindexVault;
 
 		render(WithdrawModal, {
@@ -193,7 +195,8 @@ describe('WithdrawModal', () => {
 	it('displays vault balance correctly', async () => {
 		const mockVaultWithBalance = {
 			...mockVault,
-			balance: BigInt(3700000000000000000) // 3.7 tokens
+			balance: BigInt('3700000000000000000'), // 3.7 tokens
+			formattedBalance: '3.7'
 		} as unknown as RaindexVault;
 
 		render(WithdrawModal, {

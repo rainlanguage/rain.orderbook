@@ -128,7 +128,7 @@
           Vault Balance
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {formatUnits(BigInt(vault.balance), Number(vault.token.decimals ?? 0))}
+          {vault.formattedBalance}
         </p>
       </div>
     </div>
