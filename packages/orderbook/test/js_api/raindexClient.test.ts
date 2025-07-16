@@ -1881,6 +1881,30 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result[0].id, 'token1');
 			assert.equal(result[0].chainId, 1);
 		});
+
+		it('should fetch account balance from a raindex vault instance', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer.forPost('/rpc1').thenReply(
+				200,
+				JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					result: '0x00000000000000000000000000000000000000000000000000000000000003e8'
+				})
+			);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const res = extractWasmEncodedData(await vault.getOwnerBalance());
+			assert.equal(res.balance, BigInt(1000));
+			assert.equal(res.formattedBalance, '0.000000000000001');
+		});
 	});
 
 	describe('Transactions', () => {

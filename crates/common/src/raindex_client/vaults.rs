@@ -1,6 +1,7 @@
 use super::*;
 use crate::{
     deposit::DepositArgs,
+    erc20::ERC20,
     raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
     transaction::TransactionArgs,
     utils::amount_formatter::{format_amount_i256, format_amount_u256},
@@ -152,6 +153,16 @@ impl RaindexVault {
         self.orders_as_outputs.clone()
     }
 }
+
+/// Represents the balance of an account.
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountBalance {
+    #[tsify(type = "bigint")]
+    pub balance: U256,
+    pub formatted_balance: String,
+}
+impl_wasm_traits!(AccountBalance);
 
 /// Token metadata associated with a vault in the Raindex system.
 ///
@@ -467,6 +478,51 @@ impl RaindexVault {
             .read_allowance(self.owner, transaction_args.clone())
             .await?;
         Ok(RaindexVaultAllowance(allowance))
+    }
+
+    /// Fetches the balance of the owner for this vault
+    ///
+    /// Retrieves the current balance of the vault owner.
+    /// The returned balance is an object containing both raw and formatted values.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = await vault.getOwnerBalance();
+    /// if (result.error) {
+    ///  console.error("Error fetching balance:", result.error.readableMsg);
+    /// return;
+    /// }
+    /// const accountBalance = result.value;
+    /// console.log("Raw balance:", accountBalance.balance);
+    /// console.log("Formatted balance:", accountBalance.formattedBalance);
+    /// ```
+    #[wasm_export(
+        js_name = "getOwnerBalance",
+        return_description = "Owner balance in both raw and human-readable format",
+        unchecked_return_type = "AccountBalance"
+    )]
+    pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
+        let balance = self.clone().get_owner_balance(self.owner).await?;
+        let decimals = self.token.decimals.try_into()?;
+        let account_balance = AccountBalance {
+            balance,
+            formatted_balance: format_amount_u256(balance, decimals)?,
+        };
+        Ok(account_balance)
+    }
+}
+impl RaindexVault {
+    pub async fn get_owner_balance(self, owner: Address) -> Result<U256, RaindexError> {
+        let rpcs = {
+            let raindex_client = self
+                .raindex_client
+                .read()
+                .map_err(|_| YamlError::ReadLockError)?;
+            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
+        };
+        let erc20 = ERC20::new(rpcs, self.token.address);
+        Ok(erc20.get_account_balance(owner).await?)
     }
 }
 
@@ -2241,6 +2297,54 @@ mod tests {
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].id(), "token1");
             assert_eq!(result[0].chain_id(), 1);
+        }
+
+        #[tokio::test]
+        async fn test_get_account_balance_from_vault() {
+            let server = MockServer::start_async().await;
+            server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vault": get_vault1_json()
+                    }
+                }));
+            });
+            server.mock(|when, then| {
+                when.method("POST")
+                    .path("/rpc1")
+                    .body_contains("0x70a08231");
+                then.body(
+                    Response::new_success(
+                        1,
+                        "0x00000000000000000000000000000000000000000000000000000000000003e8",
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &server.url("/sg1"),
+                    &server.url("/sg2"),
+                    &server.url("/rpc1"),
+                    &server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+            let vault = raindex_client
+                .get_vault(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
+                .await
+                .unwrap();
+
+            let balance = vault.get_owner_balance(Address::random()).await.unwrap();
+            assert_eq!(balance, U256::from(1000));
         }
     }
 }
