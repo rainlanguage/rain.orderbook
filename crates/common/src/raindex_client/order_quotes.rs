@@ -1,7 +1,32 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use alloy::primitives::U256;
-use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse};
+use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, Pair};
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RaindexOrderQuotes {
+    pub pair: Pair,
+    pub block_number: Option<u64>,
+    pub data: Option<RaindexOrderQuoteValue>,
+    pub success: bool,
+    pub error: Option<String>,
+}
+impl_wasm_traits!(RaindexOrderQuotes);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RaindexOrderQuoteValue {
+    pub max_output: U256,
+    pub formatted_max_output: String,
+    pub max_input: U256,
+    pub formatted_max_input: String,
+    pub ratio: U256,
+    pub formatted_ratio: String,
+    pub inverse_ratio: U256,
+    pub formatted_inverse_ratio: String,
+}
+impl_wasm_traits!(RaindexOrderQuoteValue);
 
 #[wasm_export]
 impl RaindexOrder {
