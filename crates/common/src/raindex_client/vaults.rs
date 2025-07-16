@@ -930,7 +930,9 @@ impl RaindexClient {
                 .iter()
                 .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
                 .map(|(chain_id, _)| *chain_id)
-                .unwrap();
+                .ok_or(RaindexError::SubgraphNotConfigured(
+                    vault.subgraph_name.clone(),
+                ))?;
             let vault = RaindexVault::try_from_sg_vault(
                 raindex_client.clone(),
                 chain_id,
