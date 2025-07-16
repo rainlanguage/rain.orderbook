@@ -17,18 +17,8 @@ export function prepareHistoricalOrderChartData(
 ) {
 	const transformedData = takeOrderEntities.map((d) => ({
 		value: Math.abs(
-			Number(
-				formatUnits(
-					BigInt(d.inputVaultBalanceChange.amount),
-					Number(d.inputVaultBalanceChange.token.decimals ?? 0)
-				)
-			) /
-				Number(
-					formatUnits(
-						BigInt(d.outputVaultBalanceChange.amount),
-						Number(d.outputVaultBalanceChange.token.decimals ?? 0)
-					)
-				)
+			Number(d.inputVaultBalanceChange.formattedAmount) /
+				Number(d.outputVaultBalanceChange.formattedAmount)
 		),
 		time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
 		color: colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
