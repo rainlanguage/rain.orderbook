@@ -137,12 +137,11 @@ impl RaindexOrder {
             )
             .await?;
 
-        let mut result_trades = Vec::new();
-        for trade in trades {
-            let raindex_trade = RaindexTrade::try_from_sg_trade(self.chain_id(), trade)?;
-            result_trades.push(raindex_trade);
-        }
-        Ok(result_trades)
+        let trades = trades
+            .into_iter()
+            .map(|trade| RaindexTrade::try_from_sg_trade(self.chain_id(), trade))
+            .collect::<Result<Vec<RaindexTrade>, RaindexError>>()?;
+        Ok(trades)
     }
 
     /// Fetches detailed information for a specific trade

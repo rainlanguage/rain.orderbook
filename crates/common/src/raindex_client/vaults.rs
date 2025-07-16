@@ -269,15 +269,13 @@ impl RaindexVault {
             )
             .await?;
 
-        let mut result_balance_changes = Vec::new();
-        for balance_change in balance_changes {
-            let formatted_balance_change = RaindexVaultBalanceChange::try_from_sg_balance_change(
-                self.chain_id,
-                balance_change,
-            )?;
-            result_balance_changes.push(formatted_balance_change);
-        }
-        Ok(result_balance_changes)
+        let balance_changes = balance_changes
+            .into_iter()
+            .map(|balance_change| {
+                RaindexVaultBalanceChange::try_from_sg_balance_change(self.chain_id, balance_change)
+            })
+            .collect::<Result<Vec<RaindexVaultBalanceChange>, RaindexError>>()?;
+        Ok(balance_changes)
     }
 
     fn validate_amount(&self, amount: &str) -> Result<U256, RaindexError> {
@@ -905,25 +903,24 @@ impl RaindexClient {
             )
             .await;
 
-        let mut result_vaults = Vec::new();
-        for vault in vaults.iter() {
-            let chain_id = multi_subgraph_args
-                .iter()
-                .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
-                .map(|(chain_id, _)| *chain_id)
-                .ok_or(RaindexError::SubgraphNotConfigured(
-                    vault.subgraph_name.clone(),
-                ))?;
-            let vault = RaindexVault::try_from_sg_vault(
-                raindex_client.clone(),
-                chain_id,
-                vault.vault.clone(),
-                None,
-            )?;
-            result_vaults.push(vault);
-        }
-
-        Ok(result_vaults)
+        let vaults = vaults
+            .iter()
+            .map(|vault| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .unwrap();
+                let vault = RaindexVault::try_from_sg_vault(
+                    raindex_client.clone(),
+                    chain_id,
+                    vault.vault.clone(),
+                    None,
+                )?;
+                Ok(vault)
+            })
+            .collect::<Result<Vec<RaindexVault>, RaindexError>>()?;
+        Ok(vaults)
     }
 
     /// Fetches detailed information for a specific vault
@@ -1012,21 +1009,23 @@ impl RaindexClient {
         );
 
         let token_list = client.tokens_list().await;
+        let tokens = token_list
+            .iter()
+            .map(|v| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == v.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .ok_or(RaindexError::SubgraphNotFound(
+                        v.subgraph_name.clone(),
+                        v.token.address.0.clone(),
+                    ))?;
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, v.token.clone())?;
+                Ok(token)
+            })
+            .collect::<Result<Vec<RaindexVaultToken>, RaindexError>>()?;
 
-        let mut result_tokens = vec![];
-        for token in token_list {
-            let chain_id = multi_subgraph_args
-                .iter()
-                .find(|(_, args)| args.iter().any(|arg| arg.name == token.subgraph_name))
-                .map(|(chain_id, _)| *chain_id)
-                .ok_or(RaindexError::SubgraphNotFound(
-                    token.subgraph_name.clone(),
-                    token.token.address.0.clone(),
-                ))?;
-            let token = RaindexVaultToken::try_from_sg_erc20(chain_id, token.token.clone())?;
-            result_tokens.push(token);
-        }
-        Ok(result_tokens)
+        Ok(tokens)
     }
 }
 impl RaindexClient {
