@@ -157,13 +157,9 @@ export function handleClearBounty(
 ): void {
   const calculator = getCalculator();
 
-  const zeroResult = calculator.parse("0");
-
-  if (zeroResult.getValue0().notEqual(Bytes.fromHexString("0x00000000"))) {
-    throw new Error("Non-zero error selector encountered when parsing zero");
-  }
-
-  const zero = zeroResult.getValue1();
+  const zero = Bytes.fromHexString(
+    "0x0000000000000000000000000000000000000000000000000000000000000000"
+  );
 
   let aliceClearBounty: Bytes | null = null;
   let bobClearBounty: Bytes | null = null;
