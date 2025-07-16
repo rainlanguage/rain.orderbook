@@ -1,15 +1,16 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { RaindexVault } from '@rainlanguage/orderbook';
+  import type { AccountBalance, RaindexVault } from '@rainlanguage/orderbook';
   import { vaultDeposit } from '$lib/services/vault';
   import { InputTokenAmount } from '@rainlanguage/ui-components';
-  import { ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
+  import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import { formatUnits, hexToBytes, toHex } from 'viem';
+  import { hexToBytes, toHex } from 'viem';
   import { onMount } from 'svelte';
+  import { walletconnectAccount } from '$lib/stores/walletconnect';
 
   export let open = false;
   export let vault: RaindexVault;
@@ -17,7 +18,7 @@
   let amount: bigint;
   let isSubmitting = false;
   let selectWallet = false;
-  let userBalance: bigint = 0n;
+  let userBalance: AccountBalance = { balance: BigInt(0), formattedBalance: '0' };
 
   function reset() {
     open = false;
@@ -73,11 +74,15 @@
   }
 
   async function fetchUserBalance() {
-    try {
-      userBalance = (await checkERC20Balance(vault.token.address)).toBigInt();
-    } catch (_e) {
-      userBalance = 0n;
+    if (!$walletconnectAccount) {
+      userBalance = { balance: BigInt(0), formattedBalance: '0' };
+      return;
     }
+    const balance = await vault.token.getAccountBalance($walletconnectAccount);
+    if (balance.error) {
+      throw new Error(balance.error.readableMsg);
+    }
+    userBalance = balance.value;
   }
 
   onMount(() => {
@@ -120,7 +125,7 @@
           Your Balance
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {formatUnits(userBalance, Number(vault.token.decimals ?? 0))}
+          {userBalance.formattedBalance}
         </p>
       </div>
       <div class="w-1/2">
@@ -145,7 +150,7 @@
           bind:value={amount}
           symbol={vault.token.symbol}
           decimals={Number(vault.token.decimals) ?? 0}
-          maxValue={userBalance}
+          maxValue={userBalance.balance}
         />
       </ButtonGroup>
     </div>
