@@ -287,7 +287,11 @@ impl RaindexOrder {
             .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
             .await?;
         for volume in volumes {
-            let volume = RaindexVaultVolume::try_from_vault_volume(self.chain_id, volume)?;
+            let volume = RaindexVaultVolume::try_from_vault_volume(
+                self.raindex_client.clone(),
+                self.chain_id,
+                volume,
+            )?;
             result_volumes.push(volume);
         }
         Ok(result_volumes)

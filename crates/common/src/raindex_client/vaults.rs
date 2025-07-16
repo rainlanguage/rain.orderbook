@@ -1,6 +1,7 @@
 use super::*;
 use crate::{
     deposit::DepositArgs,
+    erc20::ERC20,
     raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
     transaction::TransactionArgs,
     utils::amount_formatter::{format_amount_i256, format_amount_u256},
@@ -334,7 +335,11 @@ impl RaindexVault {
         let balance_changes = balance_changes
             .into_iter()
             .map(|balance_change| {
-                RaindexVaultBalanceChange::try_from_sg_balance_change(self.chain_id, balance_change)
+                RaindexVaultBalanceChange::try_from_sg_balance_change(
+                    self.raindex_client.clone(),
+                    self.chain_id,
+                    balance_change,
+                )
             })
             .collect::<Result<Vec<RaindexVaultBalanceChange>, RaindexError>>()?;
         Ok(balance_changes)
@@ -676,10 +681,15 @@ impl_wasm_traits!(RaindexVaultAllowance);
 
 impl RaindexVaultBalanceChange {
     pub fn try_from_sg_balance_change(
+        raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         balance_change: SgVaultBalanceChangeUnwrapped,
     ) -> Result<Self, RaindexError> {
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
+        let token = RaindexVaultToken::try_from_sg_erc20(
+            raindex_client.clone(),
+            chain_id,
+            balance_change.vault.token,
+        )?;
 
         let amount = I256::from_str(&balance_change.amount.0)?;
         let new_balance = U256::from_str(&balance_change.new_vault_balance.0)?;
@@ -709,10 +719,15 @@ impl RaindexVaultBalanceChange {
 
 impl RaindexVaultBalanceChange {
     pub fn try_from_sg_trade_balance_change(
+        raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         balance_change: SgTradeVaultBalanceChange,
     ) -> Result<Self, RaindexError> {
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
+        let token = RaindexVaultToken::try_from_sg_erc20(
+            raindex_client.clone(),
+            chain_id,
+            balance_change.vault.token,
+        )?;
 
         let amount = I256::from_str(&balance_change.amount.0)?;
         let new_balance = U256::from_str(&balance_change.new_vault_balance.0)?;
@@ -778,10 +793,15 @@ impl RaindexVaultVolume {
 }
 impl RaindexVaultVolume {
     pub fn try_from_vault_volume(
+        raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         vault_volume: VaultVolume,
     ) -> Result<Self, RaindexError> {
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault_volume.token)?;
+        let token = RaindexVaultToken::try_from_sg_erc20(
+            raindex_client.clone(),
+            chain_id,
+            vault_volume.token,
+        )?;
         let details = RaindexVaultVolumeDetails::try_from_volume_details(
             token.clone(),
             vault_volume.vol_details,
@@ -1082,7 +1102,11 @@ impl RaindexClient {
                         v.subgraph_name.clone(),
                         v.token.address.0.clone(),
                     ))?;
-                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, v.token.clone())?;
+                let token = RaindexVaultToken::try_from_sg_erc20(
+                    Arc::new(RwLock::new(self.clone())),
+                    chain_id,
+                    v.token.clone(),
+                )?;
                 Ok(token)
             })
             .collect::<Result<Vec<RaindexVaultToken>, RaindexError>>()?;
@@ -1149,7 +1173,8 @@ impl RaindexVault {
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?;
+        let token =
+            RaindexVaultToken::try_from_sg_erc20(raindex_client.clone(), chain_id, vault.token)?;
 
         let balance = U256::from_str(&vault.balance.0)?;
         let formatted_balance = format_amount_u256(balance, token.decimals.try_into()?)?;
@@ -1221,7 +1246,11 @@ impl RaindexVault {
 }
 
 impl RaindexVaultToken {
-    fn try_from_sg_erc20(chain_id: u32, erc20: SgErc20) -> Result<Self, RaindexError> {
+    fn try_from_sg_erc20(
+        raindex_client: Arc<RwLock<RaindexClient>>,
+        chain_id: u32,
+        erc20: SgErc20,
+    ) -> Result<Self, RaindexError> {
         let address = Address::from_str(&erc20.address.0)?;
         let decimals = erc20
             .decimals
