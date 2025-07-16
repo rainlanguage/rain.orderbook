@@ -154,6 +154,16 @@ impl RaindexVault {
     }
 }
 
+/// Represents the balance of an account.
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountBalance {
+    #[tsify(type = "string")]
+    pub balance: U256,
+    pub formatted_balance: String,
+}
+impl_wasm_traits!(AccountBalance);
+
 /// Token metadata associated with a vault in the Raindex system.
 ///
 /// Contains comprehensive information about the ERC20 token held within a vault,
@@ -227,32 +237,37 @@ impl RaindexVaultToken {
     /// Fetches the balance of a specific account for this vault token
     ///
     /// Retrieves the current balance of a given account address.
-    /// The returned balance is formatted as a human-readable string.
+    /// The returned balance is an object containing both raw and formatted values.
     ///
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await vaultToken.getFormattedAccountBalance("0x1234...");
+    /// const result = await vaultToken.getAccountBalance("0x1234...");
     /// if (result.error) {
     ///  console.error("Error fetching balance:", result.error.readableMsg);
     /// return;
     /// }
-    /// const balance = result.value;
-    /// console.log("Account balance:", balance);
+    /// const accountBalance = result.value;
+    /// console.log("Raw balance:", accountBalance.balance);
+    /// console.log("Formatted balance:", accountBalance.formattedBalance);
     /// ```
     #[wasm_export(
-        js_name = "getFormattedAccountBalance",
-        return_description = "Account balance in human-readable format",
-        unchecked_return_type = "string"
+        js_name = "getAccountBalance",
+        return_description = "Account balance in both raw and human-readable format",
+        unchecked_return_type = "AccountBalance"
     )]
-    pub async fn get_formatted_account_balance_wasm_binding(
+    pub async fn get_account_balance_wasm_binding(
         &self,
         #[wasm_export(param_description = "Account address to check balance for")] account: String,
-    ) -> Result<String, RaindexError> {
+    ) -> Result<AccountBalance, RaindexError> {
         let account = Address::from_str(&account)?;
         let balance = self.clone().get_account_balance(account).await?;
         let decimals = self.decimals.try_into()?;
-        Ok(format_amount_u256(balance, decimals)?)
+        let account_balance = AccountBalance {
+            balance,
+            formatted_balance: format_amount_u256(balance, decimals)?,
+        };
+        Ok(account_balance)
     }
 }
 impl RaindexVaultToken {

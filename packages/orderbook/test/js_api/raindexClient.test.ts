@@ -1902,9 +1902,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const res = extractWasmEncodedData(
-				await vault.token.getFormattedAccountBalance('0x0000000000000000000000000000000000000000')
+				await vault.token.getAccountBalance('0x0000000000000000000000000000000000000000')
 			);
-			assert.equal(res, '0.000000000000001');
+			assert.equal(res.balance, BigInt(1000));
+			assert.equal(res.formattedBalance, '0.000000000000001');
 		});
 	});
 
