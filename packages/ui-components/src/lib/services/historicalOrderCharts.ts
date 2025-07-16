@@ -68,6 +68,7 @@ if (import.meta.vitest) {
 				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
 					amount: BigInt(100),
+					formattedAmount: '100',
 					vaultId: BigInt(1),
 					__typename: 'Withdraw',
 					token: {
@@ -78,7 +79,9 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
@@ -99,9 +102,12 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					amount: BigInt(50),
+					formattedAmount: '50',
 					__typename: 'Withdraw',
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
@@ -124,6 +130,7 @@ if (import.meta.vitest) {
 				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
 					amount: BigInt(100),
+					formattedAmount: '100',
 					vaultId: BigInt(1),
 					token: {
 						id: 'output_token',
@@ -133,7 +140,9 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					__typename: 'Withdraw',
 					timestamp: BigInt(0),
 					transaction: {
@@ -155,9 +164,12 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					amount: BigInt(50),
+					formattedAmount: '50',
 					__typename: 'Withdraw',
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
@@ -180,6 +192,7 @@ if (import.meta.vitest) {
 				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
 					amount: BigInt(100),
+					formattedAmount: '100',
 					vaultId: BigInt(1),
 					token: {
 						id: 'output_token',
@@ -189,7 +202,9 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					__typename: 'Withdraw',
 					timestamp: BigInt(0),
 					transaction: {
@@ -211,8 +226,11 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					amount: BigInt(50),
+					formattedAmount: '50',
 					__typename: 'Withdraw',
 					timestamp: BigInt(0),
 					transaction: {
@@ -256,6 +274,7 @@ if (import.meta.vitest) {
 				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
 					amount: BigInt(100),
+					formattedAmount: '100',
 					vaultId: BigInt(1),
 					token: {
 						id: 'output_token',
@@ -265,7 +284,9 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
@@ -287,8 +308,11 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					amount: BigInt(50),
+					formattedAmount: '50',
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
@@ -311,6 +335,7 @@ if (import.meta.vitest) {
 				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
 					amount: BigInt(200),
+					formattedAmount: '200',
 					vaultId: BigInt(1),
 					token: {
 						id: 'output_token',
@@ -320,7 +345,9 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
@@ -341,8 +368,11 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					amount: BigInt(50),
+					formattedAmount: '50',
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
@@ -365,6 +395,7 @@ if (import.meta.vitest) {
 				} as unknown as RaindexTransaction,
 				outputVaultBalanceChange: {
 					amount: BigInt(400),
+					formattedAmount: '400',
 					vaultId: BigInt(1),
 					token: {
 						id: 'output_token',
@@ -374,7 +405,9 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
@@ -395,8 +428,11 @@ if (import.meta.vitest) {
 						decimals: BigInt(1)
 					} as unknown as RaindexVaultToken,
 					amount: BigInt(50),
+					formattedAmount: '50',
 					newBalance: BigInt(0),
+					formattedNewBalance: '0',
 					oldBalance: BigInt(0),
+					formattedOldBalance: '0',
 					timestamp: BigInt(0),
 					transaction: {
 						id: 'transaction_id',
