@@ -5,7 +5,8 @@
 	import {
 		handleDepositModal,
 		handleTransactionConfirmationModal,
-		handleWithdrawModal
+		handleWithdrawModal,
+		handleWithdrawMultipleModal
 	} from '$lib/services/modal';
 	import type { Address, RaindexClient, RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
@@ -13,6 +14,7 @@
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
+	import { handleMultipleVaultsWithdraw } from '../../../lib/services/handleMultipleVaultsWithdraw';
 
 	const { orderHash, chainId, orderbook } = $page.params;
 	const parsedOrderHash = orderHash as Hex;
@@ -56,6 +58,18 @@
 			account: $account as Hex
 		});
 	}
+
+	async function onWithdrawAll(raindexClient: RaindexClient, vaults: RaindexVault[]) {
+		await handleMultipleVaultsWithdraw({
+			raindexClient,
+			vaults,
+			handleWithdrawModal: handleWithdrawMultipleModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			account: $account as Hex
+		});
+	}
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -70,4 +84,5 @@
 	{onRemove}
 	{onDeposit}
 	{onWithdraw}
+	{onWithdrawAll}
 />

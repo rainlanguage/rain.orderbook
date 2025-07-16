@@ -59,6 +59,11 @@
 	 */
 	export let onWithdraw: (raindexClient: RaindexClient, vault: RaindexVault) => void;
 
+	/** Callback function when withdraw all action is triggered for an order
+	 * @param vaults The vaults to withdraw from
+	 */
+	export let onWithdrawAll: (raindexClient: RaindexClient, vaults: RaindexVault[]) => void;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -89,6 +94,48 @@
 			await invalidateTanstackQueries(queryClient, [orderHash]);
 		} catch {
 			errToast('Failed to refresh');
+		}
+	};
+
+	enum VaultType {
+		Output = 'output',
+		Input = 'input',
+		InputOutput = 'inputOutput'
+	}
+	type VaultsGroupedByType = {
+		[VaultType.Output]: RaindexVault[];
+		[VaultType.Input]: RaindexVault[];
+		[VaultType.InputOutput]: RaindexVault[];
+	};
+	const vaultTypes = [
+		{ key: 'Output vaults', type: VaultType.Output },
+		{ key: 'Input vaults', type: VaultType.Input },
+		{ key: 'Input & output vaults', type: VaultType.InputOutput }
+	];
+	const getDefaultVaultsGroupedByType = (): VaultsGroupedByType => ({
+		[VaultType.Output]: [],
+		[VaultType.Input]: [],
+		[VaultType.InputOutput]: []
+	});
+
+	$: vaultsGroupedByTypes =
+		$orderDetailQuery?.data?.vaults?.reduce((acc, vault) => {
+			const type = vault.vaultType || 'inputOutput';
+			if (!acc[type]) acc[type] = [];
+			acc[type].push(vault);
+			return acc;
+		}, getDefaultVaultsGroupedByType()) || getDefaultVaultsGroupedByType();
+
+	const getWithdrawAllLabel = (type: VaultType) => {
+		switch (type) {
+			case VaultType.Output:
+				return 'Withdraw outputs';
+			case VaultType.Input:
+				return 'Withdraw inputs';
+			case VaultType.InputOutput:
+				return 'Withdraw inputs & outputs';
+			default:
+				return 'Withdraw all vaults';
 		}
 	};
 </script>
@@ -148,19 +195,33 @@
 				</svelte:fragment>
 			</CardProperty>
 
-			{#each [{ key: 'Output vaults', type: 'output' }, { key: 'Input vaults', type: 'input' }, { key: 'Input & output vaults', type: 'inputOutput' }] as { key, type }}
-				{@const filteredVaults = data.vaults.filter((vault) => vault.vaultType === type)}
+			{#each vaultTypes as { key, type }}
+				{@const filteredVaults = vaultsGroupedByTypes[type]}
 				{#if filteredVaults.length !== 0}
 					<CardProperty>
-						<svelte:fragment slot="key"
-							><div class="flex items-center gap-x-2">
-								{key}
-								{#if type === 'InputOutput'}
-									<InfoCircleOutline class="h-4 w-4" /><Tooltip
-										>{'These vaults can be an input or an output for this order'}</Tooltip
-									>{/if}
-							</div></svelte:fragment
-						>
+						<svelte:fragment slot="key">
+							<div class="flex items-center justify-between gap-x-2">
+								<div>
+									{key}
+									{#if type === VaultType.InputOutput}
+										<InfoCircleOutline class="h-4 w-4" />
+										<Tooltip>{'These vaults can be an input or an output for this order'}</Tooltip>
+									{/if}
+								</div>
+								<div>
+									{#if filteredVaults.every((vault) => matchesAccount(vault.owner))}
+										<Button
+											size="xs"
+											on:click={() => onWithdrawAll(raindexClient, filteredVaults)}
+											data-testid={`withdraw-all-${type}`}
+										>
+											<ArrowUpFromBracketOutline size="xs" class="mr-2" />
+											{getWithdrawAllLabel(type)}
+										</Button>
+									{/if}
+								</div>
+							</div>
+						</svelte:fragment>
 						<svelte:fragment slot="value">
 							<div class="mt-2 space-y-2">
 								{#each filteredVaults as vault}
@@ -194,6 +255,17 @@
 					</CardProperty>
 				{/if}
 			{/each}
+			<!-- If there are different vault types — show additional withdraw all button below all vaults -->
+			{#if data.vaults.every( (vault) => matchesAccount(vault.owner) ) && vaultsGroupedByTypes[VaultType.InputOutput].length !== data.vaults.length}
+				<Button
+					size="xs"
+					on:click={() => onWithdrawAll(raindexClient, data.vaults)}
+					data-testid="withdraw-all-button"
+				>
+					<ArrowUpFromBracketOutline class="mr-2" />
+					Withdraw all vaults
+				</Button>
+			{/if}
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="chart" let:data>

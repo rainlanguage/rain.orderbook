@@ -7,6 +7,8 @@ import {
 	type DisclaimerModalProps,
 	type VaultActionModalProps
 } from '@rainlanguage/ui-components';
+import WithdrawMultipleModal from '$lib/components/WithdrawMultipleModal.svelte';
+import type { WithdrawMultipleModalProps } from './handleMultipleVaultsWithdraw';
 
 export const handleDepositModal = (props: VaultActionModalProps) => {
 	new DepositModal({ target: document.body, props });
@@ -14,6 +16,10 @@ export const handleDepositModal = (props: VaultActionModalProps) => {
 
 export const handleWithdrawModal = (props: VaultActionModalProps) => {
 	new WithdrawModal({ target: document.body, props });
+};
+
+export const handleWithdrawMultipleModal = (props: WithdrawMultipleModalProps) => {
+	new WithdrawMultipleModal({ target: document.body, props });
 };
 
 export const handleTransactionConfirmationModal = (
