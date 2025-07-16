@@ -25,81 +25,49 @@ import { createTransactionEntity } from "./transaction";
 import { createOrderbookEntity } from "./orderbook";
 
 export function handleDeposit(event: DepositV2): void {
-  try {
-    createTransactionEntity(event);
-    createOrderbookEntity(event);
-    _handleDeposit(event);
-  } catch (e) {
-    log.error("Error in handleDeposit: {}", [e.toString()]);
-  }
+  createTransactionEntity(event);
+  createOrderbookEntity(event);
+  _handleDeposit(event);
 }
 
 export function handleWithdraw(event: WithdrawV2): void {
-  try {
-    createTransactionEntity(event);
-    createOrderbookEntity(event);
-    _handleWithdraw(event);
-  } catch (e) {
-    log.error("Error in handleWithdraw: {}", [e.toString()]);
-  }
+  createTransactionEntity(event);
+  createOrderbookEntity(event);
+  _handleWithdraw(event);
 }
 
 export function handleAddOrder(event: AddOrderV3): void {
-  try {
-    createTransactionEntity(event);
-    createOrderbookEntity(event);
-    _handleAddOrder(event);
-  } catch (e) {
-    log.error("Error in handleAddOrder: {}", [e.toString()]);
-  }
+  createTransactionEntity(event);
+  createOrderbookEntity(event);
+  _handleAddOrder(event);
 }
 
 export function handleRemoveOrder(event: RemoveOrderV3): void {
-  try {
-    createTransactionEntity(event);
-    createOrderbookEntity(event);
-    _handleRemoveOrder(event);
-  } catch (e) {
-    log.error("Error in handleRemoveOrder: {}", [e.toString()]);
-  }
+  createTransactionEntity(event);
+  createOrderbookEntity(event);
+  _handleRemoveOrder(event);
 }
 
 export function handleTakeOrder(event: TakeOrderV3): void {
-  try {
-    createTransactionEntity(event);
-    createOrderbookEntity(event);
-    _handleTakeOrder(event);
-  } catch (e) {
-    log.error("Error in handleTakeOrder: {}", [e.toString()]);
-  }
+  createTransactionEntity(event);
+  createOrderbookEntity(event);
+  _handleTakeOrder(event);
 }
 
 export function handleMeta(event: MetaV1_2): void {
-  try {
-    createTransactionEntity(event);
-    createOrderbookEntity(event);
-    _handleMeta(event);
-  } catch (e) {
-    log.error("Error in handleMeta: {}", [e.toString()]);
-  }
+  createTransactionEntity(event);
+  createOrderbookEntity(event);
+  _handleMeta(event);
 }
 
 export function handleClear(event: ClearV3): void {
-  try {
-    createTransactionEntity(event);
-    createOrderbookEntity(event);
-    _handleClear(event);
-  } catch (e) {
-    log.error("Error in handleClear: {}", [e.toString()]);
-  }
+  createTransactionEntity(event);
+  createOrderbookEntity(event);
+  _handleClear(event);
 }
 
 export function handleAfterClear(event: AfterClearV2): void {
-  try {
-    createTransactionEntity(event);
-    createOrderbookEntity(event);
-    _handleAfterClear(event);
-  } catch (e) {
-    log.error("Error in handleAfterClear: {}", [e.toString()]);
-  }
+  createTransactionEntity(event);
+  createOrderbookEntity(event);
+  _handleAfterClear(event);
 }
