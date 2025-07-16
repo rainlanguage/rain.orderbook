@@ -287,12 +287,7 @@ impl RaindexOrder {
             .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
             .await?;
         for volume in volumes {
-            let volume = RaindexVaultVolume::try_from_vault_volume(
-                self.get_raindex_client().clone(),
-                self.chain_id,
-                volume,
-            )
-            .await?;
+            let volume = RaindexVaultVolume::try_from_vault_volume(self.chain_id, volume)?;
             result_volumes.push(volume);
         }
         Ok(result_volumes)
@@ -611,26 +606,20 @@ impl RaindexOrder {
         let mut outputs: Vec<RaindexVault> = vec![];
 
         for input in order.inputs.iter() {
-            inputs.push(
-                RaindexVault::try_from_sg_vault(
-                    raindex_client.clone(),
-                    chain_id,
-                    input.clone(),
-                    Some(RaindexVaultType::Input),
-                )
-                .await?,
-            );
+            inputs.push(RaindexVault::try_from_sg_vault(
+                raindex_client.clone(),
+                chain_id,
+                input.clone(),
+                Some(RaindexVaultType::Input),
+            )?);
         }
         for output in order.outputs.iter() {
-            outputs.push(
-                RaindexVault::try_from_sg_vault(
-                    raindex_client.clone(),
-                    chain_id,
-                    output.clone(),
-                    Some(RaindexVaultType::Output),
-                )
-                .await?,
-            );
+            outputs.push(RaindexVault::try_from_sg_vault(
+                raindex_client.clone(),
+                chain_id,
+                output.clone(),
+                Some(RaindexVaultType::Output),
+            )?);
         }
 
         Ok(Self {

@@ -240,6 +240,8 @@ pub enum RaindexError {
     Erc20Error(Box<Erc20Error>),
     #[error(transparent)]
     FromUint8Error(#[from] FromUintError<u8>),
+    #[error("Missing decimals for token {0}")]
+    MissingErc20Decimals(String),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -358,6 +360,12 @@ impl RaindexError {
             }
             RaindexError::FromUint8Error(err) => {
                 format!("There was an error converting from u8 number: {}", err)
+            }
+            RaindexError::MissingErc20Decimals(token) => {
+                format!(
+                    "Missing decimal information for the token address: {}",
+                    token
+                )
             }
         }
     }
