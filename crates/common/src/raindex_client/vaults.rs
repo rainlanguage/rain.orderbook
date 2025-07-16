@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     deposit::DepositArgs,
-    erc20::{TokenInfo, ERC20},
+    erc20::ERC20,
     raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
     transaction::TransactionArgs,
     utils::amount_formatter::{format_amount_i256, format_amount_u256},
@@ -169,7 +169,7 @@ pub struct RaindexVaultToken {
     address: Address,
     name: Option<String>,
     symbol: Option<String>,
-    decimals: Option<U256>,
+    decimals: U256,
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
@@ -195,13 +195,9 @@ impl RaindexVaultToken {
         self.symbol.clone()
     }
     #[wasm_bindgen(getter)]
-    pub fn decimals(&self) -> Result<Option<BigInt>, RaindexError> {
-        self.decimals
-            .map(|decimals| {
-                BigInt::from_str(&decimals.to_string())
-                    .map_err(|e| RaindexError::JsError(e.to_string().into()))
-            })
-            .transpose()
+    pub fn decimals(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.decimals.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
 }
 #[cfg(not(target_family = "wasm"))]
@@ -221,14 +217,8 @@ impl RaindexVaultToken {
     pub fn symbol(&self) -> Option<String> {
         self.symbol.clone()
     }
-    pub fn decimals(&self) -> Option<U256> {
+    pub fn decimals(&self) -> U256 {
         self.decimals
-    }
-}
-impl RaindexVaultToken {
-    pub async fn get_token_info(&self, rpcs: Vec<Url>) -> Result<TokenInfo, RaindexError> {
-        let erc20 = ERC20::new(rpcs, self.address);
-        Ok(erc20.token_info(None).await?)
     }
 }
 
@@ -633,30 +623,21 @@ impl RaindexVaultBalanceChange {
         chain_id: u32,
         balance_change: SgVaultBalanceChangeUnwrapped,
     ) -> Result<Self, RaindexError> {
+        let token = RaindexVaultToken::try_from_sg_erc20(
+            raindex_client,
+            chain_id,
+            balance_change.vault.token,
+        )
+        .await?;
+
         let amount = I256::from_str(&balance_change.amount.0)?;
         let new_balance = U256::from_str(&balance_change.new_vault_balance.0)?;
         let old_balance = U256::from_str(&balance_change.old_vault_balance.0)?;
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
 
-        let (formatted_amount, formatted_new_balance, formatted_old_balance) = {
-            let rpcs = {
-                let client = raindex_client
-                    .read()
-                    .map_err(|_| YamlError::ReadLockError)?;
-                client.get_rpc_urls_for_chain(chain_id)?
-            };
-
-            let decimals = match token.decimals {
-                Some(d) => d.try_into()?,
-                None => token.get_token_info(rpcs).await?.decimals,
-            };
-
-            (
-                format_amount_i256(amount, decimals)?,
-                format_amount_u256(new_balance, decimals)?,
-                format_amount_u256(old_balance, decimals)?,
-            )
-        };
+        let decimals: u8 = token.decimals.try_into()?;
+        let formatted_amount = format_amount_i256(amount, decimals)?;
+        let formatted_new_balance = format_amount_u256(new_balance, decimals)?;
+        let formatted_old_balance = format_amount_u256(old_balance, decimals)?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
@@ -681,30 +662,21 @@ impl RaindexVaultBalanceChange {
         chain_id: u32,
         balance_change: SgTradeVaultBalanceChange,
     ) -> Result<Self, RaindexError> {
+        let token = RaindexVaultToken::try_from_sg_erc20(
+            raindex_client,
+            chain_id,
+            balance_change.vault.token,
+        )
+        .await?;
+
         let amount = I256::from_str(&balance_change.amount.0)?;
         let new_balance = U256::from_str(&balance_change.new_vault_balance.0)?;
         let old_balance = U256::from_str(&balance_change.old_vault_balance.0)?;
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
 
-        let (formatted_amount, formatted_new_balance, formatted_old_balance) = {
-            let rpcs = {
-                let client = raindex_client
-                    .read()
-                    .map_err(|_| YamlError::ReadLockError)?;
-                client.get_rpc_urls_for_chain(chain_id)?
-            };
-
-            let decimals = match token.decimals {
-                Some(d) => d.try_into()?,
-                None => token.get_token_info(rpcs).await?.decimals,
-            };
-
-            (
-                format_amount_i256(amount, decimals)?,
-                format_amount_u256(new_balance, decimals)?,
-                format_amount_u256(old_balance, decimals)?,
-            )
-        };
+        let decimals: u8 = token.decimals.try_into()?;
+        let formatted_amount = format_amount_i256(amount, decimals)?;
+        let formatted_new_balance = format_amount_u256(new_balance, decimals)?;
+        let formatted_old_balance = format_amount_u256(old_balance, decimals)?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
@@ -765,9 +737,10 @@ impl RaindexVaultVolume {
         chain_id: u32,
         vault_volume: VaultVolume,
     ) -> Result<Self, RaindexError> {
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault_volume.token)?;
+        let token =
+            RaindexVaultToken::try_from_sg_erc20(raindex_client, chain_id, vault_volume.token)
+                .await?;
         let details = RaindexVaultVolumeDetails::try_from_volume_details(
-            raindex_client.clone(),
             token.clone(),
             vault_volume.vol_details,
         )
@@ -862,30 +835,14 @@ impl RaindexVaultVolumeDetails {
 }
 impl RaindexVaultVolumeDetails {
     pub async fn try_from_volume_details(
-        raindex_client: Arc<RwLock<RaindexClient>>,
         token: RaindexVaultToken,
         volume_details: VolumeDetails,
     ) -> Result<Self, RaindexError> {
-        let (formatted_total_in, formatted_total_out, formatted_total_vol, formatted_net_vol) = {
-            let rpcs = {
-                let client = raindex_client
-                    .read()
-                    .map_err(|_| YamlError::ReadLockError)?;
-                client.get_rpc_urls_for_chain(token.chain_id)?
-            };
-
-            let decimals = match token.decimals {
-                Some(d) => d.try_into()?,
-                None => token.get_token_info(rpcs).await?.decimals,
-            };
-
-            (
-                format_amount_u256(volume_details.total_in, decimals)?,
-                format_amount_u256(volume_details.total_out, decimals)?,
-                format_amount_u256(volume_details.total_vol, decimals)?,
-                format_amount_u256(volume_details.net_vol, decimals)?,
-            )
-        };
+        let decimals: u8 = token.decimals.try_into()?;
+        let formatted_total_in = format_amount_u256(volume_details.total_in, decimals)?;
+        let formatted_total_out = format_amount_u256(volume_details.total_out, decimals)?;
+        let formatted_total_vol = format_amount_u256(volume_details.total_vol, decimals)?;
+        let formatted_net_vol = format_amount_u256(volume_details.net_vol, decimals)?;
 
         Ok(Self {
             total_in: volume_details.total_in,
@@ -1066,6 +1023,7 @@ impl RaindexClient {
         )]
         chain_ids: Option<ChainIds>,
     ) -> Result<Vec<RaindexVaultToken>, RaindexError> {
+        let raindex_client = Arc::new(RwLock::new(self.clone()));
         let multi_subgraph_args =
             self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
         let client = MultiOrderbookSubgraphClient::new(
@@ -1073,23 +1031,26 @@ impl RaindexClient {
         );
 
         let token_list = client.tokens_list().await;
-        let tokens = token_list
-            .iter()
-            .map(|v| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == v.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
-                    .ok_or(RaindexError::SubgraphNotFound(
-                        v.subgraph_name.clone(),
-                        v.token.address.0.clone(),
-                    ))?;
-                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, v.token.clone())?;
-                Ok(token)
-            })
-            .collect::<Result<Vec<RaindexVaultToken>, RaindexError>>()?;
 
-        Ok(tokens)
+        let mut result_tokens = vec![];
+        for token in token_list {
+            let chain_id = multi_subgraph_args
+                .iter()
+                .find(|(_, args)| args.iter().any(|arg| arg.name == token.subgraph_name))
+                .map(|(chain_id, _)| *chain_id)
+                .ok_or(RaindexError::SubgraphNotFound(
+                    token.subgraph_name.clone(),
+                    token.token.address.0.clone(),
+                ))?;
+            let token = RaindexVaultToken::try_from_sg_erc20(
+                raindex_client.clone(),
+                chain_id,
+                token.token.clone(),
+            )
+            .await?;
+            result_tokens.push(token);
+        }
+        Ok(result_tokens)
     }
 }
 impl RaindexClient {
@@ -1152,23 +1113,12 @@ impl RaindexVault {
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
+        let token =
+            RaindexVaultToken::try_from_sg_erc20(raindex_client.clone(), chain_id, vault.token)
+                .await?;
+
         let balance = U256::from_str(&vault.balance.0)?;
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?;
-
-        let formatted_balance = {
-            let rpcs = {
-                let client = raindex_client
-                    .read()
-                    .map_err(|_| YamlError::ReadLockError)?;
-                client.get_rpc_urls_for_chain(chain_id)?
-            };
-
-            let decimals = match token.decimals {
-                Some(d) => d.try_into()?,
-                None => token.get_token_info(rpcs).await?.decimals,
-            };
-            format_amount_u256(balance, decimals)?
-        };
+        let formatted_balance = format_amount_u256(balance, token.decimals.try_into()?)?;
 
         Ok(Self {
             raindex_client,
@@ -1237,17 +1187,34 @@ impl RaindexVault {
 }
 
 impl RaindexVaultToken {
-    fn try_from_sg_erc20(chain_id: u32, erc20: SgErc20) -> Result<Self, RaindexError> {
+    async fn try_from_sg_erc20(
+        raindex_client: Arc<RwLock<RaindexClient>>,
+        chain_id: u32,
+        erc20: SgErc20,
+    ) -> Result<Self, RaindexError> {
+        let rpcs = {
+            let client = raindex_client
+                .read()
+                .map_err(|_| YamlError::ReadLockError)?;
+            client.get_rpc_urls_for_chain(chain_id)?
+        };
+
+        let decimals = match erc20.decimals {
+            Some(d) => U256::from_str(&d.0)?,
+            None => {
+                let erc20_client = ERC20::new(rpcs, Address::from_str(&erc20.address.0)?);
+                let decimals = erc20_client.decimals().await?;
+                U256::from(decimals)
+            }
+        };
+
         Ok(Self {
             chain_id,
             id: erc20.id.0,
             address: Address::from_str(&erc20.address.0)?,
             name: erc20.name,
             symbol: erc20.symbol,
-            decimals: erc20
-                .decimals
-                .map(|decimals| U256::from_str(&decimals.0))
-                .transpose()?,
+            decimals,
         })
     }
 }
@@ -1259,9 +1226,7 @@ impl TryFrom<RaindexVaultToken> for SgErc20 {
             address: SgBytes(token.address.to_string()),
             name: token.name,
             symbol: token.symbol,
-            decimals: token
-                .decimals
-                .map(|decimals| SgBigInt(decimals.to_string())),
+            decimals: Some(SgBigInt(token.decimals.to_string())),
         })
     }
 }
@@ -1471,13 +1436,17 @@ mod tests {
             });
             // 6 decimals token info
             sg_server.mock(|when, then| {
-                when.method("POST").path("/rpc1").body_contains("0x82ad56cb");
-                then.body(Response::new_success(
-                    1,
-                    "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000",
-                )
-                .to_json_string()
-                .unwrap());
+                when.method("POST")
+                    .path("/rpc1")
+                    .body_contains("0x313ce567");
+                then.body(
+                    Response::new_success(
+                        1,
+                        "0x0000000000000000000000000000000000000000000000000000000000000006",
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
             });
 
             let raindex_client = RaindexClient::new(
@@ -1606,7 +1575,7 @@ mod tests {
             );
             assert_eq!(result[0].token.name, Some("Wrapped Flare".to_string()));
             assert_eq!(result[0].token.symbol, Some("WFLR".to_string()));
-            assert_eq!(result[0].token.decimals, Some(U256::from(18)));
+            assert_eq!(result[0].token.decimals, U256::from(18));
             assert_eq!(
                 result[0].amount,
                 I256::from_str("5000000000000000000").unwrap()
@@ -1854,13 +1823,17 @@ mod tests {
             });
             // 6 decimals token info
             sg_server.mock(|when, then| {
-                when.method("POST").path("/rpc1").body_contains("0x82ad56cb");
-                then.body(Response::new_success(
-                    1,
-                    "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000",
-                )
-                .to_json_string()
-                .unwrap());
+                when.method("POST")
+                    .path("/rpc1")
+                    .body_contains("0x313ce567");
+                then.body(
+                    Response::new_success(
+                        1,
+                        "0x0000000000000000000000000000000000000000000000000000000000000006",
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
             });
 
             let raindex_client = RaindexClient::new(
@@ -2327,38 +2300,6 @@ mod tests {
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].id(), "token1");
             assert_eq!(result[0].chain_id(), 1);
-        }
-
-        #[tokio::test]
-        async fn test_get_token_info() {
-            let server = MockServer::start_async().await;
-            // 6 decimals token info
-            server.mock(|when, then| {
-                when.method("POST").path("/rpc").body_contains("0x82ad56cb");
-                then.body(Response::new_success(
-                    1,
-                    "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000",
-                )
-                .to_json_string()
-                .unwrap());
-            });
-
-            let raindex_token = RaindexVaultToken {
-                chain_id: 1,
-                id: "token1".to_string(),
-                address: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
-                name: None,
-                symbol: None,
-                decimals: None,
-            };
-
-            let token_info = raindex_token
-                .get_token_info(vec![Url::parse(&server.url("/rpc")).unwrap()])
-                .await
-                .unwrap();
-            assert_eq!(token_info.name, "Token 1");
-            assert_eq!(token_info.symbol, "T1");
-            assert_eq!(token_info.decimals, 6);
         }
     }
 }

@@ -1238,8 +1238,8 @@ mod tests {
                     expected_output.token().symbol()
                 );
                 assert_eq!(
-                    order1_output.token().decimals().unwrap(),
-                    expected_output.token().decimals().unwrap()
+                    order1_output.token().decimals(),
+                    expected_output.token().decimals()
                 );
                 assert_eq!(order1_output.orderbook(), expected_output.orderbook());
             }
@@ -1261,8 +1261,8 @@ mod tests {
                     expected_input.token().symbol()
                 );
                 assert_eq!(
-                    order1_input.token().decimals().unwrap(),
-                    expected_input.token().decimals().unwrap()
+                    order1_input.token().decimals(),
+                    expected_input.token().decimals()
                 );
                 assert_eq!(order1_input.orderbook(), expected_input.orderbook());
             }
@@ -1300,7 +1300,7 @@ mod tests {
             );
             assert_eq!(order2_outputs.token().name(), Some("T1".to_string()));
             assert_eq!(order2_outputs.token().symbol(), Some("T1".to_string()));
-            assert_eq!(order2_outputs.token().decimals(), Some(U256::from(0)));
+            assert_eq!(order2_outputs.token().decimals(), U256::from(0));
             assert_eq!(
                 order2_outputs.orderbook(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1327,7 +1327,7 @@ mod tests {
             );
             assert_eq!(order2_inputs.token().name(), Some("T2".to_string()));
             assert_eq!(order2_inputs.token().symbol(), Some("T2".to_string()));
-            assert_eq!(order2_inputs.token().decimals(), Some(U256::from(0)));
+            assert_eq!(order2_inputs.token().decimals(), U256::from(0));
             assert_eq!(
                 order2_inputs.orderbook(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1494,7 +1494,7 @@ mod tests {
             );
             assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
             assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
-            assert_eq!(volume1.token().decimals(), Some(U256::from(18)));
+            assert_eq!(volume1.token().decimals(), U256::from(18));
             assert_eq!(volume1.details().total_in(), U256::from(1));
             assert_eq!(volume1.details().total_out(), U256::from(0));
             assert_eq!(volume1.details().total_vol(), U256::from(1));
@@ -1508,7 +1508,7 @@ mod tests {
             );
             assert_eq!(volume2.token().name(), Some("Staked FLR".to_string()));
             assert_eq!(volume2.token().symbol(), Some("sFLR".to_string()));
-            assert_eq!(volume2.token().decimals(), Some(U256::from(18)));
+            assert_eq!(volume2.token().decimals(), U256::from(18));
             assert_eq!(volume2.details().total_in(), U256::from(0));
             assert_eq!(volume2.details().total_out(), U256::from(2));
             assert_eq!(volume2.details().total_vol(), U256::from(2));
@@ -1522,7 +1522,7 @@ mod tests {
             );
             assert_eq!(volume3.token().name(), Some("Wrapped Flare".to_string()));
             assert_eq!(volume3.token().symbol(), Some("WFLR".to_string()));
-            assert_eq!(volume3.token().decimals(), Some(U256::from(18)));
+            assert_eq!(volume3.token().decimals(), U256::from(18));
             assert_eq!(volume3.details().total_in(), U256::from(2));
             assert_eq!(volume3.details().total_out(), U256::from(0));
             assert_eq!(volume3.details().total_vol(), U256::from(2));
@@ -1536,7 +1536,7 @@ mod tests {
             );
             assert_eq!(volume4.token().name(), Some("Staked FLR".to_string()));
             assert_eq!(volume4.token().symbol(), Some("sFLR".to_string()));
-            assert_eq!(volume4.token().decimals(), Some(U256::from(18)));
+            assert_eq!(volume4.token().decimals(), U256::from(18));
             assert_eq!(volume4.details().total_in(), U256::from(0));
             assert_eq!(volume4.details().total_out(), U256::from(5));
             assert_eq!(volume4.details().total_vol(), U256::from(5));
