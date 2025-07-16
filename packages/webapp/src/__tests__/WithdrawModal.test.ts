@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import WithdrawModal from '$lib/components/WithdrawModal.svelte';
-import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
 import type { RaindexVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
@@ -9,24 +8,14 @@ import truncateEthAddress from 'truncate-eth-address';
 
 type ModalProps = ComponentProps<WithdrawModal>;
 
-const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await vi.hoisted(
+const { mockAppKitModalStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
 vi.mock('../lib/stores/wagmi', () => ({
 	appKitModal: mockAppKitModalStore,
-	connected: mockConnectedStore,
-	wagmiConfig: mockWagmiConfigStore
+	connected: mockConnectedStore
 }));
-
-vi.mock('@wagmi/core', async (importOriginal) => {
-	const original = (await importOriginal()) as object;
-	return {
-		...original,
-		readContract: vi.fn(),
-		switchChain: vi.fn().mockResolvedValue({ id: 1 })
-	};
-});
 
 describe('WithdrawModal', () => {
 	const mockVault = {
@@ -35,7 +24,13 @@ describe('WithdrawModal', () => {
 		token: {
 			address: '0x123',
 			symbol: 'TEST',
-			decimals: '18'
+			decimals: '18',
+			getAccountBalance: vi.fn().mockResolvedValue({
+				value: {
+					balance: BigInt('1000000000000000000'), // 1 token
+					formattedBalance: '1'
+				}
+			})
 		},
 		vaultId: '1',
 		balance: BigInt(1000000000000000000), // 1 token
@@ -55,9 +50,6 @@ describe('WithdrawModal', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		(readContract as Mock).mockReset();
-		(switchChain as Mock).mockReset();
-		(readContract as Mock).mockResolvedValue(BigInt(1000000000000000000)); // 1 token by default
 		mockOnSubmit.mockClear();
 	});
 
@@ -112,15 +104,6 @@ describe('WithdrawModal', () => {
 		expect(screen.getByTestId('amount-error')).toHaveTextContent(
 			'Amount cannot exceed available balance.'
 		);
-	});
-
-	it('shows chain switch error when switching fails', async () => {
-		(switchChain as Mock).mockRejectedValue(new Error('Failed to switch chain'));
-		render(WithdrawModal, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText(/Switch to .* to check your balance/)).toBeInTheDocument();
-		});
 	});
 
 	it('disables continue button when amount is 0', async () => {
