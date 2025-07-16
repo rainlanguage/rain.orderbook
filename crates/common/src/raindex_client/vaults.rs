@@ -158,7 +158,7 @@ impl RaindexVault {
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountBalance {
-    #[tsify(type = "string")]
+    #[tsify(type = "bigint")]
     pub balance: U256,
     pub formatted_balance: String,
 }
