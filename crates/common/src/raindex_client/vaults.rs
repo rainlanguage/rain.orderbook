@@ -164,6 +164,7 @@ impl RaindexVault {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultToken {
+    raindex_client: Arc<RwLock<RaindexClient>>,
     chain_id: u32,
     id: String,
     address: Address,
@@ -219,6 +220,52 @@ impl RaindexVaultToken {
     }
     pub fn decimals(&self) -> U256 {
         self.decimals
+    }
+}
+#[wasm_export]
+impl RaindexVaultToken {
+    /// Fetches the balance of a specific account for this vault token
+    ///
+    /// Retrieves the current balance of a given account address.
+    /// The returned balance is formatted as a human-readable string.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = await vaultToken.getFormattedAccountBalance("0x1234...");
+    /// if (result.error) {
+    ///  console.error("Error fetching balance:", result.error.readableMsg);
+    /// return;
+    /// }
+    /// const balance = result.value;
+    /// console.log("Account balance:", balance);
+    /// ```
+    #[wasm_export(
+        js_name = "getFormattedAccountBalance",
+        return_description = "Account balance in human-readable format",
+        unchecked_return_type = "string"
+    )]
+    pub async fn get_formatted_account_balance_wasm_binding(
+        &self,
+        #[wasm_export(param_description = "Account address to check balance for")] account: String,
+    ) -> Result<String, RaindexError> {
+        let account = Address::from_str(&account)?;
+        let balance = self.clone().get_account_balance(account).await?;
+        let decimals = self.decimals.try_into()?;
+        Ok(format_amount_u256(balance, decimals)?)
+    }
+}
+impl RaindexVaultToken {
+    pub async fn get_account_balance(self, account: Address) -> Result<U256, RaindexError> {
+        let rpcs = {
+            let raindex_client = self
+                .raindex_client
+                .read()
+                .map_err(|_| YamlError::ReadLockError)?;
+            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
+        };
+        let erc20 = ERC20::new(rpcs, self.address);
+        Ok(erc20.get_account_balance(account).await?)
     }
 }
 
@@ -1209,6 +1256,7 @@ impl RaindexVaultToken {
         };
 
         Ok(Self {
+            raindex_client,
             chain_id,
             id: erc20.id.0,
             address: Address::from_str(&erc20.address.0)?,
@@ -2300,6 +2348,58 @@ mod tests {
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].id(), "token1");
             assert_eq!(result[0].chain_id(), 1);
+        }
+
+        #[tokio::test]
+        async fn test_get_account_balance_from_token() {
+            let server = MockServer::start_async().await;
+            server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vault": get_vault1_json()
+                    }
+                }));
+            });
+            server.mock(|when, then| {
+                when.method("POST")
+                    .path("/rpc1")
+                    .body_contains("0x70a08231");
+                then.body(
+                    Response::new_success(
+                        1,
+                        "0x00000000000000000000000000000000000000000000000000000000000003e8",
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &server.url("/sg1"),
+                    &server.url("/sg2"),
+                    &server.url("/rpc1"),
+                    &server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+            let vault = raindex_client
+                .get_vault(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
+                .await
+                .unwrap();
+
+            let balance = vault
+                .token
+                .get_account_balance(Address::random())
+                .await
+                .unwrap();
+            assert_eq!(balance, U256::from(1000));
         }
     }
 }
