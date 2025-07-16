@@ -97,7 +97,6 @@ describe('handleVaultWithdraw', () => {
 			open: true,
 			modalTitle: 'Withdrawing 0.1 TEST...',
 			args: {
-				entity: mockVault,
 				onConfirm: expect.any(Function),
 				calldata: mockCalldata
 			}

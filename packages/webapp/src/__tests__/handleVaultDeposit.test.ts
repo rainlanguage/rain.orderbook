@@ -133,7 +133,6 @@ describe('handleVaultDeposit', () => {
 				modalTitle: 'Approving TEST spend',
 				closeOnConfirm: true,
 				args: {
-					entity: mockVault,
 					toAddress: mockVault.token.address as Hex,
 					chainId: mockVault.chainId,
 					onConfirm: expect.any(Function),
@@ -161,7 +160,6 @@ describe('handleVaultDeposit', () => {
 					modalTitle: 'Depositing 100 TEST',
 					closeOnConfirm: false,
 					args: {
-						entity: mockVault,
 						toAddress: mockVault.orderbook,
 						chainId: mockVault.chainId,
 						onConfirm: expect.any(Function),
