@@ -1882,7 +1882,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result[0].chainId, 1);
 		});
 
-		it('should fetch account balance from a raindex vault token instance', async () => {
+		it('should fetch account balance from a raindex vault instance', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
@@ -1901,9 +1901,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = extractWasmEncodedData(
-				await vault.token.getAccountBalance('0x0000000000000000000000000000000000000000')
-			);
+			const res = extractWasmEncodedData(await vault.getOwnerBalance());
 			assert.equal(res.balance, BigInt(1000));
 			assert.equal(res.formattedBalance, '0.000000000000001');
 		});

@@ -27,7 +27,7 @@
 	let isCheckingCalldata = false;
 
 	const getUserBalance = async () => {
-		const balance = await vault.token.getAccountBalance(account);
+		const balance = await vault.getOwnerBalance();
 		if (balance.error) {
 			errorMessage = balance.error.readableMsg;
 			return;

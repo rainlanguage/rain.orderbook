@@ -174,7 +174,6 @@ impl_wasm_traits!(AccountBalance);
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultToken {
-    raindex_client: Arc<RwLock<RaindexClient>>,
     chain_id: u32,
     id: String,
     address: Address,
@@ -232,57 +231,6 @@ impl RaindexVaultToken {
         self.decimals
     }
 }
-#[wasm_export]
-impl RaindexVaultToken {
-    /// Fetches the balance of a specific account for this vault token
-    ///
-    /// Retrieves the current balance of a given account address.
-    /// The returned balance is an object containing both raw and formatted values.
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// const result = await vaultToken.getAccountBalance("0x1234...");
-    /// if (result.error) {
-    ///  console.error("Error fetching balance:", result.error.readableMsg);
-    /// return;
-    /// }
-    /// const accountBalance = result.value;
-    /// console.log("Raw balance:", accountBalance.balance);
-    /// console.log("Formatted balance:", accountBalance.formattedBalance);
-    /// ```
-    #[wasm_export(
-        js_name = "getAccountBalance",
-        return_description = "Account balance in both raw and human-readable format",
-        unchecked_return_type = "AccountBalance"
-    )]
-    pub async fn get_account_balance_wasm_binding(
-        &self,
-        #[wasm_export(param_description = "Account address to check balance for")] account: String,
-    ) -> Result<AccountBalance, RaindexError> {
-        let account = Address::from_str(&account)?;
-        let balance = self.clone().get_account_balance(account).await?;
-        let decimals = self.decimals.try_into()?;
-        let account_balance = AccountBalance {
-            balance,
-            formatted_balance: format_amount_u256(balance, decimals)?,
-        };
-        Ok(account_balance)
-    }
-}
-impl RaindexVaultToken {
-    pub async fn get_account_balance(self, account: Address) -> Result<U256, RaindexError> {
-        let rpcs = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
-        };
-        let erc20 = ERC20::new(rpcs, self.address);
-        Ok(erc20.get_account_balance(account).await?)
-    }
-}
 
 #[wasm_export]
 impl RaindexVault {
@@ -335,11 +283,7 @@ impl RaindexVault {
         let balance_changes = balance_changes
             .into_iter()
             .map(|balance_change| {
-                RaindexVaultBalanceChange::try_from_sg_balance_change(
-                    self.raindex_client.clone(),
-                    self.chain_id,
-                    balance_change,
-                )
+                RaindexVaultBalanceChange::try_from_sg_balance_change(self.chain_id, balance_change)
             })
             .collect::<Result<Vec<RaindexVaultBalanceChange>, RaindexError>>()?;
         Ok(balance_changes)
@@ -535,6 +479,51 @@ impl RaindexVault {
             .await?;
         Ok(RaindexVaultAllowance(allowance))
     }
+
+    /// Fetches the balance of the owner for this vault
+    ///
+    /// Retrieves the current balance of the vault owner.
+    /// The returned balance is an object containing both raw and formatted values.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = await vault.getOwnerBalance();
+    /// if (result.error) {
+    ///  console.error("Error fetching balance:", result.error.readableMsg);
+    /// return;
+    /// }
+    /// const accountBalance = result.value;
+    /// console.log("Raw balance:", accountBalance.balance);
+    /// console.log("Formatted balance:", accountBalance.formattedBalance);
+    /// ```
+    #[wasm_export(
+        js_name = "getOwnerBalance",
+        return_description = "Owner balance in both raw and human-readable format",
+        unchecked_return_type = "AccountBalance"
+    )]
+    pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
+        let balance = self.clone().get_owner_balance(self.owner).await?;
+        let decimals = self.token.decimals.try_into()?;
+        let account_balance = AccountBalance {
+            balance,
+            formatted_balance: format_amount_u256(balance, decimals)?,
+        };
+        Ok(account_balance)
+    }
+}
+impl RaindexVault {
+    pub async fn get_owner_balance(self, owner: Address) -> Result<U256, RaindexError> {
+        let rpcs = {
+            let raindex_client = self
+                .raindex_client
+                .read()
+                .map_err(|_| YamlError::ReadLockError)?;
+            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
+        };
+        let erc20 = ERC20::new(rpcs, self.token.address);
+        Ok(erc20.get_account_balance(owner).await?)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -681,15 +670,10 @@ impl_wasm_traits!(RaindexVaultAllowance);
 
 impl RaindexVaultBalanceChange {
     pub fn try_from_sg_balance_change(
-        raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         balance_change: SgVaultBalanceChangeUnwrapped,
     ) -> Result<Self, RaindexError> {
-        let token = RaindexVaultToken::try_from_sg_erc20(
-            raindex_client.clone(),
-            chain_id,
-            balance_change.vault.token,
-        )?;
+        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
 
         let amount = I256::from_str(&balance_change.amount.0)?;
         let new_balance = U256::from_str(&balance_change.new_vault_balance.0)?;
@@ -719,15 +703,10 @@ impl RaindexVaultBalanceChange {
 
 impl RaindexVaultBalanceChange {
     pub fn try_from_sg_trade_balance_change(
-        raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         balance_change: SgTradeVaultBalanceChange,
     ) -> Result<Self, RaindexError> {
-        let token = RaindexVaultToken::try_from_sg_erc20(
-            raindex_client.clone(),
-            chain_id,
-            balance_change.vault.token,
-        )?;
+        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
 
         let amount = I256::from_str(&balance_change.amount.0)?;
         let new_balance = U256::from_str(&balance_change.new_vault_balance.0)?;
@@ -793,15 +772,10 @@ impl RaindexVaultVolume {
 }
 impl RaindexVaultVolume {
     pub fn try_from_vault_volume(
-        raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         vault_volume: VaultVolume,
     ) -> Result<Self, RaindexError> {
-        let token = RaindexVaultToken::try_from_sg_erc20(
-            raindex_client.clone(),
-            chain_id,
-            vault_volume.token,
-        )?;
+        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault_volume.token)?;
         let details = RaindexVaultVolumeDetails::try_from_volume_details(
             token.clone(),
             vault_volume.vol_details,
@@ -1102,11 +1076,7 @@ impl RaindexClient {
                         v.subgraph_name.clone(),
                         v.token.address.0.clone(),
                     ))?;
-                let token = RaindexVaultToken::try_from_sg_erc20(
-                    Arc::new(RwLock::new(self.clone())),
-                    chain_id,
-                    v.token.clone(),
-                )?;
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, v.token.clone())?;
                 Ok(token)
             })
             .collect::<Result<Vec<RaindexVaultToken>, RaindexError>>()?;
@@ -1173,8 +1143,7 @@ impl RaindexVault {
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
-        let token =
-            RaindexVaultToken::try_from_sg_erc20(raindex_client.clone(), chain_id, vault.token)?;
+        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?;
 
         let balance = U256::from_str(&vault.balance.0)?;
         let formatted_balance = format_amount_u256(balance, token.decimals.try_into()?)?;
@@ -1246,18 +1215,13 @@ impl RaindexVault {
 }
 
 impl RaindexVaultToken {
-    fn try_from_sg_erc20(
-        raindex_client: Arc<RwLock<RaindexClient>>,
-        chain_id: u32,
-        erc20: SgErc20,
-    ) -> Result<Self, RaindexError> {
+    fn try_from_sg_erc20(chain_id: u32, erc20: SgErc20) -> Result<Self, RaindexError> {
         let address = Address::from_str(&erc20.address.0)?;
         let decimals = erc20
             .decimals
             .ok_or(RaindexError::MissingErc20Decimals(address.to_string()))?
             .0;
         Ok(Self {
-            raindex_client,
             chain_id,
             id: erc20.id.0,
             address,
@@ -2336,7 +2300,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn test_get_account_balance_from_token() {
+        async fn test_get_account_balance_from_vault() {
             let server = MockServer::start_async().await;
             server.mock(|when, then| {
                 when.path("/sg1");
@@ -2379,11 +2343,7 @@ mod tests {
                 .await
                 .unwrap();
 
-            let balance = vault
-                .token
-                .get_account_balance(Address::random())
-                .await
-                .unwrap();
+            let balance = vault.get_owner_balance(Address::random()).await.unwrap();
             assert_eq!(balance, U256::from(1000));
         }
     }

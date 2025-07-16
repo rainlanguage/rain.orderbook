@@ -22,14 +22,14 @@ describe('DepositModal', () => {
 		token: {
 			address: '0x123',
 			symbol: 'TEST',
-			decimals: '18',
-			getAccountBalance: vi.fn().mockResolvedValue({
-				value: {
-					balance: BigInt('1000000000000000000'), // 1 token
-					formattedBalance: '1'
-				}
-			})
+			decimals: '18'
 		},
+		getOwnerBalance: vi.fn().mockResolvedValue({
+			value: {
+				balance: BigInt('1000000000000000000'), // 1 token
+				formattedBalance: '1'
+			}
+		}),
 		chainId: 1,
 		orderbook: '0x123',
 		balance: BigInt(1)
@@ -74,7 +74,7 @@ describe('DepositModal', () => {
 	});
 
 	it('shows error when amount exceeds balance', async () => {
-		(mockVault.token.getAccountBalance as Mock).mockResolvedValue({
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
 				balance: BigInt('500000000000000000'), // 0.5 tokens
 				formattedBalance: '0.5'
@@ -109,7 +109,7 @@ describe('DepositModal', () => {
 	});
 
 	it('disables continue button when amount exceeds balance', async () => {
-		(mockVault.token.getAccountBalance as Mock).mockResolvedValue({
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
 				balance: BigInt('500000000000000000'), // 0.5 tokens
 				formattedBalance: '0.5'
@@ -130,7 +130,7 @@ describe('DepositModal', () => {
 	});
 
 	it('handles zero user balance correctly', async () => {
-		(mockVault.token.getAccountBalance as Mock).mockResolvedValue({
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
 				balance: BigInt('0'),
 				formattedBalance: '0'
@@ -156,7 +156,7 @@ describe('DepositModal', () => {
 
 	it('displays user balance correctly', async () => {
 		const userBalanceAmount = BigInt('2500000000000000000'); // 2.5 tokens
-		(mockVault.token.getAccountBalance as Mock).mockResolvedValue({
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
 				balance: userBalanceAmount,
 				formattedBalance: '2.5'
@@ -172,7 +172,7 @@ describe('DepositModal', () => {
 	});
 
 	it('shows error message when getUserBalance fails', async () => {
-		vi.mocked(mockVault.token.getAccountBalance).mockResolvedValue({
+		vi.mocked(mockVault.getOwnerBalance).mockResolvedValue({
 			value: undefined,
 			error: {
 				msg: 'Failed to get user balance.',
@@ -188,7 +188,7 @@ describe('DepositModal', () => {
 	});
 
 	it('shows wallet address in truncated form', async () => {
-		(mockVault.token.getAccountBalance as Mock).mockResolvedValue({
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
 				balance: BigInt('1000000000000000000'), // 1 token
 				formattedBalance: '1'
