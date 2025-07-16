@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import WithdrawModal from '$lib/components/WithdrawModal.svelte';
 import type { ComponentProps } from 'svelte';

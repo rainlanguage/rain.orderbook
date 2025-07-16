@@ -7,7 +7,6 @@ import type {
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '../services/time';
 import { sortBy } from 'lodash';
-import { formatUnits } from 'viem';
 
 export type HistoricalOrderChartData = { value: number; time: UTCTimestamp; color?: string }[];
 
