@@ -140,14 +140,13 @@ impl RaindexOrder {
             )
             .await?;
 
-        let mut result_trades = Vec::new();
-        for trade in trades {
-            let raindex_trade =
+        let trades = trades
+            .into_iter()
+            .map(|trade| {
                 RaindexTrade::try_from_sg_trade(self.get_raindex_client(), self.chain_id(), trade)
-                    .await?;
-            result_trades.push(raindex_trade);
-        }
-        Ok(result_trades)
+            })
+            .collect::<Result<Vec<RaindexTrade>, RaindexError>>()?;
+        Ok(trades)
     }
 
     /// Fetches detailed information for a specific trade
@@ -239,12 +238,11 @@ impl RaindexOrder {
                 .order_trade_detail(Id::new(trade_id.to_string()))
                 .await?,
         )
-        .await
     }
 }
 
 impl RaindexTrade {
-    pub async fn try_from_sg_trade(
+    pub fn try_from_sg_trade(
         raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         trade: SgTrade,
@@ -258,15 +256,13 @@ impl RaindexTrade {
                     raindex_client.clone(),
                     chain_id,
                     trade.input_vault_balance_change,
-                )
-                .await?,
+                )?,
             output_vault_balance_change:
                 RaindexVaultBalanceChange::try_from_sg_trade_balance_change(
-                    raindex_client,
+                    raindex_client.clone(),
                     chain_id,
                     trade.output_vault_balance_change,
-                )
-                .await?,
+                )?,
             timestamp: U256::from_str(&trade.timestamp.0)?,
             orderbook: Address::from_str(&trade.orderbook.id.0)?,
         })

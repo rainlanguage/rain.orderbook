@@ -288,11 +288,10 @@ impl RaindexOrder {
             .await?;
         for volume in volumes {
             let volume = RaindexVaultVolume::try_from_vault_volume(
-                self.get_raindex_client().clone(),
+                self.raindex_client.clone(),
                 self.chain_id,
                 volume,
-            )
-            .await?;
+            )?;
             result_volumes.push(volume);
         }
         Ok(result_volumes)
@@ -463,24 +462,27 @@ impl RaindexClient {
             )
             .await;
 
-        let mut result_orders = Vec::new();
-        for order in orders.iter() {
-            let chain_id = multi_subgraph_args
-                .iter()
-                .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
-                .map(|(chain_id, _)| *chain_id)
-                .unwrap();
-            let order = RaindexOrder::try_from_sg_order(
-                raindex_client.clone(),
-                chain_id,
-                order.order.clone(),
-                None,
-            )
-            .await?;
-            result_orders.push(order);
-        }
-
-        Ok(result_orders)
+        let orders = orders
+            .iter()
+            .map(|order| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .ok_or(RaindexError::SubgraphNotFound(
+                        order.subgraph_name.clone(),
+                        order.order.order_hash.0.clone(),
+                    ))?;
+                let order = RaindexOrder::try_from_sg_order(
+                    raindex_client.clone(),
+                    chain_id,
+                    order.order.clone(),
+                    None,
+                )?;
+                Ok(order)
+            })
+            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+        Ok(orders)
     }
 
     /// Retrieves a specific order by its hash from a particular blockchain network
@@ -546,8 +548,7 @@ impl RaindexClient {
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
             .await?;
-        let order =
-            RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None).await?;
+        let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
         Ok(order)
     }
 }
@@ -593,7 +594,7 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
 }
 
 impl RaindexOrder {
-    pub async fn try_from_sg_order(
+    pub fn try_from_sg_order(
         raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         order: SgOrder,
@@ -605,32 +606,6 @@ impl RaindexOrder {
             .map(|meta| meta.0.try_decode_rainlangsource())
             .transpose()?;
 
-        let mut inputs: Vec<RaindexVault> = vec![];
-        let mut outputs: Vec<RaindexVault> = vec![];
-
-        for input in order.inputs.iter() {
-            inputs.push(
-                RaindexVault::try_from_sg_vault(
-                    raindex_client.clone(),
-                    chain_id,
-                    input.clone(),
-                    Some(RaindexVaultType::Input),
-                )
-                .await?,
-            );
-        }
-        for output in order.outputs.iter() {
-            outputs.push(
-                RaindexVault::try_from_sg_vault(
-                    raindex_client.clone(),
-                    chain_id,
-                    output.clone(),
-                    Some(RaindexVaultType::Output),
-                )
-                .await?,
-            );
-        }
-
         Ok(Self {
             raindex_client: raindex_client.clone(),
             chain_id,
@@ -638,8 +613,30 @@ impl RaindexOrder {
             order_bytes: Bytes::from_str(&order.order_bytes.0)?,
             order_hash: Bytes::from_str(&order.order_hash.0)?,
             owner: Address::from_str(&order.owner.0)?,
-            inputs,
-            outputs,
+            inputs: order
+                .inputs
+                .iter()
+                .map(|v| {
+                    RaindexVault::try_from_sg_vault(
+                        raindex_client.clone(),
+                        chain_id,
+                        v.clone(),
+                        Some(RaindexVaultType::Input),
+                    )
+                })
+                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
+            outputs: order
+                .outputs
+                .iter()
+                .map(|v| {
+                    RaindexVault::try_from_sg_vault(
+                        raindex_client.clone(),
+                        chain_id,
+                        v.clone(),
+                        Some(RaindexVaultType::Output),
+                    )
+                })
+                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
@@ -1211,7 +1208,6 @@ mod tests {
                 get_order1(),
                 None,
             )
-            .await
             .unwrap();
 
             let order1 = result[0].clone();
@@ -1377,7 +1373,6 @@ mod tests {
                 get_order1(),
                 None,
             )
-            .await
             .unwrap();
             assert_eq!(res.id, expected_order.id);
             assert_eq!(res.order_bytes, expected_order.order_bytes);
