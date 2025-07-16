@@ -24,14 +24,14 @@ describe('WithdrawModal', () => {
 		token: {
 			address: '0x123',
 			symbol: 'TEST',
-			decimals: '18',
-			getAccountBalance: vi.fn().mockResolvedValue({
-				value: {
-					balance: BigInt('1000000000000000000'), // 1 token
-					formattedBalance: '1'
-				}
-			})
+			decimals: '18'
 		},
+		getOwnerBalance: vi.fn().mockResolvedValue({
+			value: {
+				balance: BigInt('1000000000000000000'), // 1 token
+				formattedBalance: '1'
+			}
+		}),
 		vaultId: '1',
 		balance: BigInt(1000000000000000000), // 1 token
 		formattedBalance: '1'

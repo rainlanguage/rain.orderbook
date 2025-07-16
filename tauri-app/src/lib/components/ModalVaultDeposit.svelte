@@ -10,7 +10,6 @@
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { hexToBytes, toHex } from 'viem';
   import { onMount } from 'svelte';
-  import { walletconnectAccount } from '$lib/stores/walletconnect';
 
   export let open = false;
   export let vault: RaindexVault;
@@ -74,11 +73,7 @@
   }
 
   async function fetchUserBalance() {
-    if (!$walletconnectAccount) {
-      userBalance = { balance: BigInt(0), formattedBalance: '0' };
-      return;
-    }
-    const balance = await vault.token.getAccountBalance($walletconnectAccount);
+    const balance = await vault.getOwnerBalance();
     if (balance.error) {
       throw new Error(balance.error.readableMsg);
     }
