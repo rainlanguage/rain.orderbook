@@ -3,9 +3,8 @@
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
-	import { type BatchOrderQuotesResponse } from '@rainlanguage/orderbook';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
-	import { formatUnits, hexToNumber, isHex } from 'viem';
+	import { hexToNumber, isHex } from 'viem';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import type { RaindexOrder, RaindexOrderQuote } from '@rainlanguage/orderbook';
 	import {
