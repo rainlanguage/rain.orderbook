@@ -157,15 +157,13 @@
 		tokenBalances = balances;
 	}
 
-	async function onSelectTokenSelect() {
+	async function onSelectTokenSelect(key: string) {
 		await areAllTokensSelected();
 
-		if ($account && selectTokens) {
-			for (const token of selectTokens) {
-				const tokenInfoResult = await gui.getTokenInfo(token.key);
-				if (!tokenInfoResult.error && tokenInfoResult.value?.address) {
-					await fetchTokenBalance(tokenInfoResult.value);
-				}
+		if ($account) {
+			const tokenInfoResult = await gui.getTokenInfo(key);
+			if (!tokenInfoResult.error && tokenInfoResult.value?.address) {
+				await fetchTokenBalance(tokenInfoResult.value);
 			}
 		}
 

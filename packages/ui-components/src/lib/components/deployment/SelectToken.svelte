@@ -11,7 +11,7 @@
 	import type { TokenBalance } from '$lib/types/tokenBalance';
 
 	export let token: GuiSelectTokensCfg;
-	export let onSelectTokenSelect: () => void;
+	export let onSelectTokenSelect: (key: string) => void;
 	export let availableTokens: TokenInfo[] = [];
 	export let loading: boolean = false;
 	export let tokenBalances: Map<string, TokenBalance> = new Map();
@@ -35,7 +35,7 @@
 			tokenInfo = result.value;
 			if (result.value.address) {
 				inputValue = result.value.address;
-				onSelectTokenSelect();
+				onSelectTokenSelect(token.key);
 			}
 		} catch {
 			// do nothing
@@ -113,13 +113,13 @@
 			error = errorMessage;
 		} finally {
 			checking = false;
-			onSelectTokenSelect();
+			onSelectTokenSelect(token.key);
 		}
 	}
 
 	function clearTokenSelection() {
 		gui.unsetSelectToken(token.key);
-		onSelectTokenSelect();
+		onSelectTokenSelect(token.key);
 	}
 
 	async function getInfoForSelectedToken() {
