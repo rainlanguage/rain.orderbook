@@ -133,10 +133,37 @@
 			case VaultType.Input:
 				return 'Withdraw inputs';
 			case VaultType.InputOutput:
-				return 'Withdraw inputs & outputs';
+				return 'Withdraw all';
 			default:
 				return 'Withdraw all vaults';
 		}
+	};
+
+	// It returns vaults of single group filtered by owner and non-zero balance
+	// It makes it possible to withdraw multiple vaults of the same type at once
+	// Even if some vaults of that type has zero balance
+	const getVaultsGroupFiltered = (type: VaultType) => {
+		return vaultsGroupedByTypes[type].filter(
+			(vault) => matchesAccount(vault.owner) && vault.balance > 0n
+		);
+	};
+
+	// It checks does it make sense to display Withdraw button for the vault type
+	const shouldShowWithdrawByType = (type: VaultType) => {
+		const filteredVaults = getVaultsGroupFiltered(type);
+		return filteredVaults.length > 1;
+	};
+	// If checks does it make sense to display Withdraw all button below all vaults
+	const shouldShowWithdrawAll = () => {
+		if (!$orderDetailQuery.data?.vaults) return false;
+		const { vaults } = $orderDetailQuery.data;
+		const filteredVaults = vaults.filter(
+			(vault) => matchesAccount(vault.owner) && vault.balance > 0n
+		);
+		return (
+			filteredVaults.length > 1 &&
+			getVaultsGroupFiltered(VaultType.InputOutput).length !== filteredVaults.length
+		);
 	};
 </script>
 
@@ -209,10 +236,10 @@
 									{/if}
 								</div>
 								<div>
-									{#if filteredVaults.every( (vault) => matchesAccount(vault.owner) ) && filteredVaults.length > 1 && filteredVaults.some((vault) => vault.balance > 0n)}
+									{#if shouldShowWithdrawByType(type)}
 										<Button
 											size="xs"
-											on:click={() => onWithdrawAll(raindexClient, filteredVaults)}
+											on:click={() => onWithdrawAll(raindexClient, getVaultsGroupFiltered(type))}
 											data-testid={`withdraw-all-${type}`}
 										>
 											<ArrowUpFromBracketOutline size="xs" class="mr-2" />
@@ -256,7 +283,7 @@
 				{/if}
 			{/each}
 			<!-- If there are different vault types — show additional withdraw all button below all vaults -->
-			{#if data.vaults.every( (vault) => matchesAccount(vault.owner) ) && vaultsGroupedByTypes[VaultType.InputOutput].length !== data.vaults.length && data.vaults.some((vault) => vault.balance > 0n)}
+			{#if shouldShowWithdrawAll()}
 				<Button
 					size="xs"
 					on:click={() => onWithdrawAll(raindexClient, data.vaults)}

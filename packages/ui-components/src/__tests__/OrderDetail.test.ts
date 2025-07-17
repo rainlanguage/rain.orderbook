@@ -87,7 +87,7 @@ const mockOrder: RaindexOrder = {
 				symbol: 'MCK',
 				decimals: '18'
 			},
-			balance: BigInt(0),
+			balance: BigInt(10),
 			vaultId: BigInt(2),
 			owner: '0x1234567890123456789012345678901234567890',
 			ordersAsOutput: [],
@@ -105,7 +105,7 @@ const mockOrder: RaindexOrder = {
 				symbol: 'MCK2',
 				decimals: '18'
 			},
-			balance: BigInt(0),
+			balance: BigInt(20),
 			vaultId: BigInt(1),
 			owner: '0x1234567890123456789012345678901234567890',
 			ordersAsOutput: [],
