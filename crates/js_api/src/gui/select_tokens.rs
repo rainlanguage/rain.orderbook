@@ -282,6 +282,7 @@ impl DotrainOrderGui {
                 fetch_futures.push(async move {
                     let token_info = erc20.token_info(None).await?;
                     Ok::<TokenInfo, GuiError>(TokenInfo {
+                        key: token.key.clone(),
                         address: token.address,
                         decimals: token_info.decimals,
                         name: token_info.name,
@@ -290,6 +291,7 @@ impl DotrainOrderGui {
                 });
             } else {
                 results.push(TokenInfo {
+                    key: token.key.clone(),
                     address: token.address,
                     decimals: token.decimals.unwrap(),
                     name: token.label.unwrap(),

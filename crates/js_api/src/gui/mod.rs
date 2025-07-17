@@ -35,6 +35,7 @@ mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
+    pub key: String,
     #[tsify(type = "string")]
     pub address: Address,
     pub decimals: u8,
@@ -288,6 +289,7 @@ impl DotrainOrderGui {
             && token.symbol.is_some()
         {
             TokenInfo {
+                key: token.key.clone(),
                 address: token.address,
                 decimals: token.decimals.unwrap(),
                 name: token.label.unwrap(),
@@ -309,6 +311,7 @@ impl DotrainOrderGui {
             let onchain_info = erc20.token_info(None).await?;
 
             TokenInfo {
+                key: token.key.clone(),
                 address: token.address,
                 decimals: token.decimals.unwrap_or(onchain_info.decimals),
                 name: token.label.unwrap_or(onchain_info.name),
