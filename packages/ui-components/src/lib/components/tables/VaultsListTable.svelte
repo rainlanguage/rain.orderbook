@@ -205,8 +205,14 @@
 								on:change={() => toggleVaultSelection(item)}
 								class="cursor-pointer"
 							/>
-							{#if isVaultEmpty(item)}
-								<Tooltip class="w-auto text-xs" placement="top">Vault is empty</Tooltip>
+							{#if isVaultDisabled(item)}
+								<Tooltip class="w-auto text-xs" placement="top">
+									{#if isVaultEmpty(item)}
+										Vault is empty
+									{:else if selectedVaults.length > 0 && item.chainId !== selectedVaults[0].chainId}
+										Vault is on a different chain
+									{/if}
+								</Tooltip>
 							{/if}
 						</Label>
 					</TableBodyCell>
