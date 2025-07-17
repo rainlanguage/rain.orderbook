@@ -782,7 +782,7 @@ impl RaindexVaultVolume {
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultVolume {
     pub fn id(&self) -> U256 {
-        self.id.clone()
+        self.id
     }
     pub fn token(&self) -> RaindexVaultToken {
         self.token.clone()
