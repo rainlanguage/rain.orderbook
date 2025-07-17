@@ -1,8 +1,6 @@
 <script lang="ts" generics="T">
 	import { toHex } from 'viem';
-
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -12,7 +10,6 @@
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { RaindexVault } from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
@@ -149,8 +146,7 @@
 				>{item.token.name}</TableBodyCell
 			>
 			<TableBodyCell tdClass="break-all p-2 min-w-48" data-testid="vault-balance">
-				{vaultBalanceDisplay(item)}
-				{item.token.symbol}
+				{`${item.formattedBalance} ${item.token.symbol}`}
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all p-2 min-w-48">
 				{#if item.ordersAsInput.length > 0}

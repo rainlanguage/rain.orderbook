@@ -3,12 +3,12 @@ use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
         transactions::RaindexTransaction,
-        vaults::{RaindexVault, RaindexVaultType},
+        vaults::{RaindexVault, RaindexVaultType, RaindexVaultVolume},
     },
 };
 use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::{
-    performance::{vol::VaultVolume, OrderPerformance},
+    performance::OrderPerformance,
     types::{
         common::{
             SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
@@ -221,20 +221,24 @@ fn get_vaults_with_type(
 #[wasm_export]
 impl RaindexOrder {
     #[wasm_export(skip)]
-    pub fn get_raindex_client(&self) -> Result<RwLockReadGuard<RaindexClient>, RaindexError> {
+    pub fn get_raindex_client(&self) -> Arc<RwLock<RaindexClient>> {
+        self.raindex_client.clone()
+    }
+    #[wasm_export(skip)]
+    pub fn read_raindex_client(&self) -> Result<RwLockReadGuard<RaindexClient>, RaindexError> {
         self.raindex_client
             .read()
             .map_err(|_| RaindexError::ReadLockError)
     }
     #[wasm_export(skip)]
     pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
-        let raindex_client = self.get_raindex_client()?;
+        let raindex_client = self.read_raindex_client()?;
         raindex_client.get_orderbook_client(self.orderbook)
     }
 
     #[wasm_export(skip)]
     pub fn get_rpc_urls(&self) -> Result<Vec<Url>, RaindexError> {
-        let raindex_client = self.get_raindex_client()?;
+        let raindex_client = self.read_raindex_client()?;
         raindex_client.get_rpc_urls_for_chain(self.chain_id)
     }
 
@@ -260,7 +264,7 @@ impl RaindexOrder {
     #[wasm_export(
         js_name = "getVaultsVolume",
         return_description = "Volume data for each vault over the specified period",
-        unchecked_return_type = "VaultVolume[]",
+        unchecked_return_type = "RaindexVaultVolume[]",
         preserve_js_class
     )]
     pub async fn get_vaults_volume(
@@ -275,12 +279,18 @@ impl RaindexOrder {
             param_description = "Unix timestamp for the end of the query period (optional)"
         )]
         end_timestamp: Option<u64>,
-    ) -> Result<Vec<VaultVolume>, RaindexError> {
+    ) -> Result<Vec<RaindexVaultVolume>, RaindexError> {
         let client = self.get_orderbook_client()?;
+
+        let mut result_volumes = Vec::new();
         let volumes = client
             .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
             .await?;
-        Ok(volumes)
+        for volume in volumes {
+            let volume = RaindexVaultVolume::try_from_vault_volume(self.chain_id, volume)?;
+            result_volumes.push(volume);
+        }
+        Ok(result_volumes)
     }
 
     /// Gets comprehensive performance metrics and analytics for this order over a specified time period
@@ -447,6 +457,7 @@ impl RaindexClient {
                 },
             )
             .await;
+
         let orders = orders
             .iter()
             .map(|order| {
@@ -590,6 +601,7 @@ impl RaindexOrder {
             .as_ref()
             .map(|meta| meta.0.try_decode_rainlangsource())
             .transpose()?;
+
         Ok(Self {
             raindex_client: raindex_client.clone(),
             chain_id,
@@ -918,25 +930,25 @@ mod tests {
         fn get_trades_json() -> Value {
             json!([
               {
-                "id": "trade1",
+                "id": "0x0000000000000000000000000000000000000001",
                 "tradeEvent": {
                   "transaction": {
-                    "id": "tx1",
-                    "from": "from1",
+                    "id": "0x0000000000000000000000000000000000000001",
+                    "from": "0x0000000000000000000000000000000000000001",
                     "blockNumber": "0",
-                    "timestamp": "0"
+                    "timestamp": "1700000000"
                   },
-                  "sender": "sender1"
+                  "sender": "0x0000000000000000000000000000000000000001"
                 },
                 "outputVaultBalanceChange": {
-                  "id": "ovbc1",
+                  "id": "0x0000000000000000000000000000000000000001",
                   "__typename": "TradeVaultBalanceChange",
                   "amount": "-2",
                   "newVaultBalance": "0",
                   "oldVaultBalance": "0",
                   "vault": {
-                    "id": "vault1",
-                    "vaultId": "1",
+                    "id": "0x0000000000000000000000000000000000000001",
+                    "vaultId": "0x10",
                     "token": {
                       "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                       "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -947,8 +959,8 @@ mod tests {
                   },
                   "timestamp": "1700000000",
                   "transaction": {
-                    "id": "tx1",
-                    "from": "from1",
+                    "id": "0x0000000000000000000000000000000000000001",
+                    "from": "0x0000000000000000000000000000000000000001",
                     "blockNumber": "0",
                     "timestamp": "1700000000"
                   },
@@ -957,18 +969,18 @@ mod tests {
                   }
                 },
                 "order": {
-                  "id": "order1",
-                  "orderHash": "hash1"
+                  "id": "0x0000000000000000000000000000000000000001",
+                  "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
                 },
                 "inputVaultBalanceChange": {
-                  "id": "ivbc1",
+                  "id": "0x0000000000000000000000000000000000000001",
                   "__typename": "TradeVaultBalanceChange",
                   "amount": "1",
                   "newVaultBalance": "0",
                   "oldVaultBalance": "0",
                   "vault": {
-                    "id": "vault1",
-                    "vaultId": "1",
+                    "id": "0x0000000000000000000000000000000000000001",
+                    "vaultId": "0x10",
                     "token": {
                       "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                       "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -979,8 +991,8 @@ mod tests {
                   },
                   "timestamp": "1700000000",
                   "transaction": {
-                    "id": "tx1",
-                    "from": "from1",
+                    "id": "0x0000000000000000000000000000000000000001",
+                    "from": "0x0000000000000000000000000000000000000001",
                     "blockNumber": "0",
                     "timestamp": "1700000000"
                   },
@@ -994,27 +1006,27 @@ mod tests {
                 }
               },
               {
-                "id": "trade2",
+                "id": "0x0000000000000000000000000000000000000002",
                 "tradeEvent": {
                   "transaction": {
-                    "id": "tx2",
-                    "from": "from2",
+                    "id": "0x0000000000000000000000000000000000000002",
+                    "from": "0x0000000000000000000000000000000000000002",
                     "blockNumber": "0",
                     "timestamp": "0"
                   },
-                  "sender": "sender2"
+                  "sender": "0x0000000000000000000000000000000000000002"
                 },
                 "outputVaultBalanceChange": {
-                  "id": "ovbc2",
+                  "id": "0x0000000000000000000000000000000000000002",
                   "__typename": "TradeVaultBalanceChange",
                   "amount": "-5",
                   "newVaultBalance": "0",
                   "oldVaultBalance": "0",
                   "vault": {
-                    "id": "vault2",
-                    "vaultId": "2",
+                    "id": "0x0000000000000000000000000000000000000002",
+                    "vaultId": "0x20",
                     "token": {
-                      "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                      "id": "0x0000000000000000000000000000000000000002",
                       "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                       "name": "Staked FLR",
                       "symbol": "sFLR",
@@ -1023,28 +1035,28 @@ mod tests {
                   },
                   "timestamp": "1700086400",
                   "transaction": {
-                    "id": "tx2",
-                    "from": "from2",
+                    "id": "0x0000000000000000000000000000000000000002",
+                    "from": "0x0000000000000000000000000000000000000002",
                     "blockNumber": "0",
                     "timestamp": "1700086400"
                   },
                   "orderbook": {
-                    "id": "ob2"
+                    "id": "0x0000000000000000000000000000000000000002"
                   }
                 },
                 "order": {
-                  "id": "order2",
-                  "orderHash": "hash2"
+                  "id": "0x0000000000000000000000000000000000000002",
+                  "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
                 },
                 "inputVaultBalanceChange": {
-                  "id": "ivbc2",
+                  "id": "0x0000000000000000000000000000000000000002",
                   "__typename": "TradeVaultBalanceChange",
                   "amount": "2",
                   "newVaultBalance": "0",
                   "oldVaultBalance": "0",
                   "vault": {
-                    "id": "vault2",
-                    "vaultId": "2",
+                    "id": "0x0000000000000000000000000000000000000002",
+                    "vaultId": "0x20",
                     "token": {
                       "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                       "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -1055,8 +1067,8 @@ mod tests {
                   },
                   "timestamp": "0",
                   "transaction": {
-                    "id": "tx2",
-                    "from": "from2",
+                    "id": "0x0000000000000000000000000000000000000002",
+                    "from": "0x0000000000000000000000000000000000000002",
                     "blockNumber": "0",
                     "timestamp": "1700086400"
                   },
@@ -1218,8 +1230,8 @@ mod tests {
                     expected_output.token().symbol()
                 );
                 assert_eq!(
-                    order1_output.token().decimals().unwrap(),
-                    expected_output.token().decimals().unwrap()
+                    order1_output.token().decimals(),
+                    expected_output.token().decimals()
                 );
                 assert_eq!(order1_output.orderbook(), expected_output.orderbook());
             }
@@ -1241,8 +1253,8 @@ mod tests {
                     expected_input.token().symbol()
                 );
                 assert_eq!(
-                    order1_input.token().decimals().unwrap(),
-                    expected_input.token().decimals().unwrap()
+                    order1_input.token().decimals(),
+                    expected_input.token().decimals()
                 );
                 assert_eq!(order1_input.orderbook(), expected_input.orderbook());
             }
@@ -1280,7 +1292,7 @@ mod tests {
             );
             assert_eq!(order2_outputs.token().name(), Some("T1".to_string()));
             assert_eq!(order2_outputs.token().symbol(), Some("T1".to_string()));
-            assert_eq!(order2_outputs.token().decimals(), Some(U256::from(0)));
+            assert_eq!(order2_outputs.token().decimals(), U256::from(0));
             assert_eq!(
                 order2_outputs.orderbook(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1307,7 +1319,7 @@ mod tests {
             );
             assert_eq!(order2_inputs.token().name(), Some("T2".to_string()));
             assert_eq!(order2_inputs.token().symbol(), Some("T2".to_string()));
-            assert_eq!(order2_inputs.token().decimals(), Some(U256::from(0)));
+            assert_eq!(order2_inputs.token().decimals(), U256::from(0));
             assert_eq!(
                 order2_inputs.orderbook(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1466,80 +1478,60 @@ mod tests {
             assert_eq!(res.len(), 4);
 
             let volume1 = res[0].clone();
-            assert_eq!(volume1.id, "1");
+            assert_eq!(volume1.id(), Bytes::from_str("0x10").unwrap());
             assert_eq!(
-                volume1.token.address.0,
-                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+                volume1.token().address(),
+                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
             );
-            assert_eq!(volume1.token.name, Some("Wrapped Flare".to_string()));
-            assert_eq!(volume1.token.symbol, Some("WFLR".to_string()));
-            assert_eq!(volume1.token.decimals, Some(SgBigInt("18".to_string())));
-            assert_eq!(
-                volume1.vol_details,
-                VolumeDetails {
-                    total_in: U256::from(1),
-                    total_out: U256::from(0),
-                    total_vol: U256::from(1),
-                    net_vol: U256::from(1),
-                }
-            );
+            assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
+            assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
+            assert_eq!(volume1.token().decimals(), U256::from(18));
+            assert_eq!(volume1.details().total_in(), U256::from(1));
+            assert_eq!(volume1.details().total_out(), U256::from(0));
+            assert_eq!(volume1.details().total_vol(), U256::from(1));
+            assert_eq!(volume1.details().net_vol(), U256::from(1));
 
             let volume2 = res[1].clone();
-            assert_eq!(volume2.id, "1");
+            assert_eq!(volume2.id(), Bytes::from_str("0x10").unwrap());
             assert_eq!(
-                volume2.token.address.0,
-                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
+                volume2.token().address(),
+                Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
             );
-            assert_eq!(volume2.token.name, Some("Staked FLR".to_string()));
-            assert_eq!(volume2.token.symbol, Some("sFLR".to_string()));
-            assert_eq!(volume2.token.decimals, Some(SgBigInt("18".to_string())));
-            assert_eq!(
-                volume2.vol_details,
-                VolumeDetails {
-                    total_in: U256::from(0),
-                    total_out: U256::from(2),
-                    total_vol: U256::from(2),
-                    net_vol: U256::from(2),
-                }
-            );
+            assert_eq!(volume2.token().name(), Some("Staked FLR".to_string()));
+            assert_eq!(volume2.token().symbol(), Some("sFLR".to_string()));
+            assert_eq!(volume2.token().decimals(), U256::from(18));
+            assert_eq!(volume2.details().total_in(), U256::from(0));
+            assert_eq!(volume2.details().total_out(), U256::from(2));
+            assert_eq!(volume2.details().total_vol(), U256::from(2));
+            assert_eq!(volume2.details().net_vol(), U256::from(2));
 
             let volume3 = res[2].clone();
-            assert_eq!(volume3.id, "2");
+            assert_eq!(volume3.id(), Bytes::from_str("0x20").unwrap());
             assert_eq!(
-                volume3.token.address.0,
-                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+                volume3.token().address(),
+                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
             );
-            assert_eq!(volume3.token.name, Some("Wrapped Flare".to_string()));
-            assert_eq!(volume3.token.symbol, Some("WFLR".to_string()));
-            assert_eq!(volume3.token.decimals, Some(SgBigInt("18".to_string())));
-            assert_eq!(
-                volume3.vol_details,
-                VolumeDetails {
-                    total_in: U256::from(2),
-                    total_out: U256::from(0),
-                    total_vol: U256::from(2),
-                    net_vol: U256::from(2),
-                }
-            );
+            assert_eq!(volume3.token().name(), Some("Wrapped Flare".to_string()));
+            assert_eq!(volume3.token().symbol(), Some("WFLR".to_string()));
+            assert_eq!(volume3.token().decimals(), U256::from(18));
+            assert_eq!(volume3.details().total_in(), U256::from(2));
+            assert_eq!(volume3.details().total_out(), U256::from(0));
+            assert_eq!(volume3.details().total_vol(), U256::from(2));
+            assert_eq!(volume3.details().net_vol(), U256::from(2));
 
             let volume4 = res[3].clone();
-            assert_eq!(volume4.id, "2");
+            assert_eq!(volume4.id(), Bytes::from_str("0x20").unwrap());
             assert_eq!(
-                volume4.token.address.0,
-                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
+                volume4.token().address(),
+                Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
             );
-            assert_eq!(volume4.token.name, Some("Staked FLR".to_string()));
-            assert_eq!(volume4.token.symbol, Some("sFLR".to_string()));
-            assert_eq!(volume4.token.decimals, Some(SgBigInt("18".to_string())));
-            assert_eq!(
-                volume4.vol_details,
-                VolumeDetails {
-                    total_in: U256::from(0),
-                    total_out: U256::from(5),
-                    total_vol: U256::from(5),
-                    net_vol: U256::from(5),
-                }
-            );
+            assert_eq!(volume4.token().name(), Some("Staked FLR".to_string()));
+            assert_eq!(volume4.token().symbol(), Some("sFLR".to_string()));
+            assert_eq!(volume4.token().decimals(), U256::from(18));
+            assert_eq!(volume4.details().total_in(), U256::from(0));
+            assert_eq!(volume4.details().total_out(), U256::from(5));
+            assert_eq!(volume4.details().total_vol(), U256::from(5));
+            assert_eq!(volume4.details().net_vol(), U256::from(5));
         }
 
         #[tokio::test]
