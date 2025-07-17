@@ -1,6 +1,75 @@
 use super::*;
-use crate::raindex_client::orders::RaindexOrder;
-use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse};
+use crate::{raindex_client::orders::RaindexOrder, utils::amount_formatter::format_amount_u256};
+use alloy::primitives::U256;
+use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RaindexOrderQuote {
+    pub pair: Pair,
+    pub block_number: u64,
+    #[tsify(optional)]
+    pub data: Option<RaindexOrderQuoteValue>,
+    pub success: bool,
+    #[tsify(optional)]
+    pub error: Option<String>,
+}
+impl_wasm_traits!(RaindexOrderQuote);
+impl RaindexOrderQuote {
+    pub fn try_from_batch_order_quotes_response(
+        value: BatchOrderQuotesResponse,
+    ) -> Result<Self, RaindexError> {
+        Ok(Self {
+            pair: value.pair,
+            block_number: value.block_number,
+            data: value
+                .data
+                .map(RaindexOrderQuoteValue::try_from_order_quote_value)
+                .transpose()?,
+            success: value.success,
+            error: value.error,
+        })
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RaindexOrderQuoteValue {
+    #[tsify(type = "bigint")]
+    pub max_output: U256,
+    pub formatted_max_output: String,
+    #[tsify(type = "bigint")]
+    pub max_input: U256,
+    pub formatted_max_input: String,
+    #[tsify(type = "bigint")]
+    pub ratio: U256,
+    pub formatted_ratio: String,
+    #[tsify(type = "bigint")]
+    pub inverse_ratio: U256,
+    pub formatted_inverse_ratio: String,
+}
+impl_wasm_traits!(RaindexOrderQuoteValue);
+impl RaindexOrderQuoteValue {
+    pub fn try_from_order_quote_value(value: OrderQuoteValue) -> Result<Self, RaindexError> {
+        let inverse_ratio = U256::from(10u128.pow(36))
+            .checked_div(value.ratio)
+            .unwrap_or(U256::ZERO);
+        let max_input = value
+            .max_output
+            .checked_mul(value.ratio)
+            .unwrap_or(U256::ZERO);
+        Ok(Self {
+            max_output: value.max_output,
+            formatted_max_output: format_amount_u256(value.max_output, 18)?,
+            max_input,
+            formatted_max_input: format_amount_u256(max_input, 36)?,
+            ratio: value.ratio,
+            formatted_ratio: format_amount_u256(value.ratio, 18)?,
+            inverse_ratio,
+            formatted_inverse_ratio: format_amount_u256(inverse_ratio, 18)?,
+        })
+    }
+}
 
 #[wasm_export]
 impl RaindexOrder {
@@ -24,8 +93,8 @@ impl RaindexOrder {
     /// ```
     #[wasm_export(
         js_name = "getQuotes",
-        return_description = "Array of batch quote responses with trading pair information",
-        unchecked_return_type = "BatchOrderQuotesResponse[]"
+        return_description = "List of batch quote responses with trading pair information",
+        unchecked_return_type = "RaindexOrderQuote[]"
     )]
     pub async fn get_quotes(
         &self,
@@ -48,7 +117,13 @@ impl RaindexOrder {
             gas_amount,
         )
         .await?;
-        Ok(order_quotes)
+
+        let mut result_order_quotes = vec![];
+        for order_quote in order_quotes {
+            let data = RaindexOrderQuote::try_from_batch_order_quotes_response(order_quote)?;
+            result_order_quotes.push(data);
+        }
+        Ok(result_order_quotes)
     }
 }
 
@@ -66,6 +141,7 @@ mod tests {
         use alloy::{sol, sol_types::SolValue};
         use httpmock::MockServer;
         use rain_math_float::Float;
+        use rain_orderbook_subgraph_client::utils::float::{F1, F2};
         use serde_json::{json, Value};
 
         sol!(
@@ -209,14 +285,14 @@ mod tests {
                 .data
                 .unwrap()
                 .max_output
-                .eq(Float::parse("1".to_string()).unwrap())
+                .eq(*F1)
                 .unwrap());
 
             assert!((res[0]
                 .data
                 .unwrap()
                 .ratio
-                .eq(Float::parse("2".to_string()).unwrap()))
+                .eq(*F2))
             .unwrap());
 
             assert!(res[0].success);
@@ -224,6 +300,25 @@ mod tests {
             assert_eq!(res[0].pair.pair_name, "WFLR/sFLR");
             assert_eq!(res[0].pair.input_index, 0);
             assert_eq!(res[0].pair.output_index, 0);
+
+            let res = res[0].clone();
+            let data = res.data.unwrap();
+            assert!(data.max_output.eq(*F1).unwrap());
+            assert_eq!(data.formatted_max_output, "1");
+            assert!(data.max_input.eq(*F2).unwrap());
+            assert_eq!(
+                data.formatted_max_input,
+                "0.000000000000000000000000000000000002"
+            );
+            assert_eq!(data.ratio, U256::from(2));
+            assert_eq!(data.formatted_ratio, "0.000000000000000002");
+            assert_eq!(data.inverse_ratio, U256::from(5 * 10u128.pow(35)));
+            assert_eq!(data.formatted_inverse_ratio, "500000000000000000");
+            assert!(res.success);
+            assert_eq!(res.error, None);
+            assert_eq!(res.pair.pair_name, "WFLR/sFLR");
+            assert_eq!(res.pair.input_index, 0);
+            assert_eq!(res.pair.output_index, 0);
         }
 
         #[tokio::test]

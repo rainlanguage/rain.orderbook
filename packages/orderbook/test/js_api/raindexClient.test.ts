@@ -594,8 +594,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(order.vaults[2].token.decimals, '0');
 		});
 
-		// TODO: Issue #1989
-		// it('should get the get the total volume for an order', async () => {
+		// it('should get the total volume for an order', async () => {
 		// 	await mockServer
 		// 		.forPost('/sg1')
 		// 		.once()
@@ -620,48 +619,43 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		// 		})
 		// 	);
 
-		// 	const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-		// 	const order = extractWasmEncodedData(
-		// 		await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
-		// 	);
-		// 	const result = await order.getVaultsVolume(BigInt(1632000000), BigInt(1734571449));
-		// 	if (result.error) assert.fail('expected to resolve, but failed');
+		// // 	const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+		// // 	const order = extractWasmEncodedData(
+		// // 		await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+		// // 	);
+		// // 	const result = await order.getVaultsVolume(BigInt(1632000000), BigInt(1734571449));
+		// // 	if (result.error) assert.fail('expected to resolve, but failed');
 
-		// 	const expected: VaultVolume[] = [
-		// 		{
-		// 			id: '0x0234',
-		// 			token: {
-		// 				id: '0x0234',
-		// 				address: '0x2222222222222222222222222222222222222222',
-		// 				name: 'Token Two',
-		// 				symbol: 'TK2',
-		// 				decimals: '18'
-		// 			},
-		// 			volDetails: {
-		// 				netVol: '0x2b5e3af16b1880000',
-		// 				totalIn: '0x2b5e3af16b1880000',
-		// 				totalOut: '0x0',
-		// 				totalVol: '0x2b5e3af16b1880000'
-		// 			}
-		// 		},
-		// 		{
-		// 			id: '0x0123',
-		// 			token: {
-		// 				id: '0x0123',
-		// 				address: '0x1111111111111111111111111111111111111111',
-		// 				name: 'Token One',
-		// 				symbol: 'TK1',
-		// 				decimals: '18'
-		// 			},
-		// 			volDetails: {
-		// 				netVol: '0x56bc75e2d63100000',
-		// 				totalIn: '0x0',
-		// 				totalOut: '0x56bc75e2d63100000',
-		// 				totalVol: '0x56bc75e2d63100000'
-		// 			}
-		// 		}
-		// 	];
-		// 	assert.deepEqual(result.value, expected);
+		// 	assert.equal(result.value.length, 2);
+		// 	assert.equal(result.value[0].id, '0x0234');
+		// 	assert.equal(result.value[0].token.id, '0x0234');
+		// 	assert.equal(result.value[0].token.address, '0x2222222222222222222222222222222222222222');
+		// 	assert.equal(result.value[0].token.name, 'Token Two');
+		// 	assert.equal(result.value[0].token.symbol, 'TK2');
+		// 	assert.equal(result.value[0].token.decimals, BigInt(18));
+		// 	assert.equal(result.value[0].details.netVol, BigInt('0x2b5e3af16b1880000'));
+		// 	assert.equal(result.value[0].details.formattedNetVol, '50');
+		// 	assert.equal(result.value[0].details.totalIn, BigInt('0x2b5e3af16b1880000'));
+		// 	assert.equal(result.value[0].details.formattedTotalIn, '50');
+		// 	assert.equal(result.value[0].details.totalOut, BigInt('0x0'));
+		// 	assert.equal(result.value[0].details.formattedTotalOut, '0');
+		// 	assert.equal(result.value[0].details.totalVol, BigInt('0x2b5e3af16b1880000'));
+		// 	assert.equal(result.value[0].details.formattedTotalVol, '50');
+
+		// 	assert.equal(result.value[1].id, '0x0123');
+		// 	assert.equal(result.value[1].token.id, '0x0123');
+		// 	assert.equal(result.value[1].token.address, '0x1111111111111111111111111111111111111111');
+		// 	assert.equal(result.value[1].token.name, 'Token One');
+		// 	assert.equal(result.value[1].token.symbol, 'TK1');
+		// 	assert.equal(result.value[1].token.decimals, BigInt(18));
+		// 	assert.equal(result.value[1].details.netVol, BigInt('0x56bc75e2d63100000'));
+		// 	assert.equal(result.value[1].details.formattedNetVol, '100');
+		// 	assert.equal(result.value[1].details.totalIn, BigInt('0x0'));
+		// 	assert.equal(result.value[1].details.formattedTotalIn, '0');
+		// 	assert.equal(result.value[1].details.totalOut, BigInt('0x56bc75e2d63100000'));
+		// 	assert.equal(result.value[1].details.formattedTotalOut, '100');
+		// 	assert.equal(result.value[1].details.totalVol, BigInt('0x56bc75e2d63100000'));
+		// 	assert.equal(result.value[1].details.formattedTotalVol, '100');
 		// });
 
 		// TODO: Issue #1989
@@ -810,13 +804,21 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const result = extractWasmEncodedData(await order.getQuotes());
+
+			assert.equal(result.length, 1);
 			assert.deepEqual(result, [
 				{
 					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
 					blockNumber: 1,
 					data: {
-						maxOutput: '0x0000000000000000000000000000000000000000000000000000000000000001',
-						ratio: '0x0000000000000000000000000000000000000000000000000000000000000002'
+						maxOutput: '0x1',
+						formattedMaxOutput: '0.000000000000000001',
+						maxInput: '0x2',
+						formattedMaxInput: '0.000000000000000000000000000000000002',
+						ratio: '0x2',
+						formattedRatio: '0.000000000000000002',
+						inverseRatio: '0x604be73de4838ad9a5cf8800000000',
+						formattedInverseRatio: '500000000000000000'
 					},
 					success: true,
 					error: undefined
@@ -1921,6 +1923,31 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result.length, 1);
 			assert.equal(result[0].id, 'token1');
 			assert.equal(result[0].chainId, 1);
+		});
+
+		it('should fetch account balance from a raindex vault instance', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer.forPost('/rpc1').thenReply(
+				200,
+				JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					result: '0x00000000000000000000000000000000000000000000000000000000000003e8'
+				})
+			);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const res = extractWasmEncodedData(await vault.getOwnerBalance());
+			assert.equal(typeof res.balance, 'bigint');
+			assert.equal(res.balance, BigInt(1000));
+			assert.equal(res.formattedBalance, '0.000000000000001');
 		});
 	});
 

@@ -65,6 +65,7 @@ impl RaindexClient {
         let orders = client
             .transaction_remove_orders(Id::new(tx_hash.to_string()))
             .await?;
+
         let orders = orders
             .into_iter()
             .map(|value| {
@@ -334,7 +335,7 @@ mod tests {
             );
             assert_eq!(output.token().name(), Some("Staked FLR".to_string()));
             assert_eq!(output.token().symbol(), Some("sFLR".to_string()));
-            assert_eq!(output.token().decimals(), Some(U256::from(18)));
+            assert_eq!(output.token().decimals(), U256::from(18));
             assert_eq!(
                 output.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
@@ -388,7 +389,7 @@ mod tests {
             );
             assert_eq!(input.token().name(), Some("Wrapped Flare".to_string()));
             assert_eq!(input.token().symbol(), Some("WFLR".to_string()));
-            assert_eq!(input.token().decimals(), Some(U256::from(18)));
+            assert_eq!(input.token().decimals(), U256::from(18));
             assert_eq!(
                 input.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()

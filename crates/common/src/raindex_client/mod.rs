@@ -1,6 +1,7 @@
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
-    meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
+    erc20::Error as Erc20Error, meta::TryDecodeRainlangSourceError,
+    transaction::WritableTransactionExecuteError, utils::amount_formatter::AmountFormatterError,
 };
 use alloy::{
     hex::FromHexError,
@@ -242,11 +243,19 @@ pub enum RaindexError {
     ParseInt(#[from] ParseIntError),
     #[error("Failed to convert to u8: {0}")]
     TryFromUint(#[from] FromUintError<u8>),
+    #[error("Missing decimals for token {0}")]
+    MissingErc20Decimals(String),
 }
 
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<Erc20Error> for RaindexError {
+    fn from(err: Erc20Error) -> Self {
+        Self::Erc20Error(Box::new(err))
     }
 }
 
@@ -350,6 +359,9 @@ impl RaindexError {
             RaindexError::Float(err) => format!("Float error: {err}"),
             RaindexError::ParseInt(err) => format!("Failed to parse an integer: {err}"),
             RaindexError::TryFromUint(err) => format!("Failed to convert to u8: {err}"),
+            RaindexError::MissingErc20Decimals(token) => {
+                format!("Missing decimal information for the token address: {token}")
+            }
         }
     }
 }

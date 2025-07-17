@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use super::*;
 use crate::raindex_client::{
     orders::RaindexOrder, transactions::RaindexTransaction, vaults::RaindexVaultBalanceChange,
@@ -9,6 +7,7 @@ use rain_orderbook_subgraph_client::{
     types::{common::SgTrade, Id},
     SgPaginationArgs,
 };
+use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
@@ -137,6 +136,7 @@ impl RaindexOrder {
                 end_timestamp,
             )
             .await?;
+
         let trades = trades
             .into_iter()
             .map(|trade| RaindexTrade::try_from_sg_trade(self.chain_id(), trade))
@@ -652,7 +652,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.output_vault_balance_change().token().decimals(),
-                Some(U256::from_str("18").unwrap())
+                U256::from(18)
             );
             assert_eq!(
                 trade1.output_vault_balance_change().timestamp(),
@@ -719,7 +719,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.input_vault_balance_change().token().decimals(),
-                Some(U256::from_str("18").unwrap())
+                U256::from(18)
             );
             assert_eq!(
                 trade1.input_vault_balance_change().timestamp(),
@@ -844,7 +844,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.output_vault_balance_change().token().decimals(),
-                Some(U256::from_str("18").unwrap())
+                U256::from(18)
             );
             assert_eq!(
                 trade.output_vault_balance_change().timestamp(),
@@ -903,7 +903,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.input_vault_balance_change().token().decimals(),
-                Some(U256::from_str("18").unwrap())
+                U256::from(18)
             );
             assert_eq!(
                 trade.input_vault_balance_change().timestamp(),

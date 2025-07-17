@@ -20,38 +20,3 @@ export function bigintStringToPercentage(
 	}
 	return valueString;
 }
-
-/**
- * Converts a bigint value to a floating point number with the specified number of decimals
- * @param value - The bigint value to convert
- * @param decimals - The number of decimal places to use in the conversion
- * @returns The converted floating point number
- */
-export function bigintToFloat(value: bigint, decimals: number) {
-	return parseFloat(formatUnits(value, decimals));
-}
-
-if (import.meta.vitest) {
-	const { it, expect } = import.meta.vitest;
-
-	it('should get percentage string from bigint string', () => {
-		const value = '123456000000000000';
-		const decimals = 18;
-		const finalDecimalsDigits = 4;
-
-		const result = bigintStringToPercentage(value, decimals, finalDecimalsDigits);
-		const expected = '12.3456';
-
-		expect(result).toEqual(expected);
-	});
-
-	it('should convert bigint to float', () => {
-		const value = 123456000000000000n;
-		const decimals = 18;
-
-		const result = bigintToFloat(value, decimals);
-		const expected = 0.123456;
-
-		expect(result).toEqual(expected);
-	});
-}

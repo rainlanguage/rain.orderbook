@@ -1,11 +1,10 @@
 <!-- TODO: Issue #1989 -->
-<!-- <script lang="ts">
+<script lang="ts">
 	// import { timestampSecondsToUTCTimestamp } from '../../services/time';
-	// import { bigintToFloat } from '../../utils/number';
-	// import type { RaindexVault, RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
-	// import { createQuery } from '@tanstack/svelte-query';
-	// import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
-	// import { QKEY_VAULT_CHANGES } from '../../queries/keys';
+	// 	import type { RaindexVault, RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
+	// 	import { createQuery } from '@tanstack/svelte-query';
+	// 	import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
+	// 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 
 	// export let vault: RaindexVault;
 	// export let lightweightChartsTheme;
@@ -20,7 +19,7 @@
 	// });
 
 	// const Chart = TanstackLightweightChartLine<RaindexVaultBalanceChange>;
-</script> -->
+</script>
 
 <!--
 {#if vault && $query.data}
@@ -29,7 +28,7 @@
 		priceSymbol={vault.token.symbol}
 		{query}
 		timeTransform={(d) => timestampSecondsToUTCTimestamp(BigInt(d.timestamp))}
-		valueTransform={(d) => bigintToFloat(d.newBalance, Number(vault.token.decimals ?? 0))}
+		valueTransform={(d) => parseFloat(d.formattedNewBalance)}
 		emptyMessage="No deposits or withdrawals found"
 		{lightweightChartsTheme}
 	/>

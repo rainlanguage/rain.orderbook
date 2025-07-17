@@ -96,6 +96,7 @@ describe('VaultDetail', () => {
 				decimals: '6'
 			},
 			balance: BigInt(100000000000),
+			formattedBalance: '100000',
 			ordersAsInput: [],
 			ordersAsOutput: [],
 			orderbook: '0x00'
