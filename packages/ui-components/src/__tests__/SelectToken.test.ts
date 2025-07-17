@@ -5,7 +5,6 @@ import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
-import { readable } from 'svelte/store';
 
 type SelectTokenComponentProps = ComponentProps<SelectToken>;
 

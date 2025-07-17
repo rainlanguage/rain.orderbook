@@ -1,10 +1,8 @@
 <script lang="ts">
-	import { Input, Spinner } from 'flowbite-svelte';
+	import { Input } from 'flowbite-svelte';
 	import { type OrderIOCfg, type TokenInfo } from '@rainlanguage/orderbook';
-	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	import { formatUnits } from 'viem';
 	import type { TokenBalance } from '$lib/types/tokenBalance';
 	import VaultIdInformation from './VaultIdInformation.svelte';
 
