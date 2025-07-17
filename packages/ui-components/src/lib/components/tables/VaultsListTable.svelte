@@ -1,7 +1,16 @@
 <script lang="ts" generics="T">
 	import { toHex } from 'viem';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
+
+	import {
+		Button,
+		Dropdown,
+		DropdownItem,
+		TableBodyCell,
+		TableHeadCell,
+		Checkbox,
+		Tooltip
+	} from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
@@ -10,7 +19,7 @@
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { RaindexVault } from '@rainlanguage/orderbook';
+	import { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -40,9 +49,47 @@
 				context: ReturnType<typeof getAllContexts>
 		  ) => void)
 		| undefined = undefined;
+	export let onWithdrawMultiple:
+		| ((raindexClient: RaindexClient, vaults: RaindexVault[]) => void)
 
 	const { account, matchesAccount } = useAccount();
 	const raindexClient = useRaindexClient();
+
+	// State for selected vaults for multiple withdrawal
+	let selectedVaults: RaindexVault[] = [];
+
+	// Helper functions for vault selection
+	const isVaultSelected = (vault: RaindexVault): boolean => {
+		return selectedVaults.some((v) => v.id === vault.id);
+	};
+
+	const isVaultEmpty = (vault: RaindexVault): boolean => {
+		return vault.balance === 0n;
+	};
+
+	const isVaultDisabled = (vault: RaindexVault): boolean => {
+		if (isVaultEmpty(vault)) return true;
+		if (!matchesAccount(vault.owner)) return true; // Only allow selection of user's own vaults
+		if (selectedVaults.length === 0) return false;
+		return vault.chainId !== selectedVaults[0].chainId;
+	};
+
+	const toggleVaultSelection = (vault: RaindexVault): void => {
+		if (isVaultDisabled(vault)) return;
+
+		if (isVaultSelected(vault)) {
+			selectedVaults = selectedVaults.filter((v) => v.id !== vault.id);
+		} else {
+			selectedVaults = [...selectedVaults, vault];
+		}
+	};
+
+	const handleWithdrawAll = async () => {
+		if (onWithdrawMultiple) {
+			await onWithdrawMultiple(raindexClient, selectedVaults);
+			selectedVaults = []; // Clear selection after withdrawal
+		}
+	};
 
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
@@ -116,10 +163,23 @@
 			<div class="mt-2 flex w-full justify-between">
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
+					{#if onWithdrawMultiple && $account}
+						<Button
+							color="alternative"
+							disabled={selectedVaults.length === 0}
+							class={selectedVaults.length === 0 ? 'text-gray-400' : ''}
+							on:click={handleWithdrawAll}
+						>
+							Withdraw all ({selectedVaults.length})
+						</Button>
+					{/if}
 				</div>
 			</div>
 		</svelte:fragment>
 		<svelte:fragment slot="head">
+			{#if onWithdrawMultiple && $account}
+				<TableHeadCell padding="px-2 py-4">Select</TableHeadCell>
+			{/if}
 			<TableHeadCell padding="p-4">Network</TableHeadCell>
 			<TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
 			<TableHeadCell padding="px-4 py-4">Orderbook</TableHeadCell>
@@ -131,6 +191,28 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="bodyRow" let:item>
+			{#if onWithdrawMultiple && $account}
+				{#if matchesAccount(item.owner)}
+					<TableBodyCell tdClass="px-2 py-4">
+						<div class="relative">
+							<Checkbox
+								checked={isVaultSelected(item)}
+								disabled={isVaultDisabled(item)}
+								on:click={(e) => e.stopPropagation()}
+								on:change={() => toggleVaultSelection(item)}
+								class="cursor-pointer"
+							/>
+							{#if isVaultEmpty(item)}
+								<Tooltip class="w-auto text-xs" placement="top">Vault is empty</Tooltip>
+							{/if}
+						</div>
+					</TableBodyCell>
+				{:else}
+					<TableBodyCell tdClass="px-2 py-4">
+						<!-- Empty cell for alignment when user is not the owner -->
+					</TableBodyCell>
+				{/if}
+			{/if}
 			<TableBodyCell tdClass="px-4 py-2" data-testid="vault-network">
 				{getNetworkName(Number(item.chainId))}
 			</TableBodyCell>
