@@ -1299,7 +1299,7 @@ mod tests {
             );
             assert_eq!(order2_outputs.token().name(), Some("T1".to_string()));
             assert_eq!(order2_outputs.token().symbol(), Some("T1".to_string()));
-            assert_eq!(order2_outputs.token().decimals(), U256::from(0));
+            assert_eq!(order2_outputs.token().decimals(), 0);
             assert_eq!(
                 order2_outputs.orderbook(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1326,7 +1326,7 @@ mod tests {
             );
             assert_eq!(order2_inputs.token().name(), Some("T2".to_string()));
             assert_eq!(order2_inputs.token().symbol(), Some("T2".to_string()));
-            assert_eq!(order2_inputs.token().decimals(), U256::from(0));
+            assert_eq!(order2_inputs.token().decimals(), 0);
             assert_eq!(
                 order2_inputs.orderbook(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()

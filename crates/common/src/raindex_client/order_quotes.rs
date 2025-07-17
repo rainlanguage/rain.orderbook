@@ -2,7 +2,7 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use rain_math_float::Float;
 use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
-use rain_orderbook_subgraph_client::utils::float::{F1, F2, F0_5};
+use rain_orderbook_subgraph_client::utils::float::{F1, F0_5};
 use std::ops::{Div, Mul};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
@@ -141,7 +141,7 @@ mod tests {
         use alloy::{sol, sol_types::SolValue};
         use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_orderbook_subgraph_client::utils::float::{F1, F2};
+        use rain_orderbook_subgraph_client::utils::float::F2;
         use serde_json::{json, Value};
 
         sol!(

@@ -652,7 +652,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.output_vault_balance_change().token().decimals(),
-                U256::from(18)
+                18
             );
             assert_eq!(
                 trade1.output_vault_balance_change().timestamp(),
@@ -719,7 +719,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.input_vault_balance_change().token().decimals(),
-                U256::from(18)
+                18
             );
             assert_eq!(
                 trade1.input_vault_balance_change().timestamp(),
@@ -844,7 +844,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.output_vault_balance_change().token().decimals(),
-                U256::from(18)
+                18
             );
             assert_eq!(
                 trade.output_vault_balance_change().timestamp(),
@@ -903,7 +903,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.input_vault_balance_change().token().decimals(),
-                U256::from(18)
+                18
             );
             assert_eq!(
                 trade.input_vault_balance_change().timestamp(),

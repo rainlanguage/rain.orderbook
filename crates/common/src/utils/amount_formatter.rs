@@ -1,7 +1,7 @@
 use alloy::primitives::{
     ruint::ParseError,
     utils::{format_units, UnitsError},
-    ParseSignedError, I256, U256,
+    ParseSignedError, U256,
 };
 use thiserror::Error;
 

@@ -203,7 +203,7 @@ pub struct RaindexVaultToken {
     address: Address,
     name: Option<String>,
     symbol: Option<String>,
-    decimals: U256,
+    decimals: u8,
 }
 
 #[cfg(target_family = "wasm")]
@@ -230,9 +230,8 @@ impl RaindexVaultToken {
         self.symbol.clone()
     }
     #[wasm_bindgen(getter)]
-    pub fn decimals(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.decimals.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn decimals(&self) -> Result<u8, RaindexError> {
+        self.decimals
     }
 }
 
@@ -253,7 +252,7 @@ impl RaindexVaultToken {
     pub fn symbol(&self) -> Option<String> {
         self.symbol.clone()
     }
-    pub fn decimals(&self) -> U256 {
+    pub fn decimals(&self) -> u8 {
         self.decimals
     }
 }
@@ -394,10 +393,7 @@ impl RaindexVault {
         amount: String,
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
-
-        let decimals: u8 = u8::try_from(self.token.decimals)?;
-
-        let target_amount = Float::from_fixed_decimal(amount, decimals)?;
+        let target_amount = Float::from_fixed_decimal(amount, self.token.decimals)?;
 
         Ok(Bytes::copy_from_slice(
             &WithdrawArgs {
@@ -422,25 +418,19 @@ impl RaindexVault {
             raindex_client.get_rpc_urls_for_chain(self.chain_id)?
         };
 
-        let decimals: u8 = match self.token.decimals {
-            Some(d) => u8::try_from(d)?,
-            None => {
-                let erc20 = ERC20::new(rpcs.clone(), self.token.address);
-                erc20.decimals().await?
-            }
-        };
-
         let deposit_args = DepositArgs {
             token: self.token.address,
             vault_id: B256::from(self.vault_id),
-            decimals,
+            decimals: self.token.decimals,
             amount,
         };
+
         let transaction_args = TransactionArgs {
             orderbook_address: self.orderbook,
             rpcs: rpcs.iter().map(|rpc| rpc.to_string()).collect(),
             ..Default::default()
         };
+
         Ok((deposit_args, transaction_args))
     }
 
@@ -549,7 +539,7 @@ impl RaindexVault {
     )]
     pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
         let balance = self.get_owner_balance(self.owner).await?;
-        let decimals = self.token.decimals.try_into()?;
+        let decimals = self.token.decimals;
         let account_balance = AccountBalance {
             balance,
             formatted_balance: format_amount_u256(balance, decimals)?,
@@ -1266,14 +1256,15 @@ impl RaindexVaultToken {
         let decimals = erc20
             .decimals
             .ok_or(RaindexError::MissingErc20Decimals(address.to_string()))?
-            .0;
+            .0
+            .parse::<u8>()?;
         Ok(Self {
             chain_id,
             id: erc20.id.0,
             address,
             name: erc20.name,
             symbol: erc20.symbol,
-            decimals: U256::from_str(&decimals)?,
+            decimals,
         })
     }
 }
@@ -1639,7 +1630,7 @@ mod tests {
             );
             assert_eq!(result[0].token.name, Some("Wrapped Flare".to_string()));
             assert_eq!(result[0].token.symbol, Some("WFLR".to_string()));
-            assert_eq!(result[0].token.decimals, U256::from(18));
+            assert_eq!(result[0].token.decimals, 18);
             assert!(result[0].amount.eq(*F5).unwrap());
             assert_eq!(result[0].formatted_amount, "5");
             assert!(result[0].new_balance.eq(*F5).unwrap());
