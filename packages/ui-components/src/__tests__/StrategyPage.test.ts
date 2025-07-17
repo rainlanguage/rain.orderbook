@@ -81,7 +81,7 @@ describe('StrategyPage', () => {
 		// Mock DotrainOrderGui methods
 		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce({
 			error: {
-				msg: 'Failed to get strategy details'
+				msg: 'Failed to get order details'
 			}
 		});
 
@@ -93,7 +93,7 @@ describe('StrategyPage', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Error: Failed to get strategy details')).toBeInTheDocument();
+			expect(screen.getByText('Error: Failed to get order details')).toBeInTheDocument();
 		});
 	});
 

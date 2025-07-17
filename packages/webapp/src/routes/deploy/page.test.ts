@@ -95,7 +95,7 @@ describe('Page Component', () => {
 	it('should display error message when validating strategies fails', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				error: 'Failed to validate strategies'
+				error: 'Failed to validate orders'
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as unknown as any
 		});
@@ -107,7 +107,7 @@ describe('Page Component', () => {
 		await waitFor(() => {
 			const errorMessage = screen.getByTestId('error-message');
 			expect(errorMessage).toBeInTheDocument();
-			expect(errorMessage).toHaveTextContent('Failed to validate strategies');
+			expect(errorMessage).toHaveTextContent('Failed to validate orders');
 		});
 	});
 
@@ -126,7 +126,7 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('No strategies found')).toBeInTheDocument();
+			expect(screen.getByText('No orders found')).toBeInTheDocument();
 		});
 	});
 

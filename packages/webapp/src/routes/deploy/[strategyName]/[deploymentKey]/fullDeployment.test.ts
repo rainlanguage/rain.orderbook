@@ -198,7 +198,7 @@ describe('Full Deployment Tests', () => {
 			await userEvent.type(vaultIdInputs[1], '0x234');
 
 			// Click the "Deploy Strategy" button
-			const deployButton = screen.getByText('Deploy Strategy');
+			const deployButton = screen.getByText('Deploy Order');
 			await userEvent.click(deployButton);
 
 			await waitFor(
@@ -354,7 +354,7 @@ describe('Full Deployment Tests', () => {
 			await userEvent.type(vaultIdInputs[1], '0x234');
 
 			// Click the "Deploy Strategy" button
-			const deployButton = screen.getByText('Deploy Strategy');
+			const deployButton = screen.getByText('Deploy Order');
 			await userEvent.click(deployButton);
 
 			await waitFor(
@@ -501,7 +501,7 @@ describe('Full Deployment Tests', () => {
 			await userEvent.type(vaultIdInputs[1], '0x123');
 
 			// Click the "Deploy Strategy" button
-			const deployButton = screen.getByText('Deploy Strategy');
+			const deployButton = screen.getByText('Deploy Order');
 			await userEvent.click(deployButton);
 
 			await waitFor(

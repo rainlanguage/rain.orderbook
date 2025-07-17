@@ -279,7 +279,7 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Deploy Order')).toBeInTheDocument();
 		});
 	});
 	it('refreshes field descriptions when tokens change', async () => {
@@ -419,7 +419,7 @@ describe('DeploymentSteps', () => {
 		const user = userEvent.setup();
 		render(DeploymentSteps, { props: propsWithMockHandlers });
 
-		const deployButton = screen.getByText('Deploy Strategy');
+		const deployButton = screen.getByText('Deploy Order');
 		await user.click(deployButton);
 
 		await waitFor(() => {
