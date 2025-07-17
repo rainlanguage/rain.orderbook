@@ -169,6 +169,7 @@ describe('Full Deployment Tests', () => {
 				},
 				{ timeout: 300000 }
 			);
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			await userEvent.click(tokenSelectionButtons[1]);
 			await userEvent.click(screen.getByText('Wrapped FLR'));
@@ -178,6 +179,7 @@ describe('Full Deployment Tests', () => {
 				},
 				{ timeout: 300000 }
 			);
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			// Get the input component and write "10" into it
 			const customValueInput = screen.getAllByPlaceholderText('Enter custom value')[0];
@@ -298,6 +300,7 @@ describe('Full Deployment Tests', () => {
 				},
 				{ timeout: 300000 }
 			);
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			await userEvent.click(tokenSelectionButtons[1]);
 			await userEvent.click(screen.getByText('Wrapped FLR'));
@@ -307,6 +310,7 @@ describe('Full Deployment Tests', () => {
 				},
 				{ timeout: 300000 }
 			);
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			const timePerAmountEpochInput = screen.getByTestId(
 				'binding-time-per-amount-epoch-input'
@@ -455,6 +459,7 @@ describe('Full Deployment Tests', () => {
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-token1')).toBeInTheDocument();
 			});
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			await userEvent.click(tokenSelectionButtons[1]);
 			await userEvent.click(screen.getByText('Wrapped FLR'));
@@ -464,6 +469,7 @@ describe('Full Deployment Tests', () => {
 				},
 				{ timeout: 300000 }
 			);
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			const amountIsFastExitButton = screen.getByTestId(
 				'binding-amount-is-fast-exit-preset-Yes'

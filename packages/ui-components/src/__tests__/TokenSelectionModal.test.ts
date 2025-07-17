@@ -9,18 +9,21 @@ type TokenSelectionModalProps = ComponentProps<TokenSelectionModal>;
 
 const mockTokens: TokenInfo[] = [
 	{
+		key: 'token1',
 		address: '0x1234567890123456789012345678901234567890',
 		name: 'Test Token 1',
 		symbol: 'TEST1',
 		decimals: 18
 	},
 	{
+		key: 'token2',
 		address: '0x0987654321098765432109876543210987654321',
 		name: 'Another Token',
 		symbol: 'ANOTHER',
 		decimals: 6
 	},
 	{
+		key: 'token3',
 		address: '0x1111222233334444555566667777888899990000',
 		name: 'Third Token',
 		symbol: 'THIRD',

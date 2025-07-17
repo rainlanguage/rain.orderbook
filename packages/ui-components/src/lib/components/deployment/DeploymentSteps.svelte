@@ -28,6 +28,7 @@
 	import { useRegistry } from '$lib/providers/registry/useRegistry';
 	import type { Account } from '$lib/types/account';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import type { TokenBalance } from '$lib/types/tokenBalance';
 
 	interface Deployment {
 		key: string;
@@ -57,6 +58,7 @@
 	let checkingDeployment: boolean = false;
 	let availableTokens: TokenInfo[] = [];
 	let loadingTokens: boolean = false;
+	let tokenBalances: Map<string, TokenBalance> = new Map();
 
 	const gui = useGui();
 	const registry = useRegistry();
@@ -76,6 +78,12 @@
 
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
 		updateFields();
+	}
+
+	$: if (!$account) {
+		const balances = tokenBalances;
+		balances.clear();
+		tokenBalances = balances;
 	}
 
 	async function loadAvailableTokens() {
@@ -125,8 +133,39 @@
 		await handleShareChoices(gui, registry.getCurrentRegistry());
 	}
 
-	async function onSelectTokenSelect() {
+	async function fetchTokenBalance(tokenInfo: TokenInfo) {
+		if (!$account) return;
+
+		const balances = tokenBalances;
+		balances.set(tokenInfo.key, { balance: null, loading: true, error: '' });
+
+		const balance = await gui.getAccountBalance(tokenInfo.address, $account);
+		if (balance.error) {
+			balances.set(tokenInfo.key, {
+				balance: null,
+				loading: false,
+				error: balance.error.readableMsg
+			});
+			tokenBalances = balances;
+			return;
+		}
+		balances.set(tokenInfo.key, {
+			balance: BigInt(balance.value),
+			loading: false,
+			error: ''
+		});
+		tokenBalances = balances;
+	}
+
+	async function onSelectTokenSelect(key: string) {
 		await areAllTokensSelected();
+
+		if ($account) {
+			const tokenInfoResult = await gui.getTokenInfo(key);
+			if (!tokenInfoResult.error && tokenInfoResult.value?.address) {
+				await fetchTokenBalance(tokenInfoResult.value);
+			}
+		}
 
 		if (allTokensSelected) {
 			let result = await gui.getAllTokenInfos();
@@ -218,7 +257,13 @@
 						description="Select the tokens that you want to use in your order."
 					/>
 					{#each selectTokens as token}
-						<SelectToken {token} {onSelectTokenSelect} {availableTokens} loading={loadingTokens} />
+						<SelectToken
+							{token}
+							{onSelectTokenSelect}
+							{availableTokens}
+							loading={loadingTokens}
+							{tokenBalances}
+						/>
 					{/each}
 				</div>
 			{/if}
@@ -242,11 +287,11 @@
 					{/each}
 
 					{#each allTokenOutputs as output, i}
-						<TokenIOInput {i} label="Output" vault={output} />
+						<TokenIOInput {i} label="Output" vault={output} {tokenBalances} />
 					{/each}
 
 					{#each allTokenInputs as input, i}
-						<TokenIOInput {i} label="Input" vault={input} />
+						<TokenIOInput {i} label="Input" vault={input} {tokenBalances} />
 					{/each}
 				{/if}
 

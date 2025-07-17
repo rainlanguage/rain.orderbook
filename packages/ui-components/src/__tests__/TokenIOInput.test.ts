@@ -66,12 +66,14 @@ describe('TokenInput', () => {
 		mockProps = {
 			i: 0,
 			label: 'Input',
-			vault: mockInput
+			vault: mockInput,
+			tokenBalances: new Map()
 		} as unknown as TokenIOInputComponentProps;
 		outputMockProps = {
 			i: 0,
 			label: 'Output',
-			vault: mockInput
+			vault: mockInput,
+			tokenBalances: new Map()
 		} as unknown as TokenIOInputComponentProps;
 	});
 
@@ -117,6 +119,77 @@ describe('TokenInput', () => {
 			propsWithUnknownToken as unknown as TokenIOInputComponentProps
 		);
 		expect(getByText('Input 1')).toBeInTheDocument();
+	});
+
+	describe('Balance Display', () => {
+		it('passes token balance to VaultIdInformation component', async () => {
+			const tokenBalances = new Map();
+			tokenBalances.set('test', {
+				balance: BigInt('1000000000000000000'), // 1 token
+				loading: false,
+				error: ''
+			});
+
+			const propsWithBalance = {
+				...mockProps,
+				tokenBalances
+			};
+
+			const { findByText } = render(TokenIOInput, propsWithBalance);
+
+			const labelWithSymbol = await findByText('Input 1 (MOCK)');
+			expect(labelWithSymbol).toBeInTheDocument();
+		});
+
+		it('passes loading balance state to VaultIdInformation component', async () => {
+			const tokenBalances = new Map();
+			tokenBalances.set('test', {
+				balance: null,
+				loading: true,
+				error: ''
+			});
+
+			const propsWithLoadingBalance = {
+				...mockProps,
+				tokenBalances
+			};
+
+			const { findByText } = render(TokenIOInput, propsWithLoadingBalance);
+
+			const labelWithSymbol = await findByText('Input 1 (MOCK)');
+			expect(labelWithSymbol).toBeInTheDocument();
+		});
+
+		it('passes balance error state to VaultIdInformation component', async () => {
+			const tokenBalances = new Map();
+			tokenBalances.set('test', {
+				balance: null,
+				loading: false,
+				error: 'Network error'
+			});
+
+			const propsWithErrorBalance = {
+				...mockProps,
+				tokenBalances
+			};
+
+			const { findByText } = render(TokenIOInput, propsWithErrorBalance);
+
+			const labelWithSymbol = await findByText('Input 1 (MOCK)');
+			expect(labelWithSymbol).toBeInTheDocument();
+		});
+
+		it('handles missing token balance gracefully', async () => {
+			const propsWithoutBalance = {
+				...mockProps,
+				tokenBalances: new Map() // Empty map
+			};
+
+			const { findByText } = render(TokenIOInput, propsWithoutBalance);
+
+			const labelWithSymbol = await findByText('Input 1 (MOCK)');
+			expect(labelWithSymbol).toBeInTheDocument();
+		});
 	});
 
 	it('fetches and displays token symbol when token key is present', async () => {

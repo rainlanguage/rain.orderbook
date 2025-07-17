@@ -145,7 +145,10 @@ describe('DeploymentSteps', () => {
 			isSelectTokenSet: vi.fn().mockReturnValue({ value: false }),
 			setSelectToken: vi.fn(),
 			unsetSelectToken: vi.fn(),
-			getDeploymentTransactionArgs: vi.fn()
+			getDeploymentTransactionArgs: vi.fn(),
+			getAccountBalance: vi.fn().mockResolvedValue({
+				value: '1000000000000000000'
+			})
 		} as unknown as DotrainOrderGui;
 
 		mockGui = guiInstance;
