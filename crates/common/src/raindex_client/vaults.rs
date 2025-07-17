@@ -21,7 +21,9 @@ use rain_orderbook_subgraph_client::{
         },
         Id,
     },
-    MultiOrderbookSubgraphClient, OrderbookSubgraphClient, SgPaginationArgs,
+    MultiOrderbookSubgraphClient,
+    OrderbookSubgraphClient,
+    SgPaginationArgs,
 };
 use std::{
     str::FromStr,
@@ -230,7 +232,7 @@ impl RaindexVaultToken {
         self.symbol.clone()
     }
     #[wasm_bindgen(getter)]
-    pub fn decimals(&self) -> Result<u8, RaindexError> {
+    pub fn decimals(&self) -> u8 {
         self.decimals
     }
 }

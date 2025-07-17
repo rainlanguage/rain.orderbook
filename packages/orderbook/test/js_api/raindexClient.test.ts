@@ -811,14 +811,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
 					blockNumber: 1,
 					data: {
-						maxOutput: '0x1',
-						formattedMaxOutput: '0.000000000000000001',
-						maxInput: '0x2',
-						formattedMaxInput: '0.000000000000000000000000000000000002',
-						ratio: '0x2',
-						formattedRatio: '0.000000000000000002',
-						inverseRatio: '0x604be73de4838ad9a5cf8800000000',
-						formattedInverseRatio: '500000000000000000'
+						ratio: '0x0000000000000000000000000000000000000000000000000000000000000002',
+						maxInput: '0x0000000000000000000000000000000000000000000000000000000000000002',
+						maxOutput: '0x0000000000000000000000000000000000000000000000000000000000000001',
+						inverseRatio: '0xffffffda000000000000000000000000259da6542d43623d04c5112000000000',
+
+						formattedInverseRatio: '0.5',
+						formattedMaxInput: '2',
+						formattedMaxOutput: '1',
+						formattedRatio: '2'
 					},
 					success: true,
 					error: undefined
