@@ -5,20 +5,23 @@ pragma solidity =0.8.25;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
-    OrderConfigV3,
+    OrderConfigV4,
     SignedContextV1,
-    OrderV3,
-    EvaluableV3,
-    TaskV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {TakeOrdersConfigV3, TakeOrderConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    OrderV4,
+    EvaluableV4,
+    TaskV2,
+    TakeOrdersConfigV4,
+    TakeOrderConfigV4
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
     function checkBadStack(
         address alice,
         address bob,
-        OrderConfigV3 memory config,
+        OrderConfigV4 memory config,
         bytes memory rainString,
         uint256 badStackHeight
     ) internal {
@@ -26,28 +29,35 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
 
         config.evaluable.bytecode = iParserV2.parse2(rainString);
 
-        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        OrderV4 memory order = OrderV4(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
-        TakeOrderConfigV3[] memory takeOrderConfigs = new TakeOrderConfigV3[](1);
-        takeOrderConfigs[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV3 memory takeOrdersConfig =
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, takeOrderConfigs, "");
+        TakeOrderConfigV4[] memory takeOrderConfigs = new TakeOrderConfigV4[](1);
+        takeOrderConfigs[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
+        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
+            LibDecimalFloat.packLossless(0, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            takeOrderConfigs,
+            ""
+        );
+        config.validInputs[0].token = address(iToken0);
+        config.validOutputs[0].token = address(iToken1);
 
         vm.prank(alice);
-        iOrderbook.addOrder2(config, new TaskV1[](0));
+        iOrderbook.addOrder3(config, new TaskV2[](0));
 
         vm.prank(bob);
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));
-        iOrderbook.takeOrders2(takeOrdersConfig);
+        iOrderbook.takeOrders3(takeOrdersConfig);
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testTakeOrderBadStackEmptyStack(address alice, address bob, OrderConfigV3 memory config) external {
+    function testTakeOrderBadStackEmptyStack(address alice, address bob, OrderConfigV4 memory config) external {
         checkBadStack(alice, bob, config, ":;:;", 0);
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testTakeOrderBadStackOneStack(address alice, address bob, OrderConfigV3 memory config) external {
+    function testTakeOrderBadStackOneStack(address alice, address bob, OrderConfigV4 memory config) external {
         checkBadStack(alice, bob, config, "_:1;:;", 1);
     }
 }
