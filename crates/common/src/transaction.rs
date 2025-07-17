@@ -4,6 +4,7 @@ use rain_math_float::FloatError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub const TRANSACTION_CONFIRMATIONS: u8 = 4;
 #[cfg(not(target_family = "wasm"))]
 use alloy::{
     network::AnyNetwork,

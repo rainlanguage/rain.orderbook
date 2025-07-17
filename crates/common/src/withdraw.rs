@@ -36,7 +36,9 @@ impl WithdrawArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), WritableTransactionExecuteError> {
-        let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
+        use crate::transaction::TRANSACTION_CONFIRMATIONS;
+
+        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let withdraw_call: withdraw3Call = self.clone().into();
         let params = transaction_args.try_into_write_contract_parameters(
@@ -44,9 +46,14 @@ impl WithdrawArgs {
             transaction_args.orderbook_address,
         )?;
 
-        WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
-            .execute()
-            .await?;
+        WriteTransaction::new(
+            ledger_client.client,
+            params,
+            TRANSACTION_CONFIRMATIONS,
+            transaction_status_changed,
+        )
+        .execute()
+        .await?;
 
         Ok(())
     }
