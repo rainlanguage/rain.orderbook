@@ -8,13 +8,13 @@
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import TokenSelectionModal from './TokenSelectionModal.svelte';
 	import { formatUnits } from 'viem';
-	import type { Account } from '$lib/types/account';
+	import type { TokenBalance } from '$lib/types/tokenBalance';
 
 	export let token: GuiSelectTokensCfg;
 	export let onSelectTokenSelect: () => void;
 	export let availableTokens: TokenInfo[] = [];
 	export let loading: boolean = false;
-	export let account: Account;
+	export let tokenBalances: Map<string, TokenBalance> = new Map();
 
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
@@ -23,34 +23,8 @@
 	let selectionMode: 'dropdown' | 'custom' = 'dropdown';
 	let searchQuery: string = '';
 	let selectedToken: TokenInfo | null = null;
-	let userBalance: bigint | null = null;
-	let balanceLoading = false;
-	let balanceError = '';
 
 	const gui = useGui();
-
-	const getUserBalance = async (tokenAddress: string) => {
-		if (!$account) return;
-
-		balanceLoading = true;
-		balanceError = '';
-
-		try {
-			const balance = await gui.getAccountBalance(tokenAddress, $account);
-			if (balance.error) {
-				throw new Error(balance.error.readableMsg);
-			}
-
-			userBalance = BigInt(balance.value);
-			return balance;
-		} catch {
-			balanceError = 'Failed to fetch balance';
-			userBalance = null;
-			return null;
-		} finally {
-			balanceLoading = false;
-		}
-	};
 
 	onMount(async () => {
 		try {
@@ -61,8 +35,7 @@
 			tokenInfo = result.value;
 			if (result.value.address) {
 				inputValue = result.value.address;
-				// Fetch balance if token info is available
-				await getUserBalance(result.value.address);
+				onSelectTokenSelect();
 			}
 		} catch {
 			// do nothing
@@ -84,6 +57,8 @@
 	} else if (tokenInfo?.address && inputValue === null) {
 		inputValue = tokenInfo.address;
 	}
+
+	$: tokenBalance = tokenBalances.get(token.key) || { balance: null, loading: false, error: '' };
 
 	function setMode(mode: 'dropdown' | 'custom') {
 		selectionMode = mode;
@@ -156,11 +131,6 @@
 			}
 			tokenInfo = result.value;
 			error = '';
-
-			// Fetch balance after successfully getting token info
-			if (tokenInfo.address) {
-				await getUserBalance(tokenInfo.address);
-			}
 		} catch {
 			return (error = 'No token exists at this address.');
 		}
@@ -263,15 +233,15 @@
 			>
 				<CheckCircleSolid class="h-5 w-5" color="green" />
 				<span>{tokenInfo.name}</span>
-				{#if balanceLoading}
+				{#if tokenBalance.loading}
 					<Spinner class="h-4 w-4" />
-				{:else if userBalance !== null && !balanceError}
+				{:else if tokenBalance.balance !== null && !tokenBalance.error}
 					<span class="text-gray-600 dark:text-gray-400">
-						Balance: {formatUnits(userBalance, tokenInfo.decimals)}
+						Balance: {formatUnits(tokenBalance.balance, tokenInfo.decimals)}
 					</span>
-				{:else if balanceError}
+				{:else if tokenBalance.error}
 					<span class="text-red-600 dark:text-red-400">
-						{balanceError}
+						{tokenBalance.error}
 					</span>
 				{/if}
 			</div>

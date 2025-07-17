@@ -1,15 +1,19 @@
 <script lang="ts">
-	import { Input } from 'flowbite-svelte';
+	import { Input, Spinner } from 'flowbite-svelte';
 	import { type OrderIOCfg, type TokenInfo } from '@rainlanguage/orderbook';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
+	import { formatUnits } from 'viem';
+	import type { TokenBalance } from '$lib/types/tokenBalance';
+	import VaultIdInformation from './VaultIdInformation.svelte';
 
 	const gui = useGui();
 
 	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIOCfg;
+	export let tokenBalances: Map<string, TokenBalance> = new Map();
 
 	let tokenInfo: TokenInfo | null = null;
 	let inputValue: string = '';
@@ -60,13 +64,25 @@
 	$: if (vault.token?.key) {
 		handleGetTokenInfo();
 	}
+
+	$: tokenBalance = tokenBalances.get(vault.token?.key || '') || {
+		balance: null,
+		loading: false,
+		error: ''
+	};
 </script>
 
 <div class="flex w-full flex-col gap-6">
-	<DeploymentSectionHeader
-		title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
-		description={`${tokenInfo?.symbol} vault ID`}
-	/>
+	<div class="flex w-full flex-col gap-2">
+		<div class="flex items-center justify-center gap-2">
+			<VaultIdInformation
+				title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
+				description={`${tokenInfo?.symbol} vault ID`}
+				{tokenBalance}
+				decimals={tokenInfo?.decimals}
+			/>
+		</div>
+	</div>
 	<div class="flex flex-col gap-2">
 		<Input
 			data-testid="vault-id-input"
