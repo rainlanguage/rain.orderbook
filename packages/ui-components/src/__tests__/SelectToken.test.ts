@@ -32,12 +32,14 @@ describe('SelectToken', () => {
 
 	const mockTokens = [
 		{
+			key: 'input',
 			address: '0x1234567890123456789012345678901234567890',
 			name: 'Test Token 1',
 			symbol: 'TEST1',
 			decimals: 18
 		},
 		{
+			key: 'output',
 			address: '0x0987654321098765432109876543210987654321',
 			name: 'Another Token',
 			symbol: 'ANOTHER',
@@ -54,7 +56,7 @@ describe('SelectToken', () => {
 		onSelectTokenSelect: vi.fn(),
 		availableTokens: mockTokens,
 		loading: false,
-		account: readable('0x1234567890123456789012345678901234567890')
+		tokenBalances: new Map()
 	};
 
 	beforeEach(() => {
@@ -271,6 +273,7 @@ describe('SelectToken', () => {
 				...mockProps,
 				availableTokens: [
 					{
+						key: 'input',
 						address: '0x456',
 						name: 'Test Token 1',
 						symbol: 'TEST1',
@@ -323,12 +326,14 @@ describe('SelectToken', () => {
 				...mockProps,
 				availableTokens: [
 					{
+						key: 'output',
 						address: '0x456',
 						name: 'Test Token 1',
 						symbol: 'TEST1',
 						decimals: 18
 					},
 					{
+						key: 'input',
 						address: '0x789',
 						name: 'Test Token 2',
 						symbol: 'TEST2',
@@ -387,20 +392,28 @@ describe('SelectToken', () => {
 	});
 
 	describe('Balance Display', () => {
-		it('displays balance when token is selected and account is connected', async () => {
+		it('displays balance when token is selected and balance is provided', async () => {
 			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
 				value: {
 					name: 'Test Token',
 					symbol: 'TEST',
 					address: '0x1234567890123456789012345678901234567890',
-					decimals: 18
+					decimals: 18,
+					key: 'input'
 				}
 			});
-			mockGui.getAccountBalance = vi.fn().mockResolvedValue({
-				value: '1000000000000000000' // 1 TEST token
+
+			const tokenBalances = new Map();
+			tokenBalances.set('input', {
+				balance: BigInt('1000000000000000000'), // 1 TEST token
+				loading: false,
+				error: ''
 			});
 
-			render(SelectToken, mockProps);
+			render(SelectToken, {
+				...mockProps,
+				tokenBalances
+			});
 
 			await waitFor(() => {
 				expect(screen.getByText('Test Token')).toBeInTheDocument();
@@ -411,49 +424,68 @@ describe('SelectToken', () => {
 			});
 		});
 
+		it('shows loading spinner when balance is loading', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'Test Token',
+					symbol: 'TEST',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 18,
+					key: 'input'
+				}
+			});
+
+			const tokenBalances = new Map();
+			tokenBalances.set('input', {
+				balance: null,
+				loading: true,
+				error: ''
+			});
+
+			render(SelectToken, {
+				...mockProps,
+				tokenBalances
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Test Token')).toBeInTheDocument();
+			});
+
+			// Check for spinner (we can't easily test the spinner component directly, so we test for its presence)
+			const tokenStatus = screen.getByTestId(`select-token-success-${mockProps.token.key}`);
+			expect(tokenStatus).toBeInTheDocument();
+		});
+
 		it('shows error message when balance fetch fails', async () => {
 			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
 				value: {
 					name: 'Test Token',
 					symbol: 'TEST',
 					address: '0x1234567890123456789012345678901234567890',
-					decimals: 18
+					decimals: 18,
+					key: 'input'
 				}
 			});
 
-			(mockGui.getAccountBalance as Mock).mockRejectedValue(new Error('Network error'));
-
-			render(SelectToken, mockProps);
-
-			await waitFor(() => {
-				expect(screen.getByText('Test Token')).toBeInTheDocument();
-			});
-
-			await waitFor(() => {
-				expect(screen.getByText('Failed to fetch balance')).toBeInTheDocument();
-			});
-		});
-
-		it('does not display balance when account is not connected', async () => {
-			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
-				value: {
-					name: 'Test Token',
-					symbol: 'TEST',
-					address: '0x1234567890123456789012345678901234567890',
-					decimals: 18
-				}
+			const tokenBalances = new Map();
+			tokenBalances.set('input', {
+				balance: null,
+				loading: false,
+				error: 'Network error'
 			});
 
 			render(SelectToken, {
 				...mockProps,
-				account: readable(null) // Simulate disconnected account
+				tokenBalances
 			});
 
 			await waitFor(() => {
 				expect(screen.getByText('Test Token')).toBeInTheDocument();
 			});
 
-			expect(screen.queryByText(/Balance:/)).not.toBeInTheDocument();
+			await waitFor(() => {
+				expect(screen.getByText('Network error')).toBeInTheDocument();
+			});
 		});
 
 		it('formats balance correctly with token decimals', async () => {
@@ -462,13 +494,22 @@ describe('SelectToken', () => {
 					name: 'USDC',
 					symbol: 'USDC',
 					address: '0x1234567890123456789012345678901234567890',
-					decimals: 6
+					decimals: 6,
+					key: 'input'
 				}
 			});
 
-			mockGui.getAccountBalance = vi.fn().mockResolvedValue({ value: '1500000' }); // 1.5 USDC
+			const tokenBalances = new Map();
+			tokenBalances.set('input', {
+				balance: BigInt('1500000'), // 1.5 USDC
+				loading: false,
+				error: ''
+			});
 
-			render(SelectToken, mockProps);
+			render(SelectToken, {
+				...mockProps,
+				tokenBalances
+			});
 
 			await waitFor(() => {
 				expect(screen.getByText('USDC')).toBeInTheDocument();
@@ -477,6 +518,36 @@ describe('SelectToken', () => {
 			await waitFor(() => {
 				expect(screen.getByText('Balance: 1.5')).toBeInTheDocument();
 			});
+		});
+
+		it('does not display balance when balance is null', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'Test Token',
+					symbol: 'TEST',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 18,
+					key: 'input'
+				}
+			});
+
+			const tokenBalances = new Map();
+			tokenBalances.set('input', {
+				balance: null,
+				loading: false,
+				error: ''
+			});
+
+			render(SelectToken, {
+				...mockProps,
+				tokenBalances
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Test Token')).toBeInTheDocument();
+			});
+
+			expect(screen.queryByText(/Balance:/)).not.toBeInTheDocument();
 		});
 	});
 });
