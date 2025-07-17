@@ -7,7 +7,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 
 const mockVaultsVol = [
 	{
-		id: '1',
+		id: BigInt('1'),
 		token: {
 			id: 'output_token',
 			address: '0xoutput_token',
@@ -27,7 +27,7 @@ const mockVaultsVol = [
 		}
 	},
 	{
-		id: '2',
+		id: BigInt('2'),
 		token: {
 			id: 'output_token',
 			address: '0xoutput_token',
