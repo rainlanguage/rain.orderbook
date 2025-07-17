@@ -9,7 +9,8 @@
 		TableBodyCell,
 		TableHeadCell,
 		Checkbox,
-		Tooltip
+		Tooltip,
+		Label
 	} from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -193,8 +194,10 @@
 		<svelte:fragment slot="bodyRow" let:item>
 			{#if onWithdrawMultiple && $account}
 				{#if matchesAccount(item.owner)}
-					<TableBodyCell tdClass="px-2 py-4">
-						<div class="relative">
+					<TableBodyCell tdClass="relative p-0" on:click={(e) => e.stopPropagation()}>
+						<Label
+							class="absolute bottom-px left-px right-px top-px flex cursor-pointer items-center justify-center"
+						>
 							<Checkbox
 								checked={isVaultSelected(item)}
 								disabled={isVaultDisabled(item)}
@@ -205,7 +208,7 @@
 							{#if isVaultEmpty(item)}
 								<Tooltip class="w-auto text-xs" placement="top">Vault is empty</Tooltip>
 							{/if}
-						</div>
+						</Label>
 					</TableBodyCell>
 				{:else}
 					<TableBodyCell tdClass="px-2 py-4">
