@@ -58,11 +58,11 @@ impl RaindexOrderQuoteValue {
 
         Ok(Self {
             max_output: value.max_output,
-            formatted_max_output: max_output.format18()?,
+            formatted_max_output: value.max_output.format18()?,
             max_input,
             formatted_max_input: max_input.format18()?,
             ratio: value.ratio,
-            formatted_ratio: ratio.format18()?,
+            formatted_ratio: value.ratio.format18()?,
             inverse_ratio,
             formatted_inverse_ratio: inverse_ratio.format18()?,
         })
@@ -139,7 +139,7 @@ mod tests {
         use alloy::{sol, sol_types::SolValue};
         use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_orderbook_subgraph_client::utils::float::F2;
+        use rain_orderbook_subgraph_client::utils::float::{F0_5, F2};
         use serde_json::{json, Value};
 
         sol!(
