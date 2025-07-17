@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { timestampSecondsToUTCTimestamp } from '../../services/time';
-	import { bigintToFloat } from '../../utils/number';
 	import type { RaindexVault, RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
 	import { createQuery } from '@tanstack/svelte-query';
 	import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
@@ -27,7 +26,7 @@
 		priceSymbol={vault.token.symbol}
 		{query}
 		timeTransform={(d) => timestampSecondsToUTCTimestamp(BigInt(d.timestamp))}
-		valueTransform={(d) => bigintToFloat(d.newBalance, Number(vault.token.decimals ?? 0))}
+		valueTransform={(d) => parseFloat(d.formattedNewBalance)}
 		emptyMessage="No deposits or withdrawals found"
 		{lightweightChartsTheme}
 	/>

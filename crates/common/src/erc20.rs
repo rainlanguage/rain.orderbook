@@ -161,7 +161,7 @@ impl ERC20 {
         })
     }
 
-    pub async fn get_balance(&self, account: Address) -> Result<U256, Error> {
+    pub async fn get_account_balance(&self, account: Address) -> Result<U256, Error> {
         let client = self.get_client().await?;
         let parameters = ReadContractParameters {
             address: self.address,
@@ -434,7 +434,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_balance() {
+    async fn test_get_account_balance() {
         let server = MockServer::start_async().await;
 
         server.mock(|when, then| {
@@ -454,7 +454,7 @@ mod tests {
             Address::ZERO,
         );
 
-        let balance = erc20.get_balance(Address::ZERO).await.unwrap();
+        let balance = erc20.get_account_balance(Address::ZERO).await.unwrap();
         assert_eq!(balance, alloy::primitives::U256::from(1000u64));
     }
 }

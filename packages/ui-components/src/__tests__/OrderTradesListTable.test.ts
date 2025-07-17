@@ -3,7 +3,6 @@ import { test, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { RaindexOrder, RaindexTrade } from '@rainlanguage/orderbook';
-import { formatUnits } from 'viem';
 import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
 
@@ -19,6 +18,7 @@ const mockTradeOrdersList: RaindexTrade[] = [
 		},
 		outputVaultBalanceChange: {
 			amount: BigInt(-100),
+			formattedAmount: '-100',
 			vaultId: BigInt(1),
 			token: {
 				id: 'output_token',
@@ -30,7 +30,9 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			id: '1',
 			__typename: 'Withdraw',
 			newBalance: BigInt(0),
+			formattedNewBalance: '0',
 			oldBalance: BigInt(0),
+			formattedOldBalance: '0',
 			timestamp: BigInt(0),
 			transaction: {
 				id: 'transaction_id',
@@ -51,10 +53,13 @@ const mockTradeOrdersList: RaindexTrade[] = [
 				decimals: '1'
 			},
 			amount: BigInt(50),
+			formattedAmount: '50',
 			id: '1',
 			__typename: 'Withdraw',
 			newBalance: BigInt(0),
+			formattedNewBalance: '0',
 			oldBalance: BigInt(0),
+			formattedOldBalance: '0',
 			timestamp: BigInt(0),
 			transaction: {
 				id: 'transaction_id',
@@ -77,6 +82,7 @@ const mockTradeOrdersList: RaindexTrade[] = [
 		},
 		outputVaultBalanceChange: {
 			amount: BigInt(-100),
+			formattedAmount: '-100',
 			vaultId: BigInt(1),
 			token: {
 				id: 'output_token',
@@ -88,7 +94,9 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			id: '1',
 			__typename: 'Withdraw',
 			newBalance: BigInt(0),
+			formattedNewBalance: '0',
 			oldBalance: BigInt(0),
+			formattedOldBalance: '0',
 			timestamp: BigInt(0),
 			transaction: {
 				id: 'transaction_id',
@@ -109,10 +117,13 @@ const mockTradeOrdersList: RaindexTrade[] = [
 				decimals: '1'
 			},
 			amount: BigInt(50),
+			formattedAmount: '50',
 			id: '1',
 			__typename: 'Withdraw',
 			newBalance: BigInt(0),
+			formattedNewBalance: '0',
 			oldBalance: BigInt(0),
+			formattedOldBalance: '0',
 			timestamp: BigInt(0),
 			transaction: {
 				id: 'transaction_id',
@@ -163,14 +174,8 @@ test('renders table with correct data', async () => {
 
 		// checking the io ratios
 		for (let i = 0; i < mockTradeOrdersList.length; i++) {
-			const inputDisplay = formatUnits(
-				BigInt(mockTradeOrdersList[i].inputVaultBalanceChange.amount),
-				Number(mockTradeOrdersList[i].inputVaultBalanceChange.token.decimals)
-			);
-			const outputDisplay = formatUnits(
-				BigInt(mockTradeOrdersList[i].outputVaultBalanceChange.amount),
-				Number(mockTradeOrdersList[i].outputVaultBalanceChange.token.decimals)
-			);
+			const inputDisplay = mockTradeOrdersList[i].inputVaultBalanceChange.formattedAmount;
+			const outputDisplay = mockTradeOrdersList[i].outputVaultBalanceChange.formattedAmount;
 			const ioRatio = Number(inputDisplay) / (Number(outputDisplay) * -1);
 			const oiRatio = (Number(outputDisplay) * -1) / Number(inputDisplay);
 			expect(rows[i]).toHaveTextContent(ioRatio.toString());
