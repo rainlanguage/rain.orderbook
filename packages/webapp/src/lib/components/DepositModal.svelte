@@ -22,7 +22,10 @@
 	const { vault, account } = args;
 
 	let amount: bigint = 0n;
-	let userBalance: AccountBalance = { balance: BigInt(0), formattedBalance: '0' };
+	let userBalance: AccountBalance = {
+		balance: BigInt(0),
+		formattedBalance: '0'
+	} as unknown as AccountBalance;
 	let errorMessage = '';
 	let isCheckingCalldata = false;
 
