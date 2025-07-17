@@ -523,7 +523,7 @@ impl RaindexVault {
         preserve_js_class
     )]
     pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
-        let balance = self.clone().get_owner_balance(self.owner).await?;
+        let balance = self.get_owner_balance(self.owner).await?;
         let decimals = self.token.decimals.try_into()?;
         let account_balance = AccountBalance {
             balance,
@@ -533,7 +533,7 @@ impl RaindexVault {
     }
 }
 impl RaindexVault {
-    pub async fn get_owner_balance(self, owner: Address) -> Result<U256, RaindexError> {
+    pub async fn get_owner_balance(&self, owner: Address) -> Result<U256, RaindexError> {
         let rpcs = {
             let raindex_client = self
                 .raindex_client
