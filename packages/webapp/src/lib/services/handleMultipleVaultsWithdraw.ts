@@ -52,6 +52,11 @@ export async function handleMultipleVaultsWithdraw(
 		},
 		onSubmit: async () => {
 			try {
+				// Validate that all vaults share the same orderbook
+				const orderbook = vaults[0].orderbook;
+				if (vaults.some((vault) => vault.orderbook !== orderbook)) {
+					throw new Error('All vaults must share the same orderbook for batch withdrawal');
+				}
 				// Get individual withdrawal calldatas
 				const calldatas = await Promise.all(
 					vaults.map(async (vault) => {
@@ -76,7 +81,7 @@ export async function handleMultipleVaultsWithdraw(
 					open: true,
 					modalTitle: `Withdrawing from ${vaults.length} vaults...`,
 					args: {
-						toAddress: vaults[0].orderbook, // Assuming all vaults share the same orderbook
+						toAddress: orderbook,
 						chainId: vaults[0].chainId,
 						calldata,
 						onConfirm: (txHash: Hex) => {

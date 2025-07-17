@@ -195,7 +195,9 @@ export class TransactionManager {
 		const successMessage = 'Withdrawal successful.';
 		const { chainId, vaults, txHash, queryKey, raindexClient } = args;
 
-		const orderbook = vaults[0].orderbook; // Assuming all vaults share the same orderbook
+		// All vaults must share the same orderbook for multicall transactions
+		// It should be validated before calling this method
+		const orderbook = vaults[0].orderbook;
 		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
 		const toastLinks: ToastLink[] = [
 			{
