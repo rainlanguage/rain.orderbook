@@ -20,6 +20,8 @@ impl WithdrawMultipleArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), WritableTransactionExecuteError> {
+        use crate::transaction::TRANSACTION_CONFIRMATIONS;
+
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let withdraw_call = self.get_multicall().await?;
@@ -28,9 +30,14 @@ impl WithdrawMultipleArgs {
             transaction_args.orderbook_address,
         )?;
 
-        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
-            .execute()
-            .await?;
+        WriteTransaction::new(
+            ledger_client.client,
+            params,
+            TRANSACTION_CONFIRMATIONS,
+            transaction_status_changed,
+        )
+        .execute()
+        .await?;
 
         Ok(())
     }

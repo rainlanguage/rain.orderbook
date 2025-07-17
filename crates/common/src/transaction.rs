@@ -12,6 +12,8 @@ use alloy_ethers_typecast::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub const TRANSACTION_CONFIRMATIONS: u8 = 4;
+
 #[derive(Error, Debug)]
 pub enum WritableTransactionExecuteError {
     #[error(transparent)]
