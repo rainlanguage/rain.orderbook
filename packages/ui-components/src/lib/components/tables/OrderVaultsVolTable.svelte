@@ -18,7 +18,10 @@
 	$: vaultsVol = createInfiniteQuery<RaindexVaultVolume[]>({
 		queryKey: [order.id, QKEY_VAULTS_VOL_LIST + order.id],
 		queryFn: async () => {
+			console.log('Fetching vaults volume for order:', order.id);
+			console.log('Start time:', queryStartTime, 'End time:', queryEndTime);
 			const result = await order.getVaultsVolume(queryStartTime, queryEndTime);
+			console.log(result);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
@@ -47,7 +50,7 @@
 
 	<svelte:fragment slot="bodyRow" let:item>
 		<TableBodyCell tdClass="px-4 py-2">
-			<Hash type={HashType.Identifier} shorten value={item.id} />
+			<Hash type={HashType.Identifier} shorten value={item.id.toString()} />
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32">
 			<div class="flex gap-x-3">
