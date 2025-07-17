@@ -1385,12 +1385,12 @@ mod tests {
 
             let vault1 = result[0].clone();
             assert_eq!(vault1.chain_id, 1);
-            assert_eq!(vault1.id, Bytes::from_str("0x10").unwrap());
+            assert_eq!(vault1.id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 vault1.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault1.vault_id, U256::from_str("0x10").unwrap());
+            assert_eq!(vault1.vault_id, U256::from_str("0x0123").unwrap());
             assert!(vault1.balance.eq(*F1).unwrap());
             assert_eq!(vault1.formatted_balance, "1");
             assert_eq!(vault1.token.id, "token1");
@@ -1406,7 +1406,7 @@ mod tests {
                 vault2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault2.vault_id, U256::from_str("0x20").unwrap());
+            assert_eq!(vault2.vault_id, U256::from_str("0x0234").unwrap());
             assert!(vault2.balance.eq(*F2).unwrap());
             assert_eq!(vault2.formatted_balance, "2");
             assert_eq!(vault2.token.id, "token2");
@@ -1455,7 +1455,7 @@ mod tests {
                 vault.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-            assert_eq!(vault.vault_id, U256::from_str("0x10").unwrap());
+            assert_eq!(vault.vault_id, U256::from_str("0x0123").unwrap());
 
             assert!(
                 vault.balance.eq(*F1).unwrap(),
