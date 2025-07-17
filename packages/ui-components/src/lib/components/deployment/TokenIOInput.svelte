@@ -74,7 +74,7 @@
 
 <div class="flex w-full flex-col gap-6">
 	<div class="flex w-full flex-col gap-2">
-		<div class="flex items-center justify-center gap-2">
+		<div class="flex items-center gap-2">
 			<VaultIdInformation
 				title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
 				description={`${tokenInfo?.symbol} vault ID`}

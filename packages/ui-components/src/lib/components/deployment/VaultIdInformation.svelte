@@ -14,9 +14,7 @@
 		{title}
 	</h1>
 	<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-		<div
-			class="prose prose-sm lg:prose-base prose-neutral dark:prose-invert text-gray-600 dark:text-gray-400"
-		>
+		<div class="text-gray-600 dark:text-gray-400">
 			{description}
 		</div>
 		{#if tokenBalance.loading}
