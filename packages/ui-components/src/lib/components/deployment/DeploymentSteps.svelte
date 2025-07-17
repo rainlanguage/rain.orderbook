@@ -272,7 +272,7 @@
 								<Spinner size="4" color="white" />
 								<span class="ml-2">Checking deployment...</span>
 							{:else}
-								Deploy Strategy
+								Deploy Order
 							{/if}
 						</Button>
 					{:else}

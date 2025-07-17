@@ -25,7 +25,7 @@ describe('InputRegistryUrl', () => {
 	it('should render input and button', () => {
 		render(InputRegistryUrl);
 
-		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
+		const input = screen.getByPlaceholderText('Enter URL to raw order registry file');
 		const button = screen.getByText('Load registry URL');
 
 		expect(input).toBeInTheDocument();
@@ -35,7 +35,7 @@ describe('InputRegistryUrl', () => {
 	it('should call loadRegistryUrl when button is clicked', async () => {
 		render(InputRegistryUrl);
 
-		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
+		const input = screen.getByPlaceholderText('Enter URL to raw order registry file');
 		const testUrl = 'https://example.com/registry.json';
 		await userEvent.clear(input);
 		await userEvent.type(input, testUrl);
@@ -51,7 +51,7 @@ describe('InputRegistryUrl', () => {
 		initialRegistry.getCurrentRegistry = vi.fn().mockReturnValue(initialUrl);
 		render(InputRegistryUrl);
 
-		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
+		const input = screen.getByPlaceholderText('Enter URL to raw order registry file');
 		expect(input).toHaveValue(initialUrl);
 	});
 
