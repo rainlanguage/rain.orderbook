@@ -2,7 +2,7 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use rain_math_float::Float;
 use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
-use rain_orderbook_subgraph_client::utils::float::{F1, F0_5};
+use rain_orderbook_subgraph_client::utils::float::F1;
 use std::ops::{Div, Mul};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
@@ -53,17 +53,15 @@ pub struct RaindexOrderQuoteValue {
 impl_wasm_traits!(RaindexOrderQuoteValue);
 impl RaindexOrderQuoteValue {
     pub fn try_from_order_quote_value(value: OrderQuoteValue) -> Result<Self, RaindexError> {
-        let max_output = Float::from(value.max_output);
-        let ratio = Float::from(value.ratio);
-        let inverse_ratio = F1.div(ratio)?;
-        let max_input = max_output.mul(ratio)?;
-        
+        let inverse_ratio = F1.div(value.ratio)?;
+        let max_input = value.max_output.mul(value.ratio)?;
+
         Ok(Self {
-            max_output,
+            max_output: value.max_output,
             formatted_max_output: max_output.format18()?,
             max_input,
             formatted_max_input: max_input.format18()?,
-            ratio,
+            ratio: value.ratio,
             formatted_ratio: ratio.format18()?,
             inverse_ratio,
             formatted_inverse_ratio: inverse_ratio.format18()?,
@@ -281,21 +279,9 @@ mod tests {
             let res = order.get_quotes(None, None).await.unwrap();
             assert_eq!(res.len(), 1);
 
-            assert!(res[0]
-                .data
-                .as_ref()
-                .unwrap()
-                .max_output
-                .eq(*F1)
-                .unwrap());
+            assert!(res[0].data.as_ref().unwrap().max_output.eq(*F1).unwrap());
 
-            assert!((res[0]
-                .data
-                .as_ref()
-                .unwrap()
-                .ratio
-                .eq(*F2))
-            .unwrap());
+            assert!((res[0].data.as_ref().unwrap().ratio.eq(*F2)).unwrap());
 
             assert!(res[0].success);
             assert_eq!(res[0].error, None);
@@ -308,10 +294,7 @@ mod tests {
             assert!(data.max_output.eq(*F1).unwrap());
             assert_eq!(data.formatted_max_output, "1");
             assert!(data.max_input.eq(*F2).unwrap());
-            assert_eq!(
-                data.formatted_max_input,
-                "2"
-            );
+            assert_eq!(data.formatted_max_input, "2");
             assert!(data.ratio.eq(*F2).unwrap());
             assert_eq!(data.formatted_ratio, "2");
             assert!(data.inverse_ratio.eq(*F0_5).unwrap());

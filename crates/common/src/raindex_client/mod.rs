@@ -1,6 +1,6 @@
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
-    erc20::Error as Erc20Error, meta::TryDecodeRainlangSourceError,
+    meta::TryDecodeRainlangSourceError,
     transaction::WritableTransactionExecuteError, utils::amount_formatter::AmountFormatterError,
 };
 use alloy::{
@@ -245,6 +245,8 @@ pub enum RaindexError {
     TryFromUint(#[from] FromUintError<u8>),
     #[error("Missing decimals for token {0}")]
     MissingErc20Decimals(String),
+    #[error(transparent)]
+    AmountFormatterError(#[from] AmountFormatterError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -253,11 +255,6 @@ impl From<DotrainOrderError> for RaindexError {
     }
 }
 
-impl From<Erc20Error> for RaindexError {
-    fn from(err: Erc20Error) -> Self {
-        Self::Erc20Error(Box::new(err))
-    }
-}
 
 impl RaindexError {
     pub fn to_readable_msg(&self) -> String {
@@ -362,6 +359,7 @@ impl RaindexError {
             RaindexError::MissingErc20Decimals(token) => {
                 format!("Missing decimal information for the token address: {token}")
             }
+            RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
         }
     }
 }
