@@ -4,7 +4,7 @@ use crate::{
     erc20::ERC20,
     raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
     transaction::TransactionArgs,
-    utils::amount_formatter::{format_amount_i256, format_amount_u256},
+    utils::amount_formatter::format_amount_u256,
     withdraw::WithdrawArgs,
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
@@ -12,7 +12,8 @@ use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
-    performance::vol::{VaultVolume, VolumeDetails},
+    // TODO: Issue 1989 - performance modules are temporarily noop
+    // performance::vol::{VaultVolume, VolumeDetails},
     types::{
         common::{
             SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTradeVaultBalanceChange,
@@ -394,20 +395,7 @@ impl RaindexVault {
     ) -> Result<Bytes, RaindexError> {
         let amount = self.validate_amount(&amount)?;
 
-        let decimals: u8 = match self.token.decimals {
-            Some(d) => u8::try_from(d)?,
-            None => {
-                let rpcs = {
-                    let raindex_client = self
-                        .raindex_client
-                        .read()
-                        .map_err(|_| YamlError::ReadLockError)?;
-                    raindex_client.get_rpc_urls_for_chain(self.chain_id)?
-                };
-                let erc20 = ERC20::new(rpcs.clone(), self.token.address);
-                erc20.decimals().await?
-            }
-        };
+        let decimals: u8 = u8::try_from(self.token.decimals)?;
 
         let target_amount = Float::from_fixed_decimal(amount, decimals)?;
 
@@ -614,18 +602,12 @@ pub struct RaindexVaultBalanceChange {
     r#type: RaindexVaultBalanceChangeType,
     vault_id: U256,
     token: RaindexVaultToken,
-<<<<<<< HEAD
     amount: Float,
-    new_balance: Float,
-    old_balance: Float,
-=======
-    amount: I256,
     formatted_amount: String,
-    new_balance: U256,
+    new_balance: Float,
     formatted_new_balance: String,
-    old_balance: U256,
+    old_balance: Float,
     formatted_old_balance: String,
->>>>>>> origin/2024-09-12-i9r
     timestamp: U256,
     transaction: RaindexTransaction,
     orderbook: Address,
@@ -698,23 +680,16 @@ impl RaindexVaultBalanceChange {
     pub fn amount(&self) -> Float {
         self.amount
     }
-<<<<<<< HEAD
-    pub fn new_balance(&self) -> Float {
-        self.new_balance
-    }
-    pub fn old_balance(&self) -> Float {
-=======
     pub fn formatted_amount(&self) -> String {
         self.formatted_amount.clone()
     }
-    pub fn new_balance(&self) -> U256 {
+    pub fn new_balance(&self) -> Float {
         self.new_balance
     }
     pub fn formatted_new_balance(&self) -> String {
         self.formatted_new_balance.clone()
     }
-    pub fn old_balance(&self) -> U256 {
->>>>>>> origin/2024-09-12-i9r
+    pub fn old_balance(&self) -> Float {
         self.old_balance
     }
     pub fn formatted_old_balance(&self) -> String {
@@ -740,32 +715,19 @@ impl RaindexVaultBalanceChange {
         chain_id: u32,
         balance_change: SgVaultBalanceChangeUnwrapped,
     ) -> Result<Self, RaindexError> {
-<<<<<<< HEAD
+        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
+
         let amount = Float::from_hex(&balance_change.amount.0)?;
         let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
         let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
-=======
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
 
-        let amount = I256::from_str(&balance_change.amount.0)?;
-        let new_balance = U256::from_str(&balance_change.new_vault_balance.0)?;
-        let old_balance = U256::from_str(&balance_change.old_vault_balance.0)?;
-
-        let decimals: u8 = token.decimals.try_into()?;
-        let formatted_amount = format_amount_i256(amount, decimals)?;
-        let formatted_new_balance = format_amount_u256(new_balance, decimals)?;
-        let formatted_old_balance = format_amount_u256(old_balance, decimals)?;
->>>>>>> origin/2024-09-12-i9r
+        let formatted_amount = amount.format18()?;
+        let formatted_new_balance = new_balance.format18()?;
+        let formatted_old_balance = old_balance.format18()?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
-<<<<<<< HEAD
-            token: RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?,
-            amount,
-            new_balance,
-            old_balance,
-=======
             token,
             amount,
             formatted_amount,
@@ -773,7 +735,6 @@ impl RaindexVaultBalanceChange {
             formatted_new_balance,
             old_balance,
             formatted_old_balance,
->>>>>>> origin/2024-09-12-i9r
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
@@ -786,32 +747,19 @@ impl RaindexVaultBalanceChange {
         chain_id: u32,
         balance_change: SgTradeVaultBalanceChange,
     ) -> Result<Self, RaindexError> {
-<<<<<<< HEAD
+        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
+
         let amount = Float::from_hex(&balance_change.amount.0)?;
         let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
         let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
-=======
-        let token = RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?;
 
-        let amount = I256::from_str(&balance_change.amount.0)?;
-        let new_balance = U256::from_str(&balance_change.new_vault_balance.0)?;
-        let old_balance = U256::from_str(&balance_change.old_vault_balance.0)?;
-
-        let decimals: u8 = token.decimals.try_into()?;
-        let formatted_amount = format_amount_i256(amount, decimals)?;
-        let formatted_new_balance = format_amount_u256(new_balance, decimals)?;
-        let formatted_old_balance = format_amount_u256(old_balance, decimals)?;
->>>>>>> origin/2024-09-12-i9r
+        let formatted_amount = amount.format18()?;
+        let formatted_new_balance = new_balance.format18()?;
+        let formatted_old_balance = old_balance.format18()?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
-<<<<<<< HEAD
-            token: RaindexVaultToken::try_from_sg_erc20(chain_id, balance_change.vault.token)?,
-            amount,
-            new_balance,
-            old_balance,
-=======
             token,
             amount,
             formatted_amount,
@@ -819,7 +767,6 @@ impl RaindexVaultBalanceChange {
             formatted_new_balance,
             old_balance,
             formatted_old_balance,
->>>>>>> origin/2024-09-12-i9r
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
@@ -864,6 +811,8 @@ impl RaindexVaultVolume {
     }
 }
 impl RaindexVaultVolume {
+    // TODO: Issue 1989 - performance modules are temporarily noop
+    /*
     pub fn try_from_vault_volume(
         chain_id: u32,
         vault_volume: VaultVolume,
@@ -879,6 +828,7 @@ impl RaindexVaultVolume {
             details,
         })
     }
+    */
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -962,6 +912,8 @@ impl RaindexVaultVolumeDetails {
     }
 }
 impl RaindexVaultVolumeDetails {
+    // TODO: Issue 1989 - performance modules are temporarily noop
+    /*
     pub fn try_from_volume_details(
         token: RaindexVaultToken,
         volume_details: VolumeDetails,
@@ -983,6 +935,7 @@ impl RaindexVaultVolumeDetails {
             formatted_net_vol,
         })
     }
+    */
 }
 
 #[wasm_export]
@@ -1236,14 +1189,10 @@ impl RaindexVault {
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
-<<<<<<< HEAD
-        let balance = Float::from_hex(&vault.balance.0)?;
-=======
         let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?;
 
-        let balance = U256::from_str(&vault.balance.0)?;
-        let formatted_balance = format_amount_u256(balance, token.decimals.try_into()?)?;
->>>>>>> origin/2024-09-12-i9r
+        let balance = Float::from_hex(&vault.balance.0)?;
+        let formatted_balance = balance.format18()?;
 
         Ok(Self {
             raindex_client,
@@ -1253,12 +1202,8 @@ impl RaindexVault {
             owner: Address::from_str(&vault.owner.0)?,
             vault_id: U256::from_str(&vault.vault_id.0)?,
             balance,
-<<<<<<< HEAD
-            token: RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?,
-=======
             formatted_balance,
             token,
->>>>>>> origin/2024-09-12-i9r
             orderbook: Address::from_str(&vault.orderbook.id.0)?,
             orders_as_inputs: vault
                 .orders_as_input
@@ -1452,14 +1397,9 @@ mod tests {
                 vault1.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-<<<<<<< HEAD
-            assert_eq!(vault1.vault_id, U256::from_str("0x0123").unwrap());
-            assert!(vault1.balance.eq(*F1).unwrap());
-=======
             assert_eq!(vault1.vault_id, U256::from_str("0x10").unwrap());
-            assert_eq!(vault1.balance, U256::from_str("0x10").unwrap());
-            assert_eq!(vault1.formatted_balance, "0.000000000000000016");
->>>>>>> origin/2024-09-12-i9r
+            assert!(vault1.balance.eq(*F1).unwrap());
+            assert_eq!(vault1.formatted_balance, "1");
             assert_eq!(vault1.token.id, "token1");
             assert_eq!(
                 vault1.orderbook,
@@ -1473,14 +1413,9 @@ mod tests {
                 vault2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-<<<<<<< HEAD
-            assert_eq!(vault2.vault_id, U256::from_str("0x0234").unwrap());
-            assert!(vault2.balance.eq(*F2).unwrap());
-=======
             assert_eq!(vault2.vault_id, U256::from_str("0x20").unwrap());
-            assert_eq!(vault2.balance, U256::from_str("0x20").unwrap());
-            assert_eq!(vault2.formatted_balance, "0.000000000000000032");
->>>>>>> origin/2024-09-12-i9r
+            assert!(vault2.balance.eq(*F2).unwrap());
+            assert_eq!(vault2.formatted_balance, "2");
             assert_eq!(vault2.token.id, "token2");
             assert_eq!(
                 vault2.orderbook,
@@ -1527,20 +1462,15 @@ mod tests {
                 vault.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
-<<<<<<< HEAD
-            assert_eq!(vault.vault_id, U256::from_str("0x0123").unwrap());
+            assert_eq!(vault.vault_id, U256::from_str("0x10").unwrap());
 
             assert!(
                 vault.balance.eq(*F1).unwrap(),
                 "unexpected balance: {}",
                 vault.balance.format().unwrap()
             );
+            assert_eq!(vault.formatted_balance, "1");
 
-=======
-            assert_eq!(vault.vault_id, U256::from_str("0x10").unwrap());
-            assert_eq!(vault.balance, U256::from_str("0x10").unwrap());
-            assert_eq!(vault.formatted_balance, "0.000000000000000016");
->>>>>>> origin/2024-09-12-i9r
             assert_eq!(vault.token.id, "token1");
             assert_eq!(
                 vault.orderbook,
@@ -1583,12 +1513,12 @@ mod tests {
                     .path("/rpc1")
                     .body_contains("0x313ce567");
                 then.body(
-                    Response::new_success(
-                        1,
-                        "0x0000000000000000000000000000000000000000000000000000000000000006",
-                    )
-                    .to_json_string()
-                    .unwrap(),
+                    json!({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "result": "0x0000000000000000000000000000000000000000000000000000000000000006"
+                    })
+                    .to_string(),
                 );
             });
 
@@ -1709,26 +1639,13 @@ mod tests {
             );
             assert_eq!(result[0].token.name, Some("Wrapped Flare".to_string()));
             assert_eq!(result[0].token.symbol, Some("WFLR".to_string()));
-<<<<<<< HEAD
-            assert_eq!(result[0].token.decimals, Some(U256::from(18)));
-            assert!(result[0].amount.eq(*F5).unwrap());
-            assert!(result[0].new_balance.eq(*F5).unwrap());
-            assert!(result[0].old_balance.eq(*F0).unwrap());
-=======
             assert_eq!(result[0].token.decimals, U256::from(18));
-            assert_eq!(
-                result[0].amount,
-                I256::from_str("5000000000000000000").unwrap()
-            );
+            assert!(result[0].amount.eq(*F5).unwrap());
             assert_eq!(result[0].formatted_amount, "5");
-            assert_eq!(
-                result[0].new_balance,
-                U256::from_str("5000000000000000000").unwrap()
-            );
+            assert!(result[0].new_balance.eq(*F5).unwrap());
             assert_eq!(result[0].formatted_new_balance, "5");
-            assert_eq!(result[0].old_balance, U256::from_str("0").unwrap());
+            assert!(result[0].old_balance.eq(*F0).unwrap());
             assert_eq!(result[0].formatted_old_balance, "0");
->>>>>>> origin/2024-09-12-i9r
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
                 result[0].transaction.id(),
@@ -1802,7 +1719,7 @@ mod tests {
                 .unwrap();
 
             assert_eq!(vault.formatted_balance, "1.5");
-            assert_eq!(vault.balance, U256::from_str("1500000").unwrap());
+            assert!(vault.balance.eq(*F1_5).unwrap());
         }
 
         #[tokio::test]
@@ -1886,22 +1803,13 @@ mod tests {
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].r#type, RaindexVaultBalanceChangeType::Withdrawal);
 
-            assert_eq!(
-                result[0].amount,
-                I256::from_str("-2000000000000000000").unwrap()
-            );
+            assert!(result[0].amount.eq(*NEG2).unwrap());
             assert_eq!(result[0].formatted_amount, "-2");
 
-            assert_eq!(
-                result[0].old_balance,
-                U256::from_str("5000000000000000000").unwrap()
-            );
+            assert!(result[0].old_balance.eq(*F5).unwrap());
             assert_eq!(result[0].formatted_old_balance, "5");
 
-            assert_eq!(
-                result[0].new_balance,
-                U256::from_str("3000000000000000000").unwrap()
-            );
+            assert!(result[0].new_balance.eq(*F3).unwrap());
             assert_eq!(result[0].formatted_new_balance, "3");
         }
 
@@ -1968,12 +1876,12 @@ mod tests {
                     .path("/rpc1")
                     .body_contains("0x313ce567");
                 then.body(
-                    Response::new_success(
-                        1,
-                        "0x0000000000000000000000000000000000000000000000000000000000000006",
-                    )
-                    .to_json_string()
-                    .unwrap(),
+                    json!({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "result": "0x0000000000000000000000000000000000000000000000000000000000000006"
+                    })
+                    .to_string(),
                 );
             });
 
@@ -2464,12 +2372,12 @@ mod tests {
                     .path("/rpc1")
                     .body_contains("0x70a08231");
                 then.body(
-                    Response::new_success(
-                        1,
-                        "0x00000000000000000000000000000000000000000000000000000000000003e8",
-                    )
-                    .to_json_string()
-                    .unwrap(),
+                    json!({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "result": "0x00000000000000000000000000000000000000000000000000000000000003e8"
+                    })
+                    .to_string(),
                 );
             });
 

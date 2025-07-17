@@ -1,9 +1,11 @@
 use super::*;
-use crate::{raindex_client::orders::RaindexOrder, utils::amount_formatter::format_amount_u256};
-use alloy::primitives::U256;
+use crate::raindex_client::orders::RaindexOrder;
+use rain_math_float::Float;
 use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
+use rain_orderbook_subgraph_client::utils::float::{F1, F2, F0_5};
+use std::ops::{Div, Mul};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RaindexOrderQuote {
     pub pair: Pair,
@@ -32,41 +34,39 @@ impl RaindexOrderQuote {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RaindexOrderQuoteValue {
-    #[tsify(type = "bigint")]
-    pub max_output: U256,
+    #[tsify(type = "Hex")]
+    pub max_output: Float,
     pub formatted_max_output: String,
-    #[tsify(type = "bigint")]
-    pub max_input: U256,
+    #[tsify(type = "Hex")]
+    pub max_input: Float,
     pub formatted_max_input: String,
-    #[tsify(type = "bigint")]
-    pub ratio: U256,
+    #[tsify(type = "Hex")]
+    pub ratio: Float,
     pub formatted_ratio: String,
-    #[tsify(type = "bigint")]
-    pub inverse_ratio: U256,
+    #[tsify(type = "Hex")]
+    pub inverse_ratio: Float,
     pub formatted_inverse_ratio: String,
 }
 impl_wasm_traits!(RaindexOrderQuoteValue);
 impl RaindexOrderQuoteValue {
     pub fn try_from_order_quote_value(value: OrderQuoteValue) -> Result<Self, RaindexError> {
-        let inverse_ratio = U256::from(10u128.pow(36))
-            .checked_div(value.ratio)
-            .unwrap_or(U256::ZERO);
-        let max_input = value
-            .max_output
-            .checked_mul(value.ratio)
-            .unwrap_or(U256::ZERO);
+        let max_output = Float::from(value.max_output);
+        let ratio = Float::from(value.ratio);
+        let inverse_ratio = F1.div(ratio)?;
+        let max_input = max_output.mul(ratio)?;
+        
         Ok(Self {
-            max_output: value.max_output,
-            formatted_max_output: format_amount_u256(value.max_output, 18)?,
+            max_output,
+            formatted_max_output: max_output.format18()?,
             max_input,
-            formatted_max_input: format_amount_u256(max_input, 36)?,
-            ratio: value.ratio,
-            formatted_ratio: format_amount_u256(value.ratio, 18)?,
+            formatted_max_input: max_input.format18()?,
+            ratio,
+            formatted_ratio: ratio.format18()?,
             inverse_ratio,
-            formatted_inverse_ratio: format_amount_u256(inverse_ratio, 18)?,
+            formatted_inverse_ratio: inverse_ratio.format18()?,
         })
     }
 }
@@ -107,7 +107,7 @@ impl RaindexOrder {
             param_description = "Optional gas limit as string for quote simulations (uses default if None)"
         )]
         gas: Option<String>,
-    ) -> Result<Vec<BatchOrderQuotesResponse>, RaindexError> {
+    ) -> Result<Vec<RaindexOrderQuote>, RaindexError> {
         let gas_amount = gas.map(|v| v.parse::<u64>()).transpose()?;
         let rpcs = self.get_rpc_urls()?;
         let order_quotes = get_order_quotes(
@@ -283,6 +283,7 @@ mod tests {
 
             assert!(res[0]
                 .data
+                .as_ref()
                 .unwrap()
                 .max_output
                 .eq(*F1)
@@ -290,6 +291,7 @@ mod tests {
 
             assert!((res[0]
                 .data
+                .as_ref()
                 .unwrap()
                 .ratio
                 .eq(*F2))
@@ -308,12 +310,12 @@ mod tests {
             assert!(data.max_input.eq(*F2).unwrap());
             assert_eq!(
                 data.formatted_max_input,
-                "0.000000000000000000000000000000000002"
+                "2"
             );
-            assert_eq!(data.ratio, U256::from(2));
-            assert_eq!(data.formatted_ratio, "0.000000000000000002");
-            assert_eq!(data.inverse_ratio, U256::from(5 * 10u128.pow(35)));
-            assert_eq!(data.formatted_inverse_ratio, "500000000000000000");
+            assert!(data.ratio.eq(*F2).unwrap());
+            assert_eq!(data.formatted_ratio, "2");
+            assert!(data.inverse_ratio.eq(*F0_5).unwrap());
+            assert_eq!(data.formatted_inverse_ratio, "0.5");
             assert!(res.success);
             assert_eq!(res.error, None);
             assert_eq!(res.pair.pair_name, "WFLR/sFLR");

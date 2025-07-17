@@ -3,7 +3,7 @@ use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
         transactions::RaindexTransaction,
-        vaults::{RaindexVault, RaindexVaultType, RaindexVaultVolume},
+        vaults::{RaindexVault, RaindexVaultType},
     },
 };
 use alloy::primitives::{Address, Bytes, U256};
@@ -933,8 +933,7 @@ mod tests {
             remove_events: vec![],
         }
         }
-<<<<<<< HEAD
-=======
+
         fn get_trades_json() -> Value {
             json!([
               {
@@ -951,9 +950,9 @@ mod tests {
                 "outputVaultBalanceChange": {
                   "id": "0x0000000000000000000000000000000000000001",
                   "__typename": "TradeVaultBalanceChange",
-                  "amount": "-2",
-                  "newVaultBalance": "0",
-                  "oldVaultBalance": "0",
+                  "amount": (*NEG2).as_hex(),
+                  "newVaultBalance": (*F0).as_hex(),
+                  "oldVaultBalance": (*F0).as_hex(),
                   "vault": {
                     "id": "0x0000000000000000000000000000000000000001",
                     "vaultId": "0x10",
@@ -983,9 +982,9 @@ mod tests {
                 "inputVaultBalanceChange": {
                   "id": "0x0000000000000000000000000000000000000001",
                   "__typename": "TradeVaultBalanceChange",
-                  "amount": "1",
-                  "newVaultBalance": "0",
-                  "oldVaultBalance": "0",
+                  "amount": (*F1).as_hex(),
+                  "newVaultBalance": (*F0).as_hex(),
+                  "oldVaultBalance": (*F0).as_hex(),
                   "vault": {
                     "id": "0x0000000000000000000000000000000000000001",
                     "vaultId": "0x10",
@@ -1027,9 +1026,9 @@ mod tests {
                 "outputVaultBalanceChange": {
                   "id": "0x0000000000000000000000000000000000000002",
                   "__typename": "TradeVaultBalanceChange",
-                  "amount": "-5",
-                  "newVaultBalance": "0",
-                  "oldVaultBalance": "0",
+                  "amount": (*NEG5).as_hex(),
+                  "newVaultBalance": (*F0).as_hex(),
+                  "oldVaultBalance": (*F0).as_hex(),
                   "vault": {
                     "id": "0x0000000000000000000000000000000000000002",
                     "vaultId": "0x20",
@@ -1059,9 +1058,9 @@ mod tests {
                 "inputVaultBalanceChange": {
                   "id": "0x0000000000000000000000000000000000000002",
                   "__typename": "TradeVaultBalanceChange",
-                  "amount": "2",
-                  "newVaultBalance": "0",
-                  "oldVaultBalance": "0",
+                  "amount": (*F2).as_hex(),
+                  "newVaultBalance": (*F0).as_hex(),
+                  "oldVaultBalance": (*F0).as_hex(),
                   "vault": {
                     "id": "0x0000000000000000000000000000000000000002",
                     "vaultId": "0x20",
@@ -1091,7 +1090,6 @@ mod tests {
               }
             ])
         }
->>>>>>> origin/2024-09-12-i9r
 
         #[tokio::test]
         async fn test_get_orders() {

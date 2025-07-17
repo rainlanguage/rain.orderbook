@@ -10,17 +10,6 @@ pub fn format_amount_u256(amount: U256, decimals: u8) -> Result<String, AmountFo
     Ok(remove_trailing_zeros(&formatted))
 }
 
-pub fn format_amount_i256(amount: I256, decimals: u8) -> Result<String, AmountFormatterError> {
-    if amount.is_negative() {
-        let abs_amount = amount.abs();
-        let formatted = format_units(abs_amount, decimals)?;
-        Ok(format!("-{}", remove_trailing_zeros(&formatted)))
-    } else {
-        let formatted = format_units(amount.into_raw(), decimals)?;
-        Ok(remove_trailing_zeros(&formatted))
-    }
-}
-
 pub fn remove_trailing_zeros(value: &str) -> String {
     if let Some(pos) = value.find('.') {
         let integer_part = &value[..pos];
@@ -104,40 +93,5 @@ mod tests {
         let balance = U256::ZERO;
         let result = format_amount_u256(balance, 18).unwrap();
         assert_eq!(result, "0");
-    }
-
-    #[test]
-    fn test_format_balance_i256() {
-        let balance = I256::from_str("2000000000000000000").unwrap();
-        let result = format_amount_i256(balance, 18).unwrap();
-        assert_eq!(result, "2");
-
-        let balance = I256::from_str("2500000000000000000").unwrap();
-        let result = format_amount_i256(balance, 18).unwrap();
-        assert_eq!(result, "2.5");
-
-        let balance = I256::from_str("-2000000000000000000").unwrap();
-        let result = format_amount_i256(balance, 18).unwrap();
-        assert_eq!(result, "-2");
-
-        let balance = I256::from_str("-2500000000000000000").unwrap();
-        let result = format_amount_i256(balance, 18).unwrap();
-        assert_eq!(result, "-2.5");
-
-        let balance = I256::from_str("-1500000").unwrap();
-        let result = format_amount_i256(balance, 6).unwrap();
-        assert_eq!(result, "-1.5");
-
-        let balance = I256::ZERO;
-        let result = format_amount_i256(balance, 18).unwrap();
-        assert_eq!(result, "0");
-
-        let balance = I256::from_str("1").unwrap();
-        let result = format_amount_i256(balance, 18).unwrap();
-        assert_eq!(result, "0.000000000000000001");
-
-        let balance = I256::from_str("-1").unwrap();
-        let result = format_amount_i256(balance, 18).unwrap();
-        assert_eq!(result, "-0.000000000000000001");
     }
 }
