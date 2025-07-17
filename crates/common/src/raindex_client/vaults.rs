@@ -1385,7 +1385,7 @@ mod tests {
 
             let vault1 = result[0].clone();
             assert_eq!(vault1.chain_id, 1);
-            assert_eq!(vault1.id, Bytes::from_str("0x0123").unwrap());
+            assert_eq!(vault1.id, Bytes::from_str("0x10").unwrap());
             assert_eq!(
                 vault1.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1444,7 +1444,7 @@ mod tests {
                 .get_vault(
                     1,
                     Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                    Bytes::from_str("0x0123").unwrap(),
+                    Bytes::from_str("0x10").unwrap(),
                 )
                 .await
                 .unwrap();
@@ -1665,7 +1665,7 @@ mod tests {
                 "id": "0x0456",
                 "owner": "0x0000000000000000000000000000000000000000",
                 "vaultId": "0x30",
-                "balance": "1500000",
+                "balance": *F1_5,
                 "token": {
                     "id": "token_usdc",
                     "address": "0xa0b86a33e6c3a0e4e8c7b6c6b0c2f6a3b7e8d9e0",
@@ -1727,9 +1727,9 @@ mod tests {
                         "vaultBalanceChanges": [
                             {
                                 "__typename": "Withdrawal",
-                                "amount": "-2000000000000000000",
-                                "newVaultBalance": "3000000000000000000",
-                                "oldVaultBalance": "5000000000000000000",
+                                "amount": *NEG2,
+                                "newVaultBalance": *F3,
+                                "oldVaultBalance": *F5,
                                 "vault": {
                                     "id": "0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902",
                                     "vaultId": "1",

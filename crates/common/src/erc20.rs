@@ -104,7 +104,7 @@ impl ERC20 {
     pub async fn get_account_balance(&self, account: Address) -> Result<U256, Error> {
         let erc20 = self.get_instance()?;
         let balance = erc20.balanceOf(account).call().await;
-        
+
         match balance {
             Ok(balance) => Ok(balance),
             Err(err) => Err(handle_alloy_err(err, "Balance query reverted").await),

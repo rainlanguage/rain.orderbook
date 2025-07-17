@@ -1,7 +1,7 @@
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
-    meta::TryDecodeRainlangSourceError,
-    transaction::WritableTransactionExecuteError, utils::amount_formatter::AmountFormatterError,
+    meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
+    utils::amount_formatter::AmountFormatterError,
 };
 use alloy::{
     hex::FromHexError,
@@ -254,7 +254,6 @@ impl From<DotrainOrderError> for RaindexError {
         Self::DotrainOrderError(Box::new(err))
     }
 }
-
 
 impl RaindexError {
     pub fn to_readable_msg(&self) -> String {

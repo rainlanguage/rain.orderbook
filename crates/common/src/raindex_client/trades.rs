@@ -650,10 +650,7 @@ mod test_helpers {
                 trade1.output_vault_balance_change().token().symbol(),
                 Some("sFLR".to_string())
             );
-            assert_eq!(
-                trade1.output_vault_balance_change().token().decimals(),
-                18
-            );
+            assert_eq!(trade1.output_vault_balance_change().token().decimals(), 18);
             assert_eq!(
                 trade1.output_vault_balance_change().timestamp(),
                 U256::from_str("1700000000").unwrap()
@@ -717,10 +714,7 @@ mod test_helpers {
                 trade1.input_vault_balance_change().token().symbol(),
                 Some("WFLR".to_string())
             );
-            assert_eq!(
-                trade1.input_vault_balance_change().token().decimals(),
-                18
-            );
+            assert_eq!(trade1.input_vault_balance_change().token().decimals(), 18);
             assert_eq!(
                 trade1.input_vault_balance_change().timestamp(),
                 U256::from_str("1700000000").unwrap()
@@ -842,10 +836,7 @@ mod test_helpers {
                 trade.output_vault_balance_change().token().symbol(),
                 Some("sFLR".to_string())
             );
-            assert_eq!(
-                trade.output_vault_balance_change().token().decimals(),
-                18
-            );
+            assert_eq!(trade.output_vault_balance_change().token().decimals(), 18);
             assert_eq!(
                 trade.output_vault_balance_change().timestamp(),
                 U256::from_str("1700000000").unwrap()
@@ -901,10 +892,7 @@ mod test_helpers {
                 trade.input_vault_balance_change().token().symbol(),
                 Some("WFLR".to_string())
             );
-            assert_eq!(
-                trade.input_vault_balance_change().token().decimals(),
-                18
-            );
+            assert_eq!(trade.input_vault_balance_change().token().decimals(), 18);
             assert_eq!(
                 trade.input_vault_balance_change().timestamp(),
                 U256::from_str("1700000000").unwrap()
