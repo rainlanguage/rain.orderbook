@@ -220,10 +220,12 @@
 				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcUrls} />
 			</TabItem>
 			<TabItem title="Volume">
-				<OrderVaultsVolTable order={data} />
+				<div>TODO: Issue #1989</div>
+				<!-- <OrderVaultsVolTable order={data} /> -->
 			</TabItem>
 			<TabItem title="APY">
-				<OrderApy order={data} />
+				<div>TODO: Issue #1989</div>
+				<!-- <OrderApy order={data} /> -->
 			</TabItem>
 		</Tabs>
 	</svelte:fragment>
