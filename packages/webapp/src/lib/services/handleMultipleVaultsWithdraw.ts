@@ -1,7 +1,7 @@
 import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
 import { generateMulticallCalldata } from '@rainlanguage/orderbook';
 import { type Hex } from 'viem';
-import type { TransactionManager } from '@rainlanguage/ui-components';
+import { QKEY_VAULTS, type TransactionManager } from '@rainlanguage/ui-components';
 import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
 
 export type WithdrawMultipleModalProps = {
@@ -89,7 +89,7 @@ export async function handleMultipleVaultsWithdraw(
 								raindexClient,
 								vaults,
 								txHash,
-								queryKey: txHash, // Use txHash as the query key
+								queryKey: QKEY_VAULTS, // Invalidate all vaults
 								chainId: vaults[0].chainId
 							});
 						}

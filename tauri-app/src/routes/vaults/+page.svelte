@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
+  import {
+    invalidateTanstackQueries,
+    PageHeader,
+    QKEY_VAULTS,
+    VaultsListTable,
+  } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
 
   import {
@@ -18,9 +23,13 @@
   } from '$lib/services/modal';
   import { writable } from 'svelte/store';
   import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
+  import { queryClient } from '../../lib/queries/queryClient';
 
   function onWithdrawMultiple(_raindexClient: RaindexClient, vaults: RaindexVault[]) {
-    handleWithdrawMultipleModal(vaults, () => {});
+    handleWithdrawMultipleModal(vaults, () => {
+      // Invalidate all vault queries to refresh the data
+      invalidateTanstackQueries(queryClient, [QKEY_VAULTS]);
+    });
   }
 </script>
 
