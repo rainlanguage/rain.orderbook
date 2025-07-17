@@ -2025,7 +2025,7 @@ ${dotrainWithoutVaultIds}`;
 
 			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			const result = extractWasmEncodedData(
-				await gui.getTokenBalance(
+				await gui.getAccountBalance(
 					'0x6666666666666666666666666666666666666666',
 					'0x1234567890abcdef1234567890abcdef12345678'
 				)

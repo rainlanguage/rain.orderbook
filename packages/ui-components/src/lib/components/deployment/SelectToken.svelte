@@ -36,7 +36,7 @@
 		balanceError = '';
 
 		try {
-			const balance = await gui.getTokenBalance(tokenAddress, $account);
+			const balance = await gui.getAccountBalance(tokenAddress, $account);
 			if (balance.error) {
 				throw new Error(balance.error.readableMsg);
 			}

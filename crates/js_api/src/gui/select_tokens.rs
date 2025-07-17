@@ -322,7 +322,7 @@ impl DotrainOrderGui {
         Ok(results)
     }
 
-    /// Gets the balance of a specific token for a given owner address.
+    /// Gets the balance of a specific token for a given owner address
     ///
     /// Retrieves the ERC20 token balance by connecting to the current deployment's network RPC
     /// and querying the token contract.
@@ -330,7 +330,7 @@ impl DotrainOrderGui {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await gui.getTokenBalance("0x123...", "0xabc...");
+    /// const result = await gui.getAccountBalance("0x123...", "0xabc...");
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
@@ -340,11 +340,11 @@ impl DotrainOrderGui {
     /// console.log("Token balance:", balance);
     /// ```
     #[wasm_export(
-        js_name = "getTokenBalance",
+        js_name = "getAccountBalance",
         unchecked_return_type = "string",
         return_description = "Balance of the specified token for the given owner"
     )]
-    pub async fn get_token_balance(
+    pub async fn get_account_balance(
         &self,
         #[wasm_export(js_name = "tokenAddress", param_description = "Token contract address")]
         token_address: String,
@@ -361,7 +361,9 @@ impl DotrainOrderGui {
             .orderbook_yaml()
             .get_network(&network_key)?;
         let erc20 = ERC20::new(network.rpcs, Address::from_str(&token_address)?);
-        let balance = erc20.get_balance(Address::from_str(&owner)?).await?;
+        let balance = erc20
+            .get_account_balance(Address::from_str(&owner)?)
+            .await?;
         Ok(balance)
     }
 }
@@ -799,7 +801,7 @@ _ _: 0 0;
         }
 
         #[tokio::test]
-        async fn test_get_token_balance() {
+        async fn test_get_account_balance() {
             let server = MockServer::start_async().await;
             let yaml = TEST_YAML_TEMPLATE.replace("{rpc_url}", &server.url("/rpc"));
 
@@ -824,7 +826,7 @@ _ _: 0 0;
             .unwrap();
 
             let balance = gui
-                .get_token_balance(
+                .get_account_balance(
                     "0x0000000000000000000000000000000000000001".to_string(),
                     "0x0000000000000000000000000000000000000002".to_string(),
                 )

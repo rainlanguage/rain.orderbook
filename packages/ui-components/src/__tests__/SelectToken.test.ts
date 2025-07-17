@@ -396,7 +396,7 @@ describe('SelectToken', () => {
 					decimals: 18
 				}
 			});
-			mockGui.getTokenBalance = vi.fn().mockResolvedValue({
+			mockGui.getAccountBalance = vi.fn().mockResolvedValue({
 				value: '1000000000000000000' // 1 TEST token
 			});
 
@@ -421,7 +421,7 @@ describe('SelectToken', () => {
 				}
 			});
 
-			(mockGui.getTokenBalance as Mock).mockRejectedValue(new Error('Network error'));
+			(mockGui.getAccountBalance as Mock).mockRejectedValue(new Error('Network error'));
 
 			render(SelectToken, mockProps);
 
@@ -466,7 +466,7 @@ describe('SelectToken', () => {
 				}
 			});
 
-			mockGui.getTokenBalance = vi.fn().mockResolvedValue({ value: '1500000' }); // 1.5 USDC
+			mockGui.getAccountBalance = vi.fn().mockResolvedValue({ value: '1500000' }); // 1.5 USDC
 
 			render(SelectToken, mockProps);
 
