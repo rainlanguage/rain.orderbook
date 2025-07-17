@@ -57,6 +57,25 @@ export async function vaultWithdraw(
   });
 }
 
+export async function multiVaultsWithdraw(vaults: RaindexVault[]) {
+  const chainId = get(walletConnectNetwork);
+  const orderbook = getOrderbookByChainId(chainId);
+
+  await invoke('vaults_withdraw', {
+    vaults: vaults.map((vault) => ({
+      vault_id: vault.id.toString(),
+      token: vault.token,
+      target_amount: vault.balance.toString(),
+    })),
+    transactionArgs: {
+      rpcs: orderbook.network.rpcs,
+      orderbook_address: orderbook.address,
+      derivation_index: get(ledgerWalletDerivationIndex),
+      chain_id: chainId,
+    },
+  });
+}
+
 export async function vaultDepositCalldata(vaultId: bigint, token: string, amount: bigint) {
   return await invoke('vault_deposit_calldata', {
     depositArgs: {

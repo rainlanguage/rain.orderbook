@@ -6,6 +6,7 @@ import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
 import ModalScenarioDebug from '$lib/components/modal/ModalScenarioDebug.svelte';
 import type { getAllContexts } from 'svelte';
+import ModalMultipleVaultsWithdraw from '../components/ModalMultipleVaultsWithdraw.svelte';
 
 export const handleDepositModal = (
   vault: RaindexVault,
@@ -45,6 +46,17 @@ export const handleOrderRemoveModal = (
 
 export const handleDebugTradeModal = (txHash: string, rpcUrls: string[]) => {
   new ModalTradeDebug({ target: document.body, props: { open: true, txHash, rpcUrls } });
+};
+
+export const handleWithdrawMultipleModal = (vaults: RaindexVault[], onWithdraw: () => void) => {
+  new ModalMultipleVaultsWithdraw({
+    target: document.body,
+    props: {
+      open: true,
+      vaults,
+      onWithdraw,
+    },
+  });
 };
 
 export const handleQuoteDebugModal = (

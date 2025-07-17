@@ -9,6 +9,7 @@ use rain_orderbook_common::{
     transaction::TransactionArgs,
     types::{FlattenError, TokenVaultFlattened, VaultBalanceChangeFlattened},
     withdraw::WithdrawArgs,
+    withdraw_multiple::WithdrawMultipleArgs,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -125,6 +126,28 @@ pub async fn vault_withdraw(
     let tx_status_notice =
         TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into(), chain_id);
     let _ = withdraw_args
+        .execute(transaction_args.clone(), |status| {
+            tx_status_notice.update_status_and_emit(&app_handle, status);
+        })
+        .await
+        .map_err(|e| {
+            tx_status_notice.set_failed_status_and_emit(&app_handle, e.to_string());
+        });
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn vaults_withdraw(
+    app_handle: AppHandle,
+    chain_id: u32,
+    withdraw_args: Vec<WithdrawArgs>,
+    transaction_args: TransactionArgs,
+) -> CommandResult<()> {
+    let tx_status_notice =
+        TransactionStatusNoticeRwLock::new("Withdraw tokens from vaults".into(), chain_id);
+    let multi = WithdrawMultipleArgs(withdraw_args);
+    let _ = multi
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(&app_handle, status);
         })

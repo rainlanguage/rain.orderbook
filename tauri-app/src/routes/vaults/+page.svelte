@@ -11,8 +11,17 @@
     activeTokens,
   } from '$lib/stores/settings';
 
-  import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
+  import {
+    handleDepositModal,
+    handleWithdrawModal,
+    handleWithdrawMultipleModal,
+  } from '$lib/services/modal';
   import { writable } from 'svelte/store';
+  import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
+
+  function onWithdrawMultiple(_raindexClient: RaindexClient, vaults: RaindexVault[]) {
+    handleWithdrawMultipleModal(vaults, () => {});
+  }
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
@@ -26,5 +35,6 @@
   {handleDepositModal}
   {handleWithdrawModal}
   {activeTokens}
+  {onWithdrawMultiple}
   showMyItemsOnly={writable(false)}
 />

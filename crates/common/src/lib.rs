@@ -18,6 +18,7 @@ pub mod types;
 pub mod unit_tests;
 pub mod utils;
 pub mod withdraw;
+pub mod withdraw_multiple;
 pub use dotrain;
 pub use dotrain_lsp;
 #[cfg(test)]
