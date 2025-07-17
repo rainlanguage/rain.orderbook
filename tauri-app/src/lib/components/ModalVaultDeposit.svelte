@@ -17,7 +17,10 @@
   let amount: bigint;
   let isSubmitting = false;
   let selectWallet = false;
-  let userBalance: AccountBalance = { balance: BigInt(0), formattedBalance: '0' };
+  let userBalance: AccountBalance = {
+    balance: BigInt(0),
+    formattedBalance: '0',
+  } as unknown as AccountBalance;
 
   function reset() {
     open = false;
