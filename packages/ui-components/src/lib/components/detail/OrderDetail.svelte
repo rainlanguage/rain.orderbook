@@ -209,7 +209,7 @@
 									{/if}
 								</div>
 								<div>
-									{#if filteredVaults.every((vault) => matchesAccount(vault.owner))}
+									{#if filteredVaults.every( (vault) => matchesAccount(vault.owner) ) && filteredVaults.length > 1 && filteredVaults.some((vault) => vault.balance > 0n)}
 										<Button
 											size="xs"
 											on:click={() => onWithdrawAll(raindexClient, filteredVaults)}
@@ -256,7 +256,7 @@
 				{/if}
 			{/each}
 			<!-- If there are different vault types — show additional withdraw all button below all vaults -->
-			{#if data.vaults.every( (vault) => matchesAccount(vault.owner) ) && vaultsGroupedByTypes[VaultType.InputOutput].length !== data.vaults.length}
+			{#if data.vaults.every( (vault) => matchesAccount(vault.owner) ) && vaultsGroupedByTypes[VaultType.InputOutput].length !== data.vaults.length && data.vaults.some((vault) => vault.balance > 0n)}
 				<Button
 					size="xs"
 					on:click={() => onWithdrawAll(raindexClient, data.vaults)}
