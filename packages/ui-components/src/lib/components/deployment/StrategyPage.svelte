@@ -37,7 +37,7 @@
 			}
 			return strategyDetails;
 		} catch {
-			throw new Error('Failed to get strategy details');
+			throw new Error('Failed to get order details');
 		}
 	};
 </script>

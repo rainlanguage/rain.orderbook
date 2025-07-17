@@ -12,7 +12,7 @@
 			<div class="flex h-full flex-row items-center gap-x-4">
 				<img src={$colorTheme === 'light' ? logoLight : logoDark} alt="Rainlang logo" class="h-8" />
 			</div>
-			<div class="flex h-full flex-row items-center gap-x-2 dark:text-gray-100 md:gap-x-6">
+			<div class="flex h-full flex-row items-center gap-x-2 md:gap-x-6 dark:text-gray-100">
 				<a
 					href="https://docs.rainlang.xyz/raindex/overview"
 					target="_blank"
@@ -27,14 +27,14 @@
 	>
 		<div class="my-24 flex w-full max-w-4xl flex-col">
 			<h1
-				class="light:text-gray-900 text-left font-instrument-serif text-7xl font-light leading-tight dark:text-white lg:text-8xl"
+				class="light:text-gray-900 font-instrument-serif text-left text-7xl font-light leading-tight lg:text-8xl dark:text-white"
 			>
 				Trade onchain
 				<br />
 				without limits
 			</h1>
 			<div class="mt-8 flex justify-start gap-x-4">
-				<Button color="blue" size="lg" on:click={() => goto('/deploy')}>Deploy a strategy</Button>
+				<Button color="blue" size="lg" on:click={() => goto('/deploy')}>Deploy an order</Button>
 				<a
 					href="https://docs.rainlang.xyz/raindex/overview"
 					target="_blank"
@@ -51,13 +51,13 @@
 		<div class="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-16 md:grid-cols-3">
 			<div class="flex flex-col gap-y-3">
 				<h2 class="text-xl font-semibold">Automated</h2>
-				<p>No more manual trades. Raindex brings automated trading strategies directly onchain.</p>
+				<p>No more manual trades. Raindex brings automated trading orders directly onchain.</p>
 			</div>
 
 			<div class="flex flex-col gap-y-3">
 				<h2 class="text-xl font-semibold">Trustless</h2>
 				<p>
-					Raindex is non-custodial – your assets remain in your control always. Strategies are
+					Raindex is non-custodial – your assets remain in your control always. Orders are
 					trustlessly executed by competing solvers.
 				</p>
 			</div>
@@ -65,7 +65,7 @@
 			<div class="flex flex-col gap-y-3">
 				<h2 class="text-xl font-semibold">Infinitely flexible</h2>
 				<p>
-					Deploy existing strategies in minutes or write your own using Rainlang. DCA, limit orders,
+					Deploy existing orders in minutes or write your own using Rainlang. DCA, limit orders,
 					liquidity provision and more.
 				</p>
 			</div>

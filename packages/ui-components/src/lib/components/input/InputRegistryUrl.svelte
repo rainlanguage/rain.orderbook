@@ -28,7 +28,7 @@
 		<Input
 			id="strategy-url"
 			type="url"
-			placeholder="Enter URL to raw strategy registry file"
+			placeholder="Enter URL to raw order registry file"
 			bind:value={newRegistryUrl}
 		/>
 		<Button class="w-36 text-nowrap" on:click={handleClick} disabled={loading}>
