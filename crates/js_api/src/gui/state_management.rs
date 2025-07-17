@@ -79,7 +79,7 @@ impl DotrainOrderGui {
         } else {
             VaultType::Output
         };
-        for (token, vault_id) in OrderCfg::parse_vault_ids(documents, order_key, is_input)? {
+        for (token, vault_id) in OrderCfg::parse_vault_ids(documents, order_key, r#type)? {
             vault_ids.insert((r#type, token), vault_id.as_ref().map(|v| v.to_string()));
         }
         Ok(vault_ids)

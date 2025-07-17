@@ -460,11 +460,16 @@ mod tests {
             ob_yaml.get_network("mainnet").unwrap()
         );
         let input_vault_ids =
-            OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, true).unwrap();
+            OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, VaultType::Input)
+                .unwrap();
         assert_eq!(input_vault_ids.len(), 1);
         assert_eq!(input_vault_ids.get("token1"), Some(&Some("1".to_string())));
-        let output_vault_ids =
-            OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, false).unwrap();
+        let output_vault_ids = OrderCfg::parse_vault_ids(
+            dotrain_yaml.documents.clone(),
+            &order.key,
+            VaultType::Output,
+        )
+        .unwrap();
         assert_eq!(output_vault_ids.len(), 1);
         assert_eq!(output_vault_ids.get("token2"), Some(&Some("2".to_string())));
         let io_token_keys =

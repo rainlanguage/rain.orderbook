@@ -120,9 +120,9 @@ impl OrderCfg {
                     {
                         // Find the item with matching token key
                         let item_index = vec.iter().position(|item| {
-                            if let StrictYaml::Hash(ref item_hash) = item {
+                            if let StrictYaml::Hash(ref item_map) = item {
                                 if let Some(StrictYaml::String(item_token)) =
-                                    item_hash.get(&StrictYaml::String("token".to_string()))
+                                    item_map.get(&StrictYaml::String("token".to_string()))
                                 {
                                     return item_token == &token;
                                 }
@@ -132,9 +132,9 @@ impl OrderCfg {
 
                         if let Some(idx) = item_index {
                             if let Some(item) = vec.get_mut(idx) {
-                                if let StrictYaml::Hash(ref mut item_hash) = item {
+                                if let StrictYaml::Hash(ref mut item_map) = item {
                                     if let Some(vault_id) = new_vault_id {
-                                        item_hash.insert(
+                                        item_map.insert(
                                             StrictYaml::String("vault-id".to_string()),
                                             StrictYaml::String(vault_id.to_string()),
                                         );
@@ -147,7 +147,7 @@ impl OrderCfg {
                                             }
                                         }
                                     } else {
-                                        item_hash
+                                        item_map
                                             .remove(&StrictYaml::String("vault-id".to_string()));
                                         match vault_type {
                                             VaultType::Input => {
@@ -435,7 +435,7 @@ impl OrderCfg {
     pub fn parse_vault_ids(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         order_key: &str,
-        is_input: bool,
+        r#type: VaultType,
     ) -> Result<HashMap<String, Option<String>>, YamlError> {
         let mut vault_ids = HashMap::new();
 
@@ -448,10 +448,13 @@ impl OrderCfg {
                 {
                     let location = format!("order '{}'", order_key);
 
-                    let items = if is_input {
-                        require_vec(order_yaml, "inputs", Some(location.clone()))?
-                    } else {
-                        require_vec(order_yaml, "outputs", Some(location.clone()))?
+                    let items = match r#type {
+                        VaultType::Input => {
+                            require_vec(order_yaml, "inputs", Some(location.clone()))?
+                        }
+                        VaultType::Output => {
+                            require_vec(order_yaml, "outputs", Some(location.clone()))?
+                        }
                     };
 
                     for (idx, item) in items.iter().enumerate() {
@@ -460,7 +463,11 @@ impl OrderCfg {
                             Some("token"),
                             Some(format!(
                                 "{} index '{}' in order '{}'",
-                                if is_input { "input" } else { "output" },
+                                if r#type == VaultType::Input {
+                                    "input"
+                                } else {
+                                    "output"
+                                },
                                 idx,
                                 order_key
                             )),
