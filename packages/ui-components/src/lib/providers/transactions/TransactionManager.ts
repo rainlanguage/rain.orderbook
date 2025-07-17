@@ -172,6 +172,61 @@ export class TransactionManager {
 	}
 
 	/**
+	 * Creates and initializes a new transaction for withdrawing funds from multiple vaults.
+	 * @param args - Configuration for the withdrawal transaction.
+	 * @param args.txHash - Hash of the transaction to track.
+	 * @param args.chainId - Chain ID where the transaction is being executed.
+	 * @param args.queryKey - The ID of the vault from which funds are withdrawn (used for query invalidation and UI links).
+	 * @param args.entity - The `SgVault` entity associated with this transaction.
+	 * @returns A new Transaction instance configured for withdrawal.
+	 * @example
+	 * const tx = await manager.createWithdrawTransaction({
+	 *   txHash: '0x123...',
+	 *   chainId: 1,
+	 *   queryKey: '0x789...', // Vault ID
+	 *   entity: sgVaultInstance
+	 * });
+	 */
+	public async createMultipleVaultsWithdrawTransaction(
+		args: InternalTransactionArgs & { vaults: RaindexVault[]; raindexClient: RaindexClient }
+	): Promise<Transaction> {
+		const name = TransactionName.WITHDRAWAL_MULTIPLE;
+		const errorMessage = 'Withdrawal failed.';
+		const successMessage = 'Withdrawal successful.';
+		const { chainId, vaults, txHash, queryKey, raindexClient } = args;
+
+		const orderbook = vaults[0].orderbook; // Assuming all vaults share the same orderbook
+		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: '/vaults/',
+				label: 'View all vaults'
+			},
+			{
+				link: explorerLink,
+				label: 'View on explorer'
+			}
+		];
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			toastLinks,
+			queryKey,
+			awaitSubgraphConfig: {
+				chainId,
+				orderbook,
+				txHash,
+				successMessage,
+				fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
+					raindexClient.getTransaction(orderbook, txHash),
+				isSuccess: (data) => !!data
+			}
+		});
+	}
+
+	/**
 	 * Creates and initializes a new transaction for approving token spend.
 	 * @param args - Configuration for the approval transaction.
 	 * @param args.txHash - Hash of the transaction to track.
