@@ -6,13 +6,11 @@ import {
 	SgOrder,
 	SgTrade,
 	OrderPerformance,
-	VaultVolume,
 	SgVault,
 	SgTransaction,
 	SgAddOrderWithOrder,
 	SgRemoveOrderWithOrder,
-	Hex,
-	RaindexVaultVolume
+	Hex
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
@@ -794,13 +792,21 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const result = extractWasmEncodedData(await order.getQuotes());
+
+			assert.equal(result.length, 1);
 			assert.deepEqual(result, [
 				{
 					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
 					blockNumber: 1,
 					data: {
 						maxOutput: '0x1',
-						ratio: '0x2'
+						formattedMaxOutput: '0.000000000000000001',
+						maxInput: '0x2',
+						formattedMaxInput: '0.000000000000000000000000000000000002',
+						ratio: '0x2',
+						formattedRatio: '0.000000000000000002',
+						inverseRatio: '0x604be73de4838ad9a5cf8800000000',
+						formattedInverseRatio: '500000000000000000'
 					},
 					success: true,
 					error: undefined

@@ -3,11 +3,10 @@
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
-	import { type BatchOrderQuotesResponse } from '@rainlanguage/orderbook';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
-	import { formatUnits, hexToNumber, isHex } from 'viem';
+	import { hexToNumber, isHex } from 'viem';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-	import type { RaindexOrder } from '@rainlanguage/orderbook';
+	import type { RaindexOrder, RaindexOrderQuote } from '@rainlanguage/orderbook';
 	import {
 		Table,
 		TableBody,
@@ -43,7 +42,7 @@
 		}
 	};
 
-	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
+	$: orderQuoteQuery = createQuery<RaindexOrderQuote[]>({
 		queryKey: [order.id, QKEY_ORDER_QUOTE + order.id],
 		queryFn: async () => {
 			const result = await order.getQuotes(blockNumber);
@@ -112,21 +111,13 @@
 					{#if item.success && item.data}
 						<TableBodyRow data-testid="bodyRow">
 							<TableBodyCell>{item.pair.pairName}</TableBodyCell>
-							<TableBodyCell>{formatUnits(BigInt(item.data.maxOutput), 18)}</TableBodyCell>
+							<TableBodyCell>{item.data.formattedMaxOutput}</TableBodyCell>
 							<TableBodyCell
-								>{formatUnits(BigInt(item.data.ratio), 18)}
-								<span class="text-gray-400"
-									>({BigInt(item.data.ratio) > 0n
-										? formatUnits(10n ** 36n / BigInt(item.data.ratio), 18)
-										: '0'})</span
+								>{item.data.formattedRatio}
+								<span class="text-gray-400">({item.data.formattedInverseRatio})</span
 								></TableBodyCell
 							>
-							<TableBodyCell
-								>{formatUnits(
-									BigInt(item.data.maxOutput) * BigInt(item.data.ratio),
-									36
-								)}</TableBodyCell
-							>
+							<TableBodyCell>{item.data.formattedMaxInput}</TableBodyCell>
 							<TableBodyCell>
 								{#if handleQuoteDebugModal}
 									<button
