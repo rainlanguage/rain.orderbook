@@ -6784,6 +6784,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
+ "anyhow",
  "chrono",
  "csv",
  "dotrain",
@@ -6841,6 +6842,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
+ "anyhow",
  "base64 0.22.1",
  "bincode",
  "cynic",
@@ -6861,8 +6863,10 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "url",
+ "wasm-bindgen",
  "wasm-bindgen-test",
  "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
+ "web-sys",
 ]
 
 [[package]]
