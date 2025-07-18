@@ -1,37 +1,28 @@
 <script lang="ts">
 	import { InputAddon, Button, Alert } from 'flowbite-svelte';
 	import { InfoCircleSolid } from 'flowbite-svelte-icons';
-	import { parseUnits } from 'viem';
 
 	export let symbol: string | undefined = undefined;
 	export let decimals: number = 0;
-	export let maxValue: bigint | undefined = undefined;
+	export let maxValue: string | undefined = undefined;
 	let inputValue: string = '';
-	export let value: bigint = 0n;
+	export let value: string = '0';
 
 	function handleInput(event: Event) {
 		const input = event.target as HTMLInputElement;
 		inputValue = input.value;
 
 		if (inputValue === '') {
-			value = 0n;
+			value = '0';
 		} else {
-			try {
-				value = parseUnits(inputValue, decimals);
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			} catch (_e) {
-				value = 0n;
-			}
+			value = inputValue;
 		}
 	}
 
 	function fillMaxValue() {
 		if (!maxValue) return;
-
 		value = maxValue;
-		inputValue = maxValue.toString().padStart(decimals + 1, '0');
-		inputValue = inputValue.slice(0, -decimals) + '.' + inputValue.slice(-decimals);
-		inputValue = inputValue.replace(/\.?0+$/, '');
+		inputValue = maxValue;
 	}
 </script>
 

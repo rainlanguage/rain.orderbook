@@ -14,7 +14,6 @@ import {
 	type Address,
 	type Hex
 } from '@rainlanguage/orderbook';
-import { formatUnits } from 'viem';
 
 /**
  * Function type for adding toast notifications to the UI.
@@ -231,7 +230,7 @@ export class TransactionManager {
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
 	 * @param args.queryKey - The ID of the vault into which funds are deposited (used for query invalidation and UI links).
-	 * @param args.entity - The `SgVault` entity associated with this transaction.
+	 * @param args.entity - The `RaindexVault` entity associated with this transaction.
 	 * @param args.amount - The amount of tokens being deposited.
 	 * @returns A new Transaction instance configured for deposit.
 	 * @example
@@ -239,20 +238,19 @@ export class TransactionManager {
 	 *   txHash: '0xdef...',
 	 *   chainId: 1,
 	 *   queryKey: '0x789...', // Vault ID
-	 *   entity: sgVaultInstance,
-	 *   amount: 1000n
+	 *   entity: RaindexVault,
+	 *   amount: "1000"
 	 * });
 	 */
 	public async createDepositTransaction(
 		args: InternalTransactionArgs & {
-			amount: bigint;
+			amount: string;
 			entity: RaindexVault;
 			raindexClient: RaindexClient;
 		}
 	): Promise<Transaction> {
 		const tokenSymbol = args.entity.token.symbol;
-		const readableAmount = formatUnits(args.amount, Number(args.entity.token.decimals));
-		const name = `Depositing ${readableAmount} ${tokenSymbol}`;
+		const name = `Depositing ${args.amount} ${tokenSymbol}`;
 		const errorMessage = 'Deposit failed.';
 		const successMessage = 'Deposit successful.';
 		const {
