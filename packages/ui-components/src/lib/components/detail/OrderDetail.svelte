@@ -231,8 +231,10 @@
 								<div>
 									{key}
 									{#if type === VaultType.InputOutput}
-										<InfoCircleOutline class="h-4 w-4" />
-										<Tooltip>{'These vaults can be an input or an output for this order'}</Tooltip>
+										<InfoCircleOutline class="inline h-4 w-4" />
+										<Tooltip class="z-10">
+											{'These vaults can be an input or an output for this order'}
+										</Tooltip>
 									{/if}
 								</div>
 								<div>
