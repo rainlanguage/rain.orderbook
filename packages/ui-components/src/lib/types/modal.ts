@@ -5,7 +5,7 @@ import type { Hex } from 'viem';
 export type VaultActionModalProps = {
 	open: boolean;
 	args: VaultActionArgs;
-	onSubmit: (amount: bigint) => void;
+	onSubmit: (amount: string) => void;
 };
 
 export type DisclaimerModalProps = {

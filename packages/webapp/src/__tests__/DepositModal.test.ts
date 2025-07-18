@@ -70,7 +70,7 @@ describe('DepositModal', () => {
 		const depositButton = screen.getByTestId('deposit-button');
 		await fireEvent.click(depositButton);
 
-		expect(mockOnSubmit).toHaveBeenCalledWith(BigInt(1000000000000000000));
+		expect(mockOnSubmit).toHaveBeenCalledWith('1');
 	});
 
 	it('shows error when amount exceeds balance', async () => {
