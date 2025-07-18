@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { InputAddon, Button, Alert } from 'flowbite-svelte';
+	import { InputAddon, Button } from 'flowbite-svelte';
 
 	export let symbol: string | undefined = undefined;
 	export let maxValue: string | undefined = undefined;

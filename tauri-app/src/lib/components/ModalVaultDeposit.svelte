@@ -54,7 +54,7 @@
         throw new Error(allowance.error.readableMsg);
       }
       if (BigInt(allowance.value) < parseUnits(amount, Number(vault.token.decimals))) {
-        const calldata = await vault.getApprovalCalldata(amount.toString());
+        const calldata = await vault.getApprovalCalldata(amount);
         if (calldata.error) {
           throw new Error(calldata.error.readableMsg);
         }
@@ -63,7 +63,7 @@
         await approveTx.wait(1);
       }
 
-      const calldata = await vault.getDepositCalldata(amount.toString());
+      const calldata = await vault.getDepositCalldata(amount);
       if (calldata.error) {
         throw new Error(calldata.error.readableMsg);
       }
@@ -151,7 +151,6 @@
         <InputTokenAmount
           bind:value={amount}
           symbol={vault.token.symbol}
-          decimals={Number(vault.token.decimals) ?? 0}
           maxValue={userBalance.formattedBalance}
         />
       </ButtonGroup>

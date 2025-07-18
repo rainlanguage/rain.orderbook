@@ -119,7 +119,6 @@
       <InputTokenAmount
         bind:value={amount}
         symbol={vault.token.symbol}
-        decimals={Number(vault.token.decimals ?? 0)}
         maxValue={vault.formattedBalance}
       />
 
