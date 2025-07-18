@@ -92,7 +92,6 @@
 		<InputTokenAmount
 			bind:value={amount}
 			symbol={vault.token.symbol}
-			decimals={Number(vault.token.decimals)}
 			maxValue={vault.formattedBalance}
 		/>
 		<div class="flex flex-col justify-end gap-2">

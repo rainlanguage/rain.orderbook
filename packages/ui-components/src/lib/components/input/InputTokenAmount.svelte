@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { InputAddon, Button, Alert } from 'flowbite-svelte';
-	import { InfoCircleSolid } from 'flowbite-svelte-icons';
 
 	export let symbol: string | undefined = undefined;
-	export let decimals: number = 0;
 	export let maxValue: string | undefined = undefined;
 	let inputValue: string = '';
 	export let value: string = '0';
@@ -26,6 +24,15 @@
 		value = maxValue;
 		inputValue = maxValue;
 	}
+
+	function handleKeyDown(event: KeyboardEvent) {
+		if (
+			!/[0-9.]/.test(event.key) &&
+			!['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(event.key)
+		) {
+			event.preventDefault();
+		}
+	}
 </script>
 
 <div class="w-full">
@@ -36,6 +43,7 @@
 				class={`focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 ${symbol && '!rounded-none !rounded-l-lg'}`}
 				bind:value={inputValue}
 				on:input={handleInput}
+				on:keydown={handleKeyDown}
 			/>
 
 			{#if maxValue}
@@ -53,11 +61,4 @@
 			</InputAddon>
 		{/if}
 	</div>
-	{#if decimals === 0}
-		<Alert color="yellow" border class="mt-2">
-			<InfoCircleSolid slot="icon" class="h-6 w-6" />
-			This token does not specify a number of decimals. <br />You are inputting the raw integer
-			amount with 0 decimal places.
-		</Alert>
-	{/if}
 </div>
