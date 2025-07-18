@@ -8,22 +8,23 @@
   import ModalExecute from './ModalExecute.svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import { hexToBytes, toHex } from 'viem';
+  import { hexToBytes, parseUnits, toHex } from 'viem';
 
   export let open = false;
   export let vault: RaindexVault;
   export let onWithdraw: () => void;
-  let amount: bigint = 0n;
+  let amount: string = '0';
   let amountGTBalance: boolean;
   let isSubmitting = false;
   let selectWallet = false;
 
-  $: amountGTBalance = vault !== undefined && amount > BigInt(vault.balance);
+  $: amountGTBalance =
+    vault !== undefined && parseUnits(amount, Number(vault.token.decimals)) > vault.balance;
 
   function reset() {
     open = false;
     if (!isSubmitting) {
-      amount = 0n;
+      amount = '0';
       selectWallet = false;
     }
   }
@@ -31,7 +32,11 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(vault.vaultId, vault.token.id, amount);
+      await vaultWithdraw(
+        vault.vaultId,
+        vault.token.id,
+        parseUnits(amount, Number(vault.token.decimals)),
+      );
       onWithdraw();
     } catch (e) {
       reportErrorToSentry(e);
@@ -43,7 +48,7 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const calldata = await vault.getWithdrawCalldata(amount.toString());
+      const calldata = await vault.getWithdrawCalldata(amount);
       if (calldata.error) {
         throw new Error(calldata.error.readableMsg);
       }
@@ -115,7 +120,7 @@
         bind:value={amount}
         symbol={vault.token.symbol}
         decimals={Number(vault.token.decimals ?? 0)}
-        maxValue={BigInt(vault.balance)}
+        maxValue={vault.formattedBalance}
       />
 
       <Helper color="red" class="h-6 text-sm">
@@ -132,7 +137,7 @@
           selectWallet = true;
           open = false;
         }}
-        disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
+        disabled={!amount || amount === '0' || amountGTBalance || isSubmitting}
       >
         Proceed
       </Button>

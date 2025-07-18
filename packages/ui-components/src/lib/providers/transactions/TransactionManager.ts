@@ -116,14 +116,14 @@ export class TransactionManager {
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
 	 * @param args.queryKey - The ID of the vault from which funds are withdrawn (used for query invalidation and UI links).
-	 * @param args.entity - The `SgVault` entity associated with this transaction.
+	 * @param args.entity - The `RaindexVault` entity associated with this transaction.
 	 * @returns A new Transaction instance configured for withdrawal.
 	 * @example
 	 * const tx = await manager.createWithdrawTransaction({
 	 *   txHash: '0x123...',
 	 *   chainId: 1,
 	 *   queryKey: '0x789...', // Vault ID
-	 *   entity: sgVaultInstance
+	 *   entity: RaindexVault,
 	 * });
 	 */
 	public async createWithdrawTransaction(

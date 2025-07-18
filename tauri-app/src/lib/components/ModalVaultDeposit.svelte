@@ -8,13 +8,13 @@
   import ModalExecute from './ModalExecute.svelte';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import { hexToBytes, toHex } from 'viem';
+  import { hexToBytes, parseUnits, toHex } from 'viem';
   import { onMount } from 'svelte';
 
   export let open = false;
   export let vault: RaindexVault;
   export let onDeposit: () => void;
-  let amount: bigint;
+  let amount: string;
   let isSubmitting = false;
   let selectWallet = false;
   let userBalance: AccountBalance = {
@@ -25,7 +25,7 @@
   function reset() {
     open = false;
     if (!isSubmitting) {
-      amount = 0n;
+      amount = '0';
       selectWallet = false;
     }
   }
@@ -33,7 +33,11 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultDeposit(vault.vaultId, vault.token.address, amount);
+      await vaultDeposit(
+        vault.vaultId,
+        vault.token.address,
+        parseUnits(amount, Number(vault.token.decimals)),
+      );
       onDeposit();
     } catch (e) {
       reportErrorToSentry(e);
@@ -49,7 +53,7 @@
       if (allowance.error) {
         throw new Error(allowance.error.readableMsg);
       }
-      if (BigInt(allowance.value) < amount) {
+      if (BigInt(allowance.value) < parseUnits(amount, Number(vault.token.decimals))) {
         const calldata = await vault.getApprovalCalldata(amount.toString());
         if (calldata.error) {
           throw new Error(calldata.error.readableMsg);
@@ -148,7 +152,7 @@
           bind:value={amount}
           symbol={vault.token.symbol}
           decimals={Number(vault.token.decimals) ?? 0}
-          maxValue={userBalance.balance}
+          maxValue={userBalance.formattedBalance}
         />
       </ButtonGroup>
     </div>
@@ -159,7 +163,7 @@
           selectWallet = true;
           open = false;
         }}
-        disabled={!amount || amount === 0n || isSubmitting}
+        disabled={!amount || amount === '0' || isSubmitting}
       >
         Proceed
       </Button>

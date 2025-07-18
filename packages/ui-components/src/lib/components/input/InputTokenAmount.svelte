@@ -14,6 +14,8 @@
 
 		if (inputValue === '') {
 			value = '0';
+		} else if (isNaN(Number(inputValue))) {
+			value = '0';
 		} else {
 			value = inputValue;
 		}

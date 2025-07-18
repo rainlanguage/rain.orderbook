@@ -5,7 +5,7 @@ import InputTokenAmount from '$lib/components/input/InputTokenAmount.svelte';
 describe('InputTokenAmount', () => {
 	it('should handle input with 18 decimals', async () => {
 		const { getByRole, component } = render(InputTokenAmount, {
-			props: { decimals: 18, value: 0n }
+			props: { decimals: 18, value: '0' }
 		});
 		const input = getByRole('textbox');
 
@@ -21,7 +21,7 @@ describe('InputTokenAmount', () => {
 
 	it('should handle input with 6 decimals', async () => {
 		const { getByRole, component } = render(InputTokenAmount, {
-			props: { decimals: 6, value: 0n }
+			props: { decimals: 6, value: '0' }
 		});
 		const input = getByRole('textbox');
 
@@ -37,7 +37,7 @@ describe('InputTokenAmount', () => {
 
 	it('should handle input with 0 decimals', async () => {
 		const { getByRole, component } = render(InputTokenAmount, {
-			props: { decimals: 0, value: 0n }
+			props: { decimals: 0, value: '0' }
 		});
 		const input = getByRole('textbox');
 
@@ -50,7 +50,7 @@ describe('InputTokenAmount', () => {
 
 	it('should handle empty input', async () => {
 		const { getByRole, component } = render(InputTokenAmount, {
-			props: { decimals: 18, value: 0n }
+			props: { decimals: 18, value: '0' }
 		});
 		const input = getByRole('textbox');
 
@@ -60,7 +60,7 @@ describe('InputTokenAmount', () => {
 
 	it('should handle invalid input', async () => {
 		const { getByRole, component } = render(InputTokenAmount, {
-			props: { decimals: 18, value: 0n }
+			props: { decimals: 18, value: '0' }
 		});
 		const input = getByRole('textbox');
 
@@ -70,11 +70,11 @@ describe('InputTokenAmount', () => {
 
 	it('should handle maxValue prop', async () => {
 		const { getByText, component } = render(InputTokenAmount, {
-			props: { decimals: 18, maxValue: 1000000000000000000n, value: 0n }
+			props: { decimals: 18, maxValue: '1000', value: '0' }
 		});
 		const maxButton = getByText('MAX');
 
 		await fireEvent.click(maxButton);
-		expect(component.$$.ctx[component.$$.props.value]).toBe(1000000000000000000n);
+		expect(component.$$.ctx[component.$$.props.value]).toBe('1000');
 	});
 });
