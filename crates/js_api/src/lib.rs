@@ -1,6 +1,8 @@
 #[cfg(target_family = "wasm")]
 pub mod bindings;
 #[cfg(target_family = "wasm")]
+pub mod filters;
+#[cfg(target_family = "wasm")]
 pub mod gui;
 #[cfg(target_family = "wasm")]
 pub mod registry;
