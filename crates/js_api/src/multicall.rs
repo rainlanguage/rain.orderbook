@@ -68,3 +68,39 @@ pub fn generate_multicall_calldata(
 
     Ok(MulticallCalldataResult(Bytes::from(encoded)))
 }
+
+//
+// Errors
+//
+#[derive(Error, Debug)]
+pub enum MulticallError {
+    #[error("Invalid calldata: {0}")]
+    InvalidCalldata(String),
+}
+
+impl MulticallError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            MulticallError::InvalidCalldata(msg) => format!("Invalid calldata: {}", msg),
+        }
+    }
+}
+
+impl From<GuiError> for JsValue {
+    fn from(value: GuiError) -> Self {
+        JsError::new(&value.to_string()).into()
+    }
+}
+
+impl From<GuiError> for WasmEncodedError {
+    fn from(value: GuiError) -> Self {
+        WasmEncodedError {
+            msg: value.to_string(),
+            readable_msg: value.to_readable_msg(),
+        }
+    }
+}
+
+//
+// Tests
+//

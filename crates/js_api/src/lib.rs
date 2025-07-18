@@ -3,6 +3,8 @@ pub mod bindings;
 #[cfg(target_family = "wasm")]
 pub mod gui;
 #[cfg(target_family = "wasm")]
+pub mod multicall;
+#[cfg(target_family = "wasm")]
 pub mod yaml;
 
 // re-export other crates to include their wasm bindings as single export point
