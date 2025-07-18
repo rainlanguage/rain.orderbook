@@ -29,7 +29,6 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 mod deposits;
 mod field_values;
-mod multicall;
 mod order_operations;
 mod select_tokens;
 mod state_management;
@@ -1798,6 +1797,3 @@ networks:
         }
     }
 }
-
-// Re-export multicall operations
-pub use multicall::*;
