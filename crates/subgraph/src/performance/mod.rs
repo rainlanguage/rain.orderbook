@@ -1,15 +1,16 @@
 use alloy::primitives::{ruint::ParseError, U256};
 use chrono::TimeDelta;
 use once_cell::sync::Lazy;
+use rain_math_float::FloatError;
 use rain_orderbook_math::{MathError, ONE18};
 use std::num::ParseIntError;
 use thiserror::Error;
 
-pub mod apy;
-mod order_performance;
-pub mod vol;
+// pub mod apy;
+// mod order_performance;
+// pub mod vol;
 
-pub use order_performance::*;
+// pub use order_performance::*;
 
 /// a year length timestamp in seconds as 18 point decimals as U256
 pub static YEAR18: Lazy<U256> =
@@ -27,4 +28,10 @@ pub enum PerformanceError {
     DivByZero,
     #[error("Found no trades")]
     NoTrades,
+    #[error("Float error: {0}")]
+    FloatError(#[from] FloatError),
+    #[error("Parsing error: {0}")]
+    ParsingError(#[from] serde_json::Error),
+    #[error("Missing decimals in subgraph response")]
+    MissingDecimals,
 }

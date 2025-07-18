@@ -1,26 +1,56 @@
-import { BigInt } from "@graphprotocol/graph-ts";
-import { Deposit as DepositEntity } from "../generated/schema";
+import {
+  Deposit as DepositEntity,
+  ERC20 as ERC20Entity,
+} from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
-import { Deposit } from "../generated/OrderBook/OrderBook";
+import { DepositV2 } from "../generated/OrderBook/OrderBook";
+import { Float, getCalculator } from "./float";
+import { getERC20Entity } from "./erc20";
 
-export function handleDeposit(event: Deposit): void {
-  let oldVaultBalance: BigInt = handleVaultBalanceChange(
+export function handleDeposit(event: DepositV2): void {
+  let tokenEntityId = getERC20Entity(event.params.token);
+  let tokenEntity = ERC20Entity.load(tokenEntityId);
+
+  if (!tokenEntity) {
+    return;
+  }
+
+  let decimalsBigInt = tokenEntity.decimals;
+  if (!decimalsBigInt) {
+    return;
+  }
+
+  const decimals = decimalsBigInt.toI32();
+  const calculator = getCalculator();
+  let depositAmount = calculator.fromFixedDecimalLosslessPacked(
+    event.params.depositAmountUint256,
+    decimals
+  );
+
+  let vaultBalanceChange = handleVaultBalanceChange(
     event.address,
     event.params.vaultId,
     event.params.token,
-    event.params.amount,
+    depositAmount,
     event.params.sender
   );
-  createDepositEntity(event, oldVaultBalance);
+
+  let oldVaultBalance = vaultBalanceChange.oldVaultBalance;
+  let newVaultBalance = vaultBalanceChange.newVaultBalance;
+
+  createDepositEntity(event, oldVaultBalance, newVaultBalance, depositAmount);
 }
+
 export function createDepositEntity(
-  event: Deposit,
-  oldVaultBalance: BigInt
+  event: DepositV2,
+  oldVaultBalance: Float,
+  newVaultBalance: Float,
+  depositAmount: Float
 ): void {
   let deposit = new DepositEntity(eventId(event));
   deposit.orderbook = event.address;
-  deposit.amount = event.params.amount;
+  deposit.amount = depositAmount;
   deposit.sender = event.params.sender;
   deposit.vault = vaultEntityId(
     event.address,
@@ -30,7 +60,7 @@ export function createDepositEntity(
   );
   deposit.transaction = event.transaction.hash;
   deposit.oldVaultBalance = oldVaultBalance;
-  deposit.newVaultBalance = oldVaultBalance.plus(event.params.amount);
+  deposit.newVaultBalance = newVaultBalance;
   deposit.timestamp = event.block.timestamp;
   deposit.save();
 }

@@ -9,6 +9,9 @@ homepage.workspace = true
 [dependencies]
 alloy = { workspace = true, features = ["sol-types", "json"] }
 serde = { workspace = true, features = ["derive", "rc"] }
+thiserror.workspace = true
+tower.workspace = true
+url.workspace = true
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-utils = { workspace = true }

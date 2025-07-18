@@ -15,3 +15,4 @@ rain_orderbook_test_fixtures = { workspace = true }
 alloy = { workspace = true, features = ["full", "node-bindings"] }
 rain_orderbook_common = { workspace = true }
 serde_json = { workspace = true }
+rain-math-float.workspace = true
