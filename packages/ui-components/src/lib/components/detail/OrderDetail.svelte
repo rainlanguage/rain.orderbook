@@ -33,6 +33,7 @@
 	} from '@rainlanguage/orderbook';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import { isAddress, isAddressEqual } from 'viem';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -68,7 +69,7 @@
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
-	const { matchesAccount } = useAccount();
+	const { account } = useAccount();
 	const { errToast } = useToasts();
 	const raindexClient = useRaindexClient();
 
@@ -80,6 +81,15 @@
 			return result.value;
 		}
 	});
+
+	const matchesAddress = (a?: Address | null, b?: Address | null) => {
+		try {
+			if (!a || !b) return false;
+			return isAddress(a) && isAddress(b) && isAddressEqual(a, b);
+		} catch {
+			return false;
+		}
+	};
 
 	const interval = setInterval(async () => {
 		await invalidateTanstackQueries(queryClient, [orderHash]);
@@ -142,23 +152,23 @@
 	// It returns vaults of single group filtered by owner and non-zero balance
 	// It makes it possible to withdraw multiple vaults of the same type at once
 	// Even if some vaults of that type has zero balance
-	const getVaultsGroupFiltered = (type: VaultType) => {
+	$: getVaultsGroupFiltered = (type: VaultType) => {
 		return vaultsGroupedByTypes[type].filter(
-			(vault) => matchesAccount(vault.owner) && vault.balance > 0n
+			(vault) => matchesAddress($account, vault.owner) && vault.balance > 0n
 		);
 	};
 
 	// It checks does it make sense to display Withdraw button for the vault type
-	const shouldShowWithdrawByType = (type: VaultType) => {
+	$: shouldShowWithdrawByType = (type: VaultType) => {
 		const filteredVaults = getVaultsGroupFiltered(type);
 		return filteredVaults.length > 1;
 	};
 	// If checks does it make sense to display Withdraw all button below all vaults
-	const shouldShowWithdrawAll = () => {
+	$: shouldShowWithdrawAll = () => {
 		if (!$orderDetailQuery.data?.vaults) return false;
 		const { vaults } = $orderDetailQuery.data;
 		const filteredVaults = vaults.filter(
-			(vault) => matchesAccount(vault.owner) && vault.balance > 0n
+			(vault) => matchesAddress($account, vault.owner) && vault.balance > 0n
 		);
 		return (
 			filteredVaults.length > 1 &&
@@ -181,7 +191,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if matchesAccount(data.owner)}
+				{#if matchesAddress($account, data.owner)}
 					{#if data.active}
 						<Button
 							on:click={() => onRemove(raindexClient, data)}
@@ -256,7 +266,7 @@
 								{#each filteredVaults as vault}
 									<ButtonVaultLink tokenVault={vault} {chainId} {orderbookAddress}>
 										<svelte:fragment slot="buttons">
-											{#if matchesAccount(vault.owner)}
+											{#if matchesAddress($account, vault.owner)}
 												<div class="flex gap-1">
 													<Button
 														color="light"
