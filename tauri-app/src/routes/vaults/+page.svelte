@@ -23,7 +23,7 @@
   } from '$lib/services/modal';
   import { writable } from 'svelte/store';
   import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
-  import { queryClient } from '../../lib/queries/queryClient';
+  import { queryClient } from '$lib/queries/queryClient';
 
   function onWithdrawMultiple(_raindexClient: RaindexClient, vaults: RaindexVault[]) {
     handleWithdrawMultipleModal(vaults, () => {

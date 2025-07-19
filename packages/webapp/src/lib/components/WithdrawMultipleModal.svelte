@@ -3,7 +3,6 @@
 	import { Modal, Button } from 'flowbite-svelte';
 	import { appKitModal, connected } from '$lib/stores/wagmi';
 	import type { WithdrawMultipleModalProps } from '../services/handleMultipleVaultsWithdraw';
-	import { formatUnits } from 'viem';
 
 	/**
 	 * Modal component for withdrawing tokens from a vault.
@@ -37,10 +36,11 @@
 			<div class="max-h-48 space-y-2 overflow-y-auto">
 				{#each args.vaults as vault (vault.id)}
 					<div class="flex flex-row items-start justify-between rounded-lg bg-gray-50 p-3">
-						<span class="mr-2 truncate font-mono text-xs font-medium text-gray-900">{vault.id}</span
+						<span class="mr-2 truncate font-mono text-xs font-medium text-gray-900"
+							>{vault.vaultId}</span
 						>
 						<span class="whitespace-nowrap text-sm font-semibold text-gray-900">
-							{formatUnits(vault.balance, Number(vault.token.decimals ?? 18))}
+							{vault.formattedBalance}
 							&nbsp;
 							{vault.token.symbol}
 						</span>
