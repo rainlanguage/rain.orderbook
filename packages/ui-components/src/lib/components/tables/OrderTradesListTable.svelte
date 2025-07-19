@@ -4,7 +4,7 @@
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '../../services/time';
+	import { timestampSecondsToUTCTimestamp } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { BugOutline } from 'flowbite-svelte-icons';
 	import type { RaindexOrder, RaindexTrade } from '@rainlanguage/orderbook';
@@ -84,7 +84,7 @@
 
 	<svelte:fragment slot="bodyRow" let:item>
 		<TableBodyCell tdClass="px-4 py-2">
-			{formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+			{timestampSecondsToUTCTimestamp(BigInt(item.timestamp))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32">
 			<Hash type={HashType.Wallet} value={item.transaction.from} />
