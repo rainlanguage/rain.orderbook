@@ -7,6 +7,8 @@ import {
 	type DisclaimerModalProps,
 	type VaultActionModalProps
 } from '@rainlanguage/ui-components';
+import WithdrawMultipleModal from '$lib/components/WithdrawMultipleModal.svelte';
+import type { WithdrawMultipleModalProps } from './handleMultipleVaultsWithdraw';
 
 export const handleDepositModal = (props: VaultActionModalProps) => {
 	new DepositModal({ target: document.body, props });
@@ -16,9 +18,18 @@ export const handleWithdrawModal = (props: VaultActionModalProps) => {
 	new WithdrawModal({ target: document.body, props });
 };
 
+export const handleWithdrawMultipleModal = (props: WithdrawMultipleModalProps) => {
+	new WithdrawMultipleModal({ target: document.body, props });
+};
+
+export type TransactionConfirmationModalResult = {
+	success: boolean;
+	hash?: string;
+};
+
 export const handleTransactionConfirmationModal = (
 	props: TransactionConfirmationProps
-): Promise<{ success: boolean; hash?: string }> => {
+): Promise<TransactionConfirmationModalResult> => {
 	return new Promise((resolve) => {
 		const originalOnConfirm = props.args.onConfirm;
 		let modalResolved = false;

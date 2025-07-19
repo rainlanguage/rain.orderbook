@@ -35,7 +35,6 @@ async function executeDeposit(args: DepositArgs) {
 				: `Depositing ${vault.token.symbol}`,
 			closeOnConfirm: false,
 			args: {
-				entity: vault,
 				toAddress: vault.orderbook,
 				chainId: vault.chainId,
 				onConfirm: (txHash: Hex) => {
@@ -75,7 +74,6 @@ export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies):
 					modalTitle: `Approving ${vault.token.symbol || 'token'} spend`,
 					closeOnConfirm: true,
 					args: {
-						entity: vault,
 						toAddress: vault.token.address as Hex,
 						chainId: vault.chainId,
 						onConfirm: (txHash: Hex) => {

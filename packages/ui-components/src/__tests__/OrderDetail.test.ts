@@ -58,7 +58,8 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	lightweightChartsTheme: readable(darkChartTheme),
 	onRemove: vi.fn(),
 	onDeposit: vi.fn(),
-	onWithdraw: vi.fn()
+	onWithdraw: vi.fn(),
+	onWithdrawAll: vi.fn()
 };
 
 const mockOrder: RaindexOrder = {
@@ -86,7 +87,7 @@ const mockOrder: RaindexOrder = {
 				symbol: 'MCK',
 				decimals: '18'
 			},
-			balance: BigInt(0),
+			balance: BigInt(10),
 			vaultId: BigInt(2),
 			owner: '0x1234567890123456789012345678901234567890',
 			ordersAsOutput: [],
@@ -104,7 +105,7 @@ const mockOrder: RaindexOrder = {
 				symbol: 'MCK2',
 				decimals: '18'
 			},
-			balance: BigInt(0),
+			balance: BigInt(20),
 			vaultId: BigInt(1),
 			owner: '0x1234567890123456789012345678901234567890',
 			ordersAsOutput: [],
@@ -324,5 +325,30 @@ describe('OrderDetail', () => {
 		await user.click(withdrawButton[0]);
 
 		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults[1]);
+	});
+
+	it('calls onWithdrawAll callback when withdraw all button is clicked', async () => {
+		mockMatchesAccount.mockReturnValue(true);
+		const user = userEvent.setup();
+		const mockOnWithdraw = vi.fn();
+
+		render(OrderDetail, {
+			props: {
+				...defaultProps,
+				onWithdrawAll: mockOnWithdraw
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+			expect(screen.getByText('Orderbook')).toBeInTheDocument();
+			expect(screen.getByText('Owner')).toBeInTheDocument();
+			expect(screen.getByText('Created')).toBeInTheDocument();
+		});
+
+		const withdrawButton = screen.getAllByTestId('withdraw-all-button');
+		await user.click(withdrawButton[0]);
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults);
 	});
 });

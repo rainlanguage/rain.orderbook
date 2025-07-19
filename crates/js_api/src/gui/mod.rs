@@ -644,6 +644,8 @@ pub enum GuiError {
     TokenNotInSelectTokens(String),
     #[error("JavaScript error: {0}")]
     JsError(String),
+    #[error("Invalid calldata: {0}")]
+    InvalidCalldata(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -729,6 +731,8 @@ impl GuiError {
                 format!("The token '{}' is not in the list of selectable tokens defined in the YAML configuration.", token),
             GuiError::JsError(msg) =>
                 format!("A JavaScript error occurred: {}", msg),
+            GuiError::InvalidCalldata(msg) =>
+                format!("Invalid calldata: {}", msg),
             GuiError::DotrainOrderError(err) =>
                 format!("Order configuration error in YAML: {}", err),
             GuiError::ParseGuiConfigSourceError(err) =>
