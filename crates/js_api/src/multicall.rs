@@ -1,7 +1,8 @@
-use super::*;
 use alloy::{hex::FromHex, primitives::Bytes, sol_types::SolCall};
 use rain_orderbook_bindings::OrderBook::multicallCall;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct MulticallCalldataResult(#[tsify(type = "string")] Bytes);
@@ -44,9 +45,9 @@ impl_wasm_traits!(MulticallCalldataResult);
 pub fn generate_multicall_calldata(
     #[wasm_export(param_description = "Array of hex-encoded calldata strings to combine")]
     calldatas: Vec<String>,
-) -> Result<MulticallCalldataResult, GuiError> {
+) -> Result<MulticallCalldataResult, MulticallError> {
     if calldatas.is_empty() {
-        return Err(GuiError::InvalidCalldata(
+        return Err(MulticallError::InvalidCalldata(
             "No calldatas provided".to_string(),
         ));
     }
@@ -54,8 +55,21 @@ pub fn generate_multicall_calldata(
     let mut calls = Vec::new();
 
     for (index, calldata_str) in calldatas.iter().enumerate() {
+        let hex_part = calldata_str.strip_prefix("0x").unwrap_or(calldata_str);
+        if hex_part.is_empty() {
+            return Err(MulticallError::InvalidCalldata(format!(
+                "Failed to parse calldata at index {}: empty string",
+                index
+            )));
+        }
+        if hex_part.len() % 2 != 0 {
+            return Err(MulticallError::InvalidCalldata(format!(
+                "Failed to parse calldata at index {}: odd length hex",
+                index
+            )));
+        }
         let calldata_bytes = Bytes::from_hex(calldata_str).map_err(|e| {
-            GuiError::InvalidCalldata(format!(
+            MulticallError::InvalidCalldata(format!(
                 "Failed to parse calldata at index {}: {}",
                 index, e
             ))
@@ -72,7 +86,7 @@ pub fn generate_multicall_calldata(
 //
 // Errors
 //
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum MulticallError {
     #[error("Invalid calldata: {0}")]
     InvalidCalldata(String),
@@ -86,14 +100,14 @@ impl MulticallError {
     }
 }
 
-impl From<GuiError> for JsValue {
-    fn from(value: GuiError) -> Self {
+impl From<MulticallError> for JsValue {
+    fn from(value: MulticallError) -> Self {
         JsError::new(&value.to_string()).into()
     }
 }
 
-impl From<GuiError> for WasmEncodedError {
-    fn from(value: GuiError) -> Self {
+impl From<MulticallError> for WasmEncodedError {
+    fn from(value: MulticallError) -> Self {
         WasmEncodedError {
             msg: value.to_string(),
             readable_msg: value.to_readable_msg(),
@@ -104,3 +118,108 @@ impl From<GuiError> for WasmEncodedError {
 //
 // Tests
 //
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn test_generate_multicall_calldata_success() {
+        // Test with valid calldata
+        let calldatas = vec![
+            "0x1234567890abcdef".to_string(),
+            "0xdeadbeef".to_string(),
+            "0x12345678".to_string(),
+        ];
+
+        let result = generate_multicall_calldata(calldatas);
+        assert!(result.is_ok());
+
+        let multicall_result = result.unwrap();
+        // Verify the result contains encoded multicall data
+        assert!(!multicall_result.0.is_empty());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_generate_multicall_calldata_single_call() {
+        // Test with single calldata
+        let calldatas = vec!["0x1234567890abcdef".to_string()];
+
+        let result = generate_multicall_calldata(calldatas);
+        assert!(result.is_ok());
+
+        let multicall_result = result.unwrap();
+        assert!(!multicall_result.0.is_empty());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_generate_multicall_calldata_empty_input() {
+        // Test with empty input
+        let calldatas: Vec<String> = vec![];
+
+        let result = generate_multicall_calldata(calldatas);
+        assert!(result.is_err());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_generate_multicall_calldata_invalid_hex() {
+        // Test with invalid hex string
+        let calldatas = vec!["0x1234567890abcdef".to_string(), "invalid_hex".to_string()];
+
+        let result = generate_multicall_calldata(calldatas);
+        assert!(result.is_err());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_generate_multicall_calldata_odd_length_hex() {
+        // Test with odd length hex string
+        let calldatas = vec![
+            "0x1234567890abcdef".to_string(),
+            "0xdeadbeef1".to_string(), // odd length
+        ];
+
+        let result = generate_multicall_calldata(calldatas);
+        assert!(result.is_err());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_generate_multicall_calldata_empty_string() {
+        // Test with empty string in calldata
+        let calldatas = vec!["0x1234567890abcdef".to_string(), "".to_string()];
+
+        let result = generate_multicall_calldata(calldatas);
+        assert!(result.is_err());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_generate_multicall_calldata_just_0x() {
+        // Test with just "0x"
+        let calldatas = vec!["0x1234567890abcdef".to_string(), "0x".to_string()];
+
+        let result = generate_multicall_calldata(calldatas);
+        assert!(result.is_err());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_generate_multicall_calldata_real_world_example() {
+        // Test with realistic calldata examples
+        let calldatas = vec![
+            // Example ERC20 transfer calldata
+            "0xa9059cbb000000000000000000000000742b6c4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e0000000000000000000000000000000000000000000000000de0b6b3a7640000".to_string(),
+            // Example approve calldata
+            "0x095ea7b3000000000000000000000000742b6c4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e0000000000000000000000000000000000000000000000000de0b6b3a7640000".to_string(),
+        ];
+
+        let result = generate_multicall_calldata(calldatas);
+        assert!(result.is_ok());
+
+        let multicall_result = result.unwrap();
+        assert!(!multicall_result.0.is_empty());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_multicall_error_to_readable_msg() {
+        let error = MulticallError::InvalidCalldata("test error".to_string());
+        assert_eq!(error.to_readable_msg(), "Invalid calldata: test error");
+    }
+}
