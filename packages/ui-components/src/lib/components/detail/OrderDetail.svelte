@@ -29,11 +29,13 @@
 		RaindexOrder,
 		RaindexVault,
 		type Address,
-		type Hex
+		type Hex,
+		type RaindexVaultType
 	} from '@rainlanguage/orderbook';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import { isAddress, isAddressEqual } from 'viem';
+	import type { VaultsGroupedByType } from '../../types/vaults';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -107,25 +109,15 @@
 		}
 	};
 
-	enum VaultType {
-		Output = 'output',
-		Input = 'input',
-		InputOutput = 'inputOutput'
-	}
-	type VaultsGroupedByType = {
-		[VaultType.Output]: RaindexVault[];
-		[VaultType.Input]: RaindexVault[];
-		[VaultType.InputOutput]: RaindexVault[];
-	};
-	const vaultTypes = [
-		{ key: 'Output vaults', type: VaultType.Output },
-		{ key: 'Input vaults', type: VaultType.Input },
-		{ key: 'Input & output vaults', type: VaultType.InputOutput }
+	const vaultTypes: { key: string; type: RaindexVaultType }[] = [
+		{ key: 'Output vaults', type: 'output' },
+		{ key: 'Input vaults', type: 'input' },
+		{ key: 'Input & output vaults', type: 'inputOutput' }
 	];
 	const getDefaultVaultsGroupedByType = (): VaultsGroupedByType => ({
-		[VaultType.Output]: [],
-		[VaultType.Input]: [],
-		[VaultType.InputOutput]: []
+		output: [],
+		input: [],
+		inputOutput: []
 	});
 
 	$: vaultsGroupedByTypes =
@@ -136,13 +128,13 @@
 			return acc;
 		}, getDefaultVaultsGroupedByType()) || getDefaultVaultsGroupedByType();
 
-	const getWithdrawAllLabel = (type: VaultType) => {
+	const getWithdrawAllLabel = (type: RaindexVaultType) => {
 		switch (type) {
-			case VaultType.Output:
+			case 'output':
 				return 'Withdraw outputs';
-			case VaultType.Input:
+			case 'input':
 				return 'Withdraw inputs';
-			case VaultType.InputOutput:
+			case 'inputOutput':
 				return 'Withdraw all';
 			default:
 				return 'Withdraw all vaults';
@@ -152,14 +144,14 @@
 	// It returns vaults of single group filtered by owner and non-zero balance
 	// It makes it possible to withdraw multiple vaults of the same type at once
 	// Even if some vaults of that type has zero balance
-	$: getVaultsGroupFiltered = (type: VaultType) => {
+	$: getVaultsGroupFiltered = (type: RaindexVaultType) => {
 		return vaultsGroupedByTypes[type].filter(
 			(vault) => matchesAddress($account, vault.owner) && vault.balance > 0n
 		);
 	};
 
 	// It checks does it make sense to display Withdraw button for the vault type
-	$: shouldShowWithdrawByType = (type: VaultType) => {
+	$: shouldShowWithdrawByType = (type: RaindexVaultType) => {
 		const filteredVaults = getVaultsGroupFiltered(type);
 		return filteredVaults.length > 1;
 	};
@@ -172,7 +164,7 @@
 		);
 		return (
 			filteredVaults.length > 1 &&
-			getVaultsGroupFiltered(VaultType.InputOutput).length !== filteredVaults.length
+			getVaultsGroupFiltered('inputOutput').length !== filteredVaults.length
 		);
 	};
 </script>
@@ -240,7 +232,7 @@
 							<div class="flex items-center justify-between gap-x-2">
 								<div>
 									{key}
-									{#if type === VaultType.InputOutput}
+									{#if type === 'inputOutput'}
 										<InfoCircleOutline class="inline h-4 w-4" />
 										<Tooltip class="z-10">
 											{'These vaults can be an input or an output for this order'}
