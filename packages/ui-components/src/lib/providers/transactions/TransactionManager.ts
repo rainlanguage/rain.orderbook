@@ -176,8 +176,8 @@ export class TransactionManager {
 	 * @param args - Configuration for the withdrawal transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.queryKey - The ID of the vault from which funds are withdrawn (used for query invalidation and UI links).
-	 * @param args.entity - The `SgVault` entity associated with this transaction.
+	 * @param args.queryKey - The query key to invalidate, but for multiple vaults withdrawal it's QKEY_VAULTS
+	 * @param args.vaults - The list of RaindexVault instances from which funds are withdrawn.
 	 * @returns A new Transaction instance configured for withdrawal.
 	 * @example
 	 * const tx = await manager.createWithdrawTransaction({
