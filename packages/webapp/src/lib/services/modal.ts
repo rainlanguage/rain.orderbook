@@ -22,9 +22,14 @@ export const handleWithdrawMultipleModal = (props: WithdrawMultipleModalProps) =
 	new WithdrawMultipleModal({ target: document.body, props });
 };
 
+export type TransactionConfirmationModalResult = {
+	success: boolean;
+	hash?: string;
+};
+
 export const handleTransactionConfirmationModal = (
 	props: TransactionConfirmationProps
-): Promise<{ success: boolean; hash?: string }> => {
+): Promise<TransactionConfirmationModalResult> => {
 	return new Promise((resolve) => {
 		const originalOnConfirm = props.args.onConfirm;
 		let modalResolved = false;

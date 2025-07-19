@@ -60,7 +60,7 @@
 	}
 
 	async function onWithdrawAll(raindexClient: RaindexClient, vaults: RaindexVault[]) {
-		await handleMultipleVaultsWithdraw({
+		return handleMultipleVaultsWithdraw({
 			raindexClient,
 			vaults,
 			handleWithdrawModal: handleWithdrawMultipleModal,

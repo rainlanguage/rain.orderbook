@@ -51,7 +51,8 @@
 		  ) => void)
 		| undefined = undefined;
 	export let onWithdrawMultiple:
-		| ((raindexClient: RaindexClient, vaults: RaindexVault[]) => void)
+		| ((raindexClient: RaindexClient, vaults: RaindexVault[]) => Promise<boolean>)
+		| undefined = undefined;
 
 	const { account, matchesAccount } = useAccount();
 	const raindexClient = useRaindexClient();
@@ -87,8 +88,10 @@
 
 	const handleWithdrawAll = async () => {
 		if (onWithdrawMultiple) {
-			await onWithdrawMultiple(raindexClient, selectedVaults);
-			selectedVaults = []; // Clear selection after withdrawal
+			const success = await onWithdrawMultiple(raindexClient, selectedVaults);
+			if (success) {
+				selectedVaults = []; // Clear selection after withdrawal
+			}
 		}
 	};
 
