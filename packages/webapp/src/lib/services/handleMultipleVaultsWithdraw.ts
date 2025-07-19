@@ -18,7 +18,9 @@ export interface MultipleVaultsWithdrawHandlerDependencies {
 	raindexClient: RaindexClient;
 	vaults: RaindexVault[];
 	handleWithdrawModal: (props: WithdrawMultipleModalProps) => void;
-	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => Promise<TransactionConfirmationModalResult>;
+	handleTransactionConfirmationModal: (
+		props: TransactionConfirmationProps
+	) => Promise<TransactionConfirmationModalResult>;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
 	account: Hex;
@@ -94,7 +96,7 @@ export async function handleMultipleVaultsWithdraw(
 									vaults,
 									txHash,
 									queryKey: QKEY_VAULTS, // Invalidate all vaults
-									chainId: vaults[0].chainId,
+									chainId: vaults[0].chainId
 								});
 							}
 						}
