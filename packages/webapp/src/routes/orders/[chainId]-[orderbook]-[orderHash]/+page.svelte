@@ -14,7 +14,7 @@
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
-	import { handleMultipleVaultsWithdraw } from '../../../lib/services/handleMultipleVaultsWithdraw';
+	import { handleMultipleVaultsWithdraw } from '$lib/services/handleMultipleVaultsWithdraw';
 
 	const { orderHash, chainId, orderbook } = $page.params;
 	const parsedOrderHash = orderHash as Hex;

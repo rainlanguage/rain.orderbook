@@ -19,7 +19,7 @@
 	import {
 		handleTransactionConfirmationModal,
 		handleWithdrawMultipleModal
-	} from '../../lib/services/modal';
+	} from '$lib/services/modal';
 	import type { Hex } from 'viem';
 
 	const { settings, accounts, activeAccountsItems, showInactiveOrders } = $page.data.stores;
