@@ -26,9 +26,19 @@
   import { queryClient } from '$lib/queries/queryClient';
 
   function onWithdrawMultiple(_raindexClient: RaindexClient, vaults: RaindexVault[]) {
-    handleWithdrawMultipleModal(vaults, () => {
-      // Invalidate all vault queries to refresh the data
-      invalidateTanstackQueries(queryClient, [QKEY_VAULTS]);
+    return new Promise((resolve) => {
+      handleWithdrawMultipleModal(
+        vaults,
+        () => {
+          // Invalidate all vault queries to refresh the data
+          invalidateTanstackQueries(queryClient, [QKEY_VAULTS]);
+          resolve(true);
+        },
+        () => {
+          // Handle cancel action if needed
+          resolve(false);
+        },
+      );
     });
   }
 </script>

@@ -12,6 +12,7 @@
   export let open = false;
   export let vaults: RaindexVault[];
   export let onWithdraw: () => void;
+  export let onCancel: () => void = () => {};
 
   let isSubmitting = false;
   let selectWallet = false;
@@ -21,6 +22,11 @@
     if (!isSubmitting) {
       selectWallet = false;
     }
+  }
+
+  function close() {
+    onCancel();
+    reset();
   }
 
   async function executeLedger() {
@@ -77,7 +83,7 @@
     bind:open
     outsideclose={!isSubmitting}
     size="sm"
-    on:close={reset}
+    on:close={close}
   >
     <div class="space-y-3">
       <div class="max-h-48 space-y-2 overflow-y-auto">
