@@ -34,8 +34,8 @@
 	} from '@rainlanguage/orderbook';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-	import { isAddress, isAddressEqual } from 'viem';
 	import type { VaultsGroupedByType } from '../../types/vaults';
+	import { isAddressEq } from '$lib/utils/account';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -83,15 +83,6 @@
 			return result.value;
 		}
 	});
-
-	const matchesAddress = (a?: Address | null, b?: Address | null) => {
-		try {
-			if (!a || !b) return false;
-			return isAddress(a) && isAddress(b) && isAddressEqual(a, b);
-		} catch {
-			return false;
-		}
-	};
 
 	const interval = setInterval(async () => {
 		await invalidateTanstackQueries(queryClient, [orderHash]);
@@ -146,7 +137,7 @@
 	// Even if some vaults of that type has zero balance
 	$: getVaultsGroupFiltered = (type: RaindexVaultType) => {
 		return vaultsGroupedByTypes[type].filter(
-			(vault) => matchesAddress($account, vault.owner) && vault.balance > 0n
+			(vault) => isAddressEq($account, vault.owner) && vault.balance > 0n
 		);
 	};
 
@@ -160,7 +151,7 @@
 		if (!$orderDetailQuery.data?.vaults) return false;
 		const { vaults } = $orderDetailQuery.data;
 		const filteredVaults = vaults.filter(
-			(vault) => matchesAddress($account, vault.owner) && vault.balance > 0n
+			(vault) => isAddressEq($account, vault.owner) && vault.balance > 0n
 		);
 		return (
 			filteredVaults.length > 1 &&
@@ -183,7 +174,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if matchesAddress($account, data.owner)}
+				{#if isAddressEq($account, data.owner)}
 					{#if data.active}
 						<Button
 							on:click={() => onRemove(raindexClient, data)}
@@ -258,7 +249,7 @@
 								{#each filteredVaults as vault}
 									<ButtonVaultLink tokenVault={vault} {chainId} {orderbookAddress}>
 										<svelte:fragment slot="buttons">
-											{#if matchesAddress($account, vault.owner)}
+											{#if isAddressEq($account, vault.owner)}
 												<div class="flex gap-1">
 													<Button
 														color="light"
