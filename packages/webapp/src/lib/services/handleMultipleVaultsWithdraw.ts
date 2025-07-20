@@ -69,7 +69,7 @@ export async function handleMultipleVaultsWithdraw(
 							const result = await vault.getWithdrawCalldata(vault.balance.toString());
 							if (result.error) {
 								throw new Error(
-									`Failed to get withdrawal calldata for vault ${vault.id}: ${result.error.readableMsg || 'Unknown error'}`
+									`Failed to get withdrawal calldata for vault ${vault.id}: ${result.error.readableMsg}`
 								);
 							}
 							return result.value;
@@ -78,7 +78,7 @@ export async function handleMultipleVaultsWithdraw(
 					const calldataResult = await generateMulticallCalldata(calldatas);
 					if (calldataResult.error) {
 						throw new Error(
-							`Failed to generate multicall calldata: ${calldataResult.error.readableMsg || 'Unknown error'}`
+							`Failed to generate multicall calldata: ${calldataResult.error.readableMsg}`
 						);
 					}
 					const calldata = calldataResult.value;
