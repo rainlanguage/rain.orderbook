@@ -275,13 +275,13 @@ impl DotrainRegistry {
         unchecked_return_type = "Map<string, NameAndDescriptionCfg>",
         return_description = "Map of order key to order metadata"
     )]
-    pub async fn get_all_order_details(
+    pub fn get_all_order_details(
         &self,
     ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, DotrainRegistryError> {
         let mut order_details = BTreeMap::new();
 
         for (order_key, dotrain) in &self.orders {
-            let strategy_details = DotrainOrderGui::get_strategy_details(dotrain.clone()).await?;
+            let strategy_details = DotrainOrderGui::get_strategy_details(dotrain.clone())?;
             order_details.insert(order_key.clone(), strategy_details);
         }
 
@@ -336,7 +336,7 @@ impl DotrainRegistry {
         unchecked_return_type = "Map<string, NameAndDescriptionCfg>",
         return_description = "Map of deployment key to deployment metadata"
     )]
-    pub async fn get_deployment_details(
+    pub fn get_deployment_details(
         &self,
         #[wasm_export(
             js_name = "orderKey",
@@ -348,7 +348,7 @@ impl DotrainRegistry {
             .orders
             .get(&order_key)
             .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
-        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain.clone()).await?;
+        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain.clone())?;
         Ok(deployment_details)
     }
 
@@ -539,11 +539,13 @@ auction-dca https://example.com/auction-dca.rain"#;
     const MOCK_SETTINGS_CONTENT: &str = r#"version: 2
 networks:
   flare:
-    rpc: https://rpc.ankr.com/flare
+    rpcs: 
+      - https://rpc.ankr.com/flare
     chain-id: 14
     currency: FLR
   base:
-    rpc: https://mainnet.base.org
+    rpcs: 
+      - https://mainnet.base.org
     chain-id: 8453
     currency: ETH
 subgraphs:
@@ -567,7 +569,15 @@ deployers:
     network: flare
   base:
     address: 0xC1A14cE2fd58A3A2f99deCb8eDd866204eE07f8D
-    network: base"#;
+    network: base
+tokens:
+  token1:
+    address: 0x4200000000000000000000000000000000000042
+    network: flare
+  token2:
+    address: 0x4200000000000000000000000000000000000042
+    network: base
+"#;
 
     const MOCK_DOTRAIN_PREFIX: &str = r#"gui:
   name: Test gui
@@ -581,9 +591,6 @@ deployers:
         - token: token1
           presets:
             - "0"
-        - token: token2
-          presets:
-            - "0"
       fields:
         - binding: test-binding
           name: Test binding
@@ -595,9 +602,6 @@ deployers:
       name: Base order name
       description: Base order description
       deposits:
-        - token: token1
-          presets:
-            - "0"
         - token: token2
           presets:
             - "0"
@@ -621,11 +625,11 @@ orders:
     inputs:
       - token: token1
     outputs:
-      - token: token2
+      - token: token1
   base:
     orderbook: base
     inputs:
-      - token: token1
+      - token: token2
     outputs:
       - token: token2
 deployments:
@@ -749,7 +753,7 @@ _ _: 1 1;
         }
 
         #[wasm_bindgen_test]
-        async fn test_get_all_order_details() {
+        fn test_get_all_order_details() {
             let registry = DotrainRegistry {
                 registry_url: "test".to_string(),
                 registry: "".to_string(),
@@ -775,7 +779,7 @@ _ _: 1 1;
                 .collect(),
             };
 
-            let result = registry.get_all_order_details().await;
+            let result = registry.get_all_order_details();
             wasm_bindgen_test::console_log!("Result: {:?}", result);
             assert!(result.is_ok());
 
@@ -790,7 +794,7 @@ _ _: 1 1;
         }
 
         #[wasm_bindgen_test]
-        async fn test_get_deployment_details() {
+        fn test_get_deployment_details() {
             let registry = DotrainRegistry {
                 registry_url: "test".to_string(),
                 registry: "".to_string(),
@@ -807,9 +811,7 @@ _ _: 1 1;
                     .collect(),
             };
 
-            let result = registry
-                .get_deployment_details("fixed-limit".to_string())
-                .await;
+            let result = registry.get_deployment_details("fixed-limit".to_string());
             assert!(result.is_ok());
 
             let deployment_details = result.unwrap();
@@ -827,7 +829,7 @@ _ _: 1 1;
         }
 
         #[wasm_bindgen_test]
-        async fn test_get_deployment_details_order_not_found() {
+        fn test_get_deployment_details_order_not_found() {
             let registry = DotrainRegistry {
                 registry_url: "test".to_string(),
                 registry: "".to_string(),
@@ -837,9 +839,7 @@ _ _: 1 1;
                 orders: HashMap::new(),
             };
 
-            let result = registry
-                .get_deployment_details("non-existent".to_string())
-                .await;
+            let result = registry.get_deployment_details("non-existent".to_string());
             assert!(result.is_err());
 
             match result.err().unwrap() {
@@ -1330,7 +1330,7 @@ _ _: 1 1;
                 .await
                 .unwrap();
 
-            let deployment_details1 = gui1.get_current_deployment_details().unwrap();
+            let deployment_details1 = gui1.get_current_deployment().unwrap();
             assert_eq!(deployment_details1.name, "Flare order name");
             assert_eq!(deployment_details1.description, "Flare order description");
 
@@ -1343,7 +1343,7 @@ _ _: 1 1;
                 .await
                 .unwrap();
 
-            let deployment_details2 = gui2.get_current_deployment_details().unwrap();
+            let deployment_details2 = gui2.get_current_deployment().unwrap();
             assert_eq!(deployment_details2.name, "Base order name");
             assert_eq!(deployment_details2.description, "Base order description");
 
