@@ -10,7 +10,9 @@ import {
 	SgTransaction,
 	SgAddOrderWithOrder,
 	SgRemoveOrderWithOrder,
-	Hex
+	Hex,
+	RaindexVault,
+	generateVaultsWithdrawalCalldatas
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
@@ -1911,6 +1913,35 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(typeof res.balance, 'bigint');
 			assert.equal(res.balance, BigInt(1000));
 			assert.equal(res.formattedBalance, '0.000000000000001');
+		});
+
+		it('should get a multicall withdraw calldata', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { vaults: [vault1] } }));
+			await mockServer
+				.forPost('/sg2')
+				.thenReply(200, JSON.stringify({ data: { vaults: [{...vault2, orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }}] } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vaults = extractWasmEncodedData(
+				await raindexClient.getVaults(
+					undefined,
+					{
+						owners: [],
+						hideZeroBalance: false
+					},
+					1
+				)
+			);
+
+			console.log('vaults', vaults);
+
+			const result = await raindexClient.testFunction(vaults);
+			console.log(result);
+			assert.ok(!result.error);
+			const result2 = await raindexClient.testFunction(vaults);
+			assert.ok(!result.error);
 		});
 	});
 

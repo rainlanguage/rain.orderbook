@@ -1104,6 +1104,22 @@ impl RaindexClient {
 
         Ok(tokens)
     }
+
+    #[wasm_export(
+        js_name = "testFunction",
+        return_description = "Test function for demonstration purposes",
+        unchecked_return_type = "Hex"
+    )]
+    pub fn test_function(
+        &self,
+        raindex_vault: Vec<RaindexVault>,
+    ) -> Result<Vec<Bytes>, RaindexError> {
+        let mut ids = Vec::new();
+        for vault in raindex_vault {
+            ids.push(vault.id().clone().into());
+        }
+        Ok(ids)
+    }
 }
 impl RaindexClient {
     pub async fn get_vault(
