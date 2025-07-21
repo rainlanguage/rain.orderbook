@@ -26,7 +26,7 @@
   import { queryClient } from '$lib/queries/queryClient';
 
   function onWithdrawMultiple(_raindexClient: RaindexClient, vaults: RaindexVault[]) {
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve) => {
       handleWithdrawMultipleModal(
         vaults,
         () => {

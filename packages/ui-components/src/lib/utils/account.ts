@@ -5,10 +5,10 @@ import { isAddress, isAddressEqual, type Address } from 'viem';
 // If either address is undefined or null, it returns false.
 // If both addresses are valid, it checks for equality using isAddressEqual.
 export const isAddressEq = (a?: Address | null, b?: Address | null) => {
-  try {
-    if (!a || !b) return false;
-    return isAddress(a) && isAddress(b) && isAddressEqual(a, b);
-  } catch {
-    return false;
-  }
+	try {
+		if (!a || !b) return false;
+		return isAddress(a) && isAddress(b) && isAddressEqual(a, b);
+	} catch {
+		return false;
+	}
 };

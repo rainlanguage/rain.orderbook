@@ -48,7 +48,11 @@ export const handleDebugTradeModal = (txHash: string, rpcUrls: string[]) => {
   new ModalTradeDebug({ target: document.body, props: { open: true, txHash, rpcUrls } });
 };
 
-export const handleWithdrawMultipleModal = (vaults: RaindexVault[], onWithdraw: () => void, onCancel?: () => void) => {
+export const handleWithdrawMultipleModal = (
+  vaults: RaindexVault[],
+  onWithdraw: () => void,
+  onCancel?: () => void,
+) => {
   new ModalMultipleVaultsWithdraw({
     target: document.body,
     props: {
