@@ -758,7 +758,7 @@ impl RaindexVaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultVolume {
-    id: Bytes,
+    id: U256,
     token: RaindexVaultToken,
     details: RaindexVaultVolumeDetails,
 }
@@ -766,8 +766,9 @@ pub struct RaindexVaultVolume {
 #[wasm_bindgen]
 impl RaindexVaultVolume {
     #[wasm_bindgen(getter)]
-    pub fn id(&self) -> String {
-        self.id.to_string()
+    pub fn id(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.id.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
     #[wasm_bindgen(getter)]
     pub fn token(&self) -> RaindexVaultToken {
@@ -780,8 +781,8 @@ impl RaindexVaultVolume {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultVolume {
-    pub fn id(&self) -> Bytes {
-        self.id.clone()
+    pub fn id(&self) -> U256 {
+        self.id
     }
     pub fn token(&self) -> RaindexVaultToken {
         self.token.clone()
@@ -801,7 +802,7 @@ impl RaindexVaultVolume {
             vault_volume.vol_details,
         )?;
         Ok(Self {
-            id: Bytes::from_str(&vault_volume.id)?,
+            id: U256::from_str(&vault_volume.id)?,
             token,
             details,
         })
