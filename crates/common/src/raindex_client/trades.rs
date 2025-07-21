@@ -678,11 +678,7 @@ mod test_helpers {
                 U256::from_str("1700000000").unwrap()
             );
 
-            assert!(trade1
-                .input_vault_balance_change()
-                .amount()
-                .eq(F1)
-                .unwrap());
+            assert!(trade1.input_vault_balance_change().amount().eq(F1).unwrap());
             assert!(trade1
                 .input_vault_balance_change()
                 .new_balance()
