@@ -113,8 +113,7 @@
 
 	$: vaultsGroupedByTypes =
 		$orderDetailQuery?.data?.vaults?.reduce((acc, vault) => {
-			const type = vault.vaultType || 'inputOutput';
-			if (!acc[type]) acc[type] = [];
+			const type: RaindexVaultType = vault.vaultType ?? 'inputOutput';
 			acc[type].push(vault);
 			return acc;
 		}, getDefaultVaultsGroupedByType()) || getDefaultVaultsGroupedByType();
