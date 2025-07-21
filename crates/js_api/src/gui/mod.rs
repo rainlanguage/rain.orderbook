@@ -153,11 +153,9 @@ impl DotrainOrderGui {
             param_description = "Key of the deployment to activate (must exist in YAML)"
         )]
         selected_deployment: String,
-        #[wasm_export(
-            param_description = "Optional JavaScript function called on state changes. \
+        #[wasm_export(param_description = "Optional function called on state changes. \
             After a state change (deposit, field value, vault id, select token, etc.), the callback is called with the new state. \
-            This is useful for auto-saving the state of the GUI across sessions."
-        )]
+            This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
