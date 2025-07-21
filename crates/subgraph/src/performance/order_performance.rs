@@ -182,7 +182,7 @@ impl OrderPerformance {
                     // this vault's timeframe to year ratio
                     let annual_rate = U256::from(apy_details.end_time - apy_details.start_time)
                         .saturating_mul(ONE18)
-                        .div_18(*YEAR18)
+                        .div_18(YEAR18
                         .map_err(PerformanceError::from)?;
 
                     // sum up all token vaults' capitals and vols by using the direct ratio between the tokens
@@ -710,8 +710,8 @@ mod test {
             apy_details: Some(APYDetails {
                 start_time: 1,
                 end_time: 10000001,
-                net_vol: *F5,
-                capital: *F5,
+                net_vol: F5,
+                capital: F5,
                 apy: Some(Float::parse("3.1536".to_string()).unwrap()),
                 is_neg: false,
             }),
@@ -864,8 +864,8 @@ mod test {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F5).as_hex()),
-                new_vault_balance: SgBytes((*F2).as_hex()),
+                amount: SgBytes(F5.as_hex()),
+                new_vault_balance: SgBytes(F2.as_hex()),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
@@ -884,8 +884,8 @@ mod test {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F5).as_hex()),
-                new_vault_balance: SgBytes((*F2).as_hex()),
+                amount: SgBytes(F5.as_hex()),
+                new_vault_balance: SgBytes(F2.as_hex()),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
@@ -923,8 +923,8 @@ mod test {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*NEG2).as_hex()),
-                new_vault_balance: SgBytes((*F5).as_hex()),
+                amount: SgBytes(NEG2.as_hex()),
+                new_vault_balance: SgBytes(F5.as_hex()),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
@@ -943,8 +943,8 @@ mod test {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F7).as_hex()),
-                new_vault_balance: SgBytes((*F5).as_hex()),
+                amount: SgBytes(F7.as_hex()),
+                new_vault_balance: SgBytes(F5.as_hex()),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),

@@ -118,7 +118,7 @@ mod tests {
     fn test_ratio_happy() {
         let result = get_trade().ratio().unwrap();
         assert!(
-            result.eq(*F0_5).unwrap(),
+            result.eq(F0_5).unwrap(),
             "unexpected result: {}",
             result.format().unwrap()
         );
@@ -170,7 +170,7 @@ mod tests {
         let input_trade_vault_balance_change = SgTradeVaultBalanceChange {
             id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: SgBytes((*F3).as_hex()),
+            amount: SgBytes(F3.as_hex()),
             new_vault_balance: SgBytes("".to_string()),
             old_vault_balance: SgBytes("".to_string()),
             vault: SgVaultBalanceChangeVault {
@@ -193,7 +193,7 @@ mod tests {
         let output_trade_vault_balance_change = SgTradeVaultBalanceChange {
             id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: SgBytes((*NEG6).as_hex()),
+            amount: SgBytes(NEG6.as_hex()),
             new_vault_balance: SgBytes("".to_string()),
             old_vault_balance: SgBytes("".to_string()),
             vault: SgVaultBalanceChangeVault {

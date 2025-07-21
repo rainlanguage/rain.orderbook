@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_edge_case_zero_balance() {
-        let balance_str = (*F0).as_hex();
+        let balance_str = F0.as_hex();
 
         let sg_vault = create_sg_vault(
             "vault_test_003",

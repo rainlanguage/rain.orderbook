@@ -86,9 +86,9 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("inputVBC001".to_string()),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F1).as_hex()),
-                new_vault_balance: SgBytes((*F5).as_hex()),
-                old_vault_balance: SgBytes((*F6).as_hex()),
+                amount: SgBytes(F1.as_hex()),
+                new_vault_balance: SgBytes(F5.as_hex()),
+                old_vault_balance: SgBytes(F6.as_hex()),
                 vault: SgVaultBalanceChangeVault {
                     id: SgBytes("inputVault001".to_string()),
                     vault_id: SgBytes("101".to_string()),
@@ -114,9 +114,9 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("outputVBC001".to_string()),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F2).as_hex()),
-                new_vault_balance: SgBytes((*F3).as_hex()),
-                old_vault_balance: SgBytes((*F4).as_hex()),
+                amount: SgBytes(F2.as_hex()),
+                new_vault_balance: SgBytes(F3.as_hex()),
+                old_vault_balance: SgBytes(F4.as_hex()),
                 vault: SgVaultBalanceChangeVault {
                     id: SgBytes("outputVault001".to_string()),
                     vault_id: SgBytes("202".to_string()),
@@ -213,8 +213,8 @@ mod tests {
     #[test]
     fn test_zero_amounts() {
         let mut trade_data = mock_sg_trade_default();
-        trade_data.input_vault_balance_change.amount = SgBytes((*F0).as_hex());
-        trade_data.output_vault_balance_change.amount = SgBytes((*F0).as_hex());
+        trade_data.input_vault_balance_change.amount = SgBytes(F0.as_hex());
+        trade_data.output_vault_balance_change.amount = SgBytes(F0.as_hex());
 
         let result = OrderTakeFlattened::try_from(trade_data.clone());
         assert!(result.is_ok());

@@ -175,7 +175,7 @@ mod tests {
           "id": "vault1",
           "owner": "0x0000000000000000000000000000000000000000",
           "vaultId": "0x10",
-          "balance": *F1,
+          "balance": F1,
           "token": {
             "id": "token1",
             "address": "0x0000000000000000000000000000000000000000",
@@ -196,7 +196,7 @@ mod tests {
             "id": "vault2",
             "owner": "0x0000000000000000000000000000000000000000",
             "vaultId": "0x20",
-            "balance": *F2,
+            "balance": F2,
             "token": {
                 "id": "token2",
                 "address": "0x0000000000000000000000000000000000000000",
@@ -345,9 +345,9 @@ vault2,0x0000000000000000000000000000000000000000,0x20,Token 2,TKN2,18,0x0000000
                     "vaultBalanceChanges": [
                         {
                             "__typename": "Deposit",
-                            "amount": *F5,
-                            "newVaultBalance": *F5,
-                            "oldVaultBalance": *F0,
+                            "amount": F5,
+                            "newVaultBalance": F5,
+                            "oldVaultBalance": F0,
                             "vault": {
                                 "id": "0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902",
                                 "vaultId": "1",

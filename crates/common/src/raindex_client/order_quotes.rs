@@ -279,9 +279,9 @@ mod tests {
             let res = order.get_quotes(None, None).await.unwrap();
             assert_eq!(res.len(), 1);
 
-            assert!(res[0].data.as_ref().unwrap().max_output.eq(*F1).unwrap());
+            assert!(res[0].data.as_ref().unwrap().max_output.eq(F1).unwrap());
 
-            assert!((res[0].data.as_ref().unwrap().ratio.eq(*F2)).unwrap());
+            assert!((res[0].data.as_ref().unwrap().ratio.eq(F2)).unwrap());
 
             assert!(res[0].success);
             assert_eq!(res[0].error, None);
@@ -291,13 +291,13 @@ mod tests {
 
             let res = res[0].clone();
             let data = res.data.unwrap();
-            assert!(data.max_output.eq(*F1).unwrap());
+            assert!(data.max_output.eq(F1).unwrap());
             assert_eq!(data.formatted_max_output, "1");
-            assert!(data.max_input.eq(*F2).unwrap());
+            assert!(data.max_input.eq(F2).unwrap());
             assert_eq!(data.formatted_max_input, "2");
-            assert!(data.ratio.eq(*F2).unwrap());
+            assert!(data.ratio.eq(F2).unwrap());
             assert_eq!(data.formatted_ratio, "2");
-            assert!(data.inverse_ratio.eq(*F0_5).unwrap());
+            assert!(data.inverse_ratio.eq(F0_5).unwrap());
             assert_eq!(data.formatted_inverse_ratio, "0.5");
             assert!(res.success);
             assert_eq!(res.error, None);

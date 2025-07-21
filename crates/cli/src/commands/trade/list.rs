@@ -194,7 +194,7 @@ mod tests {
                     },
                     "outputVaultBalanceChange": {
                         "id": encode_prefixed(B256::random()),
-                        "amount": *F0,
+                        "amount": F0,
                         "__typename": "Withdraw",
                         "vault": {
                             "id": encode_prefixed(B256::random()),
@@ -207,8 +207,8 @@ mod tests {
                                 "decimals": "6"
                             }
                         },
-                        "newVaultBalance": *F0,
-                        "oldVaultBalance": *F0,
+                        "newVaultBalance": F0,
+                        "oldVaultBalance": F0,
                         "timestamp": "0",
                         "transaction": {
                             "id": encode_prefixed(B256::random()),
@@ -222,7 +222,7 @@ mod tests {
                     },
                     "inputVaultBalanceChange": {
                         "id": encode_prefixed(B256::random()),
-                        "amount": *F0,
+                        "amount": F0,
                         "__typename": "Withdraw",
                         "vault": {
                             "id": encode_prefixed(B256::random()),
@@ -235,8 +235,8 @@ mod tests {
                                 "decimals": "18"
                             }
                         },
-                        "newVaultBalance": *F0,
-                        "oldVaultBalance": *F0,
+                        "newVaultBalance": F0,
+                        "oldVaultBalance": F0,
                         "timestamp": "0",
                         "transaction": {
                             "id": encode_prefixed(B256::random()),

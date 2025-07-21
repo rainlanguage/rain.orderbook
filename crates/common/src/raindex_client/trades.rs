@@ -313,7 +313,7 @@ mod test_helpers {
                       "symbol": "T1",
                       "decimals": "0"
                     },
-                    "balance": *F0,
+                    "balance": F0,
                     "vaultId": "0",
                     "owner": "0x0000000000000000000000000000000000000000",
                     "ordersAsOutput": [],
@@ -359,7 +359,7 @@ mod test_helpers {
                       "symbol": "T1",
                       "decimals": "0"
                     },
-                    "balance": *F0,
+                    "balance": F0,
                     "vaultId": "0",
                     "owner": "0x0000000000000000000000000000000000000000",
                     "ordersAsOutput": [],
@@ -406,9 +406,9 @@ mod test_helpers {
               "outputVaultBalanceChange": {
                 "id": "0x0123",
                 "__typename": "TradeVaultBalanceChange",
-                "amount": *NEG2,
-                "newVaultBalance": *F0,
-                "oldVaultBalance": *F0,
+                "amount": NEG2,
+                "newVaultBalance": F0,
+                "oldVaultBalance": F0,
                 "vault": {
                   "id": "0x0123",
                   "vaultId": "0x0123",
@@ -438,9 +438,9 @@ mod test_helpers {
               "inputVaultBalanceChange": {
                 "id": "0x0123",
                 "__typename": "TradeVaultBalanceChange",
-                "amount": *F1,
-                "newVaultBalance": *F0,
-                "oldVaultBalance": *F0,
+                "amount": F1,
+                "newVaultBalance": F0,
+                "oldVaultBalance": F0,
                 "vault": {
                   "id": "0x0123",
                   "vaultId": "0x0123",
@@ -486,9 +486,9 @@ mod test_helpers {
                 "outputVaultBalanceChange": {
                   "id": "0x0234",
                   "__typename": "TradeVaultBalanceChange",
-                  "amount": *NEG5,
-                  "newVaultBalance": *F0,
-                  "oldVaultBalance": *F0,
+                  "amount": NEG5,
+                  "newVaultBalance": F0,
+                  "oldVaultBalance": F0,
                   "vault": {
                     "id": "0x0234",
                     "vaultId": "0x0234",
@@ -518,9 +518,9 @@ mod test_helpers {
                 "inputVaultBalanceChange": {
                   "id": "0x0234",
                   "__typename": "TradeVaultBalanceChange",
-                  "amount": *F2,
-                  "newVaultBalance": *F0,
-                  "oldVaultBalance": *F0,
+                  "amount": F2,
+                  "newVaultBalance": F0,
+                  "oldVaultBalance": F0,
                   "vault": {
                     "id": "0x0234",
                     "vaultId": "0x0234",
@@ -617,17 +617,17 @@ mod test_helpers {
             assert!(trade1
                 .output_vault_balance_change()
                 .amount()
-                .eq(*NEG2)
+                .eq(NEG2)
                 .unwrap());
             assert!(trade1
                 .output_vault_balance_change()
                 .new_balance()
-                .eq(*F0)
+                .eq(F0)
                 .unwrap());
             assert!(trade1
                 .output_vault_balance_change()
                 .old_balance()
-                .eq(*F0)
+                .eq(F0)
                 .unwrap());
 
             assert_eq!(
@@ -681,17 +681,17 @@ mod test_helpers {
             assert!(trade1
                 .input_vault_balance_change()
                 .amount()
-                .eq(*F1)
+                .eq(F1)
                 .unwrap());
             assert!(trade1
                 .input_vault_balance_change()
                 .new_balance()
-                .eq(*F0)
+                .eq(F0)
                 .unwrap());
             assert!(trade1
                 .input_vault_balance_change()
                 .old_balance()
-                .eq(*F0)
+                .eq(F0)
                 .unwrap());
 
             assert_eq!(
@@ -803,17 +803,17 @@ mod test_helpers {
             assert!(trade
                 .output_vault_balance_change()
                 .amount()
-                .eq(*NEG2)
+                .eq(NEG2)
                 .unwrap());
             assert!(trade
                 .output_vault_balance_change()
                 .new_balance()
-                .eq(*F0)
+                .eq(F0)
                 .unwrap());
             assert!(trade
                 .output_vault_balance_change()
                 .old_balance()
-                .eq(*F0)
+                .eq(F0)
                 .unwrap());
 
             assert_eq!(
@@ -860,16 +860,16 @@ mod test_helpers {
                 U256::from_str("1700000000").unwrap()
             );
 
-            assert!(trade.input_vault_balance_change().amount().eq(*F1).unwrap());
+            assert!(trade.input_vault_balance_change().amount().eq(F1).unwrap());
             assert!(trade
                 .input_vault_balance_change()
                 .new_balance()
-                .eq(*F0)
+                .eq(F0)
                 .unwrap());
             assert!(trade
                 .input_vault_balance_change()
                 .old_balance()
-                .eq(*F0)
+                .eq(F0)
                 .unwrap());
 
             assert_eq!(

@@ -485,7 +485,7 @@ mod tests {
                     .fold(0, |acc, digit| acc * 10 + digit)
                     + 1000
             )),
-            balance: SgBytes((*F1).as_hex()),
+            balance: SgBytes(F1.as_hex()),
             token: sample_sg_erc20(id_suffix),
             orderbook: sample_sg_orderbook(id_suffix),
             orders_as_output: vec![],

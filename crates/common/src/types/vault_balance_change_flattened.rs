@@ -67,7 +67,7 @@ mod tests {
             amount: SgBytes(Float::parse(amount_val.to_string()).unwrap().as_hex()),
             __typename: typename_val.to_string(),
             new_vault_balance: SgBytes(Float::parse(new_balance_val.to_string()).unwrap().as_hex()),
-            old_vault_balance: SgBytes((*F0).as_hex()),
+            old_vault_balance: SgBytes(F0.as_hex()),
             vault: SgVaultBalanceChangeVault {
                 id: SgBytes("0xvaultid".to_string()),
                 vault_id: SgBytes("1".to_string()),

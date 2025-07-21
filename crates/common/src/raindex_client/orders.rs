@@ -747,7 +747,7 @@ mod tests {
                       "symbol": "T1",
                       "decimals": "0"
                     },
-                    "balance": *F0,
+                    "balance": F0,
                     "vaultId": "0",
                     "owner": "0x0000000000000000000000000000000000000000",
                     "ordersAsOutput": [],
@@ -793,7 +793,7 @@ mod tests {
                       "symbol": "T1",
                       "decimals": "0"
                     },
-                    "balance": *F0,
+                    "balance": F0,
                     "vaultId": "0",
                     "owner": "0x0000000000000000000000000000000000000000",
                     "ordersAsOutput": [],
@@ -863,7 +863,7 @@ mod tests {
                         symbol: Some("T1".to_string()),
                         decimals: Some(SgBigInt("0".to_string())),
                     },
-                    balance: SgBytes((*F0).as_hex()),
+                    balance: SgBytes(F0.as_hex()),
                     vault_id: SgBytes("0".to_string()),
                     owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     orders_as_output: vec![],
@@ -905,7 +905,7 @@ mod tests {
                         symbol: Some("T1".to_string()),
                         decimals: Some(SgBigInt("0".to_string())),
                     },
-                    balance: SgBytes((*F0).as_hex()),
+                    balance: SgBytes(F0.as_hex()),
                     vault_id: SgBytes("0".to_string()),
                     owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     orders_as_output: vec![],
@@ -968,7 +968,7 @@ mod tests {
                                 "symbol": "T1",
                                 "decimals": "0"
                               },
-                              "balance": *F0,
+                              "balance": F0,
                               "vaultId": "0",
                               "owner": "0x0000000000000000000000000000000000000000",
                               "ordersAsOutput": [],
@@ -989,7 +989,7 @@ mod tests {
                                 "symbol": "T2",
                                 "decimals": "0"
                               },
-                              "balance": *F0,
+                              "balance": F0,
                               "vaultId": "0",
                               "owner": "0x0000000000000000000000000000000000000000",
                               "ordersAsOutput": [],

@@ -258,7 +258,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*NEG2).as_hex()),
+                amount: SgBytes(NEG2.as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -278,7 +278,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F5).as_hex()),
+                amount: SgBytes(F5.as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -317,7 +317,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*NEG7).as_hex()),
+                amount: SgBytes(NEG7.as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -337,7 +337,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F3).as_hex()),
+                amount: SgBytes(F3.as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -362,20 +362,20 @@ mod tests {
                 id: vault_id2.to_string(),
                 token: token2,
                 vol_details: VolumeDetails {
-                    total_in: *F5,
-                    total_out: *F7,
-                    total_vol: *F12,
-                    net_vol: *F2,
+                    total_in: F5,
+                    total_out: F7,
+                    total_vol: F12,
+                    net_vol: F2,
                 },
             },
             VaultVolume {
                 id: vault_id1.to_string(),
                 token: token1,
                 vol_details: VolumeDetails {
-                    total_in: *F3,
-                    total_out: *F2,
-                    total_vol: *F5,
-                    net_vol: *F1,
+                    total_in: F3,
+                    total_out: F2,
+                    total_vol: F5,
+                    net_vol: F1,
                 },
             },
         ];
@@ -475,7 +475,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*NEG1).as_hex()),
+                amount: SgBytes(NEG1.as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -495,7 +495,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*FMAX).as_hex()),
+                amount: SgBytes(FMAX.as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -534,7 +534,7 @@ mod tests {
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F1).as_hex()),
+                amount: SgBytes(F1.as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -554,7 +554,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: SgBytes((*F1).as_hex()),
+                amount: SgBytes(F1.as_hex()),
                 new_vault_balance: bytes.clone(),
                 old_vault_balance: bytes.clone(),
                 vault: SgVaultBalanceChangeVault {
@@ -584,42 +584,42 @@ mod tests {
     #[test]
     fn test_update_volume_details() {
         let mut vol_details = VolumeDetails {
-            total_in: *F1,
-            total_out: *F5,
-            total_vol: *F15,
-            net_vol: *F5,
+            total_in: F1,
+            total_out: F5,
+            total_vol: F15,
+            net_vol: F5,
         };
 
         // Test positive amount
         update_volume_details(&mut vol_details, "20").unwrap();
-        assert!(vol_details.total_in.eq(*F30).unwrap());
-        assert!(vol_details.total_out.eq(*F5).unwrap());
-        assert!(vol_details.total_vol.eq(*F35).unwrap());
-        assert!(vol_details.net_vol.eq(*F25).unwrap());
+        assert!(vol_details.total_in.eq(F30.unwrap());
+        assert!(vol_details.total_out.eq(F5.unwrap());
+        assert!(vol_details.total_vol.eq(F35.unwrap());
+        assert!(vol_details.net_vol.eq(F25.unwrap());
 
         // Test negative amount
         update_volume_details(&mut vol_details, "-15").unwrap();
-        assert!(vol_details.total_in.eq(*F30).unwrap());
-        assert!(vol_details.total_out.eq(*F20).unwrap());
-        assert!(vol_details.total_vol.eq(*F50).unwrap());
-        assert!(vol_details.net_vol.eq(*F10).unwrap());
+        assert!(vol_details.total_in.eq(F30.unwrap());
+        assert!(vol_details.total_out.eq(F20.unwrap());
+        assert!(vol_details.total_vol.eq(F50.unwrap());
+        assert!(vol_details.net_vol.eq(F10.unwrap());
     }
 
     #[test]
     fn test_create_volume_details() {
         // Test positive amount
         let vol_details = create_volume_details("20").unwrap();
-        assert!(vol_details.total_in.eq(*F20).unwrap());
-        assert!(vol_details.total_out.eq(*F0).unwrap());
-        assert!(vol_details.total_vol.eq(*F20).unwrap());
-        assert!(vol_details.net_vol.eq(*F20).unwrap());
+        assert!(vol_details.total_in.eq(F20.unwrap());
+        assert!(vol_details.total_out.eq(F0.unwrap());
+        assert!(vol_details.total_vol.eq(F20.unwrap());
+        assert!(vol_details.net_vol.eq(F20.unwrap());
 
         // Test negative amount
         let vol_details = create_volume_details("-15").unwrap();
-        assert!(vol_details.total_in.eq(*F0).unwrap());
-        assert!(vol_details.total_out.eq(*F15).unwrap());
-        assert!(vol_details.total_vol.eq(*F15).unwrap());
-        assert!(vol_details.net_vol.eq(*F15).unwrap());
+        assert!(vol_details.total_in.eq(F0.unwrap());
+        assert!(vol_details.total_out.eq(F15.unwrap());
+        assert!(vol_details.total_vol.eq(F15.unwrap());
+        assert!(vol_details.net_vol.eq(F15.unwrap());
 
         // Test invalid amount
         let err = create_volume_details("bad int").unwrap_err();
@@ -641,13 +641,13 @@ mod tests {
         process_vault_balance_change(&mut vaults_vol, "vault1", &token, "20").unwrap();
         assert_eq!(vaults_vol.len(), 1);
         assert_eq!(vaults_vol[0].id, "vault1");
-        assert!(vaults_vol[0].vol_details.total_in.eq(*F20).unwrap());
+        assert!(vaults_vol[0].vol_details.total_in.eq(F20.unwrap());
 
         // Test existing vault
         process_vault_balance_change(&mut vaults_vol, "vault1", &token, "-10").unwrap();
         assert_eq!(vaults_vol.len(), 1);
-        assert!(vaults_vol[0].vol_details.total_in.eq(*F20).unwrap());
-        assert!(vaults_vol[0].vol_details.total_out.eq(*F10).unwrap());
+        assert!(vaults_vol[0].vol_details.total_in.eq(F20.unwrap());
+        assert!(vaults_vol[0].vol_details.total_out.eq(F10.unwrap());
     }
 
     #[test]

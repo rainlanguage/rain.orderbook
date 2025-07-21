@@ -107,7 +107,7 @@ mod tests {
                 id: SgBytes("input_vault_id_order".to_string()),
                 owner: SgBytes("0xowner_default_order".to_string()),
                 vault_id: SgBytes("input_vault_sg_id_order".to_string()),
-                balance: SgBytes((*F1000).as_hex()),
+                balance: SgBytes(F1000.as_hex()),
                 token: default_sg_erc20("input_order"),
                 orderbook: SgOrderbook {
                     id: SgBytes("0xorderbook_default_order".to_string()),
@@ -120,7 +120,7 @@ mod tests {
                 id: SgBytes("output_vault_id_order".to_string()),
                 owner: SgBytes("0xowner_default_order".to_string()),
                 vault_id: SgBytes("output_vault_sg_id_order".to_string()),
-                balance: SgBytes((*F0).as_hex()),
+                balance: SgBytes(F0.as_hex()),
                 token: default_sg_erc20("output_order"),
                 orderbook: SgOrderbook {
                     id: SgBytes("0xorderbook_default_order".to_string()),

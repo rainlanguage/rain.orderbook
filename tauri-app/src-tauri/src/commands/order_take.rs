@@ -53,9 +53,9 @@ mod tests {
             "outputVaultBalanceChange": {
               "id": "ovbc1",
               "__typename": "TradeVaultBalanceChange",
-              "amount": *NEG2,
-              "newVaultBalance": *F0,
-              "oldVaultBalance": *F0,
+              "amount": NEG2,
+              "newVaultBalance": F0,
+              "oldVaultBalance": F0,
               "vault": {
                 "id": "vault1",
                 "vaultId": "1",
@@ -85,9 +85,9 @@ mod tests {
             "inputVaultBalanceChange": {
               "id": "ivbc1",
               "__typename": "TradeVaultBalanceChange",
-              "amount": *F1,
-              "newVaultBalance": *F0,
-              "oldVaultBalance": *F0,
+              "amount": F1,
+              "newVaultBalance": F0,
+              "oldVaultBalance": F0,
               "vault": {
                 "id": "vault1",
                 "vaultId": "1",
@@ -129,9 +129,9 @@ mod tests {
             "outputVaultBalanceChange": {
               "id": "ovbc2",
               "__typename": "TradeVaultBalanceChange",
-              "amount": *NEG0_5,
-              "newVaultBalance": *F0,
-              "oldVaultBalance": *F0,
+              "amount": NEG0_5,
+              "newVaultBalance": F0,
+              "oldVaultBalance": F0,
               "vault": {
                 "id": "vault2",
                 "vaultId": "2",
@@ -161,9 +161,9 @@ mod tests {
             "inputVaultBalanceChange": {
               "id": "ivbc2",
               "__typename": "TradeVaultBalanceChange",
-              "amount": *F2,
-              "newVaultBalance": *F0,
-              "oldVaultBalance": *F0,
+              "amount": F2,
+              "newVaultBalance": F0,
+              "oldVaultBalance": F0,
               "vault": {
                 "id": "vault2",
                 "vaultId": "2",

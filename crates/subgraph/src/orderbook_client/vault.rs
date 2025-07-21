@@ -179,7 +179,7 @@ mod tests {
             id: SgBytes("0xVaultIdDefault".to_string()),
             owner: SgBytes("0xOwnerAddressDefault".to_string()),
             vault_id: SgBytes("1234567890".to_string()),
-            balance: SgBytes((*F1).as_hex()),
+            balance: SgBytes(F1.as_hex()),
             token: default_sg_erc20(),
             orderbook: default_sg_orderbook(),
             orders_as_output: vec![default_sg_order_as_io()],
@@ -267,9 +267,9 @@ mod tests {
     fn default_sg_vault_balance_change_unwrapped() -> SgVaultBalanceChangeUnwrapped {
         SgVaultBalanceChangeUnwrapped {
             __typename: "Deposit".to_string(),
-            amount: SgBytes((*F0_5).as_hex()),
-            new_vault_balance: SgBytes((*F1_5).as_hex()),
-            old_vault_balance: SgBytes((*F1).as_hex()),
+            amount: SgBytes(F0_5.as_hex()),
+            new_vault_balance: SgBytes(F1_5.as_hex()),
+            old_vault_balance: SgBytes(F1.as_hex()),
             vault: default_sg_vault_balance_change_vault_ref(),
             timestamp: SgBigInt("1700000100".to_string()),
             transaction: default_sg_transaction(),

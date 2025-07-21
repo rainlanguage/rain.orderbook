@@ -6917,7 +6917,6 @@ dependencies = [
  "futures",
  "httpmock",
  "insta",
- "lazy_static",
  "once_cell",
  "rain-math-float",
  "rain_orderbook_bindings",

@@ -1309,7 +1309,7 @@ mod tests {
               "id": "0x0123",
               "owner": "0x0000000000000000000000000000000000000000",
               "vaultId": "0x0123",
-              "balance": *F1,
+              "balance": F1,
               "token": {
                 "id": "token1",
                 "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -1331,7 +1331,7 @@ mod tests {
                 "id": "0x0234",
                 "owner": "0x0000000000000000000000000000000000000000",
                 "vaultId": "0x0234",
-                "balance": *F2,
+                "balance": F2,
                 "token": {
                     "id": "token2",
                     "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -1391,7 +1391,7 @@ mod tests {
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(vault1.vault_id, U256::from_str("0x0123").unwrap());
-            assert!(vault1.balance.eq(*F1).unwrap());
+            assert!(vault1.balance.eq(F1).unwrap());
             assert_eq!(vault1.formatted_balance, "1");
             assert_eq!(vault1.token.id, "token1");
             assert_eq!(
@@ -1407,7 +1407,7 @@ mod tests {
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(vault2.vault_id, U256::from_str("0x0234").unwrap());
-            assert!(vault2.balance.eq(*F2).unwrap());
+            assert!(vault2.balance.eq(F2).unwrap());
             assert_eq!(vault2.formatted_balance, "2");
             assert_eq!(vault2.token.id, "token2");
             assert_eq!(
@@ -1458,7 +1458,7 @@ mod tests {
             assert_eq!(vault.vault_id, U256::from_str("0x0123").unwrap());
 
             assert!(
-                vault.balance.eq(*F1).unwrap(),
+                vault.balance.eq(F1).unwrap(),
                 "unexpected balance: {}",
                 vault.balance.format().unwrap()
             );
@@ -1553,9 +1553,9 @@ mod tests {
                         "vaultBalanceChanges": [
                             {
                                 "__typename": "Deposit",
-                                "amount": *F5,
-                                "newVaultBalance": *F5,
-                                "oldVaultBalance": *F0,
+                                "amount": F5,
+                                "newVaultBalance": F5,
+                                "oldVaultBalance": F0,
                                 "vault": {
                                     "id": "0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902",
                                     "vaultId": "1",
@@ -1633,11 +1633,11 @@ mod tests {
             assert_eq!(result[0].token.name, Some("Wrapped Flare".to_string()));
             assert_eq!(result[0].token.symbol, Some("WFLR".to_string()));
             assert_eq!(result[0].token.decimals, 18);
-            assert!(result[0].amount.eq(*F5).unwrap());
+            assert!(result[0].amount.eq(F5).unwrap());
             assert_eq!(result[0].formatted_amount, "5");
-            assert!(result[0].new_balance.eq(*F5).unwrap());
+            assert!(result[0].new_balance.eq(F5).unwrap());
             assert_eq!(result[0].formatted_new_balance, "5");
-            assert!(result[0].old_balance.eq(*F0).unwrap());
+            assert!(result[0].old_balance.eq(F0).unwrap());
             assert_eq!(result[0].formatted_old_balance, "0");
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
@@ -1665,7 +1665,7 @@ mod tests {
                 "id": "0x0456",
                 "owner": "0x0000000000000000000000000000000000000000",
                 "vaultId": "0x30",
-                "balance": *F1_5,
+                "balance": F1_5,
                 "token": {
                     "id": "token_usdc",
                     "address": "0xa0b86a33e6c3a0e4e8c7b6c6b0c2f6a3b7e8d9e0",
@@ -1712,7 +1712,7 @@ mod tests {
                 .unwrap();
 
             assert_eq!(vault.formatted_balance, "1.5");
-            assert!(vault.balance.eq(*F1_5).unwrap());
+            assert!(vault.balance.eq(F1_5).unwrap());
         }
 
         #[tokio::test]
@@ -1727,9 +1727,9 @@ mod tests {
                         "vaultBalanceChanges": [
                             {
                                 "__typename": "Withdrawal",
-                                "amount": *NEG2,
-                                "newVaultBalance": *F3,
-                                "oldVaultBalance": *F5,
+                                "amount": NEG2,
+                                "newVaultBalance": F3,
+                                "oldVaultBalance": F5,
                                 "vault": {
                                     "id": "0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902",
                                     "vaultId": "1",
@@ -1796,13 +1796,13 @@ mod tests {
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].r#type, RaindexVaultBalanceChangeType::Withdrawal);
 
-            assert!(result[0].amount.eq(*NEG2).unwrap());
+            assert!(result[0].amount.eq(NEG2).unwrap());
             assert_eq!(result[0].formatted_amount, "-2");
 
-            assert!(result[0].old_balance.eq(*F5).unwrap());
+            assert!(result[0].old_balance.eq(F5).unwrap());
             assert_eq!(result[0].formatted_old_balance, "5");
 
-            assert!(result[0].new_balance.eq(*F3).unwrap());
+            assert!(result[0].new_balance.eq(F3).unwrap());
             assert_eq!(result[0].formatted_new_balance, "3");
         }
 

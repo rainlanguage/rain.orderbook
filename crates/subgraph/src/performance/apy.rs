@@ -127,7 +127,7 @@ pub fn get_vaults_apy(
         let apy = if !starting_capital.is_zero() {
             match U256::from(end - start)
                 .saturating_mul(ONE18)
-                .div_18(*YEAR18)
+                .div_18(YEAR18
             {
                 Err(_) => None,
                 Ok(annual_rate_18) => vol
