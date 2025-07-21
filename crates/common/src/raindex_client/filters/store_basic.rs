@@ -22,10 +22,10 @@ impl BasicFilterStore {
 }
 
 impl FilterStore for BasicFilterStore {
-    fn set_vaults_filters(&mut self, filters: GetVaultsFilters) {
+    fn set_vaults(&mut self, filters: GetVaultsFilters) {
         self.vaults = filters;
     }
-    fn update_vaults_filters<F>(&mut self, update_fn: F)
+    fn update_vaults<F>(&mut self, update_fn: F)
     where
         F: FnOnce(VaultsFilterBuilder) -> VaultsFilterBuilder,
     {
@@ -38,7 +38,7 @@ impl FilterStore for BasicFilterStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raindex_client::filters::traits::{Filter, FilterStore};
+    use crate::raindex_client::filters::traits::FilterStore;
     use alloy::primitives::Address;
     use std::str::FromStr;
 
@@ -59,7 +59,7 @@ mod tests {
     }
 
     #[test]
-    fn test_set_vaults_filters() {
+    fn test_set_vaults() {
         let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
         let token1 = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
 
@@ -70,7 +70,7 @@ mod tests {
             tokens: Some(vec![token1]),
         };
 
-        store.set_vaults_filters(filters.clone());
+        store.set_vaults(filters.clone());
 
         assert_eq!(store.vaults.owners, filters.owners);
         assert_eq!(store.vaults.hide_zero_balance, filters.hide_zero_balance);
@@ -78,15 +78,13 @@ mod tests {
     }
 
     #[test]
-    fn test_update_vaults_filters_basic() {
+    fn test_update_vaults_basic() {
         let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
 
         let mut store = BasicFilterStore::new();
 
         // Update Stored value using closure
-        store.update_vaults_filters(|builder| {
-            builder.set_owners(vec![owner1]).set_hide_zero_balance(true)
-        });
+        store.update_vaults(|builder| builder.set_owners(vec![owner1]).set_hide_zero_balance(true));
 
         assert_eq!(store.vaults.owners.len(), 1);
         assert_eq!(store.vaults.owners[0], owner1);
@@ -95,7 +93,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_vaults_filters_with_existing_state() {
+    fn test_update_vaults_with_existing_state() {
         let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
         let owner2 = Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap();
         let token1 = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
@@ -103,16 +101,14 @@ mod tests {
         let mut store = BasicFilterStore::new();
 
         // Set initial filters (loaded from URL params / localStorage / etc)
-        store.set_vaults_filters(GetVaultsFilters {
+        store.set_vaults(GetVaultsFilters {
             owners: vec![owner1],
             hide_zero_balance: false,
             tokens: Some(vec![token1]),
         });
 
         // Then changing only part of the state
-        store.update_vaults_filters(|builder| {
-            builder.set_owners(vec![owner2]).set_hide_zero_balance(true)
-        });
+        store.update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true));
 
         assert_eq!(store.vaults.owners.len(), 1);
         assert_eq!(store.vaults.owners[0], owner2);
@@ -135,11 +131,9 @@ mod tests {
             hide_zero_balance: false,
             tokens: None,
         };
-        store.set_vaults_filters(original_filters.clone());
+        store.set_vaults(original_filters.clone());
         let filters_before_update = store.vaults.clone();
-        store.update_vaults_filters(|builder| {
-            builder.set_owners(vec![owner2]).set_hide_zero_balance(true)
-        });
+        store.update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true));
 
         // Check that original filters are not modified
         assert_eq!(original_filters.owners.len(), 1);
@@ -167,15 +161,13 @@ mod tests {
 
         let mut store = BasicFilterStore::new();
 
-        store.update_vaults_filters(|builder| builder.set_owners(vec![owner1]));
+        store.update_vaults(|builder| builder.set_owners(vec![owner1]));
         let state_after_first_update = store.vaults.clone();
 
-        store.update_vaults_filters(|builder| {
-            builder.set_owners(vec![owner2]).set_hide_zero_balance(true)
-        });
+        store.update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true));
         let state_after_second_update = store.vaults.clone();
 
-        store.update_vaults_filters(|builder| {
+        store.update_vaults(|builder| {
             builder
                 .set_owners(vec![owner3])
                 .set_hide_zero_balance(false)
@@ -197,41 +189,13 @@ mod tests {
     }
 
     #[test]
-    fn test_url_params_integration() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-        let token1 = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
-
-        let mut store = BasicFilterStore::new();
-
-        store.update_vaults_filters(|builder| {
-            builder
-                .set_owners(vec![owner1])
-                .set_hide_zero_balance(true)
-                .set_tokens(Some(vec![token1]))
-        });
-
-        let url_params = store.vaults.to_url_params();
-        assert!(url_params.contains(&format!("owner={}", owner1)));
-        assert!(url_params.contains("hideZeroBalance=true"));
-        assert!(url_params.contains(&format!("token[]={}", token1)));
-
-        let restored_filters = GetVaultsFilters::from_url_params(url_params).unwrap();
-        assert_eq!(store.vaults.owners, restored_filters.owners);
-        assert_eq!(
-            store.vaults.hide_zero_balance,
-            restored_filters.hide_zero_balance
-        );
-        assert_eq!(store.vaults.tokens, restored_filters.tokens);
-    }
-
-    #[test]
     fn test_serialization_integration() {
         let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
         let token1 = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
 
         let mut store = BasicFilterStore::new();
 
-        store.update_vaults_filters(|builder| {
+        store.update_vaults(|builder| {
             builder
                 .set_owners(vec![owner1])
                 .set_hide_zero_balance(true)
@@ -262,15 +226,15 @@ mod tests {
             tokens: None,
         };
 
-        // Test set_vaults_filters
-        FilterStore::set_vaults_filters(&mut store, filters.clone());
+        // Test set_vaults
+        FilterStore::set_vaults(&mut store, filters.clone());
         assert_eq!(store.vaults.owners, filters.owners);
         assert_eq!(store.vaults.hide_zero_balance, filters.hide_zero_balance);
         assert_eq!(store.vaults.tokens, filters.tokens);
 
-        // Test update_vaults_filters
+        // Test update_vaults
         let owner2 = Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap();
-        FilterStore::update_vaults_filters(&mut store, |builder| builder.set_owners(vec![owner2]));
+        FilterStore::update_vaults(&mut store, |builder| builder.set_owners(vec![owner2]));
         assert_eq!(store.vaults.owners.len(), 1);
         assert_eq!(store.vaults.owners[0], owner2);
         assert!(store.vaults.hide_zero_balance); // should be preserved
@@ -281,16 +245,15 @@ mod tests {
         let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
 
         let mut store1 = BasicFilterStore::new();
-        store1.update_vaults_filters(|builder| {
-            builder.set_owners(vec![owner1]).set_hide_zero_balance(true)
-        });
+        store1
+            .update_vaults(|builder| builder.set_owners(vec![owner1]).set_hide_zero_balance(true));
 
         // Clone store
         let mut store2 = store1.clone();
 
         // Modify clone
         let owner2 = Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap();
-        store2.update_vaults_filters(|builder| {
+        store2.update_vaults(|builder| {
             builder
                 .set_owners(vec![owner2])
                 .set_hide_zero_balance(false)
