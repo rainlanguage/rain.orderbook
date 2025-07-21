@@ -1,9 +1,18 @@
 import { isAddress, isAddressEqual, type Address } from 'viem';
 
-// This function checks if two addresses are equal, handling undefined and null cases.
-// It uses the viem library to ensure the addresses are valid before comparison.
-// If either address is undefined or null, it returns false.
-// If both addresses are valid, it checks for equality using isAddressEqual.
+/**
+ * Safely compares two Ethereum addresses for equality.
+ *
+ * @param a - First address to compare
+ * @param b - Second address to compare
+ * @returns true if both addresses are valid and equal, false otherwise
+ *
+ * Returns false if:
+ * - Either address is null/undefined
+ * - Either address is invalid
+ * - Addresses are valid but not equal
+ * - Any error occurs during comparison
+ */
 export const isAddressEq = (a?: Address | null, b?: Address | null) => {
 	try {
 		if (!a || !b) return false;
