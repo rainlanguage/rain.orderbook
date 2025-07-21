@@ -1,13 +1,14 @@
 import {
-  AddOrderV2,
-  AfterClear,
-  ClearV2,
-  Deposit,
+  AddOrderV3,
+  AfterClearV2,
+  ClearV3,
+  DepositV2,
   MetaV1_2,
-  RemoveOrderV2,
-  TakeOrderV2,
+  RemoveOrderV3,
+  TakeOrderV3,
 } from "../generated/OrderBook/OrderBook";
-import { Withdraw } from "../generated/OrderBook/OrderBook";
+import { WithdrawV2 } from "../generated/OrderBook/OrderBook";
+import { log } from "@graphprotocol/graph-ts";
 import { handleDeposit as _handleDeposit } from "./deposit";
 import { handleWithdraw as _handleWithdraw } from "./withdraw";
 import {
@@ -23,31 +24,31 @@ import {
 import { createTransactionEntity } from "./transaction";
 import { createOrderbookEntity } from "./orderbook";
 
-export function handleDeposit(event: Deposit): void {
+export function handleDeposit(event: DepositV2): void {
   createTransactionEntity(event);
   createOrderbookEntity(event);
   _handleDeposit(event);
 }
 
-export function handleWithdraw(event: Withdraw): void {
+export function handleWithdraw(event: WithdrawV2): void {
   createTransactionEntity(event);
   createOrderbookEntity(event);
   _handleWithdraw(event);
 }
 
-export function handleAddOrder(event: AddOrderV2): void {
+export function handleAddOrder(event: AddOrderV3): void {
   createTransactionEntity(event);
   createOrderbookEntity(event);
   _handleAddOrder(event);
 }
 
-export function handleRemoveOrder(event: RemoveOrderV2): void {
+export function handleRemoveOrder(event: RemoveOrderV3): void {
   createTransactionEntity(event);
   createOrderbookEntity(event);
   _handleRemoveOrder(event);
 }
 
-export function handleTakeOrder(event: TakeOrderV2): void {
+export function handleTakeOrder(event: TakeOrderV3): void {
   createTransactionEntity(event);
   createOrderbookEntity(event);
   _handleTakeOrder(event);
@@ -59,13 +60,13 @@ export function handleMeta(event: MetaV1_2): void {
   _handleMeta(event);
 }
 
-export function handleClear(event: ClearV2): void {
+export function handleClear(event: ClearV3): void {
   createTransactionEntity(event);
   createOrderbookEntity(event);
   _handleClear(event);
 }
 
-export function handleAfterClear(event: AfterClear): void {
+export function handleAfterClear(event: AfterClearV2): void {
   createTransactionEntity(event);
   createOrderbookEntity(event);
   _handleAfterClear(event);
