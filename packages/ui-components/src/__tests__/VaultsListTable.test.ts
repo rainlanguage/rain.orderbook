@@ -19,6 +19,19 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: () => ({
+		getUniqueChainIds: vi.fn(() => ({
+			value: [1],
+			error: undefined
+		})),
+		getAllNetworks: vi.fn(() => ({
+			value: new Map([[1, { name: 'Ethereum', id: 1 }]]),
+			error: undefined
+		}))
+	})
+}));
+
 const mockVault = {
 	chainId: 1,
 	id: '0x1234567890abcdef1234567890abcdef12345678',
@@ -49,7 +62,6 @@ const {
 	mockAccountsStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockSettingsStore,
 	mockActiveAccountsStore,
 	mockSelectedChainIdsStore,
 	mockShowMyItemsOnlyStore
@@ -59,7 +71,6 @@ const defaultProps = {
 	orderHash: mockOrderHashStore,
 	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
-	settings: mockSettingsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	activeNetworkRef: mockActiveNetworkRefStore,

@@ -61,7 +61,6 @@ const {
 	mockAccountsStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockSettingsStore,
 	mockShowMyItemsOnlyStore,
 	mockSelectedChainIdsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
@@ -70,7 +69,6 @@ const {
 type OrdersListTableProps = ComponentProps<OrdersListTable<any>>;
 
 const defaultProps: OrdersListTableProps = {
-	settings: mockSettingsStore,
 	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,

@@ -26,7 +26,6 @@
 	export let handleOrderRemoveModal: any = undefined;
 	// End of optional props
 
-	export let settings: AppStoresInterface['settings'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
@@ -65,7 +64,6 @@
 		queryKey: [
 			QKEY_ORDERS,
 			$selectedChainIds,
-			$settings,
 			owners,
 			$showInactiveOrders,
 			$orderHash,
@@ -98,7 +96,6 @@
 
 <ListViewOrderbookFilters
 	{selectedChainIds}
-	{settings}
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}

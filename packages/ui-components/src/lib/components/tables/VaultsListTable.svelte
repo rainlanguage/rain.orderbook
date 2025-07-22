@@ -19,7 +19,6 @@
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
-	export let settings: AppStoresInterface['settings'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
@@ -56,14 +55,7 @@
 		) ?? [];
 
 	$: query = createInfiniteQuery({
-		queryKey: [
-			QKEY_VAULTS,
-			$hideZeroBalanceVaults,
-			$selectedChainIds,
-			$settings,
-			owners,
-			selectedTokens
-		],
+		queryKey: [QKEY_VAULTS, $hideZeroBalanceVaults, $selectedChainIds, owners, selectedTokens],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getVaults(
 				$selectedChainIds,
@@ -91,7 +83,6 @@
 {#if $query}
 	<ListViewOrderbookFilters
 		{selectedChainIds}
-		{settings}
 		{accounts}
 		{activeAccountsItems}
 		{showMyItemsOnly}
