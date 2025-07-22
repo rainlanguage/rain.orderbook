@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { readable, writable } from 'svelte/store';
 import { beforeEach, expect, test, describe, vi, type Mock } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { NewConfig, RaindexVaultToken } from '@rainlanguage/orderbook';
+import type { RaindexVaultToken } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import type { QueryObserverResult } from '@tanstack/svelte-query';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
