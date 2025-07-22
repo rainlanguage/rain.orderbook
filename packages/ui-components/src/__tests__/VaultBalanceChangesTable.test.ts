@@ -59,8 +59,11 @@ test('it shows the correct data in the table', async () => {
 		{
 			type: 'withdrawal',
 			amount: BigInt(1000),
+			formattedAmount: '0.1',
 			oldBalance: BigInt(5000),
+			formattedOldBalance: '0.5',
 			newBalance: BigInt(4000),
+			formattedNewBalance: '0.4',
 			timestamp: BigInt(1625247600),
 			vaultId: BigInt(100),
 			token: {

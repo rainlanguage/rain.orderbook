@@ -148,9 +148,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200022210000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200022210000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -164,9 +164,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200022210000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200022210000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -180,9 +180,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200022210000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021910000001100000");
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200022210000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }

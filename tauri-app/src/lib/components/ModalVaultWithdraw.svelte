@@ -8,7 +8,7 @@
   import ModalExecute from './ModalExecute.svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import { formatUnits, hexToBytes, toHex } from 'viem';
+  import { hexToBytes, toHex } from 'viem';
 
   export let open = false;
   export let vault: RaindexVault;
@@ -100,7 +100,7 @@
         Vault Balance
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {formatUnits(BigInt(vault.balance), Number(vault.token.decimals ?? 0))}
+        {vault.formattedBalance}
       </p>
     </div>
 

@@ -16,6 +16,7 @@ pub struct SgOrdersListFilterArgs {
     pub active: Option<bool>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub order_hash: Option<SgBytes>,
+    pub tokens: Vec<String>,
 }
 impl_wasm_traits!(SgOrdersListFilterArgs);
 
@@ -36,6 +37,24 @@ pub struct SgOrdersListQueryFilters {
     pub active: Option<bool>,
     #[cynic(rename = "orderHash", skip_serializing_if = "Option::is_none")]
     pub order_hash: Option<SgBytes>,
+    #[cynic(rename = "inputs_", skip_serializing_if = "Option::is_none")]
+    pub inputs_: Option<SgVaultTokenFilter>,
+    #[cynic(rename = "outputs_", skip_serializing_if = "Option::is_none")]
+    pub outputs_: Option<SgVaultTokenFilter>,
+}
+
+#[derive(cynic::InputObject, Debug, Clone, Tsify)]
+#[cynic(graphql_type = "Order_filter")]
+pub struct SgOrdersListQueryAnyFilters {
+    #[cynic(rename = "or", skip_serializing_if = "Vec::is_empty")]
+    pub or: Vec<SgOrdersListQueryFilters>,
+}
+
+#[derive(cynic::InputObject, Debug, Clone, Tsify)]
+#[cynic(graphql_type = "Vault_filter")]
+pub struct SgVaultTokenFilter {
+    #[cynic(rename = "token_in")]
+    pub token_in: Vec<String>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
@@ -46,7 +65,7 @@ pub struct SgOrdersListQueryVariables {
     pub skip: Option<i32>,
     #[cynic(rename = "filters")]
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    pub filters: Option<SgOrdersListQueryFilters>,
+    pub filters: Option<SgOrdersListQueryAnyFilters>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
@@ -131,6 +150,7 @@ pub struct SgOrderAsIO {
 pub struct SgVaultsListFilterArgs {
     pub owners: Vec<SgBytes>,
     pub hide_zero_balance: bool,
+    pub tokens: Vec<String>,
 }
 impl_wasm_traits!(SgVaultsListFilterArgs);
 
@@ -142,6 +162,8 @@ pub struct SgVaultsListQueryFilters {
     #[cynic(rename = "balance_not", skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub balance_not: Option<SgBytes>,
+    #[cynic(rename = "token_in", skip_serializing_if = "Vec::is_empty")]
+    pub token_in: Vec<String>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
@@ -310,17 +332,26 @@ pub struct SgOrderStructPartialTrade {
     pub id: SgBytes,
 }
 
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type SgTokenAddress = SgBytes;
+
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq, Eq, Hash, Tsify)]
 #[cynic(graphql_type = "ERC20")]
 pub struct SgErc20 {
     pub id: SgBytes,
-    pub address: SgBytes,
+    pub address: SgTokenAddress,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub name: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub symbol: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub decimals: Option<SgBigInt>,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct SgErc20WithSubgraphName {
+    pub token: SgErc20,
+    pub subgraph_name: String,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
@@ -656,6 +687,14 @@ pub enum SgVaultOrderBy {
     #[cynic(rename = "balanceChanges")]
     #[cfg_attr(target_family = "wasm", serde(rename = "balanceChanges"))]
     BalanceChanges,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cynic(graphql_type = "Query")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgTokensListAllQuery {
+    #[cynic(rename = "erc20S")]
+    pub tokens: Vec<SgErc20>,
 }
 
 #[cfg(target_family = "wasm")]

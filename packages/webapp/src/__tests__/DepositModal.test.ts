@@ -1,33 +1,21 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositModal from '$lib/components/DepositModal.svelte';
-import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
-import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 import type { RaindexVault } from '@rainlanguage/orderbook';
 
 type ModalProps = ComponentProps<DepositModal>;
 
-const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await vi.hoisted(
+const { mockAppKitModalStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
 vi.mock('../lib/stores/wagmi', () => ({
 	appKitModal: mockAppKitModalStore,
-	connected: mockConnectedStore,
-	wagmiConfig: mockWagmiConfigStore
+	connected: mockConnectedStore
 }));
-
-vi.mock('@wagmi/core', async (importOriginal) => {
-	const original = (await importOriginal()) as object;
-	return {
-		...original,
-		readContract: vi.fn(),
-		switchChain: vi.fn().mockResolvedValue({ id: 1 })
-	};
-});
 
 describe('DepositModal', () => {
 	const mockVault = {
@@ -36,6 +24,12 @@ describe('DepositModal', () => {
 			symbol: 'TEST',
 			decimals: '18'
 		},
+		getOwnerBalance: vi.fn().mockResolvedValue({
+			value: {
+				balance: BigInt('1000000000000000000'), // 1 token
+				formattedBalance: '1'
+			}
+		}),
 		chainId: 1,
 		orderbook: '0x123',
 		balance: BigInt(1)
@@ -48,18 +42,13 @@ describe('DepositModal', () => {
 		onSubmit: mockOnSubmit,
 		args: {
 			vault: mockVault,
-			account: '0x0000000000000000000000000000000000000000',
-			config: mockWeb3Config
+			account: '0x0000000000000000000000000000000000000000'
 		}
 	} as unknown as ModalProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockOnSubmit.mockClear();
-
-		(readContract as Mock).mockReset();
-		(switchChain as Mock).mockReset();
-		(readContract as Mock).mockResolvedValue(BigInt(1000000000000000000)); // 1 token by default
 	});
 
 	it('renders deposit modal correctly', () => {
@@ -85,7 +74,12 @@ describe('DepositModal', () => {
 	});
 
 	it('shows error when amount exceeds balance', async () => {
-		(readContract as Mock).mockResolvedValue(BigInt(500000000000000000)); // 0.5 tokens
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
+			value: {
+				balance: BigInt('500000000000000000'), // 0.5 tokens
+				formattedBalance: '0.5'
+			}
+		});
 		render(DepositModal, defaultProps);
 
 		await waitFor(() => {
@@ -98,17 +92,6 @@ describe('DepositModal', () => {
 		expect(screen.getByTestId('amount-error')).toHaveTextContent(
 			'Amount cannot exceed available balance.'
 		);
-	});
-
-	it('shows chain switch error when switching fails', async () => {
-		(switchChain as Mock).mockRejectedValue(new Error('Failed to switch chain'));
-		render(DepositModal, defaultProps);
-
-		await waitFor(() => {
-			expect(
-				screen.getByText(/Switch to .* to check your balance|Failed to switch chain/)
-			).toBeInTheDocument();
-		});
 	});
 
 	it('disables continue button when amount is 0', async () => {
@@ -126,7 +109,12 @@ describe('DepositModal', () => {
 	});
 
 	it('disables continue button when amount exceeds balance', async () => {
-		(readContract as Mock).mockResolvedValue(BigInt(500000000000000000)); // 0.5 tokens
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
+			value: {
+				balance: BigInt('500000000000000000'), // 0.5 tokens
+				formattedBalance: '0.5'
+			}
+		});
 		render(DepositModal, defaultProps);
 
 		// Wait for balance to be displayed
@@ -142,7 +130,12 @@ describe('DepositModal', () => {
 	});
 
 	it('handles zero user balance correctly', async () => {
-		(readContract as Mock).mockResolvedValue(BigInt(0));
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
+			value: {
+				balance: BigInt('0'),
+				formattedBalance: '0'
+			}
+		});
 
 		render(DepositModal, defaultProps);
 
@@ -162,8 +155,13 @@ describe('DepositModal', () => {
 	});
 
 	it('displays user balance correctly', async () => {
-		const userBalanceAmount = BigInt(2500000000000000000); // 2.5 tokens
-		(readContract as Mock).mockResolvedValue(userBalanceAmount);
+		const userBalanceAmount = BigInt('2500000000000000000'); // 2.5 tokens
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
+			value: {
+				balance: userBalanceAmount,
+				formattedBalance: '2.5'
+			}
+		});
 
 		render(DepositModal, defaultProps);
 
@@ -174,7 +172,13 @@ describe('DepositModal', () => {
 	});
 
 	it('shows error message when getUserBalance fails', async () => {
-		vi.mocked(readContract).mockRejectedValue(new Error('Failed to get balance'));
+		vi.mocked(mockVault.getOwnerBalance).mockResolvedValue({
+			value: undefined,
+			error: {
+				msg: 'Failed to get user balance.',
+				readableMsg: 'Failed to get user balance.'
+			}
+		});
 
 		render(DepositModal, defaultProps);
 
@@ -184,6 +188,12 @@ describe('DepositModal', () => {
 	});
 
 	it('shows wallet address in truncated form', async () => {
+		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
+			value: {
+				balance: BigInt('1000000000000000000'), // 1 token
+				formattedBalance: '1'
+			}
+		});
 		render(DepositModal, defaultProps);
 
 		await waitFor(() => {

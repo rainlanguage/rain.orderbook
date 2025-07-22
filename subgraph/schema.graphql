@@ -216,7 +216,7 @@ type Trade @entity(immutable: true) {
   timestamp: BigInt!
 }
 
-type TakeOrder implements TradeEvent @entity(immutable: true) {
+type TakeOrder implements Event & TradeEvent @entity(immutable: true) {
   id: Bytes!
 
   "The input amount from the perspective of the taker"
@@ -236,7 +236,7 @@ type TakeOrder implements TradeEvent @entity(immutable: true) {
   sender: Bytes!
 }
 
-type Clear implements TradeEvent @entity(immutable: true) {
+type Clear implements Event & TradeEvent @entity(immutable: true) {
   id: Bytes!
 
   "Alice input amount"

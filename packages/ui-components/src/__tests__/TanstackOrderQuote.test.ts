@@ -45,7 +45,10 @@ describe('TanstackOrderQuote component', () => {
 					success: true,
 					block_number: '0x123',
 					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-					data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
+					data: {
+						formattedMaxOutput: '1.550122181502135692',
+						formattedRatio: '6.563567234157974775'
+					},
 					error: undefined
 				}
 			]
@@ -77,14 +80,14 @@ describe('TanstackOrderQuote component', () => {
 					success: true,
 					block_number: '0x123',
 					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-					data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
+					data: { formattedMaxOutput: '1.550122181502135692' },
 					error: undefined
 				},
 				{
 					success: true,
 					block_number: '0x123',
 					pair: { pairName: 'BTC/USDT', inputIndex: 0, outputIndex: 1 },
-					data: { maxOutput: '0x54fa82f5c7001dad', ratio: '0x53e0089714d06709' },
+					data: { formattedMaxOutput: '6.123350635480882605' },
 					error: undefined
 				}
 			]
@@ -96,14 +99,20 @@ describe('TanstackOrderQuote component', () => {
 					success: true,
 					block_number: '0x123',
 					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-					data: { maxOutput: '0x5282713eceeccb5e', ratio: '0x577fe09a8775137c' },
+					data: {
+						formattedMaxOutput: '5.945438972656012126',
+						formattedRatio: '6.305004957644166012'
+					},
 					error: undefined
 				},
 				{
 					success: true,
 					block_number: '0x123',
 					pair: { pairName: 'BTC/USDT', inputIndex: 0, outputIndex: 1 },
-					data: { maxOutput: '0x5430775053da5e53', ratio: '0x5a01719c871bb83f' },
+					data: {
+						formattedMaxOutput: '6.066479884955967059',
+						formattedRatio: '6.485589855485802559'
+					},
 					error: undefined
 				}
 			]
@@ -190,7 +199,11 @@ describe('TanstackOrderQuote component', () => {
 					success: true,
 					block_number: '0x123',
 					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-					data: { maxOutput: '0x158323e942e36d8c', ratio: '0x0' },
+					data: {
+						formattedMaxOutput: '1.550122181502135692',
+						formattedRatio: '0',
+						formattedInverseRatio: '0'
+					},
 					error: undefined
 				}
 			]

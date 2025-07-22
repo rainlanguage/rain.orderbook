@@ -61,8 +61,8 @@ mod tests {
         let vault = SgVault {
             id: default_sg_bytes.clone(),
             owner: default_sg_bytes.clone(),
-            vault_id: SgBytes("0".to_string()),
-            balance: SgBytes("0".to_string()),
+            vault_id: default_sg_bytes.clone(),
+            balance: default_sg_bytes.clone(),
             token: token.clone(),
             orderbook: orderbook.clone(),
             orders_as_output: vec![],

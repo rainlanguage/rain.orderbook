@@ -170,6 +170,7 @@ mod tests {
         common::{SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault},
         order_detail_traits::OrderDetailError,
     };
+    use rain_orderbook_subgraph_client::utils::float::*;
     use rain_orderbook_test_fixtures::LocalEvm;
 
     struct TestSetup {
@@ -310,7 +311,7 @@ amount price: context<3 0>() context<4 0>();
         SgVault {
             id: SgBytes(vault_id.to_string()),
             token: token.clone(),
-            balance: SgBytes("123".to_string()),
+            balance: SgBytes(F6.as_hex()),
             vault_id: SgBytes(vault_id.to_string()),
             owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
             orderbook: SgOrderbook {

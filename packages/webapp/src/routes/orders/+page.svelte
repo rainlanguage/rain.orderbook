@@ -6,6 +6,7 @@
 		orderHash,
 		showMyItemsOnly,
 		showInactiveOrders,
+		activeTokens,
 		selectedChainIds
 	} from '$lib/stores/settings';
 
@@ -24,4 +25,5 @@
 	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
+	{activeTokens}
 />

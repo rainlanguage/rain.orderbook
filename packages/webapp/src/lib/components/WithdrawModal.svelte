@@ -5,24 +5,11 @@
 		type VaultActionArgs
 	} from '@rainlanguage/ui-components';
 	import { Modal, Button } from 'flowbite-svelte';
-	import { appKitModal, connected, wagmiConfig } from '$lib/stores/wagmi';
-	import { readContract, switchChain } from '@wagmi/core';
-	import { erc20Abi, formatUnits, type Hex } from 'viem';
-	import * as allChains from 'viem/chains';
+	import { appKitModal, connected } from '$lib/stores/wagmi';
 	import { validateAmount } from '$lib/services/validateAmount';
 	import { fade } from 'svelte/transition';
 	import truncateEthAddress from 'truncate-eth-address';
-
-	const { ...chains } = allChains;
-
-	function getTargetChain(chainId: number) {
-		for (const chain of Object.values(chains)) {
-			if (chain.id === chainId) {
-				return chain;
-			}
-		}
-		throw new Error(`Chain with id ${chainId} not found`);
-	}
+	import type { AccountBalance } from '@rainlanguage/orderbook';
 
 	/**
 	 * Modal component for withdrawing tokens from a vault.
@@ -35,29 +22,20 @@
 	const { vault, account } = args;
 
 	let amount: bigint = 0n;
-	let userBalance: bigint = 0n;
+	let userBalance: AccountBalance = {
+		balance: 0n,
+		formattedBalance: '0'
+	} as unknown as AccountBalance;
 	let errorMessage = '';
 	let isCheckingCalldata = false;
 
 	const getUserBalance = async () => {
-		const targetChain = getTargetChain(vault.chainId);
-		try {
-			await switchChain($wagmiConfig, { chainId: vault.chainId });
-		} catch {
-			errorMessage = `Switch to ${targetChain.name} to check your balance.`;
+		const balance = await vault.getOwnerBalance();
+		if (balance.error) {
+			errorMessage = balance.error.readableMsg;
 			return;
 		}
-		try {
-			userBalance = await readContract($wagmiConfig, {
-				abi: erc20Abi,
-				address: vault.token.address as Hex,
-				functionName: 'balanceOf',
-				args: [account as Hex]
-			});
-		} catch (error) {
-			errorMessage = error instanceof Error ? error.message : 'Failed to get user balance.';
-			return;
-		}
+		userBalance = balance.value;
 		return userBalance;
 	};
 
@@ -72,7 +50,6 @@
 	}
 
 	$: validation = validateAmount(amount, BigInt(vault.balance));
-	$: maxValue = BigInt(vault.balance);
 </script>
 
 <Modal bind:open autoclose={false} size="md">
@@ -82,7 +59,7 @@
 		<div class="h-10">
 			{#if account}
 				{#await getUserBalance() then userBalance}
-					{#if userBalance || userBalance === 0n}
+					{#if userBalance}
 						<div in:fade class="w-full flex-col justify-between">
 							<div class="flex justify-between">
 								<p>
@@ -91,15 +68,14 @@
 									>
 								</p>
 								<p in:fade>
-									{formatUnits(userBalance, Number(vault.token.decimals))}
+									{userBalance.formattedBalance}
 									{vault.token.symbol}
 								</p>
 							</div>
 							<div class="flex justify-between">
 								<p>Balance of vault</p>
 								<p in:fade>
-									{formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}
-									{vault.token.symbol}
+									{`${vault.formattedBalance} ${vault.token.symbol}`}
 								</p>
 							</div>
 						</div>
@@ -113,7 +89,7 @@
 			bind:value={amount}
 			symbol={vault.token.symbol}
 			decimals={Number(vault.token.decimals)}
-			{maxValue}
+			maxValue={vault.balance}
 		/>
 		<div class="flex flex-col justify-end gap-2">
 			<div class="flex gap-2">

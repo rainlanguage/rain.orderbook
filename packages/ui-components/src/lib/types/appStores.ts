@@ -9,8 +9,6 @@ export interface AppStoresInterface {
 	showInactiveOrders: Writable<boolean>;
 	orderHash: Writable<Hex>;
 	hideZeroBalanceVaults: Writable<boolean>;
-	activeAccounts: Readable<{
-		[k: string]: AccountCfg;
-	}>;
+	activeTokens: Writable<Address[]>;
 	showMyItemsOnly: Writable<boolean>;
 }

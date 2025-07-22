@@ -8,6 +8,7 @@ import {
   TakeOrderV3,
 } from "../generated/OrderBook/OrderBook";
 import { WithdrawV2 } from "../generated/OrderBook/OrderBook";
+import { log } from "@graphprotocol/graph-ts";
 import { handleDeposit as _handleDeposit } from "./deposit";
 import { handleWithdraw as _handleWithdraw } from "./withdraw";
 import {

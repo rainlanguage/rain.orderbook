@@ -100,6 +100,16 @@ impl ERC20 {
             symbol,
         })
     }
+
+    pub async fn get_account_balance(&self, account: Address) -> Result<U256, Error> {
+        let erc20 = self.get_instance()?;
+        let balance = erc20.balanceOf(account).call().await;
+
+        match balance {
+            Ok(balance) => Ok(balance),
+            Err(err) => Err(handle_alloy_err(err, "Balance query reverted").await),
+        }
+    }
 }
 
 const ERROR_MESSAGE: &str = "Failed to get token information: ";
@@ -367,5 +377,30 @@ mod tests {
             }));
         });
         assert!(erc20.token_info(None).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_account_balance() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x70a08231");
+            then.body(
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x00000000000000000000000000000000000000000000000000000000000003e8"
+                })
+                .to_string(),
+            );
+        });
+
+        let erc20 = ERC20::new(
+            vec![Url::parse(&server.url("/rpc")).unwrap()],
+            Address::ZERO,
+        );
+
+        let balance = erc20.get_account_balance(Address::ZERO).await.unwrap();
+        assert_eq!(balance, alloy::primitives::U256::from(1000u64));
     }
 }

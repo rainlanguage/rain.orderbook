@@ -1,12 +1,15 @@
 <script lang="ts" generics="T">
+	import type { QueryObserverResult } from '@tanstack/svelte-query';
+	import type { Readable } from 'svelte/store';
 	import DropdownActiveNetworks from './dropdown/DropdownActiveNetworks.svelte';
-
 	import { page } from '$app/stores';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
+	import type { Address, RaindexVaultToken } from '@rainlanguage/orderbook';
 	import Tooltip from './Tooltip.svelte';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
+	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
@@ -21,6 +24,9 @@
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
+	export let activeTokens: AppStoresInterface['activeTokens'];
+	export let selectedTokens: Address[];
+	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
 	$: isOrdersPage = $page.url.pathname === '/orders';
@@ -60,6 +66,7 @@
 		{#if $accounts && Object.values($accounts).length > 0}
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
+		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
 		<DropdownActiveNetworks settings={$settings} {selectedChainIds} />
 	{/if}
 </div>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Address, RaindexVault } from '@rainlanguage/orderbook';
-	import { formatUnits, toHex } from 'viem';
+	import { toHex } from 'viem';
 	import Tooltip from './Tooltip.svelte';
 
 	export let tokenVault: RaindexVault;
@@ -23,7 +23,7 @@
 			{tokenVault.token.name} ({tokenVault.token.symbol})
 		</a>
 		<span class="text-sm text-gray-500 dark:text-gray-400">
-			Balance: {formatUnits(tokenVault.balance, Number(tokenVault.token.decimals) || 18)}
+			Balance: {tokenVault.formattedBalance}
 		</span>
 	</div>
 	<div>

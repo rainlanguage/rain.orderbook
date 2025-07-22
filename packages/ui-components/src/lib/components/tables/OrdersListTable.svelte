@@ -2,14 +2,14 @@
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { createInfiniteQuery } from '@tanstack/svelte-query';
+	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import { RaindexOrder } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { QKEY_ORDERS } from '../../queries/keys';
+	import { QKEY_ORDERS, QKEY_TOKENS } from '../../queries/keys';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import {
 		Badge,
@@ -34,6 +34,7 @@
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let activeTokens: AppStoresInterface['activeTokens'];
 
 	const { matchesAccount, account } = useAccount();
 	const raindexClient = useRaindexClient();
@@ -45,15 +46,39 @@
 				? [$account]
 				: [];
 
+	$: tokensQuery = createQuery({
+		queryKey: [QKEY_TOKENS, $selectedChainIds],
+		queryFn: async () => {
+			const result = await raindexClient.getAllVaultTokens($selectedChainIds);
+			if (result.error) throw new Error(result.error.readableMsg);
+			return result.value;
+		},
+		enabled: true
+	});
+
+	$: selectedTokens =
+		$activeTokens?.filter(
+			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
+		) ?? [];
+
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_ORDERS, $selectedChainIds, $settings, owners, $showInactiveOrders, $orderHash],
+		queryKey: [
+			QKEY_ORDERS,
+			$selectedChainIds,
+			$settings,
+			owners,
+			$showInactiveOrders,
+			$orderHash,
+			selectedTokens
+		],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getOrders(
 				$selectedChainIds,
 				{
 					owners,
 					active: $showInactiveOrders ? undefined : true,
-					orderHash: $orderHash || undefined
+					orderHash: $orderHash || undefined,
+					tokens: selectedTokens
 				},
 				pageParam + 1
 			);
@@ -80,6 +105,9 @@
 	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
+	{tokensQuery}
+	{activeTokens}
+	{selectedTokens}
 />
 
 <AppTable

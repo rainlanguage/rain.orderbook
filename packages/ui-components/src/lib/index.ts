@@ -3,6 +3,7 @@ export { default as CardProperty } from './components/CardProperty.svelte';
 export { default as Hash, HashType } from './components/Hash.svelte';
 export { default as TanstackAppTable } from './components/TanstackAppTable.svelte';
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
+export { default as DropdownTokensFilter } from './components/dropdown/DropdownTokensFilter.svelte';
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
 export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';
@@ -95,8 +96,6 @@ export {
 	promiseTimeout
 } from './services/time';
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
-export { vaultBalanceDisplay } from './utils/vault';
-export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
 export { invalidateTanstackQueries } from './queries/queryClient';
 export { getToastsContext } from './providers/toasts/context';

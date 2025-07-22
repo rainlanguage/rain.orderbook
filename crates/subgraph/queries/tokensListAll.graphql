@@ -1,0 +1,9 @@
+query TokensListAllQuery {
+  erc20S {
+    address
+    decimals
+    id
+    name
+    symbol
+  }
+}
