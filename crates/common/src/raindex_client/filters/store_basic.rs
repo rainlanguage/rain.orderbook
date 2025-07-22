@@ -22,16 +22,20 @@ impl BasicFilterStore {
 }
 
 impl FilterStore for BasicFilterStore {
+    fn get_vaults(&self) -> GetVaultsFilters {
+        self.vaults.clone()
+    }
     fn set_vaults(&mut self, filters: GetVaultsFilters) {
         self.vaults = filters;
     }
-    fn update_vaults<F>(&mut self, update_fn: F)
+    fn update_vaults<F>(&mut self, update_fn: F) -> Result<(), anyhow::Error>
     where
         F: FnOnce(VaultsFilterBuilder) -> VaultsFilterBuilder,
     {
         let builder = VaultsFilterBuilder::from(self.vaults.clone());
         let updated_filter = update_fn(builder).build();
         self.vaults = updated_filter;
+        Ok(())
     }
 }
 
@@ -84,7 +88,9 @@ mod tests {
         let mut store = BasicFilterStore::new();
 
         // Update Stored value using closure
-        store.update_vaults(|builder| builder.set_owners(vec![owner1]).set_hide_zero_balance(true));
+        store
+            .update_vaults(|builder| builder.set_owners(vec![owner1]).set_hide_zero_balance(true))
+            .unwrap();
 
         assert_eq!(store.vaults.owners.len(), 1);
         assert_eq!(store.vaults.owners[0], owner1);
@@ -108,7 +114,9 @@ mod tests {
         });
 
         // Then changing only part of the state
-        store.update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true));
+        store
+            .update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true))
+            .unwrap();
 
         assert_eq!(store.vaults.owners.len(), 1);
         assert_eq!(store.vaults.owners[0], owner2);
@@ -133,7 +141,9 @@ mod tests {
         };
         store.set_vaults(original_filters.clone());
         let filters_before_update = store.vaults.clone();
-        store.update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true));
+        store
+            .update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true))
+            .unwrap();
 
         // Check that original filters are not modified
         assert_eq!(original_filters.owners.len(), 1);
@@ -161,17 +171,23 @@ mod tests {
 
         let mut store = BasicFilterStore::new();
 
-        store.update_vaults(|builder| builder.set_owners(vec![owner1]));
+        store
+            .update_vaults(|builder| builder.set_owners(vec![owner1]))
+            .unwrap();
         let state_after_first_update = store.vaults.clone();
 
-        store.update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true));
+        store
+            .update_vaults(|builder| builder.set_owners(vec![owner2]).set_hide_zero_balance(true))
+            .unwrap();
         let state_after_second_update = store.vaults.clone();
 
-        store.update_vaults(|builder| {
-            builder
-                .set_owners(vec![owner3])
-                .set_hide_zero_balance(false)
-        });
+        store
+            .update_vaults(|builder| {
+                builder
+                    .set_owners(vec![owner3])
+                    .set_hide_zero_balance(false)
+            })
+            .unwrap();
 
         // Check that each update did not affect the previously "extracted" state
         assert_eq!(state_after_first_update.owners.len(), 1);
@@ -195,12 +211,14 @@ mod tests {
 
         let mut store = BasicFilterStore::new();
 
-        store.update_vaults(|builder| {
-            builder
-                .set_owners(vec![owner1])
-                .set_hide_zero_balance(true)
-                .set_tokens(Some(vec![token1]))
-        });
+        store
+            .update_vaults(|builder| {
+                builder
+                    .set_owners(vec![owner1])
+                    .set_hide_zero_balance(true)
+                    .set_tokens(Some(vec![token1]))
+            })
+            .unwrap();
 
         // Test JSON serialization
         let json = serde_json::to_string(&store).unwrap();
@@ -234,7 +252,7 @@ mod tests {
 
         // Test update_vaults
         let owner2 = Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap();
-        FilterStore::update_vaults(&mut store, |builder| builder.set_owners(vec![owner2]));
+        FilterStore::update_vaults(&mut store, |builder| builder.set_owners(vec![owner2])).unwrap();
         assert_eq!(store.vaults.owners.len(), 1);
         assert_eq!(store.vaults.owners[0], owner2);
         assert!(store.vaults.hide_zero_balance); // should be preserved
@@ -246,18 +264,21 @@ mod tests {
 
         let mut store1 = BasicFilterStore::new();
         store1
-            .update_vaults(|builder| builder.set_owners(vec![owner1]).set_hide_zero_balance(true));
+            .update_vaults(|builder| builder.set_owners(vec![owner1]).set_hide_zero_balance(true))
+            .unwrap();
 
         // Clone store
         let mut store2 = store1.clone();
 
         // Modify clone
         let owner2 = Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap();
-        store2.update_vaults(|builder| {
-            builder
-                .set_owners(vec![owner2])
-                .set_hide_zero_balance(false)
-        });
+        store2
+            .update_vaults(|builder| {
+                builder
+                    .set_owners(vec![owner2])
+                    .set_hide_zero_balance(false)
+            })
+            .unwrap();
 
         // Check that original wasn't modified
         assert_eq!(store1.vaults.owners.len(), 1);

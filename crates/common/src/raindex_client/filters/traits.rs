@@ -1,3 +1,4 @@
+use anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::raindex_client::filters::{
@@ -16,8 +17,12 @@ pub trait Filter: Serialize + for<'de> Deserialize<'de> {}
 
 /// FilterStore trait for managing filters
 pub trait FilterStore {
+    fn get_vaults(&self) -> GetVaultsFilters;
     fn set_vaults(&mut self, filters: GetVaultsFilters);
-    fn update_vaults<F>(&mut self, update_fn: F)
+
+    /// Update vault filters using a builder function.
+    /// Returns an error if the operation fails (e.g., persistence failure).
+    fn update_vaults<F>(&mut self, update_fn: F) -> Result<(), anyhow::Error>
     where
         F: FnOnce(VaultsFilterBuilder) -> VaultsFilterBuilder;
 }

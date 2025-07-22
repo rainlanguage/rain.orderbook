@@ -6323,6 +6323,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
+ "anyhow",
  "chrono",
  "csv",
  "dotrain",
@@ -6376,6 +6377,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
+ "anyhow",
  "base64 0.22.1",
  "bincode",
  "cynic",
@@ -6397,6 +6399,7 @@ dependencies = [
  "url",
  "wasm-bindgen-test",
  "wasm-bindgen-utils 0.0.10",
+ "web-sys",
 ]
 
 [[package]]

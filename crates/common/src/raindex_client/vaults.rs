@@ -1123,7 +1123,7 @@ impl RaindexClient {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct GetVaultsFilters {
     #[tsify(type = "Address[]")]
