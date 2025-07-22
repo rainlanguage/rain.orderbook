@@ -1478,7 +1478,7 @@ mod tests {
             assert_eq!(res.len(), 4);
 
             let volume1 = res[0].clone();
-            assert_eq!(volume1.id(), Bytes::from_str("0x10").unwrap());
+            assert_eq!(volume1.id(), U256::from_str("0x10").unwrap());
             assert_eq!(
                 volume1.token().address(),
                 Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
@@ -1492,7 +1492,7 @@ mod tests {
             assert_eq!(volume1.details().net_vol(), U256::from(1));
 
             let volume2 = res[1].clone();
-            assert_eq!(volume2.id(), Bytes::from_str("0x10").unwrap());
+            assert_eq!(volume2.id(), U256::from_str("0x10").unwrap());
             assert_eq!(
                 volume2.token().address(),
                 Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
@@ -1506,7 +1506,7 @@ mod tests {
             assert_eq!(volume2.details().net_vol(), U256::from(2));
 
             let volume3 = res[2].clone();
-            assert_eq!(volume3.id(), Bytes::from_str("0x20").unwrap());
+            assert_eq!(volume3.id(), U256::from_str("0x20").unwrap());
             assert_eq!(
                 volume3.token().address(),
                 Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
@@ -1520,7 +1520,7 @@ mod tests {
             assert_eq!(volume3.details().net_vol(), U256::from(2));
 
             let volume4 = res[3].clone();
-            assert_eq!(volume4.id(), Bytes::from_str("0x20").unwrap());
+            assert_eq!(volume4.id(), U256::from_str("0x20").unwrap());
             assert_eq!(
                 volume4.token().address(),
                 Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
