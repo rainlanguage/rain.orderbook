@@ -64,6 +64,7 @@ impl RaindexClient {
         let orders = client
             .transaction_add_orders(Id::new(tx_hash.to_string()))
             .await?;
+
         let orders = orders
             .into_iter()
             .map(|value| {
@@ -87,17 +88,10 @@ mod tests {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::{
-            hex::encode_prefixed,
-            primitives::{Address, B256, U256},
-            sol_types::SolValue,
-        };
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
-        use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_bindings::IOrderBookV4::IO;
         use serde_json::json;
-        use std::{collections::HashMap, str::FromStr};
+        use std::str::FromStr;
 
         #[tokio::test]
         async fn test_get_transaction_add_orders() {
@@ -300,7 +294,7 @@ mod tests {
             );
             assert_eq!(output.token().name(), Some("Staked FLR".to_string()));
             assert_eq!(output.token().symbol(), Some("sFLR".to_string()));
-            assert_eq!(output.token().decimals(), Some(U256::from(18)));
+            assert_eq!(output.token().decimals(), U256::from(18));
             assert_eq!(
                 output.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
@@ -357,7 +351,7 @@ mod tests {
             );
             assert_eq!(input.token().name(), Some("Wrapped Flare".to_string()));
             assert_eq!(input.token().symbol(), Some("WFLR".to_string()));
-            assert_eq!(input.token().decimals(), Some(U256::from(18)));
+            assert_eq!(input.token().decimals(), U256::from(18));
             assert_eq!(
                 input.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()

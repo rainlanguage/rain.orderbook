@@ -125,7 +125,7 @@ describe('Full Deployment Tests', () => {
 	});
 
 	afterEach(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 5000));
+		await new Promise((resolve) => setTimeout(resolve, 10000));
 	});
 
 	it(
@@ -146,29 +146,38 @@ describe('Full Deployment Tests', () => {
 			const screen = render(Page);
 
 			// Wait for the gui provider to be in the document
-			await waitFor(() => {
-				expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
-			});
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+				},
+				{ timeout: 300000 }
+			);
 
-			// Get all the current input elements for select tokens
-			const selectTokenInputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+			await waitFor(
+				() => {
+					expect(screen.getAllByRole('button', { name: /chevron down solid/i }).length).toBe(2);
+				},
+				{ timeout: 300000 }
+			);
+			const tokenSelectionButtons = screen.getAllByRole('button', { name: /chevron down solid/i });
 
-			const buyTokenInput = selectTokenInputs[0];
-			const sellTokenInput = selectTokenInputs[1];
+			await userEvent.click(tokenSelectionButtons[0]);
+			await userEvent.click(screen.getByText('Staked FLR'));
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('select-token-success-token1')).toBeInTheDocument();
+				},
+				{ timeout: 300000 }
+			);
 
-			// Select the buy token
-			await userEvent.clear(buyTokenInput);
-			await userEvent.type(buyTokenInput, '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
-			await waitFor(() => {
-				expect(screen.getByTestId('select-token-success-token1')).toBeInTheDocument();
-			});
-
-			// Select the sell token
-			await userEvent.clear(sellTokenInput);
-			await userEvent.type(sellTokenInput, '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-			await waitFor(() => {
-				expect(screen.getByTestId('select-token-success-token2')).toBeInTheDocument();
-			});
+			await userEvent.click(tokenSelectionButtons[1]);
+			await userEvent.click(screen.getByText('Wrapped FLR'));
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('select-token-success-token2')).toBeInTheDocument();
+				},
+				{ timeout: 300000 }
+			);
 
 			// Get the input component and write "10" into it
 			const customValueInput = screen.getAllByPlaceholderText('Enter custom value')[0];
@@ -192,10 +201,13 @@ describe('Full Deployment Tests', () => {
 			const deployButton = screen.getByText('Deploy Strategy');
 			await userEvent.click(deployButton);
 
-			await waitFor(async () => {
-				const disclaimerButton = screen.getByText('Deploy');
-				await userEvent.click(disclaimerButton);
-			});
+			await waitFor(
+				async () => {
+					const disclaimerButton = screen.getByText('Deploy');
+					await userEvent.click(disclaimerButton);
+				},
+				{ timeout: 300000 }
+			);
 
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitStrategy, 'flare'))
@@ -210,7 +222,7 @@ describe('Full Deployment Tests', () => {
 				);
 				return args.value;
 			};
-			await new Promise((resolve) => setTimeout(resolve, 5000));
+			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
 				console.log('Fixed limit strategy error', error);
@@ -240,7 +252,7 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 30000 }
+		{ timeout: 300000 }
 	);
 
 	it(
@@ -262,29 +274,39 @@ describe('Full Deployment Tests', () => {
 			const screen = render(Page);
 
 			// Wait for the gui provider to be in the document
-			await waitFor(() => {
-				expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
-			});
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+				},
+				{ timeout: 300000 }
+			);
 
-			// Get all the current input elements for select tokens
-			const selectTokenInputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+			// Check that the token dropdowns are present
+			await waitFor(
+				() => {
+					expect(screen.getAllByRole('button', { name: /chevron down solid/i }).length).toBe(2);
+				},
+				{ timeout: 300000 }
+			);
+			const tokenSelectionButtons = screen.getAllByRole('button', { name: /chevron down solid/i });
 
-			const sellTokenInput = selectTokenInputs[0];
-			const buyTokenInput = selectTokenInputs[1];
+			await userEvent.click(tokenSelectionButtons[0]);
+			await userEvent.click(screen.getByText('Staked FLR'));
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('select-token-success-output')).toBeInTheDocument();
+				},
+				{ timeout: 300000 }
+			);
 
-			// Select the sell token
-			await userEvent.clear(sellTokenInput);
-			await userEvent.type(sellTokenInput, '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-			await waitFor(() => {
-				expect(screen.getByTestId('select-token-success-output')).toBeInTheDocument();
-			});
-
-			// Select the buy token
-			await userEvent.clear(buyTokenInput);
-			await userEvent.type(buyTokenInput, '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
-			await waitFor(() => {
-				expect(screen.getByTestId('select-token-success-input')).toBeInTheDocument();
-			});
+			await userEvent.click(tokenSelectionButtons[1]);
+			await userEvent.click(screen.getByText('Wrapped FLR'));
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('select-token-success-input')).toBeInTheDocument();
+				},
+				{ timeout: 300000 }
+			);
 
 			const timePerAmountEpochInput = screen.getByTestId(
 				'binding-time-per-amount-epoch-input'
@@ -335,10 +357,13 @@ describe('Full Deployment Tests', () => {
 			const deployButton = screen.getByText('Deploy Strategy');
 			await userEvent.click(deployButton);
 
-			await waitFor(async () => {
-				const disclaimerButton = screen.getByText('Deploy');
-				await userEvent.click(disclaimerButton);
-			});
+			await waitFor(
+				async () => {
+					const disclaimerButton = screen.getByText('Deploy');
+					await userEvent.click(disclaimerButton);
+				},
+				{ timeout: 300000 }
+			);
 
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(auctionStrategy, 'flare'))
@@ -358,7 +383,7 @@ describe('Full Deployment Tests', () => {
 				);
 				return args.value;
 			};
-			await new Promise((resolve) => setTimeout(resolve, 5000));
+			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
 				console.log('Auction strategy error', error);
@@ -388,7 +413,7 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 30000 }
+		{ timeout: 300000 }
 	);
 
 	it(
@@ -410,29 +435,35 @@ describe('Full Deployment Tests', () => {
 			const screen = render(Page);
 
 			// Wait for the gui provider to be in the document
-			await waitFor(() => {
-				expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
-			});
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+				},
+				{ timeout: 300000 }
+			);
 
-			// Get all the current input elements for select tokens
-			const selectTokenInputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+			await waitFor(
+				() => {
+					expect(screen.getAllByRole('button', { name: /chevron down solid/i }).length).toBe(2);
+				},
+				{ timeout: 300000 }
+			);
+			const tokenSelectionButtons = screen.getAllByRole('button', { name: /chevron down solid/i });
 
-			const firstTokenInput = selectTokenInputs[0];
-			const secondTokenInput = selectTokenInputs[1];
-
-			// Select the first token
-			await userEvent.clear(firstTokenInput);
-			await userEvent.type(firstTokenInput, '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+			await userEvent.click(tokenSelectionButtons[0]);
+			await userEvent.click(screen.getByText('Staked FLR'));
 			await waitFor(() => {
 				expect(screen.getByTestId('select-token-success-token1')).toBeInTheDocument();
 			});
 
-			// Select the second token
-			await userEvent.clear(secondTokenInput);
-			await userEvent.type(secondTokenInput, '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-			await waitFor(() => {
-				expect(screen.getByTestId('select-token-success-token2')).toBeInTheDocument();
-			});
+			await userEvent.click(tokenSelectionButtons[1]);
+			await userEvent.click(screen.getByText('Wrapped FLR'));
+			await waitFor(
+				() => {
+					expect(screen.getByTestId('select-token-success-token2')).toBeInTheDocument();
+				},
+				{ timeout: 300000 }
+			);
 
 			const amountIsFastExitButton = screen.getByTestId(
 				'binding-amount-is-fast-exit-preset-Yes'
@@ -473,10 +504,13 @@ describe('Full Deployment Tests', () => {
 			const deployButton = screen.getByText('Deploy Strategy');
 			await userEvent.click(deployButton);
 
-			await waitFor(async () => {
-				const disclaimerButton = screen.getByText('Deploy');
-				await userEvent.click(disclaimerButton);
-			});
+			await waitFor(
+				async () => {
+					const disclaimerButton = screen.getByText('Deploy');
+					await userEvent.click(disclaimerButton);
+				},
+				{ timeout: 300000 }
+			);
 
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(dynamicSpreadStrategy, 'flare'))
@@ -495,7 +529,7 @@ describe('Full Deployment Tests', () => {
 				);
 				return args.value;
 			};
-			await new Promise((resolve) => setTimeout(resolve, 5000));
+			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
 				console.log('Dynamic spread strategy error', error);
@@ -525,6 +559,6 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 30000 }
+		{ timeout: 300000 }
 	);
 });

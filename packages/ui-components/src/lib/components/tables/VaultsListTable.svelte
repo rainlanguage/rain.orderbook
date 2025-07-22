@@ -1,20 +1,17 @@
 <script lang="ts" generics="T">
 	import { toHex } from 'viem';
-
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { createInfiniteQuery } from '@tanstack/svelte-query';
+	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { RaindexVault } from '@rainlanguage/orderbook';
-	import { QKEY_VAULTS } from '../../queries/keys';
+	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
@@ -25,14 +22,13 @@
 	export let settings: AppStoresInterface['settings'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
-	export let activeAccounts: AppStoresInterface['activeAccounts'];
+	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
-
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let handleDepositModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let handleWithdrawModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
 		undefined;
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 
 	const { account, matchesAccount } = useAccount();
 	const raindexClient = useRaindexClient();
@@ -43,21 +39,38 @@
 			: $showMyItemsOnly && $account
 				? [$account]
 				: [];
+
+	$: tokensQuery = createQuery({
+		queryKey: [QKEY_TOKENS, $selectedChainIds],
+		queryFn: async () => {
+			const result = await raindexClient.getAllVaultTokens($selectedChainIds);
+			if (result.error) throw new Error(result.error.readableMsg);
+			return result.value;
+		},
+		enabled: true
+	});
+
+	$: selectedTokens =
+		$activeTokens?.filter(
+			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
+		) ?? [];
+
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
-			$activeAccounts,
 			$hideZeroBalanceVaults,
 			$selectedChainIds,
 			$settings,
-			owners
+			owners,
+			selectedTokens
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getVaults(
 				$selectedChainIds,
 				{
 					owners,
-					hideZeroBalance: $hideZeroBalanceVaults
+					hideZeroBalance: $hideZeroBalanceVaults,
+					tokens: selectedTokens
 				},
 				pageParam + 1
 			);
@@ -85,6 +98,9 @@
 		{showInactiveOrders}
 		{orderHash}
 		{hideZeroBalanceVaults}
+		{activeTokens}
+		{tokensQuery}
+		{selectedTokens}
 	/>
 	<AppTable
 		{query}
@@ -130,8 +146,7 @@
 				>{item.token.name}</TableBodyCell
 			>
 			<TableBodyCell tdClass="break-all p-2 min-w-48" data-testid="vault-balance">
-				{vaultBalanceDisplay(item)}
-				{item.token.symbol}
+				{`${item.formattedBalance} ${item.token.symbol}`}
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all p-2 min-w-48">
 				{#if item.ordersAsInput.length > 0}

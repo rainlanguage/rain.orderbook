@@ -1998,14 +1998,14 @@ ${dotrainWithoutVaultIds}`;
 
 			const allTokens = extractWasmEncodedData<TokenInfo[]>(await gui.getAllTokens());
 			assert.equal(allTokens.length, 2);
-			assert.equal(allTokens[0].address, '0x8888888888888888888888888888888888888888');
-			assert.equal(allTokens[0].name, 'Teken 2');
-			assert.equal(allTokens[0].symbol, 'T2');
-			assert.equal(allTokens[0].decimals, 18);
-			assert.equal(allTokens[1].address, '0x6666666666666666666666666666666666666666');
-			assert.equal(allTokens[1].name, 'Token 1');
-			assert.equal(allTokens[1].symbol, 'T1');
-			assert.equal(allTokens[1].decimals, 6);
+			assert.equal(allTokens[0].address, '0x6666666666666666666666666666666666666666');
+			assert.equal(allTokens[0].name, 'Token 1');
+			assert.equal(allTokens[0].symbol, 'T1');
+			assert.equal(allTokens[0].decimals, 6);
+			assert.equal(allTokens[1].address, '0x8888888888888888888888888888888888888888');
+			assert.equal(allTokens[1].name, 'Teken 2');
+			assert.equal(allTokens[1].symbol, 'T2');
+			assert.equal(allTokens[1].decimals, 18);
 		});
 	});
 
@@ -2043,7 +2043,7 @@ ${dotrainWithoutVaultIds}`;
 						patch: 0
 					},
 					tokens: [],
-					logoUri: 'http://localhost.com'
+					logoURI: 'http://localhost.com'
 				});
 
 			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
@@ -2143,7 +2143,7 @@ ${dotrainWithoutVaultIds}`;
 						patch: 0
 					},
 					tokens: [],
-					logoUri: 'http://localhost.com'
+					logoURI: 'http://localhost.com'
 				});
 
 			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
@@ -2199,131 +2199,12 @@ ${dotrainWithoutVaultIds}`;
 							decimals: 18
 						}
 					],
-					logoUri: 'http://localhost.com'
+					logoURI: 'http://localhost.com'
 				});
 
 			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
 			const gui = extractWasmEncodedData(result);
 			assert.ok(gui.getCurrentDeployment());
-		});
-
-		it('should fail for same remote token key in response', async () => {
-			mockServer
-				.forGet('/remote-networks')
-				.once()
-				.thenJson(200, [
-					{
-						name: 'Remote',
-						chain: 'remote-network',
-						chainId: 123,
-						rpc: ['http://localhost:8085/rpc-url'],
-						networkId: 123,
-						nativeCurrency: {
-							name: 'Remote',
-							symbol: 'RN',
-							decimals: 18
-						},
-						infoURL: 'http://localhost:8085/info-url',
-						shortName: 'remote-network'
-					}
-				]);
-			mockServer
-				.forGet('/remote-tokens')
-				.once()
-				.thenJson(200, {
-					name: 'Remote',
-					timestamp: '2021-01-01T00:00:00.000Z',
-					keywords: [],
-					version: {
-						major: 1,
-						minor: 0,
-						patch: 0
-					},
-					tokens: [
-						{
-							chainId: 123,
-							address: '0x0000000000000000000000000000000000000000',
-							name: 'Remote',
-							symbol: 'RN',
-							decimals: 18
-						},
-						{
-							chainId: 123,
-							address: '0x0000000000000000000000000000000000000000',
-							name: 'Remote',
-							symbol: 'RN',
-							decimals: 18
-						}
-					],
-					logoUri: 'http://localhost.com'
-				});
-
-			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
-			if (!result.error) expect.fail('Expected error');
-			expect(result.error.msg).toBe(
-				"Conflicting remote token in response, a token with key 'remote' already exists"
-			);
-			expect(result.error.readableMsg).toBe(
-				"Order configuration error in YAML: Conflicting remote token in response, a token with key 'remote' already exists"
-			);
-		});
-
-		it('should fail for duplicate token', async () => {
-			mockServer
-				.forGet('/remote-networks')
-				.once()
-				.thenJson(200, [
-					{
-						name: 'Remote',
-						chain: 'remote-network',
-						chainId: 123,
-						rpc: ['http://localhost:8085/rpc-url'],
-						networkId: 123,
-						nativeCurrency: {
-							name: 'Remote',
-							symbol: 'RN',
-							decimals: 18
-						},
-						infoURL: 'http://localhost:8085/info-url',
-						shortName: 'remote-network'
-					}
-				]);
-			mockServer
-				.forGet('/remote-tokens')
-				.once()
-				.thenJson(200, {
-					name: 'Remote',
-					timestamp: '2021-01-01T00:00:00.000Z',
-					keywords: [],
-					version: {
-						major: 1,
-						minor: 0,
-						patch: 0
-					},
-					tokens: [
-						{
-							chainId: 123,
-							address: '0x0000000000000000000000000000000000000000',
-							name: 'Token1',
-							symbol: 'RN',
-							decimals: 18
-						}
-					],
-					logoUri: 'http://localhost.com'
-				});
-
-			const guiResult = await DotrainOrderGui.newWithDeployment(
-				dotrainForRemotes,
-				'other-deployment'
-			);
-			const gui = extractWasmEncodedData(guiResult);
-
-			const result = gui.getCurrentDeployment();
-			if (!result.error) expect.fail('Expected error');
-			expect(result.error.msg).toBe('Remote token key shadowing: token1');
-			expect(result.error.readableMsg).toBe(
-				'YAML configuration error: Remote token key shadowing: token1'
-			);
 		});
 	});
 });

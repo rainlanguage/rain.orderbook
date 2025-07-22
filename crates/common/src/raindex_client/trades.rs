@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use super::*;
 use crate::raindex_client::{
     orders::RaindexOrder, transactions::RaindexTransaction, vaults::RaindexVaultBalanceChange,
@@ -9,6 +7,7 @@ use rain_orderbook_subgraph_client::{
     types::{common::SgTrade, Id},
     SgPaginationArgs,
 };
+use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
@@ -137,9 +136,10 @@ impl RaindexOrder {
                 end_timestamp,
             )
             .await?;
+
         let trades = trades
             .into_iter()
-            .map(RaindexTrade::try_from)
+            .map(|trade| RaindexTrade::try_from_sg_trade(self.chain_id(), trade))
             .collect::<Result<Vec<RaindexTrade>, RaindexError>>()?;
         Ok(trades)
     }
@@ -226,7 +226,8 @@ impl RaindexOrder {
 impl RaindexOrder {
     pub async fn get_trade_detail(&self, trade_id: Bytes) -> Result<RaindexTrade, RaindexError> {
         let client = self.get_orderbook_client()?;
-        RaindexTrade::try_from(
+        RaindexTrade::try_from_sg_trade(
+            self.chain_id(),
             client
                 .order_trade_detail(Id::new(trade_id.to_string()))
                 .await?,
@@ -234,19 +235,22 @@ impl RaindexOrder {
     }
 }
 
-impl TryFrom<SgTrade> for RaindexTrade {
-    type Error = RaindexError;
-    fn try_from(trade: SgTrade) -> Result<Self, Self::Error> {
+impl RaindexTrade {
+    pub fn try_from_sg_trade(chain_id: u32, trade: SgTrade) -> Result<Self, RaindexError> {
         Ok(RaindexTrade {
             id: Bytes::from_str(&trade.id.0)?,
             order_hash: Bytes::from_str(&trade.order.order_hash.0)?,
             transaction: RaindexTransaction::try_from(trade.trade_event.transaction)?,
-            input_vault_balance_change: RaindexVaultBalanceChange::try_from(
-                trade.input_vault_balance_change,
-            )?,
-            output_vault_balance_change: RaindexVaultBalanceChange::try_from(
-                trade.output_vault_balance_change,
-            )?,
+            input_vault_balance_change:
+                RaindexVaultBalanceChange::try_from_sg_trade_balance_change(
+                    chain_id,
+                    trade.input_vault_balance_change,
+                )?,
+            output_vault_balance_change:
+                RaindexVaultBalanceChange::try_from_sg_trade_balance_change(
+                    chain_id,
+                    trade.output_vault_balance_change,
+                )?,
             timestamp: U256::from_str(&trade.timestamp.0)?,
             orderbook: Address::from_str(&trade.orderbook.id.0)?,
         })
@@ -640,7 +644,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.output_vault_balance_change().token().decimals(),
-                Some(U256::from_str("18").unwrap())
+                U256::from(18)
             );
             assert_eq!(
                 trade1.output_vault_balance_change().timestamp(),
@@ -702,7 +706,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.input_vault_balance_change().token().decimals(),
-                Some(U256::from_str("18").unwrap())
+                U256::from(18)
             );
             assert_eq!(
                 trade1.input_vault_balance_change().timestamp(),
@@ -822,7 +826,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.output_vault_balance_change().token().decimals(),
-                Some(U256::from_str("18").unwrap())
+                U256::from(18)
             );
             assert_eq!(
                 trade.output_vault_balance_change().timestamp(),
@@ -874,7 +878,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.input_vault_balance_change().token().decimals(),
-                Some(U256::from_str("18").unwrap())
+                U256::from(18)
             );
             assert_eq!(
                 trade.input_vault_balance_change().timestamp(),

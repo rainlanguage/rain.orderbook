@@ -6,7 +6,6 @@ import {
 	SgOrder,
 	SgTrade,
 	OrderPerformance,
-	VaultVolume,
 	SgVault,
 	SgTransaction,
 	SgAddOrderWithOrder,
@@ -584,7 +583,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(order.vaults[2].token.decimals, '0');
 		});
 
-		it('should get the get the total volume for an order', async () => {
+		it('should get the total volume for an order', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
@@ -616,41 +615,36 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const result = await order.getVaultsVolume(BigInt(1632000000), BigInt(1734571449));
 			if (result.error) assert.fail('expected to resolve, but failed');
 
-			const expected: VaultVolume[] = [
-				{
-					id: '0x0234',
-					token: {
-						id: '0x0234',
-						address: '0x2222222222222222222222222222222222222222',
-						name: 'Token Two',
-						symbol: 'TK2',
-						decimals: '18'
-					},
-					volDetails: {
-						netVol: '0x2b5e3af16b1880000',
-						totalIn: '0x2b5e3af16b1880000',
-						totalOut: '0x0',
-						totalVol: '0x2b5e3af16b1880000'
-					}
-				},
-				{
-					id: '0x0123',
-					token: {
-						id: '0x0123',
-						address: '0x1111111111111111111111111111111111111111',
-						name: 'Token One',
-						symbol: 'TK1',
-						decimals: '18'
-					},
-					volDetails: {
-						netVol: '0x56bc75e2d63100000',
-						totalIn: '0x0',
-						totalOut: '0x56bc75e2d63100000',
-						totalVol: '0x56bc75e2d63100000'
-					}
-				}
-			];
-			assert.deepEqual(result.value, expected);
+			assert.equal(result.value.length, 2);
+			assert.equal(result.value[0].id, '0x0234');
+			assert.equal(result.value[0].token.id, '0x0234');
+			assert.equal(result.value[0].token.address, '0x2222222222222222222222222222222222222222');
+			assert.equal(result.value[0].token.name, 'Token Two');
+			assert.equal(result.value[0].token.symbol, 'TK2');
+			assert.equal(result.value[0].token.decimals, BigInt(18));
+			assert.equal(result.value[0].details.netVol, BigInt('0x2b5e3af16b1880000'));
+			assert.equal(result.value[0].details.formattedNetVol, '50');
+			assert.equal(result.value[0].details.totalIn, BigInt('0x2b5e3af16b1880000'));
+			assert.equal(result.value[0].details.formattedTotalIn, '50');
+			assert.equal(result.value[0].details.totalOut, BigInt('0x0'));
+			assert.equal(result.value[0].details.formattedTotalOut, '0');
+			assert.equal(result.value[0].details.totalVol, BigInt('0x2b5e3af16b1880000'));
+			assert.equal(result.value[0].details.formattedTotalVol, '50');
+
+			assert.equal(result.value[1].id, '0x0123');
+			assert.equal(result.value[1].token.id, '0x0123');
+			assert.equal(result.value[1].token.address, '0x1111111111111111111111111111111111111111');
+			assert.equal(result.value[1].token.name, 'Token One');
+			assert.equal(result.value[1].token.symbol, 'TK1');
+			assert.equal(result.value[1].token.decimals, BigInt(18));
+			assert.equal(result.value[1].details.netVol, BigInt('0x56bc75e2d63100000'));
+			assert.equal(result.value[1].details.formattedNetVol, '100');
+			assert.equal(result.value[1].details.totalIn, BigInt('0x0'));
+			assert.equal(result.value[1].details.formattedTotalIn, '0');
+			assert.equal(result.value[1].details.totalOut, BigInt('0x56bc75e2d63100000'));
+			assert.equal(result.value[1].details.formattedTotalOut, '100');
+			assert.equal(result.value[1].details.totalVol, BigInt('0x56bc75e2d63100000'));
+			assert.equal(result.value[1].details.formattedTotalVol, '100');
 		});
 
 		it('should calculate order performance metrics given an order id and subgraph', async () => {
@@ -798,13 +792,21 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const result = extractWasmEncodedData(await order.getQuotes());
+
+			assert.equal(result.length, 1);
 			assert.deepEqual(result, [
 				{
 					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
 					blockNumber: 1,
 					data: {
 						maxOutput: '0x1',
-						ratio: '0x2'
+						formattedMaxOutput: '0.000000000000000001',
+						maxInput: '0x2',
+						formattedMaxInput: '0.000000000000000000000000000000000002',
+						ratio: '0x2',
+						formattedRatio: '0.000000000000000002',
+						inverseRatio: '0x604be73de4838ad9a5cf8800000000',
+						formattedInverseRatio: '500000000000000000'
 					},
 					success: true,
 					error: undefined
@@ -1799,6 +1801,116 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const res = await vault.getApprovalCalldata('90');
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Existing allowance');
+		});
+
+		it('should get all vault tokens', async function () {
+			const tokens1 = [
+				{
+					id: 'token1',
+					address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+					name: 'Token 1',
+					symbol: 'TKN1',
+					decimals: '18'
+				},
+				{
+					id: 'token2',
+					address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+					name: 'Token 2',
+					symbol: 'TKN2',
+					decimals: '18'
+				}
+			];
+
+			const tokens2 = [
+				{
+					id: 'token3',
+					address: '0x3333333333333333333333333333333333333333',
+					name: 'Token 3',
+					symbol: 'TKN3',
+					decimals: '6'
+				}
+			];
+
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { erc20S: tokens1 } }));
+			await mockServer
+				.forPost('/sg2')
+				.thenReply(200, JSON.stringify({ data: { erc20S: tokens2 } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(await raindexClient.getAllVaultTokens());
+
+			assert.equal(result.length, 3);
+
+			assert.equal(result[0].id, 'token1');
+			assert.equal(result[0].symbol, 'TKN1');
+			assert.equal(result[0].name, 'Token 1');
+			assert.equal(result[0].chainId, 1);
+			assert.equal(result[0].address, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
+			assert.equal(result[0].decimals, BigInt(18));
+
+			assert.equal(result[1].id, 'token2');
+			assert.equal(result[1].symbol, 'TKN2');
+			assert.equal(result[1].name, 'Token 2');
+			assert.equal(result[1].chainId, 1);
+			assert.equal(result[1].address, '0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
+
+			assert.equal(result[2].id, 'token3');
+			assert.equal(result[2].symbol, 'TKN3');
+			assert.equal(result[2].name, 'Token 3');
+			assert.equal(result[2].chainId, 2);
+			assert.equal(result[2].address, '0x3333333333333333333333333333333333333333');
+			assert.equal(result[2].decimals, BigInt(6));
+		});
+
+		it('should get all vault tokens with chain filter', async function () {
+			const tokens1 = [
+				{
+					id: 'token1',
+					address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+					name: 'Token 1',
+					symbol: 'TKN1',
+					decimals: '18'
+				}
+			];
+
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { erc20S: tokens1 } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(await raindexClient.getAllVaultTokens([1]));
+
+			// Should have only 1 token from chain 1
+			assert.equal(result.length, 1);
+			assert.equal(result[0].id, 'token1');
+			assert.equal(result[0].chainId, 1);
+		});
+
+		it('should fetch account balance from a raindex vault instance', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
+			await mockServer.forPost('/rpc1').thenReply(
+				200,
+				JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					result: '0x00000000000000000000000000000000000000000000000000000000000003e8'
+				})
+			);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const vault = extractWasmEncodedData(
+				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+			);
+
+			const res = extractWasmEncodedData(await vault.getOwnerBalance());
+			assert.equal(typeof res.balance, 'bigint');
+			assert.equal(res.balance, BigInt(1000));
+			assert.equal(res.formattedBalance, '0.000000000000001');
 		});
 	});
 
