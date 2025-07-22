@@ -1935,4 +1935,42 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result.timestamp, BigInt(transaction.timestamp));
 		});
 	});
+
+	describe('Orderbook yaml', () => {
+		it('should get unique chain ids', () => {
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(raindexClient.getUniqueChainIds());
+			assert.equal(result.length, 2);
+			assert(result.includes(1));
+			assert(result.includes(2));
+		});
+
+		it('should get all networks', () => {
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(raindexClient.getAllNetworks());
+			assert.equal(result.size, 2);
+			assert.equal(result.get('some-network')?.chainId, 1);
+			assert.equal(result.get('other-network')?.chainId, 2);
+		});
+
+		it('should get network by chain id', () => {
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(raindexClient.getNetworkByChainId(1));
+			assert.equal(result.chainId, 1);
+		});
+
+		it('should get orderbook by address', () => {
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+
+			let result = extractWasmEncodedData(
+				raindexClient.getOrderbookByAddress(CHAIN_ID_1_ORDERBOOK_ADDRESS)
+			);
+			assert.equal(result.address.toLowerCase(), CHAIN_ID_1_ORDERBOOK_ADDRESS.toLowerCase());
+
+			result = extractWasmEncodedData(
+				raindexClient.getOrderbookByAddress(CHAIN_ID_2_ORDERBOOK_ADDRESS)
+			);
+			assert.equal(result.address.toLowerCase(), CHAIN_ID_2_ORDERBOOK_ADDRESS.toLowerCase());
+		});
+	});
 });
