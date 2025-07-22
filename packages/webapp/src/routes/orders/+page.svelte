@@ -10,7 +10,7 @@
 		selectedChainIds
 	} from '$lib/stores/settings';
 
-	const { settings, accounts, activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface =
+	const { accounts, activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface =
 		$page.data.stores;
 </script>
 
@@ -18,7 +18,6 @@
 
 <OrdersListTable
 	{selectedChainIds}
-	{settings}
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}

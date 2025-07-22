@@ -5,7 +5,6 @@
 
   import {
     selectedChainIds,
-    settings,
     accounts,
     activeAccountsItems,
     showInactiveOrders,
@@ -22,7 +21,6 @@
 <OrdersListTable
   {handleOrderRemoveModal}
   {selectedChainIds}
-  {settings}
   {accounts}
   {activeAccountsItems}
   {showInactiveOrders}

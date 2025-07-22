@@ -7,7 +7,6 @@
     accounts,
     activeAccountsItems,
     selectedChainIds,
-    settings,
     showInactiveOrders,
     hideZeroBalanceVaults,
     activeTokens,
@@ -24,7 +23,6 @@
   {accounts}
   {activeAccountsItems}
   {selectedChainIds}
-  {settings}
   {showInactiveOrders}
   {hideZeroBalanceVaults}
   {handleDepositModal}
