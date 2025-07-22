@@ -96,8 +96,6 @@ export {
 	promiseTimeout
 } from './services/time';
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
-export { vaultBalanceDisplay } from './utils/vault';
-export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
 export { invalidateTanstackQueries } from './queries/queryClient';
 export { getToastsContext } from './providers/toasts/context';
