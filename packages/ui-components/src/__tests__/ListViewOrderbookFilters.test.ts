@@ -1,10 +1,11 @@
 import { render, screen } from '@testing-library/svelte';
 import { readable, writable } from 'svelte/store';
-import { beforeEach, expect, test, describe, vi } from 'vitest';
+import { beforeEach, expect, test, describe, vi, type Mock } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
 import type { NewConfig, RaindexVaultToken } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import type { QueryObserverResult } from '@tanstack/svelte-query';
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores.ts'));
 
@@ -25,33 +26,15 @@ vi.mock('@tanstack/svelte-query', () => ({
 	createInfiniteQuery: vi.fn()
 }));
 
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
 describe('ListViewOrderbookFilters', () => {
-	const mockSettings = writable<NewConfig>({
-		orderbook: {
-			version: '1',
-			networks: {
-				ethereum: {
-					key: 'ethereum',
-					rpcs: ['https://rpc.ankr.com/eth'],
-					chainId: 1,
-					networkId: 1,
-					currency: 'ETH'
-				}
-			},
-			subgraphs: {
-				mainnet: {
-					key: 'mainnet',
-					url: 'mainnet-url'
-				}
-			}
-		}
-	} as unknown as NewConfig);
-
 	const defaultProps: ListViewOrderbookFiltersProps = {
-		settings: mockSettings,
 		accounts: writable({}),
 		hideZeroBalanceVaults: writable(false),
 		activeAccountsItems: writable({}),
@@ -70,35 +53,37 @@ describe('ListViewOrderbookFilters', () => {
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
-		mockSettings.set({
-			orderbook: {
-				networks: {
-					ethereum: {
-						key: 'ethereum',
-						rpcs: ['https://rpc.ankr.com/eth'],
-						chainId: 1,
-						networkId: 1,
-						currency: 'ETH'
-					}
-				},
-				subgraphs: {
-					mainnet: {
-						key: 'mainnet',
-						url: 'mainnet-url'
-					}
-				}
-			}
-		} as unknown as NewConfig);
+		(useRaindexClient as Mock).mockReturnValue({
+			getUniqueChainIds: vi.fn(() => ({
+				value: [1],
+				error: undefined
+			})),
+			getAllNetworks: vi.fn(() => ({
+				value: new Map([
+					[
+						'ethereum',
+						{
+							key: 'ethereum',
+							rpcs: ['https://rpc.ankr.com/eth'],
+							chainId: 1,
+							networkId: 1,
+							currency: 'ETH'
+						}
+					]
+				]),
+				error: undefined
+			}))
+		});
 		mockAccount.set(null);
 	});
 
 	test('shows no networks alert when networks are empty', () => {
-		mockSettings.set({
-			orderbook: {
-				networks: {},
-				subgraphs: {}
-			}
-		} as unknown as NewConfig);
+		(useRaindexClient as Mock).mockReturnValue({
+			getAllNetworks: vi.fn(() => ({
+				value: new Map(),
+				error: undefined
+			}))
+		});
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();

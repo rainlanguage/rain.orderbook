@@ -1,4 +1,5 @@
 <script lang="ts" generics="T">
+	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
 	import type { Readable } from 'svelte/store';
 	import DropdownActiveNetworks from './dropdown/DropdownActiveNetworks.svelte';
@@ -16,7 +17,6 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import type { AppStoresInterface } from '$lib/types/appStores';
 
-	export let settings: AppStoresInterface['settings'];
 	export let accounts: AppStoresInterface['accounts'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
@@ -32,13 +32,16 @@
 	$: isOrdersPage = $page.url.pathname === '/orders';
 
 	const { account } = useAccount();
+	const raindexClient = useRaindexClient();
+
+	$: networks = raindexClient.getAllNetworks();
 </script>
 
 <div
 	class="grid w-full items-center gap-4 md:flex md:justify-end lg:min-w-[600px]"
 	style="grid-template-columns: repeat(2, minmax(0, 1fr));"
 >
-	{#if isEmpty($settings.orderbook.networks)}
+	{#if networks.error || isEmpty(networks.value)}
 		<Alert color="gray" data-testid="no-networks-alert" class="w-full">
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
@@ -67,6 +70,6 @@
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
 		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
-		<DropdownActiveNetworks settings={$settings} {selectedChainIds} />
+		<DropdownActiveNetworks {selectedChainIds} />
 	{/if}
 </div>
