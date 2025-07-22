@@ -1,4 +1,4 @@
-import { DotrainOrderGui, type WasmEncodedResult } from '@rainlanguage/orderbook';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { pushGuiStateToUrlHistory } from '$lib/services/handleUpdateGuiState';
 
 export async function handleGuiInitialization(
