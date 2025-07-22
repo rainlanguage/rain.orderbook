@@ -79,7 +79,7 @@ describe('handleGuiInitialization', () => {
 
 		expect(result).toEqual({
 			gui: null,
-			error: 'Could not get deployment form.'
+			error: 'Failed to create deployment form: undefined'
 		});
 	});
 });

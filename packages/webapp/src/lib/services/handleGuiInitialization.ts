@@ -6,46 +6,27 @@ export async function handleGuiInitialization(
 	deploymentKey: string,
 	stateFromUrl: string | null
 ): Promise<{ gui: DotrainOrderGui | null; error: string | null }> {
-	try {
-		let gui: DotrainOrderGui;
-		let result: WasmEncodedResult<DotrainOrderGui>;
+	if (stateFromUrl) {
+		const result = await DotrainOrderGui.newFromState(
+			dotrain,
+			stateFromUrl,
+			pushGuiStateToUrlHistory
+		);
 
-		if (stateFromUrl) {
-			try {
-				result = await DotrainOrderGui.newFromState(
-					dotrain,
-					stateFromUrl,
-					pushGuiStateToUrlHistory
-				);
-				if (result.error) {
-					throw new Error(result.error.msg);
-				}
-				gui = result.value;
-			} catch {
-				result = await DotrainOrderGui.newWithDeployment(
-					dotrain,
-					deploymentKey,
-					pushGuiStateToUrlHistory
-				);
-				if (result.error) {
-					throw new Error(result.error.msg);
-				}
-				gui = result.value;
-			}
-		} else {
-			result = await DotrainOrderGui.newWithDeployment(
-				dotrain,
-				deploymentKey,
-				pushGuiStateToUrlHistory
-			);
-			if (result.error) {
-				throw new Error(result.error.msg);
-			}
-			gui = result.value;
-		}
+		if (result.error)
+			return { gui: null, error: `Failed to create deployment form: ${result.error.readableMsg}` };
 
-		return { gui, error: null };
-	} catch {
-		return { gui: null, error: 'Could not get deployment form.' };
+		return { gui: result.value, error: null };
+	} else {
+		const result = await DotrainOrderGui.newWithDeployment(
+			dotrain,
+			deploymentKey,
+			pushGuiStateToUrlHistory
+		);
+
+		if (result.error)
+			return { gui: null, error: `Failed to create deployment form: ${result.error.readableMsg}` };
+
+		return { gui: result.value, error: null };
 	}
 }
