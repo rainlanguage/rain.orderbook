@@ -6,29 +6,35 @@ use rain_orderbook_common::raindex_client::filters::{
     vaults_filter::GetVaultsFilters,
 };
 
-pub struct LocalStorageFilterStore {
+pub struct LocalStorageFilterStore<S: FilterStore> {
     key: String,
-    store: BasicFilterStore,
+    store: S,
     _ls: web_sys::Storage,
 }
 
-impl LocalStorageFilterStore {
+impl LocalStorageFilterStore<BasicFilterStore> {
     pub fn new(key: &str) -> Result<Self, PersistentFilterStoreError> {
-        let mut store = Self {
+        Self::new_with_store(key, BasicFilterStore::new())
+    }
+}
+
+impl<S: FilterStore> LocalStorageFilterStore<S> {
+    pub fn new_with_store(key: &str, store: S) -> Result<Self, PersistentFilterStoreError> {
+        let mut persistent_store = Self {
             key: key.to_string(),
-            store: BasicFilterStore::new(),
+            store,
             _ls: web_sys::window()
                 .ok_or(PersistentFilterStoreError::WindowNotAvailable)?
                 .local_storage()
                 .map_err(|e| PersistentFilterStoreError::LocalStorageInitError(format!("{:?}", e)))?
                 .ok_or(PersistentFilterStoreError::LocalStorageUnavailable)?,
         };
-        store.load()?;
-        Ok(store)
+        persistent_store.load()?;
+        Ok(persistent_store)
     }
 }
 
-impl FilterStore for LocalStorageFilterStore {
+impl<S: FilterStore> FilterStore for LocalStorageFilterStore<S> {
     fn get_vaults(&self) -> GetVaultsFilters {
         self.store.get_vaults()
     }
@@ -46,9 +52,9 @@ impl FilterStore for LocalStorageFilterStore {
     }
 }
 
-impl PersistentFilterStore for LocalStorageFilterStore {
+impl<S: FilterStore> PersistentFilterStore for LocalStorageFilterStore<S> {
     fn load(&mut self) -> Result<(), PersistentFilterStoreError> {
-        // Load filters from local storage (not implemented here)
+        // Load filters from local storage
         let loaded = self
             ._ls
             .get_item(&self.key)
