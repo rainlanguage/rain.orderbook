@@ -1,12 +1,13 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
-import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
 import { walletConnectNetwork } from '$lib/stores/walletconnect';
+import { orderbookAddress } from '$lib/stores/settings';
+import { getOrderbookByAddress } from '$lib/utils/getOrderbookByAddress';
 
 export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
   const chainId = get(walletConnectNetwork);
-  const orderbook = getOrderbookByChainId(chainId);
+  const orderbook = getOrderbookByAddress(get(orderbookAddress));
 
   await invoke('vault_deposit', {
     depositArgs: {
@@ -25,7 +26,7 @@ export async function vaultDeposit(vaultId: bigint, token: string, amount: bigin
 
 export async function vaultWithdraw(vaultId: bigint, token: string, targetAmount: bigint) {
   const chainId = get(walletConnectNetwork);
-  const orderbook = getOrderbookByChainId(chainId);
+  const orderbook = getOrderbookByAddress(get(orderbookAddress));
 
   await invoke('vault_withdraw', {
     chainId,
@@ -55,7 +56,7 @@ export async function vaultDepositCalldata(vaultId: bigint, token: string, amoun
 
 export async function vaultDepositApproveCalldata(vaultId: bigint, token: string, amount: bigint) {
   const chainId = get(walletConnectNetwork);
-  const orderbook = getOrderbookByChainId(get(walletConnectNetwork));
+  const orderbook = getOrderbookByAddress(get(orderbookAddress));
 
   return invoke('vault_deposit_approve_calldata', {
     depositArgs: {

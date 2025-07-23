@@ -22,7 +22,11 @@
   import { derived } from 'svelte/store';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
-  import { settings, settingsText } from '$lib/stores/settings';
+  import {
+    settings,
+    settingsText,
+    raindexClient as raindexClientStore,
+  } from '$lib/stores/settings';
   import { RaindexClient } from '@rainlanguage/orderbook';
   import { onMount } from 'svelte';
   import { loadRemoteSettings } from '$lib/services/loadRemoteSettings';
@@ -50,6 +54,7 @@
       throw new Error(result.error.readableMsg);
     } else {
       raindexClient = result.value;
+      raindexClientStore.set(raindexClient);
     }
   }
 </script>

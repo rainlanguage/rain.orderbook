@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import type { DeploymentCfg, RaindexOrder, ScenarioCfg } from '@rainlanguage/orderbook';
-import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
+import { getOrderbookByAddress } from '$lib/utils/getOrderbookByAddress';
 
 export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
   await invoke('order_add', {
@@ -18,7 +18,7 @@ export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
 }
 
 export async function orderRemove(order: RaindexOrder) {
-  const orderbook = getOrderbookByChainId(order.chainId);
+  const orderbook = getOrderbookByAddress(order.orderbook);
 
   await invoke('order_remove', {
     order,

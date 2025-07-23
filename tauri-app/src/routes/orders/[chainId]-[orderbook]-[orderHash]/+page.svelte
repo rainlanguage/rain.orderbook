@@ -18,14 +18,17 @@
     RaindexVault,
   } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
+  import { getNetworkByChainId } from '$lib/utils/getNetworkByChainId';
+  import { orderbookAddress as orderbookAddressStore } from '$lib/stores/settings';
 
   const queryClient = useQueryClient();
   const { chainId, orderbook, orderHash } = $page.params;
   const parsedOrderHash = orderHash as Hex;
   const parsedChainId = Number(chainId);
   const orderbookAddress = orderbook as Address;
-  const orderbookCfg = getOrderbookByChainId(parsedChainId);
+  const network = getNetworkByChainId(parsedChainId);
+
+  orderbookAddressStore.set(orderbookAddress);
 
   function onRemove(_raindexClient: RaindexClient, order: RaindexOrder) {
     handleOrderRemoveModal(order, () => {
@@ -61,6 +64,6 @@
     {onRemove}
     {onDeposit}
     {onWithdraw}
-    rpcUrls={orderbookCfg.network.rpcs}
+    rpcUrls={network.rpcs}
   />
 </div>
