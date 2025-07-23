@@ -8,11 +8,9 @@ import { mockQuoteDebug } from '$lib/queries/orderQuote';
 import ModalQuoteDebug from './ModalQuoteDebug.svelte';
 import type { RaindexOrder, SgOrder } from '@rainlanguage/orderbook';
 
-vi.mock('$lib/utils/getOrderbookByChainId', () => ({
-  getOrderbookByChainId: vi.fn().mockReturnValue({
-    network: {
-      rpcs: ['http://localhost:8545'],
-    },
+vi.mock('$lib/utils/raindexClient/getNetworkByChainId', () => ({
+  getNetworkByChainId: vi.fn().mockReturnValue({
+    rpcs: ['http://localhost:8545'],
   }),
 }));
 
