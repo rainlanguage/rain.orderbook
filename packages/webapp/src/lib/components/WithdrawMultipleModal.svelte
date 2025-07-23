@@ -53,11 +53,9 @@
 			<div class="flex gap-2">
 				<Button color="alternative" on:click={handleClose}>Cancel</Button>
 				{#if account}
-					<div class="flex flex-col gap-2">
-						<Button color="blue" data-testid="withdraw-button" on:click={handleSubmit}>
-							Withdraw all
-						</Button>
-					</div>
+					<Button color="blue" data-testid="withdraw-button" on:click={handleSubmit}>
+						Withdraw all
+					</Button>
 				{:else}
 					<WalletConnect {appKitModal} {connected} />
 				{/if}
