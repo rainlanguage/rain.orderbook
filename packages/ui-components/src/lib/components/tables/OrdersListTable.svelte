@@ -27,7 +27,6 @@
 	// End of optional props
 
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
-	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -96,7 +95,6 @@
 
 <ListViewOrderbookFilters
 	{selectedChainIds}
-	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
 	{showInactiveOrders}

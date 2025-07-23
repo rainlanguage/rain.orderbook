@@ -16,7 +16,6 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 
-	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
@@ -83,7 +82,6 @@
 {#if $query}
 	<ListViewOrderbookFilters
 		{selectedChainIds}
-		{accounts}
 		{activeAccountsItems}
 		{showMyItemsOnly}
 		{showInactiveOrders}

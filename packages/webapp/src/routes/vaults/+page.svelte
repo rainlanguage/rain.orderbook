@@ -9,7 +9,7 @@
 	} from '$lib/stores/settings';
 	import { selectedChainIds } from '$lib/stores/settings';
 
-	const { accounts, activeAccountsItems, showInactiveOrders } = $page.data.stores;
+	const { activeAccountsItems, showInactiveOrders } = $page.data.stores;
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
@@ -17,7 +17,6 @@
 <VaultsListTable
 	{orderHash}
 	{showMyItemsOnly}
-	{accounts}
 	{activeAccountsItems}
 	{showInactiveOrders}
 	{hideZeroBalanceVaults}

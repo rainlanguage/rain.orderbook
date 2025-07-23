@@ -18,7 +18,7 @@
     RaindexVault,
   } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { getNetworkByChainId } from '$lib/utils/getNetworkByChainId';
+  import { getNetworkByChainId } from '$lib/utils/raindexClient/getNetworkByChainId';
   import { orderbookAddress as orderbookAddressStore } from '$lib/stores/settings';
 
   const queryClient = useQueryClient();

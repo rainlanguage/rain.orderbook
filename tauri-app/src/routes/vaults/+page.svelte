@@ -4,7 +4,6 @@
 
   import {
     orderHash,
-    accounts,
     activeAccountsItems,
     selectedChainIds,
     showInactiveOrders,
@@ -20,7 +19,6 @@
 
 <VaultsListTable
   {orderHash}
-  {accounts}
   {activeAccountsItems}
   {selectedChainIds}
   {showInactiveOrders}
