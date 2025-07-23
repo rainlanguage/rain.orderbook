@@ -277,25 +277,25 @@ impl DotrainOrderGui {
             .into_iter()
             .filter(|(_, token)| token.network.key == network_key)
         {
-            if token.decimals.is_none() || token.label.is_none() || token.symbol.is_none() {
-                let erc20 = ERC20::new(network.rpcs.clone(), token.address);
-                fetch_futures.push(async move {
-                    let token_info = erc20.token_info(None).await?;
-                    Ok::<TokenInfo, GuiError>(TokenInfo {
-                        key: token.key.clone(),
-                        address: token.address,
-                        decimals: token_info.decimals,
-                        name: token_info.name,
-                        symbol: token_info.symbol,
-                    })
-                });
-            } else {
+            if token.decimals.is_some() && token.label.is_some() && token.symbol.is_some() {
                 results.push(TokenInfo {
                     key: token.key.clone(),
                     address: token.address,
                     decimals: token.decimals.unwrap(),
                     name: token.label.unwrap(),
                     symbol: token.symbol.unwrap(),
+                });
+            } else {
+                let erc20 = ERC20::new(network.rpcs.clone(), token.address);
+                fetch_futures.push(async move {
+                    let token_info = erc20.token_info(None).await?;
+                    Ok::<TokenInfo, GuiError>(TokenInfo {
+                        key: token.key.clone(),
+                        address: token.address,
+                        decimals: token.decimals.unwrap_or(token_info.decimals),
+                        name: token.label.unwrap_or(token_info.name),
+                        symbol: token.symbol.unwrap_or(token_info.symbol),
+                    })
                 });
             }
         }
