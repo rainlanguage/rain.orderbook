@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import { walletConnectNetwork } from '$lib/stores/walletconnect';
 import { orderbookAddress } from '$lib/stores/settings';
-import { getOrderbookByAddress } from '$lib/utils/getOrderbookByAddress';
+import { getOrderbookByAddress } from '$lib/utils/raindexClient/getOrderbookByAddress';
 
 export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
   const chainId = get(walletConnectNetwork);

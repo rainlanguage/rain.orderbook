@@ -6,7 +6,7 @@ import { WalletConnectModal } from '@walletconnect/modal';
 import { reportErrorToSentry } from '$lib/services/sentry';
 import { hexToNumber, isHex, type Hex } from 'viem';
 import { getChainIdFromRpc } from '$lib/services/chain';
-import { getAllNetworks } from '$lib/utils/getAllNetworks';
+import { getAllNetworks } from '$lib/utils/raindexClient/getAllNetworks';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const metadata = {

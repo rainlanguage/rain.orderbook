@@ -1,10 +1,9 @@
 import * as Sentry from '@sentry/sveltekit';
-import { enableSentry } from '$lib/stores/settings';
-import { get } from 'svelte/store';
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 import { handleErrorWithSentry } from '@sentry/sveltekit';
 import { arch, platform, type, version } from '@tauri-apps/api/os';
 import { getTauriVersion } from '@tauri-apps/api/app';
+import { isSentryEnabled } from '$lib/utils/raindexClient/isSentryEnabled';
 
 // Copy of Sentry.SeverityLevel allowed string values as an enum (to avoid spreading magic strings)
 export enum SentrySeverityLevel {
@@ -18,6 +17,8 @@ export enum SentrySeverityLevel {
 
 export async function initSentry() {
   if (import.meta.env.VITE_SENTRY_FORCE_DISABLED === 'true') return;
+
+  const enableSentry = isSentryEnabled();
 
   // Include system data in sentry issues, as both tags and context (for easy view & search)
   const [Arch, OsType, Platform, OsVersion, TauriVersion] = await Promise.all([
@@ -54,8 +55,7 @@ export async function initSentry() {
     // This is a recommended way to conditionally disable/enable Sentry at runtime
     // See https://github.com/getsentry/sentry-javascript/issues/2039#issuecomment-487490204
     beforeSend(event) {
-      const $enableSentry = get(enableSentry);
-      return $enableSentry ? event : null;
+      return enableSentry ? event : null;
     },
   });
 }
@@ -63,9 +63,8 @@ export async function initSentry() {
 export function handleErrorWithSentryIfEnabled<T extends HandleClientError | HandleServerError>(
   handleError: T,
 ) {
-  const $enableSentry = get(enableSentry);
-
-  if ($enableSentry) {
+  const enableSentry = isSentryEnabled();
+  if (enableSentry) {
     return handleErrorWithSentry(handleError);
   }
 }
@@ -75,9 +74,8 @@ export function reportErrorToSentry(
   e: any,
   level: SentrySeverityLevel = SentrySeverityLevel.Error,
 ) {
-  const $enableSentry = get(enableSentry);
-
-  if ($enableSentry) {
+  const enableSentry = isSentryEnabled();
+  if (enableSentry) {
     Sentry.withScope(function (scope) {
       scope.setLevel(level);
       Sentry.captureException(e);

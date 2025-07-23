@@ -11,7 +11,7 @@ import { get } from 'svelte/store';
 import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 import { walletConnectNetwork } from '$lib/stores/walletconnect';
-import { getNetworkByChainId } from '$lib/utils/getNetworkByChainId';
+import { getNetworkByChainId } from '$lib/utils/raindexClient/getNetworkByChainId';
 
 /**
  * Provides problems callback by invoking related tauri command

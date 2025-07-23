@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api';
 import type { Hex } from 'viem';
-import { getNetworkByChainId } from '$lib/utils/getNetworkByChainId';
+import { getNetworkByChainId } from '$lib/utils/raindexClient/getNetworkByChainId';
 import { walletConnectNetwork } from '$lib/stores/walletconnect';
 import { get } from 'svelte/store';
 
