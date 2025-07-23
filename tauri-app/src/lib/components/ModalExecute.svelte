@@ -99,8 +99,9 @@
       </ButtonLoading>
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
         <div class="text-red-500" data-testid="network-connection-error">
-          You are connected to {getNetworkName($walletConnectNetwork)} network. Please connect your wallet
-          to {overrideNetwork?.key || getNetworkName(chainId ?? 0)} network.
+          You are connected to {getNetworkName($walletConnectNetwork) || 'an unknown'} network. Please
+          connect your wallet to {overrideNetwork?.key || getNetworkName(chainId ?? 0) || 'unknown'}
+          network.
         </div>
       {/if}
     </div>

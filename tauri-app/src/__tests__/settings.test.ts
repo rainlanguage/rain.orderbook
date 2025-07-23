@@ -1,30 +1,8 @@
-import { activeAccountsItems, selectedChainIds } from '$lib/stores/settings';
 import { mockConfig } from '$lib/mocks/mockConfig';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { get } from '@square/svelte-store';
 import { cachedWritableStore } from '@rainlanguage/ui-components';
 import type { ConfigSource } from '@rainlanguage/orderbook';
-
-describe('Settings active accounts items', () => {
-  // Reset store values before each test to prevent state leakage
-  beforeEach(() => {
-    activeAccountsItems.set({});
-    selectedChainIds.set([]);
-
-    activeAccountsItems.set({
-      name_one: '0xaddress_one',
-      name_two: '0xaddress_two',
-    });
-    selectedChainIds.set([1, 2]);
-
-    // Verify initial state
-    expect(get(activeAccountsItems)).toEqual({
-      name_one: '0xaddress_one',
-      name_two: '0xaddress_two',
-    });
-    expect(get(selectedChainIds)).toEqual([1, 2]);
-  });
-});
 
 describe('Settings Subscription Edge Cases', () => {
   test('should handle invalid JSON in settings', () => {
