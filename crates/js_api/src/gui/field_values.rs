@@ -861,14 +861,14 @@ mod tests {
     async fn test_set_field_value_boolean() {
         let mut gui = initialize_validation_gui().await;
 
-        let result = gui.set_field_value("enabled-field".to_string(), "1".to_string());
+        let result = gui.set_field_value("enabled-field".to_string(), "true".to_string());
         assert!(result.is_ok());
 
-        let result = gui.set_field_value("enabled-field".to_string(), "0".to_string());
+        let result = gui.set_field_value("enabled-field".to_string(), "false".to_string());
         assert!(result.is_ok());
 
         let test_cases = vec![
-            "True", "FALSE", "yes", "no", "true", "false", "on", "off", "", " true", "true ",
+            "True", "FALSE", "yes", "no", "on", "off", "", " true", "true ", "1", "0",
         ];
 
         for test_value in test_cases {
@@ -1002,7 +1002,7 @@ mod tests {
             },
             FieldValuePair {
                 field: "enabled-field".to_string(),
-                value: "1".to_string(),
+                value: "true".to_string(),
             },
         ];
 

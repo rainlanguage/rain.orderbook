@@ -266,7 +266,7 @@ fn validate_string(
 
 fn validate_boolean(name: &str, value: &str) -> Result<(), GuiValidationError> {
     match value {
-        "1" | "0" => Ok(()),
+        "true" | "false" => Ok(()),
         _ => Err(GuiValidationError::InvalidBoolean {
             name: name.to_string(),
             value: value.to_string(),
@@ -812,10 +812,10 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_validate_boolean() {
-        let result = validate_boolean("Enable Feature", "1");
+        let result = validate_boolean("Enable Feature", "true");
         assert!(result.is_ok());
 
-        let result = validate_boolean("Enable Feature", "0");
+        let result = validate_boolean("Enable Feature", "false");
         assert!(result.is_ok());
 
         let result = validate_boolean("Enable Feature", "yes");
@@ -839,13 +839,13 @@ mod tests {
             Err(GuiValidationError::InvalidBoolean { .. })
         ));
 
-        let result = validate_boolean("Enable Feature", "true");
+        let result = validate_boolean("Enable Feature", "True");
         assert!(matches!(
             result,
             Err(GuiValidationError::InvalidBoolean { .. })
         ));
 
-        let result = validate_boolean("Enable Feature", "false");
+        let result = validate_boolean("Enable Feature", "False");
         assert!(matches!(
             result,
             Err(GuiValidationError::InvalidBoolean { .. })
@@ -918,10 +918,10 @@ mod tests {
     fn test_validate_field_value_boolean() {
         let validation = FieldValueValidationCfg::Boolean;
 
-        let result = validate_field_value("Toggle Field", "1", &validation);
+        let result = validate_field_value("Toggle Field", "true", &validation);
         assert!(result.is_ok());
 
-        let result = validate_field_value("Toggle Field", "0", &validation);
+        let result = validate_field_value("Toggle Field", "false", &validation);
         assert!(result.is_ok());
 
         let result = validate_field_value("Toggle Field", "maybe", &validation);
