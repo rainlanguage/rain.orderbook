@@ -29,7 +29,7 @@ impl RaindexClient {
     )]
     pub fn get_unique_chain_ids(&self) -> Result<Vec<u32>, RaindexError> {
         let networks = self.get_all_networks()?;
-        Ok(networks.iter().map(|(_, cfg)| cfg.chain_id).collect())
+        Ok(networks.values().map(|(cfg)| cfg.chain_id).collect())
     }
 
     /// Retrieves all available networks with their configurations
@@ -298,7 +298,7 @@ mod tests {
         );
         let client = RaindexClient::new(vec![yaml], None).unwrap();
         let result = client.is_sentry_enabled().unwrap();
-        
+
         assert!(!result);
     }
 
@@ -312,19 +312,28 @@ mod tests {
         );
         let client = RaindexClient::new(vec![yaml], None).unwrap();
         let result = client.get_all_accounts().unwrap();
-        
+
         assert_eq!(result.len(), 3);
         assert!(result.contains_key("alice"));
         assert!(result.contains_key("bob"));
         assert!(result.contains_key("charlie"));
-        
+
         let alice = result.get("alice").unwrap();
-        assert_eq!(alice.address, Address::from_str("0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA").unwrap());
-        
+        assert_eq!(
+            alice.address,
+            Address::from_str("0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA").unwrap()
+        );
+
         let bob = result.get("bob").unwrap();
-        assert_eq!(bob.address, Address::from_str("0x8ba1f109551bD432803012645aac136c0c8D2e80").unwrap());
-        
+        assert_eq!(
+            bob.address,
+            Address::from_str("0x8ba1f109551bD432803012645aac136c0c8D2e80").unwrap()
+        );
+
         let charlie = result.get("charlie").unwrap();
-        assert_eq!(charlie.address, Address::from_str("0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5").unwrap());
+        assert_eq!(
+            charlie.address,
+            Address::from_str("0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5").unwrap()
+        );
     }
 }
