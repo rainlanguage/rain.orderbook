@@ -8,7 +8,8 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 pub struct MulticallCalldataResult(#[tsify(type = "string")] Bytes);
 impl_wasm_traits!(MulticallCalldataResult);
 
-/// Generates multicall calldata from an array of individual calldatas.
+/// Generates multicall calldata to Orderbook smart contract
+/// from an array of individual calldatas.
 ///
 /// Takes an array of hex-encoded calldata strings and combines them into a single
 /// multicall transaction that executes all of them atomically.
