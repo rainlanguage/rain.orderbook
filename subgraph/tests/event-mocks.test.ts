@@ -7,26 +7,27 @@ import {
   Value,
 } from "@graphprotocol/graph-ts";
 import {
-  AddOrderV2,
-  ClearV2,
-  AfterClear,
-  Deposit,
+  AddOrderV3,
+  ClearV3,
+  AfterClearV2,
+  DepositV2,
   MetaV1_2,
-  RemoveOrderV2,
-  TakeOrderV2,
+  RemoveOrderV3,
+  TakeOrderV3,
 } from "../generated/OrderBook/OrderBook";
-import { Withdraw } from "../generated/OrderBook/OrderBook";
+import { WithdrawV2 } from "../generated/OrderBook/OrderBook";
 import { createTransactionEntity } from "../src/transaction";
+import { Float } from "../src/float";
 
-// event Deposit(address sender, address token, uint256 vaultId, uint256 amount);
+// event DepositV2(address sender, address token, bytes32 vaultId, uint256 depositAmountUint256);
 export function createDepositEvent(
   sender: Address,
   token: Address,
-  vaultId: BigInt,
+  vaultId: Bytes,
   amount: BigInt
-): Deposit {
+): DepositV2 {
   let mockEvent = newMockEvent();
-  let depositEvent = new Deposit(
+  let depositEvent = new DepositV2(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -44,10 +45,7 @@ export function createDepositEvent(
     new ethereum.EventParam("token", ethereum.Value.fromAddress(token))
   );
   depositEvent.parameters.push(
-    new ethereum.EventParam(
-      "vaultId",
-      ethereum.Value.fromUnsignedBigInt(vaultId)
-    )
+    new ethereum.EventParam("vaultId", ethereum.Value.fromBytes(vaultId))
   );
   depositEvent.parameters.push(
     new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
@@ -57,16 +55,24 @@ export function createDepositEvent(
   return depositEvent;
 }
 
-// event Withdraw(address sender, address token, uint256 vaultId, uint256 targetAmount, uint256 amount);
+// event WithdrawV2(
+//   address sender,
+//   address token,
+//   bytes32 vaultId,
+//   Float targetAmount,
+//   Float withdrawAmount,
+//   uint256 withdrawAmountUint256
+// );
 export function createWithdrawEvent(
   sender: Address,
   token: Address,
-  vaultId: BigInt,
-  targetAmount: BigInt,
-  amount: BigInt
-): Withdraw {
+  vaultId: Bytes,
+  targetAmount: Float,
+  amount: Float,
+  withdrawAmountUint256: BigInt
+): WithdrawV2 {
   let mockEvent = newMockEvent();
-  let withdrawalEvent = new Withdraw(
+  let withdrawalEvent = new WithdrawV2(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -84,33 +90,34 @@ export function createWithdrawEvent(
     new ethereum.EventParam("token", ethereum.Value.fromAddress(token))
   );
   withdrawalEvent.parameters.push(
-    new ethereum.EventParam(
-      "vaultId",
-      ethereum.Value.fromUnsignedBigInt(vaultId)
-    )
+    new ethereum.EventParam("vaultId", ethereum.Value.fromBytes(vaultId))
   );
   withdrawalEvent.parameters.push(
     new ethereum.EventParam(
       "targetAmount",
-      ethereum.Value.fromUnsignedBigInt(targetAmount)
+      ethereum.Value.fromBytes(targetAmount)
     )
   );
   withdrawalEvent.parameters.push(
-    new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
+    new ethereum.EventParam("withdrawAmount", ethereum.Value.fromBytes(amount))
+  );
+  withdrawalEvent.parameters.push(
+    new ethereum.EventParam(
+      "withdrawAmountUint256",
+      ethereum.Value.fromUnsignedBigInt(withdrawAmountUint256)
+    )
   );
 
   createTransactionEntity(withdrawalEvent);
   return withdrawalEvent;
 }
 
-export class IO {
+export class IOV2 {
   token: Address;
-  decimals: BigInt;
-  vaultId: BigInt;
+  vaultId: Bytes;
 
-  constructor(token: Address, decimals: BigInt, vaultId: BigInt) {
+  constructor(token: Address, vaultId: Bytes) {
     this.token = token;
-    this.decimals = decimals;
     this.vaultId = vaultId;
   }
 }
@@ -130,8 +137,8 @@ export class Evaluable {
 export function createOrder(
   owner: Address,
   evaluable: Evaluable,
-  validInputs: Array<IO>,
-  validOutputs: Array<IO>,
+  validInputs: Array<IOV2>,
+  validOutputs: Array<IOV2>,
   nonce: Bytes
 ): ethereum.Tuple {
   let _evaluable = new ethereum.Tuple();
@@ -142,16 +149,14 @@ export function createOrder(
   let _validInputs = validInputs.map<ethereum.Tuple>((input) => {
     let _input = new ethereum.Tuple();
     _input.push(ethereum.Value.fromAddress(input.token));
-    _input.push(ethereum.Value.fromUnsignedBigInt(input.decimals));
-    _input.push(ethereum.Value.fromUnsignedBigInt(input.vaultId));
+    _input.push(ethereum.Value.fromBytes(input.vaultId));
     return _input;
   });
 
   let _validOutputs = validOutputs.map<ethereum.Tuple>((output) => {
     let _output = new ethereum.Tuple();
     _output.push(ethereum.Value.fromAddress(output.token));
-    _output.push(ethereum.Value.fromUnsignedBigInt(output.decimals));
-    _output.push(ethereum.Value.fromUnsignedBigInt(output.vaultId));
+    _output.push(ethereum.Value.fromBytes(output.vaultId));
     return _output;
   });
 
@@ -169,13 +174,13 @@ export function createOrder(
 export function createAddOrderEvent(
   sender: Address,
   orderHash: Bytes,
-  validInputs: Array<IO>,
-  validOutputs: Array<IO>,
+  validInputs: Array<IOV2>,
+  validOutputs: Array<IOV2>,
   nonce: Bytes,
   evaluable: Evaluable
-): AddOrderV2 {
+): AddOrderV3 {
   let mockEvent = newMockEvent();
-  let addOrderEvent = new AddOrderV2(
+  let addOrderEvent = new AddOrderV3(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -208,13 +213,13 @@ export function createRemoveOrderEvent(
   sender: Address,
   orderHash: Bytes,
   owner: Address,
-  validInputs: Array<IO>,
-  validOutputs: Array<IO>,
+  validInputs: Array<IOV2>,
+  validOutputs: Array<IOV2>,
   nonce: Bytes,
   evaluable: Evaluable
-): RemoveOrderV2 {
+): RemoveOrderV3 {
   let mockEvent = newMockEvent();
-  let removeOrderEvent = new RemoveOrderV2(
+  let removeOrderEvent = new RemoveOrderV3(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -241,19 +246,19 @@ export function createRemoveOrderEvent(
   return removeOrderEvent;
 }
 
-// event TakeOrderV2(address sender, TakeOrderConfigV3 config, uint256 input, uint256 output);
+// event TakeOrderV3(address sender, TakeOrderConfigV4 config, Float input, Float output);
 export function createTakeOrderEvent(
   sender: Address,
   owner: Address,
-  validInputs: Array<IO>,
-  validOutputs: Array<IO>,
+  validInputs: Array<IOV2>,
+  validOutputs: Array<IOV2>,
   nonce: Bytes,
   evaluable: Evaluable,
-  input: BigInt,
-  output: BigInt
-): TakeOrderV2 {
+  input: Float,
+  output: Float
+): TakeOrderV3 {
   let mockEvent = newMockEvent();
-  let takeOrderEvent = new TakeOrderV2(
+  let takeOrderEvent = new TakeOrderV3(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -290,10 +295,10 @@ export function createTakeOrderEvent(
     new ethereum.EventParam("config", ethereum.Value.fromTuple(config))
   );
   takeOrderEvent.parameters.push(
-    new ethereum.EventParam("input", ethereum.Value.fromUnsignedBigInt(input))
+    new ethereum.EventParam("input", ethereum.Value.fromBytes(input))
   );
   takeOrderEvent.parameters.push(
-    new ethereum.EventParam("output", ethereum.Value.fromUnsignedBigInt(output))
+    new ethereum.EventParam("output", ethereum.Value.fromBytes(output))
   );
   return takeOrderEvent;
 }
@@ -328,7 +333,7 @@ export function createMetaEvent(
   return metaEvent;
 }
 
-// event ClearV2(address,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(uint256,uint256,uint256,uint256,uint256,uint256))
+// event ClearV3(address sender, OrderV4 alice, OrderV4 bob, ClearConfigV2 clearConfig);
 export function createClearEvent(
   sender: Address,
   aliceOrder: ethereum.Tuple,
@@ -337,11 +342,11 @@ export function createClearEvent(
   aliceOutputIOIndex: BigInt,
   bobInputIOIndex: BigInt,
   bobOutputIOIndex: BigInt,
-  aliceBountyVaultId: BigInt,
-  bobBountyVaultId: BigInt
-): ClearV2 {
+  aliceBountyVaultId: Bytes,
+  bobBountyVaultId: Bytes
+): ClearV3 {
   let mockEvent = newMockEvent();
-  let clearEvent = new ClearV2(
+  let clearEvent = new ClearV3(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -368,8 +373,8 @@ export function createClearEvent(
   _clearConfig.push(ethereum.Value.fromUnsignedBigInt(aliceOutputIOIndex));
   _clearConfig.push(ethereum.Value.fromUnsignedBigInt(bobInputIOIndex));
   _clearConfig.push(ethereum.Value.fromUnsignedBigInt(bobOutputIOIndex));
-  _clearConfig.push(ethereum.Value.fromUnsignedBigInt(aliceBountyVaultId));
-  _clearConfig.push(ethereum.Value.fromUnsignedBigInt(bobBountyVaultId));
+  _clearConfig.push(ethereum.Value.fromFixedBytes(aliceBountyVaultId));
+  _clearConfig.push(ethereum.Value.fromFixedBytes(bobBountyVaultId));
   clearEvent.parameters.push(
     new ethereum.EventParam(
       "clearConfig",
@@ -380,16 +385,16 @@ export function createClearEvent(
   return clearEvent;
 }
 
-// event AfterClear(address,(uint256,uint256,uint256,uint256))
+// event AfterClearV2(address sender, ClearStateChangeV2 clearStateChange)
 export function createAfterClearEvent(
   sender: Address,
-  aliceOutput: BigInt,
-  bobOutput: BigInt,
-  aliceInput: BigInt,
-  bobInput: BigInt
-): AfterClear {
+  aliceOutput: Float,
+  bobOutput: Float,
+  aliceInput: Float,
+  bobInput: Float
+): AfterClearV2 {
   let mockEvent = newMockEvent();
-  let afterClearEvent = new AfterClear(
+  let afterClearEvent = new AfterClearV2(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -404,10 +409,10 @@ export function createAfterClearEvent(
     new ethereum.EventParam("sender", ethereum.Value.fromAddress(sender))
   );
   let _clearStateChange = new ethereum.Tuple();
-  _clearStateChange.push(ethereum.Value.fromUnsignedBigInt(aliceOutput));
-  _clearStateChange.push(ethereum.Value.fromUnsignedBigInt(bobOutput));
-  _clearStateChange.push(ethereum.Value.fromUnsignedBigInt(aliceInput));
-  _clearStateChange.push(ethereum.Value.fromUnsignedBigInt(bobInput));
+  _clearStateChange.push(ethereum.Value.fromBytes(aliceOutput));
+  _clearStateChange.push(ethereum.Value.fromBytes(bobOutput));
+  _clearStateChange.push(ethereum.Value.fromBytes(aliceInput));
+  _clearStateChange.push(ethereum.Value.fromBytes(bobInput));
   afterClearEvent.parameters.push(
     new ethereum.EventParam(
       "clearStateChange",
