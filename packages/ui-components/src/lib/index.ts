@@ -151,5 +151,3 @@ export { TransactionManager } from './providers/transactions/TransactionManager'
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
-export { mockConfig } from './__mocks__/settings';
-export { mockSettingsStore } from './__mocks__/settings';

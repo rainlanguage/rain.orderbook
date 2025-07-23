@@ -446,6 +446,10 @@ deployers:
     mainnet-deployer:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
         network: mainnet
+accounts:
+    alice: 0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA
+    bob: 0x8ba1f109551bD432803012645aac136c0c8D2e80
+    charlie: 0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5
 "#,
             spec_version = SpecVersion::current()
         )
