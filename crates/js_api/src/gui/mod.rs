@@ -153,11 +153,9 @@ impl DotrainOrderGui {
             param_description = "Key of the deployment to activate (must exist in YAML)"
         )]
         selected_deployment: String,
-        #[wasm_export(
-            param_description = "Optional JavaScript function called on state changes. \
+        #[wasm_export(param_description = "Optional function called on state changes. \
             After a state change (deposit, field value, vault id, select token, etc.), the callback is called with the new state. \
-            This is useful for auto-saving the state of the GUI across sessions."
-        )]
+            This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
@@ -401,7 +399,7 @@ impl DotrainOrderGui {
         unchecked_return_type = "NameAndDescriptionCfg",
         return_description = "Strategy name, description, and optional short description"
     )]
-    pub async fn get_strategy_details(
+    pub fn get_strategy_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
         let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
@@ -440,7 +438,7 @@ impl DotrainOrderGui {
         unchecked_return_type = "Map<string, NameAndDescriptionCfg>",
         return_description = "Map of deployment key to metadata"
     )]
-    pub async fn get_deployment_details(
+    pub fn get_deployment_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, GuiError> {
         let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
@@ -468,11 +466,11 @@ impl DotrainOrderGui {
         unchecked_return_type = "NameAndDescriptionCfg",
         return_description = "Deployment name and description"
     )]
-    pub async fn get_deployment_detail(
+    pub fn get_deployment_detail(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
         #[wasm_export(param_description = "Deployment identifier to look up")] key: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
-        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
+        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain)?;
         let deployment_detail = deployment_details
             .get(&key)
             .ok_or(GuiError::DeploymentNotFound(key))?;
@@ -1250,10 +1248,8 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_strategy_details() {
-        let strategy_details = DotrainOrderGui::get_strategy_details(get_yaml())
-            .await
-            .unwrap();
+    fn test_get_strategy_details() {
+        let strategy_details = DotrainOrderGui::get_strategy_details(get_yaml()).unwrap();
         assert_eq!(strategy_details.name, "Fixed limit");
         assert_eq!(strategy_details.description, "Fixed limit order strategy");
         assert_eq!(
@@ -1276,9 +1272,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_strategy_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1307,9 +1301,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_strategy_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1339,9 +1331,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_strategy_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1357,10 +1347,8 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_deployment_details() {
-        let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml())
-            .await
-            .unwrap();
+    fn test_get_deployment_details() {
+        let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml()).unwrap();
         assert_eq!(deployment_details.len(), 3);
         let deployment_detail = deployment_details.get("some-deployment").unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
@@ -1398,9 +1386,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let details = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap();
+        let details = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap();
         assert_eq!(details.len(), 0);
 
         let yaml = format!(
@@ -1418,9 +1404,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1449,9 +1433,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1484,9 +1466,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1519,9 +1499,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1552,9 +1530,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1570,10 +1546,9 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_deployment_detail() {
+    fn test_get_deployment_detail() {
         let deployment_detail =
             DotrainOrderGui::get_deployment_detail(get_yaml(), "some-deployment".to_string())
-                .await
                 .unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
         assert_eq!(
@@ -1725,6 +1700,7 @@ _ _: 0 0;
             let server = MockServer::start_async().await;
             let yaml = format!(
                 r#"
+version: {spec_version}
 networks:
     some-network:
         rpcs:
@@ -1734,6 +1710,7 @@ networks:
         currency: ETH
 {yaml}
 "#,
+                spec_version = SpecVersion::current(),
                 yaml = SELECT_TOKEN_YAML,
                 rpc_url = server.url("/rpc")
             );
@@ -1743,7 +1720,7 @@ networks:
                         then.body(Response::new_success(1, "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000").to_json_string().unwrap());
                     });
 
-            let gui = DotrainOrderGui::new_with_deployment(
+            let mut gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
                 "some-deployment".to_string(),
                 None,
