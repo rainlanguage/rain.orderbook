@@ -28,7 +28,7 @@ impl TryFrom<SgVault> for TokenVaultFlattened {
         Ok(Self {
             id: val.id.0,
             owner: val.owner,
-            vault_id: SgBigInt(val.vault_id.0),
+            vault_id: val.vault_id,
             token_name: val.token.name,
             token_symbol: val.token.symbol,
             token_decimals: val.token.decimals,

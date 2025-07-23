@@ -559,12 +559,13 @@ impl DotrainOrderGui {
         &mut self,
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
-        let dotrain_instance_v1 = self.generate_dotrain_instance_v1()?;
+        let additional_docs: Vec<RainMetaDocumentV1Item> =
+            vec![self.generate_dotrain_instance_v1()?.try_into()?];
 
         let calldata = AddOrderArgs::new_from_deployment(
             self.dotrain_order.dotrain()?,
             deployment.deployment.as_ref().clone(),
-            Some(dotrain_instance_v1),
+            Some(additional_docs),
         )
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)

@@ -408,7 +408,6 @@ impl RaindexError {
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
             RaindexError::ParseMetaError(err) => format!("Cannot parse metadata: {err}"),
-
         }
     }
 }

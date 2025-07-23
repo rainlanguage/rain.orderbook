@@ -27,10 +27,10 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
             timestamp: val.timestamp.clone(),
             timestamp_display: format_bigint_timestamp_display(val.timestamp.0)?,
             from: val.transaction.from,
-            amount: SgBigInt(val.amount.0),
+            amount: val.amount,
             amount_display_signed,
             change_type_display: val.__typename,
-            balance: SgBigInt(val.new_vault_balance.0.clone()),
+            balance: val.new_vault_balance.clone(),
         })
     }
 }

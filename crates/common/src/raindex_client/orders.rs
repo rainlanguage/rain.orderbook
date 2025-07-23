@@ -7,7 +7,6 @@ use crate::{
     },
 };
 use alloy::primitives::{Address, Bytes, U256};
-#[cfg(not(target_family = "wasm"))]
 use rain_metadata::UnpackedMetadata;
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
@@ -35,24 +34,6 @@ const DEFAULT_PAGE_SIZE: u16 = 100;
 /// This ensures consistent error handling by wrapping all metadata parsing errors
 /// in the same ParseMetaError variant
 #[cfg(not(target_family = "wasm"))]
-fn map_decode_error_to_rain_metadata_error(
-    e: crate::meta::TryDecodeRainlangSourceError,
-) -> rain_metadata::Error {
-    use crate::meta::TryDecodeRainlangSourceError;
-    match e {
-        TryDecodeRainlangSourceError::FromHexError(_) => {
-            rain_metadata::Error::DecodeHexStringError(
-                alloy::primitives::hex::FromHexError::InvalidHexCharacter { c: '?', index: 0 },
-            )
-        }
-        TryDecodeRainlangSourceError::FromUtf8Error(_) => rain_metadata::Error::CorruptMeta,
-        TryDecodeRainlangSourceError::MissingRainlangSourceV1 => rain_metadata::Error::UnknownMeta,
-        TryDecodeRainlangSourceError::RainMetadataError(err) => err,
-        TryDecodeRainlangSourceError::RainlangSourceMismatch => rain_metadata::Error::CorruptMeta,
-    }
-}
-
-#[cfg(target_family = "wasm")]
 fn map_decode_error_to_rain_metadata_error(
     e: crate::meta::TryDecodeRainlangSourceError,
 ) -> rain_metadata::Error {
@@ -946,59 +927,50 @@ mod tests {
                         id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     }
                 }],
-                inputs: vec![SgVault {
-                    id: SgBytes("0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac".to_string()),
-                    owner: SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string()),
-                    vault_id: SgBytes("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
-                    balance: SgBytes(Float::parse("0.79799".to_string()).unwrap().as_hex()),
-                    token: SgErc20 {
-                        id: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
-                        address: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
-                        name: Some("Wrapped Flare".to_string()),
-                        symbol: Some("WFLR".to_string()),
-                        decimals: Some(SgBigInt("18".to_string())),
+                inputs: vec![
+                    SgVault {
+                        id: SgBytes("0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac".to_string()),
+                        owner: SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string()),
+                        vault_id: SgBytes("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
+                        balance: SgBytes(Float::parse("0.79799".to_string()).unwrap().as_hex()),
+                        token: SgErc20 {
+                            id: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
+                            address: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
+                            name: Some("Wrapped Flare".to_string()),
+                            symbol: Some("WFLR".to_string()),
+                            decimals: Some(SgBigInt("18".to_string())),
+                        },
+                        orderbook: SgOrderbook {
+                            id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
+                        },
+                        orders_as_output: vec![],
+                        orders_as_input: vec![SgOrderAsIO {
+                            id: SgBytes("0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()),
+                            order_hash: SgBytes("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4".to_string()),
+                            active: true,
+                        }],
+                        balance_changes: vec![],
                     },
-                    orderbook: SgOrderbook {
-                        id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
-                    },
-                    orders_as_output: vec![],
-                    orders_as_input: vec![SgOrderAsIO {
-                        id: SgBytes("0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()),
-                        order_hash: SgBytes("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4".to_string()),
-                        active: true,
-                    }],
-                    balance_changes: vec![],
-                },
-                SgVault {
-                    id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                    token: SgErc20 {
+                    SgVault {
                         id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                        address: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                        name: Some("T1".to_string()),
-                        symbol: Some("T1".to_string()),
-                        decimals: Some(SgBigInt("0".to_string())),
+                        token: SgErc20 {
+                            id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
+                            address: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
+                            name: Some("T1".to_string()),
+                            symbol: Some("T1".to_string()),
+                            decimals: Some(SgBigInt("0".to_string())),
+                        },
+                        balance: SgBytes(F0.as_hex()),
+                        vault_id: SgBytes("0".to_string()),
+                        owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
+                        orders_as_output: vec![],
+                        orders_as_input: vec![],
+                        balance_changes: vec![],
+                        orderbook: SgOrderbook {
+                            id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
+                        }
                     },
-                    balance: SgBytes(F0.as_hex()),
-                    vault_id: SgBytes("0".to_string()),
-                    owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                    orders_as_output: vec![],
-                    orders_as_input: vec![],
-                    balance_changes: vec![],
-                    orderbook: SgOrderbook {
-                        id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                    }
-                  },
-                  "timestamp": "0",
-                  "transaction": {
-                    "id": "tx2",
-                    "from": "from2",
-                    "blockNumber": "0",
-                    "timestamp": "1700086400"
-                  },
-                  "orderbook": {
-                    "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
-                  }
-                }],
+                ],
                 orderbook: SgOrderbook {
                     id: SgBytes(CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string()),
                 },
