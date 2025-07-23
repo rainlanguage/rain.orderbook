@@ -13,9 +13,7 @@ import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { REGISTRY_URL } from '$lib/constants';
 import { handleTransactionConfirmationModal } from '$lib/services/modal';
 
-const { mockPageStore, mockSettingsStore } = await vi.hoisted(
-	() => import('@rainlanguage/ui-components')
-);
+const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
 const { mockConnectedStore, mockAppKitModalStore, mockWagmiConfigStore } = await vi.hoisted(
 	() => import('$lib/__mocks__/stores')
@@ -133,7 +131,6 @@ describe('Full Deployment Tests', () => {
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
 				data: {
-					stores: { settings: mockSettingsStore },
 					dotrain: fixedLimitStrategy,
 					deployment: {
 						key: 'flare'
@@ -260,7 +257,6 @@ describe('Full Deployment Tests', () => {
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
 				data: {
-					stores: { settings: mockSettingsStore },
 					dotrain: auctionStrategy,
 					deployment: {
 						key: 'flare'
@@ -421,7 +417,6 @@ describe('Full Deployment Tests', () => {
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
 				data: {
-					stores: { settings: mockSettingsStore },
 					dotrain: dynamicSpreadStrategy,
 					deployment: {
 						key: 'flare'

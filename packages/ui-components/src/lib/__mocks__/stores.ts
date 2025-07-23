@@ -13,7 +13,6 @@ if (import.meta.vitest) {
 
 const initialPageState = {
 	data: {
-		stores: { settings: {} },
 		dotrain: 'some dotrain content',
 		deployment: { key: 'deploy-key' },
 		strategyDetail: {}

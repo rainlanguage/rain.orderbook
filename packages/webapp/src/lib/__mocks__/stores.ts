@@ -5,7 +5,6 @@ import type { AppKit } from '@reown/appkit';
 
 export const initialPageState = {
 	data: {
-		stores: { settings: {} },
 		dotrain: 'some dotrain content',
 		deployment: { key: 'deploy-key' },
 		strategyDetail: {},

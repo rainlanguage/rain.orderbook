@@ -1988,8 +1988,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result.size, 2);
 			assert(result.has('alice'));
 			assert(result.has('bob'));
-			assert.equal(result.get('alice')?.address.toLowerCase(), '0x742d35cc6634c0532925a3b8d4fd2d3db2d4d7fa');
-			assert.equal(result.get('bob')?.address.toLowerCase(), '0x8ba1f109551bd432803012645aac136c0c8d2e80');
+			assert.equal(
+				result.get('alice')?.address.toLowerCase(),
+				'0x742d35cc6634c0532925a3b8d4fd2d3db2d4d7fa'
+			);
+			assert.equal(
+				result.get('bob')?.address.toLowerCase(),
+				'0x8ba1f109551bd432803012645aac136c0c8d2e80'
+			);
 		});
 	});
 });
