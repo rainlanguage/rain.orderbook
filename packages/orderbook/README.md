@@ -256,8 +256,8 @@ const token = vault.token; // RaindexVaultToken
 // Get the current balance for this vault (in token's smallest unit)
 const balance = vault.balance; // bigint (e.g., BigInt(1000000) for 1 USDC with 6 decimals)
 
-// Get the current balance for this vault (in token's smallest unit)
-const balance = vault.formattedBalance; // string (e.g., "1")
+// Get the current balance in human-readable format
+const formattedBalance = vault.formattedBalance; // string (e.g., "1")
 
 // Get the orders that use this vault as input (selling from this vault)
 const inputOrders = vault.ordersAsInput; // RaindexOrderAsIO[]
