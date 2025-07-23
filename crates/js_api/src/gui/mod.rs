@@ -284,16 +284,13 @@ impl DotrainOrderGui {
     ) -> Result<TokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
-        let token_info = if token.decimals.is_some()
-            && token.label.is_some()
-            && token.symbol.is_some()
-        {
+        let token_info = if let (Some(decimals), Some(label), Some(symbol)) = (&token.decimals, &token.label, &token.symbol) {
             TokenInfo {
                 key: token.key.clone(),
                 address: token.address,
-                decimals: token.decimals.unwrap(),
-                name: token.label.unwrap(),
-                symbol: token.symbol.unwrap(),
+                decimals: *decimals,
+                name: label.clone(),
+                symbol: symbol.clone(),
             }
         } else {
             let order_key = DeploymentCfg::parse_order_key(

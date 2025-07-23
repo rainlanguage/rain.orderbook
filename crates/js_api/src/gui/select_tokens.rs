@@ -277,13 +277,13 @@ impl DotrainOrderGui {
             .into_iter()
             .filter(|(_, token)| token.network.key == network_key)
         {
-            if token.decimals.is_some() && token.label.is_some() && token.symbol.is_some() {
+            if let (Some(decimals), Some(label), Some(symbol)) = (&token.decimals, &token.label, &token.symbol) {
                 results.push(TokenInfo {
                     key: token.key.clone(),
                     address: token.address,
-                    decimals: token.decimals.unwrap(),
-                    name: token.label.unwrap(),
-                    symbol: token.symbol.unwrap(),
+                    decimals: *decimals,
+                    name: label.clone(),
+                    symbol: symbol.clone(),
                 });
             } else {
                 let erc20 = ERC20::new(network.rpcs.clone(), token.address);
