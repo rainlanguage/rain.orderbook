@@ -66,7 +66,6 @@ pub struct RaindexVault {
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVault {
-    #[cfg(target_family = "wasm")]
     fn u256_to_bigint(value: U256) -> Result<BigInt, RaindexError> {
         BigInt::from_str(&value.to_string())
             .map_err(|e| RaindexError::JsError(e.to_string().into()))
@@ -154,15 +153,35 @@ impl RaindexVault {
     }
 }
 
-/// Represents the balance of an account.
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
 pub struct AccountBalance {
-    #[tsify(type = "bigint")]
-    pub balance: U256,
-    pub formatted_balance: String,
+    balance: U256,
+    formatted_balance: String,
 }
-impl_wasm_traits!(AccountBalance);
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+impl AccountBalance {
+    #[wasm_bindgen(getter)]
+    pub fn balance(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.balance.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    }
+    #[wasm_bindgen(getter = formattedBalance)]
+    pub fn formatted_balance(&self) -> String {
+        self.formatted_balance.clone()
+    }
+}
+#[cfg(not(target_family = "wasm"))]
+impl AccountBalance {
+    pub fn balance(&self) -> U256 {
+        self.balance
+    }
+    pub fn formatted_balance(&self) -> String {
+        self.formatted_balance.clone()
+    }
+}
 
 /// Token metadata associated with a vault in the Raindex system.
 ///
@@ -500,10 +519,11 @@ impl RaindexVault {
     #[wasm_export(
         js_name = "getOwnerBalance",
         return_description = "Owner balance in both raw and human-readable format",
-        unchecked_return_type = "AccountBalance"
+        unchecked_return_type = "AccountBalance",
+        preserve_js_class
     )]
     pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
-        let balance = self.clone().get_owner_balance(self.owner).await?;
+        let balance = self.get_owner_balance(self.owner).await?;
         let decimals = self.token.decimals.try_into()?;
         let account_balance = AccountBalance {
             balance,
@@ -513,7 +533,7 @@ impl RaindexVault {
     }
 }
 impl RaindexVault {
-    pub async fn get_owner_balance(self, owner: Address) -> Result<U256, RaindexError> {
+    pub async fn get_owner_balance(&self, owner: Address) -> Result<U256, RaindexError> {
         let rpcs = {
             let raindex_client = self
                 .raindex_client
@@ -738,7 +758,7 @@ impl RaindexVaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultVolume {
-    id: Bytes,
+    id: U256,
     token: RaindexVaultToken,
     details: RaindexVaultVolumeDetails,
 }
@@ -746,8 +766,9 @@ pub struct RaindexVaultVolume {
 #[wasm_bindgen]
 impl RaindexVaultVolume {
     #[wasm_bindgen(getter)]
-    pub fn id(&self) -> String {
-        self.id.to_string()
+    pub fn id(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.id.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
     #[wasm_bindgen(getter)]
     pub fn token(&self) -> RaindexVaultToken {
@@ -760,8 +781,8 @@ impl RaindexVaultVolume {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultVolume {
-    pub fn id(&self) -> Bytes {
-        self.id.clone()
+    pub fn id(&self) -> U256 {
+        self.id
     }
     pub fn token(&self) -> RaindexVaultToken {
         self.token.clone()
@@ -781,7 +802,7 @@ impl RaindexVaultVolume {
             vault_volume.vol_details,
         )?;
         Ok(Self {
-            id: Bytes::from_str(&vault_volume.id)?,
+            id: U256::from_str(&vault_volume.id)?,
             token,
             details,
         })

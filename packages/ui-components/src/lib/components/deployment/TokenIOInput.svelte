@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import { type OrderIOCfg, type TokenInfo } from '@rainlanguage/orderbook';
+	import { type OrderIOCfg, type TokenInfo, type VaultType } from '@rainlanguage/orderbook';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
 	import type { TokenBalance } from '$lib/types/tokenBalance';
@@ -8,7 +9,6 @@
 
 	const gui = useGui();
 
-	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIOCfg;
 	export let tokenBalances: Map<string, TokenBalance> = new Map();
@@ -18,16 +18,18 @@
 	let error: string = '';
 
 	onMount(() => {
+		if (!vault.token?.key) return;
+
 		const result = gui.getVaultIds();
 		if (result.error) {
 			error = result.error.msg;
 			return;
 		}
 		const vaultIds = result.value;
-		if (label === 'Input') {
-			inputValue = vaultIds.get('input')?.[i] as unknown as string;
-		} else if (label === 'Output') {
-			inputValue = vaultIds.get('output')?.[i] as unknown as string;
+		const vaultMap = vaultIds.get(label.toLowerCase());
+		if (vaultMap) {
+			const vaultId = vaultMap.get(vault.token.key);
+			inputValue = vaultId || '';
 		}
 	});
 
@@ -49,10 +51,13 @@
 	};
 
 	const handleInput = async () => {
-		const isInput = label === 'Input';
+		if (!vault.token) {
+			error = 'Vault token is not set.';
+			return;
+		}
 		error = '';
 		try {
-			gui?.setVaultId(isInput, i, inputValue);
+			gui.setVaultId(label.toLowerCase() as VaultType, vault.token.key, inputValue);
 		} catch (e) {
 			const errorMessage = (e as Error).message ? (e as Error).message : 'Error setting vault ID.';
 			error = errorMessage;
@@ -74,8 +79,8 @@
 	<div class="flex w-full flex-col gap-2">
 		<div class="flex items-center gap-2">
 			<VaultIdInformation
-				title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
-				description={`${tokenInfo?.symbol} vault ID`}
+				title={`${label} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
+				description={`${tokenInfo?.symbol || 'Token'} vault ID`}
 				{tokenBalance}
 				decimals={tokenInfo?.decimals}
 			/>

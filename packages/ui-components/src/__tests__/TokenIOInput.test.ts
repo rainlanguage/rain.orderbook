@@ -53,8 +53,8 @@ describe('TokenInput', () => {
 			}),
 			getVaultIds: vi.fn().mockReturnValue({
 				value: new Map([
-					['input', ['vault1']],
-					['output', ['vault2']]
+					['input', new Map([['test', 'vault1']])],
+					['output', new Map([['test', 'vault2']])]
 				])
 			})
 		} as unknown as DotrainOrderGui;
@@ -64,13 +64,11 @@ describe('TokenInput', () => {
 		(useGui as Mock).mockReturnValue(guiInstance);
 
 		mockProps = {
-			i: 0,
 			label: 'Input',
 			vault: mockInput,
 			tokenBalances: new Map()
 		} as unknown as TokenIOInputComponentProps;
 		outputMockProps = {
-			i: 0,
 			label: 'Output',
 			vault: mockInput,
 			tokenBalances: new Map()
@@ -79,7 +77,7 @@ describe('TokenInput', () => {
 
 	it('renders with correct label and no token symbol', () => {
 		const { getByText } = render(TokenIOInput, mockProps);
-		expect(getByText('Input 1')).toBeInTheDocument();
+		expect(getByText('Input')).toBeInTheDocument();
 	});
 
 	it('renders input field with correct placeholder', () => {
@@ -98,14 +96,14 @@ describe('TokenInput', () => {
 	it('calls setVaultId when input changes', async () => {
 		const input = render(TokenIOInput, mockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault1' } });
-		expect(guiInstance.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
+		expect(guiInstance.setVaultId).toHaveBeenCalledWith('input', 'test', 'vault1');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
 	it('calls setVaultId on output vault when input changes', async () => {
 		const input = render(TokenIOInput, outputMockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault2' } });
-		expect(guiInstance.setVaultId).toHaveBeenCalledWith(false, 0, 'vault2');
+		expect(guiInstance.setVaultId).toHaveBeenCalledWith('output', 'test', 'vault2');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
@@ -118,7 +116,7 @@ describe('TokenInput', () => {
 			TokenIOInput,
 			propsWithUnknownToken as unknown as TokenIOInputComponentProps
 		);
-		expect(getByText('Input 1')).toBeInTheDocument();
+		expect(getByText('Input')).toBeInTheDocument();
 	});
 
 	describe('Balance Display', () => {
@@ -204,7 +202,7 @@ describe('TokenInput', () => {
 
 		const { findByText } = render(TokenIOInput, propsWithTokenKey);
 
-		const labelWithSymbol = await findByText('Input 1 (MOCK)');
+		const labelWithSymbol = await findByText('Input (MOCK)');
 		expect(labelWithSymbol).toBeInTheDocument();
 		expect(guiInstance.getTokenInfo).toHaveBeenCalledWith('0x456');
 	});
