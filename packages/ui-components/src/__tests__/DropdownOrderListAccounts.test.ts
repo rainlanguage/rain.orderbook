@@ -1,27 +1,25 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import DropdownOrderListAccounts from '../lib/components/dropdown/DropdownOrderListAccounts.svelte';
-import { expect, test, describe, beforeEach } from 'vitest';
-import type { AccountCfg } from '@rainlanguage/orderbook';
+import { expect, test, describe, beforeEach, type Mock } from 'vitest';
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
 
 describe('DropdownOrderListAccounts', () => {
-	let accounts: Writable<Record<string, AccountCfg>>;
 	let activeAccountsItems: Writable<Record<string, `0x${string}`>>;
 
 	beforeEach(() => {
-		accounts = writable({
-			address1: {
-				key: 'address1',
-				address: '0x1234567890123456789012345678901234567890'
-			},
-			address2: {
-				key: 'address2',
-				address: '0x1234567890123456789012345678901234567891'
-			},
-			address3: {
-				key: 'address3',
-				address: '0x1234567890123456789012345678901234567892'
-			}
+		(useRaindexClient as Mock).mockReturnValue({
+			getAllAccounts: vi.fn().mockReturnValue({
+				value: new Map([
+					['address1', { key: 'address1', address: '0x1234567890123456789012345678901234567890' }],
+					['address2', { key: 'address2', address: '0x1234567890123456789012345678901234567891' }],
+					['address3', { key: 'address3', address: '0x1234567890123456789012345678901234567892' }]
+				])
+			})
 		});
 		activeAccountsItems = writable({});
 	});
@@ -29,7 +27,6 @@ describe('DropdownOrderListAccounts', () => {
 	test('renders correctly', () => {
 		render(DropdownOrderListAccounts, {
 			props: {
-				accounts,
 				activeAccountsItems
 			}
 		});
@@ -39,7 +36,6 @@ describe('DropdownOrderListAccounts', () => {
 	test('displays the correct number of options', async () => {
 		render(DropdownOrderListAccounts, {
 			props: {
-				accounts,
 				activeAccountsItems
 			}
 		});
@@ -55,7 +51,6 @@ describe('DropdownOrderListAccounts', () => {
 	test('updates active accounts when an option is selected', async () => {
 		render(DropdownOrderListAccounts, {
 			props: {
-				accounts,
 				activeAccountsItems
 			}
 		});
@@ -73,7 +68,6 @@ describe('DropdownOrderListAccounts', () => {
 	test('selects all items when "All accounts" is clicked', async () => {
 		render(DropdownOrderListAccounts, {
 			props: {
-				accounts,
 				activeAccountsItems
 			}
 		});
@@ -91,11 +85,14 @@ describe('DropdownOrderListAccounts', () => {
 	});
 
 	test('displays "No accounts added" when accounts list is empty', async () => {
-		accounts.set({});
+		(useRaindexClient as Mock).mockReturnValue({
+			getAllAccounts: vi.fn().mockReturnValue({
+				value: new Map()
+			})
+		});
 
 		render(DropdownOrderListAccounts, {
 			props: {
-				accounts,
 				activeAccountsItems
 			}
 		});

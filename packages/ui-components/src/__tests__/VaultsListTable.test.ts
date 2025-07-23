@@ -28,6 +28,10 @@ vi.mock('$lib/hooks/useRaindexClient', () => ({
 		getAllNetworks: vi.fn(() => ({
 			value: new Map([[1, { name: 'Ethereum', id: 1 }]]),
 			error: undefined
+		})),
+		getAllAccounts: vi.fn(() => ({
+			value: new Map(),
+			error: undefined
 		}))
 	})
 }));
@@ -59,7 +63,6 @@ const {
 	mockActiveOrderbookRefStore,
 	mockHideZeroBalanceVaultsStore,
 	mockOrderHashStore,
-	mockAccountsStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
 	mockActiveAccountsStore,
@@ -69,7 +72,6 @@ const {
 
 const defaultProps = {
 	orderHash: mockOrderHashStore,
-	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,

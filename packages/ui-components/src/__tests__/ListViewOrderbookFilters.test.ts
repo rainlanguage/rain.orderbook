@@ -34,8 +34,9 @@ vi.mock('$lib/hooks/useRaindexClient', () => ({
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
 describe('ListViewOrderbookFilters', () => {
+	const mockGetAllAccounts = vi.fn();
+
 	const defaultProps: ListViewOrderbookFiltersProps = {
-		accounts: writable({}),
 		hideZeroBalanceVaults: writable(false),
 		activeAccountsItems: writable({}),
 		selectedChainIds: writable([]),
@@ -72,14 +73,26 @@ describe('ListViewOrderbookFilters', () => {
 					]
 				]),
 				error: undefined
-			}))
+			})),
+			getAllAccounts: mockGetAllAccounts
 		});
+
+		// Set default return value for getAllAccounts
+		mockGetAllAccounts.mockReturnValue({
+			value: new Map(),
+			error: undefined
+		});
+
 		mockAccount.set(null);
 	});
 
 	test('shows no networks alert when networks are empty', () => {
 		(useRaindexClient as Mock).mockReturnValue({
 			getAllNetworks: vi.fn(() => ({
+				value: new Map(),
+				error: undefined
+			})),
+			getAllAccounts: vi.fn(() => ({
 				value: new Map(),
 				error: undefined
 			}))
@@ -120,8 +133,7 @@ describe('ListViewOrderbookFilters', () => {
 		const props = {
 			...defaultProps,
 			showMyItemsOnly: writable(true),
-			activeAccountsItems: undefined,
-			accounts: writable({})
+			activeAccountsItems: undefined
 		};
 		render(ListViewOrderbookFilters, props);
 
@@ -138,46 +150,38 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('shows accounts dropdown when accounts exist', () => {
-		const props = {
-			...defaultProps,
-			accounts: writable({
-				'0x123': { key: '0x123', address: '0x123', name: 'Account 1' },
-				'0x456': { key: '0x456', address: '0x456', name: 'Account 2' }
-			})
-		};
-		render(ListViewOrderbookFilters, props);
+		mockGetAllAccounts.mockReturnValue({
+			value: new Map([
+				['0x123', { key: '0x123', address: '0x123', name: 'Account 1' }],
+				['0x456', { key: '0x456', address: '0x456', name: 'Account 2' }]
+			]),
+			error: undefined
+		});
+
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('accounts-dropdown')).toBeInTheDocument();
 	});
 
 	test('does not show accounts dropdown when no accounts exist', () => {
-		const props = {
-			...defaultProps,
-			accounts: writable({})
-		};
-		render(ListViewOrderbookFilters, props);
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.queryByTestId('accounts-dropdown')).not.toBeInTheDocument();
 	});
 
 	test('shows My Items Only checkbox when no accounts (current logic)', () => {
-		const props = {
-			...defaultProps,
-			accounts: writable({})
-		};
-		render(ListViewOrderbookFilters, props);
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('my-items-only')).toBeInTheDocument();
 	});
 
 	test('hides My Items Only checkbox when accounts exist (current logic)', () => {
-		const props = {
-			...defaultProps,
-			accounts: writable({
-				'0x123': { key: '0x123', address: '0x123', name: 'Account 1' }
-			})
-		};
-		render(ListViewOrderbookFilters, props);
+		mockGetAllAccounts.mockReturnValue({
+			value: new Map([['0x123', { key: '0x123', address: '0x123', name: 'Account 1' }]]),
+			error: undefined
+		});
+
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.queryByTestId('my-items-only')).not.toBeInTheDocument();
 	});
@@ -189,11 +193,7 @@ describe('ListViewOrderbookFilters', () => {
 			} as URL
 		});
 
-		const props = {
-			...defaultProps,
-			accounts: writable({})
-		};
-		render(ListViewOrderbookFilters, props);
+		render(ListViewOrderbookFilters, defaultProps);
 
 		const myItemsElement = screen.getByTestId('my-items-only');
 		expect(myItemsElement).toBeInTheDocument();
@@ -206,11 +206,7 @@ describe('ListViewOrderbookFilters', () => {
 			} as URL
 		});
 
-		const props = {
-			...defaultProps,
-			accounts: writable({})
-		};
-		render(ListViewOrderbookFilters, props);
+		render(ListViewOrderbookFilters, defaultProps);
 
 		const myItemsElement = screen.getByTestId('my-items-only');
 		expect(myItemsElement).toBeInTheDocument();

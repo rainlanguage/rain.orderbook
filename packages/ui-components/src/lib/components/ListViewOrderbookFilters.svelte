@@ -17,7 +17,6 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import type { AppStoresInterface } from '$lib/types/appStores';
 
-	export let accounts: AppStoresInterface['accounts'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
@@ -35,6 +34,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: networks = raindexClient.getAllNetworks();
+	$: accounts = raindexClient.getAllAccounts();
 </script>
 
 <div
@@ -46,7 +46,7 @@
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
-		{#if $accounts && !Object.values($accounts).length}
+		{#if !accounts.error && accounts.value.size === 0}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
 				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
 				{#if !$account}
@@ -66,8 +66,8 @@
 				<CheckboxActiveOrders {showInactiveOrders} />
 			</div>
 		{/if}
-		{#if $accounts && Object.values($accounts).length > 0}
-			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
+		{#if !accounts.error && accounts.value.size > 0}
+			<DropdownOrderListAccounts {activeAccountsItems} />
 		{/if}
 		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
 		<DropdownActiveNetworks {selectedChainIds} />
