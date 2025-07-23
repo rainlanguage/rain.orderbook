@@ -63,7 +63,14 @@
       const calldataBytes = hexToBytes(
         (calldata.value.startsWith('0x') ? calldata.value : `0x${calldata.value}`) as Hex,
       );
-      const orderbook = vaults[0].orderbook; // Assuming all vaults belong to the same orderbook
+
+      const orderbook = vaults[0].orderbook;
+      // Validate all vaults belong to the same orderbook
+      const allSameOrderbook = vaults.every((vault) => vault.orderbook === orderbook);
+      if (!allSameOrderbook) {
+        throw new Error('All vaults must belong to the same orderbook for batch withdrawal');
+      }
+
       const tx = await ethersExecute(calldataBytes, orderbook);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
