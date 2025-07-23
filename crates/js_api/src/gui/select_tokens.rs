@@ -277,7 +277,9 @@ impl DotrainOrderGui {
             .into_iter()
             .filter(|(_, token)| token.network.key == network_key)
         {
-            if let (Some(decimals), Some(label), Some(symbol)) = (&token.decimals, &token.label, &token.symbol) {
+            if let (Some(decimals), Some(label), Some(symbol)) =
+                (&token.decimals, &token.label, &token.symbol)
+            {
                 results.push(TokenInfo {
                     key: token.key.clone(),
                     address: token.address,

@@ -284,7 +284,9 @@ impl DotrainOrderGui {
     ) -> Result<TokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
-        let token_info = if let (Some(decimals), Some(label), Some(symbol)) = (&token.decimals, &token.label, &token.symbol) {
+        let token_info = if let (Some(decimals), Some(label), Some(symbol)) =
+            (&token.decimals, &token.label, &token.symbol)
+        {
             TokenInfo {
                 key: token.key.clone(),
                 address: token.address,
