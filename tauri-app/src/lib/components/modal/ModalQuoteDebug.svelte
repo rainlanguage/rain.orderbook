@@ -7,7 +7,7 @@
   import { Refresh } from '@rainlanguage/ui-components';
   import EvalResultsTable from '../debug/EvalResultsTable.svelte';
   import { fade } from 'svelte/transition';
-  import { getNetworkByChainId } from '$lib/utils/getNetworkByChainId';
+  import { getNetworkByChainId } from '$lib/utils/raindexClient/getNetworkByChainId';
 
   export let open: boolean;
   export let order: RaindexOrder;
