@@ -59,7 +59,7 @@ pub enum GuiValidationError {
         maximum: u32,
     },
 
-    #[error("{name} value '{value}' is not a valid boolean (must be '1' or '0')")]
+    #[error("{name} value '{value}' is not a valid boolean (must be 'true' or 'false')")]
     InvalidBoolean { name: String, value: String },
 }
 
