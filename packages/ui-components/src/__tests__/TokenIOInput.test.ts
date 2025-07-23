@@ -135,7 +135,7 @@ describe('TokenInput', () => {
 
 			const { findByText } = render(TokenIOInput, propsWithBalance);
 
-			const labelWithSymbol = await findByText('Input 1 (MOCK)');
+			const labelWithSymbol = await findByText('Input (MOCK)');
 			expect(labelWithSymbol).toBeInTheDocument();
 		});
 
@@ -154,7 +154,7 @@ describe('TokenInput', () => {
 
 			const { findByText } = render(TokenIOInput, propsWithLoadingBalance);
 
-			const labelWithSymbol = await findByText('Input 1 (MOCK)');
+			const labelWithSymbol = await findByText('Input (MOCK)');
 			expect(labelWithSymbol).toBeInTheDocument();
 		});
 
@@ -173,7 +173,7 @@ describe('TokenInput', () => {
 
 			const { findByText } = render(TokenIOInput, propsWithErrorBalance);
 
-			const labelWithSymbol = await findByText('Input 1 (MOCK)');
+			const labelWithSymbol = await findByText('Input (MOCK)');
 			expect(labelWithSymbol).toBeInTheDocument();
 		});
 
@@ -185,7 +185,7 @@ describe('TokenInput', () => {
 
 			const { findByText } = render(TokenIOInput, propsWithoutBalance);
 
-			const labelWithSymbol = await findByText('Input 1 (MOCK)');
+			const labelWithSymbol = await findByText('Input (MOCK)');
 			expect(labelWithSymbol).toBeInTheDocument();
 		});
 	});
