@@ -170,14 +170,27 @@
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
 					{#if onWithdrawMultiple && $account}
-						<Button
-							color="alternative"
-							disabled={selectedVaults.length === 0}
-							class={selectedVaults.length === 0 ? 'text-gray-400' : ''}
-							on:click={handleWithdrawAll}
-						>
-							Withdraw all ({selectedVaults.length})
-						</Button>
+						<div class="flex items-center gap-x-2">
+							<Button
+								color="alternative"
+								disabled={selectedVaults.length === 0}
+								class={selectedVaults.length === 0 ? 'text-gray-400' : ''}
+								on:click={handleWithdrawAll}
+							>
+								Withdraw all ({selectedVaults.length})
+							</Button>
+							<Button
+								color="alternative"
+								disabled={selectedVaults.length === 0}
+								class={selectedVaults.length === 0 ? 'text-gray-400' : ''}
+								style="font-size: 1.5em; line-height: 20px;"
+								on:click={() => {
+									selectedVaults = [];
+								}}
+							>
+								&times;
+							</Button>
+						</div>
 					{/if}
 				</div>
 			</div>
