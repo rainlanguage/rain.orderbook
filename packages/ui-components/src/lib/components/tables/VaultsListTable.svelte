@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import { isAddressEq } from '../../utils/account';
+
 	import { toHex } from 'viem';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
@@ -54,7 +56,7 @@
 		| ((raindexClient: RaindexClient, vaults: RaindexVault[]) => Promise<boolean>)
 		| undefined = undefined;
 
-	const { account, matchesAccount } = useAccount();
+	const { account } = useAccount();
 	const raindexClient = useRaindexClient();
 
 	// State for selected vaults for multiple withdrawal
@@ -69,9 +71,9 @@
 		return vault.balance === 0n;
 	};
 
-	const isVaultDisabled = (vault: RaindexVault): boolean => {
+	$: isVaultDisabled = (vault: RaindexVault): boolean => {
 		if (isVaultEmpty(vault)) return true;
-		if (!matchesAccount(vault.owner)) return true; // Only allow selection of user's own vaults
+		if (!isAddressEq($account, vault.owner)) return true; // Only allow selection of user's own vaults
 		if (selectedVaults.length === 0) return false;
 		return vault.chainId !== selectedVaults[0].chainId;
 	};
@@ -196,7 +198,7 @@
 
 		<svelte:fragment slot="bodyRow" let:item>
 			{#if onWithdrawMultiple && $account}
-				{#if matchesAccount(item.owner)}
+				{#if isAddressEq($account, item.owner)}
 					<TableBodyCell tdClass="relative p-0" on:click={(e) => e.stopPropagation()}>
 						<Label
 							class="absolute bottom-px left-px right-px top-px flex cursor-pointer items-center justify-center"
@@ -274,7 +276,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.owner)}
+			{#if handleDepositModal && handleWithdrawModal && isAddressEq($account, item.owner)}
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"
