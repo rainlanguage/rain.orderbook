@@ -25,7 +25,10 @@ export async function handleGuiInitialization(
 		);
 
 		if (deploymentResult.error)
-			return { gui: null, error: `Failed to create deployment form: ${deploymentResult.error.readableMsg}` };
+			return {
+				gui: null,
+				error: `Failed to create deployment form: ${deploymentResult.error.readableMsg}`
+			};
 
 		return { gui: deploymentResult.value, error: null };
 	} else {
