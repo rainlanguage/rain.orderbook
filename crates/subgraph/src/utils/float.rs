@@ -2,7 +2,7 @@ use alloy::primitives::fixed_bytes;
 use rain_math_float::Float;
 
 pub const FMIN: Float = Float(fixed_bytes!(
-    "8000000080000000000000000000000000000000000000000000000000000000"
+    "7fffffff80000000000000000000000000000000000000000000000000000000"
 ));
 pub const NEG7: Float = Float(fixed_bytes!(
     "00000000fffffffffffffffffffffffffffffffffffffffffffffffffffffff9"
@@ -95,7 +95,7 @@ mod tests {
     fn verify_binary_representations() {
         // Verify that hard-coded binary representations match original values
         assert!(FMIN
-            .eq(Float::pack_lossless(I224::MIN, i32::MIN).unwrap())
+            .eq(Float::pack_lossless(I224::MIN, i32::MAX).unwrap())
             .unwrap());
         assert!(NEG7.eq(Float::parse("-7".to_string()).unwrap()).unwrap());
         assert!(NEG6.eq(Float::parse("-6".to_string()).unwrap()).unwrap());
