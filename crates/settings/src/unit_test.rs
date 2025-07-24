@@ -44,7 +44,7 @@ pub struct TestConfig {
 impl_wasm_traits!(TestConfig);
 
 impl TestConfigSource {
-    pub fn try_into_test_config(self) -> Result<TestConfig, ParseConfigSourceError> {
+    pub fn into_test_config(self) -> TestConfig {
         let mut bindings = HashMap::new();
         for (k, v) in &self.scenario.bindings {
             bindings.insert(k.to_string(), v.to_string());
@@ -59,13 +59,11 @@ impl TestConfigSource {
             deployer: Arc::new(DeployerCfg::dummy()),
         });
 
-        let config = TestConfig {
+        TestConfig {
             calculate_entrypoint: self.calculate_entrypoint,
             handle_entrypoint: self.handle_entrypoint,
             scenario_name: self.scenario_name.clone(),
             scenario,
-        };
-
-        Ok(config)
+        }
     }
 }

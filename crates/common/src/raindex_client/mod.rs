@@ -10,7 +10,10 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
-use rain_orderbook_app_settings::yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable};
+use rain_orderbook_app_settings::yaml::{
+    orderbook::{OrderbookYaml, OrderbookYamlValidation},
+    YamlError, YamlParsable,
+};
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
     OrderbookSubgraphClientError,
@@ -106,7 +109,13 @@ impl RaindexClient {
         ob_yamls: Vec<String>,
         validate: Option<bool>,
     ) -> Result<RaindexClient, RaindexError> {
-        let orderbook_yaml = OrderbookYaml::new(ob_yamls, validate.unwrap_or(false))?;
+        let orderbook_yaml = OrderbookYaml::new(
+            ob_yamls,
+            match validate {
+                Some(true) => OrderbookYamlValidation::full(),
+                _ => OrderbookYamlValidation::default(),
+            },
+        )?;
         Ok(RaindexClient { orderbook_yaml })
     }
 

@@ -1,12 +1,10 @@
 pub mod accounts;
 pub mod blocks;
 pub mod chart;
-pub mod config;
 pub mod config_source;
 pub mod deployer;
 pub mod deployment;
 pub mod gui;
-pub mod merge;
 pub mod metaboard;
 pub mod network;
 pub mod order;
@@ -36,5 +34,3 @@ pub(crate) use scenario::*;
 pub(crate) use token::*;
 #[cfg(test)]
 pub mod test;
-
-pub use config::*;
