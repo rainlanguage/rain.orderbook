@@ -72,6 +72,7 @@ mod tests {
             owners: vec![owner1],
             hide_zero_balance: true,
             tokens: Some(vec![token1]),
+            chain_ids: Some(vec![1, 137]),
         };
 
         store.set_vaults(filters.clone());
@@ -79,6 +80,7 @@ mod tests {
         assert_eq!(store.vaults.owners, filters.owners);
         assert_eq!(store.vaults.hide_zero_balance, filters.hide_zero_balance);
         assert_eq!(store.vaults.tokens, filters.tokens);
+        assert_eq!(store.vaults.chain_ids, filters.chain_ids);
     }
 
     #[test]
@@ -111,6 +113,7 @@ mod tests {
             owners: vec![owner1],
             hide_zero_balance: false,
             tokens: Some(vec![token1]),
+            chain_ids: None,
         });
 
         // Then changing only part of the state
@@ -138,6 +141,7 @@ mod tests {
             owners: vec![owner1],
             hide_zero_balance: false,
             tokens: None,
+            chain_ids: None,
         };
         store.set_vaults(original_filters.clone());
         let filters_before_update = store.vaults.clone();
@@ -242,6 +246,7 @@ mod tests {
             owners: vec![owner1],
             hide_zero_balance: true,
             tokens: None,
+            chain_ids: None,
         };
 
         // Test set_vaults
@@ -249,6 +254,7 @@ mod tests {
         assert_eq!(store.vaults.owners, filters.owners);
         assert_eq!(store.vaults.hide_zero_balance, filters.hide_zero_balance);
         assert_eq!(store.vaults.tokens, filters.tokens);
+        assert_eq!(store.vaults.chain_ids, filters.chain_ids);
 
         // Test update_vaults
         let owner2 = Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap();

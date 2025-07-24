@@ -15,6 +15,8 @@ pub struct GetVaultsFilters {
     pub hide_zero_balance: bool,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
+    #[tsify(optional, type = "ChainIds")]
+    pub chain_ids: Option<Vec<u64>>,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -55,6 +57,7 @@ mod tests {
         assert!(filters.owners.is_empty());
         assert!(!filters.hide_zero_balance);
         assert!(filters.tokens.is_none());
+        assert!(filters.chain_ids.is_none());
     }
 
     //
@@ -69,6 +72,7 @@ mod tests {
             owners: vec![owner1],
             hide_zero_balance: true,
             tokens: Some(vec![token1]),
+            chain_ids: Some(vec![1, 137]),
         };
 
         let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
@@ -78,5 +82,33 @@ mod tests {
         assert!(sg_filter_args.hide_zero_balance);
         assert_eq!(sg_filter_args.tokens.len(), 1);
         assert_eq!(sg_filter_args.tokens[0], token1.to_string().to_lowercase());
+    }
+
+    #[test]
+    fn test_chain_ids_filter() {
+        let filters = GetVaultsFilters {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: None,
+            chain_ids: Some(vec![1, 137, 10]),
+        };
+
+        assert_eq!(filters.chain_ids.as_ref().unwrap().len(), 3);
+        assert!(filters.chain_ids.as_ref().unwrap().contains(&1));
+        assert!(filters.chain_ids.as_ref().unwrap().contains(&137));
+        assert!(filters.chain_ids.as_ref().unwrap().contains(&10));
+    }
+
+    #[test]
+    fn test_filters_without_chain_ids() {
+        let filters = GetVaultsFilters {
+            owners: vec![],
+            hide_zero_balance: true,
+            tokens: None,
+            chain_ids: None,
+        };
+
+        assert!(filters.chain_ids.is_none());
+        assert!(filters.hide_zero_balance);
     }
 }

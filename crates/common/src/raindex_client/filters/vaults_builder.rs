@@ -13,6 +13,7 @@ pub struct VaultsFilterBuilder {
     pub owners: Vec<Address>,
     pub hide_zero_balance: bool,
     pub tokens: Option<Vec<Address>>,
+    pub chain_ids: Option<Vec<u64>>,
 }
 impl_wasm_traits!(VaultsFilterBuilder);
 
@@ -22,14 +23,16 @@ impl VaultsFilterBuilder {
             owners: Vec::new(),
             hide_zero_balance: false,
             tokens: None,
+            chain_ids: None,
         }
     }
 
     pub fn from(filters: GetVaultsFilters) -> Self {
         Self {
             owners: filters.owners.clone(),
-            hide_zero_balance: filters.hide_zero_balance.clone(),
+            hide_zero_balance: filters.hide_zero_balance,
             tokens: filters.tokens.clone(),
+            chain_ids: filters.chain_ids.clone(),
         }
     }
 
@@ -47,6 +50,11 @@ impl VaultsFilterBuilder {
         self.tokens = tokens;
         self
     }
+
+    pub fn set_chain_ids(mut self, chain_ids: Option<Vec<u64>>) -> Self {
+        self.chain_ids = chain_ids;
+        self
+    }
 }
 
 impl FilterBuilder for VaultsFilterBuilder {
@@ -57,6 +65,7 @@ impl FilterBuilder for VaultsFilterBuilder {
             owners: self.owners,
             hide_zero_balance: self.hide_zero_balance,
             tokens: self.tokens,
+            chain_ids: self.chain_ids,
         }
     }
 }
@@ -88,12 +97,14 @@ mod tests {
             owners: vec![owner1],
             hide_zero_balance: true,
             tokens: Some(vec![token1]),
+            chain_ids: Some(vec![1, 137]),
         };
 
         let builder = VaultsFilterBuilder::from(filters.clone());
         assert_eq!(builder.owners, filters.owners);
         assert_eq!(builder.hide_zero_balance, filters.hide_zero_balance);
         assert_eq!(builder.tokens, filters.tokens);
+        assert_eq!(builder.chain_ids, filters.chain_ids);
     }
 
     #[test]
@@ -167,6 +178,7 @@ mod tests {
             owners: vec![owner1],
             hide_zero_balance: true,
             tokens: None,
+            chain_ids: None,
         };
 
         let builder: VaultsFilterBuilder = filters.into();
@@ -202,6 +214,7 @@ mod tests {
             owners: vec![owner1],
             hide_zero_balance: true,
             tokens: Some(vec![token1]),
+            chain_ids: Some(vec![1, 10, 137]),
         };
 
         // Filters -> Builder -> Filters
@@ -214,5 +227,6 @@ mod tests {
             restored_filters.hide_zero_balance
         );
         assert_eq!(original_filters.tokens, restored_filters.tokens);
+        assert_eq!(original_filters.chain_ids, restored_filters.chain_ids);
     }
 }

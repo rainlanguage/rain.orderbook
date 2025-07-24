@@ -66,11 +66,11 @@
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getVaults(
-				$selectedChainIds,
 				{
 					owners,
 					hideZeroBalance: $hideZeroBalanceVaults,
-					tokens: selectedTokens
+					tokens: selectedTokens,
+					chainIds: $selectedChainIds
 				},
 				pageParam + 1
 			);
