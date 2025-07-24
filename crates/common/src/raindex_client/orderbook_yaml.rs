@@ -29,7 +29,7 @@ impl RaindexClient {
     )]
     pub fn get_unique_chain_ids(&self) -> Result<Vec<u32>, RaindexError> {
         let networks = self.get_all_networks()?;
-        Ok(networks.values().map(|(cfg)| cfg.chain_id).collect())
+        Ok(networks.values().map(|cfg| cfg.chain_id).collect())
     }
 
     /// Retrieves all available networks with their configurations
