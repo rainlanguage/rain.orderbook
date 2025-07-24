@@ -30,7 +30,6 @@ strict-yaml-rust = { workspace = true }
 dotrain = { workspace = true }
 dotrain-lsp = { workspace = true }
 rain-metadata = { workspace = true }
-rain-metaboard-subgraph = { workspace = true }
 rain-metadata-bindings = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }

@@ -42,7 +42,6 @@ dotrain = "6.0.1-alpha.24"
 dotrain-lsp = "6.0.1-alpha.24"
 rain-metadata = { path = "../rain.metadata/crates/cli" }
 rain-metadata-bindings = { path = "../rain.metadata/crates/bindings" }
-rain-metaboard-subgraph = { path = "../rain.metadata/crates/metaboard" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
 rain_interpreter_parser = { path = "lib/rain.interpreter/crates/parser" }
