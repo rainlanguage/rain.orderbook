@@ -1,13 +1,13 @@
 use super::*;
 use crate::{
     meta::TryDecodeRainlangSource,
+    parsed_meta::ParsedMeta,
     raindex_client::{
         transactions::RaindexTransaction,
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
 use alloy::primitives::{Address, Bytes, U256};
-use rain_metadata::UnpackedMetadata;
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -94,7 +94,7 @@ pub struct RaindexOrder {
     active: bool,
     timestamp_added: U256,
     meta: Option<Bytes>,
-    parsed_meta: Vec<UnpackedMetadata>,
+    parsed_meta: Vec<ParsedMeta>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
@@ -228,7 +228,7 @@ impl RaindexOrder {
     pub fn trades_count(&self) -> u16 {
         self.trades_count
     }
-    pub fn parsed_meta(&self) -> Vec<UnpackedMetadata> {
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
         self.parsed_meta.clone()
     }
 }
@@ -695,7 +695,11 @@ impl RaindexOrder {
             parsed_meta: order
                 .meta
                 .as_ref()
-                .map(|meta| UnpackedMetadata::parse_from_hex(&meta.0))
+                .map(|meta| {
+                    let bytes = alloy::primitives::hex::decode(&meta.0)
+                        .map_err(rain_metadata::Error::DecodeHexStringError)?;
+                    ParsedMeta::parse_from_bytes(&bytes)
+                })
                 .transpose()
                 .map_err(RaindexError::ParseMetaError)?
                 .unwrap_or_default(),
