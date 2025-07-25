@@ -16,6 +16,7 @@ use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
+    utils::amount_formatter::AmountFormatterError,
 };
 use serde::{Deserialize, Serialize};
 use std::io::prelude::*;
@@ -35,6 +36,7 @@ mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
+    pub key: String,
     #[tsify(type = "string")]
     pub address: Address,
     pub decimals: u8,
@@ -283,15 +285,15 @@ impl DotrainOrderGui {
     ) -> Result<TokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
-        let token_info = if token.decimals.is_some()
-            && token.label.is_some()
-            && token.symbol.is_some()
+        let token_info = if let (Some(decimals), Some(label), Some(symbol)) =
+            (&token.decimals, &token.label, &token.symbol)
         {
             TokenInfo {
+                key: token.key.clone(),
                 address: token.address,
-                decimals: token.decimals.unwrap(),
-                name: token.label.unwrap(),
-                symbol: token.symbol.unwrap(),
+                decimals: *decimals,
+                name: label.clone(),
+                symbol: symbol.clone(),
             }
         } else {
             let order_key = DeploymentCfg::parse_order_key(
@@ -309,6 +311,7 @@ impl DotrainOrderGui {
             let onchain_info = erc20.token_info(None).await?;
 
             TokenInfo {
+                key: token.key.clone(),
                 address: token.address,
                 decimals: token.decimals.unwrap_or(onchain_info.decimals),
                 name: token.label.unwrap_or(onchain_info.name),
@@ -682,6 +685,8 @@ pub enum GuiError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error(transparent)]
+    AmountFormatterError(#[from] AmountFormatterError),
 }
 
 impl GuiError {
@@ -762,6 +767,8 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
+            GuiError::AmountFormatterError(err) =>
+                format!("There was a problem formatting the amount: {}", err),
         }
     }
 }
