@@ -1,7 +1,7 @@
 import { get, writable } from '@square/svelte-store';
 import { cachedWritableStore } from '@rainlanguage/ui-components';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import { type Address, type Hex, type RaindexClient } from '@rainlanguage/orderbook';
+import { type Address, type Hex } from '@rainlanguage/orderbook';
 
 // general
 export const settingsText = cachedWritableStore<string>(
@@ -104,6 +104,4 @@ export const activeTokens = cachedWritableStore<Address[]>(
   },
 );
 
-export const raindexClient = writable<RaindexClient | undefined>(undefined);
-
-export const orderbookAddress = writable<Address | undefined>(undefined);
+export const isSentryEnabled = writable<boolean>(false);

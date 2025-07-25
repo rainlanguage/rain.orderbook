@@ -26,9 +26,9 @@
 <div class="flex w-full flex-col items-end gap-2">
 	<div class="flex w-full items-start gap-4" data-testid="registry-input">
 		<Input
-			id="strategy-url"
+			id="order-url"
 			type="url"
-			placeholder="Enter URL to raw strategy registry file"
+			placeholder="Enter URL to raw order registry file"
 			bind:value={newRegistryUrl}
 		/>
 		<Button class="w-36 text-nowrap" on:click={handleClick} disabled={loading}>

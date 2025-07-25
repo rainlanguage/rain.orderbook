@@ -172,7 +172,7 @@ describe('OrdersListTable', () => {
 		const removeButton = screen.getByText('Remove');
 		await userEvent.click(removeButton);
 
-		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, mockRefetch);
+		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, mockRefetch, new Map());
 	});
 
 	it('shows inactive badge for inactive orders', async () => {

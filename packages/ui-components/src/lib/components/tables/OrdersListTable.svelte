@@ -21,6 +21,9 @@
 	} from 'flowbite-svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import { getAllContexts } from 'svelte';
+
+	const context = getAllContexts();
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export let handleOrderRemoveModal: any = undefined;
@@ -191,7 +194,7 @@
 						<DropdownItem
 							on:click={(e) => {
 								e.stopPropagation();
-								handleOrderRemoveModal(item, $query.refetch);
+								handleOrderRemoveModal(item, $query.refetch, context);
 							}}>Remove</DropdownItem
 						>
 					</Dropdown>

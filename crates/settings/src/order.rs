@@ -16,6 +16,16 @@ use yaml::{
     YamlParsableHash,
 };
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "lowercase")]
+pub enum VaultType {
+    Input,
+    Output,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(VaultType);
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
@@ -56,8 +66,8 @@ impl OrderCfg {
 
     pub fn update_vault_id(
         &mut self,
-        is_input: bool,
-        index: u8,
+        vault_type: VaultType,
+        token: String,
         vault_id: Option<String>,
     ) -> Result<Self, YamlError> {
         let new_vault_id = if let Some(ref v) = vault_id {
@@ -73,8 +83,12 @@ impl OrderCfg {
                                 reason: e.to_string(),
                             },
                             location: format!(
-                                "index '{index}' of {} in order '{}'",
-                                if is_input { "inputs" } else { "outputs" },
+                                "token '{}' in {} of order '{}'",
+                                token,
+                                match vault_type {
+                                    VaultType::Input => "inputs",
+                                    VaultType::Output => "outputs",
+                                },
                                 self.key
                             ),
                         });
@@ -97,44 +111,68 @@ impl OrderCfg {
                 if let Some(StrictYaml::Hash(ref mut order)) =
                     orders.get_mut(&StrictYaml::String(self.key.to_string()))
                 {
-                    let vec_key = if is_input { "inputs" } else { "outputs" };
+                    let vec_key = match vault_type {
+                        VaultType::Input => "inputs",
+                        VaultType::Output => "outputs",
+                    };
                     if let Some(StrictYaml::Array(ref mut vec)) =
                         order.get_mut(&StrictYaml::String(vec_key.to_string()))
                     {
-                        if let Some(item) = vec.get_mut(index as usize) {
-                            if let StrictYaml::Hash(ref mut item_hash) = item {
-                                if let Some(vault_id) = new_vault_id {
-                                    item_hash.insert(
-                                        StrictYaml::String("vault-id".to_string()),
-                                        StrictYaml::String(vault_id.to_string()),
-                                    );
-                                    if is_input {
-                                        self.inputs[index as usize].vault_id = Some(vault_id);
+                        // Find the item with matching token key
+                        let item_index = vec.iter().position(|item| {
+                            if let StrictYaml::Hash(ref item_map) = item {
+                                if let Some(StrictYaml::String(item_token)) =
+                                    item_map.get(&StrictYaml::String("token".to_string()))
+                                {
+                                    return item_token == &token;
+                                }
+                            }
+                            false
+                        });
+
+                        if let Some(idx) = item_index {
+                            if let Some(item) = vec.get_mut(idx) {
+                                if let StrictYaml::Hash(ref mut item_map) = item {
+                                    if let Some(vault_id) = new_vault_id {
+                                        item_map.insert(
+                                            StrictYaml::String("vault-id".to_string()),
+                                            StrictYaml::String(vault_id.to_string()),
+                                        );
+                                        match vault_type {
+                                            VaultType::Input => {
+                                                self.inputs[idx].vault_id = Some(vault_id);
+                                            }
+                                            VaultType::Output => {
+                                                self.outputs[idx].vault_id = Some(vault_id);
+                                            }
+                                        }
                                     } else {
-                                        self.outputs[index as usize].vault_id = Some(vault_id);
+                                        item_map
+                                            .remove(&StrictYaml::String("vault-id".to_string()));
+                                        match vault_type {
+                                            VaultType::Input => {
+                                                self.inputs[idx].vault_id = None;
+                                            }
+                                            VaultType::Output => {
+                                                self.outputs[idx].vault_id = None;
+                                            }
+                                        }
                                     }
                                 } else {
-                                    item_hash.remove(&StrictYaml::String("vault-id".to_string()));
-                                    if is_input {
-                                        self.inputs[index as usize].vault_id = None;
-                                    } else {
-                                        self.outputs[index as usize].vault_id = None;
-                                    }
+                                    return Err(YamlError::Field {
+                                        kind: FieldErrorKind::InvalidType {
+                                            field: vec_key.to_string(),
+                                            expected: "a hash".to_string(),
+                                        },
+                                        location: format!("order '{0}'", self.key),
+                                    });
                                 }
-                            } else {
-                                return Err(YamlError::Field {
-                                    kind: FieldErrorKind::InvalidType {
-                                        field: vec_key.to_string(),
-                                        expected: "a hash".to_string(),
-                                    },
-                                    location: format!("order '{0}'", self.key),
-                                });
                             }
                         } else {
                             return Err(YamlError::Field {
                                 kind: FieldErrorKind::InvalidValue {
                                     field: vec_key.to_string(),
-                                    reason: format!("index out of bounds: {index}"),
+                                    reason: format!("token '{}' not found", token),
                                 },
                                 location: format!("order '{0}'", self.key),
                             });
@@ -397,9 +435,9 @@ impl OrderCfg {
     pub fn parse_vault_ids(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         order_key: &str,
-        is_input: bool,
-    ) -> Result<Vec<Option<String>>, YamlError> {
-        let mut vault_ids = Vec::new();
+        r#type: VaultType,
+    ) -> Result<HashMap<String, Option<String>>, YamlError> {
+        let mut vault_ids = HashMap::new();
 
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -410,15 +448,32 @@ impl OrderCfg {
                 {
                     let location = format!("order '{}'", order_key);
 
-                    let items = if is_input {
-                        require_vec(order_yaml, "inputs", Some(location.clone()))?
-                    } else {
-                        require_vec(order_yaml, "outputs", Some(location.clone()))?
+                    let items = match r#type {
+                        VaultType::Input => {
+                            require_vec(order_yaml, "inputs", Some(location.clone()))?
+                        }
+                        VaultType::Output => {
+                            require_vec(order_yaml, "outputs", Some(location.clone()))?
+                        }
                     };
 
-                    for item in items {
+                    for (idx, item) in items.iter().enumerate() {
+                        let token = require_string(
+                            item,
+                            Some("token"),
+                            Some(format!(
+                                "{} index '{}' in order '{}'",
+                                if r#type == VaultType::Input {
+                                    "input"
+                                } else {
+                                    "output"
+                                },
+                                idx,
+                                order_key
+                            )),
+                        )?;
                         let vault_id = optional_string(item, "vault-id");
-                        vault_ids.push(vault_id);
+                        vault_ids.insert(token, vault_id);
                     }
                 }
             } else {

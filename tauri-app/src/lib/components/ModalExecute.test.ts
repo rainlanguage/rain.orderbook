@@ -27,12 +27,17 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
   return {
     ...original,
     getNetworkName: vi.fn(),
+    useRaindexClient: vi.fn(() => ({
+      getNetworkByChainId: vi.fn().mockReturnValue({ value: {} as NetworkCfg }),
+      getAllNetworks: vi.fn().mockReturnValue({ value: new Map() }),
+    })),
   };
 });
 
 // Import components and stores after mocks
 import ModalExecute from './ModalExecute.svelte';
 import { getNetworkName } from '@rainlanguage/ui-components';
+import type { NetworkCfg } from '@rainlanguage/orderbook';
 
 describe('ModalExecute', () => {
   beforeEach(() => {
