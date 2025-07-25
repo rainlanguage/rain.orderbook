@@ -98,7 +98,7 @@ describe('DeployPage', () => {
 				stores: { settings: {} },
 				dotrain: mockDotrain,
 				deployment: { key: mockDeploymentKey },
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL(`http://localhost:3000/deploy?state=${mockStateFromUrl}`)
 		});
@@ -120,7 +120,7 @@ describe('DeployPage', () => {
 				stores: { settings: {} },
 				dotrain: null as unknown as string,
 				deployment: { key: 'test-key' },
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL('http://localhost:3000/deploy')
 		});
@@ -138,7 +138,7 @@ describe('DeployPage', () => {
 				stores: { settings: {} },
 				dotrain: 'some-dotrain',
 				deployment: null as unknown as { key: string },
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL('http://localhost:3000/deploy')
 		});
@@ -158,9 +158,9 @@ describe('DeployPage', () => {
 				stores: { settings: {} },
 				dotrain: null as unknown as string,
 				deployment: null as unknown as { key: string },
-				strategyDetail: {}
+				orderDetail: {}
 			},
-			url: new URL('http://localhost:3000/deploy/strategy/key')
+			url: new URL('http://localhost:3000/deploy/order/key')
 		});
 
 		render(DeployPage);
@@ -184,7 +184,7 @@ describe('DeployPage', () => {
 				deployment: {
 					key: 'test-deployment'
 				},
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL('http://localhost:3000/deploy')
 		});
@@ -210,7 +210,7 @@ describe('DeployPage', () => {
 				deployment: {
 					key: 'test-deployment'
 				},
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL('http://localhost:3000/deploy')
 		});
@@ -238,7 +238,7 @@ describe('DeployPage', () => {
 				deployment: {
 					key: 'test-deployment'
 				},
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL(`http://localhost:3000/deploy?state=${stateValue}`)
 		});

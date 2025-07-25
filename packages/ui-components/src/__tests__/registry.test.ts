@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
 	fetchParseRegistry,
 	fetchRegistryDotrains,
-	validateStrategies
+	validateOrders
 } from '../lib/services/registry';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
@@ -10,7 +10,7 @@ import type { Mock } from 'vitest';
 // Mock the DotrainOrderGui dependency
 vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: {
-		getStrategyDetails: vi.fn()
+		getOrderDetails: vi.fn()
 	}
 }));
 
@@ -115,12 +115,12 @@ file2.rain https://example.com/file2.rain`;
 	});
 });
 
-describe('validateStrategies', () => {
+describe('validateOrders', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 	});
 
-	it('should validate strategies and categorize them properly', async () => {
+	it('should validate orders and categorize them properly', async () => {
 		// Input data
 		const registryDotrains = [
 			{ name: 'valid.rain', dotrain: 'valid dotrain content' },
@@ -129,9 +129,9 @@ describe('validateStrategies', () => {
 		];
 
 		// Set up mock responses for the DotrainOrderGui
-		(DotrainOrderGui.getStrategyDetails as Mock)
+		(DotrainOrderGui.getOrderDetails as Mock)
 			.mockResolvedValueOnce({
-				value: { name: 'Valid Strategy', description: 'A valid strategy' },
+				value: { name: 'Valid Order', description: 'A valid order' },
 				error: null
 			})
 			.mockResolvedValueOnce({
@@ -139,51 +139,51 @@ describe('validateStrategies', () => {
 				value: null
 			})
 			.mockResolvedValueOnce({
-				value: { name: 'Another Valid', description: 'Another valid strategy' },
+				value: { name: 'Another Valid', description: 'Another valid order' },
 				error: null
 			});
 
 		// Call the function with our test data
-		const result = await validateStrategies(registryDotrains);
+		const result = await validateOrders(registryDotrains);
 
 		// Verify DotrainOrderGui was called correctly
-		expect(DotrainOrderGui.getStrategyDetails).toHaveBeenCalledTimes(3);
-		expect(DotrainOrderGui.getStrategyDetails).toHaveBeenCalledWith('valid dotrain content');
-		expect(DotrainOrderGui.getStrategyDetails).toHaveBeenCalledWith('invalid dotrain content');
-		expect(DotrainOrderGui.getStrategyDetails).toHaveBeenCalledWith('another valid content');
+		expect(DotrainOrderGui.getOrderDetails).toHaveBeenCalledTimes(3);
+		expect(DotrainOrderGui.getOrderDetails).toHaveBeenCalledWith('valid dotrain content');
+		expect(DotrainOrderGui.getOrderDetails).toHaveBeenCalledWith('invalid dotrain content');
+		expect(DotrainOrderGui.getOrderDetails).toHaveBeenCalledWith('another valid content');
 
-		// Verify the valid strategies are processed correctly
-		expect(result.validStrategies).toHaveLength(2);
-		expect(result.validStrategies[0].name).toBe('valid.rain');
-		expect(result.validStrategies[0].dotrain).toBe('valid dotrain content');
-		expect(result.validStrategies[0].details).toEqual({
-			name: 'Valid Strategy',
-			description: 'A valid strategy'
+		// Verify the valid orders are processed correctly
+		expect(result.validOrders).toHaveLength(2);
+		expect(result.validOrders[0].name).toBe('valid.rain');
+		expect(result.validOrders[0].dotrain).toBe('valid dotrain content');
+		expect(result.validOrders[0].details).toEqual({
+			name: 'Valid Order',
+			description: 'A valid order'
 		});
 
-		// Verify the invalid strategies are processed correctly
-		expect(result.invalidStrategies).toHaveLength(1);
-		expect(result.invalidStrategies[0].name).toBe('invalid.rain');
-		expect(result.invalidStrategies[0].error).toBe('Invalid syntax');
+		// Verify the invalid orders are processed correctly
+		expect(result.invalidOrders).toHaveLength(1);
+		expect(result.invalidOrders[0].name).toBe('invalid.rain');
+		expect(result.invalidOrders[0].error).toBe('Invalid syntax');
 	});
 
-	it('should handle exceptions thrown during strategy validation', async () => {
+	it('should handle exceptions thrown during order validation', async () => {
 		// Input data
 		const registryDotrains = [{ name: 'error.rain', dotrain: 'will throw error' }];
 
 		// Mock the DotrainOrderGui to throw an exception
-		(DotrainOrderGui.getStrategyDetails as Mock).mockRejectedValueOnce(
+		(DotrainOrderGui.getOrderDetails as Mock).mockRejectedValueOnce(
 			new Error('Unexpected parsing error')
 		);
 
 		// Call the function
-		const result = await validateStrategies(registryDotrains);
+		const result = await validateOrders(registryDotrains);
 
 		// Verify results
-		expect(result.validStrategies).toHaveLength(0);
-		expect(result.invalidStrategies).toHaveLength(1);
-		expect(result.invalidStrategies[0].name).toBe('error.rain');
-		expect(result.invalidStrategies[0].error).toBe('Unexpected parsing error');
+		expect(result.validOrders).toHaveLength(0);
+		expect(result.invalidOrders).toHaveLength(1);
+		expect(result.invalidOrders[0].name).toBe('error.rain');
+		expect(result.invalidOrders[0].error).toBe('Unexpected parsing error');
 	});
 
 	it('should handle non-Error objects being thrown', async () => {
@@ -191,24 +191,24 @@ describe('validateStrategies', () => {
 		const registryDotrains = [{ name: 'string-error.rain', dotrain: 'will throw string' }];
 
 		// Mock the DotrainOrderGui to throw a string instead of an Error
-		(DotrainOrderGui.getStrategyDetails as Mock).mockRejectedValueOnce('String error message');
+		(DotrainOrderGui.getOrderDetails as Mock).mockRejectedValueOnce('String error message');
 
 		// Call the function
-		const result = await validateStrategies(registryDotrains);
+		const result = await validateOrders(registryDotrains);
 
 		// Verify results
-		expect(result.validStrategies).toHaveLength(0);
-		expect(result.invalidStrategies).toHaveLength(1);
-		expect(result.invalidStrategies[0].name).toBe('string-error.rain');
-		expect(result.invalidStrategies[0].error).toBe('String error message');
+		expect(result.validOrders).toHaveLength(0);
+		expect(result.invalidOrders).toHaveLength(1);
+		expect(result.invalidOrders[0].name).toBe('string-error.rain');
+		expect(result.invalidOrders[0].error).toBe('String error message');
 	});
 
-	it('should process an empty array of strategies', async () => {
-		const result = await validateStrategies([]);
+	it('should process an empty array of orders', async () => {
+		const result = await validateOrders([]);
 
-		expect(result.validStrategies).toEqual([]);
-		expect(result.invalidStrategies).toEqual([]);
-		expect(DotrainOrderGui.getStrategyDetails).not.toHaveBeenCalled();
+		expect(result.validOrders).toEqual([]);
+		expect(result.invalidOrders).toEqual([]);
+		expect(DotrainOrderGui.getOrderDetails).not.toHaveBeenCalled();
 	});
 
 	it('should handle mixed validation results correctly', async () => {
@@ -221,14 +221,14 @@ describe('validateStrategies', () => {
 		];
 
 		// Set up mock responses
-		(DotrainOrderGui.getStrategyDetails as Mock)
+		(DotrainOrderGui.getOrderDetails as Mock)
 			.mockResolvedValueOnce({
-				value: { strategyName: 'Strategy 1', description: 'Description 1' },
+				value: { orderName: 'Order 1', description: 'Description 1' },
 				error: null
 			})
 			.mockRejectedValueOnce(new Error('Processing error'))
 			.mockResolvedValueOnce({
-				value: { strategyName: 'Strategy 2', description: 'Description 2' },
+				value: { orderName: 'Order 2', description: 'Description 2' },
 				error: null
 			})
 			.mockResolvedValueOnce({
@@ -237,17 +237,17 @@ describe('validateStrategies', () => {
 			});
 
 		// Call the function
-		const result = await validateStrategies(registryDotrains);
+		const result = await validateOrders(registryDotrains);
 
 		// Verify results
-		expect(result.validStrategies).toHaveLength(2);
-		expect(result.validStrategies[0].name).toBe('valid1.rain');
-		expect(result.validStrategies[1].name).toBe('valid2.rain');
+		expect(result.validOrders).toHaveLength(2);
+		expect(result.validOrders[0].name).toBe('valid1.rain');
+		expect(result.validOrders[1].name).toBe('valid2.rain');
 
-		expect(result.invalidStrategies).toHaveLength(2);
-		expect(result.invalidStrategies[0].name).toBe('error.rain');
-		expect(result.invalidStrategies[0].error).toBe('Processing error');
-		expect(result.invalidStrategies[1].name).toBe('invalid.rain');
-		expect(result.invalidStrategies[1].error).toBe('Validation failed');
+		expect(result.invalidOrders).toHaveLength(2);
+		expect(result.invalidOrders[0].name).toBe('error.rain');
+		expect(result.invalidOrders[0].error).toBe('Processing error');
+		expect(result.invalidOrders[1].name).toBe('invalid.rain');
+		expect(result.invalidOrders[1].error).toBe('Validation failed');
 	});
 });

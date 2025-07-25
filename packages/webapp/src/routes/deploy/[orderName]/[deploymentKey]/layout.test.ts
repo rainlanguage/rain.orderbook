@@ -29,7 +29,7 @@ describe('Layout load function', () => {
 		});
 
 		const result = await load({
-			params: { deploymentKey: mockDeploymentKey, strategyName: 'test-strategy' },
+			params: { deploymentKey: mockDeploymentKey, orderName: 'test-order' },
 			parent: mockParent
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);

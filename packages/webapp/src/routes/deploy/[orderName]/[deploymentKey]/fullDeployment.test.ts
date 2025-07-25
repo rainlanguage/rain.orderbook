@@ -55,9 +55,9 @@ vi.mock('$lib/stores/wagmi', () => ({
 }));
 
 describe('Full Deployment Tests', () => {
-	let fixedLimitStrategy: string;
-	let auctionStrategy: string;
-	let dynamicSpreadStrategy: string;
+	let fixedLimitOrder: string;
+	let auctionOrder: string;
+	let dynamicSpreadOrder: string;
 
 	const fetchRegistry = async () => {
 		const response = await fetch(REGISTRY_URL);
@@ -70,7 +70,7 @@ describe('Full Deployment Tests', () => {
 		);
 		return linksMap;
 	};
-	const fetchStrategy = async (url: string) => {
+	const fetchOrder = async (url: string) => {
 		try {
 			const response = await fetch(url);
 			return await response.text();
@@ -96,12 +96,12 @@ describe('Full Deployment Tests', () => {
 
 	beforeAll(async () => {
 		const registry = await fetchRegistry();
-		fixedLimitStrategy = await fetchStrategy(registry['fixed-limit']);
-		assert(fixedLimitStrategy, 'Fixed limit strategy not found');
-		auctionStrategy = await fetchStrategy(registry['auction-dca']);
-		assert(auctionStrategy, 'Auction strategy not found');
-		dynamicSpreadStrategy = await fetchStrategy(registry['dynamic-spread']);
-		assert(dynamicSpreadStrategy, 'Dynamic spread strategy not found');
+		fixedLimitOrder = await fetchOrder(registry['fixed-limit']);
+		assert(fixedLimitOrder, 'Fixed limit order not found');
+		auctionOrder = await fetchOrder(registry['auction-dca']);
+		assert(auctionOrder, 'Auction order not found');
+		dynamicSpreadOrder = await fetchOrder(registry['dynamic-spread']);
+		assert(dynamicSpreadOrder, 'Dynamic spread order not found');
 	});
 
 	beforeEach(async () => {
@@ -129,16 +129,16 @@ describe('Full Deployment Tests', () => {
 	});
 
 	it(
-		'Fixed limit strategy',
+		'Fixed limit order',
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
 				data: {
 					stores: { settings: mockSettingsStore },
-					dotrain: fixedLimitStrategy,
+					dotrain: fixedLimitOrder,
 					deployment: {
 						key: 'flare'
 					},
-					strategyDetail: {
+					orderDetail: {
 						name: 'Fixed limit'
 					}
 				}
@@ -197,8 +197,8 @@ describe('Full Deployment Tests', () => {
 			await userEvent.clear(vaultIdInputs[1]);
 			await userEvent.type(vaultIdInputs[1], '0x234');
 
-			// Click the "Deploy Strategy" button
-			const deployButton = screen.getByText('Deploy Strategy');
+			// Click the "Deploy Order" button
+			const deployButton = screen.getByText('Deploy Order');
 			await userEvent.click(deployButton);
 
 			await waitFor(
@@ -210,7 +210,7 @@ describe('Full Deployment Tests', () => {
 			);
 
 			const getDeploymentArgs = async () => {
-				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitStrategy, 'flare'))
+				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitOrder, 'flare'))
 					.value as DotrainOrderGui;
 				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
@@ -225,7 +225,7 @@ describe('Full Deployment Tests', () => {
 			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
-				console.log('Fixed limit strategy error', error);
+				console.log('Fixed limit order error', error);
 				return null;
 			});
 
@@ -256,16 +256,16 @@ describe('Full Deployment Tests', () => {
 	);
 
 	it(
-		'Auction strategy',
+		'Auction order',
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
 				data: {
 					stores: { settings: mockSettingsStore },
-					dotrain: auctionStrategy,
+					dotrain: auctionOrder,
 					deployment: {
 						key: 'flare'
 					},
-					strategyDetail: {
+					orderDetail: {
 						name: 'Auction'
 					}
 				}
@@ -353,8 +353,8 @@ describe('Full Deployment Tests', () => {
 			await userEvent.clear(vaultIdInputs[1]);
 			await userEvent.type(vaultIdInputs[1], '0x234');
 
-			// Click the "Deploy Strategy" button
-			const deployButton = screen.getByText('Deploy Strategy');
+			// Click the "Deploy Order" button
+			const deployButton = screen.getByText('Deploy Order');
 			await userEvent.click(deployButton);
 
 			await waitFor(
@@ -366,7 +366,7 @@ describe('Full Deployment Tests', () => {
 			);
 
 			const getDeploymentArgs = async () => {
-				const gui = (await DotrainOrderGui.newWithDeployment(auctionStrategy, 'flare'))
+				const gui = (await DotrainOrderGui.newWithDeployment(auctionOrder, 'flare'))
 					.value as DotrainOrderGui;
 				await gui.setSelectToken('input', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('output', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
@@ -386,7 +386,7 @@ describe('Full Deployment Tests', () => {
 			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
-				console.log('Auction strategy error', error);
+				console.log('Auction order error', error);
 				return null;
 			});
 
@@ -417,16 +417,16 @@ describe('Full Deployment Tests', () => {
 	);
 
 	it(
-		'Dynamic spread strategy',
+		'Dynamic spread order',
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
 				data: {
 					stores: { settings: mockSettingsStore },
-					dotrain: dynamicSpreadStrategy,
+					dotrain: dynamicSpreadOrder,
 					deployment: {
 						key: 'flare'
 					},
-					strategyDetail: {
+					orderDetail: {
 						name: 'Dynamic spread'
 					}
 				}
@@ -500,8 +500,8 @@ describe('Full Deployment Tests', () => {
 			await userEvent.clear(vaultIdInputs[1]);
 			await userEvent.type(vaultIdInputs[1], '0x123');
 
-			// Click the "Deploy Strategy" button
-			const deployButton = screen.getByText('Deploy Strategy');
+			// Click the "Deploy Order" button
+			const deployButton = screen.getByText('Deploy Order');
 			await userEvent.click(deployButton);
 
 			await waitFor(
@@ -513,7 +513,7 @@ describe('Full Deployment Tests', () => {
 			);
 
 			const getDeploymentArgs = async () => {
-				const gui = (await DotrainOrderGui.newWithDeployment(dynamicSpreadStrategy, 'flare'))
+				const gui = (await DotrainOrderGui.newWithDeployment(dynamicSpreadOrder, 'flare'))
 					.value as DotrainOrderGui;
 				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
@@ -532,7 +532,7 @@ describe('Full Deployment Tests', () => {
 			await new Promise((resolve) => setTimeout(resolve, 10000));
 			const args = await getDeploymentArgs().catch((error) => {
 				// eslint-disable-next-line no-console
-				console.log('Dynamic spread strategy error', error);
+				console.log('Dynamic spread order error', error);
 				return null;
 			});
 
