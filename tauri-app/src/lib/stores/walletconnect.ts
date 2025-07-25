@@ -6,7 +6,7 @@ import { WalletConnectModal } from '@walletconnect/modal';
 import { reportErrorToSentry } from '$lib/services/sentry';
 import { hexToNumber, isHex, type Hex } from 'viem';
 import { getChainIdFromRpc } from '$lib/services/chain';
-import { getAllNetworks } from '$lib/utils/raindexClient/getAllNetworks';
+import type { NetworkCfg } from '@rainlanguage/orderbook';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const metadata = {
@@ -64,13 +64,14 @@ Provider.init({
     reportErrorToSentry(e);
   });
 
-export async function walletconnectConnect(priorityChainIds: number[]) {
+export async function walletconnectConnect(
+  networks: Map<string, NetworkCfg>,
+  priorityChainIds: number[],
+) {
   if (!walletconnectProvider?.accounts?.length) {
     walletconnectIsConnecting.set(true);
     const rpcMap: Record<string, string> = {};
     const chains: number[] = [];
-
-    const networks = getAllNetworks();
 
     if (networks) {
       for (const [_key, value] of networks) {

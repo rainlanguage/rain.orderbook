@@ -6,27 +6,35 @@
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import type { Address, Hex, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { orderbookAddress as orderbookAddressStore } from '$lib/stores/settings';
+  import { getAllContexts } from 'svelte';
+
+  const context = getAllContexts();
 
   const { chainId, orderbook, id } = $page.params;
   const parsedId = id as Hex;
   const parsedChainId = Number(chainId);
   const orderbookAddress = orderbook as Address;
 
-  orderbookAddressStore.set(orderbookAddress);
-
   const queryClient = useQueryClient();
 
   function onDeposit(_raindexClient: RaindexClient, vault: RaindexVault) {
-    handleDepositModal(vault, () => {
-      invalidateTanstackQueries(queryClient, [$page.params.id]);
-    });
+    handleDepositModal(
+      vault,
+      () => {
+        invalidateTanstackQueries(queryClient, [$page.params.id]);
+      },
+      context,
+    );
   }
 
   function onWithdraw(_raindexClient: RaindexClient, vault: RaindexVault) {
-    handleWithdrawModal(vault, () => {
-      invalidateTanstackQueries(queryClient, [$page.params.id]);
-    });
+    handleWithdrawModal(
+      vault,
+      () => {
+        invalidateTanstackQueries(queryClient, [$page.params.id]);
+      },
+      context,
+    );
   }
 </script>
 

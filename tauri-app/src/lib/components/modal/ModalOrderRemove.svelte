@@ -7,16 +7,20 @@
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import type { RaindexOrder } from '@rainlanguage/orderbook';
   import { hexToBytes } from 'viem';
+  import { useRaindexClient } from '@rainlanguage/ui-components';
 
-  let openOrderRemoveModal = true;
+  const raindexClient = useRaindexClient();
+
   export let order: RaindexOrder;
-  let isSubmitting = false;
   export let onOrderRemoved: () => void;
+
+  let isSubmitting = false;
+  let openOrderRemoveModal = true;
 
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await orderRemove(order);
+      await orderRemove(raindexClient, order);
       onOrderRemoved();
     } catch (e) {
       reportErrorToSentry(e);

@@ -15,6 +15,9 @@
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
+	import { getAllContexts } from 'svelte';
+
+	const context = getAllContexts();
 
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -23,10 +26,20 @@
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let handleDepositModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
-		undefined;
-	export let handleWithdrawModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
-		undefined;
+	export let handleDepositModal:
+		| ((
+				vault: RaindexVault,
+				refetch: () => void,
+				context: ReturnType<typeof getAllContexts>
+		  ) => void)
+		| undefined = undefined;
+	export let handleWithdrawModal:
+		| ((
+				vault: RaindexVault,
+				refetch: () => void,
+				context: ReturnType<typeof getAllContexts>
+		  ) => void)
+		| undefined = undefined;
 
 	const { account, matchesAccount } = useAccount();
 	const raindexClient = useRaindexClient();
@@ -192,7 +205,7 @@
 						data-testid="deposit-button"
 						on:click={(e) => {
 							e.stopPropagation();
-							handleDepositModal(item, $query.refetch);
+							handleDepositModal(item, $query.refetch, context);
 						}}
 						>Deposit
 					</DropdownItem>
@@ -200,7 +213,7 @@
 						data-testid="withdraw-button"
 						on:click={(e) => {
 							e.stopPropagation();
-							handleWithdrawModal(item, $query.refetch);
+							handleWithdrawModal(item, $query.refetch, context);
 						}}
 						>Withdraw
 					</DropdownItem>

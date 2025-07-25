@@ -10,23 +10,22 @@ import {
 import { get } from 'svelte/store';
 import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
-import { walletConnectNetwork } from '$lib/stores/walletconnect';
-import { getNetworkByChainId } from '$lib/utils/raindexClient/getNetworkByChainId';
 
 /**
  * Provides problems callback by invoking related tauri command
  */
 export async function problemsCallback(
+  rpcs: string[],
   textDocument: TextDocumentItem,
   bindings: Record<string, string>,
   deployerAddress: string | undefined,
 ): Promise<Problem[]> {
   try {
-    const network = getNetworkByChainId(get(walletConnectNetwork));
+    await forkBlockNumber.fetch(rpcs);
 
     return await invoke('call_lsp_problems', {
       textDocument,
-      rpcs: network.rpcs,
+      rpcs,
       blockNumber: get(forkBlockNumber).value,
       bindings,
       deployer: deployerAddress,

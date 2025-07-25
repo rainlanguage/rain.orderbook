@@ -22,7 +22,7 @@
   import { derived } from 'svelte/store';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
-  import { settingsText, raindexClient as raindexClientStore } from '$lib/stores/settings';
+  import { settingsText } from '$lib/stores/settings';
   import { RaindexClient } from '@rainlanguage/orderbook';
   import { onMount } from 'svelte';
   import { loadRemoteSettings } from '$lib/services/loadRemoteSettings';
@@ -50,7 +50,6 @@
       throw new Error(result.error.readableMsg);
     } else {
       raindexClient = result.value;
-      raindexClientStore.set(raindexClient);
     }
   }
 </script>
@@ -82,7 +81,7 @@
               {/each}
             </div>
             <div
-              class="fixed bottom-0 left-64 right-0 h-10 bg-primary-400 p-2 text-center text-white"
+              class="bg-primary-400 fixed bottom-0 left-64 right-0 h-10 p-2 text-center text-white"
             >
               The Raindex app is still early alpha - have fun but use at your own risk!
             </div>

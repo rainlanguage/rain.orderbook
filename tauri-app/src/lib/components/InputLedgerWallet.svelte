@@ -5,10 +5,11 @@
   import { toasts } from '$lib/stores/toasts';
   import { getAddressFromLedger } from '$lib/services/wallet';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import { IconWarning, ButtonLoading } from '@rainlanguage/ui-components';
+  import { IconWarning, ButtonLoading, useRaindexClient } from '@rainlanguage/ui-components';
   import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
   import { Hash, HashType } from '@rainlanguage/ui-components';
   import type { Hex } from 'viem';
+  import { walletConnectNetwork } from '$lib/stores/walletconnect';
   const maskOptions = {
     mask: Number,
     min: 0,
@@ -17,6 +18,8 @@
     thousandsSeparator: '',
     radix: '.',
   };
+
+  const raindexClient = useRaindexClient();
 
   export let onConnect: () => void = () => {};
   let derivationIndex: number = 0;
@@ -29,10 +32,20 @@
   }
 
   async function ledgerConnect() {
+    const network = raindexClient.getNetworkByChainId($walletConnectNetwork);
+    if (network.error) {
+      toasts.error(network.error.readableMsg);
+      return;
+    }
+
     if (!$ledgerWalletAddress) {
       isConnecting = true;
       try {
-        const res: Hex = await getAddressFromLedger(derivationIndex);
+        const res: Hex = await getAddressFromLedger(
+          $walletConnectNetwork,
+          network.value.rpcs,
+          derivationIndex,
+        );
         ledgerWalletAddress.set(res);
         onConnect();
       } catch (e) {
@@ -96,7 +109,7 @@
       <div class="w-32 grow-0 break-all">
         <input
           type="text"
-          class="block w-32 rounded-xl border-gray-300 bg-gray-50 p-1.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500 rtl:text-right"
+          class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-32 rounded-xl border-gray-300 bg-gray-50 p-1.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
           value={derivationIndex}
           use:imask={maskOptions}
           on:complete={completeDerivationIndex}

@@ -139,6 +139,7 @@ export { default as TransactionProvider } from './providers/transactions/Transac
 
 // Hooks
 export { useGui } from './hooks/useGui';
+export { useRaindexClient, RAINDEX_CLIENT_CONTEXT_KEY } from './hooks/useRaindexClient';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
