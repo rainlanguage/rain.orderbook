@@ -4,8 +4,8 @@ import Page from './+page.svelte';
 import { readable } from 'svelte/store';
 import {
 	useRegistry,
-	type ValidStrategyDetail,
-	type InvalidStrategyDetail
+	type ValidOrderDetail,
+	type InvalidOrderDetail
 } from '@rainlanguage/ui-components';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
@@ -17,31 +17,31 @@ vi.mock('$app/stores', async (importOriginal) => {
 	};
 });
 
-const mockValidStrategy1: ValidStrategyDetail = {
+const mockValidOrder1: ValidOrderDetail = {
 	details: {
-		name: 'Strategy One',
-		description: 'This is the first valid strategy.',
+		name: 'Order One',
+		description: 'This is the first valid order.',
 		short_description: 'Valid 1'
 	},
-	name: 'strategy1.dotrain',
+	name: 'order1.dotrain',
 	dotrain: ';;'
 };
 
 const mockRegistry = vi.fn();
 const mockIsCustomRegistry = vi.fn();
 
-const mockValidStrategy2: ValidStrategyDetail = {
+const mockValidOrder2: ValidOrderDetail = {
 	details: {
-		name: 'Strategy Two',
-		description: 'Another valid strategy.',
+		name: 'Order Two',
+		description: 'Another valid order.',
 		short_description: 'Valid 2'
 	},
-	name: 'strategy2.dotrain',
+	name: 'order1.dotrain',
 	dotrain: ';;'
 };
 
-const mockInvalidStrategy1: InvalidStrategyDetail = {
-	name: 'invalidStrategy.dotrain',
+const mockInvalidOrder1: InvalidOrderDetail = {
+	name: 'invalidOrder.dotrain',
 	error: 'Syntax error on line 1'
 };
 
@@ -56,8 +56,8 @@ const mockGetCurrentRegistry = vi.fn().mockReturnValue(readable({}));
 
 describe('Page Component', () => {
 	const mockValidated = {
-		validStrategies: [mockValidStrategy1, mockValidStrategy2],
-		invalidStrategies: [mockInvalidStrategy1]
+		validOrders: [mockValidOrder1, mockValidOrder2],
+		invalidOrders: [mockInvalidOrder1]
 	};
 
 	beforeEach(() => {
@@ -73,7 +73,7 @@ describe('Page Component', () => {
 		mockPageStore.reset();
 	});
 
-	it('should display error message when fetching strategies fails', async () => {
+	it('should display error message when fetching orders fails', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				error: 'Failed to fetch registry dotrains'
@@ -92,10 +92,10 @@ describe('Page Component', () => {
 		});
 	});
 
-	it('should display error message when validating strategies fails', async () => {
+	it('should display error message when validating orders fails', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				error: 'Failed to validate strategies'
+				error: 'Failed to validate orders'
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as unknown as any
 		});
@@ -107,16 +107,16 @@ describe('Page Component', () => {
 		await waitFor(() => {
 			const errorMessage = screen.getByTestId('error-message');
 			expect(errorMessage).toBeInTheDocument();
-			expect(errorMessage).toHaveTextContent('Failed to validate strategies');
+			expect(errorMessage).toHaveTextContent('Failed to validate orders');
 		});
 	});
 
-	it('should display no strategies found when no strategies are available', async () => {
+	it('should display no orders found when no orders are available', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				error: null,
-				validStrategies: [],
-				invalidStrategies: []
+				validOrders: [],
+				invalidOrders: []
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as unknown as any
 		});
@@ -126,15 +126,15 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('No strategies found')).toBeInTheDocument();
+			expect(screen.getByText('No orders found')).toBeInTheDocument();
 		});
 	});
 
-	it('should display valid strategies when they are available', async () => {
+	it('should display valid orders when they are available', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				validStrategies: mockValidated.validStrategies,
-				invalidStrategies: []
+				validOrders: mockValidated.validOrders,
+				invalidOrders: []
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any
 		});
@@ -144,15 +144,15 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByTestId('valid-strategies')).toBeInTheDocument();
+			expect(screen.getByTestId('valid-orders')).toBeInTheDocument();
 		});
 	});
 
-	it('should display invalid strategies when they are available', async () => {
+	it('should display invalid orders when they are available', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				validStrategies: [],
-				invalidStrategies: mockValidated.invalidStrategies
+				validOrders: [],
+				invalidOrders: mockValidated.invalidOrders
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any
 		});
@@ -162,15 +162,15 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByTestId('invalid-strategies')).toBeInTheDocument();
+			expect(screen.getByTestId('invalid-orders')).toBeInTheDocument();
 		});
 	});
 
-	it('should display valid and invalid strategies when both are available', async () => {
+	it('should display valid and invalid orders when both are available', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				validStrategies: mockValidated.validStrategies,
-				invalidStrategies: mockValidated.invalidStrategies
+				validOrders: mockValidated.validOrders,
+				invalidOrders: mockValidated.invalidOrders
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any
 		});
@@ -180,8 +180,8 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByTestId('valid-strategies')).toBeInTheDocument();
-			expect(screen.getByTestId('invalid-strategies')).toBeInTheDocument();
+			expect(screen.getByTestId('valid-orders')).toBeInTheDocument();
+			expect(screen.getByTestId('invalid-orders')).toBeInTheDocument();
 		});
 	});
 });

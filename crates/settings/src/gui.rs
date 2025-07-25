@@ -390,7 +390,7 @@ impl GuiCfg {
         Ok(None)
     }
 
-    pub fn parse_strategy_details(
+    pub fn parse_order_details(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<NameAndDescriptionCfg, YamlError> {
         for document in documents {

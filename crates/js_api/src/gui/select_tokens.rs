@@ -17,7 +17,7 @@ impl DotrainOrderGui {
     /// Gets tokens that need user selection for the current deployment.
     ///
     /// Returns tokens defined in the select-tokens section that require user input
-    /// to specify contract addresses. This enables generic strategies that work
+    /// to specify contract addresses. This enables generic orders that work
     /// with user-chosen tokens.
     ///
     /// ## Examples
@@ -647,7 +647,7 @@ mod tests {
         const TEST_YAML_TEMPLATE: &str = r#"
 gui:
   name: Fixed limit
-  description: Fixed limit order strategy
+  description: Fixed limit order
   short-description: Buy WETH with USDC on Base.
   deployments:
     some-deployment:

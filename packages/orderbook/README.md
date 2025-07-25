@@ -4,7 +4,7 @@ A TypeScript/JavaScript SDK for interacting with Raindex orderbook contracts, pr
 
 ## What is Raindex?
 
-Raindex is an **onchain orderbook contract** that enables users to deploy complex, perpetual trading strategies using **Rainlang**, a domain-specific language interpreted onchain. Learn more about Rainlang in the [official documentation](https://docs.rainlang.xyz/intro).
+Raindex is an **onchain orderbook contract** that enables users to deploy complex, perpetual trading algorithms using **Rainlang**, a domain-specific language interpreted onchain. Learn more about Rainlang in the [official documentation](https://docs.rainlang.xyz/intro).
 
 ### How It Works
 
@@ -301,14 +301,14 @@ import { parseUnits } from 'viem';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 // Prepare the dotrain that will be used for this order
-// Various strategies can be found in our repository. These are the strategies we show in our webapp
+// Various orders can be found in our repository. These are the ones we show in our webapp
 // https://github.com/rainlanguage/rain.strategies/tree/main/src
 const dotrain = `
   <other configurations are written here>
 
   gui:
-    name: DCA Strategy
-    description: Dollar cost averaging strategy for buying tokens over time
+    name: DCA Order
+    description: Dollar cost averaging order for buying tokens over time
     deployments:
       flare-dca-eth:
         name: DCA into ETH on Flare
@@ -346,7 +346,7 @@ const dotrain = `
   ---
   
   #calculate-io:
-  <your strategy logic goes here>
+  <your order logic goes here>
 `;
 
 // Get details for all deployments defined in the dotrain

@@ -7,11 +7,11 @@ vi.mock('@sveltejs/kit', () => ({
 }));
 
 describe('Layout load function', () => {
-	const mockStrategyName = 'test-strategy';
+	const mockorderName = 'test-order';
 	const mockDotrain = 'https://dotrain.example.com';
-	const mockStrategyDetail = {
-		name: 'Test Strategy',
-		description: 'This is a test strategy',
+	const mockorderDetail = {
+		name: 'Test Order',
+		description: 'This is a test order',
 		config: {}
 	};
 
@@ -22,25 +22,25 @@ describe('Layout load function', () => {
 
 		mockParent.mockResolvedValue({
 			registryDotrains: [
-				{ name: mockStrategyName, dotrain: mockDotrain },
-				{ name: 'other-strategy', dotrain: 'https://other.example.com' }
+				{ name: mockorderName, dotrain: mockDotrain },
+				{ name: 'other-order', dotrain: 'https://other.example.com' }
 			],
-			validStrategies: [
+			validOrders: [
 				{
-					name: mockStrategyName,
-					details: mockStrategyDetail
+					name: mockorderName,
+					details: mockorderDetail
 				},
 				{
-					name: 'other-strategy',
-					details: { name: 'Other', description: 'Other strategy', config: {} }
+					name: 'other-order',
+					details: { name: 'Other', description: 'Other order', config: {} }
 				}
 			]
 		});
 	});
 
-	it('should load strategy details successfully', async () => {
+	it('should load order details successfully', async () => {
 		const result = await load({
-			params: { strategyName: mockStrategyName },
+			params: { orderName: mockorderName },
 			parent: mockParent
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
@@ -48,16 +48,16 @@ describe('Layout load function', () => {
 		expect(mockParent).toHaveBeenCalled();
 		expect(result).toEqual({
 			dotrain: mockDotrain,
-			strategyName: mockStrategyName,
-			strategyDetail: mockStrategyDetail,
-			pageName: mockStrategyName
+			orderName: mockorderName,
+			orderDetail: mockorderDetail,
+			pageName: mockorderName
 		});
 	});
 
-	it('should redirect if strategy name is not found in registryDotrains', async () => {
+	it('should redirect if order name is not found in registryDotrains', async () => {
 		try {
 			await load({
-				params: { strategyName: 'non-existent-strategy' },
+				params: { orderName: 'non-existent-order' },
 				parent: mockParent
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any);
@@ -66,19 +66,17 @@ describe('Layout load function', () => {
 		}
 	});
 
-	it('should redirect if strategy details are not found in validStrategies', async () => {
+	it('should redirect if order details are not found in validOrders', async () => {
 		mockParent.mockResolvedValue({
-			registryDotrains: [
-				{ name: 'incomplete-strategy', dotrain: 'https://incomplete.example.com' }
-			],
-			validStrategies: [
-				{ name: 'other-strategy', details: { name: 'Other', description: '', config: {} } }
+			registryDotrains: [{ name: 'incomplete-order', dotrain: 'https://incomplete.example.com' }],
+			validOrders: [
+				{ name: 'other-order', details: { name: 'Other', description: '', config: {} } }
 			]
 		});
 
 		try {
 			await load({
-				params: { strategyName: 'incomplete-strategy' },
+				params: { orderName: 'incomplete-order' },
 				parent: mockParent
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any);

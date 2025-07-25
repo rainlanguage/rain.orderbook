@@ -295,7 +295,7 @@ export class TransactionManager {
 	}
 
 	/**
-	 * Creates and initializes a new transaction for deploying a strategy.
+	 * Creates and initializes a new transaction for deploying an order.
 	 * @param args - Configuration for the deployment transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.

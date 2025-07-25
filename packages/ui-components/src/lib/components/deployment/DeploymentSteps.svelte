@@ -40,7 +40,7 @@
 	/** The deployment configuration containing key, name and description */
 	export let deployment: Deployment;
 	/** Strategy details containing name and description configuration */
-	export let strategyDetail: NameAndDescriptionCfg;
+	export let orderDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
 	export let onDeploy: (raindexClient: RaindexClient, gui: DotrainOrderGui) => void;
 	export let wagmiConnected: Writable<boolean>;
@@ -268,7 +268,7 @@
 			{#if deployment}
 				<div class="flex max-w-2xl flex-col gap-4 text-start">
 					<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-						{strategyDetail.name}
+						{orderDetail.name}
 					</h1>
 					<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
 						{deployment.description}
@@ -343,7 +343,7 @@
 								<Spinner size="4" color="white" />
 								<span class="ml-2">Checking deployment...</span>
 							{:else}
-								Deploy Strategy
+								Deploy Order
 							{/if}
 						</Button>
 					{:else}

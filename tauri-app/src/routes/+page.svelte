@@ -13,8 +13,8 @@
     src={$colorTheme === 'dark' ? logoDark : logoLight}
   />
   <div data-testid="description" class="mt-4 text-center text-2xl">
-    Raindex allows anyone to write, deploy and manage token trading strategies, written in Rainlang,
-    on any EVM network.
+    Raindex allows anyone to write, deploy and manage token trading orders, written in Rainlang, on
+    any EVM network.
   </div>
   <div class="flex items-center gap-x-2">
     <Button data-testid="community-link" target="_blank" href="https://t.me/+W0aQ36ptN_E2MjZk">

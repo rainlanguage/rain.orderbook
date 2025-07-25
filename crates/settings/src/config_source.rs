@@ -603,7 +603,7 @@ accounts:
 
 gui:
   name: Fixed limit
-  description: Fixed limit order strategy
+  description: Fixed limit order
   deployments:
     some-deployment:
       name: Buy WETH with USDC on Base.
@@ -752,7 +752,7 @@ gui:
 
         let gui = config.gui.unwrap();
         assert_eq!(gui.name, "Fixed limit");
-        assert_eq!(gui.description, "Fixed limit order strategy");
+        assert_eq!(gui.description, "Fixed limit order");
         assert_eq!(gui.deployments.len(), 1);
         let deployment = gui.deployments.get("some-deployment").unwrap();
         assert_eq!(deployment.name, "Buy WETH with USDC on Base.");

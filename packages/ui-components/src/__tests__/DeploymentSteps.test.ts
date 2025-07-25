@@ -84,7 +84,7 @@ const mockDeployment = {
 const mockOnDeploy = vi.fn();
 
 const defaultProps: DeploymentStepsProps = {
-	strategyDetail: {
+	orderDetail: {
 		name: 'SFLR<>WFLR on Flare',
 		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
 		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
@@ -282,7 +282,7 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Deploy Order')).toBeInTheDocument();
 		});
 	});
 	it('refreshes field descriptions when tokens change', async () => {
@@ -422,7 +422,7 @@ describe('DeploymentSteps', () => {
 		const user = userEvent.setup();
 		render(DeploymentSteps, { props: propsWithMockHandlers });
 
-		const deployButton = screen.getByText('Deploy Strategy');
+		const deployButton = screen.getByText('Deploy Order');
 		await user.click(deployButton);
 
 		await waitFor(() => {
