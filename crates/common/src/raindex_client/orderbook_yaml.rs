@@ -2,7 +2,7 @@ use super::*;
 use rain_orderbook_app_settings::{
     accounts::AccountCfg, network::NetworkCfg, orderbook::OrderbookCfg,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[wasm_export]
 impl RaindexClient {
@@ -29,7 +29,8 @@ impl RaindexClient {
     )]
     pub fn get_unique_chain_ids(&self) -> Result<Vec<u32>, RaindexError> {
         let networks = self.get_all_networks()?;
-        Ok(networks.values().map(|cfg| cfg.chain_id).collect())
+        let unique_chain_ids: HashSet<u32> = networks.values().map(|cfg| cfg.chain_id).collect();
+        Ok(unique_chain_ids.into_iter().collect())
     }
 
     /// Retrieves all available networks with their configurations
@@ -154,7 +155,7 @@ impl RaindexClient {
     /// and the values are `AccountCfg` objects containing account details.
     ///
     /// ## Examples
-    /// ///
+    ///
     /// ```javascript
     /// const result = client.getAllAccounts();
     /// if (result.error) {

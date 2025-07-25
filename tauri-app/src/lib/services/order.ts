@@ -33,7 +33,7 @@ export async function orderRemove(raindexClient: RaindexClient, order: RaindexOr
       rpcs: orderbook.value.network.rpcs,
       orderbook_address: order.orderbook,
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: order.id,
+      chain_id: order.chainId,
     },
     subgraphArgs: {
       url: orderbook.value.subgraph.url,
