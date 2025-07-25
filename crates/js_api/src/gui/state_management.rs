@@ -1,5 +1,9 @@
 use super::*;
-use rain_orderbook_app_settings::{gui::GuiDepositCfg, order::OrderIOCfg, token::TokenCfg};
+use rain_orderbook_app_settings::{
+    gui::GuiDepositCfg,
+    order::{OrderIOCfg, VaultType},
+    token::TokenCfg,
+};
 use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
@@ -21,7 +25,7 @@ struct SerializedGuiState {
     field_values: BTreeMap<String, GuiPresetCfg>,
     deposits: BTreeMap<String, GuiPresetCfg>,
     select_tokens: BTreeMap<String, TokenCfg>,
-    vault_ids: BTreeMap<(bool, u8), Option<String>>,
+    vault_ids: BTreeMap<(VaultType, String), Option<String>>,
     dotrain_hash: String,
     selected_deployment: String,
 }
@@ -68,16 +72,15 @@ impl DotrainOrderGui {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         order_key: &str,
         is_input: bool,
-    ) -> Result<BTreeMap<(bool, u8), Option<String>>, GuiError> {
+    ) -> Result<BTreeMap<(VaultType, String), Option<String>>, GuiError> {
         let mut vault_ids = BTreeMap::new();
-        for (i, vault_id) in OrderCfg::parse_vault_ids(documents, order_key, is_input)?
-            .iter()
-            .enumerate()
-        {
-            vault_ids.insert(
-                (is_input, i as u8),
-                vault_id.as_ref().map(|v| v.to_string()),
-            );
+        let r#type = if is_input {
+            VaultType::Input
+        } else {
+            VaultType::Output
+        };
+        for (token, vault_id) in OrderCfg::parse_vault_ids(documents, order_key, r#type)? {
+            vault_ids.insert((r#type, token), vault_id.as_ref().map(|v| v.to_string()));
         }
         Ok(vault_ids)
     }
@@ -407,6 +410,7 @@ mod tests {
     };
     use alloy::primitives::U256;
     use js_sys::{eval, Reflect};
+    use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PXWvCMBRt3NgY7EkGexrsByz0a6IR9jBB6weK-IX4pjW0tWlS2ogV_4Q_Wao3FcX7cM85ycnNPSXtUm-Aq4CvA-5hU1P1BGgaxr3JQnBgaAVT5AVQipBy-9G0x85b9Q4qFRHFnMqdSEL17gvQlzKu6zoT7pL5IpX1mlGr6Ens4m3CDrkD5R2pr5uT9gfQ8u8sO941VEavcD3Jd_i20bPSvYFdKqIUAy1C0FWZhPwAdebkv9WhlcUwXDRwkvojb1ONWtjps0G1y72pxea9LHDGmff3qZJSRl2Jz_HxmsZM7CPK5Ql7qXcfqAEAAA==";
@@ -429,8 +433,18 @@ mod tests {
             .unwrap();
         gui.set_field_value("binding-2".to_string(), "0".to_string())
             .unwrap();
-        gui.set_vault_id(true, 0, Some("199".to_string())).unwrap();
-        gui.set_vault_id(false, 0, Some("299".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("199".to_string()),
+        )
+        .unwrap();
+        gui.set_vault_id(
+            VaultType::Output,
+            "token2".to_string(),
+            Some("299".to_string()),
+        )
+        .unwrap();
 
         let state = gui.serialize_state().unwrap();
         assert!(!state.is_empty());
@@ -462,8 +476,14 @@ mod tests {
             }
         );
         let vault_ids = gui.get_vault_ids().unwrap().0;
-        assert_eq!(vault_ids.get("input").unwrap()[0], Some(U256::from(199)));
-        assert_eq!(vault_ids.get("output").unwrap()[0], Some(U256::from(299)));
+        assert_eq!(
+            vault_ids.get("input").unwrap()["token1"],
+            Some(U256::from(199))
+        );
+        assert_eq!(
+            vault_ids.get("output").unwrap()["token2"],
+            Some(U256::from(299))
+        );
     }
 
     #[wasm_bindgen_test]
@@ -526,8 +546,18 @@ mod tests {
             .unwrap();
         gui.set_field_value("binding-2".to_string(), "582.1".to_string())
             .unwrap();
-        gui.set_vault_id(true, 0, Some("199".to_string())).unwrap();
-        gui.set_vault_id(false, 0, Some("299".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("199".to_string()),
+        )
+        .unwrap();
+        gui.set_vault_id(
+            VaultType::Output,
+            "token2".to_string(),
+            Some("299".to_string()),
+        )
+        .unwrap();
 
         let callback_called = Reflect::get(&global, &JsValue::from_str("callbackCalled"))
             .expect("should have callbackCalled flag on globalThis");
