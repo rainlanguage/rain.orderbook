@@ -84,7 +84,7 @@ const mockDeployment = {
 const mockOnDeploy = vi.fn();
 
 const defaultProps: DeploymentStepsProps = {
-	strategyDetail: {
+	orderDetail: {
 		name: 'SFLR<>WFLR on Flare',
 		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
 		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'

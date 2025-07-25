@@ -296,7 +296,7 @@ impl RaindexOrder {
     /// Gets comprehensive performance metrics and analytics for this order over a specified time period
     ///
     /// Retrieves detailed performance data including profit/loss, volume statistics, and other
-    /// key metrics that help assess the effectiveness of the trading strategy implemented by this order.
+    /// key metrics that help assess the effectiveness of the trading algorithm implemented by this order.
     ///
     /// ## Examples
     ///

@@ -555,7 +555,7 @@ mod tests {
             Some("Test description".to_string())
         );
 
-        let details = GuiCfg::parse_strategy_details(dotrain_yaml.documents.clone()).unwrap();
+        let details = GuiCfg::parse_order_details(dotrain_yaml.documents.clone()).unwrap();
         assert_eq!(details.name, "Test gui");
         assert_eq!(details.description, "Test description");
 

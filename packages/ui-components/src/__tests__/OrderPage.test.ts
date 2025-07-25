@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
-import StrategyPage from '../lib/components/deployment/StrategyPage.svelte';
+import OrderPage from '../lib/components/deployment/OrderPage.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 
@@ -12,40 +12,40 @@ vi.mock('../lib/components/deployment/DeploymentsSection.svelte', async () => {
 	return { default: MockDeploymentsSection };
 });
 
-describe('StrategyPage', () => {
+describe('OrderPage', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
 	});
 
-	it('renders strategy details successfully with rawDotrain', async () => {
+	it('renders order details successfully with rawDotrain', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockStrategyDetails = {
+		const mockorderDetails = {
 			value: {
-				name: 'Test Strategy',
+				name: 'Test Order',
 				description: 'Test Description',
 				short_description: 'Test Short Description'
 			}
 		};
-		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce(mockStrategyDetails);
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockorderDetails);
 
-		render(StrategyPage, {
+		render(OrderPage, {
 			props: {
 				dotrain: mockDotrain
 			}
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Test Order')).toBeInTheDocument();
 			expect(screen.getByText('Test Description')).toBeInTheDocument();
 		});
 	});
 
-	it('renders strategy details successfully from fetch', async () => {
+	it('renders order details successfully from fetch', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockStrategyDetails = {
+		const mockorderDetails = {
 			value: {
-				name: 'Test Strategy',
+				name: 'Test Order',
 				description: 'Test Description',
 				short_description: 'Test Short Description'
 			}
@@ -55,22 +55,22 @@ describe('StrategyPage', () => {
 			text: () => Promise.resolve(mockDotrain)
 		});
 
-		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce(mockStrategyDetails);
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockorderDetails);
 
-		render(StrategyPage, {
+		render(OrderPage, {
 			props: {
-				strategyName: 'TestStrategy',
+				orderName: 'TestOrder',
 				dotrain: mockDotrain
 			}
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Test Order')).toBeInTheDocument();
 			expect(screen.getByText('Test Description')).toBeInTheDocument();
 		});
 	});
 
-	it('displays error message when strategy details fail', async () => {
+	it('displays error message when order details fail', async () => {
 		const mockDotrain = 'mock dotrain content';
 
 		// Mock fetch response
@@ -79,15 +79,15 @@ describe('StrategyPage', () => {
 		});
 
 		// Mock DotrainOrderGui methods
-		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce({
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce({
 			error: {
 				msg: 'Failed to get order details'
 			}
 		});
 
-		render(StrategyPage, {
+		render(OrderPage, {
 			props: {
-				strategyName: 'TestStrategy',
+				orderName: 'TestOrder',
 				dotrain: mockDotrain
 			}
 		});
@@ -99,9 +99,9 @@ describe('StrategyPage', () => {
 
 	it('handles markdown fetch failure', async () => {
 		const mockDotrain = 'mock dotrain content';
-		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce({
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce({
 			value: {
-				name: 'Test Strategy',
+				name: 'Test Order',
 				description: 'https://example.com/description.md',
 				short_description: 'Test Short Description'
 			}
@@ -109,9 +109,9 @@ describe('StrategyPage', () => {
 		// Mock fetch to reject
 		mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
-		render(StrategyPage, {
+		render(OrderPage, {
 			props: {
-				strategyName: 'TestStrategy',
+				orderName: 'TestOrder',
 				dotrain: mockDotrain
 			}
 		});
@@ -123,9 +123,9 @@ describe('StrategyPage', () => {
 
 	it('renders markdown if description is a markdown url', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockStrategyDetails = {
+		const mockorderDetails = {
 			value: {
-				name: 'Test Strategy',
+				name: 'Test Order',
 				description: 'https://example.com/description.md',
 				short_description: 'Test Short Description'
 			}
@@ -136,17 +136,17 @@ describe('StrategyPage', () => {
 			text: () => Promise.resolve('mock markdown content')
 		});
 
-		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce(mockStrategyDetails);
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockorderDetails);
 
-		render(StrategyPage, {
+		render(OrderPage, {
 			props: {
-				strategyName: 'TestStrategy',
+				orderName: 'TestOrder',
 				dotrain: mockDotrain
 			}
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Test Order')).toBeInTheDocument();
 			expect(screen.getByTestId('markdown-content')).toBeInTheDocument();
 			expect(mockFetch).toHaveBeenCalledWith('https://example.com/description.md');
 		});
@@ -154,9 +154,9 @@ describe('StrategyPage', () => {
 
 	it('falls back to plain text when markdown fetch fails', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockStrategyDetails = {
+		const mockorderDetails = {
 			value: {
-				name: 'Test Strategy',
+				name: 'Test Order',
 				description: 'https://example.com/description.md',
 				short_description: 'Test Short Description'
 			}
@@ -167,17 +167,17 @@ describe('StrategyPage', () => {
 			statusText: 'Not Found'
 		});
 
-		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce(mockStrategyDetails);
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockorderDetails);
 
-		render(StrategyPage, {
+		render(OrderPage, {
 			props: {
-				strategyName: 'TestStrategy',
+				orderName: 'TestOrder',
 				dotrain: mockDotrain
 			}
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Test Order')).toBeInTheDocument();
 			expect(screen.getByTestId('plain-description')).toHaveTextContent(
 				'https://example.com/description.md'
 			);

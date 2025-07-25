@@ -1,12 +1,12 @@
 import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook';
 
-export type ValidStrategyDetail = {
+export type ValidOrderDetail = {
 	details: NameAndDescriptionCfg;
 	name: string;
 	dotrain: string;
 };
 
-export type InvalidStrategyDetail = {
+export type InvalidOrderDetail = {
 	name: string;
 	error: string;
 };
