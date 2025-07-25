@@ -2,14 +2,14 @@ use crate::{
     error::{Error, FailedQuote},
     quote::{QuoteResult, QuoteTarget},
 };
-use alloy::providers::{Failure, Provider};
+use alloy::providers::{MulticallError, Provider};
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
     primitives::Address,
 };
 use rain_error_decoding::AbiDecodedErrorType;
 use rain_orderbook_bindings::provider::mk_read_provider;
-use rain_orderbook_bindings::IOrderBookV5::{quote2Return, IOrderBookV5Instance};
+use rain_orderbook_bindings::IOrderBookV5::IOrderBookV5Instance;
 use url::Url;
 
 /// Quotes array of given quote targets using the given rpc url
@@ -42,7 +42,32 @@ pub async fn batch_quote(
         multicall = multicall.add_dynamic(ob_instance.quote2(quote_target.quote_config.clone()));
     }
 
-    let aggregate_res: Vec<Result<quote2Return, Failure>> = multicall.aggregate3().await?;
+    let aggregate_res = match multicall.aggregate3().await {
+        Ok(results) => results,
+        Err(MulticallError::CallFailed(bytes)) => {
+            // Handle the case where the entire multicall failed
+            // Create a single error result for all quote targets
+            let decoded_error =
+                match AbiDecodedErrorType::selector_registry_abi_decode(bytes.as_ref()).await {
+                    Ok(err) => FailedQuote::RevertError(err),
+                    Err(err) => FailedQuote::RevertErrorDecodeFailed(err),
+                };
+            return Ok((0..quote_targets.len())
+                .map(|_| match &decoded_error {
+                    FailedQuote::RevertError(abi_err) => {
+                        Err(FailedQuote::RevertError(abi_err.clone()))
+                    }
+                    FailedQuote::RevertErrorDecodeFailed(_) => Err(FailedQuote::CorruptReturnData(
+                        "Multicall failed with non-decodable error".to_string(),
+                    )),
+                    _ => Err(FailedQuote::CorruptReturnData(
+                        "Unexpected multicall failure".to_string(),
+                    )),
+                })
+                .collect());
+        }
+        Err(err) => return Err(Error::MulticallError(err)),
+    };
 
     let mut results: Vec<QuoteResult> = Vec::with_capacity(aggregate_res.len());
     for res in aggregate_res {
@@ -207,5 +232,57 @@ mod tests {
             ),
             "unexpected error: {err:?}"
         );
+    }
+
+    #[tokio::test]
+    async fn test_batch_quote_handles_individual_call_failures_with_rain_error() {
+        let rpc_server = MockServer::start_async().await;
+        let quote_targets = vec![QuoteTarget::default(), QuoteTarget::default()];
+
+        let response_data = vec![
+            MulticallResult {
+                success: false,
+                returnData: alloy::hex!("734bc71c").to_vec().into(), // TokenSelfTrade error selector
+            },
+            MulticallResult {
+                success: false,
+                returnData: alloy::hex!("deadbeef").to_vec().into(), // Unknown error selector
+            },
+        ]
+        .abi_encode();
+
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc");
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": alloy::hex::encode_prefixed(response_data),
+            }));
+        });
+
+        let results = batch_quote(
+            &quote_targets,
+            vec![rpc_server.url("/rpc").to_string()],
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(results.len(), 2);
+
+        assert!(matches!(
+            &results[0],
+            Err(FailedQuote::RevertError(rain_error_decoding::AbiDecodedErrorType::Known { name, .. }))
+            if name == "TokenSelfTrade"
+        ));
+
+        assert!(matches!(
+            &results[1],
+            Err(FailedQuote::RevertError(
+                rain_error_decoding::AbiDecodedErrorType::Unknown(_)
+            ))
+        ));
     }
 }
