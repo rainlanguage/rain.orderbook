@@ -184,8 +184,8 @@ impl RaindexOrder {
     ///
     /// Returns the pre-parsed metadata documents that were processed during order creation.
     /// This is more efficient than parsing on each access.
-    #[wasm_bindgen(getter)]
-    pub fn parsed_meta(&self) -> Vec<UnpackedMetadata> {
+    #[wasm_bindgen(getter = parsed_meta)]
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
         self.parsed_meta.clone()
     }
 }
