@@ -1,9 +1,9 @@
 import { settingsText } from '$lib/stores/settings';
-import type { Config, ConfigSource, NewConfig } from '@rainlanguage/orderbook';
+import type { Config, ConfigSource } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 import { get } from 'svelte/store';
 
-export const parseConfig = async (text: string, validate = false): Promise<NewConfig> =>
+export const parseConfig = async (text: string, validate = false): Promise<void> =>
   invoke('parse_new_configstring', { text, validate });
 
 export const mergeDotrainConfigWithSettings = async (dotrain: string): Promise<ConfigSource> =>

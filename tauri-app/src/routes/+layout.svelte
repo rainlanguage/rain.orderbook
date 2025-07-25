@@ -22,7 +22,7 @@
   import { derived } from 'svelte/store';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
-  import { settings, settingsText } from '$lib/stores/settings';
+  import { settingsText } from '$lib/stores/settings';
   import { RaindexClient } from '@rainlanguage/orderbook';
   import { onMount } from 'svelte';
   import { loadRemoteSettings } from '$lib/services/loadRemoteSettings';
@@ -39,7 +39,7 @@
   onMount(async () => {
     if ($settingsText === '') {
       const settingsYamlText = await loadRemoteSettings();
-      await applySettings(settingsYamlText, settings, settingsText, parseConfig);
+      await applySettings(settingsYamlText, settingsText, parseConfig);
     }
   });
 

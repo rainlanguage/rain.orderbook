@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { PageHeader, CodeMirrorDotrain, ButtonLoading } from '@rainlanguage/ui-components';
+  import {
+    PageHeader,
+    CodeMirrorDotrain,
+    ButtonLoading,
+    useRaindexClient,
+  } from '@rainlanguage/ui-components';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
@@ -38,6 +43,8 @@
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
   import { walletConnectNetwork } from '$lib/stores/walletconnect';
+
+  const raindexClient = useRaindexClient();
 
   let isSubmitting = false;
   let isCharting = false;
@@ -101,9 +108,19 @@
         ];
       }
       try {
+        const network = raindexClient.getNetworkByChainId($walletConnectNetwork);
+        if (network.error) {
+          throw new Error(network.error.readableMsg);
+        }
+
         // get problems with dotrain
         problems = await promiseTimeout(
-          problemsCallback(text, bindings, deployment?.scenario.deployer.address),
+          problemsCallback(
+            network.value.rpcs,
+            text,
+            bindings,
+            deployment?.scenario.deployer.address,
+          ),
           5000,
           'failed to parse on native parser',
         );

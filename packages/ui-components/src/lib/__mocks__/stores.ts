@@ -1,7 +1,4 @@
-import type { AccountCfg, NewConfig } from '@rainlanguage/orderbook';
-import { parseYaml } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
-import settingsYamlContent from '../__fixtures__/settings.yaml?raw';
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 
@@ -14,16 +11,8 @@ if (import.meta.vitest) {
 	});
 }
 
-// Parse the YAML settings
-const parseResult = parseYaml([settingsYamlContent]);
-if (parseResult.error) {
-	throw new Error(`Failed to parse settings YAML: ${parseResult.error.readableMsg}`);
-}
-const settingsFixture = parseResult.value;
-
 const initialPageState = {
 	data: {
-		stores: { settings: {} },
 		dotrain: 'some dotrain content',
 		deployment: { key: 'deploy-key' },
 		orderDetail: {}
@@ -39,8 +28,6 @@ const initialPageState = {
 };
 
 const mockPageWritable = writable<typeof initialPageState>(initialPageState);
-const mockSettingsWritable = writable<NewConfig>(settingsFixture as unknown as NewConfig);
-const mockAccountsWritable = writable<Record<string, AccountCfg>>({});
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
 const mockShowInactiveOrdersWritable = writable<boolean>(true);
 const mockOrderHashWritable = writable<string>('');
@@ -54,16 +41,6 @@ const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 const mockSelectedChainIdsWritable = writable<number[]>([]);
-
-export const mockSettingsStore = {
-	subscribe: mockSettingsWritable.subscribe,
-	set: mockSettingsWritable.set,
-	mockSetSubscribeValue: (value: NewConfig): void => mockSettingsWritable.set(value)
-};
-
-export const mockAccountsStore = {
-	subscribe: mockAccountsWritable.subscribe
-};
 
 export const mockActiveAccountsItemsStore = {
 	subscribe: mockActiveAccountsItemsWritable.subscribe,
