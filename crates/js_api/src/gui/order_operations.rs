@@ -755,6 +755,7 @@ mod tests {
         }
 
         gui.set_deposit("token1".to_string(), "1200".to_string())
+            .await
             .unwrap();
 
         let res = gui.generate_deposit_calldatas().await.unwrap();
@@ -769,6 +770,7 @@ mod tests {
         }
 
         gui.set_deposit("token1".to_string(), "0".to_string())
+            .await
             .unwrap();
 
         let res = gui.generate_deposit_calldatas().await.unwrap();
