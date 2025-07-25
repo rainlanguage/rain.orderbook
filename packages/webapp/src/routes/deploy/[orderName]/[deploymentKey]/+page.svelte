@@ -16,7 +16,7 @@
 	import { handleAddOrder } from '$lib/services/handleAddOrder';
 	import { handleTransactionConfirmationModal } from '$lib/services/modal';
 
-	const { dotrain, deployment, strategyDetail } = $page.data;
+	const { dotrain, deployment, orderDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
 	const { account } = useAccount();
@@ -67,7 +67,7 @@
 	<div data-testid="gui-provider">
 		<GuiProvider {gui}>
 			<DeploymentSteps
-				{strategyDetail}
+				{orderDetail}
 				{deployment}
 				wagmiConnected={connected}
 				{appKitModal}

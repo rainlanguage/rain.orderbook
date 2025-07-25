@@ -12,7 +12,7 @@ const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const metadata = {
   name: 'Raindex',
   description:
-    'Raindex allows anyone to write, test, deploy and manage token trading strategies written in rainlang, on any EVM network.',
+    'Raindex allows anyone to write, test, deploy and manage token trading orders written in rainlang, on any EVM network.',
   url: 'https://rainlang.xyz',
   icons: [
     'https://raw.githubusercontent.com/rainlanguage/rain.brand/main/Raindex%20logo.svg',

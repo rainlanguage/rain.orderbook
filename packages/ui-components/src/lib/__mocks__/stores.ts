@@ -15,7 +15,7 @@ const initialPageState = {
 	data: {
 		dotrain: 'some dotrain content',
 		deployment: { key: 'deploy-key' },
-		strategyDetail: {}
+		orderDetail: {}
 	},
 	url: new URL('http://localhost:3000/deploy'),
 	params: {},
