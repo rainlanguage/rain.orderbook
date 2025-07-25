@@ -18,7 +18,7 @@
 	import type { AppKit } from '@reown/appkit';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
@@ -30,6 +30,7 @@
 	import type { Account } from '$lib/types/account';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import type { TokenBalance } from '$lib/types/tokenBalance';
+	import type { GetAccountReturnType } from '@wagmi/core';
 
 	interface Deployment {
 		key: string;
@@ -46,6 +47,7 @@
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let account: Account;
+	export let onAccountChange: (callback: (data: GetAccountReturnType) => void) => () => void;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -86,6 +88,16 @@
 		balances.clear();
 		tokenBalances = balances;
 	}
+	const unsubscribeAccountChange = onAccountChange(() => {
+		if (selectTokens) {
+			selectTokens.forEach(async (selectToken) => {
+				await getTokenInfoAndFetchBalance(selectToken.key);
+			});
+		}
+	});
+	onDestroy(() => {
+		unsubscribeAccountChange();
+	});
 
 	async function loadAvailableTokens() {
 		if (loadingTokens) return;
@@ -165,15 +177,22 @@
 		tokenBalances = balances;
 	}
 
+	async function getTokenInfoAndFetchBalance(key: string) {
+		const tokenInfoResult = await gui.getTokenInfo(key);
+		if (tokenInfoResult.error) {
+			throw new Error(tokenInfoResult.error.msg);
+		}
+		const tokenInfo = tokenInfoResult.value;
+		if (!tokenInfo || !tokenInfo.address) {
+			return;
+		}
+		await fetchTokenBalance(tokenInfo);
+	}
+
 	async function onSelectTokenSelect(key: string) {
 		await areAllTokensSelected();
 
-		if ($account) {
-			const tokenInfoResult = await gui.getTokenInfo(key);
-			if (!tokenInfoResult.error && tokenInfoResult.value?.address) {
-				await fetchTokenBalance(tokenInfoResult.value);
-			}
-		}
+		await getTokenInfoAndFetchBalance(key);
 
 		if (allTokensSelected) {
 			let result = await gui.getAllTokenInfos();

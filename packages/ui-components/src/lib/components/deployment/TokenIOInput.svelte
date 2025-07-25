@@ -66,14 +66,6 @@
 	$: if (vault.token?.key) {
 		handleGetTokenInfo();
 	}
-
-	$: tokenBalance =
-		tokenBalances.get(vault.token?.key || '') ||
-		({
-			value: { balance: BigInt(0), formattedBalance: '0' },
-			loading: false,
-			error: ''
-		} as TokenBalance);
 </script>
 
 <div class="flex w-full flex-col gap-6">
@@ -82,7 +74,7 @@
 			<VaultIdInformation
 				title={`${label} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
 				description={`${tokenInfo?.symbol || 'Token'} vault ID`}
-				{tokenBalance}
+				tokenBalance={tokenBalances.get(vault.token?.key || '')}
 			/>
 		</div>
 	</div>

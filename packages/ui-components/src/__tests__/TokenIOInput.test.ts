@@ -2,8 +2,9 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
+import { AccountBalance, DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
+import type { TokenBalance } from '$lib/types/tokenBalance';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: vi.fn()
@@ -121,9 +122,12 @@ describe('TokenInput', () => {
 
 	describe('Balance Display', () => {
 		it('passes token balance to VaultIdInformation component', async () => {
-			const tokenBalances = new Map();
+			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
-				balance: BigInt('1000000000000000000'), // 1 token
+				value: {
+					balance: BigInt('1000000000000000000'),
+					formattedBalance: '1'
+				} as AccountBalance,
 				loading: false,
 				error: ''
 			});
@@ -140,9 +144,12 @@ describe('TokenInput', () => {
 		});
 
 		it('passes loading balance state to VaultIdInformation component', async () => {
-			const tokenBalances = new Map();
+			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
-				balance: null,
+				value: {
+					balance: BigInt(0),
+					formattedBalance: '0'
+				} as AccountBalance,
 				loading: true,
 				error: ''
 			});
@@ -159,9 +166,12 @@ describe('TokenInput', () => {
 		});
 
 		it('passes balance error state to VaultIdInformation component', async () => {
-			const tokenBalances = new Map();
+			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
-				balance: null,
+				value: {
+					balance: BigInt(0),
+					formattedBalance: '0'
+				} as AccountBalance,
 				loading: false,
 				error: 'Network error'
 			});

@@ -51,7 +51,8 @@ vi.mock('$app/stores', async (importOriginal) => {
 vi.mock('$lib/stores/wagmi', () => ({
 	connected: mockConnectedStore,
 	appKitModal: mockAppKitModalStore,
-	wagmiConfig: mockWagmiConfigStore
+	wagmiConfig: mockWagmiConfigStore,
+	onAccountChange: vi.fn(() => vi.fn())
 }));
 
 describe('Full Deployment Tests', () => {

@@ -11,6 +11,7 @@ import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import type { Account } from '$lib/types/account';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+import type { GetAccountReturnType } from '@wagmi/core';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: vi.fn()
@@ -93,7 +94,8 @@ const defaultProps: DeploymentStepsProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
-	account: readable('0x123')
+	account: readable('0x123'),
+	onAccountChange: vi.fn(() => vi.fn())
 } as DeploymentStepsProps;
 
 describe('DeploymentSteps', () => {
@@ -597,6 +599,48 @@ describe('DeploymentSteps', () => {
 
 			// Component should handle the error case gracefully
 			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
+		});
+	});
+
+	it('calls getTokenInfoAndFetchBalance for each selected token on account change', async () => {
+		const mockSelectTokens = [
+			{ key: 'token1', name: 'Token 1', description: undefined },
+			{ key: 'token2', name: 'Token 2', description: undefined }
+		];
+
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
+
+		let storedCallback: (data: GetAccountReturnType) => void = () => {};
+		const mockOnAccountChange = vi.fn((callback: (data: GetAccountReturnType) => void) => {
+			storedCallback = callback;
+			return vi.fn();
+		});
+
+		const propsWithAccountChange = {
+			...defaultProps,
+			onAccountChange: mockOnAccountChange
+		};
+
+		render(DeploymentSteps, { props: propsWithAccountChange });
+
+		await waitFor(() => {
+			expect(mockOnAccountChange).toHaveBeenCalled();
+		});
+		vi.clearAllMocks();
+
+		if (storedCallback) {
+			storedCallback({} as GetAccountReturnType);
+		}
+
+		await waitFor(() => {
+			expect(mockGui.getTokenInfo).toHaveBeenCalledTimes(2);
+			expect(mockGui.getTokenInfo).toHaveBeenCalledWith('token1');
+			expect(mockGui.getTokenInfo).toHaveBeenCalledWith('token2');
+		});
+		await waitFor(() => {
+			expect(mockGui.getAccountBalance).toHaveBeenCalledTimes(2);
 		});
 	});
 });

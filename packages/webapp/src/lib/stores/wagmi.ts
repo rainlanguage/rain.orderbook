@@ -26,6 +26,14 @@ export const loading = writable<boolean>(true);
 export const appKitModal = writable<AppKit>();
 export const wagmiConfig = writable<Config>(mockWeb3Config);
 
+export const accountChangeCallbacks = writable<((data: GetAccountReturnType) => void)[]>([]);
+export const onAccountChange = (callback: (data: GetAccountReturnType) => void) => {
+	accountChangeCallbacks.update((callbacks) => [...callbacks, callback]);
+	return () => {
+		accountChangeCallbacks.update((callbacks) => callbacks.filter((cb) => cb !== callback));
+	};
+};
+
 type DefaultConfigProps = {
 	appName: string;
 	appIcon?: string | null;
@@ -139,6 +147,8 @@ const handleAccountChange = (data: GetAccountReturnType) => {
 			loading.set(false);
 			await disconnectWagmi();
 		}
+
+		get(accountChangeCallbacks).forEach((callback) => callback(data));
 	})();
 };
 

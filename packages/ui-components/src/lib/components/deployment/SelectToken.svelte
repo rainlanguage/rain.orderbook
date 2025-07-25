@@ -58,14 +58,6 @@
 		inputValue = tokenInfo.address;
 	}
 
-	$: tokenBalance =
-		tokenBalances.get(token.key) ||
-		({
-			value: { balance: BigInt(0), formattedBalance: '0' },
-			loading: false,
-			error: ''
-		} as TokenBalance);
-
 	function setMode(mode: 'dropdown' | 'custom') {
 		selectionMode = mode;
 		error = '';
@@ -239,7 +231,7 @@
 			>
 				<CheckCircleSolid class="h-5 w-5" color="green" />
 				<span>{tokenInfo.name}</span>
-				<TokenBalanceComponent {tokenBalance} />
+				<TokenBalanceComponent tokenBalance={tokenBalances.get(token.key)} />
 			</div>
 		{:else if error}
 			<div class="flex h-5 flex-row items-center gap-2" data-testid="error">

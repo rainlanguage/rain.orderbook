@@ -4,7 +4,7 @@
 
 	export let title: string;
 	export let description: string;
-	export let tokenBalance: TokenBalance;
+	export let tokenBalance: TokenBalance | undefined;
 </script>
 
 <div class="flex max-w-xl flex-grow flex-col gap-y-4 text-left">
