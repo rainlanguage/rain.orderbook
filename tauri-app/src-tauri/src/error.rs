@@ -2,7 +2,6 @@ use alloy::hex::FromHexError;
 use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use dotrain::error::ComposeError;
-use rain_orderbook_app_settings::config_source::ConfigSourceError;
 use rain_orderbook_app_settings::yaml::YamlError;
 use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
@@ -68,9 +67,6 @@ pub enum CommandError {
 
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-
-    #[error(transparent)]
-    ConfigSourceError(#[from] ConfigSourceError),
 
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
