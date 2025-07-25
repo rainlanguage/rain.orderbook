@@ -180,6 +180,10 @@ impl RaindexOrder {
     pub fn trades_count(&self) -> u16 {
         self.trades_count
     }
+    #[wasm_bindgen(getter = parsed_meta)]
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
+    }
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexOrder {
