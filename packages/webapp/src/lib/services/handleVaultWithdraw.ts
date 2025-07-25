@@ -44,7 +44,6 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 					open: true,
 					modalTitle: `Withdrawing ${formatUnits(amount, Number(vault.token.decimals))} ${vault.token.symbol}...`,
 					args: {
-						entity: vault,
 						toAddress: vault.orderbook,
 						chainId: vault.chainId,
 						onConfirm: (txHash: Hex) => {

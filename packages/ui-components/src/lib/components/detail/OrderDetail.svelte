@@ -29,10 +29,13 @@
 		RaindexOrder,
 		RaindexVault,
 		type Address,
-		type Hex
+		type Hex,
+		type RaindexVaultType
 	} from '@rainlanguage/orderbook';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import type { VaultsGroupedByType } from '../../types/vaults';
+	import { isAddressEq } from '$lib/utils/account';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -59,11 +62,16 @@
 	 */
 	export let onWithdraw: (raindexClient: RaindexClient, vault: RaindexVault) => void;
 
+	/** Callback function when withdraw all action is triggered for an order
+	 * @param vaults The vaults to withdraw from
+	 */
+	export let onWithdrawAll: (raindexClient: RaindexClient, vaults: RaindexVault[]) => void;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
-	const { matchesAccount } = useAccount();
+	const { account } = useAccount();
 	const { errToast } = useToasts();
 	const raindexClient = useRaindexClient();
 
@@ -91,6 +99,64 @@
 			errToast('Failed to refresh');
 		}
 	};
+
+	const vaultTypes: { key: string; type: RaindexVaultType }[] = [
+		{ key: 'Output vaults', type: 'output' },
+		{ key: 'Input vaults', type: 'input' },
+		{ key: 'Input & output vaults', type: 'inputOutput' }
+	];
+	const getDefaultVaultsGroupedByType = (): VaultsGroupedByType => ({
+		output: [],
+		input: [],
+		inputOutput: []
+	});
+
+	$: vaultsGroupedByTypes =
+		$orderDetailQuery?.data?.vaults?.reduce((acc, vault) => {
+			const type: RaindexVaultType = vault.vaultType ?? 'inputOutput';
+			acc[type].push(vault);
+			return acc;
+		}, getDefaultVaultsGroupedByType()) || getDefaultVaultsGroupedByType();
+
+	const getWithdrawAllLabel = (type: RaindexVaultType) => {
+		switch (type) {
+			case 'output':
+				return 'Withdraw outputs';
+			case 'input':
+				return 'Withdraw inputs';
+			case 'inputOutput':
+				return 'Withdraw all';
+			default:
+				return 'Withdraw all vaults';
+		}
+	};
+
+	// It returns vaults of single group filtered by owner and non-zero balance
+	// It makes it possible to withdraw multiple vaults of the same type at once
+	// Even if some vaults of that type has zero balance
+	$: getVaultsGroupFiltered = (type: RaindexVaultType) => {
+		return vaultsGroupedByTypes[type].filter(
+			(vault) => isAddressEq($account, vault.owner) && vault.balance > 0n
+		);
+	};
+
+	// It checks does it make sense to display Withdraw button for the vault type
+	$: shouldShowWithdrawByType = (type: RaindexVaultType) => {
+		const filteredVaults = getVaultsGroupFiltered(type);
+		return filteredVaults.length > 1;
+	};
+	// If checks does it make sense to display Withdraw all button below all vaults
+	$: shouldShowWithdrawAll = () => {
+		if (!$orderDetailQuery.data?.vaults) return false;
+		const { vaults } = $orderDetailQuery.data;
+		const filteredVaults = vaults.filter(
+			(vault) => isAddressEq($account, vault.owner) && vault.balance > 0n
+		);
+		return (
+			filteredVaults.length > 1 &&
+			getVaultsGroupFiltered('inputOutput').length !== filteredVaults.length
+		);
+	};
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -107,7 +173,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if matchesAccount(data.owner)}
+				{#if isAddressEq($account, data.owner)}
 					{#if data.active}
 						<Button
 							on:click={() => onRemove(raindexClient, data)}
@@ -148,25 +214,41 @@
 				</svelte:fragment>
 			</CardProperty>
 
-			{#each [{ key: 'Output vaults', type: 'output' }, { key: 'Input vaults', type: 'input' }, { key: 'Input & output vaults', type: 'inputOutput' }] as { key, type }}
-				{@const filteredVaults = data.vaults.filter((vault) => vault.vaultType === type)}
+			{#each vaultTypes as { key, type }}
+				{@const filteredVaults = vaultsGroupedByTypes[type]}
 				{#if filteredVaults.length !== 0}
 					<CardProperty>
-						<svelte:fragment slot="key"
-							><div class="flex items-center gap-x-2">
-								{key}
-								{#if type === 'InputOutput'}
-									<InfoCircleOutline class="h-4 w-4" /><Tooltip
-										>{'These vaults can be an input or an output for this order'}</Tooltip
-									>{/if}
-							</div></svelte:fragment
-						>
+						<svelte:fragment slot="key">
+							<div class="flex items-center justify-between gap-x-2">
+								<div>
+									{key}
+									{#if type === 'inputOutput'}
+										<InfoCircleOutline class="inline h-4 w-4" />
+										<Tooltip class="z-10">
+											{'These vaults can be an input or an output for this order'}
+										</Tooltip>
+									{/if}
+								</div>
+								<div>
+									{#if shouldShowWithdrawByType(type)}
+										<Button
+											size="xs"
+											on:click={() => onWithdrawAll(raindexClient, getVaultsGroupFiltered(type))}
+											data-testid={`withdraw-all-${type}`}
+										>
+											<ArrowUpFromBracketOutline size="xs" class="mr-2" />
+											{getWithdrawAllLabel(type)}
+										</Button>
+									{/if}
+								</div>
+							</div>
+						</svelte:fragment>
 						<svelte:fragment slot="value">
 							<div class="mt-2 space-y-2">
 								{#each filteredVaults as vault}
 									<ButtonVaultLink tokenVault={vault} {chainId} {orderbookAddress}>
 										<svelte:fragment slot="buttons">
-											{#if matchesAccount(vault.owner)}
+											{#if isAddressEq($account, vault.owner)}
 												<div class="flex gap-1">
 													<Button
 														color="light"
@@ -194,6 +276,17 @@
 					</CardProperty>
 				{/if}
 			{/each}
+			<!-- If there are different vault types — show additional withdraw all button below all vaults -->
+			{#if shouldShowWithdrawAll()}
+				<Button
+					size="xs"
+					on:click={() => onWithdrawAll(raindexClient, data.vaults)}
+					data-testid="withdraw-all-button"
+				>
+					<ArrowUpFromBracketOutline class="mr-2" />
+					Withdraw all vaults
+				</Button>
+			{/if}
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="chart" let:data>

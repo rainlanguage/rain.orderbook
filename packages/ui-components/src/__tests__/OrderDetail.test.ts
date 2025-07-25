@@ -11,19 +11,19 @@ import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
 import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
-import { useAccount } from '$lib/providers/wallet/useAccount';
 import type { ComponentProps } from 'svelte';
 import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 import { useToasts } from '$lib/providers/toasts/useToasts';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+import { isAddressEq } from '$lib/utils/account';
 
 vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: vi.fn()
 }));
 
 // Mock the account hook
-vi.mock('$lib/providers/wallet/useAccount', () => ({
-	useAccount: vi.fn()
+vi.mock('$lib/utils/account', () => ({
+	isAddressEq: vi.fn()
 }));
 
 // Mock the js_api functions
@@ -58,7 +58,8 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	lightweightChartsTheme: readable(darkChartTheme),
 	onRemove: vi.fn(),
 	onDeposit: vi.fn(),
-	onWithdraw: vi.fn()
+	onWithdraw: vi.fn(),
+	onWithdrawAll: vi.fn()
 };
 
 const mockOrder: RaindexOrder = {
@@ -86,7 +87,7 @@ const mockOrder: RaindexOrder = {
 				symbol: 'MCK',
 				decimals: '18'
 			},
-			balance: BigInt(0),
+			balance: BigInt(10),
 			vaultId: BigInt(2),
 			owner: '0x1234567890123456789012345678901234567890',
 			ordersAsOutput: [],
@@ -104,7 +105,7 @@ const mockOrder: RaindexOrder = {
 				symbol: 'MCK2',
 				decimals: '18'
 			},
-			balance: BigInt(0),
+			balance: BigInt(20),
 			vaultId: BigInt(1),
 			owner: '0x1234567890123456789012345678901234567890',
 			ordersAsOutput: [],
@@ -121,7 +122,6 @@ const mockOrder: RaindexOrder = {
 	tradesCount: 0
 } as unknown as RaindexOrder;
 
-const mockMatchesAccount = vi.fn();
 describe('OrderDetail', () => {
 	let queryClient: QueryClient;
 	let mockRaindexClient: RaindexClient;
@@ -130,10 +130,6 @@ describe('OrderDetail', () => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
 		queryClient = new QueryClient();
-
-		(useAccount as Mock).mockReturnValue({
-			matchesAccount: mockMatchesAccount
-		});
 
 		mockRaindexClient = {
 			getOrderByHash: vi.fn().mockResolvedValue({
@@ -188,7 +184,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('shows remove button if owner wallet matches and order is active', async () => {
-		mockMatchesAccount.mockReturnValue(true);
+		(isAddressEq as Mock).mockReturnValue(true);
 		render(OrderDetail, {
 			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
@@ -208,7 +204,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('does not show remove button if account does not match owner', async () => {
-		mockMatchesAccount.mockReturnValue(false);
+		(isAddressEq as Mock).mockReturnValue(false);
 
 		render(OrderDetail, {
 			props: defaultProps,
@@ -272,7 +268,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('calls onDeposit callback when deposit button is clicked', async () => {
-		mockMatchesAccount.mockReturnValue(true);
+		(isAddressEq as Mock).mockReturnValue(true);
 		const user = userEvent.setup();
 		const mockOnDeposit = vi.fn();
 
@@ -301,7 +297,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
-		mockMatchesAccount.mockReturnValue(true);
+		(isAddressEq as Mock).mockReturnValue(true);
 		const user = userEvent.setup();
 		const mockOnWithdraw = vi.fn();
 
@@ -324,5 +320,30 @@ describe('OrderDetail', () => {
 		await user.click(withdrawButton[0]);
 
 		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults[1]);
+	});
+
+	it('calls onWithdrawAll callback when withdraw all button is clicked', async () => {
+		(isAddressEq as Mock).mockReturnValue(true);
+		const user = userEvent.setup();
+		const mockOnWithdraw = vi.fn();
+
+		render(OrderDetail, {
+			props: {
+				...defaultProps,
+				onWithdrawAll: mockOnWithdraw
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+			expect(screen.getByText('Orderbook')).toBeInTheDocument();
+			expect(screen.getByText('Owner')).toBeInTheDocument();
+			expect(screen.getByText('Created')).toBeInTheDocument();
+		});
+
+		const withdrawButton = screen.getAllByTestId('withdraw-all-button');
+		await user.click(withdrawButton[0]);
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults);
 	});
 });

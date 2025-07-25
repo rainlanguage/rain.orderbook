@@ -9,6 +9,7 @@
     handleWithdrawModal,
     handleOrderRemoveModal,
     handleDebugTradeModal,
+    handleWithdrawMultipleModal,
   } from '$lib/services/modal';
   import type {
     Address,
@@ -44,6 +45,12 @@
       invalidateTanstackQueries(queryClient, [parsedOrderHash]);
     });
   }
+
+  function onWithdrawAll(_raindexClient: RaindexClient, vaults: RaindexVault[]) {
+    handleWithdrawMultipleModal(vaults, () => {
+      invalidateTanstackQueries(queryClient, [parsedOrderHash]);
+    });
+  }
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -61,6 +68,7 @@
     {onRemove}
     {onDeposit}
     {onWithdraw}
+    {onWithdrawAll}
     rpcUrls={orderbookCfg.network.rpcs}
   />
 </div>

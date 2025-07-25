@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
 import { walletConnectNetwork } from '$lib/stores/walletconnect';
+import type { RaindexVault } from '@rainlanguage/orderbook';
 
 export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
   const chainId = get(walletConnectNetwork);
@@ -34,6 +35,25 @@ export async function vaultWithdraw(vaultId: bigint, token: string, targetAmount
       token,
       target_amount: targetAmount.toString(),
     },
+    transactionArgs: {
+      rpcs: orderbook.network.rpcs,
+      orderbook_address: orderbook.address,
+      derivation_index: get(ledgerWalletDerivationIndex),
+      chain_id: chainId,
+    },
+  });
+}
+
+export async function multiVaultsWithdraw(vaults: RaindexVault[]) {
+  const chainId = get(walletConnectNetwork);
+  const orderbook = getOrderbookByChainId(chainId);
+
+  await invoke('vaults_withdraw', {
+    vaults: vaults.map((vault) => ({
+      vault_id: vault.id.toString(),
+      token: vault.token,
+      target_amount: vault.balance.toString(),
+    })),
     transactionArgs: {
       rpcs: orderbook.network.rpcs,
       orderbook_address: orderbook.address,
