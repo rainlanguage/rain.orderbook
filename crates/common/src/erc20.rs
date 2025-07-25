@@ -112,7 +112,6 @@ impl ERC20 {
                 }
             }
             Err(err) => Err(Error::MulticallError(err)),
-
         }
     }
 
