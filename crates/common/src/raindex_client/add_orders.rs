@@ -64,7 +64,6 @@ impl RaindexClient {
         let orders = client
             .transaction_add_orders(Id::new(tx_hash.to_string()))
             .await?;
-
         let orders = orders
             .into_iter()
             .map(|value| {

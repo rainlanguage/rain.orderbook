@@ -160,6 +160,14 @@ pub struct AccountBalance {
     balance: U256,
     formatted_balance: String,
 }
+impl AccountBalance {
+    pub fn new(balance: U256, formatted_balance: String) -> Self {
+        Self {
+            balance,
+            formatted_balance,
+        }
+    }
+}
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl AccountBalance {

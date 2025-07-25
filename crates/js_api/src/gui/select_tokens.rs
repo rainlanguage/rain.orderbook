@@ -1,8 +1,12 @@
 use super::*;
+use alloy::primitives::U256;
 use futures::StreamExt;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
+};
+use rain_orderbook_common::{
+    raindex_client::vaults::AccountBalance, utils::amount_formatter::format_amount_u256,
 };
 use std::str::FromStr;
 
@@ -276,23 +280,27 @@ impl DotrainOrderGui {
             .into_iter()
             .filter(|(_, token)| token.network.key == network_key)
         {
-            if token.decimals.is_none() || token.label.is_none() || token.symbol.is_none() {
+            if let (Some(decimals), Some(label), Some(symbol)) =
+                (&token.decimals, &token.label, &token.symbol)
+            {
+                results.push(TokenInfo {
+                    key: token.key.clone(),
+                    address: token.address,
+                    decimals: *decimals,
+                    name: label.clone(),
+                    symbol: symbol.clone(),
+                });
+            } else {
                 let erc20 = ERC20::new(network.rpcs.clone(), token.address);
                 fetch_futures.push(async move {
                     let token_info = erc20.token_info(None).await?;
                     Ok::<TokenInfo, GuiError>(TokenInfo {
+                        key: token.key.clone(),
                         address: token.address,
-                        decimals: token_info.decimals,
-                        name: token_info.name,
-                        symbol: token_info.symbol,
+                        decimals: token.decimals.unwrap_or(token_info.decimals),
+                        name: token.label.unwrap_or(token_info.name),
+                        symbol: token.symbol.unwrap_or(token_info.symbol),
                     })
-                });
-            } else {
-                results.push(TokenInfo {
-                    address: token.address,
-                    decimals: token.decimals.unwrap(),
-                    name: token.label.unwrap(),
-                    symbol: token.symbol.unwrap(),
                 });
             }
         }
@@ -319,6 +327,62 @@ impl DotrainOrderGui {
         });
 
         Ok(results)
+    }
+
+    /// Gets the balance of a specific token for a given owner address
+    ///
+    /// Retrieves the ERC20 token balance by connecting to the current deployment's network RPC
+    /// and querying the token contract.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.getAccountBalance("0x123...", "0xabc...");
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// console.log("Raw balance:", result.value.balance);
+    /// console.log("Formatted balance:", result.value.formattedBalance);
+    /// ```
+    #[wasm_export(
+        js_name = "getAccountBalance",
+        unchecked_return_type = "AccountBalance",
+        return_description = "Owner balance in both raw and human-readable format",
+        preserve_js_class
+    )]
+    pub async fn get_account_balance(
+        &self,
+        #[wasm_export(js_name = "tokenAddress", param_description = "Token contract address")]
+        token_address: String,
+        #[wasm_export(
+            param_description = "Owner address to check balance for",
+            unchecked_param_type = "Hex"
+        )]
+        owner: String,
+    ) -> Result<AccountBalance, GuiError> {
+        let order_key = DeploymentCfg::parse_order_key(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
+        let network_key =
+            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+        let network = self
+            .dotrain_order
+            .orderbook_yaml()
+            .get_network(&network_key)?;
+
+        let erc20 = ERC20::new(network.rpcs, Address::from_str(&token_address)?);
+        let decimals = erc20.decimals().await?;
+        let balance = erc20
+            .get_account_balance(Address::from_str(&owner)?)
+            .await?;
+
+        Ok(AccountBalance::new(
+            balance,
+            format_amount_u256(balance, decimals)?,
+        ))
     }
 }
 
@@ -580,11 +644,7 @@ mod tests {
         use httpmock::MockServer;
         use std::str::FromStr;
 
-        #[tokio::test]
-        async fn test_set_select_token() {
-            let server = MockServer::start_async().await;
-            let yaml = format!(
-                r#"
+        const TEST_YAML_TEMPLATE: &str = r#"
 gui:
   name: Fixed limit
   description: Fixed limit order
@@ -675,9 +735,12 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#,
-                rpc_url = server.url("/rpc")
-            );
+"#;
+
+        #[tokio::test]
+        async fn test_set_select_token() {
+            let server = MockServer::start_async().await;
+            let yaml = TEST_YAML_TEMPLATE.replace("{rpc_url}", &server.url("/rpc"));
 
             server.mock(|when, then| {
             when.method("POST").path("/rpc").body_contains("0x82ad56cb");
@@ -753,6 +816,59 @@ _ _: 0 0;
             err.to_readable_msg(),
             "No tokens have been configured for selection. Please check your YAML configuration."
         );
+        }
+
+        #[tokio::test]
+        async fn test_get_account_balance() {
+            let server = MockServer::start_async().await;
+            let yaml = TEST_YAML_TEMPLATE.replace("{rpc_url}", &server.url("/rpc"));
+
+            server.mock(|when, then| {
+                when.method("POST").path("/rpc").body_contains("0x313ce567");
+                then.body(
+                    Response::new_success(
+                        1,
+                        "0x0000000000000000000000000000000000000000000000000000000000000012",
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+            });
+            server.mock(|when, then| {
+                when.method("POST").path("/rpc").body_contains("0x70a08231");
+                then.body(
+                    Response::new_success(
+                        1,
+                        "0x00000000000000000000000000000000000000000000000000000000000003e8",
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+            });
+
+            let gui = DotrainOrderGui::new_with_deployment(
+                yaml.to_string(),
+                "some-deployment".to_string(),
+                None,
+            )
+            .await
+            .unwrap();
+
+            let balance = gui
+                .get_account_balance(
+                    "0x0000000000000000000000000000000000000001".to_string(),
+                    "0x0000000000000000000000000000000000000002".to_string(),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(
+                balance,
+                AccountBalance {
+                    balance: U256::from(1000),
+                    formatted_balance: "0.000000000000001".to_string(),
+                }
+            );
         }
     }
 }
