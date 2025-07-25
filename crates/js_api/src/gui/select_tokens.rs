@@ -5,6 +5,9 @@ use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
 };
+use rain_orderbook_common::{
+    raindex_client::vaults::AccountBalance, utils::amount_formatter::format_amount_u256,
+};
 use std::str::FromStr;
 
 const MAX_CONCURRENT_FETCHES: usize = 5;
@@ -340,20 +343,25 @@ impl DotrainOrderGui {
     ///   return;
     /// }
     ///
-    /// const balance = result.value;
-    /// console.log("Token balance:", balance);
+    /// console.log("Raw balance:", result.value.balance);
+    /// console.log("Formatted balance:", result.value.formattedBalance);
     /// ```
     #[wasm_export(
         js_name = "getAccountBalance",
-        unchecked_return_type = "string",
-        return_description = "Balance of the specified token for the given owner"
+        unchecked_return_type = "AccountBalance",
+        return_description = "Owner balance in both raw and human-readable format",
+        preserve_js_class
     )]
     pub async fn get_account_balance(
         &self,
         #[wasm_export(js_name = "tokenAddress", param_description = "Token contract address")]
         token_address: String,
-        #[wasm_export(param_description = "Owner address to check balance for")] owner: String,
-    ) -> Result<U256, GuiError> {
+        #[wasm_export(
+            param_description = "Owner address to check balance for",
+            unchecked_param_type = "Hex"
+        )]
+        owner: String,
+    ) -> Result<AccountBalance, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
@@ -364,11 +372,17 @@ impl DotrainOrderGui {
             .dotrain_order
             .orderbook_yaml()
             .get_network(&network_key)?;
+
         let erc20 = ERC20::new(network.rpcs, Address::from_str(&token_address)?);
+        let decimals = erc20.decimals().await?;
         let balance = erc20
             .get_account_balance(Address::from_str(&owner)?)
             .await?;
-        Ok(balance)
+
+        Ok(AccountBalance::new(
+            balance,
+            format_amount_u256(balance, decimals)?,
+        ))
     }
 }
 
@@ -810,6 +824,17 @@ _ _: 0 0;
             let yaml = TEST_YAML_TEMPLATE.replace("{rpc_url}", &server.url("/rpc"));
 
             server.mock(|when, then| {
+                when.method("POST").path("/rpc").body_contains("0x313ce567");
+                then.body(
+                    Response::new_success(
+                        1,
+                        "0x0000000000000000000000000000000000000000000000000000000000000012",
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+            });
+            server.mock(|when, then| {
                 when.method("POST").path("/rpc").body_contains("0x70a08231");
                 then.body(
                     Response::new_success(
@@ -837,7 +862,13 @@ _ _: 0 0;
                 .await
                 .unwrap();
 
-            assert_eq!(balance, alloy::primitives::U256::from(1000u64));
+            assert_eq!(
+                balance,
+                AccountBalance {
+                    balance: U256::from(1000),
+                    formatted_balance: "0.000000000000001".to_string(),
+                }
+            );
         }
     }
 }

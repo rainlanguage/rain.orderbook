@@ -16,6 +16,7 @@ use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
+    utils::amount_formatter::AmountFormatterError,
 };
 use serde::{Deserialize, Serialize};
 use std::io::prelude::*;
@@ -684,6 +685,8 @@ pub enum GuiError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error(transparent)]
+    AmountFormatterError(#[from] AmountFormatterError),
 }
 
 impl GuiError {
@@ -764,6 +767,8 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
+            GuiError::AmountFormatterError(err) =>
+                format!("There was a problem formatting the amount: {}", err),
         }
     }
 }

@@ -2020,6 +2020,12 @@ ${dotrainWithoutVaultIds}`;
 				.forPost('/rpc-url')
 				.once()
 				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
+			mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000003e8'
 				);
 
@@ -2030,7 +2036,8 @@ ${dotrainWithoutVaultIds}`;
 					'0x1234567890abcdef1234567890abcdef12345678'
 				)
 			);
-			assert.equal(result, '0x3e8');
+			assert.equal(result.balance, BigInt(1000));
+			assert.equal(result.formattedBalance, '0.000000000000001');
 		});
 	});
 
