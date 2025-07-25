@@ -1,11 +1,9 @@
 <script lang="ts">
 	import type { TokenBalance } from '$lib/types/tokenBalance';
-	import { Spinner } from 'flowbite-svelte';
-	import { formatUnits } from 'viem';
+	import TokenBalanceComponent from './TokenBalance.svelte';
 
 	export let title: string;
 	export let description: string;
-	export let decimals: number | undefined;
 	export let tokenBalance: TokenBalance;
 </script>
 
@@ -17,19 +15,6 @@
 		<div class="text-gray-600 dark:text-gray-400">
 			{description}
 		</div>
-		{#if tokenBalance.loading}
-			<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-				<Spinner class="h-4 w-4" />
-				<span>Loading balance...</span>
-			</div>
-		{:else if tokenBalance.balance !== null && !tokenBalance.error && decimals}
-			<div class="text-sm text-gray-600 dark:text-gray-400">
-				Balance: {formatUnits(tokenBalance.balance, decimals)}
-			</div>
-		{:else if tokenBalance.error}
-			<div class="text-sm text-red-600 dark:text-red-400">
-				{tokenBalance.error}
-			</div>
-		{/if}
+		<TokenBalanceComponent {tokenBalance} />
 	</div>
 </div>

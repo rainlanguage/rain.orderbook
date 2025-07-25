@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook';
+import type { AccountBalance, DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
+import type { TokenBalance } from '$lib/types/tokenBalance';
 
 type SelectTokenComponentProps = ComponentProps<SelectToken>;
 
@@ -402,9 +403,12 @@ describe('SelectToken', () => {
 				}
 			});
 
-			const tokenBalances = new Map();
+			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
-				balance: BigInt('1000000000000000000'), // 1 TEST token
+				value: {
+					balance: BigInt('1000000000000000000'),
+					formattedBalance: '1'
+				} as AccountBalance,
 				loading: false,
 				error: ''
 			});
@@ -434,9 +438,12 @@ describe('SelectToken', () => {
 				}
 			});
 
-			const tokenBalances = new Map();
+			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
-				balance: null,
+				value: {
+					balance: BigInt(0),
+					formattedBalance: '0'
+				} as AccountBalance,
 				loading: true,
 				error: ''
 			});
@@ -466,9 +473,12 @@ describe('SelectToken', () => {
 				}
 			});
 
-			const tokenBalances = new Map();
+			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
-				balance: null,
+				value: {
+					balance: BigInt(0),
+					formattedBalance: '0'
+				} as AccountBalance,
 				loading: false,
 				error: 'Network error'
 			});
@@ -498,9 +508,12 @@ describe('SelectToken', () => {
 				}
 			});
 
-			const tokenBalances = new Map();
+			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
-				balance: BigInt('1500000'), // 1.5 USDC
+				value: {
+					balance: BigInt('1500000'),
+					formattedBalance: '1.5'
+				} as AccountBalance,
 				loading: false,
 				error: ''
 			});
@@ -517,36 +530,6 @@ describe('SelectToken', () => {
 			await waitFor(() => {
 				expect(screen.getByText('Balance: 1.5')).toBeInTheDocument();
 			});
-		});
-
-		it('does not display balance when balance is null', async () => {
-			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
-				value: {
-					name: 'Test Token',
-					symbol: 'TEST',
-					address: '0x1234567890123456789012345678901234567890',
-					decimals: 18,
-					key: 'input'
-				}
-			});
-
-			const tokenBalances = new Map();
-			tokenBalances.set('input', {
-				balance: null,
-				loading: false,
-				error: ''
-			});
-
-			render(SelectToken, {
-				...mockProps,
-				tokenBalances
-			});
-
-			await waitFor(() => {
-				expect(screen.getByText('Test Token')).toBeInTheDocument();
-			});
-
-			expect(screen.queryByText(/Balance:/)).not.toBeInTheDocument();
 		});
 	});
 });

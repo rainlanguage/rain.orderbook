@@ -1,5 +1,7 @@
+import type { AccountBalance } from '@rainlanguage/orderbook';
+
 export interface TokenBalance {
-	balance: bigint | null;
+	value: AccountBalance;
 	loading: boolean;
 	error: string;
 }

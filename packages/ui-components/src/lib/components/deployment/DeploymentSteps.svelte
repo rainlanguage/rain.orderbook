@@ -10,7 +10,8 @@
 		type NameAndDescriptionCfg,
 		type OrderIOCfg,
 		DotrainOrderGui,
-		RaindexClient
+		RaindexClient,
+		AccountBalance
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
@@ -137,20 +138,27 @@
 		if (!$account) return;
 
 		const balances = tokenBalances;
-		balances.set(tokenInfo.key, { balance: null, loading: true, error: '' });
+		balances.set(tokenInfo.key, {
+			value: { balance: BigInt(0), formattedBalance: '0' } as AccountBalance,
+			loading: true,
+			error: ''
+		});
 
-		const balance = await gui.getAccountBalance(tokenInfo.address, $account);
-		if (balance.error) {
+		const { value: accountBalance, error } = await gui.getAccountBalance(
+			tokenInfo.address,
+			$account
+		);
+		if (error) {
 			balances.set(tokenInfo.key, {
-				balance: null,
+				value: { balance: BigInt(0), formattedBalance: '0' } as AccountBalance,
 				loading: false,
-				error: balance.error.readableMsg
+				error: error.readableMsg
 			});
 			tokenBalances = balances;
 			return;
 		}
 		balances.set(tokenInfo.key, {
-			balance: BigInt(balance.value),
+			value: accountBalance,
 			loading: false,
 			error: ''
 		});

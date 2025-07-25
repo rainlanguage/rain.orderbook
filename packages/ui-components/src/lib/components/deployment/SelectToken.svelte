@@ -7,7 +7,7 @@
 	import { useGui } from '$lib/hooks/useGui';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import TokenSelectionModal from './TokenSelectionModal.svelte';
-	import { formatUnits } from 'viem';
+	import TokenBalanceComponent from './TokenBalance.svelte';
 	import type { TokenBalance } from '$lib/types/tokenBalance';
 
 	export let token: GuiSelectTokensCfg;
@@ -58,7 +58,13 @@
 		inputValue = tokenInfo.address;
 	}
 
-	$: tokenBalance = tokenBalances.get(token.key) || { balance: null, loading: false, error: '' };
+	$: tokenBalance =
+		tokenBalances.get(token.key) ||
+		({
+			value: { balance: BigInt(0), formattedBalance: '0' },
+			loading: false,
+			error: ''
+		} as TokenBalance);
 
 	function setMode(mode: 'dropdown' | 'custom') {
 		selectionMode = mode;
@@ -233,17 +239,7 @@
 			>
 				<CheckCircleSolid class="h-5 w-5" color="green" />
 				<span>{tokenInfo.name}</span>
-				{#if tokenBalance.loading}
-					<Spinner class="h-4 w-4" />
-				{:else if tokenBalance.balance !== null && !tokenBalance.error}
-					<span class="text-gray-600 dark:text-gray-400">
-						Balance: {formatUnits(tokenBalance.balance, tokenInfo.decimals)}
-					</span>
-				{:else if tokenBalance.error}
-					<span class="text-red-600 dark:text-red-400">
-						{tokenBalance.error}
-					</span>
-				{/if}
+				<TokenBalanceComponent {tokenBalance} />
 			</div>
 		{:else if error}
 			<div class="flex h-5 flex-row items-center gap-2" data-testid="error">
