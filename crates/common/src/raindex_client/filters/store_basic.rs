@@ -32,7 +32,7 @@ impl FilterStore for BasicFilterStore {
     where
         F: FnOnce(VaultsFilterBuilder) -> VaultsFilterBuilder,
     {
-        let builder = VaultsFilterBuilder::from(self.vaults.clone());
+        let builder = self.vaults.clone().into();
         let updated_filter = update_fn(builder).build();
         self.vaults = updated_filter;
         Ok(())
