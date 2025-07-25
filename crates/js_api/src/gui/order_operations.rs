@@ -4,9 +4,11 @@ use alloy::{
     sol_types::SolCall,
 };
 use rain_orderbook_app_settings::{order::OrderIOCfg, orderbook::OrderbookCfg};
-use rain_orderbook_bindings::{OrderBook::multicallCall, IERC20::approveCall};
+use rain_orderbook_bindings::{
+    IOrderBookV5::deposit3Call, OrderBook::multicallCall, IERC20::approveCall,
+};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
+    add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use url::Url;
@@ -406,23 +408,45 @@ impl DotrainOrderGui {
 
         let mut calldatas = Vec::new();
         for VaultAndDeposit {
-            order_io: _,
+            order_io,
             deposit_amount,
-            index: _,
+            index,
         } in vaults_and_deposits
         {
             if deposit_amount == U256::ZERO {
                 continue;
             }
 
-            let orderbook_address = self.get_transaction_args()?.orderbook_address;
+            let token = order_io
+                .token
+                .as_ref()
+                .ok_or(GuiError::SelectTokensNotSet)?;
+            let vault_id = order_io
+                .vault_id
+                .ok_or(GuiError::VaultIdNotFound(index.to_string()))?;
 
-            let calldata = approveCall {
-                spender: orderbook_address,
+            let decimals = if let Some(decimals) = token.decimals {
+                decimals
+            } else {
+                let tx_args = self.get_transaction_args()?;
+                let rpcs = tx_args
+                    .rpcs
+                    .iter()
+                    .map(|rpc| Url::parse(rpc))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let erc20 = ERC20::new(rpcs, token.address);
+                erc20.decimals().await?
+            };
+
+            let deposit_args = DepositArgs {
+                token: token.address,
                 amount: deposit_amount,
-            }
-            .abi_encode();
-
+                vault_id: vault_id.into(),
+                decimals,
+            };
+            let calldata = deposit3Call::try_from(deposit_args)
+                .map_err(rain_orderbook_common::deposit::DepositError::from)?
+                .abi_encode();
             calldatas.push(Bytes::copy_from_slice(&calldata));
         }
 
@@ -757,7 +781,7 @@ mod tests {
         match res {
             DepositCalldataResult::Calldatas(calldatas) => {
                 assert_eq!(calldatas.len(), 1);
-                assert_eq!(calldatas[0].len(), 68);
+                assert_eq!(calldatas[0].len(), 164);
             }
             DepositCalldataResult::NoDeposits => {
                 panic!("should not be no deposits");
