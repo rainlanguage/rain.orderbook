@@ -2,7 +2,7 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use rain_math_float::Float;
 use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
-use rain_orderbook_subgraph_client::utils::float::F1;
+use rain_orderbook_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
@@ -51,9 +51,21 @@ pub struct RaindexOrderQuoteValue {
     pub formatted_inverse_ratio: String,
 }
 impl_wasm_traits!(RaindexOrderQuoteValue);
+
 impl RaindexOrderQuoteValue {
     pub fn try_from_order_quote_value(value: OrderQuoteValue) -> Result<Self, RaindexError> {
-        let inverse_ratio = F1.div(value.ratio)?;
+        let inverse_ratio = if F0.eq(value.ratio)? {
+            F0
+        } else {
+            F1.div(value.ratio)?
+        };
+
+        let formatted_inverse_ratio = if F0.eq(value.ratio)? {
+            "Infinite".to_string()
+        } else {
+            inverse_ratio.format18()?
+        };
+
         let max_input = value.max_output.mul(value.ratio)?;
 
         Ok(Self {
@@ -64,7 +76,7 @@ impl RaindexOrderQuoteValue {
             ratio: value.ratio,
             formatted_ratio: value.ratio.format18()?,
             inverse_ratio,
-            formatted_inverse_ratio: inverse_ratio.format18()?,
+            formatted_inverse_ratio,
         })
     }
 }
