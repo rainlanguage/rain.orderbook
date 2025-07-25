@@ -11,7 +11,6 @@ import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import type { Account } from '$lib/types/account';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-import type { GetAccountReturnType } from '@wagmi/core';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: vi.fn()
@@ -94,8 +93,7 @@ const defaultProps: DeploymentStepsProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
-	account: readable('0x123'),
-	onAccountChange: vi.fn(() => vi.fn())
+	account: readable('0x123')
 } as DeploymentStepsProps;
 
 describe('DeploymentSteps', () => {
@@ -612,27 +610,21 @@ describe('DeploymentSteps', () => {
 			value: mockSelectTokens
 		});
 
-		let storedCallback: (data: GetAccountReturnType) => void = () => {};
-		const mockOnAccountChange = vi.fn((callback: (data: GetAccountReturnType) => void) => {
-			storedCallback = callback;
-			return vi.fn();
-		});
+		const accountStore = writable<`0x${string}` | null>('0x123');
 
-		const propsWithAccountChange = {
+		const propsWithAccountStore = {
 			...defaultProps,
-			onAccountChange: mockOnAccountChange
+			account: accountStore
 		};
 
-		render(DeploymentSteps, { props: propsWithAccountChange });
+		render(DeploymentSteps, { props: propsWithAccountStore });
 
 		await waitFor(() => {
-			expect(mockOnAccountChange).toHaveBeenCalled();
+			expect(mockGui.getSelectTokens).toHaveBeenCalled();
 		});
 		vi.clearAllMocks();
 
-		if (storedCallback) {
-			storedCallback({} as GetAccountReturnType);
-		}
+		accountStore.set('0x456');
 
 		await waitFor(() => {
 			expect(mockGui.getTokenInfo).toHaveBeenCalledTimes(2);
@@ -642,5 +634,34 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(mockGui.getAccountBalance).toHaveBeenCalledTimes(2);
 		});
+	});
+
+	it('clears token balances when account becomes null', async () => {
+		const mockSelectTokens = [{ key: 'token1', name: 'Token 1', description: undefined }];
+
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
+
+		const accountStore = writable<`0x${string}` | null>('0x123');
+
+		const propsWithAccountStore = {
+			...defaultProps,
+			account: accountStore
+		};
+
+		render(DeploymentSteps, { props: propsWithAccountStore });
+
+		await waitFor(() => {
+			expect(mockGui.getSelectTokens).toHaveBeenCalled();
+		});
+
+		vi.clearAllMocks();
+
+		accountStore.set(null);
+
+		// await new Promise((resolve) => setTimeout(resolve, 100));
+		expect(mockGui.getTokenInfo).not.toHaveBeenCalled();
+		expect(mockGui.getAccountBalance).not.toHaveBeenCalled();
 	});
 });

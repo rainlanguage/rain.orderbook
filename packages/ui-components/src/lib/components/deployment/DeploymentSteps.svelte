@@ -30,7 +30,6 @@
 	import type { Account } from '$lib/types/account';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import type { TokenBalance } from '$lib/types/tokenBalance';
-	import type { GetAccountReturnType } from '@wagmi/core';
 
 	interface Deployment {
 		key: string;
@@ -47,7 +46,6 @@
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let account: Account;
-	export let onAccountChange: (callback: (data: GetAccountReturnType) => void) => () => void;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -83,12 +81,13 @@
 		updateFields();
 	}
 
-	$: if (!$account) {
-		const balances = tokenBalances;
-		balances.clear();
-		tokenBalances = balances;
-	}
-	const unsubscribeAccountChange = onAccountChange(() => {
+	let unsubscribeAccount = account.subscribe((account) => {
+		if (!account) {
+			const balances = tokenBalances;
+			balances.clear();
+			tokenBalances = balances;
+			return;
+		}
 		if (selectTokens) {
 			selectTokens.forEach(async (selectToken) => {
 				await getTokenInfoAndFetchBalance(selectToken.key);
@@ -96,7 +95,7 @@
 		}
 	});
 	onDestroy(() => {
-		unsubscribeAccountChange();
+		unsubscribeAccount();
 	});
 
 	async function loadAvailableTokens() {

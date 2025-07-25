@@ -8,7 +8,7 @@
 		useToasts,
 		useTransactions
 	} from '@rainlanguage/ui-components';
-	import { connected, appKitModal, onAccountChange } from '$lib/stores/wagmi';
+	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui, RaindexClient } from '@rainlanguage/orderbook';
 	import { onMount } from 'svelte';
@@ -73,7 +73,6 @@
 				{appKitModal}
 				{onDeploy}
 				{account}
-				{onAccountChange}
 			/>
 		</GuiProvider>
 	</div>
