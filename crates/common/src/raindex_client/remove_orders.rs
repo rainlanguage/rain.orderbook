@@ -126,6 +126,7 @@ impl TryInto<OrderV3> for &RaindexOrder {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
 
     #[cfg(not(target_family = "wasm"))]

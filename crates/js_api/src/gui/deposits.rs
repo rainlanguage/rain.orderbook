@@ -132,10 +132,7 @@ impl DotrainOrderGui {
         &mut self,
         #[wasm_export(param_description = "Token key from the deposits configuration")]
         token: String,
-        #[wasm_export(
-            param_description = "Human-readable amount (e.g., '100.5') or empty string to remove"
-        )]
-        amount: String,
+        #[wasm_export(param_description = "Human-readable amount (e.g., '100.5')")] amount: String,
     ) -> Result<(), GuiError> {
         let gui_deposit = self.get_gui_deposit(&token)?;
 

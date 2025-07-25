@@ -13,7 +13,6 @@ import {
 	RaindexVault,
 	type Address
 } from '@rainlanguage/orderbook';
-import { formatUnits } from 'viem';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
 vi.mock('../lib/models/Transaction', () => ({
@@ -529,7 +528,7 @@ describe('TransactionManager', () => {
 			}
 		} as unknown as RaindexVault;
 		const mockArgs: InternalTransactionArgs & {
-			amount: bigint;
+			amount: string;
 			entity: RaindexVault;
 			raindexClient: RaindexClient;
 		} = {
@@ -537,7 +536,7 @@ describe('TransactionManager', () => {
 			chainId: 1,
 			queryKey: '0xvaultid',
 			entity: mockEntity,
-			amount: 1000000000000000000n,
+			amount: '1000',
 			raindexClient: mockRaindexClient
 		};
 
@@ -551,17 +550,12 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			const expectedReadableAmount = formatUnits(
-				mockArgs.amount,
-				Number(mockEntity.token.decimals)
-			);
-
 			await manager.createDepositTransaction(mockArgs);
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				expect.objectContaining({
 					...mockArgs,
-					name: `Depositing ${expectedReadableAmount} ${mockEntity.token.symbol}`,
+					name: `Depositing ${mockArgs.amount} ${mockEntity.token.symbol}`,
 					errorMessage: 'Deposit failed.',
 					successMessage: 'Deposit successful.',
 					queryKey: mockArgs.queryKey,

@@ -7,6 +7,7 @@ use alloy::{
     hex::FromHexError,
     primitives::{
         ruint::{FromUintError, ParseError},
+        utils::UnitsError,
         Address, ParseSignedError,
     },
 };
@@ -214,6 +215,8 @@ pub enum RaindexError {
     WriteLockError,
     #[error("Zero amount")]
     ZeroAmount,
+    #[error("Negative amount")]
+    NegativeAmount(String),
     #[error("Existing allowance")]
     ExistingAllowance,
     #[error(transparent)]
@@ -242,6 +245,8 @@ pub enum RaindexError {
     FromUint8Error(#[from] FromUintError<u8>),
     #[error("Missing decimals for token {0}")]
     MissingErc20Decimals(String),
+    #[error(transparent)]
+    UnitsError(#[from] UnitsError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -316,6 +321,9 @@ impl RaindexError {
                 "Failed to modify the YAML configuration due to a lock error".to_string()
             }
             RaindexError::ZeroAmount => "Amount cannot be zero".to_string(),
+            RaindexError::NegativeAmount(amount) => {
+                format!("Amount cannot be negative: {}", amount)
+            }
             RaindexError::WritableTransactionExecuteError(err) => {
                 format!("Failed to execute transaction: {}", err)
             }
@@ -367,6 +375,9 @@ impl RaindexError {
                     token
                 )
             }
+            RaindexError::UnitsError(err) => {
+                format!("There was an error with parsing number: {}", err)
+            }
         }
     }
 }
@@ -388,9 +399,11 @@ impl From<RaindexError> for WasmEncodedError {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
 
+    #[cfg(not(target_family = "wasm"))]
     pub const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
     pub fn get_test_yaml(subgraph1: &str, subgraph2: &str, rpc1: &str, rpc2: &str) -> String {
         format!(
@@ -453,10 +466,7 @@ deployers:
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use alloy::primitives::Address;
         use rain_orderbook_app_settings::yaml::YamlError;
-        use std::str::FromStr;
-        use url::Url;
         use wasm_bindgen_test::wasm_bindgen_test;
 
         fn get_invalid_yaml() -> String {
