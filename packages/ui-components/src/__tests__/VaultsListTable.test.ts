@@ -175,7 +175,7 @@ describe('VaultsListTable', () => {
 		const depositButton = screen.getByTestId('deposit-button');
 		await userEvent.click(depositButton);
 
-		expect(handleDepositModal).toHaveBeenCalledWith(mockVault, undefined);
+		expect(handleDepositModal).toHaveBeenCalledWith(mockVault, undefined, new Map());
 	});
 
 	it('hides action buttons when user is not the vault owner', () => {
