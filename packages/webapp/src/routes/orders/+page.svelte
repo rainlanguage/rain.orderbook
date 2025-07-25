@@ -10,16 +10,13 @@
 		selectedChainIds
 	} from '$lib/stores/settings';
 
-	const { settings, accounts, activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface =
-		$page.data.stores;
+	const { activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface = $page.data.stores;
 </script>
 
 <PageHeader title={'Orders'} pathname={$page.url.pathname} />
 
 <OrdersListTable
 	{selectedChainIds}
-	{settings}
-	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
 	{showInactiveOrders}

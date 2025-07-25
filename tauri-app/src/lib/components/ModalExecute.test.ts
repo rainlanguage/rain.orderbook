@@ -1,4 +1,4 @@
-import { expect, vi, describe, it, beforeEach } from 'vitest';
+import { expect, vi, describe, it, beforeEach, type Mock } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
@@ -22,16 +22,26 @@ vi.mock('$lib/stores/settings', async (importOriginal) => ({
   ...((await importOriginal()) as object),
 }));
 
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+  const original = (await importOriginal()) as object;
+  return {
+    ...original,
+    getNetworkName: vi.fn(),
+    useRaindexClient: vi.fn(() => ({
+      getNetworkByChainId: vi.fn().mockReturnValue({ value: {} as NetworkCfg }),
+      getAllNetworks: vi.fn().mockReturnValue({ value: new Map() }),
+    })),
+  };
+});
+
 // Import components and stores after mocks
 import ModalExecute from './ModalExecute.svelte';
-import { EMPTY_SETTINGS, settings } from '$lib/stores/settings';
-import type { NewConfig } from '@rainlanguage/orderbook';
+import { getNetworkName } from '@rainlanguage/ui-components';
+import type { NetworkCfg } from '@rainlanguage/orderbook';
 
 describe('ModalExecute', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset settings store before each test
-    settings.set(EMPTY_SETTINGS);
   });
 
   describe('network connection error', () => {
@@ -59,19 +69,7 @@ describe('ModalExecute', () => {
     });
 
     it('should show current connected network name when network is in settings', () => {
-      settings.set({
-        orderbook: {
-          ...EMPTY_SETTINGS.orderbook,
-          version: '1',
-          networks: {
-            mainnet: {
-              key: 'mainnet',
-              chainId: 1,
-              rpcs: ['https://mainnet.com'],
-            },
-          },
-        },
-      } as unknown as NewConfig);
+      (getNetworkName as Mock).mockReturnValue('mainnet');
 
       render(ModalExecute, {
         props: {

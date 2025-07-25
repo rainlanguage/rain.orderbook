@@ -1,44 +1,38 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
-import { beforeEach, expect, test, describe } from 'vitest';
+import { beforeEach, expect, test, describe, type Mock } from 'vitest';
 import DropdownActiveNetworks from '../lib/components/dropdown/DropdownActiveNetworks.svelte';
-import { mockConfig } from '../lib/__mocks__/settings';
-import type { NewConfig } from '@rainlanguage/orderbook';
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+import type { NetworkCfg } from '@rainlanguage/orderbook';
+
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
 
 describe('DropdownActiveNetworks', () => {
-	const mockSettings = {
-		...mockConfig,
-		orderbook: {
-			...mockConfig.orderbook,
-			networks: {
-				mainnet: {
-					key: 'mainnet',
-					url: 'mainnet',
-					chainId: 1
-				},
-				testnet: {
-					key: 'testnet',
-					url: 'testnet',
-					chainId: 2
-				},
-				local: {
-					key: 'local',
-					url: 'local',
-					chainId: 3
-				}
-			}
-		}
-	} as unknown as NewConfig;
 	let selectedChainIdsStore: Writable<number[]>;
 
 	beforeEach(() => {
+		(useRaindexClient as Mock).mockReturnValue({
+			getUniqueChainIds: () => ({
+				error: undefined,
+				value: [1, 2, 14]
+			}),
+			getAllNetworks: () => ({
+				error: undefined,
+				value: new Map([
+					['mainnet', { key: 'Ethereum', chainId: 1 } as NetworkCfg],
+					['testnet', { key: 'Expanse Network', chainId: 2 } as NetworkCfg],
+					['local', { key: 'local', chainId: 14 } as NetworkCfg]
+				])
+			})
+		});
 		selectedChainIdsStore = writable([]);
 	});
 
 	test('renders correctly', () => {
 		render(DropdownActiveNetworks, {
 			props: {
-				settings: mockSettings,
 				selectedChainIds: selectedChainIdsStore
 			}
 		});
@@ -48,7 +42,6 @@ describe('DropdownActiveNetworks', () => {
 	test('displays the correct number of options', async () => {
 		render(DropdownActiveNetworks, {
 			props: {
-				settings: mockSettings,
 				selectedChainIds: selectedChainIdsStore
 			}
 		});
@@ -64,7 +57,6 @@ describe('DropdownActiveNetworks', () => {
 	test('updates selected chain ids when an option is selected', async () => {
 		render(DropdownActiveNetworks, {
 			props: {
-				settings: mockSettings,
 				selectedChainIds: selectedChainIdsStore
 			}
 		});
@@ -80,9 +72,9 @@ describe('DropdownActiveNetworks', () => {
 			expect(get(selectedChainIdsStore)).toEqual([1, 2]);
 		});
 
-		await fireEvent.click(screen.getByText('local'));
+		await fireEvent.click(screen.getByText('Flare Mainnet'));
 		await waitFor(() => {
-			expect(get(selectedChainIdsStore)).toEqual([1, 2, 3]);
+			expect(get(selectedChainIdsStore)).toEqual([1, 2, 14]);
 		});
 	});
 });

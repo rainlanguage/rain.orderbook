@@ -139,6 +139,7 @@ export { default as TransactionProvider } from './providers/transactions/Transac
 
 // Hooks
 export { useGui } from './hooks/useGui';
+export { useRaindexClient, RAINDEX_CLIENT_CONTEXT_KEY } from './hooks/useRaindexClient';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
@@ -151,5 +152,3 @@ export { TransactionManager } from './providers/transactions/TransactionManager'
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
-export { mockConfig } from './__mocks__/settings';
-export { mockSettingsStore } from './__mocks__/settings';
