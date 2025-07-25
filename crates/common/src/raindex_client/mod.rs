@@ -26,6 +26,7 @@ use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod filters;
 pub mod order_quotes;
 pub mod orders;
 pub mod remove_orders;

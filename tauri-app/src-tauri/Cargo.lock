@@ -8376,6 +8376,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
+ "anyhow",
  "chrono",
  "csv",
  "dotrain",
