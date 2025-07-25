@@ -20,14 +20,14 @@ describe('OrderPage', () => {
 
 	it('renders order details successfully with rawDotrain', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockorderDetails = {
+		const mockOrderDetails = {
 			value: {
 				name: 'Test Order',
 				description: 'Test Description',
 				short_description: 'Test Short Description'
 			}
 		};
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockorderDetails);
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
 
 		render(OrderPage, {
 			props: {
@@ -43,7 +43,7 @@ describe('OrderPage', () => {
 
 	it('renders order details successfully from fetch', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockorderDetails = {
+		const mockOrderDetails = {
 			value: {
 				name: 'Test Order',
 				description: 'Test Description',
@@ -55,7 +55,7 @@ describe('OrderPage', () => {
 			text: () => Promise.resolve(mockDotrain)
 		});
 
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockorderDetails);
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
 
 		render(OrderPage, {
 			props: {
@@ -123,7 +123,7 @@ describe('OrderPage', () => {
 
 	it('renders markdown if description is a markdown url', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockorderDetails = {
+		const mockOrderDetails = {
 			value: {
 				name: 'Test Order',
 				description: 'https://example.com/description.md',
@@ -136,7 +136,7 @@ describe('OrderPage', () => {
 			text: () => Promise.resolve('mock markdown content')
 		});
 
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockorderDetails);
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
 
 		render(OrderPage, {
 			props: {
@@ -154,7 +154,7 @@ describe('OrderPage', () => {
 
 	it('falls back to plain text when markdown fetch fails', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockorderDetails = {
+		const mockOrderDetails = {
 			value: {
 				name: 'Test Order',
 				description: 'https://example.com/description.md',
@@ -167,7 +167,7 @@ describe('OrderPage', () => {
 			statusText: 'Not Found'
 		});
 
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockorderDetails);
+		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
 
 		render(OrderPage, {
 			props: {

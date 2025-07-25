@@ -23,7 +23,7 @@ import { getLocal } from 'mockttp';
 const guiConfig = `
 gui:
   name: Fixed limit
-  description: Fixed limit order order
+  description: Fixed limit order
   short-description: Buy WETH with USDC on Base.
   deployments:
     some-deployment:
@@ -344,7 +344,7 @@ const dotrainForRemotes = `
 version: 2
 gui:
   name: Test
-  description: Fixed limit order order
+  description: Fixed limit order
   deployments:
     test-deployment:
       name: Test deployment
@@ -501,7 +501,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		const guiConfig = extractWasmEncodedData<GuiCfg>(gui.getGuiConfig());
 		assert.equal(guiConfig.name, 'Fixed limit');
-		assert.equal(guiConfig.description, 'Fixed limit order order');
+		assert.equal(guiConfig.description, 'Fixed limit order');
 	});
 
 	it('should initialize gui object with state update callback', async () => {
@@ -522,7 +522,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getOrderDetails(dotrainWithGui);
 		const orderDetails = extractWasmEncodedData<NameAndDescriptionCfg>(result);
 		assert.equal(orderDetails.name, 'Fixed limit');
-		assert.equal(orderDetails.description, 'Fixed limit order order');
+		assert.equal(orderDetails.description, 'Fixed limit order');
 		assert.equal(orderDetails.short_description, 'Buy WETH with USDC on Base.');
 	});
 
