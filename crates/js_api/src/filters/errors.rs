@@ -25,6 +25,16 @@ impl std::fmt::Display for PersistentFilterStoreError {
 
 impl std::error::Error for PersistentFilterStoreError {}
 
+#[cfg(target_family = "wasm")]
+impl From<PersistentFilterStoreError> for wasm_bindgen_utils::result::WasmEncodedError {
+    fn from(err: PersistentFilterStoreError) -> Self {
+        wasm_bindgen_utils::result::WasmEncodedError {
+            msg: err.to_string(),
+            readable_msg: err.to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FilterError {
     InvalidUrlParams(String),

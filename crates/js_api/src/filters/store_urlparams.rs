@@ -6,10 +6,16 @@ use rain_orderbook_common::raindex_client::filters::{
     store_basic::BasicFilterStore, traits::FilterStore, vaults_builder::VaultsFilterBuilder,
     vaults_filter::GetVaultsFilters,
 };
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
+
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::prelude::*;
 
 /// URLParams filter store that manages filters in URL search parameters
 /// with fallback to an underlying persistent store (typically LocalStorageFilterStore)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct URLParamsFilterStore<S: FilterStore> {
     store: S,
 }
