@@ -10,9 +10,9 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
-use rain_orderbook_app_settings::{
-    new_config::ParseConfigError,
-    yaml::{orderbook::OrderbookYaml, YamlError, YamlParsable},
+use rain_orderbook_app_settings::yaml::{
+    orderbook::{OrderbookYaml, OrderbookYamlValidation},
+    YamlError, YamlParsable,
 };
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
@@ -109,7 +109,13 @@ impl RaindexClient {
         ob_yamls: Vec<String>,
         validate: Option<bool>,
     ) -> Result<RaindexClient, RaindexError> {
-        let orderbook_yaml = OrderbookYaml::new(ob_yamls, validate.unwrap_or(false))?;
+        let orderbook_yaml = OrderbookYaml::new(
+            ob_yamls,
+            match validate {
+                Some(true) => OrderbookYamlValidation::full(),
+                _ => OrderbookYamlValidation::default(),
+            },
+        )?;
         Ok(RaindexClient { orderbook_yaml })
     }
 
@@ -226,8 +232,6 @@ pub enum RaindexError {
     #[error(transparent)]
     OrderDetailError(#[from] OrderDetailError),
     #[error(transparent)]
-    ParseConfigError(#[from] ParseConfigError),
-    #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
     #[error(transparent)]
     OrderbookQuoteError(#[from] rain_orderbook_quote::error::Error),
@@ -334,9 +338,6 @@ impl RaindexError {
             }
             RaindexError::OrderDetailError(err) => {
                 format!("Failed to decode order detail: {}", err)
-            }
-            RaindexError::ParseConfigError(err) => {
-                format!("Failed to parse yaml sources for configuration: {}", err)
             }
             RaindexError::AddOrderArgsError(e) => {
                 format!("Failed to prepare the add order calldata: {}", e)

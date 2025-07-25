@@ -3,12 +3,12 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args};
-use rain_orderbook_app_settings::Config;
+use rain_orderbook_app_settings::yaml::dotrain::{DotrainYaml, DotrainYamlValidation};
+use rain_orderbook_app_settings::yaml::YamlParsable;
 use rain_orderbook_common::add_order::AddOrderArgs;
-use rain_orderbook_common::frontmatter::parse_frontmatter;
+use rain_orderbook_common::dotrain::RainDocument;
 use rain_orderbook_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
-use std::ops::Deref;
 use std::path::PathBuf;
 use tracing::info;
 
@@ -35,17 +35,15 @@ pub struct CliOrderAddArgs {
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
-        let config: Config = parse_frontmatter(text.clone()).await?.try_into()?;
+        let dotrain_yaml = DotrainYaml::new(
+            vec![RainDocument::get_front_matter(text.as_str())
+                .unwrap_or("")
+                .to_string()],
+            DotrainYamlValidation::default(),
+        )?;
+        let config_deployment = dotrain_yaml.get_deployment(&self.deployment)?;
 
-        let config_deployment = config
-            .deployments
-            .get(&self.deployment)
-            .ok_or(anyhow!("specified deployment is undefined!"))?;
-
-        Ok(
-            AddOrderArgs::new_from_deployment(text.clone(), config_deployment.deref().clone())
-                .await?,
-        )
+        Ok(AddOrderArgs::new_from_deployment(text.clone(), config_deployment.clone()).await?)
     }
 }
 
