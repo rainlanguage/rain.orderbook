@@ -61,8 +61,6 @@ pub enum TestRunnerError {
     JoinError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-    // #[error(transparent)]
-    // RainEvalResultError(#[from] RainEvalResultError),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
 }
