@@ -27,15 +27,6 @@ impl VaultsFilterBuilder {
         }
     }
 
-    pub fn from(filters: GetVaultsFilters) -> Self {
-        Self {
-            owners: filters.owners.clone(),
-            hide_zero_balance: filters.hide_zero_balance,
-            tokens: filters.tokens.clone(),
-            chain_ids: filters.chain_ids.clone(),
-        }
-    }
-
     pub fn set_owners(mut self, owners: Vec<Address>) -> Self {
         self.owners = owners;
         self
@@ -77,7 +68,12 @@ impl From<VaultsFilterBuilder> for GetVaultsFilters {
 }
 impl From<GetVaultsFilters> for VaultsFilterBuilder {
     fn from(filters: GetVaultsFilters) -> Self {
-        VaultsFilterBuilder::from(filters)
+        Self {
+            owners: filters.owners,
+            hide_zero_balance: filters.hide_zero_balance,
+            tokens: filters.tokens,
+            chain_ids: filters.chain_ids,
+        }
     }
 }
 
