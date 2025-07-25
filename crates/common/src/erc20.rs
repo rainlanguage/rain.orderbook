@@ -92,13 +92,28 @@ impl ERC20 {
             .add(erc20.name())
             .add(erc20.symbol());
 
-        let (decimals, name, symbol) = multicall.aggregate().await?;
+        match multicall.aggregate().await {
+            Ok((decimals, name, symbol)) => Ok(TokenInfo {
+                decimals,
+                name,
+                symbol,
+            }),
+            Err(MulticallError::CallFailed(bytes)) => {
+                let err = AbiDecodedErrorType::selector_registry_abi_decode(bytes.as_ref()).await;
+                match err {
+                    Ok(err) => Err(Error::AbiDecodedErrorType {
+                        msg: "Failed to decode token info".to_string(),
+                        source: err,
+                    }),
+                    Err(e) => Err(Error::AbiDecodeError {
+                        msg: "Failed to decode token info".to_string(),
+                        source: e,
+                    }),
+                }
+            }
+            Err(err) => Err(Error::MulticallError(err)),
 
-        Ok(TokenInfo {
-            decimals,
-            name,
-            symbol,
-        })
+        }
     }
 
     pub async fn get_account_balance(&self, account: Address) -> Result<U256, Error> {
