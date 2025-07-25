@@ -61,7 +61,7 @@ impl RaindexOrderQuoteValue {
         };
 
         let formatted_inverse_ratio = if F0.eq(value.ratio)? {
-            "Infinite".to_string()
+            "Infinity".to_string()
         } else {
             inverse_ratio.format18()?
         };
