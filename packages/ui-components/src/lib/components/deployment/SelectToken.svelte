@@ -7,11 +7,14 @@
 	import { useGui } from '$lib/hooks/useGui';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import TokenSelectionModal from './TokenSelectionModal.svelte';
+	import TokenBalanceComponent from './TokenBalance.svelte';
+	import type { TokenBalance } from '$lib/types/tokenBalance';
 
 	export let token: GuiSelectTokensCfg;
-	export let onSelectTokenSelect: () => void;
+	export let onSelectTokenSelect: (key: string) => void;
 	export let availableTokens: TokenInfo[] = [];
 	export let loading: boolean = false;
+	export let tokenBalances: Map<string, TokenBalance> = new Map();
 
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
@@ -30,8 +33,9 @@
 				throw new Error(result.error.msg);
 			}
 			tokenInfo = result.value;
-			if (result.value?.address) {
+			if (result.value.address) {
 				inputValue = result.value.address;
+				onSelectTokenSelect(token.key);
 			}
 		} catch {
 			// do nothing
@@ -107,13 +111,13 @@
 			error = errorMessage;
 		} finally {
 			checking = false;
-			onSelectTokenSelect();
+			onSelectTokenSelect(token.key);
 		}
 	}
 
 	function clearTokenSelection() {
 		gui.unsetSelectToken(token.key);
-		onSelectTokenSelect();
+		onSelectTokenSelect(token.key);
 	}
 
 	async function getInfoForSelectedToken() {
@@ -227,6 +231,7 @@
 			>
 				<CheckCircleSolid class="h-5 w-5" color="green" />
 				<span>{tokenInfo.name}</span>
+				<TokenBalanceComponent tokenBalance={tokenBalances.get(token.key)} />
 			</div>
 		{:else if error}
 			<div class="flex h-5 flex-row items-center gap-2" data-testid="error">
