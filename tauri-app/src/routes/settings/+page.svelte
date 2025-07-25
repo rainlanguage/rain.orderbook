@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Alert, Spinner } from 'flowbite-svelte';
-  import { settingsText, settings, settingsFile } from '$lib/stores/settings';
+  import { settingsText, settingsFile } from '$lib/stores/settings';
   import { PageHeader } from '@rainlanguage/ui-components';
   import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
@@ -37,7 +37,7 @@
     settingsStatus = 'checking';
     errorMessage = undefined;
 
-    const result = await applySettings(settingsContent, settings, settingsText, parseConfig);
+    const result = await applySettings(settingsContent, settingsText, parseConfig);
 
     settingsStatus = result.settingsStatus;
     if (result.errorMessage) {

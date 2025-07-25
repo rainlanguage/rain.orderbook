@@ -6,15 +6,17 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { formatEther } from 'viem';
 import { mockQuoteDebug } from '$lib/queries/orderQuote';
 import ModalQuoteDebug from './ModalQuoteDebug.svelte';
-import type { RaindexOrder, SgOrder } from '@rainlanguage/orderbook';
+import type { NetworkCfg, RaindexOrder, SgOrder } from '@rainlanguage/orderbook';
 
-vi.mock('$lib/utils/getOrderbookByChainId', () => ({
-  getOrderbookByChainId: vi.fn().mockReturnValue({
-    network: {
-      rpcs: ['http://localhost:8545'],
-    },
-  }),
-}));
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useRaindexClient: vi.fn(() => ({
+      getNetworkByChainId: vi.fn().mockReturnValue({ value: {} as NetworkCfg }),
+      getAllNetworks: vi.fn().mockReturnValue({ value: new Map() }),
+    })),
+  };
+});
 
 test('renders table with the correct data', async () => {
   const queryClient = new QueryClient();

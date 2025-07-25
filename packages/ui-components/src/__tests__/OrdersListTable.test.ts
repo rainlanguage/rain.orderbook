@@ -58,10 +58,8 @@ const {
 	mockActiveOrderbookRefStore,
 	mockHideZeroBalanceVaultsStore,
 	mockOrderHashStore,
-	mockAccountsStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockSettingsStore,
 	mockShowMyItemsOnlyStore,
 	mockSelectedChainIdsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
@@ -70,8 +68,6 @@ const {
 type OrdersListTableProps = ComponentProps<OrdersListTable<any>>;
 
 const defaultProps: OrdersListTableProps = {
-	settings: mockSettingsStore,
-	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	orderHash: mockOrderHashStore,
@@ -176,7 +172,7 @@ describe('OrdersListTable', () => {
 		const removeButton = screen.getByText('Remove');
 		await userEvent.click(removeButton);
 
-		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, mockRefetch);
+		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, mockRefetch, new Map());
 	});
 
 	it('shows inactive badge for inactive orders', async () => {

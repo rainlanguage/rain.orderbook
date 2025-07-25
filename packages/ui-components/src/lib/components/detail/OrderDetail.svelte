@@ -42,7 +42,7 @@
 	export let orderbookAddress: Address;
 	export let orderHash: Hex;
 	export let chainId: number;
-	export let rpcUrls: string[] | undefined = undefined;
+	export let rpcs: string[] | undefined = undefined;
 
 	/** Callback function when remove action is triggered for an order
 	 * @param order The order to remove
@@ -217,7 +217,7 @@
 				</div>
 			</TabItem>
 			<TabItem open title="Trades">
-				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcUrls} />
+				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcs} />
 			</TabItem>
 			<TabItem title="Volume">
 				<OrderVaultsVolTable order={data} />

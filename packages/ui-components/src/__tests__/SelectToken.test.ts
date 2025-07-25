@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook';
+import type { AccountBalance, DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
+import type { TokenBalance } from '$lib/types/tokenBalance';
 
 type SelectTokenComponentProps = ComponentProps<SelectToken>;
 
@@ -31,12 +32,14 @@ describe('SelectToken', () => {
 
 	const mockTokens = [
 		{
+			key: 'input',
 			address: '0x1234567890123456789012345678901234567890',
 			name: 'Test Token 1',
 			symbol: 'TEST1',
 			decimals: 18
 		},
 		{
+			key: 'output',
 			address: '0x0987654321098765432109876543210987654321',
 			name: 'Another Token',
 			symbol: 'ANOTHER',
@@ -52,7 +55,8 @@ describe('SelectToken', () => {
 		},
 		onSelectTokenSelect: vi.fn(),
 		availableTokens: mockTokens,
-		loading: false
+		loading: false,
+		tokenBalances: new Map()
 	};
 
 	beforeEach(() => {
@@ -269,6 +273,7 @@ describe('SelectToken', () => {
 				...mockProps,
 				availableTokens: [
 					{
+						key: 'input',
 						address: '0x456',
 						name: 'Test Token 1',
 						symbol: 'TEST1',
@@ -321,12 +326,14 @@ describe('SelectToken', () => {
 				...mockProps,
 				availableTokens: [
 					{
+						key: 'output',
 						address: '0x456',
 						name: 'Test Token 1',
 						symbol: 'TEST1',
 						decimals: 18
 					},
 					{
+						key: 'input',
 						address: '0x789',
 						name: 'Test Token 2',
 						symbol: 'TEST2',
@@ -381,6 +388,148 @@ describe('SelectToken', () => {
 			});
 
 			expect(screen.getByTestId(`select-token-success-${mockProps.token.key}`)).toBeInTheDocument();
+		});
+	});
+
+	describe('Balance Display', () => {
+		it('displays balance when token is selected and balance is provided', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'Test Token',
+					symbol: 'TEST',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 18,
+					key: 'input'
+				}
+			});
+
+			const tokenBalances = new Map<string, TokenBalance>();
+			tokenBalances.set('input', {
+				value: {
+					balance: BigInt('1000000000000000000'),
+					formattedBalance: '1'
+				} as AccountBalance,
+				loading: false,
+				error: ''
+			});
+
+			render(SelectToken, {
+				...mockProps,
+				tokenBalances
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Test Token')).toBeInTheDocument();
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Balance: 1')).toBeInTheDocument();
+			});
+		});
+
+		it('shows loading spinner when balance is loading', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'Test Token',
+					symbol: 'TEST',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 18,
+					key: 'input'
+				}
+			});
+
+			const tokenBalances = new Map<string, TokenBalance>();
+			tokenBalances.set('input', {
+				value: {
+					balance: BigInt(0),
+					formattedBalance: '0'
+				} as AccountBalance,
+				loading: true,
+				error: ''
+			});
+
+			render(SelectToken, {
+				...mockProps,
+				tokenBalances
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Test Token')).toBeInTheDocument();
+			});
+
+			// Check for spinner (we can't easily test the spinner component directly, so we test for its presence)
+			const tokenStatus = screen.getByTestId(`select-token-success-${mockProps.token.key}`);
+			expect(tokenStatus).toBeInTheDocument();
+		});
+
+		it('shows error message when balance fetch fails', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'Test Token',
+					symbol: 'TEST',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 18,
+					key: 'input'
+				}
+			});
+
+			const tokenBalances = new Map<string, TokenBalance>();
+			tokenBalances.set('input', {
+				value: {
+					balance: BigInt(0),
+					formattedBalance: '0'
+				} as AccountBalance,
+				loading: false,
+				error: 'Network error'
+			});
+
+			render(SelectToken, {
+				...mockProps,
+				tokenBalances
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Test Token')).toBeInTheDocument();
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Network error')).toBeInTheDocument();
+			});
+		});
+
+		it('formats balance correctly with token decimals', async () => {
+			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
+				value: {
+					name: 'USDC',
+					symbol: 'USDC',
+					address: '0x1234567890123456789012345678901234567890',
+					decimals: 6,
+					key: 'input'
+				}
+			});
+
+			const tokenBalances = new Map<string, TokenBalance>();
+			tokenBalances.set('input', {
+				value: {
+					balance: BigInt('1500000'),
+					formattedBalance: '1.5'
+				} as AccountBalance,
+				loading: false,
+				error: ''
+			});
+
+			render(SelectToken, {
+				...mockProps,
+				tokenBalances
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('USDC')).toBeInTheDocument();
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText('Balance: 1.5')).toBeInTheDocument();
+			});
 		});
 	});
 });

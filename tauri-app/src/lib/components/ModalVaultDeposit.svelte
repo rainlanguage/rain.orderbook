@@ -2,7 +2,7 @@
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
   import type { AccountBalance, RaindexVault } from '@rainlanguage/orderbook';
   import { vaultDeposit } from '$lib/services/vault';
-  import { InputTokenAmount } from '@rainlanguage/ui-components';
+  import { InputTokenAmount, useRaindexClient } from '@rainlanguage/ui-components';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
@@ -11,9 +11,12 @@
   import { hexToBytes, toHex } from 'viem';
   import { onMount } from 'svelte';
 
+  const raindexClient = useRaindexClient();
+
   export let open = false;
   export let vault: RaindexVault;
   export let onDeposit: () => void;
+
   let amount: bigint;
   let isSubmitting = false;
   let selectWallet = false;
@@ -33,7 +36,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultDeposit(vault.vaultId, vault.token.address, amount);
+      await vaultDeposit(raindexClient, vault, amount);
       onDeposit();
     } catch (e) {
       reportErrorToSentry(e);
