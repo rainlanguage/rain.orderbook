@@ -163,9 +163,8 @@
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
 
-		<!-- ✅ FIXED INPUT BOXES GRID LAYOUT -->
 		<TableBodyCell data-testid="orderListRowInputs" tdClass="p-2 whitespace-normal min-w-[320px]">
-			<div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
 				{#each item.inputs as t}
 					<div
 						class="flex w-full flex-col rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
@@ -177,9 +176,8 @@
 			</div>
 		</TableBodyCell>
 
-		<!-- ✅ FIXED OUTPUT BOXES GRID LAYOUT -->
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="p-2 whitespace-normal min-w-[320px]">
-			<div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
 				{#each item.outputs as t}
 					<div
 						class="flex w-full flex-col rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
