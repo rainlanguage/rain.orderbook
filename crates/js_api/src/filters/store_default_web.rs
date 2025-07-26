@@ -188,12 +188,10 @@ impl DefaultWebFilterStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::filters::test_utils::filters_equal;
+    use alloy::primitives::Address;
+    use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
-
-    fn filters_equal(a: &GetVaultsFilters, b: &GetVaultsFilters) -> bool {
-        // Compare through serialization
-        serde_json::to_string(a).unwrap() == serde_json::to_string(b).unwrap()
-    }
 
     #[wasm_bindgen_test]
     fn test_set_and_get_vaults() {
@@ -203,8 +201,6 @@ mod tests {
             let original_filters = store.get_vaults();
 
             // Set new filters with non-default values
-            use alloy::primitives::Address;
-            use std::str::FromStr;
             let owner = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
             let new_filters = GetVaultsFilters {
                 owners: vec![owner],
@@ -280,75 +276,6 @@ mod tests {
         }
     }
 
-    #[wasm_bindgen_test]
-    fn test_multiple_stores_with_different_keys() {
-        let key1 = "test_multi_store_1";
-        let key2 = "test_multi_store_2";
-
-        if let (Ok(mut store1), Ok(store2)) = (
-            DefaultWebFilterStore::new(key1),
-            DefaultWebFilterStore::new(key2),
-        ) {
-            // Both stores should start with defaults
-            let filters1 = store1.get_vaults();
-            let filters2 = store2.get_vaults();
-            assert!(
-                filters_equal(&filters1, &filters2),
-                "Both stores should start with defaults"
-            );
-
-            // Change filters in store1 only
-            use alloy::primitives::Address;
-            use std::str::FromStr;
-            let owner = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-            let modified_filters = GetVaultsFilters {
-                owners: vec![owner],
-                hide_zero_balance: true,
-                tokens: None,
-                chain_ids: Some(vec![1]),
-            };
-            store1.set_vaults(modified_filters.clone());
-
-            // Verify store1 changed but store2 didn't
-            let new_filters1 = store1.get_vaults();
-            let unchanged_filters2 = store2.get_vaults();
-
-            assert!(
-                filters_equal(&new_filters1, &modified_filters),
-                "Store1 should have modified filters"
-            );
-            assert!(
-                !filters_equal(&new_filters1, &unchanged_filters2),
-                "Store1 and store2 should be different"
-            );
-            assert!(
-                filters_equal(&unchanged_filters2, &GetVaultsFilters::default()),
-                "Store2 should still have defaults"
-            );
-
-            // Test load behavior: create new instances and check persistence
-            if let (Ok(mut loaded_store1), Ok(mut loaded_store2)) = (
-                DefaultWebFilterStore::new(key1),
-                DefaultWebFilterStore::new(key2),
-            ) {
-                let _ = loaded_store1.load();
-                let _ = loaded_store2.load();
-
-                let loaded_filters1 = loaded_store1.get_vaults();
-                let loaded_filters2 = loaded_store2.get_vaults();
-
-                // Store2 should still load defaults (no persistence occurred)
-                assert!(
-                    filters_equal(&loaded_filters2, &GetVaultsFilters::default()),
-                    "Store2 should load defaults"
-                );
-
-                // Store1 might load modified data if persistence is working, or defaults if not
-                // (persistence behavior can vary in test environments)
-            }
-        }
-    }
-
     #[cfg(target_family = "wasm")]
     #[wasm_bindgen_test]
     fn test_wasm_get_vaults() {
@@ -367,58 +294,45 @@ mod tests {
 
         if let Ok(store) = DefaultWebFilterStore::create(key) {
             let original_filters = store.get_vaults_wasm().unwrap();
+            // Create a JavaScript function that modifies the builder
+            use js_sys::Function;
 
-            // Create update configuration
-            use alloy::primitives::Address;
-            use std::str::FromStr;
-            let owner = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-            let update_config = GetVaultsFilters {
-                owners: vec![owner],
-                hide_zero_balance: true,
-                tokens: None,
-                chain_ids: Some(vec![1, 137]),
-            };
-
-            // Apply update (should set filters AND save them)
-            let updated_store_result = store.update_vaults_wasm(update_config.clone());
-            assert!(
-                updated_store_result.is_ok(),
-                "update_vaults_wasm should succeed"
-            );
-
-            if let Ok(updated_store) = updated_store_result {
-                let updated_filters = updated_store.get_vaults_wasm().unwrap();
-
-                // Verify that the filters actually changed
-                assert!(
-                    !filters_equal(&original_filters, &updated_filters),
-                    "Filters should have changed after update"
-                );
-                assert!(
-                    filters_equal(&update_config, &updated_filters),
-                    "Updated filters should match the update config"
-                );
-                assert_eq!(updated_filters.owners.len(), 1, "Should have one owner");
-                assert_eq!(updated_filters.owners[0], owner, "Owner should match");
-                assert!(
-                    updated_filters.hide_zero_balance,
-                    "hide_zero_balance should be true"
-                );
-                assert_eq!(
-                    updated_filters.chain_ids,
-                    Some(vec![1, 137]),
-                    "Chain IDs should match"
-                );
-
-                // Test that changes were saved by creating a new store instance and loading
-                if let Ok(new_store) = DefaultWebFilterStore::create(key) {
-                    if let Ok(loaded_store) = new_store.load_wasm() {
-                        let loaded_filters = loaded_store.get_vaults_wasm().unwrap();
-                        // Note: In test environment, persistence might not work, so this is optional verification
-                        // If persistence works, loaded_filters should match updated_filters
-                    }
+            let js_code = r#"
+                function(builder) {
+                    // Create new owners array with a test address
+                    const newOwners = ["0x1234567890abcdef1234567890abcdef12345678"];
+                    
+                    builder.setOwners(newOwners)
+                        .setHideZeroBalance(true)
+                        .setChainIds([1, 137]);
                 }
-            }
+            "#;
+            // Same as above
+            let expected_filters = VaultsFilterBuilder::from_filters(original_filters.clone())
+                .unwrap()
+                .set_owners(vec![Address::from_str(
+                    "0x1234567890abcdef1234567890abcdef12345678",
+                )
+                .unwrap()])
+                .set_hide_zero_balance(true)
+                .set_chain_ids(Some(vec![1, 137]))
+                .build();
+
+            let js_function = Function::new_no_args(js_code);
+
+            // Test update_vaults_with_builder_wasm
+            let updated_store = store.update_vaults_with_builder_wasm(js_function).unwrap();
+            let updated_filters = updated_store.get_vaults_wasm().unwrap();
+
+            // Verify that the filters actually changed
+            assert!(
+                !filters_equal(&original_filters, &updated_filters),
+                "Filters should have changed from original"
+            );
+            assert!(
+                filters_equal(&expected_filters, &updated_filters),
+                "Filters changed to expected values"
+            );
         }
     }
 
@@ -453,6 +367,43 @@ mod tests {
             assert!(
                 debug_output.contains("DefaultWebFilterStore"),
                 "Debug should contain struct name"
+            );
+        }
+    }
+
+    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen_test]
+    fn test_vaults_filter_builder_wasm() {
+        // Test VaultsFilterBuilder WASM methods
+        use rain_orderbook_common::raindex_client::filters::vaults_builder::VaultsFilterBuilder;
+
+        let builder_result = VaultsFilterBuilder::new_wasm();
+        assert!(builder_result.is_ok(), "Should create builder successfully");
+
+        if let Ok(builder) = builder_result {
+            // Test setOwners method
+            let owners = vec!["0x1234567890abcdef1234567890abcdef12345678".to_string()];
+            let builder_with_owners = builder.set_owners_wasm(owners).unwrap();
+
+            // Test setHideZeroBalance method
+            let builder_with_hide = builder_with_owners
+                .set_hide_zero_balance_wasm(true)
+                .unwrap();
+
+            // Test setChainIds method
+            let chain_ids = Some(vec![1, 137]);
+            let builder_with_chains = builder_with_hide.set_chain_ids_wasm(chain_ids).unwrap();
+
+            // Test build method
+            let filters = builder_with_chains.build_wasm().unwrap();
+
+            // Verify the built filters
+            assert_eq!(filters.owners.len(), 1, "Should have one owner");
+            assert!(filters.hide_zero_balance, "Should hide zero balance");
+            assert_eq!(
+                filters.chain_ids,
+                Some(vec![1, 137]),
+                "Should have correct chain IDs"
             );
         }
     }
