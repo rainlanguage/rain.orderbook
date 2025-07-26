@@ -16,6 +16,16 @@ use yaml::{
     YamlParsableHash,
 };
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "lowercase")]
+pub enum VaultType {
+    Input,
+    Output,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(VaultType);
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
@@ -56,8 +66,8 @@ impl OrderCfg {
 
     pub fn update_vault_id(
         &mut self,
-        is_input: bool,
-        index: u8,
+        vault_type: VaultType,
+        token: String,
         vault_id: Option<String>,
     ) -> Result<Self, YamlError> {
         let new_vault_id = if let Some(ref v) = vault_id {
@@ -73,8 +83,12 @@ impl OrderCfg {
                                 reason: e.to_string(),
                             },
                             location: format!(
-                                "index '{index}' of {} in order '{}'",
-                                if is_input { "inputs" } else { "outputs" },
+                                "token '{}' in {} of order '{}'",
+                                token,
+                                match vault_type {
+                                    VaultType::Input => "inputs",
+                                    VaultType::Output => "outputs",
+                                },
                                 self.key
                             ),
                         });
@@ -97,44 +111,68 @@ impl OrderCfg {
                 if let Some(StrictYaml::Hash(ref mut order)) =
                     orders.get_mut(&StrictYaml::String(self.key.to_string()))
                 {
-                    let vec_key = if is_input { "inputs" } else { "outputs" };
+                    let vec_key = match vault_type {
+                        VaultType::Input => "inputs",
+                        VaultType::Output => "outputs",
+                    };
                     if let Some(StrictYaml::Array(ref mut vec)) =
                         order.get_mut(&StrictYaml::String(vec_key.to_string()))
                     {
-                        if let Some(item) = vec.get_mut(index as usize) {
-                            if let StrictYaml::Hash(ref mut item_hash) = item {
-                                if let Some(vault_id) = new_vault_id {
-                                    item_hash.insert(
-                                        StrictYaml::String("vault-id".to_string()),
-                                        StrictYaml::String(vault_id.to_string()),
-                                    );
-                                    if is_input {
-                                        self.inputs[index as usize].vault_id = Some(vault_id);
+                        // Find the item with matching token key
+                        let item_index = vec.iter().position(|item| {
+                            if let StrictYaml::Hash(ref item_map) = item {
+                                if let Some(StrictYaml::String(item_token)) =
+                                    item_map.get(&StrictYaml::String("token".to_string()))
+                                {
+                                    return item_token == &token;
+                                }
+                            }
+                            false
+                        });
+
+                        if let Some(idx) = item_index {
+                            if let Some(item) = vec.get_mut(idx) {
+                                if let StrictYaml::Hash(ref mut item_map) = item {
+                                    if let Some(vault_id) = new_vault_id {
+                                        item_map.insert(
+                                            StrictYaml::String("vault-id".to_string()),
+                                            StrictYaml::String(vault_id.to_string()),
+                                        );
+                                        match vault_type {
+                                            VaultType::Input => {
+                                                self.inputs[idx].vault_id = Some(vault_id);
+                                            }
+                                            VaultType::Output => {
+                                                self.outputs[idx].vault_id = Some(vault_id);
+                                            }
+                                        }
                                     } else {
-                                        self.outputs[index as usize].vault_id = Some(vault_id);
+                                        item_map
+                                            .remove(&StrictYaml::String("vault-id".to_string()));
+                                        match vault_type {
+                                            VaultType::Input => {
+                                                self.inputs[idx].vault_id = None;
+                                            }
+                                            VaultType::Output => {
+                                                self.outputs[idx].vault_id = None;
+                                            }
+                                        }
                                     }
                                 } else {
-                                    item_hash.remove(&StrictYaml::String("vault-id".to_string()));
-                                    if is_input {
-                                        self.inputs[index as usize].vault_id = None;
-                                    } else {
-                                        self.outputs[index as usize].vault_id = None;
-                                    }
+                                    return Err(YamlError::Field {
+                                        kind: FieldErrorKind::InvalidType {
+                                            field: vec_key.to_string(),
+                                            expected: "a hash".to_string(),
+                                        },
+                                        location: format!("order '{0}'", self.key),
+                                    });
                                 }
-                            } else {
-                                return Err(YamlError::Field {
-                                    kind: FieldErrorKind::InvalidType {
-                                        field: vec_key.to_string(),
-                                        expected: "a hash".to_string(),
-                                    },
-                                    location: format!("order '{0}'", self.key),
-                                });
                             }
                         } else {
                             return Err(YamlError::Field {
                                 kind: FieldErrorKind::InvalidValue {
                                     field: vec_key.to_string(),
-                                    reason: format!("index out of bounds: {index}"),
+                                    reason: format!("token '{}' not found", token),
                                 },
                                 location: format!("order '{0}'", self.key),
                             });
@@ -397,9 +435,9 @@ impl OrderCfg {
     pub fn parse_vault_ids(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         order_key: &str,
-        is_input: bool,
-    ) -> Result<Vec<Option<String>>, YamlError> {
-        let mut vault_ids = Vec::new();
+        r#type: VaultType,
+    ) -> Result<HashMap<String, Option<String>>, YamlError> {
+        let mut vault_ids = HashMap::new();
 
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -410,15 +448,32 @@ impl OrderCfg {
                 {
                     let location = format!("order '{}'", order_key);
 
-                    let items = if is_input {
-                        require_vec(order_yaml, "inputs", Some(location.clone()))?
-                    } else {
-                        require_vec(order_yaml, "outputs", Some(location.clone()))?
+                    let items = match r#type {
+                        VaultType::Input => {
+                            require_vec(order_yaml, "inputs", Some(location.clone()))?
+                        }
+                        VaultType::Output => {
+                            require_vec(order_yaml, "outputs", Some(location.clone()))?
+                        }
                     };
 
-                    for item in items {
+                    for (idx, item) in items.iter().enumerate() {
+                        let token = require_string(
+                            item,
+                            Some("token"),
+                            Some(format!(
+                                "{} index '{}' in order '{}'",
+                                if r#type == VaultType::Input {
+                                    "input"
+                                } else {
+                                    "output"
+                                },
+                                idx,
+                                order_key
+                            )),
+                        )?;
                         let vault_id = optional_string(item, "vault-id");
-                        vault_ids.push(vault_id);
+                        vault_ids.insert(token, vault_id);
                     }
                 }
             } else {
@@ -861,278 +916,10 @@ impl ParseOrderConfigSourceError {
     }
 }
 
-impl OrderConfigSource {
-    pub fn try_into_order(
-        self,
-        deployers: &HashMap<String, Arc<DeployerCfg>>,
-        orderbooks: &HashMap<String, Arc<OrderbookCfg>>,
-        tokens: &HashMap<String, Arc<TokenCfg>>,
-    ) -> Result<OrderCfg, ParseOrderConfigSourceError> {
-        let mut network = None;
-
-        let deployer = self
-            .deployer
-            .map(|deployer_name| {
-                deployers
-                    .get(&deployer_name)
-                    .ok_or(ParseOrderConfigSourceError::DeployerParseError(
-                        ParseDeployerConfigSourceError::NetworkNotFoundError(deployer_name.clone()),
-                    ))
-                    .map(|v| {
-                        if let Some(n) = &network {
-                            if v.network == *n {
-                                Ok(v.clone())
-                            } else {
-                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
-                            }
-                        } else {
-                            network = Some(v.network.clone());
-                            Ok(v.clone())
-                        }
-                    })?
-            })
-            .transpose()?;
-
-        let orderbook = self
-            .orderbook
-            .map(|orderbook_name| {
-                orderbooks
-                    .get(&orderbook_name)
-                    .ok_or(ParseOrderConfigSourceError::OrderbookParseError(
-                        ParseOrderbookConfigSourceError::NetworkNotFoundError(
-                            orderbook_name.clone(),
-                        ),
-                    ))
-                    .map(|v| {
-                        if let Some(n) = &network {
-                            if v.network == *n {
-                                Ok(v.clone())
-                            } else {
-                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
-                            }
-                        } else {
-                            network = Some(v.network.clone());
-                            Ok(v.clone())
-                        }
-                    })?
-            })
-            .transpose()?;
-
-        let inputs = self
-            .inputs
-            .into_iter()
-            .map(|input| {
-                tokens
-                    .get(&input.token)
-                    .ok_or(ParseOrderConfigSourceError::TokenParseError(
-                        ParseTokenConfigSourceError::NetworkNotFoundError(input.token.clone()),
-                    ))
-                    .map(|v| {
-                        if let Some(n) = &network {
-                            if v.network == *n {
-                                Ok(OrderIOCfg {
-                                    token: Some(v.clone()),
-                                    vault_id: input.vault_id,
-                                })
-                            } else {
-                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
-                            }
-                        } else {
-                            network = Some(v.network.clone());
-                            Ok(OrderIOCfg {
-                                token: Some(v.clone()),
-                                vault_id: input.vault_id,
-                            })
-                        }
-                    })?
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let outputs = self
-            .outputs
-            .into_iter()
-            .map(|output| {
-                tokens
-                    .get(&output.token)
-                    .ok_or(ParseOrderConfigSourceError::TokenParseError(
-                        ParseTokenConfigSourceError::NetworkNotFoundError(output.token.clone()),
-                    ))
-                    .map(|v| {
-                        if let Some(n) = &network {
-                            if v.network == *n {
-                                Ok(OrderIOCfg {
-                                    token: Some(v.clone()),
-                                    vault_id: output.vault_id,
-                                })
-                            } else {
-                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
-                            }
-                        } else {
-                            network = Some(v.network.clone());
-                            Ok(OrderIOCfg {
-                                token: Some(v.clone()),
-                                vault_id: output.vault_id,
-                            })
-                        }
-                    })?
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(OrderCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: String::new(),
-            inputs,
-            outputs,
-            network: network.ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
-                String::new(),
-            ))?,
-            deployer,
-            orderbook,
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use yaml::tests::get_document;
-
     use super::*;
-    use crate::test::*;
-
-    #[test]
-    fn test_try_into_order_success() {
-        let mut networks = HashMap::new();
-        let network = mock_network();
-        networks.insert("Local Testnet".to_string(), network);
-
-        let mut deployers = HashMap::new();
-        let deployer = mock_deployer();
-        deployers.insert("Deployer1".to_string(), deployer);
-
-        let mut orderbooks = HashMap::new();
-        let orderbook = mock_orderbook();
-        orderbooks.insert("Orderbook1".to_string(), orderbook);
-
-        let mut tokens = HashMap::new();
-        let token_input = mock_token("Token1");
-        let token_output = mock_token("Token2");
-        tokens.insert("Token1".to_string(), token_input.clone());
-        tokens.insert("Token2".to_string(), token_output.clone());
-
-        let order_string = OrderConfigSource {
-            deployer: Some("Deployer1".to_string()),
-            orderbook: Some("Orderbook1".to_string()),
-            inputs: vec![IOStringConfigSource {
-                token: "Token1".to_string(),
-                vault_id: Some(U256::from(1)),
-            }],
-            outputs: vec![IOStringConfigSource {
-                token: "Token2".to_string(),
-                vault_id: Some(U256::from(2)),
-            }],
-        };
-
-        let result = order_string.try_into_order(&deployers, &orderbooks, &tokens);
-        assert!(result.is_ok());
-        let order = result.unwrap();
-
-        assert_eq!(order.network, networks["Local Testnet"]);
-        assert_eq!(order.deployer, Some(deployers["Deployer1"].clone()));
-        assert_eq!(order.orderbook, Some(orderbooks["Orderbook1"].clone()));
-        assert_eq!(
-            order
-                .inputs
-                .iter()
-                .map(|v| v.token.clone().unwrap())
-                .collect::<Vec<_>>(),
-            vec![token_input]
-        );
-        assert_eq!(
-            order
-                .outputs
-                .iter()
-                .map(|v| v.token.clone().unwrap())
-                .collect::<Vec<_>>(),
-            vec![token_output]
-        );
-    }
-
-    #[test]
-    fn test_try_into_order_network_not_found_error() {
-        let order_string = OrderConfigSource {
-            deployer: None,
-            orderbook: None,
-            inputs: vec![],
-            outputs: vec![],
-        };
-
-        let result = order_string.try_into_order(&HashMap::new(), &HashMap::new(), &HashMap::new());
-        assert!(matches!(
-            result,
-            Err(ParseOrderConfigSourceError::NetworkNotFoundError(_))
-        ));
-        let error = result.unwrap_err();
-        assert!(error
-            .to_readable_msg()
-            .contains("No network could be determined for this order"));
-    }
-
-    #[test]
-    fn test_try_into_order_deployer_not_found_error() {
-        let deployers = HashMap::new(); // Empty deployer map
-
-        let order_string = OrderConfigSource {
-            deployer: Some("Nonexistent Deployer".to_string()),
-            orderbook: None,
-            inputs: vec![],
-            outputs: vec![],
-        };
-
-        let result = order_string.try_into_order(&deployers, &HashMap::new(), &HashMap::new());
-        assert!(matches!(
-            result,
-            Err(ParseOrderConfigSourceError::DeployerParseError(_))
-        ));
-    }
-
-    #[test]
-    fn test_try_into_order_orderbook_not_found_error() {
-        let orderbooks = HashMap::new(); // Empty orderbook map
-
-        let order_string = OrderConfigSource {
-            deployer: None,
-            orderbook: Some("Nonexistent Orderbook".to_string()),
-            inputs: vec![],
-            outputs: vec![],
-        };
-
-        let result = order_string.try_into_order(&HashMap::new(), &orderbooks, &HashMap::new());
-        assert!(matches!(
-            result,
-            Err(ParseOrderConfigSourceError::OrderbookParseError(_))
-        ));
-    }
-
-    #[test]
-    fn test_try_into_order_token_not_found_error() {
-        let tokens = HashMap::new(); // Empty token map
-
-        let order_string = OrderConfigSource {
-            deployer: None,
-            orderbook: None,
-            inputs: vec![IOStringConfigSource {
-                token: "Nonexistent Token".to_string(),
-                vault_id: Some(U256::from(1)),
-            }],
-            outputs: vec![],
-        };
-
-        let result = order_string.try_into_order(&HashMap::new(), &HashMap::new(), &tokens);
-        assert!(matches!(
-            result,
-            Err(ParseOrderConfigSourceError::TokenParseError(_))
-        ));
-    }
+    use yaml::tests::get_document;
 
     #[test]
     fn test_parse_orders_from_yaml() {

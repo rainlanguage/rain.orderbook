@@ -13,7 +13,7 @@ use commands::authoring_meta::get_authoring_meta_v2_for_scenarios;
 use commands::chain::{get_block_number, get_chainid};
 use commands::charts::{make_charts, make_deployment_debug};
 use commands::config::{
-    convert_configstring_to_config, merge_configstrings, parse_configstring, parse_new_configstring,
+    check_dotrain_with_settings_errors, check_settings_errors, get_deployments, get_scenarios,
 };
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
@@ -64,10 +64,6 @@ fn run_tauri_app() {
             call_lsp_completion,
             call_lsp_hover,
             call_lsp_problems,
-            parse_configstring,
-            parse_new_configstring,
-            merge_configstrings,
-            convert_configstring_to_config,
             make_charts,
             make_deployment_debug,
             order_add_calldata,
@@ -80,7 +76,11 @@ fn run_tauri_app() {
             debug_order_quote,
             debug_trade,
             get_app_commit_sha,
-            validate_spec_version
+            validate_spec_version,
+            get_deployments,
+            get_scenarios,
+            check_settings_errors,
+            check_dotrain_with_settings_errors
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

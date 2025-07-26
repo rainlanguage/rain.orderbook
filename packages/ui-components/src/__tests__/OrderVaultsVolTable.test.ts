@@ -8,7 +8,7 @@ import { test } from 'vitest';
 
 // const mockVaultsVol = [
 // 	{
-// 		id: '1',
+// 		id: BigInt('1'),
 // 		token: {
 // 			id: 'output_token',
 // 			address: '0xoutput_token',
@@ -28,7 +28,7 @@ import { test } from 'vitest';
 // 		}
 // 	},
 // 	{
-// 		id: '2',
+// 		id: BigInt('2'),
 // 		token: {
 // 			id: 'output_token',
 // 			address: '0xoutput_token',

@@ -3,7 +3,10 @@ use std::str::FromStr;
 use alloy::{hex::FromHexError, primitives::Address};
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
-    yaml::{orderbook::OrderbookYaml as OrderbookYamlCfg, YamlError, YamlParsable},
+    yaml::{
+        orderbook::{OrderbookYaml as OrderbookYamlCfg, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -64,7 +67,13 @@ impl OrderbookYaml {
         )]
         validate: Option<bool>,
     ) -> Result<OrderbookYaml, OrderbookYamlError> {
-        let yaml = OrderbookYamlCfg::new(sources, validate.unwrap_or(false))?;
+        let yaml = OrderbookYamlCfg::new(
+            sources,
+            match validate {
+                Some(true) => OrderbookYamlValidation::full(),
+                _ => OrderbookYamlValidation::default(),
+            },
+        )?;
         Ok(Self { yaml })
     }
 

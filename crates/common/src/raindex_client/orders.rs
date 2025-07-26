@@ -298,7 +298,7 @@ impl RaindexOrder {
     // /// Gets comprehensive performance metrics and analytics for this order over a specified time period
     // ///
     // /// Retrieves detailed performance data including profit/loss, volume statistics, and other
-    // /// key metrics that help assess the effectiveness of the trading strategy implemented by this order.
+    // /// key metrics that help assess the effectiveness of the trading algorithm implemented by this order.
     // ///
     // /// ## Examples
     // ///
@@ -1337,8 +1337,23 @@ mod tests {
         //     assert_eq!(volume1.details().total_vol(), U256::from(1));
         //     assert_eq!(volume1.details().net_vol(), U256::from(1));
 
+        // TODO: Issue #1989
+        //     let volume1 = res[0].clone();
+        //     assert_eq!(volume1.id(), U256::from_str("0x10").unwrap());
+        //     assert_eq!(
+        //         volume1.token().address(),
+        //         Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+        //     );
+        //     assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
+        //     assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
+        //     assert_eq!(volume1.token().decimals(), U256::from(18));
+        //     assert_eq!(volume1.details().total_in(), U256::from(1));
+        //     assert_eq!(volume1.details().total_out(), U256::from(0));
+        //     assert_eq!(volume1.details().total_vol(), U256::from(1));
+        //     assert_eq!(volume1.details().net_vol(), U256::from(1));
+
         //     let volume2 = res[1].clone();
-        //     assert_eq!(volume2.id(), Bytes::from_str("0x10").unwrap());
+        //     assert_eq!(volume2.id(), U256::from_str("0x10").unwrap());
         //     assert_eq!(
         //         volume2.token().address(),
         //         Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
@@ -1352,7 +1367,7 @@ mod tests {
         //     assert_eq!(volume2.details().net_vol(), U256::from(2));
 
         //     let volume3 = res[2].clone();
-        //     assert_eq!(volume3.id(), Bytes::from_str("0x20").unwrap());
+        //     assert_eq!(volume3.id(), U256::from_str("0x20").unwrap());
         //     assert_eq!(
         //         volume3.token().address(),
         //         Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
@@ -1366,7 +1381,7 @@ mod tests {
         //     assert_eq!(volume3.details().net_vol(), U256::from(2));
 
         //     let volume4 = res[3].clone();
-        //     assert_eq!(volume4.id(), Bytes::from_str("0x20").unwrap());
+        //     assert_eq!(volume4.id(), U256::from_str("0x20").unwrap());
         //     assert_eq!(
         //         volume4.token().address(),
         //         Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
@@ -1379,187 +1394,6 @@ mod tests {
         //     assert_eq!(volume4.details().total_vol(), U256::from(5));
         //     assert_eq!(volume4.details().net_vol(), U256::from(5));
         // }
-
-        // TODO: Issue #1989
-        // #[tokio::test]
-        // async fn test_order_performance() {
-        //     let sg_server = MockServer::start_async().await;
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1").body_contains("SgOrderDetailByIdQuery");
-        //         then.status(200).json_body_obj(&json!({
-        //           "data": {
-        //             "order": {
-        //               "id": "order1",
-        //               "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-        //               "orderHash": "0x1",
-        //               "owner": "0x0000000000000000000000000000000000000000",
-        //               "outputs": [
-        //                 {
-        //                   "id": "0x0000000000000000000000000000000000000000",
-        //                   "token": {
-        //                     "id": "token-1",
-        //                     "address": "0x1111111111111111111111111111111111111111",
-        //                     "name": "Token One",
-        //                     "symbol": "TK1",
-        //                     "decimals": "18"
-        //                   },
-        //                   "balance": "0",
-        //                   "vaultId": "1",
-        //                   "owner": "0x0000000000000000000000000000000000000000",
-        //                   "ordersAsOutput": [],
-        //                   "ordersAsInput": [],
-        //                   "balanceChanges": [],
-        //                   "orderbook": {
-        //                     "id": "0x0000000000000000000000000000000000000000"
-        //                   }
-        //                 }
-        //               ],
-        //               "inputs": [
-        //                 {
-        //                   "id": "0x0000000000000000000000000000000000000000",
-        //                   "token": {
-        //                     "id": "token-2",
-        //                     "address": "0x2222222222222222222222222222222222222222",
-        //                     "name": "Token Two",
-        //                     "symbol": "TK2",
-        //                     "decimals": "18"
-        //                   },
-        //                   "balance": "0",
-        //                   "vaultId": "2",
-        //                   "owner": "0x0000000000000000000000000000000000000000",
-        //                   "ordersAsOutput": [],
-        //                   "ordersAsInput": [],
-        //                   "balanceChanges": [],
-        //                   "orderbook": {
-        //                     "id": "0x0000000000000000000000000000000000000000"
-        //                   }
-        //                 }
-        //               ],
-        //               "active": true,
-        //               "addEvents": [
-        //                 {
-        //                   "transaction": {
-        //                     "blockNumber": "0",
-        //                     "timestamp": "0",
-        //                     "id": "0x0000000000000000000000000000000000000000",
-        //                     "from": "0x0000000000000000000000000000000000000000"
-        //                   }
-        //                 }
-        //               ],
-        //               "meta": null,
-        //               "timestampAdded": "0",
-        //               "orderbook": {
-        //                 "id": "0x0000000000000000000000000000000000000000"
-        //               },
-        //               "trades": [],
-        //               "removeEvents": []
-        //             }
-        //           }
-        //         }));
-        //     });
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1")
-        //             .body_contains("\"first\":200")
-        //             .body_contains("\"skip\":0");
-        //         then.status(200).json_body_obj(&json!({
-        //           "data": {
-        //             "trades": [
-        //               {
-        //                 "id": "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
-        //                 "timestamp": "1632000000",
-        //                 "tradeEvent": {
-        //                   "sender": "0x0000000000000000000000000000000000000000",
-        //                   "transaction": {
-        //                     "id": "0x0000000000000000000000000000000000000000",
-        //                     "from": "0x0000000000000000000000000000000000000000",
-        //                     "timestamp": "1632000000",
-        //                     "blockNumber": "0"
-        //                   }
-        //                 },
-        //                 "outputVaultBalanceChange": {
-        //                   "amount": "-100000000000000000000",
-        //                   "vault": {
-        //                     "id": "vault-1",
-        //                     "vaultId": "1",
-        //                     "token": {
-        //                       "id": "token-1",
-        //                       "address": "0x1111111111111111111111111111111111111111",
-        //                       "name": "Token One",
-        //                       "symbol": "TK1",
-        //                       "decimals": "18"
-        //                     }
-        //                   },
-        //                   "id": "output-change-1",
-        //                   "__typename": "TradeVaultBalanceChange",
-        //                   "newVaultBalance": "900",
-        //                   "oldVaultBalance": "1000",
-        //                   "timestamp": "1632000000",
-        //                   "transaction": {
-        //                     "id": "0x0000000000000000000000000000000000000000",
-        //                     "from": "0x0000000000000000000000000000000000000000",
-        //                     "timestamp": "1632000000",
-        //                     "blockNumber": "0"
-        //                   },
-        //                   "orderbook": {
-        //                     "id": "orderbook-1"
-        //                   }
-        //                 },
-        //                 "order": {
-        //                   "id": "order1.id",
-        //                   "orderHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
-        //                 },
-        //                 "inputVaultBalanceChange": {
-        //                   "amount": "50000000000000000000",
-        //                   "vault": {
-        //                     "id": "vault-2",
-        //                     "vaultId": "2",
-        //                     "token": {
-        //                       "id": "token-2",
-        //                       "address": "0x2222222222222222222222222222222222222222",
-        //                       "name": "Token Two",
-        //                       "symbol": "TK2",
-        //                       "decimals": "18"
-        //                     }
-        //                   },
-        //                   "id": "input-change-1",
-        //                   "__typename": "TradeVaultBalanceChange",
-        //                   "newVaultBalance": "150",
-        //                   "oldVaultBalance": "100",
-        //                   "timestamp": "1632000000",
-        //                   "transaction": {
-        //                     "id": "0x0000000000000000000000000000000000000000",
-        //                     "from": "0x0000000000000000000000000000000000000000",
-        //                     "timestamp": "1632000000",
-        //                     "blockNumber": "0"
-        //                   },
-        //                   "orderbook": {
-        //                     "id": "orderbook-1"
-        //                   }
-        //                 },
-        //                 "orderbook": {
-        //                   "id": "orderbook-1"
-        //                 }
-        //               }
-        //             ]
-        //           }
-        //         }));
-        //     });
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1")
-        //             .body_contains("\"first\":200")
-        //             .body_contains("\"skip\":200");
-        //         then.status(200).json_body_obj(&json!({
-        //             "data": { "trades": [] }
-        //         }));
-        //     });
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1");
-        //         then.status(200).json_body_obj(&json!({
-        //             "data": {
-        //                 "orders": [get_order1_json()]
-        //             }
-        //         }));
-        //     });
 
         //     let raindex_client = RaindexClient::new(
         //         vec![get_test_yaml(

@@ -2,8 +2,9 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
+import { AccountBalance, DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
+import type { TokenBalance } from '$lib/types/tokenBalance';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: vi.fn()
@@ -53,8 +54,8 @@ describe('TokenInput', () => {
 			}),
 			getVaultIds: vi.fn().mockReturnValue({
 				value: new Map([
-					['input', ['vault1']],
-					['output', ['vault2']]
+					['input', new Map([['test', 'vault1']])],
+					['output', new Map([['test', 'vault2']])]
 				])
 			})
 		} as unknown as DotrainOrderGui;
@@ -64,20 +65,20 @@ describe('TokenInput', () => {
 		(useGui as Mock).mockReturnValue(guiInstance);
 
 		mockProps = {
-			i: 0,
 			label: 'Input',
-			vault: mockInput
+			vault: mockInput,
+			tokenBalances: new Map()
 		} as unknown as TokenIOInputComponentProps;
 		outputMockProps = {
-			i: 0,
 			label: 'Output',
-			vault: mockInput
+			vault: mockInput,
+			tokenBalances: new Map()
 		} as unknown as TokenIOInputComponentProps;
 	});
 
 	it('renders with correct label and no token symbol', () => {
 		const { getByText } = render(TokenIOInput, mockProps);
-		expect(getByText('Input 1')).toBeInTheDocument();
+		expect(getByText('Input')).toBeInTheDocument();
 	});
 
 	it('renders input field with correct placeholder', () => {
@@ -96,14 +97,14 @@ describe('TokenInput', () => {
 	it('calls setVaultId when input changes', async () => {
 		const input = render(TokenIOInput, mockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault1' } });
-		expect(guiInstance.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
+		expect(guiInstance.setVaultId).toHaveBeenCalledWith('input', 'test', 'vault1');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
 	it('calls setVaultId on output vault when input changes', async () => {
 		const input = render(TokenIOInput, outputMockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault2' } });
-		expect(guiInstance.setVaultId).toHaveBeenCalledWith(false, 0, 'vault2');
+		expect(guiInstance.setVaultId).toHaveBeenCalledWith('output', 'test', 'vault2');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
@@ -116,7 +117,87 @@ describe('TokenInput', () => {
 			TokenIOInput,
 			propsWithUnknownToken as unknown as TokenIOInputComponentProps
 		);
-		expect(getByText('Input 1')).toBeInTheDocument();
+		expect(getByText('Input')).toBeInTheDocument();
+	});
+
+	describe('Balance Display', () => {
+		it('passes token balance to VaultIdInformation component', async () => {
+			const tokenBalances = new Map<string, TokenBalance>();
+			tokenBalances.set('test', {
+				value: {
+					balance: BigInt('1000000000000000000'),
+					formattedBalance: '1'
+				} as AccountBalance,
+				loading: false,
+				error: ''
+			});
+
+			const propsWithBalance = {
+				...mockProps,
+				tokenBalances
+			};
+
+			const { findByText } = render(TokenIOInput, propsWithBalance);
+
+			const labelWithSymbol = await findByText('Input (MOCK)');
+			expect(labelWithSymbol).toBeInTheDocument();
+		});
+
+		it('passes loading balance state to VaultIdInformation component', async () => {
+			const tokenBalances = new Map<string, TokenBalance>();
+			tokenBalances.set('test', {
+				value: {
+					balance: BigInt(0),
+					formattedBalance: '0'
+				} as AccountBalance,
+				loading: true,
+				error: ''
+			});
+
+			const propsWithLoadingBalance = {
+				...mockProps,
+				tokenBalances
+			};
+
+			const { findByText } = render(TokenIOInput, propsWithLoadingBalance);
+
+			const labelWithSymbol = await findByText('Input (MOCK)');
+			expect(labelWithSymbol).toBeInTheDocument();
+		});
+
+		it('passes balance error state to VaultIdInformation component', async () => {
+			const tokenBalances = new Map<string, TokenBalance>();
+			tokenBalances.set('test', {
+				value: {
+					balance: BigInt(0),
+					formattedBalance: '0'
+				} as AccountBalance,
+				loading: false,
+				error: 'Network error'
+			});
+
+			const propsWithErrorBalance = {
+				...mockProps,
+				tokenBalances
+			};
+
+			const { findByText } = render(TokenIOInput, propsWithErrorBalance);
+
+			const labelWithSymbol = await findByText('Input (MOCK)');
+			expect(labelWithSymbol).toBeInTheDocument();
+		});
+
+		it('handles missing token balance gracefully', async () => {
+			const propsWithoutBalance = {
+				...mockProps,
+				tokenBalances: new Map() // Empty map
+			};
+
+			const { findByText } = render(TokenIOInput, propsWithoutBalance);
+
+			const labelWithSymbol = await findByText('Input (MOCK)');
+			expect(labelWithSymbol).toBeInTheDocument();
+		});
 	});
 
 	it('fetches and displays token symbol when token key is present', async () => {
@@ -131,7 +212,7 @@ describe('TokenInput', () => {
 
 		const { findByText } = render(TokenIOInput, propsWithTokenKey);
 
-		const labelWithSymbol = await findByText('Input 1 (MOCK)');
+		const labelWithSymbol = await findByText('Input (MOCK)');
 		expect(labelWithSymbol).toBeInTheDocument();
 		expect(guiInstance.getTokenInfo).toHaveBeenCalledWith('0x456');
 	});

@@ -1,23 +1,27 @@
-import { pickBy, isNil } from 'lodash';
-import type { Config, ConfigSource } from '@rainlanguage/orderbook';
+import { pickBy } from 'lodash';
+import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 
 export function pickDeployments(
-  mergedConfigSource: ConfigSource | undefined,
-  mergedConfig: Config | undefined,
+  deployments: Record<string, DeploymentCfg>,
+  scenarios: Record<string, ScenarioCfg>,
   chainId: number,
 ) {
-  return !isNil(mergedConfigSource) &&
-    !isNil(mergedConfigSource?.deployments) &&
-    !isNil(mergedConfigSource?.orders)
-    ? pickBy(
-        mergedConfigSource.deployments,
-        (d) => mergedConfig?.scenarios?.[d.scenario].deployer.network.chainId === chainId,
-      )
-    : {};
+  const filtered = pickBy(
+    deployments,
+    (d) => scenarios[d.scenario.key].deployer.network.chainId === chainId,
+  );
+  const result: Record<string, { scenario: string; order: string }> = {};
+
+  for (const [key, deployment] of Object.entries(filtered)) {
+    result[key] = {
+      scenario: deployment.scenario.key,
+      order: deployment.order.key,
+    };
+  }
+
+  return result;
 }
 
-export function pickScenarios(mergedConfig: Config | undefined, chainId: number) {
-  return !isNil(mergedConfig)
-    ? pickBy(mergedConfig.scenarios, (d) => d.deployer.network.chainId === chainId)
-    : {};
+export function pickScenarios(scenarios: Record<string, ScenarioCfg>, chainId: number) {
+  return pickBy(scenarios, (d) => d.deployer.network.chainId === chainId);
 }

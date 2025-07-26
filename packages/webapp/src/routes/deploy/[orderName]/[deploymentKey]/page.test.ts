@@ -95,10 +95,9 @@ describe('DeployPage', () => {
 
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
 				dotrain: mockDotrain,
 				deployment: { key: mockDeploymentKey },
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL(`http://localhost:3000/deploy?state=${mockStateFromUrl}`)
 		});
@@ -117,10 +116,9 @@ describe('DeployPage', () => {
 	it('should not call handleGuiInitialization when dotrain is missing', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
 				dotrain: null as unknown as string,
 				deployment: { key: 'test-key' },
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL('http://localhost:3000/deploy')
 		});
@@ -135,10 +133,9 @@ describe('DeployPage', () => {
 	it('should not call handleGuiInitialization when deployment is missing', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
 				dotrain: 'some-dotrain',
 				deployment: null as unknown as { key: string },
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL('http://localhost:3000/deploy')
 		});
@@ -155,12 +152,11 @@ describe('DeployPage', () => {
 
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
 				dotrain: null as unknown as string,
 				deployment: null as unknown as { key: string },
-				strategyDetail: {}
+				orderDetail: {}
 			},
-			url: new URL('http://localhost:3000/deploy/strategy/key')
+			url: new URL('http://localhost:3000/deploy/order/key')
 		});
 
 		render(DeployPage);
@@ -179,12 +175,11 @@ describe('DeployPage', () => {
 	it('should show error message when GUI initialization fails', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
 				dotrain: 'https://dotrain.example.com',
 				deployment: {
 					key: 'test-deployment'
 				},
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL('http://localhost:3000/deploy')
 		});
@@ -205,12 +200,11 @@ describe('DeployPage', () => {
 	it('should handle initialization with empty state from URL', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
 				dotrain: 'https://dotrain.example.com',
 				deployment: {
 					key: 'test-deployment'
 				},
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL('http://localhost:3000/deploy')
 		});
@@ -233,12 +227,11 @@ describe('DeployPage', () => {
 
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
 				dotrain: 'https://dotrain.example.com',
 				deployment: {
 					key: 'test-deployment'
 				},
-				strategyDetail: {}
+				orderDetail: {}
 			},
 			url: new URL(`http://localhost:3000/deploy?state=${stateValue}`)
 		});

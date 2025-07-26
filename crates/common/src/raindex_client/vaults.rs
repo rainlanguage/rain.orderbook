@@ -50,7 +50,7 @@ impl_wasm_traits!(RaindexVaultType);
 /// belongs to a specific orderbook contract on the blockchain.
 ///
 /// Vaults can serve different roles in relation to orders - they can provide tokens (input),
-/// receive tokens (output), or both (input/output), depending on the trading strategy.
+/// receive tokens (output), or both (input/output), depending on the trading algorithm.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
@@ -166,6 +166,14 @@ impl RaindexVault {
 pub struct AccountBalance {
     balance: U256,
     formatted_balance: String,
+}
+impl AccountBalance {
+    pub fn new(balance: U256, formatted_balance: String) -> Self {
+        Self {
+            balance,
+            formatted_balance,
+        }
+    }
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
@@ -770,7 +778,7 @@ impl RaindexVaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultVolume {
-    id: Bytes,
+    id: U256,
     token: RaindexVaultToken,
     details: RaindexVaultVolumeDetails,
 }
@@ -778,8 +786,9 @@ pub struct RaindexVaultVolume {
 #[wasm_bindgen]
 impl RaindexVaultVolume {
     #[wasm_bindgen(getter)]
-    pub fn id(&self) -> String {
-        self.id.to_string()
+    pub fn id(&self) -> Result<BigInt, RaindexError> {
+        BigInt::from_str(&self.id.to_string())
+            .map_err(|e| RaindexError::JsError(e.to_string().into()))
     }
     #[wasm_bindgen(getter)]
     pub fn token(&self) -> RaindexVaultToken {
@@ -792,8 +801,8 @@ impl RaindexVaultVolume {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultVolume {
-    pub fn id(&self) -> Bytes {
-        self.id.clone()
+    pub fn id(&self) -> U256 {
+        self.id
     }
     pub fn token(&self) -> RaindexVaultToken {
         self.token.clone()
@@ -815,7 +824,7 @@ impl RaindexVaultVolume {
             vault_volume.vol_details,
         )?;
         Ok(Self {
-            id: Bytes::from_str(&vault_volume.id)?,
+            id: U256::from_str(&vault_volume.id)?,
             token,
             details,
         })

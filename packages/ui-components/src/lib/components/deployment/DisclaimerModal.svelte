@@ -22,7 +22,7 @@
 				<div class="flex items-center justify-center">
 					<ExclamationCircleSolid class="h-6 w-6 text-red-500" />
 					<span class="ml-2">
-						Before you deploy your strategy, make sure you understand the following...
+						Before you deploy your order, make sure you understand the following...
 					</span>
 				</div>
 			</Alert>
@@ -31,16 +31,14 @@
 					This front end is provided as a tool to interact with the Raindex smart contracts.
 				</li>
 				<li class="ml-4">
-					You are deploying your own strategy and depositing funds to an immutable smart contract
-					using your own wallet and private keys.
+					You are deploying your own order and depositing funds to an immutable smart contract using
+					your own wallet and private keys.
 				</li>
 				<li class="ml-4">
 					Nobody is custodying your funds, there is no recourse for recovery of funds if lost.
 				</li>
-				<li class="ml-4">There is no endorsement or guarantee provided with these strategies.</li>
-				<li class="ml-4">
-					Do not proceed if you do not understand the strategy you are deploying.
-				</li>
+				<li class="ml-4">There is no endorsement or guarantee provided with these orders.</li>
+				<li class="ml-4">Do not proceed if you do not understand the order you are deploying.</li>
 				<li class="ml-4">Do not invest unless you are prepared to lose all funds.</li>
 			</ul>
 		</div>

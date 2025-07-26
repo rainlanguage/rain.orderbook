@@ -1,8 +1,6 @@
 #[cfg(target_family = "wasm")]
 pub mod bindings;
 #[cfg(target_family = "wasm")]
-pub mod config;
-#[cfg(target_family = "wasm")]
 pub mod gui;
 #[cfg(target_family = "wasm")]
 pub mod yaml;

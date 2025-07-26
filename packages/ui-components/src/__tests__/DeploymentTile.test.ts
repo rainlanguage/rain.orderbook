@@ -9,7 +9,7 @@ vi.mock('$app/navigation', () => ({
 
 describe('DeploymentTile', () => {
 	const mockProps = {
-		strategyName: 'test-strategy',
+		orderName: 'test-order',
 		key: 'test-key',
 		name: 'Test Deployment',
 		description: 'This is a test deployment description'

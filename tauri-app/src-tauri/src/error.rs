@@ -4,10 +4,7 @@ use alloy::signers::ledger::LedgerError;
 use alloy_ethers_typecast::ReadableClientError;
 use dotrain::error::ComposeError;
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::config::ParseConfigSourceError;
-use rain_orderbook_app_settings::config_source::ConfigSourceError;
-use rain_orderbook_app_settings::merge::MergeError;
-use rain_orderbook_app_settings::new_config::ParseConfigError;
+use rain_orderbook_app_settings::yaml::YamlError;
 use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::raindex_client::RaindexError;
@@ -62,12 +59,6 @@ pub enum CommandError {
     FuzzRunnerError(#[from] FuzzRunnerError),
 
     #[error(transparent)]
-    MergeError(#[from] MergeError),
-
-    #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
-
-    #[error(transparent)]
     ParseConfigYamlError(#[from] serde_yaml::Error),
 
     #[error(transparent)]
@@ -78,9 +69,6 @@ pub enum CommandError {
 
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-
-    #[error(transparent)]
-    ConfigSourceError(#[from] ConfigSourceError),
 
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
@@ -122,6 +110,9 @@ pub enum CommandError {
 
     #[error("Missing RPCs")]
     MissingRpcs,
+
+    #[error(transparent)]
+    YamlError(#[from] YamlError),
 }
 
 impl Serialize for CommandError {

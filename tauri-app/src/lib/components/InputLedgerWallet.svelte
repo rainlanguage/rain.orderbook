@@ -5,10 +5,11 @@
   import { toasts } from '$lib/stores/toasts';
   import { getAddressFromLedger } from '$lib/services/wallet';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import { IconWarning, ButtonLoading } from '@rainlanguage/ui-components';
+  import { IconWarning, ButtonLoading, useRaindexClient } from '@rainlanguage/ui-components';
   import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
   import { Hash, HashType } from '@rainlanguage/ui-components';
   import type { Hex } from 'viem';
+  import { walletConnectNetwork } from '$lib/stores/walletconnect';
   const maskOptions = {
     mask: Number,
     min: 0,
@@ -17,6 +18,8 @@
     thousandsSeparator: '',
     radix: '.',
   };
+
+  const raindexClient = useRaindexClient();
 
   export let onConnect: () => void = () => {};
   let derivationIndex: number = 0;
@@ -29,10 +32,20 @@
   }
 
   async function ledgerConnect() {
+    const network = raindexClient.getNetworkByChainId($walletConnectNetwork);
+    if (network.error) {
+      toasts.error(network.error.readableMsg);
+      return;
+    }
+
     if (!$ledgerWalletAddress) {
       isConnecting = true;
       try {
-        const res: Hex = await getAddressFromLedger(derivationIndex);
+        const res: Hex = await getAddressFromLedger(
+          $walletConnectNetwork,
+          network.value.rpcs,
+          derivationIndex,
+        );
         ledgerWalletAddress.set(res);
         onConnect();
       } catch (e) {

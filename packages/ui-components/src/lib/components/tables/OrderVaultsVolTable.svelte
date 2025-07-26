@@ -47,7 +47,7 @@
 
 	<svelte:fragment slot="bodyRow" let:item>
 		<TableBodyCell tdClass="px-4 py-2">
-			<Hash type={HashType.Identifier} shorten value={item.id} />
+			<Hash type={HashType.Identifier} shorten value={item.id.toString()} />
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32">
 			<div class="flex gap-x-3">

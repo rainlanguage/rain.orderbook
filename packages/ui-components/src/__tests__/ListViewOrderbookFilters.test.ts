@@ -1,10 +1,11 @@
 import { render, screen } from '@testing-library/svelte';
 import { readable, writable } from 'svelte/store';
-import { beforeEach, expect, test, describe, vi } from 'vitest';
+import { beforeEach, expect, test, describe, vi, type Mock } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { NewConfig, RaindexVaultToken } from '@rainlanguage/orderbook';
+import type { RaindexVaultToken } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import type { QueryObserverResult } from '@tanstack/svelte-query';
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores.ts'));
 
@@ -25,34 +26,17 @@ vi.mock('@tanstack/svelte-query', () => ({
 	createInfiniteQuery: vi.fn()
 }));
 
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
 describe('ListViewOrderbookFilters', () => {
-	const mockSettings = writable<NewConfig>({
-		orderbook: {
-			version: '1',
-			networks: {
-				ethereum: {
-					key: 'ethereum',
-					rpcs: ['https://rpc.ankr.com/eth'],
-					chainId: 1,
-					networkId: 1,
-					currency: 'ETH'
-				}
-			},
-			subgraphs: {
-				mainnet: {
-					key: 'mainnet',
-					url: 'mainnet-url'
-				}
-			}
-		}
-	} as unknown as NewConfig);
+	const mockGetAllAccounts = vi.fn();
 
 	const defaultProps: ListViewOrderbookFiltersProps = {
-		settings: mockSettings,
-		accounts: writable({}),
 		hideZeroBalanceVaults: writable(false),
 		activeAccountsItems: writable({}),
 		selectedChainIds: writable([]),
@@ -70,35 +54,49 @@ describe('ListViewOrderbookFilters', () => {
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
-		mockSettings.set({
-			orderbook: {
-				networks: {
-					ethereum: {
-						key: 'ethereum',
-						rpcs: ['https://rpc.ankr.com/eth'],
-						chainId: 1,
-						networkId: 1,
-						currency: 'ETH'
-					}
-				},
-				subgraphs: {
-					mainnet: {
-						key: 'mainnet',
-						url: 'mainnet-url'
-					}
-				}
-			}
-		} as unknown as NewConfig);
+		(useRaindexClient as Mock).mockReturnValue({
+			getUniqueChainIds: vi.fn(() => ({
+				value: [1],
+				error: undefined
+			})),
+			getAllNetworks: vi.fn(() => ({
+				value: new Map([
+					[
+						'ethereum',
+						{
+							key: 'ethereum',
+							rpcs: ['https://rpc.ankr.com/eth'],
+							chainId: 1,
+							networkId: 1,
+							currency: 'ETH'
+						}
+					]
+				]),
+				error: undefined
+			})),
+			getAllAccounts: mockGetAllAccounts
+		});
+
+		// Set default return value for getAllAccounts
+		mockGetAllAccounts.mockReturnValue({
+			value: new Map(),
+			error: undefined
+		});
+
 		mockAccount.set(null);
 	});
 
 	test('shows no networks alert when networks are empty', () => {
-		mockSettings.set({
-			orderbook: {
-				networks: {},
-				subgraphs: {}
-			}
-		} as unknown as NewConfig);
+		(useRaindexClient as Mock).mockReturnValue({
+			getAllNetworks: vi.fn(() => ({
+				value: new Map(),
+				error: undefined
+			})),
+			getAllAccounts: vi.fn(() => ({
+				value: new Map(),
+				error: undefined
+			}))
+		});
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();
@@ -135,8 +133,7 @@ describe('ListViewOrderbookFilters', () => {
 		const props = {
 			...defaultProps,
 			showMyItemsOnly: writable(true),
-			activeAccountsItems: undefined,
-			accounts: writable({})
+			activeAccountsItems: undefined
 		};
 		render(ListViewOrderbookFilters, props);
 
@@ -153,46 +150,38 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('shows accounts dropdown when accounts exist', () => {
-		const props = {
-			...defaultProps,
-			accounts: writable({
-				'0x123': { key: '0x123', address: '0x123', name: 'Account 1' },
-				'0x456': { key: '0x456', address: '0x456', name: 'Account 2' }
-			})
-		};
-		render(ListViewOrderbookFilters, props);
+		mockGetAllAccounts.mockReturnValue({
+			value: new Map([
+				['0x123', { key: '0x123', address: '0x123', name: 'Account 1' }],
+				['0x456', { key: '0x456', address: '0x456', name: 'Account 2' }]
+			]),
+			error: undefined
+		});
+
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('accounts-dropdown')).toBeInTheDocument();
 	});
 
 	test('does not show accounts dropdown when no accounts exist', () => {
-		const props = {
-			...defaultProps,
-			accounts: writable({})
-		};
-		render(ListViewOrderbookFilters, props);
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.queryByTestId('accounts-dropdown')).not.toBeInTheDocument();
 	});
 
 	test('shows My Items Only checkbox when no accounts (current logic)', () => {
-		const props = {
-			...defaultProps,
-			accounts: writable({})
-		};
-		render(ListViewOrderbookFilters, props);
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('my-items-only')).toBeInTheDocument();
 	});
 
 	test('hides My Items Only checkbox when accounts exist (current logic)', () => {
-		const props = {
-			...defaultProps,
-			accounts: writable({
-				'0x123': { key: '0x123', address: '0x123', name: 'Account 1' }
-			})
-		};
-		render(ListViewOrderbookFilters, props);
+		mockGetAllAccounts.mockReturnValue({
+			value: new Map([['0x123', { key: '0x123', address: '0x123', name: 'Account 1' }]]),
+			error: undefined
+		});
+
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.queryByTestId('my-items-only')).not.toBeInTheDocument();
 	});
@@ -204,11 +193,7 @@ describe('ListViewOrderbookFilters', () => {
 			} as URL
 		});
 
-		const props = {
-			...defaultProps,
-			accounts: writable({})
-		};
-		render(ListViewOrderbookFilters, props);
+		render(ListViewOrderbookFilters, defaultProps);
 
 		const myItemsElement = screen.getByTestId('my-items-only');
 		expect(myItemsElement).toBeInTheDocument();
@@ -221,11 +206,7 @@ describe('ListViewOrderbookFilters', () => {
 			} as URL
 		});
 
-		const props = {
-			...defaultProps,
-			accounts: writable({})
-		};
-		render(ListViewOrderbookFilters, props);
+		render(ListViewOrderbookFilters, defaultProps);
 
 		const myItemsElement = screen.getByTestId('my-items-only');
 		expect(myItemsElement).toBeInTheDocument();
