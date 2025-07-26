@@ -165,7 +165,7 @@ mod tests {
 
         assert_eq!(
             flattened.input,
-            trade_data.input_vault_balance_change.amount
+            SgBigInt(trade_data.input_vault_balance_change.amount.0)
         );
         assert_eq!(flattened.input_display, "1");
         assert_eq!(
@@ -179,7 +179,7 @@ mod tests {
 
         assert_eq!(
             flattened.output,
-            trade_data.output_vault_balance_change.amount
+            SgBigInt(trade_data.output_vault_balance_change.amount.0)
         );
         assert_eq!(flattened.output_display, "2");
         assert_eq!(

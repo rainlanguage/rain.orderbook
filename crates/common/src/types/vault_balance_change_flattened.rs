@@ -108,7 +108,7 @@ mod tests {
         assert_eq!(flattened.amount, val.amount);
         assert_eq!(flattened.amount_display_signed, "1");
         assert_eq!(flattened.change_type_display, val.__typename);
-        assert_eq!(flattened.balance, val.new_vault_balance);
+        assert_eq!(flattened.balance, SgBigInt(val.new_vault_balance.0));
     }
 
     #[test]

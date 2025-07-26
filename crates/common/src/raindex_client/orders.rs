@@ -1,6 +1,7 @@
 use super::*;
 use crate::{
     meta::TryDecodeRainlangSource,
+    parsed_meta::ParsedMeta,
     raindex_client::{
         transactions::RaindexTransaction,
         vaults::{RaindexVault, RaindexVaultType},
@@ -29,6 +30,45 @@ use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
 
+/// Helper function to map TryDecodeRainlangSourceError to rain_metadata::Error
+/// This ensures consistent error handling by wrapping all metadata parsing errors
+/// in the same ParseMetaError variant
+#[cfg(not(target_family = "wasm"))]
+fn map_decode_error_to_rain_metadata_error(
+    e: crate::meta::TryDecodeRainlangSourceError,
+) -> rain_metadata::Error {
+    use crate::meta::TryDecodeRainlangSourceError;
+    match e {
+        TryDecodeRainlangSourceError::FromHexError(_) => {
+            rain_metadata::Error::DecodeHexStringError(
+                alloy::primitives::hex::FromHexError::InvalidHexCharacter { c: '?', index: 0 },
+            )
+        }
+        TryDecodeRainlangSourceError::FromUtf8Error(_) => rain_metadata::Error::CorruptMeta,
+        TryDecodeRainlangSourceError::MissingRainlangSourceV1 => rain_metadata::Error::UnknownMeta,
+        TryDecodeRainlangSourceError::RainMetadataError(err) => err,
+        TryDecodeRainlangSourceError::RainlangSourceMismatch => rain_metadata::Error::CorruptMeta,
+    }
+}
+
+#[cfg(target_family = "wasm")]
+fn map_decode_error_to_rain_metadata_error(
+    e: crate::meta::TryDecodeRainlangSourceError,
+) -> rain_metadata::Error {
+    use crate::meta::TryDecodeRainlangSourceError;
+    match e {
+        TryDecodeRainlangSourceError::FromHexError(_) => {
+            rain_metadata::Error::DecodeHexStringError(
+                alloy::primitives::hex::FromHexError::InvalidHexCharacter { c: '?', index: 0 },
+            )
+        }
+        TryDecodeRainlangSourceError::FromUtf8Error(_) => rain_metadata::Error::CorruptMeta,
+        TryDecodeRainlangSourceError::MissingRainlangSourceV1 => rain_metadata::Error::UnknownMeta,
+        TryDecodeRainlangSourceError::RainMetadataError(err) => err,
+        TryDecodeRainlangSourceError::RainlangSourceMismatch => rain_metadata::Error::CorruptMeta,
+    }
+}
+
 /// A single order representation within a given orderbook.
 ///
 /// RaindexOrder represents a trading order on a specific blockchain with its associated
@@ -54,6 +94,7 @@ pub struct RaindexOrder {
     active: bool,
     timestamp_added: U256,
     meta: Option<Bytes>,
+    parsed_meta: Vec<ParsedMeta>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
@@ -139,6 +180,10 @@ impl RaindexOrder {
     pub fn trades_count(&self) -> u16 {
         self.trades_count
     }
+    #[wasm_bindgen(getter = parsed_meta)]
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
+    }
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexOrder {
@@ -186,6 +231,9 @@ impl RaindexOrder {
     }
     pub fn trades_count(&self) -> u16 {
         self.trades_count
+    }
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
     }
 }
 
@@ -602,8 +650,10 @@ impl RaindexOrder {
             .meta
             .as_ref()
             .map(|meta| meta.0.try_decode_rainlangsource())
-            .transpose()?;
-
+            .transpose()
+            .map_err(|e| {
+                RaindexError::ParseMetaError(map_decode_error_to_rain_metadata_error(e))
+            })?;
         Ok(Self {
             raindex_client: raindex_client.clone(),
             chain_id,
@@ -640,11 +690,23 @@ impl RaindexOrder {
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
             meta: order
                 .meta
+                .clone()
                 .map(|meta| Bytes::from_str(&meta.0))
                 .transpose()?,
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .map(|meta| {
+                    let bytes = alloy::primitives::hex::decode(&meta.0)
+                        .map_err(rain_metadata::Error::DecodeHexStringError)?;
+                    ParsedMeta::parse_from_bytes(&bytes)
+                })
+                .transpose()
+                .map_err(RaindexError::ParseMetaError)?
+                .unwrap_or_default(),
         })
     }
 
@@ -873,48 +935,50 @@ mod tests {
                         id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     }
                 }],
-                inputs: vec![SgVault {
-                    id: SgBytes("0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac".to_string()),
-                    owner: SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string()),
-                    vault_id: SgBytes("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
-                    balance: SgBytes(Float::parse("0.79799".to_string()).unwrap().as_hex()),
-                    token: SgErc20 {
-                        id: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
-                        address: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
-                        name: Some("Wrapped Flare".to_string()),
-                        symbol: Some("WFLR".to_string()),
-                        decimals: Some(SgBigInt("18".to_string())),
+                inputs: vec![
+                    SgVault {
+                        id: SgBytes("0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac".to_string()),
+                        owner: SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string()),
+                        vault_id: SgBytes("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
+                        balance: SgBytes(Float::parse("0.79799".to_string()).unwrap().as_hex()),
+                        token: SgErc20 {
+                            id: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
+                            address: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
+                            name: Some("Wrapped Flare".to_string()),
+                            symbol: Some("WFLR".to_string()),
+                            decimals: Some(SgBigInt("18".to_string())),
+                        },
+                        orderbook: SgOrderbook {
+                            id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
+                        },
+                        orders_as_output: vec![],
+                        orders_as_input: vec![SgOrderAsIO {
+                            id: SgBytes("0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()),
+                            order_hash: SgBytes("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4".to_string()),
+                            active: true,
+                        }],
+                        balance_changes: vec![],
                     },
-                    orderbook: SgOrderbook {
-                        id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
-                    },
-                    orders_as_output: vec![],
-                    orders_as_input: vec![SgOrderAsIO {
-                        id: SgBytes("0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_string()),
-                        order_hash: SgBytes("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4".to_string()),
-                        active: true,
-                    }],
-                    balance_changes: vec![],
-                },
-                SgVault {
-                    id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                    token: SgErc20 {
+                    SgVault {
                         id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                        address: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                        name: Some("T1".to_string()),
-                        symbol: Some("T1".to_string()),
-                        decimals: Some(SgBigInt("0".to_string())),
+                        token: SgErc20 {
+                            id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
+                            address: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
+                            name: Some("T1".to_string()),
+                            symbol: Some("T1".to_string()),
+                            decimals: Some(SgBigInt("0".to_string())),
+                        },
+                        balance: SgBytes(F0.as_hex()),
+                        vault_id: SgBytes("0".to_string()),
+                        owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
+                        orders_as_output: vec![],
+                        orders_as_input: vec![],
+                        balance_changes: vec![],
+                        orderbook: SgOrderbook {
+                            id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
+                        }
                     },
-                    balance: SgBytes(F0.as_hex()),
-                    vault_id: SgBytes("0".to_string()),
-                    owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                    orders_as_output: vec![],
-                    orders_as_input: vec![],
-                    balance_changes: vec![],
-                    orderbook: SgOrderbook {
-                        id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
-                    }
-                }],
+                ],
                 orderbook: SgOrderbook {
                     id: SgBytes(CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string()),
                 },
@@ -1111,6 +1175,11 @@ mod tests {
 
             assert_eq!(order1.orderbook(), expected_order1.orderbook());
             assert_eq!(order1.timestamp_added(), expected_order1.timestamp_added());
+            assert_eq!(order1.parsed_meta.len(), 1);
+            assert!(
+                order1.parsed_meta[0].is_rainlang_source_v1(),
+                "Expected to have RainlangSourceV1 meta"
+            );
 
             let order2 = result[1].clone();
             assert_eq!(order2.chain_id, 137);
@@ -1179,6 +1248,7 @@ mod tests {
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(order2.timestamp_added(), U256::from(0));
+            assert_eq!(order2.parsed_meta.len(), 0);
         }
 
         #[tokio::test]
@@ -1274,7 +1344,6 @@ mod tests {
             assert_eq!(res.rainlang, Some("/* 0. calculate-io */ \nusing-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC\namt: 100,\nio: call<2>();\n\n/* 1. handle-io */ \n:call<3>(),\n:ensure(equal-to(output-vault-decrease() 100) \"must take full amount\");\n\n/* 2. get-io-ratio-now */ \nelapsed: call<4>(),\nio: saturating-sub(0.0177356 div(mul(elapsed sub(0.0177356 0.0173844)) 60));\n\n/* 3. one-shot */ \n:ensure(is-zero(get(hash(order-hash() \"has-executed\"))) \"has executed\"),\n:set(hash(order-hash() \"has-executed\") 1);\n\n/* 4. get-elapsed */ \n_: sub(now() get(hash(order-hash() \"deploy-time\")));".to_string()));
         }
 
-        // TODO: Issue #1989
         // #[tokio::test]
         // async fn test_order_vaults_volume() {
         //     let sg_server = MockServer::start_async().await;

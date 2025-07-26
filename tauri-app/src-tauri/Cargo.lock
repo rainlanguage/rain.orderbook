@@ -8943,7 +8943,6 @@ dependencies = [
  "rain-error-decoding",
  "rain-interpreter-eval",
  "rain-math-float",
- "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
  "rain-metadata-bindings",
  "rain_interpreter_bindings",
