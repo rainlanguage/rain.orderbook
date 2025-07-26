@@ -26,7 +26,6 @@
   import { RaindexClient } from '@rainlanguage/orderbook';
   import { onMount } from 'svelte';
   import { loadRemoteSettings } from '$lib/services/loadRemoteSettings';
-  import { parseConfig } from '$lib/services/config';
   import { applySettings } from '$lib/services/applySettings';
 
   const account = derived(
@@ -39,7 +38,7 @@
   onMount(async () => {
     if ($settingsText === '') {
       const settingsYamlText = await loadRemoteSettings();
-      await applySettings(settingsYamlText, settingsText, parseConfig);
+      await applySettings(settingsYamlText, settingsText);
     }
   });
 

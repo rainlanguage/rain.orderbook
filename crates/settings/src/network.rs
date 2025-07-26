@@ -1,4 +1,3 @@
-use crate::config_source::*;
 use crate::yaml::context::Context;
 use crate::yaml::{
     default_document, optional_string, require_hash, require_string, require_vec, FieldErrorKind,
@@ -310,48 +309,11 @@ impl ParseNetworkConfigSourceError {
     }
 }
 
-impl NetworkConfigSource {
-    pub fn into_network(self, key: String) -> NetworkCfg {
-        NetworkCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key,
-            rpcs: self.rpcs,
-            chain_id: self.chain_id as u32,
-            label: self.label,
-            network_id: self.network_id.map(|id| id as u32),
-            currency: self.currency,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
     use url::Url;
-
-    #[test]
-    fn test_try_from_network_string_success() {
-        let network_src = NetworkConfigSource {
-            rpcs: vec![Url::parse("http://127.0.0.1:8545").unwrap()],
-            chain_id: 1,
-            network_id: Some(1),
-            label: Some("Local Testnet".into()),
-            currency: Some("ETH".into()),
-        };
-
-        let network = network_src.into_network("local".into());
-
-        assert_eq!(
-            network.rpcs,
-            vec![Url::parse("http://127.0.0.1:8545").unwrap()]
-        );
-        assert_eq!(network.chain_id, 1);
-        assert_eq!(network.network_id, Some(1));
-        assert_eq!(network.label, Some("Local Testnet".into()));
-        assert_eq!(network.currency, Some("ETH".into()));
-        assert_eq!(network.key, "local");
-    }
 
     #[test]
     fn test_parse_networks_from_yaml() {

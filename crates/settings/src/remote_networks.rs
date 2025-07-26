@@ -1,4 +1,4 @@
-use crate::remote::chains::chainid::{ChainId, ChainIdError};
+use crate::remote::chains::{ChainId, ChainIdError};
 use crate::yaml::context::Context;
 use crate::yaml::{
     default_document, require_hash, require_string, FieldErrorKind, YamlError, YamlParsableHash,

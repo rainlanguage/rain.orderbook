@@ -8,13 +8,18 @@ use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
-use rain_orderbook_app_settings::remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg};
-use rain_orderbook_app_settings::remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg};
 use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::{
     dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
 };
-use rain_orderbook_app_settings::ParseConfigSourceError;
+use rain_orderbook_app_settings::{
+    remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
+    yaml::dotrain::DotrainYamlValidation,
+};
+use rain_orderbook_app_settings::{
+    remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg},
+    yaml::orderbook::OrderbookYamlValidation,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -67,9 +72,6 @@ impl PartialEq for DotrainOrder {
 pub enum DotrainOrderError {
     #[error("DotrainOrder is not initialized")]
     DotrainOrderNotInitialized,
-
-    #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
 
     #[error("Scenario {0} not found")]
     ScenarioNotFound(String),
@@ -133,9 +135,6 @@ impl DotrainOrderError {
         match self {
             DotrainOrderError::DotrainOrderNotInitialized => {
                 "DotrainOrder is not initialized. Please call initialize() first.".to_string()
-            }
-            DotrainOrderError::ParseConfigSourceError(e) => {
-                format!("Error parsing the configuration source: {}", e)
             }
             DotrainOrderError::ScenarioNotFound(name) => {
                 format!("Scenario '{}' is not defined in the configuration.", name)
@@ -255,7 +254,7 @@ impl DotrainOrder {
     pub fn dummy() -> Self {
         Self {
             dotrain: "".to_string(),
-            dotrain_yaml: DotrainYaml::new(vec![], false).unwrap(),
+            dotrain_yaml: DotrainYaml::new(vec![], DotrainYamlValidation::default()).unwrap(),
         }
     }
 }
@@ -314,7 +313,8 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
-        let mut orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
+        let mut orderbook_yaml =
+            OrderbookYaml::new(sources.clone(), OrderbookYamlValidation::default())?;
         let spec_version = orderbook_yaml.get_spec_version()?;
         if !SpecVersion::is_current(&spec_version) {
             return Err(DotrainOrderError::SpecVersionMismatch(
@@ -323,7 +323,7 @@ impl DotrainOrder {
             ));
         }
 
-        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
+        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), DotrainYamlValidation::default())?;
 
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
