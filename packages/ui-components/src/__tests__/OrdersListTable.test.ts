@@ -137,7 +137,7 @@ describe('OrdersListTable', () => {
 		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('1.5');
 		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
 		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('2500.0');
-		
+
 		// Verify "Strategy Balance:" label is not present
 		expect(screen.getByTestId('orderListRowInputs')).not.toHaveTextContent('Strategy Balance:');
 		expect(screen.getByTestId('orderListRowOutputs')).not.toHaveTextContent('Strategy Balance:');
@@ -188,7 +188,7 @@ describe('OrdersListTable', () => {
 		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('1.5');
 		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('USDC');
 		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('100.0');
-		
+
 		// Verify all output tokens are displayed
 		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
 		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('2500.0');

@@ -162,11 +162,13 @@
 		<TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 gap-y-2">
+
+		<!-- ✅ FIXED INPUT BOXES GRID LAYOUT -->
+		<TableBodyCell data-testid="orderListRowInputs" tdClass="p-2 whitespace-normal min-w-[320px]">
+			<div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
 				{#each item.inputs as t}
 					<div
-						class="flex min-w-[120px] justify-between items-center rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+						class="flex w-full flex-col rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
 					>
 						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
 						<span class="text-xs text-gray-500">{t.formattedBalance}</span>
@@ -174,11 +176,13 @@
 				{/each}
 			</div>
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 gap-y-2">
+
+		<!-- ✅ FIXED OUTPUT BOXES GRID LAYOUT -->
+		<TableBodyCell data-testid="orderListRowOutputs" tdClass="p-2 whitespace-normal min-w-[320px]">
+			<div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
 				{#each item.outputs as t}
 					<div
-						class="flex min-w-[120px] justify-between items-center rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+						class="flex w-full flex-col rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
 					>
 						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
 						<span class="text-xs text-gray-500">{t.formattedBalance}</span>
@@ -186,9 +190,10 @@
 				{/each}
 			</div>
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
-			>{item.tradesCount > 99 ? '>99' : item.tradesCount}</TableBodyCell
-		>
+
+		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2">
+			{item.tradesCount > 99 ? '>99' : item.tradesCount}
+		</TableBodyCell>
 		{#if matchesAccount(item.owner) && handleOrderRemoveModal}
 			<div data-testid="wallet-actions">
 				<TableBodyCell tdClass="px-0 text-right">
@@ -207,6 +212,7 @@
 						</Button>
 					{/if}
 				</TableBodyCell>
+
 				{#if item.active}
 					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
 						<DropdownItem
