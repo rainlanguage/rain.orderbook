@@ -32,6 +32,7 @@ mod tests {
     use super::*;
     use crate::error::CommandError;
     use httpmock::MockServer;
+    use rain_orderbook_subgraph_client::utils::float::*;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{json, Value};
     use tempfile::NamedTempFile;
@@ -52,9 +53,9 @@ mod tests {
             "outputVaultBalanceChange": {
               "id": "ovbc1",
               "__typename": "TradeVaultBalanceChange",
-              "amount": "-2",
-              "newVaultBalance": "0",
-              "oldVaultBalance": "0",
+              "amount": NEG2,
+              "newVaultBalance": F0,
+              "oldVaultBalance": F0,
               "vault": {
                 "id": "vault1",
                 "vaultId": "1",
@@ -84,9 +85,9 @@ mod tests {
             "inputVaultBalanceChange": {
               "id": "ivbc1",
               "__typename": "TradeVaultBalanceChange",
-              "amount": "1",
-              "newVaultBalance": "0",
-              "oldVaultBalance": "0",
+              "amount": F1,
+              "newVaultBalance": F0,
+              "oldVaultBalance": F0,
               "vault": {
                 "id": "vault1",
                 "vaultId": "1",
@@ -128,9 +129,9 @@ mod tests {
             "outputVaultBalanceChange": {
               "id": "ovbc2",
               "__typename": "TradeVaultBalanceChange",
-              "amount": "-5",
-              "newVaultBalance": "0",
-              "oldVaultBalance": "0",
+              "amount": NEG0_5,
+              "newVaultBalance": F0,
+              "oldVaultBalance": F0,
               "vault": {
                 "id": "vault2",
                 "vaultId": "2",
@@ -160,9 +161,9 @@ mod tests {
             "inputVaultBalanceChange": {
               "id": "ivbc2",
               "__typename": "TradeVaultBalanceChange",
-              "amount": "2",
-              "newVaultBalance": "0",
-              "oldVaultBalance": "0",
+              "amount": F2,
+              "newVaultBalance": F0,
+              "oldVaultBalance": F0,
               "vault": {
                 "id": "vault2",
                 "vaultId": "2",
@@ -217,7 +218,7 @@ mod tests {
 
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_path_buf();
-        let result = order_trades_list_write_csv(
+        order_trades_list_write_csv(
             path.clone(),
             "order1".to_string(),
             SubgraphArgs {
@@ -226,15 +227,16 @@ mod tests {
             None,
             None,
         )
-        .await;
-        assert!(result.is_ok());
+        .await
+        .unwrap();
 
-        let expected = "id,timestamp,timestamp_display,transaction,sender,order_id,input,input_display,input_token_id,input_token_symbol,output,output_display,output_token_id,output_token_symbol
-trade1,0,1970-01-01 00:00:00 UTC,tx1,sender1,hash1,1,0.000000000000000001,0x1d80c49bbbcd1c0911346656b529df9e5c2f783d,WFLR,-2,-0.000000000000000002,0x12e605bc104e93b45e1ad99f9e555f659051c2bb,sFLR
-trade2,1700086400,2023-11-15 22:13:20 UTC,tx2,sender2,hash2,2,0.000000000000000002,0x1d80c49bbbcd1c0911346656b529df9e5c2f783d,WFLR,-5,-0.000000000000000005,0x12e605bc104e93b45e1ad99f9e555f659051c2bb,sFLR
+        let expected = "
+id,timestamp,timestamp_display,transaction,sender,order_id,input,input_display,input_token_id,input_token_symbol,output,output_display,output_token_id,output_token_symbol
+trade1,0,1970-01-01 00:00:00 UTC,tx1,sender1,hash1,0x0000000000000000000000000000000000000000000000000000000000000001,1,0x1d80c49bbbcd1c0911346656b529df9e5c2f783d,WFLR,0x00000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffe,-2,0x12e605bc104e93b45e1ad99f9e555f659051c2bb,sFLR
+trade2,1700086400,2023-11-15 22:13:20 UTC,tx2,sender2,hash2,0x0000000000000000000000000000000000000000000000000000000000000002,2,0x1d80c49bbbcd1c0911346656b529df9e5c2f783d,WFLR,0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb,-0.5,0x12e605bc104e93b45e1ad99f9e555f659051c2bb,sFLR
 ";
         let csv_text = fs::read_to_string(path.clone()).unwrap();
-        assert_eq!(csv_text, expected);
+        assert_eq!(csv_text.trim(), expected.trim());
     }
 
     #[tokio::test]

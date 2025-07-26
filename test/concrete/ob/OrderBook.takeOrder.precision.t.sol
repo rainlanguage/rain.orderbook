@@ -3,96 +3,240 @@
 pragma solidity =0.8.25;
 
 import {Vm} from "forge-std/Test.sol";
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest, IERC20} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderV3,
-    TakeOrdersConfigV3,
-    TakeOrderConfigV3,
-    IO,
-    OrderConfigV3,
-    EvaluableV3,
+    OrderV4,
+    TakeOrdersConfigV4,
+    TakeOrderConfigV4,
+    IOV2,
+    OrderConfigV4,
+    EvaluableV4,
     SignedContextV1,
-    TaskV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    TaskV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
 contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
+    using LibDecimalFloat for Float;
+
     function checkPrecision(
         bytes memory rainString,
         uint8 outputTokenDecimals,
         uint8 inputTokenDecimals,
-        uint256 expectedTakerTotalInput,
-        uint256 expectedTakerTotalOutput
+        Float expectedTakerTotalInput,
+        Float expectedTakerTotalOutput
     ) internal {
-        uint256 vaultId = 0;
+        bytes32 vaultId = 0;
         address inputToken = address(0x100);
         address outputToken = address(0x101);
-        OrderConfigV3 memory config;
+
+        // Etch with invalid.
+        vm.etch(outputToken, hex"fe");
+        vm.etch(inputToken, hex"fe");
+
+        vm.mockCall(
+            inputToken, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(inputTokenDecimals)
+        );
+        vm.mockCall(
+            outputToken, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(outputTokenDecimals)
+        );
+
         {
-            IO[] memory validInputs = new IO[](1);
-            validInputs[0] = IO(inputToken, inputTokenDecimals, vaultId);
-            IO[] memory validOutputs = new IO[](1);
-            validOutputs[0] = IO(outputToken, outputTokenDecimals, vaultId);
+            (uint256 absoluteDepositAmount, bool lossless) =
+                expectedTakerTotalInput.toFixedDecimalLossy(outputTokenDecimals);
+            if (!lossless) {
+                ++absoluteDepositAmount;
+            }
+            vm.mockCall(
+                outputToken,
+                abi.encodeWithSelector(
+                    IERC20.transferFrom.selector, address(this), address(iOrderbook), absoluteDepositAmount
+                ),
+                abi.encode(true)
+            );
+        }
+
+        {
+            (uint256 absoluteTakerInputAmount, bool lossless) =
+                expectedTakerTotalInput.toFixedDecimalLossy(outputTokenDecimals);
+            (lossless);
+            vm.mockCall(
+                outputToken,
+                abi.encodeWithSelector(IERC20.transfer.selector, address(this), absoluteTakerInputAmount),
+                abi.encode(true)
+            );
+        }
+
+        {
+            (uint256 absoluteTakerOutputAmount, bool lossless) =
+                expectedTakerTotalOutput.toFixedDecimalLossy(inputTokenDecimals);
+            if (!lossless) {
+                ++absoluteTakerOutputAmount;
+            }
+            vm.mockCall(
+                inputToken,
+                abi.encodeWithSelector(
+                    IERC20.transferFrom.selector, address(this), address(iOrderbook), absoluteTakerOutputAmount
+                ),
+                abi.encode(true)
+            );
+        }
+
+        OrderConfigV4 memory config;
+        {
+            IOV2[] memory validInputs = new IOV2[](1);
+            validInputs[0] = IOV2(inputToken, vaultId);
+            IOV2[] memory validOutputs = new IOV2[](1);
+            validOutputs[0] = IOV2(outputToken, vaultId);
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
             bytes memory bytecode = iParserV2.parse2(rainString);
-            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-            config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
-            // Etch with invalid.
-            vm.etch(outputToken, hex"fe");
-            vm.etch(inputToken, hex"fe");
-            // Mock every call to output as a success, so the orderbook thinks it
-            // is transferring tokens.
-            vm.mockCall(outputToken, "", abi.encode(true));
-            vm.mockCall(inputToken, "", abi.encode(true));
+            EvaluableV4 memory evaluable = EvaluableV4(iInterpreter, iStore, bytecode);
+            config = OrderConfigV4(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
         }
-        if (expectedTakerTotalInput > 0) {
-            iOrderbook.deposit2(outputToken, vaultId, expectedTakerTotalInput, new TaskV1[](0));
-        }
-        assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), expectedTakerTotalInput);
-        vm.recordLogs();
-        iOrderbook.addOrder2(config, new TaskV1[](0));
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        assertEq(entries.length, 1);
-        (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
-        orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV3 memory takeOrdersConfig =
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(takeOrdersConfig);
-        assertEq(totalTakerInput, expectedTakerTotalInput);
-        assertEq(totalTakerOutput, expectedTakerTotalOutput);
-        assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), 0);
+        {
+            if (expectedTakerTotalInput.gt(LibDecimalFloat.packLossless(0, 0))) {
+                iOrderbook.deposit3(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
+            }
+            assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(expectedTakerTotalInput));
+            vm.recordLogs();
+            iOrderbook.addOrder3(config, new TaskV2[](0));
+            Vm.Log[] memory entries = vm.getRecordedLogs();
+            assertEq(entries.length, 1);
+            (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
+
+            TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
+            orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
+            TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
+                LibDecimalFloat.packLossless(0, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                orders,
+                ""
+            );
+            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
+            assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
+            assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
+        }
+
+        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).isZero(), "vault balance");
     }
 
+    // Older versions of OB had precision issues with this IO setup.
+    // bytes memory knownBad = "output-max io-ratio:157116.36568049186712991 0.000318235466963885;:;";
+    bytes constant KNOWN_BAD = bytes("output-max io-ratio:157116.36568049186712991 0.000318235466963885;:;");
+
     function testTakeOrderPrecisionKnownBad01() public {
-        // Older versions of OB had precision issues with this IO setup.
-        bytes memory knownBad = "output-max io-ratio:157116365680491867129910e-18 318235466963885e-18;:;";
-        // Start with both tokens having 18 decimals.
-        // This gives the best precision for both.
-        checkPrecision(knownBad, 18, 18, 157116365680491867129910, 49999999999999844580);
+        checkPrecision(
+            KNOWN_BAD,
+            18,
+            18,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
 
-        // If the taker output token has low decimals then it will round up
-        // at that decimal precision, to force the taker to have to output the
-        // dust amount.
-        // Increasing the decimals of the taker input token will not impact the
-        // precision provided there is no overflow. It simply scales up the
-        // taker input amount.
-        checkPrecision(knownBad, 18, 6, 157116365680491867129910, 50e6);
-        checkPrecision(knownBad, 19, 6, 1571163656804918671299100, 50e6);
-        checkPrecision(knownBad, 20, 6, 15711636568049186712991000, 50e6);
-        checkPrecision(knownBad, 21, 6, 157116365680491867129910000, 50e6);
-        checkPrecision(knownBad, 50, 6, 15711636568049186712991000000000000000000000000000000000, 50e6);
+    function testTakeOrderPrecisionKnownBad02() public {
+        checkPrecision(
+            KNOWN_BAD,
+            18,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
 
-        // Flip the decimals for each token.
-        // As the output has low decimals, it rounds down which then causes the
-        // input to be slightly smaller prorata.
-        checkPrecision(knownBad, 6, 18, 157116365680, 49999999999843315014);
-        checkPrecision(knownBad, 6, 19, 157116365680, 499999999998433150140);
-        checkPrecision(knownBad, 6, 20, 157116365680, 4999999999984331501400);
-        checkPrecision(knownBad, 6, 21, 157116365680, 49999999999843315014000);
-        checkPrecision(knownBad, 6, 50, 157116365680, 4999999999984331501400000000000000000000000000000000);
+    function testTakeOrderPrecisionKnownBad03() public {
+        checkPrecision(
+            KNOWN_BAD,
+            19,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad04() public {
+        checkPrecision(
+            KNOWN_BAD,
+            20,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad05() public {
+        checkPrecision(
+            KNOWN_BAD,
+            21,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad06() public {
+        checkPrecision(
+            KNOWN_BAD,
+            50,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad07() public {
+        checkPrecision(
+            KNOWN_BAD,
+            6,
+            18,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad08() public {
+        checkPrecision(
+            KNOWN_BAD,
+            6,
+            19,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad09() public {
+        checkPrecision(
+            KNOWN_BAD,
+            6,
+            20,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad10() public {
+        checkPrecision(
+            KNOWN_BAD,
+            6,
+            21,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad11() public {
+        checkPrecision(
+            KNOWN_BAD,
+            6,
+            50,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
     }
 }

@@ -8,7 +8,7 @@ use alloy::{
     },
     sol_types::SolCall,
 };
-use rain_orderbook_bindings::IOrderBookV4::{takeOrders2Call, OrderV3, TakeOrdersConfigV3};
+use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, OrderV4, TakeOrdersConfigV4};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -36,19 +36,19 @@ impl_wasm_traits!(TakeOrdersCalldata);
 )]
 pub fn get_order_hash(
     #[wasm_export(
-        param_description = "Complete OrderV3 structure containing owner, evaluation logic, valid inputs/outputs, and nonce"
+        param_description = "Complete OrderV4 structure containing owner, evaluation logic, valid inputs/outputs, and nonce"
     )]
-    order: &OrderV3,
+    order: &OrderV4,
 ) -> Result<String, Error> {
     Ok(encode_prefixed(main_keccak256(order.abi_encode())))
 }
 
-/// Generates ABI-encoded calldata for the `takeOrders2()` function on the OrderBook smart contract.
+/// Generates ABI-encoded calldata for the `takeOrders3()` function on the OrderBook smart contract.
 ///
 /// ## Examples
 ///
 /// ```javascript
-/// const result = await getTakeOrders2Calldata(config);
+/// const result = await getTakeOrders3Calldata(config);
 /// if (result.error) {
 ///   console.error("Calldata generation failed:", result.error.readableMsg);
 /// }
@@ -56,17 +56,17 @@ pub fn get_order_hash(
 /// // Do something with the calldata
 /// ```
 #[wasm_export(
-    js_name = "getTakeOrders2Calldata",
+    js_name = "getTakeOrders3Calldata",
     unchecked_return_type = "TakeOrdersCalldata",
     return_description = "Encoded calldata ready for blockchain submission"
 )]
-pub fn get_take_orders2_calldata(
+pub fn get_take_orders3_calldata(
     #[wasm_export(
         param_description = "Complete configuration for order execution including minimumInput, maximumInput, maximumIORatio, orders array, and additional data"
     )]
-    take_orders_config: TakeOrdersConfigV3,
+    take_orders_config: TakeOrdersConfigV4,
 ) -> Result<TakeOrdersCalldata, Error> {
-    let calldata = takeOrders2Call {
+    let calldata = takeOrders3Call {
         config: take_orders_config,
     }
     .abi_encode();
@@ -159,7 +159,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_get_order_hash() {
-        let order = OrderV3::default();
+        let order = OrderV4::default();
         let result = get_order_hash(&order).unwrap();
         assert_eq!(
             result,
@@ -169,9 +169,9 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_take_orders_calldata() {
-        let take_orders_config = TakeOrdersConfigV3::default();
-        let result = get_take_orders2_calldata(take_orders_config.clone()).unwrap();
-        let expected = takeOrders2Call {
+        let take_orders_config = TakeOrdersConfigV4::default();
+        let result = get_take_orders3_calldata(take_orders_config.clone()).unwrap();
+        let expected = takeOrders3Call {
             config: take_orders_config,
         }
         .abi_encode();
@@ -199,7 +199,7 @@ mod tests {
         assert_eq!(err.to_string(), "Failed to decode hex string");
         assert_eq!(
             err.to_readable_msg(),
-            "Failed to decode hex string: Odd number of digits"
+            "Failed to decode hex string: odd number of digits"
         );
     }
 }

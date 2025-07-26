@@ -1,7 +1,7 @@
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
-    erc20::Error as Erc20Error, meta::TryDecodeRainlangSourceError,
-    transaction::WritableTransactionExecuteError, utils::amount_formatter::AmountFormatterError,
+    meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
+    utils::amount_formatter::AmountFormatterError,
 };
 use alloy::{
     hex::FromHexError,
@@ -10,6 +10,7 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
+use rain_math_float::FloatError;
 use rain_orderbook_app_settings::yaml::{
     orderbook::{OrderbookYaml, OrderbookYamlValidation},
     YamlError, YamlParsable,
@@ -19,7 +20,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, str::FromStr};
+use std::{collections::BTreeMap, num::ParseIntError, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
@@ -240,24 +241,22 @@ pub enum RaindexError {
     #[error("Invalid vault balance change type: {0}")]
     InvalidVaultBalanceChangeType(String),
     #[error(transparent)]
-    AmountFormatterError(#[from] AmountFormatterError),
-    #[error(transparent)]
-    Erc20Error(Box<Erc20Error>),
-    #[error(transparent)]
-    FromUint8Error(#[from] FromUintError<u8>),
+    Erc20(#[from] crate::erc20::Error),
+    #[error("Float error: {0}")]
+    Float(#[from] FloatError),
+    #[error("Failed to parse an integer: {0}")]
+    ParseInt(#[from] ParseIntError),
+    #[error("Failed to convert to u8: {0}")]
+    TryFromUint(#[from] FromUintError<u8>),
     #[error("Missing decimals for token {0}")]
     MissingErc20Decimals(String),
+    #[error(transparent)]
+    AmountFormatterError(#[from] AmountFormatterError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
-    }
-}
-
-impl From<Erc20Error> for RaindexError {
-    fn from(err: Erc20Error) -> Self {
-        Self::Erc20Error(Box::new(err))
     }
 }
 
@@ -354,21 +353,14 @@ impl RaindexError {
             RaindexError::InvalidVaultBalanceChangeType(typ) => {
                 format!("Invalid vault balance change type: {}", typ)
             }
-            RaindexError::AmountFormatterError(err) => {
-                format!("There was a problem formatting the amount: {}", err)
-            }
-            RaindexError::Erc20Error(err) => {
-                format!("There was an error with the ERC20 token: {}", err)
-            }
-            RaindexError::FromUint8Error(err) => {
-                format!("There was an error converting from u8 number: {}", err)
-            }
+            RaindexError::Erc20(err) => format!("Failed to get ERC20 info: {err}"),
+            RaindexError::Float(err) => format!("Float error: {err}"),
+            RaindexError::ParseInt(err) => format!("Failed to parse an integer: {err}"),
+            RaindexError::TryFromUint(err) => format!("Failed to convert to u8: {err}"),
             RaindexError::MissingErc20Decimals(token) => {
-                format!(
-                    "Missing decimal information for the token address: {}",
-                    token
-                )
+                format!("Missing decimal information for the token address: {token}")
             }
+            RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
         }
     }
 }
@@ -390,9 +382,11 @@ impl From<RaindexError> for WasmEncodedError {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
 
+    #[cfg(not(target_family = "wasm"))]
     pub const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
     pub fn get_test_yaml(subgraph1: &str, subgraph2: &str, rpc1: &str, rpc2: &str) -> String {
         format!(
@@ -459,9 +453,7 @@ accounts:
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use alloy::primitives::Address;
         use rain_orderbook_app_settings::yaml::YamlError;
-        use std::str::FromStr;
         use url::Url;
         use wasm_bindgen_test::wasm_bindgen_test;
 

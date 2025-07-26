@@ -8,13 +8,13 @@
 	import CardProperty from '../CardProperty.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ButtonVaultLink from '../ButtonVaultLink.svelte';
-	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
+	// import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
-	import OrderApy from '../tables/OrderAPY.svelte';
+	// import OrderApy from '../tables/OrderAPY.svelte';
 	import type { DebugTradeModalHandler, QuoteDebugModalHandler } from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
@@ -220,10 +220,12 @@
 				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcs} />
 			</TabItem>
 			<TabItem title="Volume">
-				<OrderVaultsVolTable order={data} />
+				<div>TODO: Issue #1989</div>
+				<!-- <OrderVaultsVolTable order={data} /> -->
 			</TabItem>
 			<TabItem title="APY">
-				<OrderApy order={data} />
+				<div>TODO: Issue #1989</div>
+				<!-- <OrderApy order={data} /> -->
 			</TabItem>
 		</Tabs>
 	</svelte:fragment>

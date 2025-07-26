@@ -2,7 +2,8 @@
   import { invalidateTanstackQueries, PageHeader } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { VaultDetail } from '@rainlanguage/ui-components';
-  import { lightweightChartsTheme } from '$lib/stores/darkMode';
+  // TODO: Issue #1989
+  // import { lightweightChartsTheme } from '$lib/stores/darkMode';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import type { Address, Hex, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -40,11 +41,4 @@
 
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
-<VaultDetail
-  chainId={parsedChainId}
-  {orderbookAddress}
-  id={parsedId}
-  {lightweightChartsTheme}
-  {onDeposit}
-  {onWithdraw}
-/>
+<VaultDetail chainId={parsedChainId} {orderbookAddress} id={parsedId} {onDeposit} {onWithdraw} />

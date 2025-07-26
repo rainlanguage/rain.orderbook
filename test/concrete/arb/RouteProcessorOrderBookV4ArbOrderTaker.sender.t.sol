@@ -2,35 +2,42 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RouteProcessorOrderBookV4ArbOrderTakerTest} from
-    "test/util/abstract/RouteProcessorOrderBookV4ArbOrderTakerTest.sol";
+import {RouteProcessorOrderBookV5ArbOrderTakerTest} from
+    "test/util/abstract/RouteProcessorOrderBookV5ArbOrderTakerTest.sol";
 import {
-    OrderV3,
-    EvaluableV3,
-    TakeOrderConfigV3,
-    TakeOrdersConfigV3,
-    IInterpreterV3,
-    IInterpreterStoreV2,
-    TaskV1,
+    OrderV4,
+    EvaluableV4,
+    TakeOrderConfigV4,
+    TakeOrdersConfigV4,
+    IInterpreterV4,
+    IInterpreterStoreV3,
+    TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {
-    RouteProcessorOrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV2
-} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
+    RouteProcessorOrderBookV5ArbOrderTaker,
+    OrderBookV5ArbConfig
+} from "src/concrete/arb/RouteProcessorOrderBookV5ArbOrderTaker.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrderBookV4ArbOrderTakerTest {
+contract RouteProcessorOrderBookV5ArbOrderTakerSenderTest is RouteProcessorOrderBookV5ArbOrderTakerTest {
     /// forge-config: default.fuzz.runs = 100
-    function testRouteProcessorTakeOrdersSender(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+    function testRouteProcessorTakeOrdersSender(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         public
     {
-        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
+        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
-            TaskV1({
-                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
+            TakeOrdersConfigV4(
+                LibDecimalFloat.packLossless(0, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                orders,
+                abi.encode(bytes("0x00"))
+            ),
+            TaskV2({
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
                 signedContext: new SignedContextV1[](0)
             })
         );

@@ -1,5 +1,4 @@
 use super::*;
-use alloy::primitives::U256;
 use futures::StreamExt;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,

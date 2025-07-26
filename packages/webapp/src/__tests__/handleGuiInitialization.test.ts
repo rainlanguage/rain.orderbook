@@ -72,14 +72,14 @@ describe('handleGuiInitialization', () => {
 
 	it('should handle errors and return error message', async () => {
 		(DotrainOrderGui.newWithDeployment as Mock).mockReturnValue({
-			error: { msg: 'deployment failed' }
+			error: { readableMsg: 'deployment failed' }
 		});
 
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, null);
 
 		expect(result).toEqual({
 			gui: null,
-			error: 'Could not get deployment form.'
+			error: 'Failed to create deployment form: deployment failed'
 		});
 	});
 });

@@ -25,8 +25,8 @@
         <div class="mb-2 text-xl">Awaiting Signature</div>
         <div>Please review and sign the transaction on your Ledger device</div>
       </div>
-    {:else if transactionStatusNotice.status.type === 'PendingSend'}
-      <Spinner data-testid="status-pending-send" />
+    {:else if transactionStatusNotice.status.type === 'Sending'}
+      <Spinner data-testid="status-sending" />
       <div>
         <div class="mb-2 text-xl">Submitting Transaction</div>
         <div>Sending and awaiting confirmations...</div>
