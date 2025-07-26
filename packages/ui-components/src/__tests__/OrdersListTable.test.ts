@@ -31,14 +31,16 @@ const mockOrder = {
 		{
 			token: {
 				symbol: 'ETH'
-			}
+			},
+			formattedBalance: '1.5'
 		}
 	],
 	outputs: [
 		{
 			token: {
 				symbol: 'DAI'
-			}
+			},
+			formattedBalance: '2500.0'
 		}
 	],
 	vaults: [],
@@ -108,8 +110,90 @@ describe('OrdersListTable', () => {
 		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('Ethereum');
 		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Active');
 		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('ETH');
+		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('1.5');
 		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
+		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('2500.0');
 		expect(screen.getByTestId('orderListRowTrades')).toHaveTextContent('2');
+	});
+
+	it('displays token information in compact layout', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[mockOrder]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+		render(OrdersListTable, defaultProps as OrdersListTableProps);
+
+		// Verify token symbols and balances are displayed
+		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('ETH');
+		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('1.5');
+		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
+		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('2500.0');
+		
+		// Verify "Strategy Balance:" label is not present
+		expect(screen.getByTestId('orderListRowInputs')).not.toHaveTextContent('Strategy Balance:');
+		expect(screen.getByTestId('orderListRowOutputs')).not.toHaveTextContent('Strategy Balance:');
+	});
+
+	it('displays multiple tokens correctly in grid layout', async () => {
+		const orderWithMultipleTokens = {
+			...mockOrder,
+			inputs: [
+				{
+					token: { symbol: 'ETH' },
+					formattedBalance: '1.5'
+				},
+				{
+					token: { symbol: 'USDC' },
+					formattedBalance: '100.0'
+				}
+			],
+			outputs: [
+				{
+					token: { symbol: 'DAI' },
+					formattedBalance: '2500.0'
+				},
+				{
+					token: { symbol: 'WBTC' },
+					formattedBalance: '0.05'
+				}
+			]
+		};
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[orderWithMultipleTokens]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+		render(OrdersListTable, defaultProps as OrdersListTableProps);
+
+		// Verify all input tokens are displayed
+		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('ETH');
+		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('1.5');
+		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('USDC');
+		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('100.0');
+		
+		// Verify all output tokens are displayed
+		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
+		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('2500.0');
+		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('WBTC');
+		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('0.05');
 	});
 
 	it('shows remove button when order is active and user is owner', async () => {

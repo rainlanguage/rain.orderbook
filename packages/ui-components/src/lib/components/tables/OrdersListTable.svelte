@@ -163,25 +163,25 @@
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 gap-y-2">
 				{#each item.inputs as t}
 					<div
-						class="flex min-w-[120px] flex-col rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
+						class="flex min-w-[120px] justify-between items-center rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
 					>
 						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
-						<span class="text-xs text-gray-500">Strategy Balance: {t.formattedBalance}</span>
+						<span class="text-xs text-gray-500">{t.formattedBalance}</span>
 					</div>
 				{/each}
 			</div>
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 gap-y-2">
 				{#each item.outputs as t}
 					<div
-						class="flex min-w-[120px] flex-col rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
+						class="flex min-w-[120px] justify-between items-center rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
 					>
 						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
-						<span class="text-xs text-gray-500">Strategy Balance: {t.formattedBalance}</span>
+						<span class="text-xs text-gray-500">{t.formattedBalance}</span>
 					</div>
 				{/each}
 			</div>
