@@ -10,6 +10,10 @@ use rain_orderbook_common::raindex_client::filters::{
 use serde::{Deserialize, Serialize};
 
 #[cfg(target_family = "wasm")]
+use js_sys;
+#[cfg(target_family = "wasm")]
+use serde_wasm_bindgen;
+#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::*;
 
 /// Default web filter store composition for browsers.
@@ -58,7 +62,8 @@ impl FilterStore for DefaultWebFilterStore {
     where
         F: FnOnce(VaultsFilterBuilder) -> VaultsFilterBuilder,
     {
-        self.inner.update_vaults(update_fn)
+        self.inner.update_vaults(update_fn)?;
+        Ok(())
     }
 }
 
@@ -109,19 +114,54 @@ impl DefaultWebFilterStore {
     }
 
     #[wasm_export(
-        js_name = "updateVaults",
+        js_name = "updateVaultsWithBuilder",
         preserve_js_class,
-        return_description = "Updates vault filters and saves changes to persistent storage, returns updated store instance"
+        return_description = "Updates vault filters using a builder pattern, returns updated store instance"
     )]
-    pub fn update_vaults_wasm(
+    pub fn update_vaults_with_builder_wasm(
         self,
-        update_config: GetVaultsFilters,
+        #[wasm_export(
+            param_description = "Builder function that receives current VaultsFilterBuilder and returns modified one"
+        )]
+        builder_update: js_sys::Function,
     ) -> Result<DefaultWebFilterStore, PersistentFilterStoreError> {
-        self.set_vaults_wasm(update_config)
-            .and_then(|updated_store| {
-                updated_store.save_wasm()?;
-                Ok(updated_store)
-            })
+        use wasm_bindgen::JsValue;
+
+        // Get current builder and serialize for JavaScript
+        let current_filters = self.get_vaults();
+        let current_builder = VaultsFilterBuilder::from_filters(current_filters)
+            .map_err(|e| PersistentFilterStoreError::LoadError(e.to_string()))?;
+
+        let builder_js = serde_wasm_bindgen::to_value(&current_builder).map_err(|e| {
+            PersistentFilterStoreError::SaveError(format!("Failed to serialize builder: {}", e))
+        })?;
+
+        // Call JavaScript function
+        let updated_builder_js =
+            builder_update
+                .call1(&JsValue::NULL, &builder_js)
+                .map_err(|e| {
+                    PersistentFilterStoreError::SaveError(format!(
+                        "Builder function failed: {:?}",
+                        e
+                    ))
+                })?;
+
+        // Deserialize result
+        let updated_builder: VaultsFilterBuilder =
+            serde_wasm_bindgen::from_value(updated_builder_js).map_err(|e| {
+                PersistentFilterStoreError::SaveError(format!(
+                    "Failed to deserialize builder: {}",
+                    e
+                ))
+            })?;
+
+        // Use native update_vaults with a closure that returns the updated builder
+        let mut next = self.clone();
+        next.update_vaults(|_current_builder| updated_builder)
+            .map_err(|e| PersistentFilterStoreError::SaveError(e.to_string()))?;
+
+        Ok(next)
     }
 
     #[wasm_export(

@@ -1,5 +1,5 @@
 use super::{vaults_builder::VaultsFilterBuilder, vaults_filter::GetVaultsFilters};
-use crate::raindex_client::filters::traits::{FilterBuilder, FilterStore};
+use crate::raindex_client::filters::traits::FilterStore;
 use crate::raindex_client::*;
 use serde::{Deserialize, Serialize};
 
