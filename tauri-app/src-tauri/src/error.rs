@@ -100,9 +100,6 @@ pub enum CommandError {
     ),
 
     #[error(transparent)]
-    NewConfigError(#[from] ParseConfigError),
-
-    #[error(transparent)]
     FloatError(#[from] FloatError),
 
     #[error(transparent)]
