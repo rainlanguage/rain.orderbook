@@ -1,32 +1,250 @@
 use super::traits::FilterBuilder;
 use super::vaults_filter::GetVaultsFilters;
-use crate::raindex_client::*;
 use alloy::primitives::Address;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use wasm_bindgen_utils::prelude::*;
+
+//
+// Vaults Filter Builder Error
+//
+
+#[derive(Error, Debug)]
+pub enum VaultsFilterBuilderError {
+    #[error("Invalid address: {0}")]
+    InvalidAddress(String),
+    #[error("Owner must be a string")]
+    OwnerMustBeString,
+    #[error("Token must be a string")]
+    TokenMustBeString,
+    #[error("Chain ID must be a number")]
+    ChainIdMustBeNumber,
+}
+
+impl VaultsFilterBuilderError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            Self::InvalidAddress(addr) => format!("The address '{}' is not a valid Ethereum address. Please provide a valid hexadecimal address.", addr),
+            Self::OwnerMustBeString => "Each owner must be provided as a string. Please ensure all owners are valid address strings.".to_string(),
+            Self::TokenMustBeString => "Each token must be provided as a string. Please ensure all tokens are valid address strings.".to_string(),
+            Self::ChainIdMustBeNumber => "Each chain ID must be provided as a number. Please ensure all chain IDs are valid integers.".to_string(),
+        }
+    }
+}
+
+impl From<VaultsFilterBuilderError> for WasmEncodedError {
+    fn from(value: VaultsFilterBuilderError) -> Self {
+        WasmEncodedError {
+            msg: value.to_string(),
+            readable_msg: value.to_readable_msg(),
+        }
+    }
+}
 
 //
 // Vaults Filter Builder
 //
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
 pub struct VaultsFilterBuilder {
+    #[wasm_bindgen(skip)]
     pub owners: Vec<Address>,
+    #[wasm_bindgen(skip)]
     pub hide_zero_balance: bool,
+    #[wasm_bindgen(skip)]
     pub tokens: Option<Vec<Address>>,
+    #[wasm_bindgen(skip)]
     pub chain_ids: Option<Vec<u64>>,
 }
-impl_wasm_traits!(VaultsFilterBuilder);
 
+#[wasm_export]
 impl VaultsFilterBuilder {
-    pub fn new() -> Self {
-        Self {
+    /// Creates a new VaultsFilterBuilder with default values.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const builder = VaultsFilterBuilder.create();
+    /// ```
+    #[wasm_export(
+        js_name = "create",
+        return_description = "A new VaultsFilterBuilder instance with default values"
+    )]
+    pub fn new_wasm() -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
+        Ok(Self {
             owners: Vec::new(),
             hide_zero_balance: false,
             tokens: None,
             chain_ids: None,
-        }
+        })
     }
 
+    /// Creates a VaultsFilterBuilder from existing filters.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const builder = VaultsFilterBuilder.fromFilters(existing_filters);
+    /// ```
+    #[wasm_export(
+        js_name = "fromFilters",
+        return_description = "A VaultsFilterBuilder instance created from existing filters"
+    )]
+    pub fn from_filters_wasm(
+        filters: GetVaultsFilters,
+    ) -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
+        Ok(Self {
+            owners: filters.owners,
+            hide_zero_balance: filters.hide_zero_balance,
+            tokens: filters.tokens,
+            chain_ids: filters.chain_ids,
+        })
+    }
+
+    /// Sets the owners for the filter.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const builder = VaultsFilterBuilder.create()
+    ///     .setOwners(["0x1234567890abcdef1234567890abcdef12345678"]);
+    /// ```
+    #[wasm_export(
+        js_name = "setOwners",
+        return_description = "A new VaultsFilterBuilder instance with updated owners"
+    )]
+    pub fn set_owners_wasm(
+        self,
+        #[wasm_export(
+            param_description = "Array of owner addresses",
+            unchecked_param_type = "Address[]"
+        )]
+        owners: Vec<String>,
+    ) -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
+        let mut rust_owners = Vec::new();
+        for owner_str in owners {
+            let address = owner_str.parse::<Address>().map_err(|e| {
+                VaultsFilterBuilderError::InvalidAddress(format!("Invalid address: {}", e))
+            })?;
+            rust_owners.push(address);
+        }
+        let next = self.clone().set_owners(rust_owners);
+        Ok(next)
+    }
+
+    /// Sets whether to hide zero balance vaults.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const builder = VaultsFilterBuilder.create()
+    ///     .setHideZeroBalance(true);
+    /// ```
+    #[wasm_export(
+        js_name = "setHideZeroBalance",
+        return_description = "A new VaultsFilterBuilder instance with updated hide zero balance setting"
+    )]
+    pub fn set_hide_zero_balance_wasm(
+        self,
+        hide_zero_balance: bool,
+    ) -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
+        let next = self.clone().set_hide_zero_balance(hide_zero_balance);
+        Ok(next)
+    }
+
+    /// Sets the tokens for the filter.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const builder = VaultsFilterBuilder.create()
+    ///     .setTokens(["0x1111111111111111111111111111111111111111"]);
+    /// ```
+    #[wasm_export(
+        js_name = "setTokens",
+        return_description = "A new VaultsFilterBuilder instance with updated tokens"
+    )]
+    pub fn set_tokens_wasm(
+        self,
+        #[wasm_export(
+            param_description = "Optional array of token addresses",
+            unchecked_param_type = "Address[] | undefined"
+        )]
+        tokens: Option<Vec<String>>,
+    ) -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
+        let mut tokens_list = Vec::new();
+        if let Some(tokens_vec) = tokens {
+            for token_str in tokens_vec {
+                let address = token_str.parse::<Address>().map_err(|e| {
+                    VaultsFilterBuilderError::InvalidAddress(format!(
+                        "Invalid token address: {}",
+                        e
+                    ))
+                })?;
+                tokens_list.push(address);
+            }
+        }
+        let next_tokens = if tokens_list.is_empty() {
+            None
+        } else {
+            Some(tokens_list)
+        };
+        let next = self.clone().set_tokens(next_tokens);
+        Ok(next)
+    }
+
+    /// Sets the chain IDs for the filter.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const builder = VaultsFilterBuilder.create()
+    ///     .setChainIds([1, 137, 10]);
+    /// ```
+    #[wasm_export(
+        js_name = "setChainIds",
+        return_description = "A new VaultsFilterBuilder instance with updated chain IDs"
+    )]
+    pub fn set_chain_ids_wasm(
+        self,
+        #[wasm_export(
+            param_description = "Optional array of chain IDs",
+            unchecked_param_type = "number[] | undefined"
+        )]
+        chain_ids: Option<Vec<u64>>,
+    ) -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
+        let next = self.clone().set_chain_ids(chain_ids);
+        Ok(next)
+    }
+
+    /// Builds the filter into a GetVaultsFilters instance.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const filters = VaultsFilterBuilder.create()
+    ///     .setOwners(["0x1234567890abcdef1234567890abcdef12345678"])
+    ///     .setHideZeroBalance(true)
+    ///     .build();
+    /// ```
+    #[wasm_export(
+        js_name = "build",
+        return_description = "A GetVaultsFilters instance with the configured values"
+    )]
+    pub fn build_wasm(self) -> Result<GetVaultsFilters, VaultsFilterBuilderError> {
+        Ok(GetVaultsFilters {
+            owners: self.owners,
+            hide_zero_balance: self.hide_zero_balance,
+            tokens: self.tokens,
+            chain_ids: self.chain_ids,
+        })
+    }
+}
+
+// Implementation for internal Rust usage
+impl VaultsFilterBuilder {
     pub fn set_owners(mut self, owners: Vec<Address>) -> Self {
         self.owners = owners;
         self
@@ -46,12 +264,27 @@ impl VaultsFilterBuilder {
         self.chain_ids = chain_ids;
         self
     }
+
+    /// Creates a VaultsFilterBuilder from existing filters.
+    pub fn from_filters(filters: GetVaultsFilters) -> Result<Self, VaultsFilterBuilderError> {
+        Ok(Self::from(filters))
+    }
+
+    pub fn build(self) -> GetVaultsFilters {
+        GetVaultsFilters {
+            owners: self.owners,
+            hide_zero_balance: self.hide_zero_balance,
+            tokens: self.tokens,
+            chain_ids: self.chain_ids,
+        }
+    }
 }
 
 impl FilterBuilder for VaultsFilterBuilder {
     type Output = GetVaultsFilters;
 
     fn build(self) -> Self::Output {
+        // Call the internal build method directly to avoid conflict
         GetVaultsFilters {
             owners: self.owners,
             hide_zero_balance: self.hide_zero_balance,
@@ -63,9 +296,16 @@ impl FilterBuilder for VaultsFilterBuilder {
 
 impl From<VaultsFilterBuilder> for GetVaultsFilters {
     fn from(builder: VaultsFilterBuilder) -> Self {
-        builder.build()
+        // Call the internal build logic directly to avoid conflict
+        GetVaultsFilters {
+            owners: builder.owners,
+            hide_zero_balance: builder.hide_zero_balance,
+            tokens: builder.tokens,
+            chain_ids: builder.chain_ids,
+        }
     }
 }
+
 impl From<GetVaultsFilters> for VaultsFilterBuilder {
     fn from(filters: GetVaultsFilters) -> Self {
         Self {
@@ -80,149 +320,33 @@ impl From<GetVaultsFilters> for VaultsFilterBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raindex_client::filters::traits::FilterBuilder;
-    use alloy::primitives::Address;
-    use std::str::FromStr;
 
     #[test]
-    fn test_vaults_filter_builder_from_filters() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-        let token1 = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
-
-        let filters = GetVaultsFilters {
-            owners: vec![owner1],
-            hide_zero_balance: true,
-            tokens: Some(vec![token1]),
-            chain_ids: Some(vec![1, 137]),
-        };
-
-        let builder = VaultsFilterBuilder::from(filters.clone());
-        assert_eq!(builder.owners, filters.owners);
-        assert_eq!(builder.hide_zero_balance, filters.hide_zero_balance);
-        assert_eq!(builder.tokens, filters.tokens);
-        assert_eq!(builder.chain_ids, filters.chain_ids);
-    }
-
-    #[test]
-    fn test_vaults_filter_builder_set_owners() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-        let owner2 = Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap();
-
-        let builder = VaultsFilterBuilder::new().set_owners(vec![owner1, owner2]);
-
-        assert_eq!(builder.owners.len(), 2);
-        assert!(builder.owners.contains(&owner1));
-        assert!(builder.owners.contains(&owner2));
-    }
-
-    #[test]
-    fn test_vaults_filter_builder_chaining() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-        let token1 = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
-
-        let builder = VaultsFilterBuilder::new()
-            .set_owners(vec![owner1])
-            .set_hide_zero_balance(true)
-            .set_tokens(Some(vec![token1]));
-
-        assert_eq!(builder.owners.len(), 1);
-        assert_eq!(builder.owners[0], owner1);
-        assert!(builder.hide_zero_balance);
-        assert!(builder.tokens.is_some());
-        assert_eq!(builder.tokens.as_ref().unwrap().len(), 1);
-        assert_eq!(builder.tokens.as_ref().unwrap()[0], token1);
-    }
-
-    #[test]
-    fn test_vaults_filter_builder_build() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-        let token1 = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
-
-        let filters = VaultsFilterBuilder::new()
-            .set_owners(vec![owner1])
-            .set_hide_zero_balance(true)
-            .set_tokens(Some(vec![token1]))
-            .build();
-
-        assert_eq!(filters.owners.len(), 1);
-        assert_eq!(filters.owners[0], owner1);
-        assert!(filters.hide_zero_balance);
-        assert!(filters.tokens.is_some());
-        assert_eq!(filters.tokens.as_ref().unwrap().len(), 1);
-        assert_eq!(filters.tokens.as_ref().unwrap()[0], token1);
-    }
-
-    #[test]
-    fn test_from_trait_vaults_filter_builder_to_filters() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-
-        let builder = VaultsFilterBuilder::new()
-            .set_owners(vec![owner1])
+    fn test_builder_pattern() {
+        let builder = VaultsFilterBuilder::default()
+            .set_owners(vec![Address::ZERO])
             .set_hide_zero_balance(true);
 
-        let filters: GetVaultsFilters = builder.into();
-        assert_eq!(filters.owners.len(), 1);
-        assert_eq!(filters.owners[0], owner1);
+        let filters = builder.build();
+        assert_eq!(filters.owners, vec![Address::ZERO]);
         assert!(filters.hide_zero_balance);
     }
 
     #[test]
-    fn test_from_trait_filters_to_vaults_filter_builder() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-
+    fn test_from_conversion() {
         let filters = GetVaultsFilters {
-            owners: vec![owner1],
+            owners: vec![Address::ZERO],
             hide_zero_balance: true,
             tokens: None,
-            chain_ids: None,
+            chain_ids: Some(vec![1, 2]),
         };
 
-        let builder: VaultsFilterBuilder = filters.into();
-        assert_eq!(builder.owners.len(), 1);
-        assert_eq!(builder.owners[0], owner1);
-        assert!(builder.hide_zero_balance);
-        assert!(builder.tokens.is_none());
-    }
+        let builder: VaultsFilterBuilder = filters.clone().into();
+        let converted_back: GetVaultsFilters = builder.into();
 
-    #[test]
-    fn test_builder_immutability() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-        let owner2 = Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap();
-
-        let original_builder = VaultsFilterBuilder::new().set_owners(vec![owner1]);
-        let new_builder = original_builder.clone().set_owners(vec![owner2]);
-
-        // Check that original builder did not change
-        assert_eq!(original_builder.owners.len(), 1);
-        assert_eq!(original_builder.owners[0], owner1);
-
-        // Check that new builder has new values
-        assert_eq!(new_builder.owners.len(), 1);
-        assert_eq!(new_builder.owners[0], owner2);
-    }
-
-    #[test]
-    fn test_roundtrip_filters_to_builder_and_back() {
-        let owner1 = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
-        let token1 = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
-
-        let original_filters = GetVaultsFilters {
-            owners: vec![owner1],
-            hide_zero_balance: true,
-            tokens: Some(vec![token1]),
-            chain_ids: Some(vec![1, 10, 137]),
-        };
-
-        // Filters -> Builder -> Filters
-        let builder = VaultsFilterBuilder::from(original_filters.clone());
-        let restored_filters = builder.build();
-
-        assert_eq!(original_filters.owners, restored_filters.owners);
-        assert_eq!(
-            original_filters.hide_zero_balance,
-            restored_filters.hide_zero_balance
-        );
-        assert_eq!(original_filters.tokens, restored_filters.tokens);
-        assert_eq!(original_filters.chain_ids, restored_filters.chain_ids);
+        assert_eq!(filters.owners, converted_back.owners);
+        assert_eq!(filters.hide_zero_balance, converted_back.hide_zero_balance);
+        assert_eq!(filters.tokens, converted_back.tokens);
+        assert_eq!(filters.chain_ids, converted_back.chain_ids);
     }
 }

@@ -34,6 +34,9 @@ pub mod trades;
 pub mod transactions;
 pub mod vaults;
 
+// Re-export commonly used types
+pub use filters::{VaultsFilterBuilder, VaultsFilterBuilderError};
+
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
 impl_wasm_traits!(ChainIds);
