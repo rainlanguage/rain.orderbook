@@ -165,24 +165,28 @@
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
-			{#each item.inputs as t}
-				<div
-					class="flex min-w-[120px] flex-col rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
-				>
-					<span class="font-semibold text-gray-800">{t.token.symbol}</span>
-					<span class="text-xs text-gray-500">Strategy Balance: {t.formattedBalance}</span>
-				</div>
-			{/each}
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				{#each item.inputs as t}
+					<div
+						class="flex min-w-[120px] flex-col rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
+					>
+						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
+						<span class="text-xs text-gray-500">Strategy Balance: {t.formattedBalance}</span>
+					</div>
+				{/each}
+			</div>
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
-			{#each item.outputs as t}
-				<div
-					class="flex min-w-[120px] flex-col rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
-				>
-					<span class="font-semibold text-gray-800">{t.token.symbol}</span>
-					<span class="text-xs text-gray-500">Strategy Balance: {t.formattedBalance}</span>
-				</div>
-			{/each}
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				{#each item.outputs as t}
+					<div
+						class="flex min-w-[120px] flex-col rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm"
+					>
+						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
+						<span class="text-xs text-gray-500">Strategy Balance: {t.formattedBalance}</span>
+					</div>
+				{/each}
+			</div>
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
 			>{item.tradesCount > 99 ? '>99' : item.tradesCount}</TableBodyCell
