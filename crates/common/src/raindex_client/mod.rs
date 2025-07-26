@@ -27,12 +27,16 @@ use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod filters;
 pub mod order_quotes;
 pub mod orders;
 pub mod remove_orders;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
+
+// Re-export commonly used types
+pub use filters::{VaultsFilterBuilder, VaultsFilterBuilderError};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
