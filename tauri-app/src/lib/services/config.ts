@@ -1,13 +1,37 @@
 import { settingsText } from '$lib/stores/settings';
-import type { Config, ConfigSource } from '@rainlanguage/orderbook';
+import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
+import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 import { get } from 'svelte/store';
 
-export const parseConfig = async (text: string, validate = false): Promise<void> =>
-  invoke('parse_new_configstring', { text, validate });
+export const checkSettingsErrors = (text: string[]): Promise<void> =>
+  invoke('check_settings_errors', { text });
 
-export const mergeDotrainConfigWithSettings = async (dotrain: string): Promise<ConfigSource> =>
-  invoke('merge_configstrings', { dotrain, configText: get(settingsText) });
+export const checkDotrainWithSettingsErrors = (
+  dotrain: string,
+  settings: string[],
+): Promise<void> =>
+  invoke('check_dotrain_with_settings_errors', {
+    dotrain,
+    settings,
+  });
 
-export const convertConfigstringToConfig = async (configString: ConfigSource): Promise<Config> =>
-  invoke('convert_configstring_to_config', { configString });
+export const getDeployments = (): Promise<Record<string, DeploymentCfg>> => {
+  if (!get(globalDotrainFile).text) {
+    return Promise.resolve({});
+  }
+  return invoke('get_deployments', {
+    dotrain: get(globalDotrainFile).text,
+    settings: get(settingsText),
+  });
+};
+
+export const getScenarios = (): Promise<Record<string, ScenarioCfg>> => {
+  if (!get(globalDotrainFile).text) {
+    return Promise.resolve({});
+  }
+  return invoke('get_scenarios', {
+    dotrain: get(globalDotrainFile).text,
+    settings: get(settingsText),
+  });
+};

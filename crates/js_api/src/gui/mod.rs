@@ -10,7 +10,10 @@ use rain_orderbook_app_settings::{
     },
     network::NetworkCfg,
     order::OrderCfg,
-    yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
+    yaml::{
+        dotrain::{DotrainYaml, DotrainYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
@@ -598,7 +601,8 @@ impl DotrainOrderGui {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
-        let dotrain_yaml = DotrainYaml::new(vec![frontmatter.clone()], false)?;
+        let dotrain_yaml =
+            DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
         Ok(dotrain_yaml.documents)
     }
 }
