@@ -962,7 +962,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WQv07DMBDG44KKhBgQYkVCYsUkcf4QqjJWKiCCkCzEmqZuE8W1U8ehKjwEIysvUPEErGw8D2JDEXYgpSs3-Lu773z-ycD4ji2lkhQSDlI2TNkYqJ5lbP527yJakpbqtLXDM8JsQ8e6Us868hsjqB5ZU2pb1uplzUoDFnxCICNyxkWmAfeUJlLmHdOkPI5owgvZCazAM0Uew1LQh2oCVCfQT_dwf1eloxUB2mBD2bhi2LeBJsVNOtSs_pn1sfuxOHjvLl6fvJfP2xY6eXuOwc4SK_phRTr7-8f1et_3wbKLatdxnEOVBj1-f5VdpPAycm8G12dzGIbHMs1ERPslx1P3fOSGmEz5bHy6re5wmRABhySnfD4hTH4BiI0HenUCAAA=';
+			'H4sIAAAAAAAA_21QwUrEMBBtqiiIBxGvguDV2DS0Wpf1uLAqVoQgXrvduC3NJt00dVn9CI9e_YHFL_Dqze8Rb1KcuBZ3DnmTeW-SN4Ocn9gENLwyeJDLYS5HCGrE2fjL3iei5i5U1iyjCi59x8YqYEgOj1oS-itZAfQJQcseo-2bNVipMceSm6nShe3bBcyMKTueJ1SaiExVphORKPR0meJai8dGgZoT2a97rL8D6VP3c77_0Z2_PYevX7cuPXl_SdE2WgeaNR72KLJjM-o6i2gvAVlbPvo304I7gCTqqYer4iLHl0lwM7g-m-E4PjZ5oRPRrxWbBOd3Qcz4RE1Hp1vQo0zGNR7yUqjZmEvzDRNe8SnFAQAA';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1657,11 +1657,13 @@ ${dotrainWithoutVaultIds}`;
 			const result = gui.setVaultId('input', 'token1', 'test');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
-				"Invalid value for field 'vault-id': Failed to parse vault id in token 'token1' in inputs of order 'some-order'"
+				"Invalid value for field 'vault-id': Failed to parse vault id: digit 29 is out of range for base 10 in token 'token1' in inputs of order 'some-order'"
 			);
-			expect(result.error.msg).toContain("index '0' of inputs");
+
+			expect(result.error.msg).toContain("token 'token1'");
+			expect(result.error.msg).toContain("order 'some-order'");
 			expect(result.error.readableMsg).toBe(
-				"YAML configuration error: Invalid value for field 'vault-id': Failed to parse vault id in token 'token1' in inputs of order 'some-order'"
+				"YAML configuration error: Invalid value for field 'vault-id': Failed to parse vault id: digit 29 is out of range for base 10 in token 'token1' in inputs of order 'some-order'"
 			);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
@@ -1987,30 +1989,26 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should get token balance for a given address', async () => {
+			// Mock for decimals call
 			mockServer
 				.forPost('/rpc-url')
 				.once()
-				.withBodyIncluding('0x82ad56cb')
-				.thenSendJsonRpcResult(
-					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
-				);
-			mockServer
-				.forPost('/rpc-url')
-				.once()
+				.withBodyIncluding('0x313ce567')
 				.thenSendJsonRpcResult(
 					'0x0000000000000000000000000000000000000000000000000000000000000012'
 				);
+			// Mock for balanceOf call
 			mockServer
 				.forPost('/rpc-url')
 				.once()
+				.withBodyIncluding('0x70a08231')
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000003e8'
 				);
 
-			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			const result = extractWasmEncodedData(
 				await gui.getAccountBalance(
-					'0x6666666666666666666666666666666666666666',
+					'0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // Use token1's address from YAML
 					'0x1234567890abcdef1234567890abcdef12345678'
 				)
 			);
