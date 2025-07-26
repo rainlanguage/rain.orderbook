@@ -1,7 +1,6 @@
 pub mod accounts;
 pub mod blocks;
 pub mod chart;
-pub mod config_source;
 pub mod deployer;
 pub mod deployment;
 pub mod gui;
@@ -22,7 +21,6 @@ pub mod unit_test; // NOTE: this is used by unit_tests module in common crate
 pub mod yaml;
 
 pub(crate) use chart::*;
-pub(crate) use config_source::*;
 pub(crate) use deployer::*;
 pub(crate) use deployment::*;
 pub(crate) use gui::*;
