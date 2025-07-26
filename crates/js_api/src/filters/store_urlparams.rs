@@ -155,72 +155,8 @@ impl<S: FilterStore> URLParamsFilterStore<S> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::filters::test_utils::filters_equal;
     use wasm_bindgen_test::wasm_bindgen_test;
-
-    fn filters_equal(a: &GetVaultsFilters, b: &GetVaultsFilters) -> bool {
-        // Compare through serialization since PartialEq is not implemented
-        serde_json::to_string(a).unwrap() == serde_json::to_string(b).unwrap()
-    }
-
-    #[wasm_bindgen_test]
-    fn test_url_params_store_creation() {
-        let key = "test_url_params";
-
-        // Should be able to create URLParams store with LocalStorage backing
-        if let Ok(_store) = URLParamsFilterStore::new(key) {
-            // Creation successful
-        }
-    }
-
-    #[wasm_bindgen_test]
-    fn test_url_params_with_custom_store() {
-        let key = "test_url_custom";
-
-        if let Ok(local_store) = LocalStorageFilterStore::new(key) {
-            if let Ok(_url_store) = URLParamsFilterStore::new_with_store(local_store) {
-                // Custom store creation successful
-            }
-        }
-    }
-
-    #[wasm_bindgen_test]
-    fn test_update_propagates_to_underlying_store() {
-        let key = "test_url_propagation";
-
-        if let Ok(mut url_store) = URLParamsFilterStore::new(key) {
-            // Update should propagate to underlying LocalStorage
-            let _result = url_store.update_vaults(|builder| builder);
-            // Test passes if no panic occurs
-        }
-    }
-
-    #[wasm_bindgen_test]
-    fn test_url_save_load_cycle() {
-        let key = "test_url_cycle";
-
-        if let Ok(mut url_store) = URLParamsFilterStore::new(key) {
-            // Try to save current state to URL
-            let _save_result = url_store.save();
-
-            // Try to load from URL (might fail in test environment)
-            let _load_result = url_store.load();
-
-            // Test passes if no panic occurs
-        }
-    }
-
-    #[wasm_bindgen_test]
-    fn test_url_methods_dont_panic() {
-        let key = "test_url_methods";
-
-        if let Ok(url_store) = URLParamsFilterStore::new(key) {
-            // Test private methods don't panic (through public interface)
-            let _load_result = url_store.load_from_url();
-            let _save_result = url_store.save_to_url();
-
-            // Test passes if no panic occurs - methods may return errors in test env
-        }
-    }
 
     #[wasm_bindgen_test]
     fn test_url_serialization_format() {
