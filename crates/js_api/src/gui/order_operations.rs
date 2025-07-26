@@ -18,11 +18,7 @@ use rain_orderbook_bindings::{
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
-use std::{
-    collections::{BTreeMap, HashMap},
-    str::FromStr,
-    sync::Arc,
-};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 use url::Url;
 
 pub enum CalldataFunction {
