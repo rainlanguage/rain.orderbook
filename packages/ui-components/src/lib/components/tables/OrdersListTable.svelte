@@ -171,7 +171,7 @@
 						class="flex w-full flex-col rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
 					>
 						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
-						<span class="text-xs text-gray-500">{t.formattedBalance}</span>
+						<span class="text-xs text-gray-500 truncate">{t.formattedBalance}</span>
 					</div>
 				{/each}
 			</div>
@@ -185,7 +185,7 @@
 						class="flex w-full flex-col rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
 					>
 						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
-						<span class="text-xs text-gray-500">{t.formattedBalance}</span>
+						<span class="text-xs text-gray-500 truncate">{t.formattedBalance}</span>
 					</div>
 				{/each}
 			</div>
