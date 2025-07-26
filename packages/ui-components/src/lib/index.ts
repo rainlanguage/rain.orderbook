@@ -70,7 +70,6 @@ export { default as FixedBottomTransaction } from './components/transactions/Fix
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
 export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,

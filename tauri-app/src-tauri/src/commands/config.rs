@@ -102,9 +102,7 @@ mod tests {
     use super::*;
     use crate::error::CommandError;
     use rain_orderbook_app_settings::{
-        config_source::{NetworkConfigSource, OrderbookConfigSource},
-        orderbook::ParseOrderbookConfigSourceError,
-        spec_version::SpecVersion,
+        orderbook::ParseOrderbookConfigSourceError, spec_version::SpecVersion,
     };
 
     const DOTRAIN: &str = r#"
