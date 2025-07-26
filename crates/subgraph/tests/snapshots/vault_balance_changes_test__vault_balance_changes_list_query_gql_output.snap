@@ -3,7 +3,7 @@ source: crates/subgraph/tests/vault_balance_changes_test.rs
 expression: request_body.query
 ---
 query SgVaultBalanceChangesListQuery($first: Int, $id: Bytes!, $skip: Int) {
-  vaultBalanceChanges(orderDirection: desc, orderBy: timestamp, where: {vault_: {id: $id, }, }, skip: $skip, first: $first) {
+  vaultBalanceChanges(orderDirection: desc, orderBy: timestamp, where: {vault_: {id: $id}}, skip: $skip, first: $first) {
     __typename
     amount
     newVaultBalance

@@ -32,7 +32,7 @@ mod tests {
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol_types::SolValue};
     use httpmock::MockServer;
-    use rain_orderbook_bindings::IOrderBookV4::{OrderV3, IO};
+    use rain_orderbook_bindings::IOrderBookV5::{OrderV4, IOV2};
     use serde_json::{json, Value};
 
     #[tokio::test]
@@ -74,12 +74,13 @@ mod tests {
 
     // helper function that returns mocked sg response in json
     fn get_sg_response() -> Value {
-        let io = IO::default();
-        let order = OrderV3 {
+        let io = IOV2::default();
+        let order = OrderV4 {
             validInputs: vec![io.clone()],
             validOutputs: vec![io.clone()],
             ..Default::default()
         };
+
         json!({
             "data": {
                 "order": {
@@ -96,7 +97,7 @@ mod tests {
                             "symbol": "T1",
                             "id": encode_prefixed(io.token),
                             "address": encode_prefixed(io.token),
-                            "decimals": io.decimals.to_string(),
+                            "decimals": "0"
                         },
                         "orderbook": { "id": encode_prefixed(B256::random()) },
                         "owner": encode_prefixed(order.owner),
@@ -113,7 +114,7 @@ mod tests {
                             "symbol": "T2",
                             "id": encode_prefixed(io.token),
                             "address": encode_prefixed(io.token),
-                            "decimals": io.decimals.to_string(),
+                            "decimals": "0"
                         },
                         "orderbook": { "id": encode_prefixed(B256::random()) },
                         "owner": encode_prefixed(order.owner),
