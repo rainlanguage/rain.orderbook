@@ -2,11 +2,8 @@
   import { PageHeader } from '@rainlanguage/ui-components';
   import { OrdersListTable } from '@rainlanguage/ui-components';
   import { handleOrderRemoveModal } from '$lib/services/modal';
-
   import {
     selectedChainIds,
-    settings,
-    accounts,
     activeAccountsItems,
     showInactiveOrders,
     orderHash,
@@ -22,8 +19,6 @@
 <OrdersListTable
   {handleOrderRemoveModal}
   {selectedChainIds}
-  {settings}
-  {accounts}
   {activeAccountsItems}
   {showInactiveOrders}
   {orderHash}

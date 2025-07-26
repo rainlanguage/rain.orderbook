@@ -10,12 +10,16 @@ use rain_orderbook_app_settings::{
     },
     network::NetworkCfg,
     order::OrderCfg,
-    yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
+    yaml::{
+        dotrain::{DotrainYaml, DotrainYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
+    utils::amount_formatter::AmountFormatterError,
 };
 use serde::{Deserialize, Serialize};
 use std::io::prelude::*;
@@ -35,6 +39,7 @@ mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
+    pub key: String,
     #[tsify(type = "string")]
     pub address: Address,
     pub decimals: u8,
@@ -77,10 +82,10 @@ impl DotrainOrderGui {
     /// const dotrain = `
     /// gui:
     ///   deployments:
-    ///     mainnet-strategy:
+    ///     mainnet-order:
     ///       name: "Mainnet Trading"
-    ///     testnet-strategy:
-    ///       name: "Test Strategy"
+    ///     testnet-order:
+    ///       name: "Test order"
     /// `;
     ///
     /// const result = await DotrainOrderGui.getDeploymentKeys(dotrain);
@@ -121,7 +126,7 @@ impl DotrainOrderGui {
     ///
     /// ```javascript
     /// // Basic initialization
-    /// const result = await DotrainOrderGui.newWithDeployment(dotrainYaml, "mainnet-strategy");
+    /// const result = await DotrainOrderGui.newWithDeployment(dotrainYaml, "mainnet-order");
     /// if (result.error) {
     ///   console.error("Init failed:", result.error.readableMsg);
     ///   return;
@@ -131,7 +136,7 @@ impl DotrainOrderGui {
     /// // With state persistence
     /// const result = await DotrainOrderGui.newWithDeployment(
     ///   dotrainYaml,
-    ///   "mainnet-strategy",
+    ///   "mainnet-order",
     ///   (serializedState) => {
     ///     localStorage.setItem('orderState', serializedState);
     ///   }
@@ -179,7 +184,7 @@ impl DotrainOrderGui {
     /// Retrieves the complete GUI configuration including all deployments.
     ///
     /// This returns the parsed GUI section from the YAML, filtered to include only
-    /// the current deployment. Use this to access strategy-level metadata.
+    /// the current deployment. Use this to access order-level metadata.
     ///
     /// ## Examples
     ///
@@ -283,15 +288,15 @@ impl DotrainOrderGui {
     ) -> Result<TokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
-        let token_info = if token.decimals.is_some()
-            && token.label.is_some()
-            && token.symbol.is_some()
+        let token_info = if let (Some(decimals), Some(label), Some(symbol)) =
+            (&token.decimals, &token.label, &token.symbol)
         {
             TokenInfo {
+                key: token.key.clone(),
                 address: token.address,
-                decimals: token.decimals.unwrap(),
-                name: token.label.unwrap(),
-                symbol: token.symbol.unwrap(),
+                decimals: *decimals,
+                name: label.clone(),
+                symbol: symbol.clone(),
             }
         } else {
             let order_key = DeploymentCfg::parse_order_key(
@@ -309,6 +314,7 @@ impl DotrainOrderGui {
             let onchain_info = erc20.token_info(None).await?;
 
             TokenInfo {
+                key: token.key.clone(),
                 address: token.address,
                 decimals: token.decimals.unwrap_or(onchain_info.decimals),
                 name: token.label.unwrap_or(onchain_info.name),
@@ -373,22 +379,22 @@ impl DotrainOrderGui {
         Ok(result)
     }
 
-    /// Extracts strategy-level metadata from a dotrain configuration.
+    /// Extracts order-level metadata from a dotrain configuration.
     ///
-    /// This static method allows checking strategy details without creating a GUI instance,
-    /// useful for displaying strategy information before deployment selection.
+    /// This static method allows checking order details without creating a GUI instance,
+    /// useful for displaying order information before deployment selection.
     ///
     /// ## Required Fields
     ///
     /// The YAML must contain:
-    /// - `gui.name` - Strategy display name
-    /// - `gui.description` - Full strategy description  
+    /// - `gui.name` - Order display name
+    /// - `gui.description` - Full order description  
     /// - `gui.short-description` - Brief summary (optional but recommended)
     ///
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getStrategyDetails(dotrainYaml);
+    /// const result = await getOrderDetails(dotrainYaml);
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
@@ -397,15 +403,15 @@ impl DotrainOrderGui {
     /// // Do something with the details
     /// ```
     #[wasm_export(
-        js_name = "getStrategyDetails",
+        js_name = "getOrderDetails",
         unchecked_return_type = "NameAndDescriptionCfg",
-        return_description = "Strategy name, description, and optional short description"
+        return_description = "Order name, description, and optional short description"
     )]
-    pub async fn get_strategy_details(
+    pub async fn get_order_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
         let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
-        Ok(GuiCfg::parse_strategy_details(documents)?)
+        Ok(GuiCfg::parse_order_details(documents)?)
     }
 
     /// Gets metadata for all deployments defined in the configuration.
@@ -455,7 +461,7 @@ impl DotrainOrderGui {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await getDeploymentDetail(dotrainYaml, "mainnet-strategy");
+    /// const result = await getDeploymentDetail(dotrainYaml, "mainnet-order");
     /// if (result.error) {
     ///   console.error("Not found:", result.error.readableMsg);
     ///   return;
@@ -514,7 +520,7 @@ impl DotrainOrderGui {
     /// Exports the current configuration as a complete dotrain text file.
     ///
     /// This generates a valid dotrain file with YAML frontmatter and Rainlang code,
-    /// preserving all configurations and bindings. Useful for saving or sharing strategies.
+    /// preserving all configurations and bindings. Useful for saving or sharing orders.
     ///
     /// ## Format
     ///
@@ -595,7 +601,8 @@ impl DotrainOrderGui {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
-        let dotrain_yaml = DotrainYaml::new(vec![frontmatter.clone()], false)?;
+        let dotrain_yaml =
+            DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
         Ok(dotrain_yaml.documents)
     }
 }
@@ -682,6 +689,8 @@ pub enum GuiError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error(transparent)]
+    AmountFormatterError(#[from] AmountFormatterError),
 }
 
 impl GuiError {
@@ -762,6 +771,8 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
+            GuiError::AmountFormatterError(err) =>
+                format!("There was a problem formatting the amount: {}", err),
         }
     }
 }
@@ -794,7 +805,7 @@ mod tests {
 version: {spec_version}
 gui:
   name: Fixed limit
-  description: Fixed limit order strategy
+  description: Fixed limit order
   short-description: Buy WETH with USDC on Base.
   deployments:
     some-deployment:
@@ -1033,10 +1044,7 @@ _ _: 0 0;
 
         let gui_config = gui.get_gui_config().unwrap();
         assert_eq!(gui_config.name, "Fixed limit".to_string());
-        assert_eq!(
-            gui_config.description,
-            "Fixed limit order strategy".to_string()
-        );
+        assert_eq!(gui_config.description, "Fixed limit order".to_string());
         assert_eq!(gui_config.deployments.len(), 1);
         let deployment = gui_config.deployments.get("some-deployment").unwrap();
         assert_eq!(deployment.name, "Buy WETH with USDC on Base.".to_string());
@@ -1250,14 +1258,14 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_strategy_details() {
-        let strategy_details = DotrainOrderGui::get_strategy_details(get_yaml())
+    async fn test_get_order_details() {
+        let order_details = DotrainOrderGui::get_order_details(get_yaml())
             .await
             .unwrap();
-        assert_eq!(strategy_details.name, "Fixed limit");
-        assert_eq!(strategy_details.description, "Fixed limit order strategy");
+        assert_eq!(order_details.name, "Fixed limit");
+        assert_eq!(order_details.description, "Fixed limit order");
         assert_eq!(
-            strategy_details.short_description,
+            order_details.short_description,
             Some("Buy WETH with USDC on Base.".to_string())
         );
 
@@ -1276,7 +1284,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
+        let err = DotrainOrderGui::get_order_details(yaml.to_string())
             .await
             .unwrap_err();
         assert_eq!(
@@ -1307,7 +1315,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
+        let err = DotrainOrderGui::get_order_details(yaml.to_string())
             .await
             .unwrap_err();
         assert_eq!(
@@ -1339,7 +1347,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
+        let err = DotrainOrderGui::get_order_details(yaml.to_string())
             .await
             .unwrap_err();
         assert_eq!(
@@ -1645,7 +1653,7 @@ _ _: 0 0;
         pub const SELECT_TOKEN_YAML: &str = r#"
 gui:
     name: Fixed limit
-    description: Fixed limit order strategy
+    description: Fixed limit order order
     short-description: Buy WETH with USDC on Base.
     deployments:
         some-deployment:

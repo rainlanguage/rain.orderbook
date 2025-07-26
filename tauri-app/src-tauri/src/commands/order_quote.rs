@@ -1,11 +1,10 @@
-use std::str::FromStr;
-
 use crate::error::CommandResult;
 use alloy::primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV4::Quote;
 use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
 use rain_orderbook_quote::{NewQuoteDebugger, QuoteDebugger, QuoteDebuggerError, QuoteTarget};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
+use std::str::FromStr;
 
 #[tauri::command]
 pub async fn debug_order_quote(
@@ -65,51 +64,10 @@ mod tests {
     };
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_common::{
-        add_order::AddOrderArgs, dotrain_order::DotrainOrder, raindex_client::RaindexClient,
-    };
+    use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes, SgOrder, SgOrderbook};
     use rain_orderbook_test_fixtures::LocalEvm;
     use serde_json::json;
-    use std::sync::{Arc, RwLock};
-
-    pub fn get_test_yaml(subgraph: &str, rpc: &str) -> String {
-        format!(
-            r#"
-version: {spec_version}
-networks:
-    mainnet:
-        rpcs:
-            - {rpc}
-        chain-id: 1
-        label: Ethereum Mainnet
-        network-id: 1
-        currency: ETH
-subgraphs:
-    mainnet: {subgraph}
-metaboards:
-    mainnet: https://api.thegraph.com/subgraphs/name/xyz
-orderbooks:
-    mainnet-orderbook:
-        address: 0x1234567890123456789012345678901234567890
-        network: mainnet
-        subgraph: mainnet
-        label: Primary Orderbook
-tokens:
-    weth:
-        network: mainnet
-        address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-        decimals: 18
-        label: Wrapped Ether
-        symbol: WETH
-deployers:
-    mainnet-deployer:
-        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-        network: mainnet
-"#,
-            spec_version = SpecVersion::current()
-        )
-    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_debug_order_quote() {

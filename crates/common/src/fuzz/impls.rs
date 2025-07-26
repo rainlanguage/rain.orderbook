@@ -22,7 +22,9 @@ use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs, trace::Rai
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
 use rain_orderbook_app_settings::spec_version::SpecVersion;
+use rain_orderbook_app_settings::yaml::dotrain::DotrainYamlValidation;
 use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
+use rain_orderbook_app_settings::yaml::orderbook::OrderbookYamlValidation;
 use rain_orderbook_app_settings::{
     order::OrderIOCfg,
     yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
@@ -129,7 +131,8 @@ impl FuzzRunnerContext {
             vec![frontmatter.to_string()]
         };
 
-        let orderbook_yaml = OrderbookYaml::new(source.clone(), false)?;
+        let orderbook_yaml =
+            OrderbookYaml::new(source.clone(), OrderbookYamlValidation::default())?;
         let spec_version = orderbook_yaml.get_spec_version()?;
         if !SpecVersion::is_current(&spec_version) {
             return Err(FuzzRunnerError::SpecVersionMismatch(
@@ -138,7 +141,7 @@ impl FuzzRunnerContext {
             ));
         }
 
-        let dotrain_yaml = DotrainYaml::new(source, false)?;
+        let dotrain_yaml = DotrainYaml::new(source, DotrainYamlValidation::default())?;
 
         Ok(FuzzRunnerContext {
             dotrain: dotrain.into(),

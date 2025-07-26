@@ -1,6 +1,7 @@
 import { expect, vi, describe, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import ModalConnect from './ModalConnect.svelte';
+import type { NetworkCfg } from '@rainlanguage/orderbook';
 
 const mockWalletConnectConnect = vi.hoisted(() =>
   vi.fn(async () => {
@@ -31,6 +32,16 @@ vi.mock('$lib/services/wallet', async () => {
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   return {
     ...((await importOriginal()) as object),
+  };
+});
+
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useRaindexClient: vi.fn(() => ({
+      getNetworkByChainId: vi.fn().mockReturnValue({ value: {} as NetworkCfg }),
+      getAllNetworks: vi.fn().mockReturnValue({ value: new Map() }),
+    })),
   };
 });
 

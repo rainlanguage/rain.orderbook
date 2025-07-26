@@ -44,7 +44,7 @@ impl_wasm_traits!(RaindexVaultType);
 /// belongs to a specific orderbook contract on the blockchain.
 ///
 /// Vaults can serve different roles in relation to orders - they can provide tokens (input),
-/// receive tokens (output), or both (input/output), depending on the trading strategy.
+/// receive tokens (output), or both (input/output), depending on the trading algorithm.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
@@ -159,6 +159,14 @@ impl RaindexVault {
 pub struct AccountBalance {
     balance: U256,
     formatted_balance: String,
+}
+impl AccountBalance {
+    pub fn new(balance: U256, formatted_balance: String) -> Self {
+        Self {
+            balance,
+            formatted_balance,
+        }
+    }
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]

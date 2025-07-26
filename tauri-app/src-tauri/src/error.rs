@@ -2,10 +2,8 @@ use alloy::hex::FromHexError;
 use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use dotrain::error::ComposeError;
-use rain_orderbook_app_settings::config::ParseConfigSourceError;
 use rain_orderbook_app_settings::config_source::ConfigSourceError;
-use rain_orderbook_app_settings::merge::MergeError;
-use rain_orderbook_app_settings::new_config::ParseConfigError;
+use rain_orderbook_app_settings::yaml::YamlError;
 use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::raindex_client::RaindexError;
@@ -60,12 +58,6 @@ pub enum CommandError {
     FuzzRunnerError(#[from] FuzzRunnerError),
 
     #[error(transparent)]
-    MergeError(#[from] MergeError),
-
-    #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
-
-    #[error(transparent)]
     ParseConfigYamlError(#[from] serde_yaml::Error),
 
     #[error(transparent)]
@@ -113,13 +105,13 @@ pub enum CommandError {
     RainEvalResultError(#[from] rain_orderbook_common::fuzz::RainEvalResultError),
 
     #[error(transparent)]
-    NewConfigError(#[from] ParseConfigError),
-
-    #[error(transparent)]
     RaindexError(#[from] RaindexError),
 
     #[error("Missing RPCs")]
     MissingRpcs,
+
+    #[error(transparent)]
+    YamlError(#[from] YamlError),
 }
 
 impl Serialize for CommandError {

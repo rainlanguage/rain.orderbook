@@ -84,7 +84,7 @@ const mockDeployment = {
 const mockOnDeploy = vi.fn();
 
 const defaultProps: DeploymentStepsProps = {
-	strategyDetail: {
+	orderDetail: {
 		name: 'SFLR<>WFLR on Flare',
 		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
 		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
@@ -145,7 +145,10 @@ describe('DeploymentSteps', () => {
 			isSelectTokenSet: vi.fn().mockReturnValue({ value: false }),
 			setSelectToken: vi.fn(),
 			unsetSelectToken: vi.fn(),
-			getDeploymentTransactionArgs: vi.fn()
+			getDeploymentTransactionArgs: vi.fn(),
+			getAccountBalance: vi.fn().mockResolvedValue({
+				value: '1000000000000000000'
+			})
 		} as unknown as DotrainOrderGui;
 
 		mockGui = guiInstance;
@@ -279,7 +282,7 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Deploy Order')).toBeInTheDocument();
 		});
 	});
 	it('refreshes field descriptions when tokens change', async () => {
@@ -419,7 +422,7 @@ describe('DeploymentSteps', () => {
 		const user = userEvent.setup();
 		render(DeploymentSteps, { props: propsWithMockHandlers });
 
-		const deployButton = screen.getByText('Deploy Strategy');
+		const deployButton = screen.getByText('Deploy Order');
 		await user.click(deployButton);
 
 		await waitFor(() => {
@@ -595,5 +598,70 @@ describe('DeploymentSteps', () => {
 			// Component should handle the error case gracefully
 			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
 		});
+	});
+
+	it('calls getTokenInfoAndFetchBalance for each selected token on account change', async () => {
+		const mockSelectTokens = [
+			{ key: 'token1', name: 'Token 1', description: undefined },
+			{ key: 'token2', name: 'Token 2', description: undefined }
+		];
+
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
+
+		const accountStore = writable<`0x${string}` | null>('0x123');
+
+		const propsWithAccountStore = {
+			...defaultProps,
+			account: accountStore
+		};
+
+		render(DeploymentSteps, { props: propsWithAccountStore });
+
+		await waitFor(() => {
+			expect(mockGui.getSelectTokens).toHaveBeenCalled();
+		});
+		vi.clearAllMocks();
+
+		accountStore.set('0x456');
+
+		await waitFor(() => {
+			expect(mockGui.getTokenInfo).toHaveBeenCalledTimes(2);
+			expect(mockGui.getTokenInfo).toHaveBeenCalledWith('token1');
+			expect(mockGui.getTokenInfo).toHaveBeenCalledWith('token2');
+		});
+		await waitFor(() => {
+			expect(mockGui.getAccountBalance).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	it('clears token balances when account becomes null', async () => {
+		const mockSelectTokens = [{ key: 'token1', name: 'Token 1', description: undefined }];
+
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
+
+		const accountStore = writable<`0x${string}` | null>('0x123');
+
+		const propsWithAccountStore = {
+			...defaultProps,
+			account: accountStore
+		};
+
+		render(DeploymentSteps, { props: propsWithAccountStore });
+
+		await waitFor(() => {
+			expect(mockGui.getSelectTokens).toHaveBeenCalled();
+		});
+
+		vi.clearAllMocks();
+
+		accountStore.set(null);
+
+		// await new Promise((resolve) => setTimeout(resolve, 100));
+		expect(mockGui.getTokenInfo).not.toHaveBeenCalled();
+		expect(mockGui.getAccountBalance).not.toHaveBeenCalled();
 	});
 });

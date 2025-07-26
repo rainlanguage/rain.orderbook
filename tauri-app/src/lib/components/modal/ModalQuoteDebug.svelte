@@ -4,10 +4,11 @@
   import type { RaindexOrder } from '@rainlanguage/orderbook';
   import { createQuery } from '@tanstack/svelte-query';
   import { Alert, Modal } from 'flowbite-svelte';
-  import { Refresh } from '@rainlanguage/ui-components';
+  import { Refresh, useRaindexClient } from '@rainlanguage/ui-components';
   import EvalResultsTable from '../debug/EvalResultsTable.svelte';
   import { fade } from 'svelte/transition';
-  import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
+
+  const raindexClient = useRaindexClient();
 
   export let open: boolean;
   export let order: RaindexOrder;
@@ -20,7 +21,11 @@
     {
       queryKey: [order + pair + blockNumber],
       queryFn: async () => {
-        const orderbook = getOrderbookByChainId(order.chainId);
+        const network = raindexClient.getNetworkByChainId(order.chainId);
+        if (network.error) {
+          throw new Error(network.error.readableMsg);
+        }
+
         const sgOrder = order.convertToSgOrder();
         if (sgOrder.error) {
           throw new Error(sgOrder.error.readableMsg);
@@ -28,7 +33,7 @@
 
         const result = await debugOrderQuote(
           sgOrder.value,
-          orderbook.network.rpcs,
+          network.value.rpcs,
           inputIOIndex,
           outputIOIndex,
           blockNumber ? Number(blockNumber) : undefined,

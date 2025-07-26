@@ -10,14 +10,15 @@
 		type NameAndDescriptionCfg,
 		type OrderIOCfg,
 		DotrainOrderGui,
-		RaindexClient
+		RaindexClient,
+		AccountBalance
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
@@ -28,6 +29,7 @@
 	import { useRegistry } from '$lib/providers/registry/useRegistry';
 	import type { Account } from '$lib/types/account';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import type { TokenBalance } from '$lib/types/tokenBalance';
 
 	interface Deployment {
 		key: string;
@@ -38,7 +40,7 @@
 	/** The deployment configuration containing key, name and description */
 	export let deployment: Deployment;
 	/** Strategy details containing name and description configuration */
-	export let strategyDetail: NameAndDescriptionCfg;
+	export let orderDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
 	export let onDeploy: (raindexClient: RaindexClient, gui: DotrainOrderGui) => void;
 	export let wagmiConnected: Writable<boolean>;
@@ -57,6 +59,7 @@
 	let checkingDeployment: boolean = false;
 	let availableTokens: TokenInfo[] = [];
 	let loadingTokens: boolean = false;
+	let tokenBalances: Map<string, TokenBalance> = new Map();
 
 	const gui = useGui();
 	const registry = useRegistry();
@@ -77,6 +80,23 @@
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
 		updateFields();
 	}
+
+	let unsubscribeAccount = account.subscribe((account) => {
+		if (!account) {
+			const balances = tokenBalances;
+			balances.clear();
+			tokenBalances = balances;
+			return;
+		}
+		if (selectTokens) {
+			selectTokens.forEach(async (selectToken) => {
+				await getTokenInfoAndFetchBalance(selectToken.key);
+			});
+		}
+	});
+	onDestroy(() => {
+		unsubscribeAccount();
+	});
 
 	async function loadAvailableTokens() {
 		if (loadingTokens) return;
@@ -125,8 +145,53 @@
 		await handleShareChoices(gui, registry.getCurrentRegistry());
 	}
 
-	async function onSelectTokenSelect() {
+	async function fetchTokenBalance(tokenInfo: TokenInfo) {
+		if (!$account) return;
+
+		const balances = tokenBalances;
+		balances.set(tokenInfo.key, {
+			value: { balance: BigInt(0), formattedBalance: '0' } as AccountBalance,
+			loading: true,
+			error: ''
+		});
+
+		const { value: accountBalance, error } = await gui.getAccountBalance(
+			tokenInfo.address,
+			$account
+		);
+		if (error) {
+			balances.set(tokenInfo.key, {
+				value: { balance: BigInt(0), formattedBalance: '0' } as AccountBalance,
+				loading: false,
+				error: error.readableMsg
+			});
+			tokenBalances = balances;
+			return;
+		}
+		balances.set(tokenInfo.key, {
+			value: accountBalance,
+			loading: false,
+			error: ''
+		});
+		tokenBalances = balances;
+	}
+
+	async function getTokenInfoAndFetchBalance(key: string) {
+		const tokenInfoResult = await gui.getTokenInfo(key);
+		if (tokenInfoResult.error) {
+			throw new Error(tokenInfoResult.error.msg);
+		}
+		const tokenInfo = tokenInfoResult.value;
+		if (!tokenInfo || !tokenInfo.address) {
+			return;
+		}
+		await fetchTokenBalance(tokenInfo);
+	}
+
+	async function onSelectTokenSelect(key: string) {
 		await areAllTokensSelected();
+
+		await getTokenInfoAndFetchBalance(key);
 
 		if (allTokensSelected) {
 			let result = await gui.getAllTokenInfos();
@@ -203,7 +268,7 @@
 			{#if deployment}
 				<div class="flex max-w-2xl flex-col gap-4 text-start">
 					<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-						{strategyDetail.name}
+						{orderDetail.name}
 					</h1>
 					<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
 						{deployment.description}
@@ -218,7 +283,13 @@
 						description="Select the tokens that you want to use in your order."
 					/>
 					{#each selectTokens as token}
-						<SelectToken {token} {onSelectTokenSelect} {availableTokens} loading={loadingTokens} />
+						<SelectToken
+							{token}
+							{onSelectTokenSelect}
+							{availableTokens}
+							loading={loadingTokens}
+							{tokenBalances}
+						/>
 					{/each}
 				</div>
 			{/if}
@@ -242,11 +313,11 @@
 					{/each}
 
 					{#each allTokenOutputs as output}
-						<TokenIOInput label="Output" vault={output} />
+						<TokenIOInput label="Output" vault={output} {tokenBalances} />
 					{/each}
 
 					{#each allTokenInputs as input}
-						<TokenIOInput label="Input" vault={input} />
+						<TokenIOInput label="Input" vault={input} {tokenBalances} />
 					{/each}
 				{/if}
 
@@ -272,7 +343,7 @@
 								<Spinner size="4" color="white" />
 								<span class="ml-2">Checking deployment...</span>
 							{:else}
-								Deploy Strategy
+								Deploy Order
 							{/if}
 						</Button>
 					{:else}
