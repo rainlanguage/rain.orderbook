@@ -23,7 +23,7 @@ import { getLocal } from 'mockttp';
 const guiConfig = `
 gui:
   name: Fixed limit
-  description: Fixed limit order strategy
+  description: Fixed limit order
   short-description: Buy WETH with USDC on Base.
   deployments:
     some-deployment:
@@ -344,7 +344,7 @@ const dotrainForRemotes = `
 version: 2
 gui:
   name: Test
-  description: Fixed limit order strategy
+  description: Fixed limit order
   deployments:
     test-deployment:
       name: Test deployment
@@ -501,7 +501,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		const guiConfig = extractWasmEncodedData<GuiCfg>(gui.getGuiConfig());
 		assert.equal(guiConfig.name, 'Fixed limit');
-		assert.equal(guiConfig.description, 'Fixed limit order strategy');
+		assert.equal(guiConfig.description, 'Fixed limit order');
 	});
 
 	it('should initialize gui object with state update callback', async () => {
@@ -518,12 +518,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		assert.equal(stateUpdateCallback.mock.calls.length, 1);
 	});
 
-	it('should get strategy details', async () => {
-		const result = await DotrainOrderGui.getStrategyDetails(dotrainWithGui);
-		const strategyDetails = extractWasmEncodedData<NameAndDescriptionCfg>(result);
-		assert.equal(strategyDetails.name, 'Fixed limit');
-		assert.equal(strategyDetails.description, 'Fixed limit order strategy');
-		assert.equal(strategyDetails.short_description, 'Buy WETH with USDC on Base.');
+	it('should get order details', async () => {
+		const result = await DotrainOrderGui.getOrderDetails(dotrainWithGui);
+		const orderDetails = extractWasmEncodedData<NameAndDescriptionCfg>(result);
+		assert.equal(orderDetails.name, 'Fixed limit');
+		assert.equal(orderDetails.description, 'Fixed limit order');
+		assert.equal(orderDetails.short_description, 'Buy WETH with USDC on Base.');
 	});
 
 	it('should get deployment details', async () => {
@@ -2006,6 +2006,38 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(allTokens[1].name, 'Teken 2');
 			assert.equal(allTokens[1].symbol, 'T2');
 			assert.equal(allTokens[1].decimals, 18);
+		});
+
+		it('should get token balance for a given address', async () => {
+			mockServer
+				.forPost('/rpc-url')
+				.once()
+				.withBodyIncluding('0x82ad56cb')
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
+				);
+			mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
+			mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000000000000000000003e8'
+				);
+
+			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
+			const result = extractWasmEncodedData(
+				await gui.getAccountBalance(
+					'0x6666666666666666666666666666666666666666',
+					'0x1234567890abcdef1234567890abcdef12345678'
+				)
+			);
+			assert.equal(result.balance, BigInt(1000));
+			assert.equal(result.formattedBalance, '0.000000000000001');
 		});
 	});
 

@@ -4,7 +4,7 @@
 	import DeploymentsSection from './DeploymentsSection.svelte';
 	import SvelteMarkdown from 'svelte-markdown';
 
-	export let strategyName: string = '';
+	export let orderName: string = '';
 	export let dotrain: string = '';
 	let markdownContent: string = '';
 	let error: string | undefined;
@@ -24,30 +24,30 @@
 		}
 	};
 
-	const getStrategyWithMarkdown = async () => {
+	const getOrderWithMarkdown = async () => {
 		try {
-			const result = await DotrainOrderGui.getStrategyDetails(dotrain);
+			const result = await DotrainOrderGui.getOrderDetails(dotrain);
 			if (result.error) {
 				throw new Error(result.error.msg);
 			}
-			const strategyDetails = result.value;
+			const orderDetails = result.value;
 
-			if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
-				await fetchMarkdownContent(strategyDetails.description);
+			if (orderDetails.description && isMarkdownUrl(orderDetails.description)) {
+				await fetchMarkdownContent(orderDetails.description);
 			}
-			return strategyDetails;
+			return orderDetails;
 		} catch {
-			throw new Error('Failed to get strategy details');
+			throw new Error('Failed to get order details');
 		}
 	};
 </script>
 
-{#await getStrategyWithMarkdown() then strategyDetails}
+{#await getOrderWithMarkdown() then orderDetails}
 	<div>
 		<div in:fade class="flex flex-col gap-8">
 			<div class="flex max-w-2xl flex-col gap-3 text-start lg:gap-6">
 				<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-					{strategyDetails.name}
+					{orderDetails.name}
 				</h1>
 				{#if markdownContent}
 					<div data-testid="markdown-content" class="prose dark:prose-invert">
@@ -62,14 +62,14 @@
 							data-testid="plain-description"
 							class="text-base text-gray-600 lg:text-lg dark:text-gray-400"
 						>
-							{strategyDetails.description}
+							{orderDetails.description}
 						</p>
 					</div>
 				{/if}
 			</div>
 			<div class="u flex flex-col gap-4">
 				<h2 class="text-3xl font-semibold text-gray-900 dark:text-white">Deployments</h2>
-				<DeploymentsSection {dotrain} {strategyName} />
+				<DeploymentsSection {dotrain} {orderName} />
 			</div>
 		</div>
 	</div>

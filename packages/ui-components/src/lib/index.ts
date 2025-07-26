@@ -57,13 +57,13 @@ export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.sve
 export { default as OrderOrVaultHash } from './components/OrderOrVaultHash.svelte';
 export { default as License } from './components/License.svelte';
 export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
-export { default as StrategyPage } from './components/deployment/StrategyPage.svelte';
+export { default as OrderPage } from './components/deployment/OrderPage.svelte';
 export { default as InputHex } from './components/input/InputHex.svelte';
 export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
-export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
-export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
+export { default as InvalidOrdersSection } from './components/deployment/InvalidOrdersSection.svelte';
+export { default as ValidOrdersSection } from './components/deployment/ValidOrdersSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 export { default as TransactionList } from './components/transactions/TransactionList.svelte';
 export { default as FixedBottomTransaction } from './components/transactions/FixedBottomTransaction.svelte';
@@ -85,7 +85,7 @@ export type {
 	TransactionConfirmationProps,
 	HandleTransactionConfirmationModal
 } from './types/modal';
-export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
+export type { ValidOrderDetail, InvalidOrderDetail } from './types/order.ts';
 export type { ToastProps } from './types/toast';
 
 // Functions
@@ -139,6 +139,7 @@ export { default as TransactionProvider } from './providers/transactions/Transac
 
 // Hooks
 export { useGui } from './hooks/useGui';
+export { useRaindexClient, RAINDEX_CLIENT_CONTEXT_KEY } from './hooks/useRaindexClient';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
@@ -151,5 +152,3 @@ export { TransactionManager } from './providers/transactions/TransactionManager'
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
-export { mockConfig } from './__mocks__/settings';
-export { mockSettingsStore } from './__mocks__/settings';

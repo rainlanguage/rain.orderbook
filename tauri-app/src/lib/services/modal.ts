@@ -5,17 +5,42 @@ import ModalOrderRemove from '$lib/components/modal/ModalOrderRemove.svelte';
 import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
 import ModalScenarioDebug from '$lib/components/modal/ModalScenarioDebug.svelte';
+import type { getAllContexts } from 'svelte';
 
-export const handleDepositModal = (vault: RaindexVault, onDeposit: () => void) => {
-  new ModalVaultDeposit({ target: document.body, props: { open: true, vault, onDeposit } });
+export const handleDepositModal = (
+  vault: RaindexVault,
+  onDeposit: () => void,
+  context: ReturnType<typeof getAllContexts>,
+) => {
+  new ModalVaultDeposit({
+    target: document.body,
+    props: { open: true, vault, onDeposit },
+    context,
+  });
 };
 
-export const handleWithdrawModal = (vault: RaindexVault, onWithdraw: () => void) => {
-  new ModalVaultWithdraw({ target: document.body, props: { open: true, vault, onWithdraw } });
+export const handleWithdrawModal = (
+  vault: RaindexVault,
+  onWithdraw: () => void,
+  context: ReturnType<typeof getAllContexts>,
+) => {
+  new ModalVaultWithdraw({
+    target: document.body,
+    props: { open: true, vault, onWithdraw },
+    context,
+  });
 };
 
-export const handleOrderRemoveModal = (order: RaindexOrder, onOrderRemoved: () => void) => {
-  new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
+export const handleOrderRemoveModal = (
+  order: RaindexOrder,
+  onOrderRemoved: () => void,
+  context: ReturnType<typeof getAllContexts>,
+) => {
+  new ModalOrderRemove({
+    target: document.body,
+    props: { order, onOrderRemoved },
+    context,
+  });
 };
 
 export const handleDebugTradeModal = (txHash: string, rpcUrls: string[]) => {

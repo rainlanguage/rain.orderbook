@@ -34,7 +34,7 @@
 				without limits
 			</h1>
 			<div class="mt-8 flex justify-start gap-x-4">
-				<Button color="blue" size="lg" on:click={() => goto('/deploy')}>Deploy a strategy</Button>
+				<Button color="blue" size="lg" on:click={() => goto('/deploy')}>Deploy an order</Button>
 				<a
 					href="https://docs.rainlang.xyz/raindex/overview"
 					target="_blank"
@@ -51,13 +51,13 @@
 		<div class="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-16 md:grid-cols-3">
 			<div class="flex flex-col gap-y-3">
 				<h2 class="text-xl font-semibold">Automated</h2>
-				<p>No more manual trades. Raindex brings automated trading strategies directly onchain.</p>
+				<p>No more manual trades. Raindex brings automated trading orders directly onchain.</p>
 			</div>
 
 			<div class="flex flex-col gap-y-3">
 				<h2 class="text-xl font-semibold">Trustless</h2>
 				<p>
-					Raindex is non-custodial – your assets remain in your control always. Strategies are
+					Raindex is non-custodial – your assets remain in your control always. Orders are
 					trustlessly executed by competing solvers.
 				</p>
 			</div>
@@ -65,7 +65,7 @@
 			<div class="flex flex-col gap-y-3">
 				<h2 class="text-xl font-semibold">Infinitely flexible</h2>
 				<p>
-					Deploy existing strategies in minutes or write your own using Rainlang. DCA, limit orders,
+					Deploy existing orders in minutes or write your own using Rainlang. DCA, limit orders,
 					liquidity provision and more.
 				</p>
 			</div>

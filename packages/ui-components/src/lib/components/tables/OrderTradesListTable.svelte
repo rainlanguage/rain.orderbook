@@ -11,8 +11,8 @@
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
 	export let order: RaindexOrder;
-	export let rpcUrls: string[] | undefined = undefined;
-	export let handleDebugTradeModal: ((hash: string, rpcUrls: string[]) => void) | undefined =
+	export let rpcs: string[] | undefined = undefined;
+	export let handleDebugTradeModal: ((hash: string, rpcs: string[]) => void) | undefined =
 		undefined;
 
 	let startTimestamp: number | undefined;
@@ -112,13 +112,13 @@
 				)})
 			</span>
 		</TableBodyCell>
-		{#if rpcUrls && handleDebugTradeModal}
+		{#if rpcs && handleDebugTradeModal}
 			<TableBodyCell tdClass="py-2">
 				<button
 					data-testid="debug-trade-button"
 					class="text-gray-500 hover:text-gray-700"
 					on:click={() => {
-						if (rpcUrls) handleDebugTradeModal(item.transaction.id, rpcUrls);
+						if (rpcs) handleDebugTradeModal(item.transaction.id, rpcs);
 					}}
 				>
 					<BugOutline size="xs" />
