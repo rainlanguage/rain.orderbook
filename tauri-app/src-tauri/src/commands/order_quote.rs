@@ -1,6 +1,6 @@
 use crate::error::CommandResult;
 use alloy::primitives::{Address, U256};
-use rain_orderbook_bindings::IOrderBookV4::Quote;
+use rain_orderbook_bindings::IOrderBookV5::QuoteV2;
 use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
 use rain_orderbook_quote::{NewQuoteDebugger, QuoteDebugger, QuoteDebuggerError, QuoteTarget};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
@@ -16,7 +16,7 @@ pub async fn debug_order_quote(
 ) -> CommandResult<(RainEvalResultsTable, Option<String>)> {
     let quote_target = QuoteTarget {
         orderbook: Address::from_str(&order.orderbook.id.0)?,
-        quote_config: Quote {
+        quote_config: QuoteV2 {
             order: order.try_into()?,
             inputIOIndex: U256::from(input_io_index),
             outputIOIndex: U256::from(output_io_index),
@@ -37,7 +37,7 @@ pub async fn debug_order_quote(
                 let eval_res: RainEvalResults = vec![res.0.clone()].into();
 
                 return Ok((
-                    eval_res.into_flattened_table()?,
+                    eval_res.into_flattened_table(),
                     res.1.map(|v| match v {
                         Ok(e) => e.to_string(),
                         Err(e) => e.to_string(),
@@ -57,6 +57,7 @@ pub async fn debug_order_quote(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::B256;
     use alloy::{
         hex::encode_prefixed,
         primitives::utils::parse_ether,
@@ -159,7 +160,8 @@ amount price: 16 52;
                 token1_holder,
                 *token1.address(),
                 parse_ether("1000").unwrap(),
-                U256::from(1),
+                18,
+                B256::from(U256::from(1)),
             )
             .await
             .0
@@ -264,9 +266,6 @@ amount price: 16 52;
         .await;
 
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap().0.rows[0],
-            [parse_ether("16").unwrap(), parse_ether("52").unwrap()]
-        );
+        assert_eq!(result.unwrap().0.rows[0], [U256::from(16), U256::from(52)]);
     }
 }

@@ -1,9 +1,11 @@
-import { AfterClear, ClearV2 } from "../generated/OrderBook/OrderBook";
+import { DecimalFloat } from "../generated/OrderBook/DecimalFloat";
+import { AfterClearV2, ClearV3 } from "../generated/OrderBook/OrderBook";
 import { Clear, ClearBounty, ClearTemporaryData } from "../generated/schema";
+import { Float, getCalculator } from "./float";
 import { eventId } from "./interfaces/event";
 import { createTradeEntity } from "./trade";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
-import { handleVaultBalanceChange, vaultEntityId } from "./vault";
+import { handleVaultBalanceChange, vaultEntityId, VaultId } from "./vault";
 import { log } from "@graphprotocol/graph-ts";
 import {
   BigInt,
@@ -19,7 +21,7 @@ export function makeClearEventId(event: ethereum.Event): Bytes {
   );
 }
 
-export function getOrdersHash(event: ClearV2): Bytes[] {
+export function getOrdersHash(event: ClearV3): Bytes[] {
   return [
     Bytes.fromByteArray(
       crypto.keccak256(ethereum.encode(event.parameters[1].value)!)
@@ -31,7 +33,7 @@ export function getOrdersHash(event: ClearV2): Bytes[] {
 }
 
 export function makeClearBountyId(
-  event: AfterClear,
+  event: AfterClearV2,
   vaultEntityId: Bytes
 ): Bytes {
   return Bytes.fromByteArray(
@@ -40,23 +42,27 @@ export function makeClearBountyId(
 }
 
 export function createTrade(
-  event: AfterClear,
+  event: AfterClearV2,
   owner: Bytes,
   orderHash: Bytes,
   inputToken: Bytes,
-  inputVaultId: BigInt,
-  inputAmount: BigInt,
+  inputVaultId: VaultId,
+  inputAmount: Float,
   outputToken: Bytes,
-  outputVaultId: BigInt,
-  outputAmount: BigInt
+  outputVaultId: VaultId,
+  outputAmount: Float
 ): void {
-  let oldInputVaultBalance = handleVaultBalanceChange(
+  const calculator = getCalculator();
+
+  let inVaultBalance = handleVaultBalanceChange(
     event.address,
     inputVaultId,
     inputToken,
     inputAmount,
     owner
   );
+  let oldInputVaultBalance = inVaultBalance.oldVaultBalance;
+
   let inputVaultBalanceChange = createTradeVaultBalanceChangeEntity(
     event,
     orderHash,
@@ -65,19 +71,20 @@ export function createTrade(
     inputAmount
   );
 
-  let oldOutputVaultBalance = handleVaultBalanceChange(
+  let outVaultBalance = handleVaultBalanceChange(
     event.address,
     outputVaultId,
     outputToken,
-    outputAmount.neg(),
+    calculator.minus(outputAmount),
     owner
   );
+  let oldOutputVaultBalance = outVaultBalance.oldVaultBalance;
   let outputVaultBalanceChange = createTradeVaultBalanceChangeEntity(
     event,
     orderHash,
     vaultEntityId(event.address, owner, outputVaultId, outputToken),
     oldOutputVaultBalance,
-    outputAmount.neg()
+    calculator.minus(outputAmount)
   );
 
   createTradeEntity(
@@ -89,24 +96,27 @@ export function createTrade(
 }
 
 export function createClearEntity(
-  event: AfterClear,
-  aliceBountyAmount: BigInt,
-  bobBountyAmount: BigInt,
-  aliceClearBounty: Bytes | null,
-  bobClearBounty: Bytes | null
+  calculator: DecimalFloat,
+  event: AfterClearV2,
+  aliceBountyAmount: Float,
+  bobBountyAmount: Float,
+  aliceClearBounty: Float | null,
+  bobClearBounty: Float | null,
+  zero: Float
 ): void {
-  const zero = BigInt.fromU32(0);
   let clear = new Clear(eventId(event));
   clear.orderbook = event.address;
   clear.aliceInputAmount = event.params.clearStateChange.aliceInput;
   clear.aliceOutputAmount = event.params.clearStateChange.aliceOutput;
-  clear.aliceBountyAmount = aliceBountyAmount.gt(zero)
+  clear.aliceBountyAmount = calculator.gt(aliceBountyAmount, zero)
     ? aliceBountyAmount
     : zero;
 
   clear.bobInputAmount = event.params.clearStateChange.bobInput;
   clear.bobOutputAmount = event.params.clearStateChange.bobOutput;
-  clear.bobBountyAmount = bobBountyAmount.gt(zero) ? bobBountyAmount : zero;
+  clear.bobBountyAmount = calculator.gt(bobBountyAmount, zero)
+    ? bobBountyAmount
+    : zero;
 
   if (aliceClearBounty) {
     clear.aliceBountyVaultBalanceChange = aliceClearBounty;
@@ -121,16 +131,18 @@ export function createClearEntity(
 }
 
 export function createClearBountyEntity(
-  event: AfterClear,
+  event: AfterClearV2,
   vaultEntityId: Bytes,
-  oldVaultBalance: BigInt,
-  amount: BigInt
+  oldVaultBalance: Float,
+  amount: Float
 ): ClearBounty {
+  const calculator = getCalculator();
+
   let clearBounty = new ClearBounty(makeClearBountyId(event, vaultEntityId));
   clearBounty.orderbook = event.address;
   clearBounty.amount = amount;
   clearBounty.oldVaultBalance = oldVaultBalance;
-  clearBounty.newVaultBalance = oldVaultBalance.plus(amount);
+  clearBounty.newVaultBalance = calculator.add(oldVaultBalance, amount);
   clearBounty.vault = vaultEntityId;
   clearBounty.timestamp = event.block.timestamp;
   clearBounty.transaction = event.transaction.hash;
@@ -140,25 +152,35 @@ export function createClearBountyEntity(
 }
 
 export function handleClearBounty(
-  event: AfterClear,
+  event: AfterClearV2,
   clearTemporaryData: ClearTemporaryData
 ): void {
+  const calculator = getCalculator();
+
+  const zero = Bytes.fromHexString(
+    "0x0000000000000000000000000000000000000000000000000000000000000000"
+  );
+
   let aliceClearBounty: Bytes | null = null;
   let bobClearBounty: Bytes | null = null;
-  let aliceBountyAmount = event.params.clearStateChange.aliceOutput.minus(
+  let aliceBountyAmount = calculator.sub(
+    event.params.clearStateChange.aliceOutput,
     event.params.clearStateChange.bobInput
   );
-  let bobBountyAmount = event.params.clearStateChange.bobOutput.minus(
+  let bobBountyAmount = calculator.sub(
+    event.params.clearStateChange.bobOutput,
     event.params.clearStateChange.aliceInput
   );
-  if (aliceBountyAmount.gt(BigInt.fromU32(0))) {
-    const oldBalance = handleVaultBalanceChange(
+
+  if (calculator.gt(aliceBountyAmount, zero)) {
+    const balanceChange = handleVaultBalanceChange(
       event.address,
       clearTemporaryData.aliceBounty,
       clearTemporaryData.aliceOutputToken,
       aliceBountyAmount,
       event.params.sender
     );
+
     aliceClearBounty = createClearBountyEntity(
       event,
       vaultEntityId(
@@ -167,18 +189,20 @@ export function handleClearBounty(
         clearTemporaryData.aliceBounty,
         clearTemporaryData.aliceOutputToken
       ),
-      oldBalance,
+      balanceChange.oldVaultBalance,
       aliceBountyAmount
     ).id;
   }
-  if (bobBountyAmount.gt(BigInt.fromU32(0))) {
-    const oldBalance = handleVaultBalanceChange(
+
+  if (calculator.gt(bobBountyAmount, zero)) {
+    const balanceChange = handleVaultBalanceChange(
       event.address,
       clearTemporaryData.bobBounty,
       clearTemporaryData.bobOutputToken,
       bobBountyAmount,
       event.params.sender
     );
+
     bobClearBounty = createClearBountyEntity(
       event,
       vaultEntityId(
@@ -187,21 +211,23 @@ export function handleClearBounty(
         clearTemporaryData.bobBounty,
         clearTemporaryData.bobOutputToken
       ),
-      oldBalance,
+      balanceChange.oldVaultBalance,
       bobBountyAmount
     ).id;
   }
 
   createClearEntity(
+    calculator,
     event,
     aliceBountyAmount,
     bobBountyAmount,
     aliceClearBounty,
-    bobClearBounty
+    bobClearBounty,
+    zero
   );
 }
 
-export function handleClear(event: ClearV2): void {
+export function handleClear(event: ClearV3): void {
   let clearTemporaryData = new ClearTemporaryData(makeClearEventId(event));
 
   let hashes = getOrdersHash(event);
@@ -247,7 +273,7 @@ export function handleClear(event: ClearV2): void {
   clearTemporaryData.save();
 }
 
-export function handleAfterClear(event: AfterClear): void {
+export function handleAfterClear(event: AfterClearV2): void {
   let clearTemporaryData = ClearTemporaryData.load(makeClearEventId(event));
   if (clearTemporaryData) {
     // alice

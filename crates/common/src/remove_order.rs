@@ -3,10 +3,10 @@ use crate::transaction::TransactionArgs;
 use crate::transaction::TransactionArgsError;
 use alloy::primitives::hex::FromHexError;
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::WritableClientError;
+use alloy_ethers_typecast::WritableClientError;
 #[cfg(not(target_family = "wasm"))]
-use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
-use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
+use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
+use rain_orderbook_bindings::IOrderBookV5::removeOrder3Call;
 use rain_orderbook_subgraph_client::types::{
     common::SgOrder, order_detail_traits::OrderDetailError,
 };
@@ -36,11 +36,11 @@ impl From<SgOrder> for RemoveOrderArgs {
     }
 }
 
-impl TryInto<removeOrder2Call> for RemoveOrderArgs {
+impl TryInto<removeOrder3Call> for RemoveOrderArgs {
     type Error = OrderDetailError;
 
-    fn try_into(self) -> Result<removeOrder2Call, OrderDetailError> {
-        Ok(removeOrder2Call {
+    fn try_into(self) -> Result<removeOrder3Call, OrderDetailError> {
+        Ok(removeOrder3Call {
             order: self.order.try_into()?,
             tasks: vec![],
         })
@@ -49,20 +49,20 @@ impl TryInto<removeOrder2Call> for RemoveOrderArgs {
 
 impl RemoveOrderArgs {
     #[cfg(not(target_family = "wasm"))]
-    pub async fn execute<S: Fn(WriteTransactionStatus<removeOrder2Call>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<removeOrder3Call>)>(
         self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), RemoveOrderArgsError> {
-        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
+        let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
-        let remove_order_call: removeOrder2Call = self.try_into()?;
+        let remove_order_call: removeOrder3Call = self.try_into()?;
         let params = transaction_args.try_into_write_contract_parameters(
             remove_order_call,
             transaction_args.orderbook_address,
         )?;
 
-        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+        WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
             .execute()
             .await?;
 
@@ -70,7 +70,7 @@ impl RemoveOrderArgs {
     }
 
     pub async fn get_rm_order_calldata(self) -> Result<Vec<u8>, RemoveOrderArgsError> {
-        let remove_order_call: removeOrder2Call = self.try_into()?;
+        let remove_order_call: removeOrder3Call = self.try_into()?;
         Ok(remove_order_call.abi_encode())
     }
 }
@@ -78,12 +78,12 @@ impl RemoveOrderArgs {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
-    use alloy_ethers_typecast::gas_fee_middleware::GasFeeSpeed;
-    use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
+    use alloy::primitives::Address;
+    use rain_orderbook_bindings::IOrderBookV5::removeOrder3Call;
     use rain_orderbook_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
     };
+    use rain_orderbook_subgraph_client::utils::float::*;
 
     fn get_order() -> SgOrder {
         SgOrder {
@@ -101,8 +101,8 @@ mod tests {
                 SgVault {
                     id: SgBytes("0xfd661f641ed6f13210fa83be991d7afc8e290202473f1fa9548a8e5654984575".to_string()),
                     owner: SgBytes("0x18a62a3ac2ca9f775a4a12380eda03245270b73e".to_string()),
-                    vault_id: SgBigInt("95091534377674853556918913044061641909871616138258204934350492514947914962501".to_string()),
-                    balance: SgBigInt("50000000000000000000".to_string()),
+                    vault_id: SgBytes("95091534377674853556918913044061641909871616138258204934350492514947914962501".to_string()),
+                    balance: SgBytes(F50.as_hex()),
                     token: SgErc20 {
                         id: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
                         address: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
@@ -136,19 +136,18 @@ mod tests {
         let remove_order_args = RemoveOrderArgs { order: get_order() };
         let calldata = remove_order_args.get_rm_order_calldata().await.unwrap();
 
-        let remove_order_call = removeOrder2Call {
+        let remove_order_call = removeOrder3Call {
             order: get_order().try_into().unwrap(),
             tasks: vec![],
         };
         let expected_calldata = remove_order_call.abi_encode();
 
         assert_eq!(calldata, expected_calldata);
-        assert_eq!(calldata.len(), 836);
     }
 
     #[test]
     fn test_try_into_remove_order_call() {
-        let remove_order_call = removeOrder2Call {
+        let remove_order_call = removeOrder3Call {
             order: get_order().try_into().unwrap(),
             tasks: vec![],
         };
@@ -158,9 +157,8 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),
-            max_priority_fee_per_gas: Some(U256::from(200)),
-            max_fee_per_gas: Some(U256::from(100)),
-            gas_fee_speed: Some(GasFeeSpeed::Fast),
+            max_priority_fee_per_gas: Some(200),
+            max_fee_per_gas: Some(100),
         };
 
         let params = args
@@ -168,7 +166,7 @@ mod tests {
             .unwrap();
         assert_eq!(params.address, args.orderbook_address);
         assert_eq!(params.call, remove_order_call);
-        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(200)));
-        assert_eq!(params.max_fee_per_gas, Some(U256::from(100)));
+        assert_eq!(params.max_priority_fee_per_gas, Some(200));
+        assert_eq!(params.max_fee_per_gas, Some(100));
     }
 }

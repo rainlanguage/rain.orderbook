@@ -44,8 +44,10 @@ fn main() {
 }
 
 fn run_tauri_app() {
+    let shared_state = SharedState::new().expect("Failed to initialize shared state");
+
     tauri::Builder::default()
-        .manage(SharedState::default())
+        .manage(shared_state)
         .invoke_handler(tauri::generate_handler![
             vaults_list_write_csv,
             vault_balance_changes_list_write_csv,

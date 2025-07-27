@@ -1,7 +1,9 @@
 use alloy::hex::FromHexError;
 use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
-use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
+use alloy::signers::ledger::LedgerError;
+use alloy_ethers_typecast::ReadableClientError;
 use dotrain::error::ComposeError;
+use rain_math_float::FloatError;
 use rain_orderbook_app_settings::yaml::YamlError;
 use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
@@ -33,7 +35,7 @@ pub enum CommandError {
     OrderbookSubgraphClientError(#[from] OrderbookSubgraphClientError),
 
     #[error(transparent)]
-    LedgerClientError(#[from] LedgerClientError),
+    LedgerError(#[from] LedgerError),
 
     #[error(transparent)]
     TryIntoCsvError(#[from] TryIntoCsvError),
@@ -98,7 +100,7 @@ pub enum CommandError {
     ),
 
     #[error(transparent)]
-    RainEvalResultError(#[from] rain_orderbook_common::fuzz::RainEvalResultError),
+    FloatError(#[from] FloatError),
 
     #[error(transparent)]
     RaindexError(#[from] RaindexError),

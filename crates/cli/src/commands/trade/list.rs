@@ -98,6 +98,7 @@ mod tests {
         primitives::{Address, B256},
     };
     use httpmock::MockServer;
+    use rain_orderbook_subgraph_client::utils::float::*;
     use serde_json::{json, Value};
 
     #[tokio::test]
@@ -149,7 +150,7 @@ mod tests {
         };
 
         // should succeed
-        assert!(cli_order_take_list_args.execute().await.is_ok());
+        cli_order_take_list_args.execute().await.unwrap();
     }
 
     #[tokio::test]
@@ -167,7 +168,7 @@ mod tests {
         };
 
         // should error
-        assert!(cli_order_take_list_args.execute().await.is_err());
+        cli_order_take_list_args.execute().await.unwrap_err();
     }
 
     // helper function that returns mocked sg response in json
@@ -193,7 +194,7 @@ mod tests {
                     },
                     "outputVaultBalanceChange": {
                         "id": encode_prefixed(B256::random()),
-                        "amount": "0",
+                        "amount": F0,
                         "__typename": "Withdraw",
                         "vault": {
                             "id": encode_prefixed(B256::random()),
@@ -206,8 +207,8 @@ mod tests {
                                 "decimals": "6"
                             }
                         },
-                        "newVaultBalance": "0",
-                        "oldVaultBalance": "0",
+                        "newVaultBalance": F0,
+                        "oldVaultBalance": F0,
                         "timestamp": "0",
                         "transaction": {
                             "id": encode_prefixed(B256::random()),
@@ -221,7 +222,7 @@ mod tests {
                     },
                     "inputVaultBalanceChange": {
                         "id": encode_prefixed(B256::random()),
-                        "amount": "0",
+                        "amount": F0,
                         "__typename": "Withdraw",
                         "vault": {
                             "id": encode_prefixed(B256::random()),
@@ -234,8 +235,8 @@ mod tests {
                                 "decimals": "18"
                             }
                         },
-                        "newVaultBalance": "0",
-                        "oldVaultBalance": "0",
+                        "newVaultBalance": F0,
+                        "oldVaultBalance": F0,
                         "timestamp": "0",
                         "transaction": {
                             "id": encode_prefixed(B256::random()),
