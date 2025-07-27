@@ -1,5 +1,7 @@
 name: Test webapp
-on: [push]
+on:
+  push:
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-webapp

@@ -1,5 +1,7 @@
 name: Tauri builds
-on: [push]
+on:
+  push:
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-tauri-build
@@ -101,4 +103,3 @@ jobs:
       - run: rm -rf tauri-app/src-tauri/target/debug tauri-app/src-tauri/target/release
 
       - run: nix develop .#tauri-shell --command tauri-rs-test
-

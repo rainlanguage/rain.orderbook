@@ -1,5 +1,7 @@
 name: Git is clean
-on: [push]
+on:
+  push:
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-git-clean
