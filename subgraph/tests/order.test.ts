@@ -9,7 +9,7 @@ import {
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import {
   Evaluable,
-  IO,
+  IOV2,
   createAddOrderEvent,
   createRemoveOrderEvent,
 } from "./event-mocks.test";
@@ -34,17 +34,19 @@ describe("Add and remove orders", () => {
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
@@ -83,20 +85,30 @@ describe("Add and remove orders", () => {
       event.params.order.evaluable.bytecode,
       Bytes.fromHexString("0x1234567890123456789012345678901234567890")
     );
+
     let input = event.params.order.validInputs[0];
     assert.addressEquals(
       input.token,
       Address.fromString("0x1234567890123456789012345678901234567890")
     );
-    assert.bigIntEquals(input.vaultId, BigInt.fromI32(1));
-    assert.bigIntEquals(BigInt.fromI32(input.decimals), BigInt.fromI32(18));
+    assert.bytesEquals(
+      input.vaultId,
+      Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      )
+    );
+
     let output = event.params.order.validOutputs[0];
     assert.addressEquals(
       output.token,
       Address.fromString("0x1234567890123456789012345678901234567890")
     );
-    assert.bigIntEquals(output.vaultId, BigInt.fromI32(1));
-    assert.bigIntEquals(BigInt.fromI32(output.decimals), BigInt.fromI32(18));
+    assert.bytesEquals(
+      output.vaultId,
+      Bytes.fromHexString(
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      )
+    );
   });
 
   test("createOrderEntity()", () => {
@@ -111,17 +123,19 @@ describe("Add and remove orders", () => {
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
@@ -178,17 +192,19 @@ describe("Add and remove orders", () => {
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
@@ -235,17 +251,19 @@ describe("Add and remove orders", () => {
       Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          )
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),

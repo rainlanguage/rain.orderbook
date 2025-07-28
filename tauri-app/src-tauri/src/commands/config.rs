@@ -94,16 +94,7 @@ pub async fn get_scenarios(
 
 #[cfg(test)]
 mod tests {
-    use alloy::primitives::address;
-    use std::collections::HashMap;
-    use strict_yaml_rust::StrictYaml;
-    use url::Url;
-
     use super::*;
-    use crate::error::CommandError;
-    use rain_orderbook_app_settings::{
-        orderbook::ParseOrderbookConfigSourceError, spec_version::SpecVersion,
-    };
 
     const DOTRAIN: &str = r#"
 version: 2

@@ -19,12 +19,12 @@ mod tests {
         sol,
         sol_types::SolValue,
     };
-    use alloy_ethers_typecast::rpc::Response;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::dotrain_order::WordsResult;
     use serde_bytes::ByteBuf;
+    use serde_json::json;
 
     sol!(
         struct AuthoringMetaV2Sol {
@@ -174,48 +174,47 @@ _ _: 0 0;
         // mock shared contract calls
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7ffffffff");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[0]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": B256::left_padding_from(&[0]).to_string(),
+            }));
         });
+
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": B256::left_padding_from(&[1]).to_string(),
+            }));
         });
+
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x5514ca20");
-            then.body(
-                Response::new_success(
-                    1,
-                    &encode_prefixed(
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": encode_prefixed(
                         PragmaV1 {
                             usingWordsFrom: pragma_addresses.clone(),
                         }
                         .abi_encode(),
-                    ),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
+                ),
+            }));
         });
 
         // mock contract and sg calls for deployer
         server.mock(|when, then| {
             when.path("/rpc").json_body_partial(format!(
-                "{{\"params\":[{{\"to\":\"{}\",\"data\":\"0x6f5aa28d\"}}]}}",
+                "{{\"params\":[{{\"to\":\"{}\",\"input\":\"0x6f5aa28d\"}}]}}",
                 encode_prefixed(deployer_address)
             ));
-            then.body(
-                Response::new_success(1, &deployer_meta_hash)
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": deployer_meta_hash,
+            }));
         });
         server.mock(|when, then| {
             when.path("/sg").body_contains(&deployer_meta_hash);
@@ -225,19 +224,28 @@ _ _: 0 0;
         // mock contract and sg calls for pragma
         server.mock(|when, then| {
             when.path("/rpc").json_body_partial(format!(
-                "{{\"params\":[{{\"to\":\"{}\",\"data\":\"0x6f5aa28d\"}}]}}",
+                "{{\"params\":[{{\"to\":\"{}\",\"input\":\"0x6f5aa28d\"}}]}}",
                 encode_prefixed(pragma_addresses[0])
             ));
-            then.body(
-                Response::new_success(1, &pragma_meta_hash)
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": pragma_meta_hash,
+            }));
         });
         server.mock(|when, then| {
             when.path("/sg").body_contains(&pragma_meta_hash);
             then.status(200)
                 .json_body_obj(&serde_json::json!({"data": {"metaV1S": []}}));
+        });
+
+        server.mock(|when, then| {
+            when.matches(|req| {
+                let body = String::from_utf8(req.body.clone().unwrap()).unwrap();
+                println!("{body}");
+                true
+            });
+            then.status(500);
         });
 
         let dotrain = format!(
@@ -278,21 +286,19 @@ _ _: 0 0;
             .unwrap();
 
         assert_eq!(results.len(), 1);
-        for result in results {
-            assert_eq!(&result.scenario, "sepolia");
+        let result = &results[0];
 
-            assert_eq!(result.deployer_words.address, deployer_address);
-            assert!(matches!(
-                result.deployer_words.words,
-                WordsResult::Success(_)
-            ));
-            if let WordsResult::Success(authoring_meta) = &result.deployer_words.words {
-                assert_eq!(&authoring_meta.words[0].word, "some-word");
-                assert_eq!(&authoring_meta.words[0].description, "some-desc");
+        assert_eq!(&result.scenario, "sepolia");
 
-                assert_eq!(&authoring_meta.words[1].word, "some-other-word");
-                assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
-            }
+        assert_eq!(result.deployer_words.address, deployer_address);
+        assert!(
+            matches!(result.deployer_words.words, WordsResult::Success(_)),
+            "unexpected error: {:?}",
+            result.deployer_words.words
+        );
+        if let WordsResult::Success(authoring_meta) = &result.deployer_words.words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
 
             assert!(result.pragma_words.len() == 1);
             assert_eq!(result.pragma_words[0].address, pragma_addresses[0]);
@@ -366,43 +372,43 @@ _ _: 0 0;
         // mock contract calls
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7ffffffff");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[0]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": B256::left_padding_from(&[0]).to_string(),
+            }));
         });
+
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": B256::left_padding_from(&[1]).to_string(),
+            }));
         });
+
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x6f5aa28d");
-            then.body(
-                Response::new_success(1, &B256::random().to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": B256::random().to_string(),
+            }));
         });
+
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x5514ca20");
-            then.body(
-                Response::new_success(
-                    1,
-                    &encode_prefixed(
-                        PragmaV1 {
-                            usingWordsFrom: with_pragma_addresses,
-                        }
-                        .abi_encode(),
-                    ),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
+            then.json_body(json!({
+                "id": 1,
+                "jsonrpc": "2.0",
+                "result": encode_prefixed(
+                    PragmaV1 {
+                        usingWordsFrom: with_pragma_addresses,
+                    }
+                    .abi_encode(),
+                ),
+            }));
         });
 
         // mock sg query

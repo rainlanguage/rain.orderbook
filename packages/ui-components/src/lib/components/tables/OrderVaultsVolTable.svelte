@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_VAULTS_VOL_LIST } from '../../queries/keys';
@@ -68,4 +68,6 @@
 			{item.details.formattedTotalVol}
 		</TableBodyCell>
 	</svelte:fragment>
-</TanstackAppTable>
+</TanstackAppTable> -->
+
+<div>TODO: Issue #1989</div>

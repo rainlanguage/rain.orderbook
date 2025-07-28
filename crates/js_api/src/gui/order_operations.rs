@@ -1,18 +1,20 @@
 use super::*;
 use alloy::{
-    primitives::private::rand,
-    primitives::{utils::parse_units, Bytes, U256},
+    primitives::{utils::parse_units, Bytes, B256, U256},
     sol_types::SolCall,
 };
 use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
 };
-use rain_orderbook_bindings::OrderBook::multicallCall;
+use rain_orderbook_bindings::{
+    IOrderBookV5::deposit3Call, OrderBook::multicallCall, IERC20::approveCall,
+};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
+    add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
 use std::{collections::HashMap, str::FromStr, sync::Arc};
+use url::Url;
 
 pub enum CalldataFunction {
     Allowance,
@@ -244,28 +246,33 @@ impl DotrainOrderGui {
 
         let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
 
+        let owner = Address::from_str(&owner)?;
+
         let mut results = Vec::new();
         for VaultAndDeposit {
             order_io,
-            deposit_amount,
+            deposit_amount: _,
             index: _,
         } in vaults_and_deposits
         {
-            let allowance = self
-                .check_allowance(
-                    &DepositArgs {
-                        token: order_io
-                            .token
-                            .as_ref()
-                            .ok_or(GuiError::SelectTokensNotSet)?
-                            .address,
-                        vault_id: rand::random(),
-                        amount: deposit_amount,
-                    },
-                    &owner,
-                )
-                .await?;
-            results.push(allowance);
+            let tx_args = self.get_transaction_args()?;
+            let rpcs = tx_args
+                .rpcs
+                .iter()
+                .map(|rpc| Url::parse(rpc))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let token = order_io
+                .token
+                .as_ref()
+                .ok_or(GuiError::SelectTokensNotSet)?
+                .address;
+
+            let erc20 = ERC20::new(rpcs, token);
+
+            let allowance = erc20.allowance(owner, tx_args.orderbook_address).await?;
+
+            results.push(TokenAllowance { token, allowance });
         }
 
         Ok(AllowancesResult(results))
@@ -312,24 +319,36 @@ impl DotrainOrderGui {
         let mut calldatas = Vec::new();
 
         for (token_address, deposit_amount) in &deposits_map {
+            let tx_args = self.get_transaction_args()?;
+            let rpcs = tx_args
+                .rpcs
+                .iter()
+                .map(|rpc| Url::parse(rpc))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let erc20 = ERC20::new(rpcs, *token_address);
+            let decimals = erc20.decimals().await?;
+
             let deposit_args = DepositArgs {
                 token: *token_address,
                 amount: *deposit_amount,
-                vault_id: U256::default(),
+                decimals,
+                vault_id: B256::ZERO,
             };
 
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
 
             if token_allowance.allowance < *deposit_amount {
-                let approve_call = deposit_args
-                    .get_approve_calldata(self.get_transaction_args()?)
-                    .await;
-                if let Ok(approve_call) = approve_call {
-                    calldatas.push(ApprovalCalldata {
-                        token: *token_address,
-                        calldata: Bytes::copy_from_slice(&approve_call),
-                    });
+                let calldata = approveCall {
+                    spender: tx_args.orderbook_address,
+                    amount: *deposit_amount - token_allowance.allowance,
                 }
+                .abi_encode();
+
+                calldatas.push(ApprovalCalldata {
+                    token: *token_address,
+                    calldata: Bytes::copy_from_slice(&calldata),
+                });
             }
         }
 
@@ -398,6 +417,10 @@ impl DotrainOrderGui {
             index,
         } in vaults_and_deposits
         {
+            if deposit_amount == U256::ZERO {
+                continue;
+            }
+
             let token = order_io
                 .token
                 .as_ref()
@@ -406,16 +429,28 @@ impl DotrainOrderGui {
                 .vault_id
                 .ok_or(GuiError::VaultIdNotFound(index.to_string()))?;
 
-            if deposit_amount == U256::ZERO {
-                continue;
-            }
+            let decimals = if let Some(decimals) = token.decimals {
+                decimals
+            } else {
+                let tx_args = self.get_transaction_args()?;
+                let rpcs = tx_args
+                    .rpcs
+                    .iter()
+                    .map(|rpc| Url::parse(rpc))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let erc20 = ERC20::new(rpcs, token.address);
+                erc20.decimals().await?
+            };
 
             let deposit_args = DepositArgs {
                 token: token.address,
                 amount: deposit_amount,
-                vault_id,
+                vault_id: vault_id.into(),
+                decimals,
             };
-            let calldata = deposit_args.get_deposit_calldata().await?;
+            let calldata = deposit3Call::try_from(deposit_args)
+                .map_err(rain_orderbook_common::deposit::DepositError::from)?
+                .abi_encode();
             calldatas.push(Bytes::copy_from_slice(&calldata));
         }
 

@@ -1,17 +1,17 @@
 use alloy::primitives::U256;
-use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
+use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::{
     prelude::RngCore,
     test_runner::{RngAlgorithm, TestRng},
 };
-use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
+use rain_interpreter_bindings::IInterpreterStoreV3::FullyQualifiedNamespace;
 use rain_interpreter_eval::{
     error::ForkCallError,
     eval::ForkEvalArgs,
     fork::{Forker, NewForkedEvm},
-    trace::{RainEvalResultError, RainEvalResults},
+    trace::RainEvalResults,
 };
 use rain_orderbook_app_settings::{
     blocks::BlockError,
@@ -68,8 +68,6 @@ pub enum TestRunnerError {
     JoinError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-    #[error(transparent)]
-    RainEvalResultError(#[from] RainEvalResultError),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
     #[error(transparent)]
@@ -101,8 +99,9 @@ impl TestRunner {
                 .to_string()],
             OrderbookYamlValidation::default(),
         )?;
+
         Ok(Self {
-            forker: Forker::new(),
+            forker: Forker::new().unwrap(),
             dotrains: Dotrains {
                 main_dotrain: dotrain.into(),
                 test_dotrain: test_dotrain.into(),
@@ -185,6 +184,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context: vec![vec![U256::from(0); 1]; 1],
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -236,6 +237,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -281,6 +284,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -336,6 +341,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -398,9 +405,11 @@ impl TestRunner {
             .iter()
             .map(|rpc| rpc.to_string())
             .collect::<Vec<String>>();
-        let block_number = ReadableClientHttp::new_from_urls(rpcs.clone())?
+
+        let block_number = ReadableClient::new_from_http_urls(rpcs.clone())?
             .get_block_number()
             .await?;
+
         let blocks = self
             .test_config
             .scenario
