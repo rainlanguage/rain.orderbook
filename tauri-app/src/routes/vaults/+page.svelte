@@ -4,10 +4,8 @@
 
   import {
     orderHash,
-    accounts,
     activeAccountsItems,
     selectedChainIds,
-    settings,
     showInactiveOrders,
     hideZeroBalanceVaults,
     activeTokens,
@@ -21,10 +19,8 @@
 
 <VaultsListTable
   {orderHash}
-  {accounts}
   {activeAccountsItems}
   {selectedChainIds}
-  {settings}
   {showInactiveOrders}
   {hideZeroBalanceVaults}
   {handleDepositModal}

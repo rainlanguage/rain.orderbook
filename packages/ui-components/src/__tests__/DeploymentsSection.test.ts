@@ -22,7 +22,7 @@ describe('DeploymentsSection', () => {
 		render(DeploymentsSection, {
 			props: {
 				dotrain: 'test-dotrain',
-				strategyName: 'Test Strategy'
+				orderName: 'Test Strategy'
 			}
 		});
 
@@ -41,7 +41,7 @@ describe('DeploymentsSection', () => {
 		render(DeploymentsSection, {
 			props: {
 				dotrain: 'test-dotrain',
-				strategyName: 'Test Strategy'
+				orderName: 'Test Strategy'
 			}
 		});
 
@@ -53,13 +53,13 @@ describe('DeploymentsSection', () => {
 		const { rerender } = render(DeploymentsSection, {
 			props: {
 				dotrain: '',
-				strategyName: 'Test Strategy'
+				orderName: 'Test Strategy'
 			}
 		});
 
 		expect(DotrainOrderGui.getDeploymentDetails).toHaveBeenCalledTimes(1);
 
-		await rerender({ dotrain: 'new-dotrain', strategyName: 'Test Strategy' });
+		await rerender({ dotrain: 'new-dotrain', orderName: 'Test Strategy' });
 
 		expect(DotrainOrderGui.getDeploymentDetails).toHaveBeenCalledWith('new-dotrain');
 	});

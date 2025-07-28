@@ -25,13 +25,14 @@ pub async fn debug_trade(
             Ok(mut replayer) => {
                 let tx_hash = tx_hash.parse::<B256>()?;
                 let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
-                return Ok(res.into_flattened_table()?);
+                return Ok(res.into_flattened_table());
             }
             Err(e) => {
                 last_error = Some(e);
             }
         }
     }
+
     // If we get here, all rpcs failed
     Err(CommandError::TradeReplayerError(last_error.unwrap()))
 }
@@ -41,14 +42,16 @@ mod tests {
     use super::*;
     use alloy::{
         primitives::{
+            aliases::I224,
             utils::{parse_ether, parse_units},
             Bytes, U256,
         },
         sol_types::SolCall,
     };
+    use rain_math_float::Float;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook};
+    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_trade_replayer() {
@@ -159,36 +162,47 @@ amount price: 7 4;
                 token1_holder,
                 *token1.address(),
                 parse_ether("100").unwrap(),
-                U256::from(1),
+                18,
+                B256::from(U256::from(1)),
             )
             .await
             .0
             .order;
 
         // approve T2 spending for token2 holder for orderbook
-        token2
-            .approve(*orderbook.address(), parse_ether("100").unwrap())
-            .from(token2_holder)
-            .do_send(&local_evm)
+        local_evm
+            .send_transaction(
+                token2
+                    .approve(*orderbook.address(), parse_ether("100").unwrap())
+                    .from(token2_holder)
+                    .into_transaction_request(),
+            )
             .await
             .unwrap();
-        // take order from token2 holder
-        let config = Orderbook::TakeOrdersConfigV3 {
-            orders: vec![Orderbook::TakeOrderConfigV3 {
+
+        let Float(max_float) = Float::pack_lossless(I224::MAX, 1).unwrap();
+        let Float(one_float) = Float::parse("1".to_string()).unwrap();
+
+        let config = Orderbook::TakeOrdersConfigV4 {
+            orders: vec![Orderbook::TakeOrderConfigV4 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
                 signedContext: vec![],
             }],
-            maximumIORatio: U256::MAX,
-            maximumInput: U256::MAX,
-            minimumInput: U256::from(1),
+            maximumIORatio: max_float,
+            maximumInput: max_float,
+            minimumInput: one_float,
             data: Bytes::new(),
         };
-        let tx = orderbook
-            .takeOrders2(config)
-            .from(token2_holder)
-            .do_send(&local_evm)
+
+        let tx = local_evm
+            .send_transaction(
+                orderbook
+                    .takeOrders3(config)
+                    .from(token2_holder)
+                    .into_transaction_request(),
+            )
             .await
             .unwrap();
 
@@ -196,10 +210,7 @@ amount price: 7 4;
             .await
             .unwrap();
 
-        let expected_stack = vec![
-            U256::from(7000000000000000000u128),
-            U256::from(4000000000000000000u128),
-        ];
+        let expected_stack = vec![U256::from(7), U256::from(4)];
 
         assert_eq!(res.rows[0], expected_stack);
     }

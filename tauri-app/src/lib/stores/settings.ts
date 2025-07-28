@@ -1,26 +1,7 @@
-import { derived, get } from '@square/svelte-store';
+import { get, writable } from '@square/svelte-store';
 import { cachedWritableStore } from '@rainlanguage/ui-components';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import { parseYaml, type Address, type Hex, type NewConfig } from '@rainlanguage/orderbook';
-
-export const EMPTY_SETTINGS: NewConfig = {
-  orderbook: {
-    version: '1',
-    networks: {},
-    subgraphs: {},
-    metaboards: {},
-    orderbooks: {},
-    accounts: {},
-    tokens: {},
-    deployers: {},
-  },
-  dotrainOrder: {
-    orders: {},
-    scenarios: {},
-    charts: {},
-    deployments: {},
-  },
-};
+import { type Address, type Hex } from '@rainlanguage/orderbook';
 
 // general
 export const settingsText = cachedWritableStore<string>(
@@ -47,26 +28,6 @@ settingsText.subscribe((value) => {
     });
   }
 });
-export const settings = cachedWritableStore<NewConfig>(
-  'settings',
-  EMPTY_SETTINGS,
-  (value) => JSON.stringify(value),
-  () => {
-    try {
-      const text = get(settingsText);
-      const res = parseYaml([text]);
-      if (res.error) {
-        throw new Error(res.error.readableMsg);
-      }
-      return res.value;
-    } catch {
-      return EMPTY_SETTINGS;
-    }
-  },
-);
-export const enableSentry = derived(settings, ($settings) =>
-  $settings.orderbook.sentry !== undefined ? $settings.orderbook.sentry : true,
-);
 
 export const selectedChainIds = cachedWritableStore<number[]>(
   'settings.selectedChainIds',
@@ -76,7 +37,6 @@ export const selectedChainIds = cachedWritableStore<number[]>(
 );
 
 // accounts
-export const accounts = derived(settings, ($settings) => $settings.orderbook.accounts ?? {});
 export const activeAccountsItems = cachedWritableStore<Record<string, Address>>(
   'settings.activeAccountsItems',
   {},
@@ -89,43 +49,6 @@ export const activeAccountsItems = cachedWritableStore<Record<string, Address>>(
     }
   },
 );
-export const activeAccounts = derived(
-  [accounts, activeAccountsItems],
-  ([$accounts, $activeAccountsItems]) =>
-    Object.keys($activeAccountsItems).length === 0
-      ? {}
-      : Object.fromEntries(
-          Object.entries($accounts).filter(([key]) => key in $activeAccountsItems),
-        ),
-);
-
-// subgraphs
-export const subgraphs = derived(settings, ($settings) =>
-  $settings?.orderbook.subgraphs !== undefined ? Object.entries($settings.orderbook.subgraphs) : [],
-);
-
-// When networks / orderbooks settings updated, reset active network / orderbook
-settings.subscribe(async () => {
-  const $settings = get(settings);
-
-  // Reset active account items if accounts have changed
-  if (Object.keys($settings.orderbook.accounts ?? {}).length === 0) {
-    activeAccountsItems.set({});
-  } else {
-    const currentActiveAccounts = get(activeAccountsItems);
-    const updatedActiveAccounts = Object.fromEntries(
-      Object.entries($settings.orderbook.accounts ?? {})
-        .filter(([key, value]) => {
-          if (key in currentActiveAccounts) {
-            return currentActiveAccounts[key] === value.address;
-          }
-          return false;
-        })
-        .map(([key, value]) => [key, value.address as Address]),
-    );
-    activeAccountsItems.set(updatedActiveAccounts);
-  }
-});
 
 export const showInactiveOrders = cachedWritableStore<boolean>(
   'settings.showInactiveOrders',
@@ -180,3 +103,5 @@ export const activeTokens = cachedWritableStore<Address[]>(
     }
   },
 );
+
+export const isSentryEnabled = writable<boolean>(false);

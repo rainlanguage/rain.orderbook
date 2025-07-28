@@ -2,8 +2,8 @@
 	"name": "@rainlanguage/webapp",
 	"version": "0.0.1",
 	"type": "module",
-    "license": "LicenseRef-DCL-1.0",
-    "author": "Rain Open Source Software Ltd",
+	"license": "LicenseRef-DCL-1.0",
+	"author": "Rain Open Source Software Ltd",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
@@ -19,9 +19,10 @@
 		"svelte-lint-format-check": "npm run lint && npm run check"
 	},
 	"dependencies": {
+		"@rainlanguage/float": "^0.0.0-alpha.3",
 		"flowbite-svelte": "0.44.24",
-		"viem": "2.24.3",
-		"lodash": "4.17.21"
+		"lodash": "4.17.21",
+		"viem": "2.24.3"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-vercel": "5.4.7"

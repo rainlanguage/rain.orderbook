@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_VAULTS_VOL_LIST } from '../../queries/keys';
@@ -47,7 +47,7 @@
 
 	<svelte:fragment slot="bodyRow" let:item>
 		<TableBodyCell tdClass="px-4 py-2">
-			<Hash type={HashType.Identifier} shorten value={item.id} />
+			<Hash type={HashType.Identifier} shorten value={item.id.toString()} />
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32">
 			<div class="flex gap-x-3">
@@ -68,4 +68,6 @@
 			{item.details.formattedTotalVol}
 		</TableBodyCell>
 	</svelte:fragment>
-</TanstackAppTable>
+</TanstackAppTable> -->
+
+<div>TODO: Issue #1989</div>

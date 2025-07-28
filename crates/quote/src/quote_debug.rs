@@ -5,9 +5,9 @@ use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_interpreter_eval::{
     error::ForkCallError,
     fork::{Forker, NewForkedEvm},
-    trace::RainEvalResult,
+    trace::{RainEvalResult, RainEvalResultFromRawCallResultError},
 };
-use rain_orderbook_bindings::IOrderBookV4::quoteCall;
+use rain_orderbook_bindings::IOrderBookV5::quote2Call;
 use url::Url;
 
 pub struct NewQuoteDebugger {
@@ -23,18 +23,14 @@ pub enum QuoteDebuggerError {
     #[error("Forker error: {0}")]
     ForkerError(Box<ForkCallError>),
     #[error("Quote error: {0}")]
-    QuoteError(crate::error::Error),
+    QuoteError(#[from] crate::error::Error),
+    #[error(transparent)]
+    RainEvalResultConversion(#[from] RainEvalResultFromRawCallResultError),
 }
 
 impl From<ForkCallError> for QuoteDebuggerError {
     fn from(err: ForkCallError) -> Self {
         Self::ForkerError(Box::new(err))
-    }
-}
-
-impl From<crate::error::Error> for QuoteDebuggerError {
-    fn from(err: crate::error::Error) -> Self {
-        Self::QuoteError(err)
     }
 }
 
@@ -65,7 +61,7 @@ impl QuoteDebugger {
     > {
         quote_target.validate()?;
 
-        let quote_call = quoteCall {
+        let quote_call = quote2Call {
             quoteConfig: quote_target.quote_config.clone(),
         };
 
@@ -81,7 +77,7 @@ impl QuoteDebugger {
                 Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
         }
 
-        Ok((res.into(), abi_decoded_error))
+        Ok((res.try_into()?, abi_decoded_error))
     }
 }
 
@@ -89,11 +85,11 @@ impl QuoteDebugger {
 mod tests {
     use super::*;
     use alloy::primitives::utils::parse_ether;
-    use alloy::primitives::U256;
+    use alloy::primitives::{fixed_bytes, U256};
     use alloy::sol_types::{SolCall, SolValue};
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
+    use rain_orderbook_bindings::IOrderBookV5::{OrderV4, QuoteV2};
     use rain_orderbook_common::add_order::AddOrderArgs;
     use rain_orderbook_common::dotrain_order::DotrainOrder;
     use rain_orderbook_test_fixtures::LocalEvm;
@@ -183,13 +179,17 @@ amount price: 16 52;
             .unwrap()
             .abi_encode();
 
+        let vault_id =
+            fixed_bytes!("0x0000000000000000000000000000000000000000000000000000000000000001");
+
         let order = local_evm
             .add_order_and_deposit(
                 &calldata,
                 token1_holder,
                 *token1.address(),
                 parse_ether("1000").unwrap(),
-                U256::from(1),
+                18,
+                vault_id,
             )
             .await
             .0
@@ -202,11 +202,11 @@ amount price: 16 52;
         .await
         .unwrap();
 
-        let order = OrderV3::abi_decode(&order.abi_encode(), true).unwrap();
+        let order = OrderV4::abi_decode(&order.abi_encode()).unwrap();
 
         let quote_target = QuoteTarget {
             orderbook: *orderbook.address(),
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
@@ -217,10 +217,7 @@ amount price: 16 52;
         let res = debugger.debug(quote_target).await.unwrap();
 
         assert_eq!(res.0.traces.len(), 1);
-        assert_eq!(
-            res.0.traces[0].stack,
-            vec![parse_ether("52").unwrap(), parse_ether("16").unwrap()]
-        );
+        assert_eq!(res.0.traces[0].stack, vec![U256::from(52), U256::from(16)]);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -282,7 +279,7 @@ deployments:
 #calculate-io
 amount price: 16 52,
 current-time: call<'some-source>(),
-_: sub(16 52),
+_: 123,
 _ _: amount price;
 #handle-add-order
 :;
@@ -312,13 +309,17 @@ _: 1;
             .unwrap()
             .abi_encode();
 
+        let vault_id =
+            fixed_bytes!("0x0000000000000000000000000000000000000000000000000000000000000001");
+
         let order = local_evm
             .add_order_and_deposit(
                 &calldata,
                 token1_holder,
                 *token1.address(),
                 parse_ether("1000").unwrap(),
-                U256::from(1),
+                18,
+                vault_id,
             )
             .await
             .0
@@ -331,11 +332,11 @@ _: 1;
         .await
         .unwrap();
 
-        let order = OrderV3::abi_decode(&order.abi_encode(), true).unwrap();
+        let order = OrderV4::abi_decode(&order.abi_encode()).unwrap();
 
         let quote_target = QuoteTarget {
             orderbook: *orderbook.address(),
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
@@ -345,9 +346,15 @@ _: 1;
 
         let res = debugger.debug(quote_target).await.unwrap();
 
-        assert_eq!(res.0.traces.len(), 1);
-        assert_eq!(res.0.traces[0].stack, vec![parse_ether("1").unwrap()]);
-        assert!(res.1.unwrap().unwrap().to_string().contains("Panic, reason: an arithmetic operation resulted in underflow or overflow outside of an unchecked { ... } block, (code: 0x11)"));
+        assert_eq!(res.0.traces.len(), 2);
+        assert_eq!(
+            res.0.traces[0].stack,
+            vec![52, 16, 123, 1, 52, 16]
+                .into_iter()
+                .map(U256::from)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(res.0.traces[1].stack, vec![U256::from(1)]);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -409,7 +416,7 @@ deployments:
 #calculate-io
 amount price: 16 52,
 current-time: call<'some-source>(),
-_: sub(16 52),
+_: 123,
 _ _: amount price;
 #handle-add-order
 :;
@@ -439,13 +446,17 @@ _: 1;
             .unwrap()
             .abi_encode();
 
+        let vault_id =
+            fixed_bytes!("0x0000000000000000000000000000000000000000000000000000000000000001");
+
         let order = local_evm
             .add_order_and_deposit(
                 &calldata,
                 token1_holder,
                 *token1.address(),
                 parse_ether("1000").unwrap(),
-                U256::from(1),
+                18,
+                vault_id,
             )
             .await
             .0
@@ -458,11 +469,11 @@ _: 1;
         .await
         .unwrap();
 
-        let order = OrderV3::abi_decode(&order.abi_encode(), true).unwrap();
+        let order = OrderV4::abi_decode(&order.abi_encode()).unwrap();
 
         let quote_target = QuoteTarget {
             orderbook: *orderbook.address(),
-            quote_config: Quote {
+            quote_config: QuoteV2 {
                 order,
                 inputIOIndex: U256::from(1),
                 outputIOIndex: U256::from(2),
@@ -488,16 +499,16 @@ _: 1;
             then.status(400);
         });
 
-        let err = QuoteDebugger::new(NewQuoteDebugger {
+        let res = QuoteDebugger::new(NewQuoteDebugger {
             fork_url: Url::from_str(&server.url("/rpc")).unwrap(),
             fork_block_number: None,
         })
         .await;
 
         assert!(matches!(
-            err,
+            res,
             Err(QuoteDebuggerError::ForkerError(err))
-            if err.to_string().contains("Could not instantiate forked environment")
+            if err.to_string().to_lowercase().contains("could not instantiate forked environment")
         ));
     }
 }

@@ -56,11 +56,11 @@ vi.mock('$app/stores', async () => {
 vi.mock('@rainlanguage/orderbook', () => {
 	const DotrainOrderGui = vi.fn();
 	// @ts-expect-error - static method
-	DotrainOrderGui.getStrategyDetails = vi.fn();
+	DotrainOrderGui.getOrderDetails = vi.fn();
 	// @ts-expect-error - static method
 	DotrainOrderGui.getDeploymentDetails = vi.fn();
 	DotrainOrderGui.prototype.newWithDeployment = vi.fn();
-	DotrainOrderGui.prototype.getStrategyDetails = vi.fn();
+	DotrainOrderGui.prototype.getOrderDetails = vi.fn();
 	DotrainOrderGui.prototype.setVaultId = vi.fn();
 	DotrainOrderGui.prototype.getTokenInfo = vi.fn();
 	DotrainOrderGui.prototype.getCurrentDeployment = vi.fn();

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import Hash, { HashType } from '../Hash.svelte';
 	import VaultBalanceChangesTable from '../tables/VaultBalanceChangesTable.svelte';
-	import VaultBalanceChart from '../charts/VaultBalanceChart.svelte';
+	// TODO: Issue #1989
+	// import VaultBalanceChart from '../charts/VaultBalanceChart.svelte';
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { QKEY_VAULT } from '../../queries/keys';
@@ -11,11 +12,11 @@
 		type Hex,
 		type RaindexVault
 	} from '@rainlanguage/orderbook';
-	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
+	// import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { toHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	// import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Refresh from '../icon/Refresh.svelte';
@@ -29,7 +30,7 @@
 	export let id: Hex;
 	export let orderbookAddress: Address;
 	export let chainId: number;
-	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
+	// export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 
 	/**
 	 * Required callback function when deposit action is triggered for a vault
@@ -176,8 +177,9 @@
 		</CardProperty>
 	</svelte:fragment>
 
-	<svelte:fragment slot="chart" let:data>
-		<VaultBalanceChart vault={data} {lightweightChartsTheme} />
+	<svelte:fragment slot="chart">
+		<!-- TODO: Issue #1989: VaultBalanceChart temporarily disabled -->
+		<!-- <VaultBalanceChart /> -->
 	</svelte:fragment>
 
 	<svelte:fragment slot="below" let:data><VaultBalanceChangesTable vault={data} /></svelte:fragment>

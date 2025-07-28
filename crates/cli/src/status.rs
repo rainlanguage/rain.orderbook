@@ -1,5 +1,5 @@
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::WriteTransactionStatus;
+use alloy_ethers_typecast::WriteTransactionStatus;
 use std::fmt::Debug;
 use tracing::info;
 
@@ -11,7 +11,7 @@ pub fn display_write_transaction_status<T: SolCall + Debug>(status: WriteTransac
         WriteTransactionStatus::PendingSign(_) => {
             info!("🖋   Please sign the transaction on your Ledger device.");
         }
-        WriteTransactionStatus::PendingSend(_) => {
+        WriteTransactionStatus::Sending => {
             info!("⏳  Awaiting transaction confirmation. Please wait.");
         }
         WriteTransactionStatus::Confirmed(receipt) => {
