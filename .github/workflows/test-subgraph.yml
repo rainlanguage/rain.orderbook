@@ -1,7 +1,6 @@
 name: Subgraph unit tests
 on:
-  push:
-  pull_request:
+  pull_request_target:
 
 concurrency:
   group: ${{ github.ref }}-subgraph

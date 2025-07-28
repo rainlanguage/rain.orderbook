@@ -1,7 +1,6 @@
 name: Test ui-components
 on:
-  push:
-  pull_request:
+  pull_request_target:
 
 concurrency:
   group: ${{ github.ref }}-ui-components

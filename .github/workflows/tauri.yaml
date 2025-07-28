@@ -1,7 +1,6 @@
 name: Tauri builds
 on:
-  push:
-  pull_request:
+  pull_request_target:
 
 concurrency:
   group: ${{ github.ref }}-tauri-build
