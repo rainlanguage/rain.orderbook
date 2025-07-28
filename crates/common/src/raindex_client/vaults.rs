@@ -160,7 +160,7 @@ impl RaindexVault {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct AccountBalance {

@@ -94,7 +94,7 @@ pub struct DotrainRegistry {
 
     /// A map of order keys to their corresponding .rain file URLs.
     ///
-    /// Each entry represents an available order strategy where:
+    /// Each entry represents an available order where:
     /// - **Key**: Human-readable order identifier (e.g., "fixed-limit", "auction-dca")
     /// - **Value**: URL pointing to the .rain file containing the order's dotrain configuration
     ///
@@ -103,7 +103,7 @@ pub struct DotrainRegistry {
 
     /// A map of order keys to their corresponding .rain file contents.
     ///
-    /// Each entry contains the raw dotrain content for an order strategy:
+    /// Each entry contains the raw dotrain content for an order:
     /// - **Key**: Order identifier matching the keys in `order_urls`
     /// - **Value**: Raw dotrain content fetched from the corresponding URL
     ///
@@ -251,7 +251,7 @@ impl DotrainRegistry {
         Ok(instance)
     }
 
-    /// Gets strategy details for all orders in the registry.
+    /// Gets details for all orders in the registry.
     ///
     /// This method extracts name and description information for each order,
     /// useful for building the initial order selection UI.
@@ -281,8 +281,8 @@ impl DotrainRegistry {
         let mut order_details = BTreeMap::new();
 
         for (order_key, dotrain) in &self.orders {
-            let strategy_details = DotrainOrderGui::get_strategy_details(dotrain.clone())?;
-            order_details.insert(order_key.clone(), strategy_details);
+            let details = DotrainOrderGui::get_order_details(dotrain.clone())?;
+            order_details.insert(order_key.clone(), details);
         }
 
         Ok(order_details)
