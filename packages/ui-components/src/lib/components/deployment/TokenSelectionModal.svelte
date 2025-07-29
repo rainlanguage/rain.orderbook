@@ -21,9 +21,9 @@
 		const result = await gui.getAllTokens(search);
 		if (result.error) {
 			tokens = [];
-			return;
+		} else {
+			tokens = result.value;
 		}
-		tokens = result.value;
 
 		isSearching = false;
 	}
