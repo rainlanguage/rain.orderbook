@@ -1,56 +1,37 @@
 <script lang="ts">
-	import { InputAddon, Button, Alert } from 'flowbite-svelte';
-	import { InfoCircleSolid } from 'flowbite-svelte-icons';
-	import { parseUnits } from 'viem';
-	import type { Hex } from '@rainlanguage/orderbook';
-	import { Float } from '@rainlanguage/float';
+	import { InputAddon, Button } from 'flowbite-svelte';
 
 	export let symbol: string | undefined = undefined;
-	export let decimals: number = 0;
-	export let maxValue: bigint | Hex | undefined = undefined;
+	export let maxValue: string | undefined = undefined;
 	let inputValue: string = '';
-	export let value: bigint = 0n;
+	export let value: string = '0';
 
 	function handleInput(event: Event) {
 		const input = event.target as HTMLInputElement;
 		inputValue = input.value;
 
 		if (inputValue === '') {
-			value = 0n;
+			value = '0';
+		} else if (isNaN(Number(inputValue))) {
+			value = '0';
 		} else {
-			try {
-				value = parseUnits(inputValue, decimals);
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			} catch (_e) {
-				value = 0n;
-			}
+			value = inputValue;
 		}
 	}
 
 	function fillMaxValue() {
 		if (!maxValue) return;
+		value = maxValue;
+		inputValue = maxValue;
+	}
 
-		if (typeof maxValue === 'bigint') {
-			value = maxValue;
-		} else {
-			const maxFloat = Float.fromHex(maxValue);
-
-			if (maxFloat.error) {
-				throw new Error(maxFloat.error.readableMsg);
-			}
-
-			const bigint = maxFloat.value?.toFixedDecimal(decimals);
-
-			if (bigint.error) {
-				throw new Error(bigint.error.readableMsg);
-			}
-
-			value = bigint.value;
+	function handleKeyDown(event: KeyboardEvent) {
+		if (
+			!/[0-9.]/.test(event.key) &&
+			!['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(event.key)
+		) {
+			event.preventDefault();
 		}
-
-		inputValue = value.toString().padStart(decimals + 1, '0');
-		inputValue = inputValue.slice(0, -decimals) + '.' + inputValue.slice(-decimals);
-		inputValue = inputValue.replace(/\.?0+$/, '');
 	}
 </script>
 
@@ -62,6 +43,7 @@
 				class={`focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 ${symbol && '!rounded-none !rounded-l-lg'}`}
 				bind:value={inputValue}
 				on:input={handleInput}
+				on:keydown={handleKeyDown}
 			/>
 
 			{#if maxValue}
@@ -79,11 +61,4 @@
 			</InputAddon>
 		{/if}
 	</div>
-	{#if decimals === 0}
-		<Alert color="yellow" border class="mt-2">
-			<InfoCircleSolid slot="icon" class="h-6 w-6" />
-			This token does not specify a number of decimals. <br />You are inputting the raw integer
-			amount with 0 decimal places.
-		</Alert>
-	{/if}
 </div>

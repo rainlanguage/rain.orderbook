@@ -91,11 +91,11 @@ describe('handleVaultWithdraw', () => {
 		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
-		await onSubmitCall(100n);
+		await onSubmitCall('100');
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 			open: true,
-			modalTitle: 'Withdrawing 0.1 TEST...',
+			modalTitle: 'Withdrawing 100 TEST...',
 			args: {
 				entity: mockVault,
 				onConfirm: expect.any(Function),
@@ -116,7 +116,7 @@ describe('handleVaultWithdraw', () => {
 		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
-		await onSubmitCall(100n);
+		await onSubmitCall('100');
 
 		const onConfirmCall = mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
 		onConfirmCall(mockTxHash);

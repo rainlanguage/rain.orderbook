@@ -7,7 +7,7 @@ use crate::{
     utils::amount_formatter::format_amount_u256,
     withdraw::WithdrawArgs,
 };
-use alloy::primitives::{Address, Bytes, B256, U256};
+use alloy::primitives::{utils::parse_units, Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
@@ -325,11 +325,14 @@ impl RaindexVault {
     }
 
     fn validate_amount(&self, amount: &str) -> Result<U256, RaindexError> {
-        let amount = U256::from_str(amount)?;
-        if amount == U256::ZERO {
+        let parsed_amount = parse_units(amount, self.token.decimals)?;
+        if parsed_amount.is_negative() {
+            return Err(RaindexError::NegativeAmount(amount.to_string()));
+        }
+        if parsed_amount.is_zero() {
             return Err(RaindexError::ZeroAmount);
         }
-        Ok(amount)
+        Ok(parsed_amount.get_absolute())
     }
 
     /// Generates transaction calldata for depositing tokens into a vault
@@ -340,10 +343,7 @@ impl RaindexVault {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await vault.getDepositCalldata(
-    ///   vault,
-    ///   "1000000000000000000"
-    /// );
+    /// const result = await vault.getDepositCalldata("10.5");
     /// if (result.error) {
     ///   console.error("Cannot generate deposit:", result.error.readableMsg);
     ///   return;
@@ -359,7 +359,7 @@ impl RaindexVault {
     pub async fn get_deposit_calldata(
         &self,
         #[wasm_export(
-            param_description = "Amount to deposit in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+            param_description = "Amount to deposit in human-readable format (e.g., \"10.5\")"
         )]
         amount: String,
     ) -> Result<Bytes, RaindexError> {
@@ -380,9 +380,7 @@ impl RaindexVault {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await vault.getWithdrawCalldata(
-    ///   "500000000000000000"
-    /// );
+    /// const result = await vault.getWithdrawCalldata("55.2");
     /// if (result.error) {
     ///   console.error("Cannot generate withdrawal:", result.error.readableMsg);
     ///   return;
@@ -398,7 +396,7 @@ impl RaindexVault {
     pub async fn get_withdraw_calldata(
         &self,
         #[wasm_export(
-            param_description = "Amount to withdraw in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+            param_description = "Amount to withdraw in human-readable format (e.g., \"55.2\")"
         )]
         amount: String,
     ) -> Result<Bytes, RaindexError> {
@@ -452,9 +450,7 @@ impl RaindexVault {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await vault.getApprovalCalldata(
-    ///   "2000000000000000000"
-    /// );
+    /// const result = await vault.getApprovalCalldata("20.75");
     /// if (result.error) {
     ///   console.error("Approval error:", result.error.readableMsg);
     ///   return;
@@ -470,7 +466,7 @@ impl RaindexVault {
     pub async fn get_approval_calldata(
         &self,
         #[wasm_export(
-            param_description = "Amount requiring approval in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+            param_description = "Amount requiring approval in human-readable format (e.g., \"20.75\")"
         )]
         amount: String,
     ) -> Result<Bytes, RaindexError> {
@@ -1961,7 +1957,12 @@ mod tests {
                         token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
-                        depositAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
+                        depositAmount: Float::from_fixed_decimal(
+                            U256::from(500000000000000000000u128),
+                            18
+                        )
+                        .unwrap()
+                        .0,
                         tasks: vec![],
                     }
                     .abi_encode()
@@ -2026,7 +2027,12 @@ mod tests {
                         token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
-                        targetAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
+                        targetAmount: Float::from_fixed_decimal(
+                            U256::from(500000000000000000000u128),
+                            18
+                        )
+                        .unwrap()
+                        .0,
                         tasks: vec![],
                     }
                     .abi_encode()
@@ -2048,7 +2054,7 @@ mod tests {
                 then.status(200).json_body(json!({
                     "jsonrpc": "2.0",
                     "id": 1,
-                    "result": "0x0000000000000000000000000000000000000000000000000000000000000064",
+                    "result": "0x0000000000000000000000000000000000000000000000056BC75E2D63100000",
                 }));
             });
 
@@ -2089,7 +2095,7 @@ mod tests {
                 Bytes::copy_from_slice(
                     &approveCall {
                         spender: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                        amount: U256::from(600),
+                        amount: U256::from(600000000000000000000u128),
                     }
                     .abi_encode(),
                 )

@@ -253,8 +253,11 @@ const vault = result.value; // RaindexVault instance
 // Get the token information for this vault
 const token = vault.token; // RaindexVaultToken
 
-// Get the current balance for this vault (in token's smallest unit)
-const balance = vault.balance; // string (e.g., "1000000" for 1 USDC with 6 decimals)
+// Get the current balance for this vault in Float format
+const balance = vault.balance; // Float 
+
+// Get the current balance in human-readable format
+const formattedBalance = vault.formattedBalance; // string (e.g., "1")
 
 // Get the orders that use this vault as input (selling from this vault)
 const inputOrders = vault.ordersAsInput; // RaindexOrderAsIO[]
@@ -271,10 +274,6 @@ const balanceChanges = await vault.getBalanceChanges(); // RaindexVaultBalanceCh
 ### Get calldatas for vault deposit and withdraw
 
 ```javascript
-// Helper function to convert token amounts to smallest unit
-// Any other library can be used to parse amounts, such as ethers.js or can be done manually
-import { parseUnits } from 'viem';
-
 // Get the vault using the raindex client
 const result = await raindexClient.getVault(14, "0x59401C93239a3D8956C7881f0dB45B5727241872", "0x01");
 if (result.error) {
@@ -284,20 +283,17 @@ if (result.error) {
 const vault = result.value; // RaindexVault instance
 
 // Get calldata to deposit tokens into this vault
-const depositAmount = parseUnits("10.5", 6); // 10.5 USDC with 6 decimals = "10500000"
-const depositCalldata = await vault.getDepositCalldata(depositAmount);
+const depositCalldata = await vault.getDepositCalldata("10.5"); // 10.5 tokens (e.g., USDC)
 // Returns hex-encoded calldata to be sent to the orderbook contract
 
 // Get calldata to withdraw tokens from this vault
-const withdrawAmount = parseUnits("5.25", 6); // 5.25 USDC = "5250000"
-const withdrawCalldata = await vault.getWithdrawCalldata(withdrawAmount);
+const withdrawCalldata = await vault.getWithdrawCalldata("5.25"); // 5.25 tokens (e.g., USDC)
 // Returns hex-encoded calldata to be sent to the orderbook contract
 ```
 
 ### Get DotrainOrderGui instance to construct UI to deploy an order
 
 ```javascript
-import { parseUnits } from 'viem';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 // Prepare the dotrain that will be used for this order
@@ -413,8 +409,7 @@ gui.setFieldValue("frequency", "24"); // Trade every 24 hours
 
 // Set the deposit amount for a token
 // Token names come from the deposits configuration
-const depositAmountUsdt = parseUnits("1000", 6); // 1000 USDT initial deposit
-gui.setDeposit("input-token", depositAmountUsdt);
+gui.setDeposit("input-token", "1000"); // Deposit 1000 tokens into the input vault
 
 // Set a custom vaultId for an input vault (optional)
 // Parameters:

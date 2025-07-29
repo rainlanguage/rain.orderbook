@@ -8,7 +8,8 @@
   import ModalExecute from './ModalExecute.svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import { hexToBytes, toHex } from 'viem';
+  import { hexToBytes, parseUnits, toHex } from 'viem';
+  import { Float } from '@rainlanguage/float';
 
   const raindexClient = useRaindexClient();
 
@@ -16,17 +17,23 @@
   export let vault: RaindexVault;
   export let onWithdraw: () => void;
 
-  let amount: bigint = 0n;
+  let amount: string = '0';
   let amountGTBalance: boolean;
   let isSubmitting = false;
   let selectWallet = false;
 
-  $: amountGTBalance = vault !== undefined && amount > BigInt(vault.balance);
+  let amountFloat = Float.parse(amount);
+  let vaultBalanceFloat = Float.fromHex(vault.balance);
+
+  $: amountGTBalance =
+    amountFloat.value && vaultBalanceFloat.value
+      ? !!amountFloat.value.gt(vaultBalanceFloat.value).value
+      : false;
 
   function reset() {
     open = false;
     if (!isSubmitting) {
-      amount = 0n;
+      amount = '0';
       selectWallet = false;
     }
   }
@@ -34,7 +41,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(raindexClient, vault, amount);
+      await vaultWithdraw(raindexClient, vault, parseUnits(amount, Number(vault.token.decimals)));
       onWithdraw();
     } catch (e) {
       reportErrorToSentry(e);
@@ -117,8 +124,7 @@
       <InputTokenAmount
         bind:value={amount}
         symbol={vault.token.symbol}
-        decimals={Number(vault.token.decimals ?? 0)}
-        maxValue={BigInt(vault.balance)}
+        maxValue={vault.formattedBalance}
       />
 
       <Helper color="red" class="h-6 text-sm">
@@ -135,7 +141,7 @@
           selectWallet = true;
           open = false;
         }}
-        disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
+        disabled={!amount || amount === '0' || amountGTBalance || isSubmitting}
       >
         Proceed
       </Button>

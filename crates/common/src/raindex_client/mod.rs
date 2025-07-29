@@ -7,6 +7,7 @@ use alloy::{
     hex::FromHexError,
     primitives::{
         ruint::{FromUintError, ParseError},
+        utils::UnitsError,
         Address, ParseSignedError,
     },
 };
@@ -222,6 +223,8 @@ pub enum RaindexError {
     WriteLockError,
     #[error("Zero amount")]
     ZeroAmount,
+    #[error("Negative amount")]
+    NegativeAmount(String),
     #[error("Existing allowance")]
     ExistingAllowance,
     #[error(transparent)]
@@ -250,6 +253,8 @@ pub enum RaindexError {
     TryFromUint(#[from] FromUintError<u8>),
     #[error("Missing decimals for token {0}")]
     MissingErc20Decimals(String),
+    #[error(transparent)]
+    UnitsError(#[from] UnitsError),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
 }
@@ -320,6 +325,9 @@ impl RaindexError {
                 "Failed to modify the YAML configuration due to a lock error".to_string()
             }
             RaindexError::ZeroAmount => "Amount cannot be zero".to_string(),
+            RaindexError::NegativeAmount(amount) => {
+                format!("Amount cannot be negative: {}", amount)
+            }
             RaindexError::WritableTransactionExecuteError(err) => {
                 format!("Failed to execute transaction: {}", err)
             }
@@ -359,6 +367,9 @@ impl RaindexError {
             RaindexError::TryFromUint(err) => format!("Failed to convert to u8: {err}"),
             RaindexError::MissingErc20Decimals(token) => {
                 format!("Missing decimal information for the token address: {token}")
+            }
+            RaindexError::UnitsError(err) => {
+                format!("There was an error with parsing number: {}", err)
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
         }
