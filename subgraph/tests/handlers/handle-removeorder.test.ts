@@ -9,7 +9,7 @@ import {
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import {
   Evaluable,
-  IO,
+  IOV2,
   createAddOrderEvent,
   createRemoveOrderEvent,
 } from "../event-mocks.test";
@@ -36,17 +36,15 @@ describe("Add and remove orders", () => {
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
         ),
       ],
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
@@ -69,17 +67,17 @@ describe("Add and remove orders", () => {
       Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         ),
       ],
       [
-        new IO(
+        new IOV2(
           Address.fromString("0x1234567890123456789012345678901234567890"),
-          BigInt.fromI32(18),
-          BigInt.fromI32(1)
+          Bytes.fromHexString(
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          )
         ),
       ],
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),

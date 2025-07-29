@@ -81,23 +81,18 @@ impl RaindexClient {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::{
-            hex::encode_prefixed,
-            primitives::{Address, B256, U256},
-            sol_types::SolValue,
-        };
-        use alloy_ethers_typecast::rpc::Response;
+        use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
-        use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_bindings::IOrderBookV4::IO;
+        use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::json;
-        use std::{collections::HashMap, str::FromStr};
+        use std::str::FromStr;
 
         #[tokio::test]
         async fn test_get_transaction_add_orders() {
@@ -124,7 +119,7 @@ mod tests {
                                     "id": "0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf",
                                     "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                                     "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                                    "balance": "987000000000000000",
+                                    "balance": F10,
                                     "token": {
                                       "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                                       "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -151,7 +146,7 @@ mod tests {
                                     "id": "0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac",
                                     "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                                     "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                                    "balance": "797990000000000000",
+                                    "balance": F0_5,
                                     "token": {
                                       "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                       "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -286,10 +281,7 @@ mod tests {
                 )
                 .unwrap()
             );
-            assert_eq!(
-                output.balance(),
-                U256::from_str("987000000000000000").unwrap()
-            );
+            assert!(output.balance().eq(F10).unwrap());
             assert_eq!(
                 output.token().id(),
                 "0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string()
@@ -300,7 +292,7 @@ mod tests {
             );
             assert_eq!(output.token().name(), Some("Staked FLR".to_string()));
             assert_eq!(output.token().symbol(), Some("sFLR".to_string()));
-            assert_eq!(output.token().decimals(), Some(U256::from(18)));
+            assert_eq!(output.token().decimals(), 18);
             assert_eq!(
                 output.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
@@ -343,10 +335,7 @@ mod tests {
                 )
                 .unwrap()
             );
-            assert_eq!(
-                input.balance(),
-                U256::from_str("797990000000000000").unwrap()
-            );
+            assert!(input.balance().eq(F0_5).unwrap());
             assert_eq!(
                 input.token().id(),
                 "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()
@@ -357,7 +346,7 @@ mod tests {
             );
             assert_eq!(input.token().name(), Some("Wrapped Flare".to_string()));
             assert_eq!(input.token().symbol(), Some("WFLR".to_string()));
-            assert_eq!(input.token().decimals(), Some(U256::from(18)));
+            assert_eq!(input.token().decimals(), 18);
             assert_eq!(
                 input.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()

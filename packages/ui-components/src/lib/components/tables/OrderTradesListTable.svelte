@@ -6,14 +6,13 @@
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
-	import { formatUnits } from 'viem';
 	import { BugOutline } from 'flowbite-svelte-icons';
 	import type { RaindexOrder, RaindexTrade } from '@rainlanguage/orderbook';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
 	export let order: RaindexOrder;
-	export let rpcUrls: string[] | undefined = undefined;
-	export let handleDebugTradeModal: ((hash: string, rpcUrls: string[]) => void) | undefined =
+	export let rpcs: string[] | undefined = undefined;
+	export let handleDebugTradeModal: ((hash: string, rpcs: string[]) => void) | undefined =
 		undefined;
 
 	let startTimestamp: number | undefined;
@@ -94,58 +93,32 @@
 			<Hash type={HashType.Transaction} value={item.transaction.id} />
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2">
-			{formatUnits(
-				BigInt(item.inputVaultBalanceChange.amount),
-				Number(item.inputVaultBalanceChange.token.decimals ?? 0)
-			)}
+			{item.inputVaultBalanceChange.formattedAmount}
 			{item.inputVaultBalanceChange.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2">
-			{formatUnits(
-				BigInt(item.outputVaultBalanceChange.amount) * BigInt(-1),
-				Number(item.outputVaultBalanceChange.token.decimals ?? 0)
-			)}
+			{item.outputVaultBalanceChange.formattedAmount}
 			{item.outputVaultBalanceChange.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="io-ratio">
 			{Math.abs(
-				Number(
-					formatUnits(
-						BigInt(item.inputVaultBalanceChange.amount),
-						Number(item.inputVaultBalanceChange.token.decimals ?? 0)
-					)
-				) /
-					Number(
-						formatUnits(
-							BigInt(item.outputVaultBalanceChange.amount),
-							Number(item.outputVaultBalanceChange.token.decimals ?? 0)
-						)
-					)
+				Number(item.inputVaultBalanceChange.formattedAmount) /
+					Number(item.outputVaultBalanceChange.formattedAmount)
 			)}
 			<span class="text-gray-400">
 				({Math.abs(
-					Number(
-						formatUnits(
-							BigInt(item.outputVaultBalanceChange.amount),
-							Number(item.outputVaultBalanceChange.token.decimals ?? 0)
-						)
-					) /
-						Number(
-							formatUnits(
-								BigInt(item.inputVaultBalanceChange.amount),
-								Number(item.inputVaultBalanceChange.token.decimals ?? 0)
-							)
-						)
+					Number(item.outputVaultBalanceChange.formattedAmount) /
+						Number(item.inputVaultBalanceChange.formattedAmount)
 				)})
 			</span>
 		</TableBodyCell>
-		{#if rpcUrls && handleDebugTradeModal}
+		{#if rpcs && handleDebugTradeModal}
 			<TableBodyCell tdClass="py-2">
 				<button
 					data-testid="debug-trade-button"
 					class="text-gray-500 hover:text-gray-700"
 					on:click={() => {
-						if (rpcUrls) handleDebugTradeModal(item.transaction.id, rpcUrls);
+						if (rpcs) handleDebugTradeModal(item.transaction.id, rpcs);
 					}}
 				>
 					<BugOutline size="xs" />

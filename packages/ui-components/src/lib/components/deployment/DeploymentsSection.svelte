@@ -2,7 +2,7 @@
 	import { DotrainOrderGui } from '@rainlanguage/orderbook';
 	import DeploymentTile from './DeploymentTile.svelte';
 	export let dotrain: string;
-	export let strategyName: string;
+	export let orderName: string;
 </script>
 
 {#await DotrainOrderGui.getDeploymentDetails(dotrain) then result}
@@ -18,7 +18,7 @@
 			class="mr-auto grid w-full grid-cols-1 justify-items-start gap-4 md:grid-cols-2 lg:w-auto lg:grid-cols-3"
 		>
 			{#each result.value as [key, { name, description }]}
-				<DeploymentTile {name} {description} {key} {strategyName} />
+				<DeploymentTile {name} {description} {key} {orderName} />
 			{/each}
 		</div>
 	{/if}

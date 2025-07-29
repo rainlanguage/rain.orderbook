@@ -1,11 +1,15 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
-  import { settings } from '$lib/stores/settings';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
   import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
-  import { IconLedger, IconWalletConnect, ButtonLoading } from '@rainlanguage/ui-components';
+  import {
+    IconLedger,
+    IconWalletConnect,
+    ButtonLoading,
+    getNetworkName,
+  } from '@rainlanguage/ui-components';
   import type { NetworkCfg } from '@rainlanguage/orderbook';
 
   export let open = false;
@@ -28,20 +32,6 @@
       selectedWalletconnect = false;
     }
   }
-
-  const getNetworkName = (chainId: number | undefined) => {
-    if (!chainId) return 'an unknown';
-
-    const existingNetwork = Object.entries($settings?.orderbook.networks || {}).find(
-      (entry) => entry[1].chainId === chainId,
-    );
-
-    if (existingNetwork) {
-      return existingNetwork[0];
-    }
-
-    return 'an unknown';
-  };
 </script>
 
 <Modal {title} bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
@@ -109,8 +99,9 @@
       </ButtonLoading>
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
         <div class="text-red-500" data-testid="network-connection-error">
-          You are connected to {getNetworkName($walletConnectNetwork)} network. Please connect your wallet
-          to {overrideNetwork?.key || getNetworkName(chainId)} network.
+          You are connected to {getNetworkName($walletConnectNetwork) || 'an unknown'} network. Please
+          connect your wallet to {overrideNetwork?.key || getNetworkName(chainId ?? 0) || 'unknown'}
+          network.
         </div>
       {/if}
     </div>

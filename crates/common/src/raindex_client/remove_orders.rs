@@ -2,7 +2,7 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use alloy::primitives::{hex::decode, Bytes};
 use alloy::sol_types::{SolCall, SolValue};
-use rain_orderbook_bindings::IOrderBookV4::{removeOrder2Call, OrderV3};
+use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, OrderV4};
 use rain_orderbook_subgraph_client::types::{order_detail_traits::OrderDetailError, Id};
 use std::sync::{Arc, RwLock};
 
@@ -65,6 +65,7 @@ impl RaindexClient {
         let orders = client
             .transaction_remove_orders(Id::new(tx_hash.to_string()))
             .await?;
+
         let orders = orders
             .into_iter()
             .map(|value| {
@@ -105,26 +106,25 @@ impl RaindexOrder {
         unchecked_return_type = "Hex"
     )]
     pub fn get_remove_calldata(&self) -> Result<Bytes, RaindexError> {
-        let remove_order_call = removeOrder2Call {
+        let remove_order_call = removeOrder3Call {
             order: self.try_into()?,
             tasks: vec![],
         };
         Ok(Bytes::copy_from_slice(&remove_order_call.abi_encode()))
     }
 }
-impl TryInto<OrderV3> for &RaindexOrder {
+
+impl TryInto<OrderV4> for &RaindexOrder {
     type Error = OrderDetailError;
-    fn try_into(self) -> Result<OrderV3, Self::Error> {
-        let order = rain_orderbook_bindings::IOrderBookV4::OrderV3::abi_decode(
-            &decode(self.order_bytes().to_string())?,
-            true,
-        )?;
+    fn try_into(self) -> Result<OrderV4, Self::Error> {
+        let order = OrderV4::abi_decode(&decode(self.order_bytes().to_string())?)?;
         Ok(order)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
 
     #[cfg(not(target_family = "wasm"))]
@@ -133,6 +133,7 @@ mod tests {
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
+        use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
         use std::str::FromStr;
 
@@ -161,7 +162,7 @@ mod tests {
                                     "id": "0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf",
                                     "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                                     "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                                    "balance": "987000000000000000",
+                                    "balance": F10,
                                     "token": {
                                       "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                                       "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -188,7 +189,7 @@ mod tests {
                                     "id": "0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac",
                                     "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                                     "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                                    "balance": "797990000000000000",
+                                    "balance": F0_5,
                                     "token": {
                                       "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                       "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -323,10 +324,7 @@ mod tests {
                 )
                 .unwrap()
             );
-            assert_eq!(
-                output.balance(),
-                U256::from_str("987000000000000000").unwrap()
-            );
+            assert!(output.balance().eq(F10).unwrap());
             assert_eq!(
                 output.token().id(),
                 "0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string()
@@ -337,7 +335,7 @@ mod tests {
             );
             assert_eq!(output.token().name(), Some("Staked FLR".to_string()));
             assert_eq!(output.token().symbol(), Some("sFLR".to_string()));
-            assert_eq!(output.token().decimals(), Some(U256::from(18)));
+            assert_eq!(output.token().decimals(), 18);
             assert_eq!(
                 output.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
@@ -380,10 +378,7 @@ mod tests {
                 )
                 .unwrap()
             );
-            assert_eq!(
-                input.balance(),
-                U256::from_str("797990000000000000").unwrap()
-            );
+            assert!(input.balance().eq(F0_5).unwrap());
             assert_eq!(
                 input.token().id(),
                 "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()
@@ -394,7 +389,7 @@ mod tests {
             );
             assert_eq!(input.token().name(), Some("Wrapped Flare".to_string()));
             assert_eq!(input.token().symbol(), Some("WFLR".to_string()));
-            assert_eq!(input.token().decimals(), Some(U256::from(18)));
+            assert_eq!(input.token().decimals(), 18);
             assert_eq!(
                 input.orderbook(),
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
@@ -489,7 +484,7 @@ mod tests {
             let calldata = order.get_remove_calldata().unwrap();
             assert_eq!(
                 calldata,
-                Bytes::from_str("0x8d7b6beb000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000003000000000000000000000000006171c21b2e553c59a64d1337211b77c367cefe5d00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000379b966dc6b117dd47b5fc5308534256a4ab1bcc0000000000000000000000006e4b01603edbda617002a077420e98c86595748e000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000950000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c020200020110000001100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000050c5725949a6f0c72e6c4a641f24049a917db0cb000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000").unwrap()
+                Bytes::from_str("0x1f69cb75000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000002c00000000000000000000000006171c21b2e553c59a64d1337211b77c367cefe5d00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000379b966dc6b117dd47b5fc5308534256a4ab1bcc0000000000000000000000006e4b01603edbda617002a077420e98c86595748e000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000950000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c020200020110000001100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000050c5725949a6f0c72e6c4a641f24049a917db0cb00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000").unwrap()
             );
         }
     }

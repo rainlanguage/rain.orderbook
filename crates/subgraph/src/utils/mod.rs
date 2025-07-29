@@ -1,3 +1,4 @@
+pub mod float;
 mod order_id;
 mod slice_list;
 

@@ -1,3 +1,5 @@
+use rain_math_float::Float;
+
 use super::*;
 
 impl OrderbookSubgraphClient {
@@ -19,19 +21,25 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<SgVault>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
-        let mut filters = SgVaultsListQueryFilters {
-            owner_in: filter_args.owners.clone(),
-            balance_gt: None,
+        let balance_not = if filter_args.hide_zero_balance {
+            Some(SgBytes(Float::default().0.to_string()))
+        } else {
+            None
         };
 
-        if filter_args.hide_zero_balance {
-            filters.balance_gt = Some(SgBigInt("0".to_string()));
-        }
+        let filters = SgVaultsListQueryFilters {
+            owner_in: filter_args.owners.clone(),
+            balance_not,
+            token_in: filter_args.tokens.clone(),
+        };
 
         let variables = SgVaultsListQueryVariables {
             first: pagination_variables.first,
             skip: pagination_variables.skip,
-            filters: if !filter_args.owners.is_empty() || filter_args.hide_zero_balance {
+            filters: if !filter_args.owners.is_empty()
+                || filter_args.hide_zero_balance
+                || !filter_args.tokens.is_empty()
+            {
                 Some(filters)
             } else {
                 None
@@ -56,6 +64,7 @@ impl OrderbookSubgraphClient {
                     SgVaultsListFilterArgs {
                         owners: vec![],
                         hide_zero_balance: true,
+                        tokens: vec![],
                     },
                     SgPaginationArgs {
                         page,
@@ -130,6 +139,7 @@ mod tests {
         SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction, SgVault,
         SgVaultBalanceChangeUnwrapped, SgVaultBalanceChangeVault, SgVaultsListFilterArgs,
     };
+    use crate::utils::float::*;
     use cynic::Id;
     use httpmock::prelude::*;
     use reqwest::Url;
@@ -168,8 +178,8 @@ mod tests {
         SgVault {
             id: SgBytes("0xVaultIdDefault".to_string()),
             owner: SgBytes("0xOwnerAddressDefault".to_string()),
-            vault_id: SgBigInt("1234567890".to_string()),
-            balance: SgBigInt("1000000000000000000".to_string()),
+            vault_id: SgBytes("1234567890".to_string()),
+            balance: SgBytes(F1.as_hex()),
             token: default_sg_erc20(),
             orderbook: default_sg_orderbook(),
             orders_as_output: vec![default_sg_order_as_io()],
@@ -249,7 +259,7 @@ mod tests {
     fn default_sg_vault_balance_change_vault_ref() -> SgVaultBalanceChangeVault {
         SgVaultBalanceChangeVault {
             id: SgBytes("0xVaultIdForBalanceChange".to_string()),
-            vault_id: SgBigInt("12345".to_string()),
+            vault_id: SgBytes("12345".to_string()),
             token: default_sg_erc20(),
         }
     }
@@ -257,9 +267,9 @@ mod tests {
     fn default_sg_vault_balance_change_unwrapped() -> SgVaultBalanceChangeUnwrapped {
         SgVaultBalanceChangeUnwrapped {
             __typename: "Deposit".to_string(),
-            amount: SgBigInt("500000000000000000".to_string()),
-            new_vault_balance: SgBigInt("1500000000000000000".to_string()),
-            old_vault_balance: SgBigInt("1000000000000000000".to_string()),
+            amount: SgBytes(F0_5.as_hex()),
+            new_vault_balance: SgBytes(F1_5.as_hex()),
+            old_vault_balance: SgBytes(F1.as_hex()),
             vault: default_sg_vault_balance_change_vault_ref(),
             timestamp: SgBigInt("1700000100".to_string()),
             transaction: default_sg_transaction(),
@@ -344,6 +354,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -377,6 +388,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![owner_address.clone()],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -405,6 +417,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: true,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -415,13 +428,12 @@ mod tests {
         sg_server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200)
                 .json_body(json!({"data": {"vaults": expected_vaults}}));
         });
 
         let result = client.vaults_list(filter_args, pagination_args).await;
-        assert!(result.is_ok());
         let vaults = result.unwrap();
         assert_eq!(vaults.len(), expected_vaults.len());
     }
@@ -433,6 +445,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 2,
@@ -460,6 +473,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -483,6 +497,7 @@ mod tests {
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -515,7 +530,7 @@ mod tests {
                 .path("/")
                 .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
                 .body_contains("\"skip\":0")
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200)
                 .json_body(json!({"data": {"vaults": vaults_page1}}));
         });
@@ -524,7 +539,7 @@ mod tests {
                 .path("/")
                 .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
                 .body_contains(format!("\"skip\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200)
                 .json_body(json!({"data": {"vaults": vaults_page2}}));
         });
@@ -533,12 +548,11 @@ mod tests {
                 .path("/")
                 .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
                 .body_contains(format!("\"skip\":{}", ALL_PAGES_QUERY_PAGE_SIZE * 2))
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200).json_body(json!({"data": {"vaults": []}}));
         });
 
         let result = client.vaults_list_all().await;
-        assert!(result.is_ok());
         let vaults = result.unwrap();
         assert_eq!(vaults.len(), ALL_PAGES_QUERY_PAGE_SIZE as usize + 50);
     }
@@ -552,11 +566,10 @@ mod tests {
                 .path("/")
                 .body_contains(format!("\"first\":{}", ALL_PAGES_QUERY_PAGE_SIZE))
                 .body_contains("\"skip\":0")
-                .body_contains("\"balance_gt\":\"0\"");
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"");
             then.status(200).json_body(json!({"data": {"vaults": []}}));
         });
         let result = client.vaults_list_all().await;
-        assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
 
@@ -737,5 +750,98 @@ mod tests {
         let result = client.vault_balance_changes_list_all(vault_id).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_token_filter() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let token_address = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913".to_string();
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: vec![token_address.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"token_in\":[\"{}\"]", token_address));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_multiple_token_filters() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let token1 = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913".to_string();
+        let token2 = "0xa0b86a33e6441f8c5e1e2a9f8c5e1e2a9f8c5e1e".to_string();
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: vec![token1.clone(), token2.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault(), default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"token_in\":[\"{}\",\"{}\"]", token1, token2));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_token_and_other_filters() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let token_address = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913".to_string();
+        let owner_address = SgBytes("0xowner123".to_string());
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![owner_address.clone()],
+            hide_zero_balance: true,
+            tokens: vec![token_address.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 5,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains("\"owner_in\":[\"0xowner123\"]")
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"")
+                .body_contains(format!("\"token_in\":[\"{}\"]", token_address));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
     }
 }

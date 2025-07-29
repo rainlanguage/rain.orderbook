@@ -65,13 +65,14 @@ impl Execute for AddOrderCalldata {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{hex::encode_prefixed, Address, Bytes, B256};
-    use alloy::sol_types::SolValue;
-    use alloy_ethers_typecast::rpc::Response;
+    use alloy::dyn_abi::SolType;
+    use alloy::primitives::{hex::encode_prefixed, Address};
+    use alloy::sol;
     use clap::CommandFactory;
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
+    use serde_json::json;
     use std::io::Write;
     use std::str::FromStr;
     use tempfile::NamedTempFile;
@@ -121,61 +122,53 @@ mod tests {
     }
 
     async fn mock_orderbook_rpc_calls(rpc_server: &MockServer) {
+        // Helper to build ABI-encoded address return values.
+        let build_address_return = |id: u64| {
+            let addr = Address::random();
+            let encoded_ret = <sol!((address,))>::abi_encode(&(addr,));
+            json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": encode_prefixed(encoded_ret)
+            })
+        };
+
         // mock iInterpreter() call
         rpc_server.mock(|when, then| {
             when.path("/rpc").body_contains("0xf0cfdd37");
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    Response::new_success(
-                        1,
-                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                .json_body(build_address_return(1));
         });
+
         // mock iStore() call
         rpc_server.mock(|when, then| {
             when.path("/rpc").body_contains("0xc19423bc");
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    Response::new_success(
-                        2,
-                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                .json_body(build_address_return(2));
         });
+
         // mock iParser() call
         rpc_server.mock(|when, then| {
             when.path("/rpc").body_contains("0x24376855");
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    Response::new_success(
-                        3,
-                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                .json_body(build_address_return(3));
         });
+
         // mock parse2() call
         rpc_server.mock(|when, then| {
             when.path("/rpc").body_contains("0xa3869e14");
+
+            let encoded_ret = <sol!((bytes,))>::abi_encode(&(vec![0x01u8, 0x02u8],));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    Response::new_success(
-                        4,
-                        &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()),
-                    )
-                    .to_json_string()
-                    .unwrap(),
-                );
+                .json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 4,
+                    "result": encode_prefixed(encoded_ret)
+                }));
         });
     }
 

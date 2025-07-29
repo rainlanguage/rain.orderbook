@@ -11,7 +11,7 @@ pub enum TransactionStatus {
     Initialized,
     PendingPrepare,
     PendingSign,
-    PendingSend,
+    Sending,
     Confirmed(String),
     Failed(String),
 }

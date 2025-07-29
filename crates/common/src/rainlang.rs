@@ -164,8 +164,8 @@ pub use fork_parse::*;
 #[cfg(not(target_family = "wasm"))]
 mod fork_parse {
     use alloy::primitives::{bytes::Bytes, Address};
-    use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
-    use once_cell::sync::Lazy;
+    use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
+    use once_cell::sync::OnceCell;
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_interpreter_eval::error::ForkCallError;
     use rain_interpreter_eval::eval::ForkParseArgs;
@@ -175,7 +175,12 @@ mod fork_parse {
     use thiserror::Error;
     use tokio::sync::Mutex;
 
-    pub static FORKER: Lazy<Arc<Mutex<Forker>>> = Lazy::new(|| Arc::new(Mutex::new(Forker::new())));
+    /// Lazily-initialised shared [`Forker`] wrapped in an `Arc<Mutex<..>>`.
+    ///
+    /// The instance is created on first access via `get_or_try_init`,
+    /// allowing the caller to handle any initialisation errors instead of
+    /// unwrapping (panicking) at start-up.
+    pub static FORKER: OnceCell<Arc<Mutex<Forker>>> = OnceCell::new();
 
     #[derive(Debug, Error)]
     pub enum ForkParseError {
@@ -215,12 +220,22 @@ mod fork_parse {
         let block_number_val = match block_number {
             Some(b) => b,
             None => {
-                let client = ReadableClientHttp::new_from_urls(rpcs.clone())?;
+                let client = ReadableClient::new_from_http_urls(rpcs.clone())?;
                 client.get_block_number().await?
             }
         };
 
-        let mut forker = FORKER.lock().await;
+        // Lazily initialize the global `FORKER` (if required) and obtain a lock.
+        let fork_arc = FORKER
+            .get_or_try_init(|| {
+                Forker::new()
+                    .map_err(ForkCallError::from)
+                    .map(|f| Arc::new(Mutex::new(f)))
+            })
+            .map_err(ForkParseError::from)?
+            .clone();
+
+        let mut forker = fork_arc.lock().await;
         let mut err: Option<ForkParseError> = None;
 
         if rpcs.is_empty() {

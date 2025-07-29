@@ -3,12 +3,12 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args};
-use rain_orderbook_app_settings::Config;
+use rain_orderbook_app_settings::yaml::dotrain::{DotrainYaml, DotrainYamlValidation};
+use rain_orderbook_app_settings::yaml::YamlParsable;
 use rain_orderbook_common::add_order::AddOrderArgs;
-use rain_orderbook_common::frontmatter::parse_frontmatter;
+use rain_orderbook_common::dotrain::RainDocument;
 use rain_orderbook_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
-use std::ops::Deref;
 use std::path::PathBuf;
 use tracing::info;
 
@@ -35,17 +35,15 @@ pub struct CliOrderAddArgs {
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
-        let config: Config = parse_frontmatter(text.clone()).await?.try_into()?;
+        let dotrain_yaml = DotrainYaml::new(
+            vec![RainDocument::get_front_matter(text.as_str())
+                .unwrap_or("")
+                .to_string()],
+            DotrainYamlValidation::default(),
+        )?;
+        let config_deployment = dotrain_yaml.get_deployment(&self.deployment)?;
 
-        let config_deployment = config
-            .deployments
-            .get(&self.deployment)
-            .ok_or(anyhow!("specified deployment is undefined!"))?;
-
-        Ok(
-            AddOrderArgs::new_from_deployment(text.clone(), config_deployment.deref().clone())
-                .await?,
-        )
+        Ok(AddOrderArgs::new_from_deployment(text.clone(), config_deployment.clone()).await?)
     }
 }
 
@@ -77,21 +75,23 @@ impl Execute for CliOrderAddArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
+    use alloy::primitives::{address, Address, B256, U256};
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IOrderBookV4::IO;
+    use rain_orderbook_bindings::IOrderBookV5::IOV2;
     use std::{collections::HashMap, str::FromStr};
+    use tempfile::NamedTempFile;
 
     #[tokio::test]
     async fn test_to_add_order_args() {
         let dotrain = get_dotrain();
 
-        let dotrain_path = "./test_dotrain_add_order.rain";
-        std::fs::write(dotrain_path, dotrain).unwrap();
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path().to_path_buf();
+        std::fs::write(dotrain_path.clone(), dotrain).unwrap();
 
         let cli_order_add_args = CliOrderAddArgs {
             no_broadcast: false,
-            dotrain_file: dotrain_path.into(),
+            dotrain_file: dotrain_path,
             deployment: "some-deployment".to_string(),
             transaction_args: CliTransactionArgs {
                 orderbook_address: Address::random(),
@@ -100,30 +100,24 @@ mod tests {
                 rpcs: vec!["https://some-rpc.com".to_string()],
                 max_fee_per_gas: None,
                 max_priority_fee_per_gas: None,
-                gas_fee_speed: None,
             },
         };
 
         let result = cli_order_add_args.to_add_order_args().await.unwrap();
         let expected = AddOrderArgs {
             dotrain: get_dotrain(),
-            inputs: vec![IO {
-                token: Address::from_str("0xc2132d05d31c914a87c6611c10748aeb04b58e8f").unwrap(),
-                decimals: 6,
-                vaultId: U256::from(1),
+            inputs: vec![IOV2 {
+                token: address!("0xc2132d05d31c914a87c6611c10748aeb04b58e8f"),
+                vaultId: B256::from(U256::from(1)),
             }],
-            outputs: vec![IO {
-                token: Address::from_str("0x8f3cf7ad23cd3cadbd9735aff958023239c6a063").unwrap(),
-                decimals: 18,
-                vaultId: U256::from(1),
+            outputs: vec![IOV2 {
+                token: address!("0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"),
+                vaultId: B256::from(U256::from(1)),
             }],
             deployer: Address::from_str("0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba").unwrap(),
             bindings: HashMap::new(),
         };
         assert_eq!(result, expected);
-
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     fn get_dotrain() -> String {

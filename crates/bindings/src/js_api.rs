@@ -1,46 +1,45 @@
-use crate::IOrderBookV4::{
-    EvaluableV3, OrderV3, Quote, SignedContextV1, TakeOrderConfigV3, TakeOrdersConfigV3, IO,
+use crate::IOrderBookV5::{
+    EvaluableV4, OrderV4, QuoteV2, SignedContextV1, TakeOrderConfigV4, TakeOrdersConfigV4, IOV2,
 };
 use wasm_bindgen_utils::{impl_custom_tsify, impl_wasm_traits, prelude::*};
 
-impl_wasm_traits!(IO);
-impl_wasm_traits!(Quote);
-impl_wasm_traits!(OrderV3);
-impl_wasm_traits!(EvaluableV3);
+impl_wasm_traits!(IOV2);
+impl_wasm_traits!(QuoteV2);
+impl_wasm_traits!(OrderV4);
+impl_wasm_traits!(EvaluableV4);
 impl_wasm_traits!(SignedContextV1);
-impl_wasm_traits!(TakeOrderConfigV3);
-impl_wasm_traits!(TakeOrdersConfigV3);
+impl_wasm_traits!(TakeOrderConfigV4);
+impl_wasm_traits!(TakeOrdersConfigV4);
 
 impl_custom_tsify!(
-    IO,
-    "export interface IO {
+    IOV2,
+    "export interface IOV2 {
     token: string;
-    decimals: number;
     vaultId: string;
 }"
 );
 impl_custom_tsify!(
-    Quote,
-    "export interface Quote {
-    order: OrderV3;
+    QuoteV2,
+    "export interface QuoteV2 {
+    order: OrderV4;
     inputIOIndex: string;
     outputIOIndex: string;
     signedContext: SignedContextV1[];
 }"
 );
 impl_custom_tsify!(
-    OrderV3,
-    "export interface OrderV3 {
+    OrderV4,
+    "export interface OrderV4 {
     owner: string;
-    evaluable: EvaluableV3;
-    validInputs: IO[];
-    validOutputs: IO[];
+    evaluable: EvaluableV4;
+    validInputs: IOV2[];
+    validOutputs: IOV2[];
     nonce: string;
 }"
 );
 impl_custom_tsify!(
-    EvaluableV3,
-    "export interface EvaluableV3 {
+    EvaluableV4,
+    "export interface EvaluableV4 {
     interpreter: string;
     store: string;
     bytecode: string;
@@ -55,21 +54,21 @@ impl_custom_tsify!(
 }"
 );
 impl_custom_tsify!(
-    TakeOrderConfigV3,
-    "export interface TakeOrderConfigV3 {
-    order: OrderV3;
+    TakeOrderConfigV4,
+    "export interface TakeOrderConfigV4 {
+    order: OrderV4;
     inputIOIndex: string;
     outputIOIndex: string;
     signedContext: SignedContextV1[];
 }"
 );
 impl_custom_tsify!(
-    TakeOrdersConfigV3,
-    "export interface TakeOrdersConfigV3 {
+    TakeOrdersConfigV4,
+    "export interface TakeOrdersConfigV4 {
     minimumInput: string;
     maximumInput: string;
     maximumIORatio: string;
-    orders: TakeOrderConfigV3[];
+    orders: TakeOrderConfigV4[];
     data: string;
 }"
 );
@@ -83,16 +82,15 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_io_tsify() {
-        let js_io = to_js_value(&IO::default()).unwrap();
+        let js_io = to_js_value(&IOV2::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("token").unwrap().js_in(&js_io));
-        assert!(JsString::from_str("decimals").unwrap().js_in(&js_io));
         assert!(JsString::from_str("vaultId").unwrap().js_in(&js_io));
     }
 
     #[wasm_bindgen_test]
     fn test_quote_tsify() {
-        let js_quote = to_js_value(&Quote::default()).unwrap();
+        let js_quote = to_js_value(&QuoteV2::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("order").unwrap().js_in(&js_quote));
         assert!(JsString::from_str("inputIOIndex").unwrap().js_in(&js_quote));
@@ -105,8 +103,8 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_orderv3_tsify() {
-        let js_order = to_js_value(&OrderV3::default()).unwrap();
+    fn test_orderv4_tsify() {
+        let js_order = to_js_value(&OrderV4::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("owner").unwrap().js_in(&js_order));
         assert!(JsString::from_str("evaluable").unwrap().js_in(&js_order));
@@ -116,8 +114,8 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_evaluablev3_tsify() {
-        let js_evaluable = to_js_value(&EvaluableV3::default()).unwrap();
+    fn test_evaluablev4_tsify() {
+        let js_evaluable = to_js_value(&EvaluableV4::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("interpreter")
             .unwrap()
@@ -142,8 +140,8 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_take_order_config_v3_tsify() {
-        let js_take_order_config = to_js_value(&TakeOrderConfigV3::default()).unwrap();
+    fn test_take_order_config_v4_tsify() {
+        let js_take_order_config = to_js_value(&TakeOrderConfigV4::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("order")
             .unwrap()
@@ -160,8 +158,8 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_take_orders_config_v3_tsify() {
-        let js_take_orders_config = to_js_value(&TakeOrdersConfigV3::default()).unwrap();
+    fn test_take_orders_config_v4_tsify() {
+        let js_take_orders_config = to_js_value(&TakeOrdersConfigV4::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("minimumInput")
             .unwrap()
