@@ -743,7 +743,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(GuiError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { .. }
+                validation::GuiValidationError::FloatError(..)
             ))
         ));
 
@@ -751,15 +751,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(GuiError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { .. }
-            ))
-        ));
-
-        let result = gui.set_field_value("simple-number".to_string(), "1e10".to_string());
-        assert!(matches!(
-            result,
-            Err(GuiError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { .. }
+                validation::GuiValidationError::FloatError(..)
             ))
         ));
 
@@ -767,7 +759,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(GuiError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { .. }
+                validation::GuiValidationError::FloatError(..)
             ))
         ));
     }

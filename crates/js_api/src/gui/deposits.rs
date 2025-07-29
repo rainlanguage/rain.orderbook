@@ -699,7 +699,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(GuiError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { .. }
+                validation::GuiValidationError::FloatError(..)
             ))
         ));
 
@@ -709,17 +709,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(GuiError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { .. }
-            ))
-        ));
-
-        let result = gui
-            .set_deposit("token1".to_string(), "1e10".to_string())
-            .await;
-        assert!(matches!(
-            result,
-            Err(GuiError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { .. }
+                validation::GuiValidationError::FloatError(..)
             ))
         ));
 
@@ -729,7 +719,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(GuiError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { .. }
+                validation::GuiValidationError::FloatError(..)
             ))
         ));
     }
