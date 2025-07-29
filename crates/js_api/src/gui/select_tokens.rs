@@ -258,7 +258,31 @@ impl DotrainOrderGui {
         Ok(true)
     }
 
-    #[wasm_export(js_name = "getAllTokens", unchecked_return_type = "TokenInfo[]")]
+    /// Gets all tokens configured for the selected deployment's network.
+    ///
+    /// Retrieves token information from the YAML configuration, using cached
+    /// metadata when available or fetching from blockchain via ERC20 contracts.
+    /// Results are sorted by address and deduplicated.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.getAllTokens();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const tokens = result.value;
+    /// tokens.forEach(token => {
+    ///   console.log(`${token.symbol}: ${token.address}`);
+    /// });
+    /// ```
+    #[wasm_export(
+        js_name = "getAllTokens",
+        unchecked_return_type = "TokenInfo[]",
+        return_description = "Array of token information for the current network"
+    )]
     pub async fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
