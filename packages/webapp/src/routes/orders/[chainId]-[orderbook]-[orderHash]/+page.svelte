@@ -5,14 +5,22 @@
 	import {
 		handleDepositModal,
 		handleTransactionConfirmationModal,
-		handleWithdrawModal
+		handleWithdrawModal,
+		handleWithdrawAllModal
 	} from '$lib/services/modal';
-	import type { Address, RaindexClient, RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
+	import type {
+		Address,
+		RaindexClient,
+		RaindexOrder,
+		RaindexVault,
+		VaultsList
+	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
+	import { handleVaultsWithdrawAll } from '$lib/services/handleVaultsWithdrawAll';
 
 	const { orderHash, chainId, orderbook } = $page.params;
 	const parsedOrderHash = orderHash as Hex;
@@ -56,6 +64,18 @@
 			account: $account as Hex
 		});
 	}
+
+	async function onWithdrawAll(raindexClient: RaindexClient, vaultsList: VaultsList) {
+		await handleVaultsWithdrawAll({
+			raindexClient,
+			vaultsList,
+			handleWithdrawAllModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			account: $account as Hex
+		});
+	}
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -70,4 +90,5 @@
 	{onRemove}
 	{onDeposit}
 	{onWithdraw}
+	{onWithdrawAll}
 />

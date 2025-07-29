@@ -58,7 +58,8 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	lightweightChartsTheme: readable(darkChartTheme),
 	onRemove: vi.fn(),
 	onDeposit: vi.fn(),
-	onWithdraw: vi.fn()
+	onWithdraw: vi.fn(),
+	onWithdrawAll: vi.fn()
 };
 
 const mockOrder: RaindexOrder = {

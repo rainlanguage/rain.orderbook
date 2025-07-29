@@ -28,6 +28,7 @@
 		RaindexClient,
 		RaindexOrder,
 		RaindexVault,
+		VaultsList,
 		type Address,
 		type Hex
 	} from '@rainlanguage/orderbook';
@@ -58,6 +59,11 @@
 	 * @param vault The vault to withdraw from
 	 */
 	export let onWithdraw: (raindexClient: RaindexClient, vault: RaindexVault) => void;
+
+	/** Callback function when withdraw all action is triggered for a vault
+	 * @param vaultsList The VaultsList struct containing the vaults to withdraw from
+	 */
+	export let onWithdrawAll: (raindexClient: RaindexClient, vaultsList: VaultsList) => void;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
@@ -194,6 +200,18 @@
 					</CardProperty>
 				{/if}
 			{/each}
+			<Button
+				size="xs"
+				on:click={() =>
+					$orderDetailQuery.data?.vaultsList &&
+					onWithdrawAll(raindexClient, $orderDetailQuery.data.vaultsList)}
+				disabled={!$orderDetailQuery.data?.vaultsList ||
+					$orderDetailQuery.data?.vaultsList?.getVaults()?.value?.length === 0}
+				data-testid="withdraw-all-button"
+			>
+				<ArrowUpFromBracketOutline class="mr-2" />
+				Withdraw all vaults
+			</Button>
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="chart" let:data>
