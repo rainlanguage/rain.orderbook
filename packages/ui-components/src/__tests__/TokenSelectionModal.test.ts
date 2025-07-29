@@ -240,4 +240,20 @@ describe('TokenSelectionModal', () => {
 			expect(mockGuiNoResults.getAllTokens).toHaveBeenCalledWith(undefined);
 		});
 	});
+
+	it('automatically focuses search input when modal opens', async () => {
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		await waitFor(() => {
+			const searchInput = screen.getByPlaceholderText('Search tokens...');
+			expect(searchInput).toHaveFocus();
+		});
+	});
 });

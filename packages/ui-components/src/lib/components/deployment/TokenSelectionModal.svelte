@@ -3,7 +3,7 @@
 	import { SearchOutline, CheckCircleSolid, ChevronDownSolid } from 'flowbite-svelte-icons';
 	import type { TokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	export let selectedToken: TokenInfo | null = null;
 	export let onSelect: (token: TokenInfo) => void;
@@ -48,6 +48,15 @@
 	$: displayText = selectedToken
 		? `${selectedToken.name} (${selectedToken.symbol})`
 		: 'Select a token...';
+
+	$: if (modalOpen) {
+		tick().then(() => {
+			const input = document.querySelector('.token-search-input') as HTMLInputElement;
+			if (input) {
+				input.focus();
+			}
+		});
+	}
 </script>
 
 <div class="token-dropdown">
@@ -77,7 +86,7 @@
 					placeholder="Search tokens..."
 					bind:value={searchQuery}
 					on:input={handleSearch}
-					class="pl-10"
+					class="token-search-input pl-10"
 				/>
 			</div>
 
