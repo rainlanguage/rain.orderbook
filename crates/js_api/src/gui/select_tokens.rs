@@ -262,28 +262,29 @@ impl DotrainOrderGui {
     ///
     /// Retrieves token information from the YAML configuration, using cached
     /// metadata when available or fetching from blockchain via ERC20 contracts.
-    /// Results are sorted by address and deduplicated.
+    /// Results are filtered by the search term (matching name or address) and
+    /// sorted by address and deduplicated.
     ///
     /// ## Examples
     ///
     /// ```javascript
+    /// // Get all tokens
     /// const result = await gui.getAllTokens();
-    /// if (result.error) {
-    ///   console.error("Error:", result.error.readableMsg);
-    ///   return;
-    /// }
-    ///
-    /// const tokens = result.value;
-    /// tokens.forEach(token => {
-    ///   console.log(`${token.symbol}: ${token.address}`);
-    /// });
+    /// 
+    /// // Search for specific tokens
+    /// const usdcResult = await gui.getAllTokens("USDC");
+    /// const addressResult = await gui.getAllTokens("0x1234...");
     /// ```
     #[wasm_export(
         js_name = "getAllTokens",
         unchecked_return_type = "TokenInfo[]",
         return_description = "Array of token information for the current network"
     )]
-    pub async fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
+    pub async fn get_all_tokens(
+        &self,
+        #[wasm_export(param_description = "Optional search term to filter tokens by name, symbol, or address")]
+        search: Option<String>,
+    ) -> Result<Vec<TokenInfo>, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
@@ -348,6 +349,17 @@ impl DotrainOrderGui {
         results.dedup_by(|a, b| {
             a.address.to_string().to_lowercase() == b.address.to_string().to_lowercase()
         });
+
+        if let Some(search_term) = search {
+            if !search_term.is_empty() {
+                let search_lower = search_term.to_lowercase();
+                results.retain(|token| {
+                    token.name.to_lowercase().contains(&search_lower)
+                        || token.symbol.to_lowercase().contains(&search_lower)
+                        || token.address.to_string().to_lowercase().contains(&search_lower)
+                });
+            }
+        }
 
         Ok(results)
     }
@@ -640,7 +652,7 @@ mod tests {
                 "TO".to_string(),
             );
 
-            let tokens = gui.get_all_tokens().await.unwrap();
+            let tokens = gui.get_all_tokens(None).await.unwrap();
             assert_eq!(tokens.len(), 4);
             assert_eq!(
                 tokens[0].address.to_string(),
@@ -656,6 +668,144 @@ mod tests {
             assert_eq!(tokens[1].decimals, 6);
             assert_eq!(tokens[1].name, "Token 4");
             assert_eq!(tokens[1].symbol, "T4");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_tokens_search_by_name() {
+            let gui = initialize_gui_with_select_tokens().await;
+
+            gui.add_record_to_yaml(
+                "token3".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+                "18".to_string(),
+                "Token 3".to_string(),
+                "T3".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token4".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+                "6".to_string(),
+                "Token 4".to_string(),
+                "T4".to_string(),
+            );
+
+            let tokens = gui.get_all_tokens(Some("Token 3".to_string())).await.unwrap();
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0].name, "Token 3");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_tokens_search_by_symbol() {
+            let gui = initialize_gui_with_select_tokens().await;
+
+            gui.add_record_to_yaml(
+                "token3".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+                "18".to_string(),
+                "Token 3".to_string(),
+                "T3".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token4".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+                "6".to_string(),
+                "Token 4".to_string(),
+                "T4".to_string(),
+            );
+
+            let tokens = gui.get_all_tokens(Some("T4".to_string())).await.unwrap();
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0].symbol, "T4");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_tokens_search_by_address() {
+            let gui = initialize_gui_with_select_tokens().await;
+
+            gui.add_record_to_yaml(
+                "token3".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+                "18".to_string(),
+                "Token 3".to_string(),
+                "T3".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token4".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+                "6".to_string(),
+                "Token 4".to_string(),
+                "T4".to_string(),
+            );
+
+            let tokens = gui.get_all_tokens(Some("0x0000000000000000000000000000000000000002".to_string())).await.unwrap();
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0].address.to_string(), "0x0000000000000000000000000000000000000002");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_tokens_search_partial_match() {
+            let gui = initialize_gui_with_select_tokens().await;
+
+            gui.add_record_to_yaml(
+                "usdc".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+                "6".to_string(),
+                "USD Coin".to_string(),
+                "USDC".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "usdt".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+                "6".to_string(),
+                "Tether USD".to_string(),
+                "USDT".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "eth".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000003".to_string(),
+                "18".to_string(),
+                "Ethereum".to_string(),
+                "ETH".to_string(),
+            );
+
+            let tokens = gui.get_all_tokens(Some("USD".to_string())).await.unwrap();
+            assert_eq!(tokens.len(), 2);
+            
+            for token in &tokens {
+                assert!(
+                    token.name.contains("USD") || token.symbol.contains("USD"),
+                    "Token {} should contain 'USD' in name or symbol", token.symbol
+                );
+            }
+
+            let tokens = gui.get_all_tokens(Some("000000000000000000000000000000000000000".to_string())).await.unwrap();
+            assert_eq!(tokens.len(), 3);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_tokens_search_empty_string() {
+            let gui = initialize_gui_with_select_tokens().await;
+
+            gui.add_record_to_yaml(
+                "token3".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+                "18".to_string(),
+                "Token 3".to_string(),
+                "T3".to_string(),
+            );
+
+            let tokens = gui.get_all_tokens(Some("".to_string())).await.unwrap();
+            assert_eq!(tokens.len(), 3);
         }
     }
 
