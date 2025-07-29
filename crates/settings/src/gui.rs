@@ -34,7 +34,6 @@ pub enum FieldValueValidationCfg {
         exclusive_maximum: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         multiple_of: Option<String>,
-        decimals: u8,
     },
     String {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -47,7 +46,6 @@ pub enum FieldValueValidationCfg {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(FieldValueValidationCfg);
 
-// For deposits, we use a simpler type since type is implicit
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
@@ -953,23 +951,6 @@ fn parse_field_validation(
             multiple_of: get_hash_value_as_option(yaml, "multiple-of")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            decimals: get_hash_value(yaml, "decimals", Some(location.to_string()))?
-                .as_str()
-                .ok_or(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "decimals".to_string(),
-                        expected: "a string".to_string(),
-                    },
-                    location: location.to_string(),
-                })?
-                .parse::<u8>()
-                .map_err(|_| YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "decimals".to_string(),
-                        expected: "a valid number".to_string(),
-                    },
-                    location: location.to_string(),
-                })?,
         }),
         "string" => Ok(FieldValueValidationCfg::String {
             min_length: get_hash_value_as_option(yaml, "min-length")

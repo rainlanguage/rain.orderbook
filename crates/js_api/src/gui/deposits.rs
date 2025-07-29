@@ -145,12 +145,7 @@ impl DotrainOrderGui {
 
         if let Some(validation) = &gui_deposit.validation {
             let token_info = self.get_token_info(token.clone()).await?;
-            validation::validate_deposit_amount(
-                &token_info.name,
-                &amount,
-                validation,
-                token_info.decimals,
-            )?;
+            validation::validate_deposit_amount(&token_info.name, &amount, validation)?;
         }
 
         let value = match gui_deposit.presets.as_ref() {

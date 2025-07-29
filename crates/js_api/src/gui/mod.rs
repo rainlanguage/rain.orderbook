@@ -692,6 +692,7 @@ pub enum GuiError {
     YamlError(#[from] YamlError),
     #[error(transparent)]
     ValidationError(#[from] validation::GuiValidationError),
+    #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),

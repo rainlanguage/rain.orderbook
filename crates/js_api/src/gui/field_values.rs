@@ -402,7 +402,6 @@ mod tests {
     use super::*;
     use crate::gui::tests::{initialize_gui, initialize_validation_gui};
     use crate::gui::validation;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
