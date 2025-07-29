@@ -1,9 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenSelectionModal from '../lib/components/deployment/TokenSelectionModal.svelte';
 import type { ComponentProps } from 'svelte';
-import type { TokenInfo } from '@rainlanguage/orderbook';
+import type { TokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook';
+import { useGui } from '$lib/hooks/useGui';
 
 type TokenSelectionModalProps = ComponentProps<TokenSelectionModal>;
 
@@ -21,39 +22,37 @@ const mockTokens: TokenInfo[] = [
 		name: 'Another Token',
 		symbol: 'ANOTHER',
 		decimals: 6
-	},
-	{
-		key: 'token3',
-		address: '0x1111222233334444555566667777888899990000',
-		name: 'Third Token',
-		symbol: 'THIRD',
-		decimals: 18
 	}
 ];
 
+const mockGui: DotrainOrderGui = {
+	getAllTokens: vi.fn().mockResolvedValue({
+		value: mockTokens
+	})
+} as unknown as DotrainOrderGui;
+
+vi.mock('../lib/hooks/useGui', () => ({
+	useGui: vi.fn()
+}));
+
 describe('TokenSelectionModal', () => {
 	let mockOnSelect: ReturnType<typeof vi.fn>;
-	let mockOnSearch: ReturnType<typeof vi.fn>;
 
 	const defaultProps: TokenSelectionModalProps = {
-		tokens: mockTokens,
 		selectedToken: null,
-		onSelect: vi.fn(),
-		searchValue: '',
-		onSearch: vi.fn()
+		onSelect: vi.fn()
 	};
 
 	beforeEach(() => {
 		mockOnSelect = vi.fn();
-		mockOnSearch = vi.fn();
+		(useGui as Mock).mockReturnValue(mockGui);
 		vi.clearAllMocks();
 	});
 
 	it('renders modal button with default text when no token is selected', () => {
 		render(TokenSelectionModal, {
 			...defaultProps,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		expect(screen.getByText('Select a token...')).toBeInTheDocument();
@@ -64,8 +63,7 @@ describe('TokenSelectionModal', () => {
 		render(TokenSelectionModal, {
 			...defaultProps,
 			selectedToken,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		expect(screen.getByText('Test Token 1 (TEST1)')).toBeInTheDocument();
@@ -75,8 +73,20 @@ describe('TokenSelectionModal', () => {
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
 			...defaultProps,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		expect(screen.getByText('Select a token')).toBeInTheDocument();
+	});
+
+	it('shows search input in modal', async () => {
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
 		});
 
 		const button = screen.getByRole('button');
@@ -85,270 +95,149 @@ describe('TokenSelectionModal', () => {
 		expect(screen.getByPlaceholderText('Search tokens...')).toBeInTheDocument();
 	});
 
-	it('displays all tokens in the modal list', async () => {
-		const user = userEvent.setup();
+	it('loads tokens on mount', async () => {
 		render(TokenSelectionModal, {
 			...defaultProps,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		const button = screen.getByRole('button');
-		await user.click(button);
+		await userEvent.click(button);
 
-		expect(screen.getByText('Test Token 1')).toBeInTheDocument();
-		expect(screen.getByText('TEST1')).toBeInTheDocument();
-		expect(screen.getByText('Another Token')).toBeInTheDocument();
-		expect(screen.getByText('ANOTHER')).toBeInTheDocument();
-		expect(screen.getByText('Third Token')).toBeInTheDocument();
-		expect(screen.getByText('THIRD')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(mockGui.getAllTokens).toHaveBeenCalledWith(undefined);
+		});
 	});
 
-	it('displays formatted addresses in token list', async () => {
+	it('shows tokens in modal after loading', async () => {
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
 			...defaultProps,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		expect(screen.getByText('0x1234...7890')).toBeInTheDocument();
-		expect(screen.getByText('0x0987...4321')).toBeInTheDocument();
-		expect(screen.getByText('0x1111...0000')).toBeInTheDocument();
-	});
-
-	it('highlights selected token in the list', async () => {
-		const user = userEvent.setup();
-		const selectedToken = mockTokens[1];
-		render(TokenSelectionModal, {
-			...defaultProps,
-			selectedToken,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+		await waitFor(() => {
+			expect(screen.getByText('Test Token 1')).toBeInTheDocument();
+			expect(screen.getByText('Another Token')).toBeInTheDocument();
 		});
-
-		const button = screen.getByRole('button');
-		await user.click(button);
-
-		const selectedTokenItem = screen.getByText('Another Token').closest('[role="button"]');
-		expect(selectedTokenItem).toHaveClass('bg-blue-50');
-
-		expect(screen.getByRole('img', { name: /check circle solid/i })).toBeInTheDocument();
 	});
 
 	it('calls onSelect when token is clicked', async () => {
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
 			...defaultProps,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		const firstToken = screen.getByText('Test Token 1').closest('[role="button"]');
-		expect(firstToken).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('Test Token 1')).toBeInTheDocument();
+		});
 
-		if (firstToken) {
-			await user.click(firstToken);
-		}
+		const tokenItem = screen.getByText('Test Token 1');
+		await user.click(tokenItem);
 
 		expect(mockOnSelect).toHaveBeenCalledWith(mockTokens[0]);
 	});
 
-	it('closes modal after token selection', async () => {
+	it('calls API with search term when searching', async () => {
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
 			...defaultProps,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
-		});
-
-		const button = screen.getByRole('button');
-		await user.click(button);
-
-		expect(screen.getByPlaceholderText('Search tokens...')).toBeInTheDocument();
-
-		const firstToken = screen.getByText('Test Token 1').closest('[role="button"]');
-		if (firstToken) {
-			await user.click(firstToken);
-		}
-
-		await waitFor(() => {
-			expect(screen.queryByPlaceholderText('Search tokens...')).not.toBeInTheDocument();
-		});
-	});
-
-	it('filters tokens based on search input', async () => {
-		const user = userEvent.setup();
-		render(TokenSelectionModal, {
-			...defaultProps,
-			searchValue: 'test',
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
-		});
-
-		const button = screen.getByRole('button');
-		await user.click(button);
-
-		expect(screen.getByText('Test Token 1')).toBeInTheDocument();
-		expect(screen.queryByText('Another Token')).not.toBeInTheDocument();
-		expect(screen.queryByText('Third Token')).not.toBeInTheDocument();
-	});
-
-	it('calls onSearch when search input changes', async () => {
-		const user = userEvent.setup();
-		render(TokenSelectionModal, {
-			...defaultProps,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		const button = screen.getByRole('button');
 		await user.click(button);
 
 		const searchInput = screen.getByPlaceholderText('Search tokens...');
-		await user.type(searchInput, 'another');
+		await user.type(searchInput, 'TEST');
 
-		expect(mockOnSearch).toHaveBeenCalledWith('another');
+		await waitFor(() => {
+			expect(mockGui.getAllTokens).toHaveBeenCalledWith('TEST');
+		});
 	});
 
-	it('filters tokens by symbol', async () => {
+	it('shows loading state while searching', async () => {
+		const mockGuiWithDelay = {
+			getAllTokens: vi
+				.fn()
+				.mockImplementation(
+					() => new Promise((resolve) => setTimeout(() => resolve({ value: mockTokens }), 100))
+				)
+		} as unknown as DotrainOrderGui;
+
+		(useGui as Mock).mockReturnValue(mockGuiWithDelay);
+
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
 			...defaultProps,
-			searchValue: 'ANOTHER',
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		expect(screen.getByText('Another Token')).toBeInTheDocument();
-		expect(screen.queryByText('Test Token 1')).not.toBeInTheDocument();
-		expect(screen.queryByText('Third Token')).not.toBeInTheDocument();
+		const searchInput = screen.getByPlaceholderText('Search tokens...');
+		await user.type(searchInput, 'TEST');
+
+		expect(screen.getByText('Searching tokens...')).toBeInTheDocument();
 	});
 
-	it('filters tokens by address', async () => {
+	it('shows no results message when search returns empty', async () => {
+		const mockGuiNoResults = {
+			getAllTokens: vi.fn().mockResolvedValue({ value: [] })
+		} as unknown as DotrainOrderGui;
+
+		(useGui as Mock).mockReturnValue(mockGuiNoResults);
+
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
 			...defaultProps,
-			searchValue: '0x1234',
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		expect(screen.getByText('Test Token 1')).toBeInTheDocument();
-		expect(screen.queryByText('Another Token')).not.toBeInTheDocument();
-		expect(screen.queryByText('Third Token')).not.toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('No tokens found matching your search.')).toBeInTheDocument();
+		});
 	});
 
-	it('shows "no results" message when no tokens match search', async () => {
+	it('clears search when clear button is clicked', async () => {
+		const mockGuiNoResults = {
+			getAllTokens: vi
+				.fn()
+				.mockResolvedValueOnce({ value: [] })
+				.mockResolvedValueOnce({ value: mockTokens })
+		} as unknown as DotrainOrderGui;
+
+		(useGui as Mock).mockReturnValue(mockGuiNoResults);
+
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
 			...defaultProps,
-			searchValue: 'nonexistent',
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+			onSelect: mockOnSelect
 		});
 
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		expect(screen.getByText('No tokens found matching your search.')).toBeInTheDocument();
-		expect(screen.getByText('Clear search')).toBeInTheDocument();
-	});
-
-	it('clears search when "Clear search" button is clicked', async () => {
-		const user = userEvent.setup();
-		render(TokenSelectionModal, {
-			...defaultProps,
-			searchValue: 'nonexistent',
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+		await waitFor(() => {
+			expect(screen.getByText('No tokens found matching your search.')).toBeInTheDocument();
 		});
-
-		const button = screen.getByRole('button');
-		await user.click(button);
 
 		const clearButton = screen.getByText('Clear search');
 		await user.click(clearButton);
 
-		expect(mockOnSearch).toHaveBeenCalledWith('');
-	});
-
-	it('handles token selection via keyboard (Enter key)', async () => {
-		const user = userEvent.setup();
-		render(TokenSelectionModal, {
-			...defaultProps,
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
+		await waitFor(() => {
+			expect(mockGuiNoResults.getAllTokens).toHaveBeenCalledWith(undefined);
 		});
-
-		const button = screen.getByRole('button');
-		await user.click(button);
-
-		const firstToken = screen.getByText('Test Token 1').closest('[role="button"]') as HTMLElement;
-		if (firstToken) {
-			firstToken.focus();
-			await user.keyboard('{Enter}');
-		}
-
-		expect(mockOnSelect).toHaveBeenCalledWith(mockTokens[0]);
-	});
-
-	it('displays empty state when no tokens are provided', async () => {
-		const user = userEvent.setup();
-		render(TokenSelectionModal, {
-			...defaultProps,
-			tokens: [],
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
-		});
-
-		const button = screen.getByRole('button');
-		await user.click(button);
-
-		expect(screen.getByText('No tokens found matching your search.')).toBeInTheDocument();
-	});
-
-	it('maintains search value in input field', async () => {
-		const user = userEvent.setup();
-		render(TokenSelectionModal, {
-			...defaultProps,
-			searchValue: 'initial search',
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
-		});
-
-		const button = screen.getByRole('button');
-		await user.click(button);
-
-		const searchInput = screen.getByPlaceholderText('Search tokens...') as HTMLInputElement;
-		expect(searchInput.value).toBe('initial search');
-	});
-
-	it('search is case insensitive', async () => {
-		const user = userEvent.setup();
-		render(TokenSelectionModal, {
-			...defaultProps,
-			searchValue: 'TEST',
-			onSelect: mockOnSelect,
-			onSearch: mockOnSearch
-		});
-
-		const button = screen.getByRole('button');
-		await user.click(button);
-
-		expect(screen.getByText('Test Token 1')).toBeInTheDocument();
-		expect(screen.queryByText('Another Token')).not.toBeInTheDocument();
 	});
 });
