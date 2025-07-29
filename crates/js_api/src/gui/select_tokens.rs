@@ -270,7 +270,7 @@ impl DotrainOrderGui {
     /// ```javascript
     /// // Get all tokens
     /// const result = await gui.getAllTokens();
-    /// 
+    ///
     /// // Search for specific tokens
     /// const usdcResult = await gui.getAllTokens("USDC");
     /// const addressResult = await gui.getAllTokens("0x1234...");
@@ -282,7 +282,9 @@ impl DotrainOrderGui {
     )]
     pub async fn get_all_tokens(
         &self,
-        #[wasm_export(param_description = "Optional search term to filter tokens by name, symbol, or address")]
+        #[wasm_export(
+            param_description = "Optional search term to filter tokens by name, symbol, or address"
+        )]
         search: Option<String>,
     ) -> Result<Vec<TokenInfo>, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
@@ -356,7 +358,11 @@ impl DotrainOrderGui {
                 results.retain(|token| {
                     token.name.to_lowercase().contains(&search_lower)
                         || token.symbol.to_lowercase().contains(&search_lower)
-                        || token.address.to_string().to_lowercase().contains(&search_lower)
+                        || token
+                            .address
+                            .to_string()
+                            .to_lowercase()
+                            .contains(&search_lower)
                 });
             }
         }
@@ -691,7 +697,10 @@ mod tests {
                 "T4".to_string(),
             );
 
-            let tokens = gui.get_all_tokens(Some("Token 3".to_string())).await.unwrap();
+            let tokens = gui
+                .get_all_tokens(Some("Token 3".to_string()))
+                .await
+                .unwrap();
             assert_eq!(tokens.len(), 1);
             assert_eq!(tokens[0].name, "Token 3");
         }
@@ -743,9 +752,17 @@ mod tests {
                 "T4".to_string(),
             );
 
-            let tokens = gui.get_all_tokens(Some("0x0000000000000000000000000000000000000002".to_string())).await.unwrap();
+            let tokens = gui
+                .get_all_tokens(Some(
+                    "0x0000000000000000000000000000000000000002".to_string(),
+                ))
+                .await
+                .unwrap();
             assert_eq!(tokens.len(), 1);
-            assert_eq!(tokens[0].address.to_string(), "0x0000000000000000000000000000000000000002");
+            assert_eq!(
+                tokens[0].address.to_string(),
+                "0x0000000000000000000000000000000000000002"
+            );
         }
 
         #[wasm_bindgen_test]
@@ -779,15 +796,19 @@ mod tests {
 
             let tokens = gui.get_all_tokens(Some("USD".to_string())).await.unwrap();
             assert_eq!(tokens.len(), 2);
-            
+
             for token in &tokens {
                 assert!(
                     token.name.contains("USD") || token.symbol.contains("USD"),
-                    "Token {} should contain 'USD' in name or symbol", token.symbol
+                    "Token {} should contain 'USD' in name or symbol",
+                    token.symbol
                 );
             }
 
-            let tokens = gui.get_all_tokens(Some("000000000000000000000000000000000000000".to_string())).await.unwrap();
+            let tokens = gui
+                .get_all_tokens(Some("000000000000000000000000000000000000000".to_string()))
+                .await
+                .unwrap();
             assert_eq!(tokens.len(), 3);
         }
 
