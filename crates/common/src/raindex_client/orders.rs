@@ -601,8 +601,7 @@ impl RaindexOrder {
         let rainlang = order
             .meta
             .as_ref()
-            .map(|meta| meta.0.try_decode_rainlangsource())
-            .transpose()?;
+            .and_then(|meta| meta.0.try_decode_rainlangsource().ok());
 
         Ok(Self {
             raindex_client: raindex_client.clone(),
