@@ -1,8 +1,8 @@
 #[cfg(target_family = "wasm")]
 pub mod bindings;
-#[cfg(any(test, target_family = "wasm"))]
+#[cfg(target_family = "wasm")]
 pub mod gui;
-#[cfg(any(test, target_family = "wasm"))]
+#[cfg(target_family = "wasm")]
 pub mod registry;
 #[cfg(target_family = "wasm")]
 pub mod yaml;

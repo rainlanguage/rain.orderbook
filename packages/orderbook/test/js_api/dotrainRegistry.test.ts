@@ -225,16 +225,16 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 			registry = extractWasmEncodedData(result);
 		});
 
-		it('should get order keys', async () => {
-			const keys = extractWasmEncodedData(await registry.getOrderKeys());
+		it('should get order keys', () => {
+			const keys = extractWasmEncodedData(registry.getOrderKeys());
 
 			assert.strictEqual(keys.length, 2);
 			assert(keys.includes('fixed-limit'));
 			assert(keys.includes('auction-dca'));
 		});
 
-		it('should get all order details', async () => {
-			const orderDetails = extractWasmEncodedData(await registry.getAllOrderDetails());
+		it('should get all order details', () => {
+			const orderDetails = extractWasmEncodedData(registry.getAllOrderDetails());
 
 			assert.strictEqual(orderDetails.size, 2);
 			assert(orderDetails.has('fixed-limit'));
@@ -247,9 +247,9 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 			assert.strictEqual(fixedLimitDetails.short_description, 'Test short description');
 		});
 
-		it('should get deployment details for specific order', async () => {
+		it('should get deployment details for specific order', () => {
 			const deploymentDetails = extractWasmEncodedData(
-				await registry.getDeploymentDetails('fixed-limit')
+				registry.getDeploymentDetails('fixed-limit')
 			);
 
 			assert.strictEqual(deploymentDetails.size, 2);
@@ -267,8 +267,8 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 			assert.strictEqual(baseDetails.description, 'Base order description');
 		});
 
-		it('should handle deployment details for non-existent order', async () => {
-			const result = await registry.getDeploymentDetails('non-existent');
+		it('should handle deployment details for non-existent order', () => {
+			const result = registry.getDeploymentDetails('non-existent');
 			assert(result.error);
 			assert(result.error.readableMsg.includes("order key 'non-existent' was not found"));
 		});
