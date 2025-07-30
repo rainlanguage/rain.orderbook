@@ -1,8 +1,12 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
-import type { DeploymentCfg, RaindexOrder, ScenarioCfg } from '@rainlanguage/orderbook';
-import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
+import type {
+  DeploymentCfg,
+  RaindexClient,
+  RaindexOrder,
+  ScenarioCfg,
+} from '@rainlanguage/orderbook';
 
 export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
   await invoke('order_add', {
@@ -17,19 +21,22 @@ export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
   });
 }
 
-export async function orderRemove(order: RaindexOrder) {
-  const orderbook = getOrderbookByChainId(order.chainId);
+export async function orderRemove(raindexClient: RaindexClient, order: RaindexOrder) {
+  const orderbook = raindexClient.getOrderbookByAddress(order.orderbook);
+  if (orderbook.error) {
+    throw new Error(orderbook.error.readableMsg);
+  }
 
   await invoke('order_remove', {
     order,
     transactionArgs: {
-      rpcs: orderbook.network.rpcs,
+      rpcs: orderbook.value.network.rpcs,
       orderbook_address: order.orderbook,
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: order.id,
+      chain_id: order.chainId,
     },
     subgraphArgs: {
-      url: orderbook.subgraph.url,
+      url: orderbook.value.subgraph.url,
     },
   });
 }

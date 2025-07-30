@@ -3,6 +3,7 @@ export { default as CardProperty } from './components/CardProperty.svelte';
 export { default as Hash, HashType } from './components/Hash.svelte';
 export { default as TanstackAppTable } from './components/TanstackAppTable.svelte';
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
+export { default as DropdownTokensFilter } from './components/dropdown/DropdownTokensFilter.svelte';
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
 export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';
@@ -56,20 +57,19 @@ export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.sve
 export { default as OrderOrVaultHash } from './components/OrderOrVaultHash.svelte';
 export { default as License } from './components/License.svelte';
 export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
-export { default as StrategyPage } from './components/deployment/StrategyPage.svelte';
+export { default as OrderPage } from './components/deployment/OrderPage.svelte';
 export { default as InputHex } from './components/input/InputHex.svelte';
 export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
-export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
-export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
+export { default as InvalidOrdersSection } from './components/deployment/InvalidOrdersSection.svelte';
+export { default as ValidOrdersSection } from './components/deployment/ValidOrdersSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 export { default as TransactionList } from './components/transactions/TransactionList.svelte';
 export { default as FixedBottomTransaction } from './components/transactions/FixedBottomTransaction.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
 export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
@@ -84,7 +84,7 @@ export type {
 	TransactionConfirmationProps,
 	HandleTransactionConfirmationModal
 } from './types/modal';
-export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
+export type { ValidOrderDetail, InvalidOrderDetail } from './types/order.ts';
 export type { ToastProps } from './types/toast';
 
 // Functions
@@ -95,8 +95,6 @@ export {
 	promiseTimeout
 } from './services/time';
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
-export { vaultBalanceDisplay } from './utils/vault';
-export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
 export { invalidateTanstackQueries } from './queries/queryClient';
 export { getToastsContext } from './providers/toasts/context';
@@ -140,6 +138,7 @@ export { default as TransactionProvider } from './providers/transactions/Transac
 
 // Hooks
 export { useGui } from './hooks/useGui';
+export { useRaindexClient, RAINDEX_CLIENT_CONTEXT_KEY } from './hooks/useRaindexClient';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
@@ -152,5 +151,3 @@ export { TransactionManager } from './providers/transactions/TransactionManager'
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
-export { mockConfig } from './__mocks__/settings';
-export { mockSettingsStore } from './__mocks__/settings';

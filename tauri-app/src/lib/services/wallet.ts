@@ -1,15 +1,14 @@
 import { invoke } from '@tauri-apps/api';
 import type { Hex } from 'viem';
-import { getOrderbookByChainId } from '$lib/utils/getOrderbookByChainId';
-import { walletConnectNetwork } from '$lib/stores/walletconnect';
-import { get } from 'svelte/store';
 
-export const getAddressFromLedger = async (derivationIndex: number): Promise<Hex> => {
-  const chainId = get(walletConnectNetwork);
-  const orderbook = getOrderbookByChainId(chainId);
+export const getAddressFromLedger = async (
+  chainId: number,
+  rpcs: string[],
+  derivationIndex: number,
+): Promise<Hex> => {
   return invoke('get_address_from_ledger', {
     derivationIndex,
     chainId,
-    rpcs: orderbook.network.rpcs,
+    rpcs,
   });
 };

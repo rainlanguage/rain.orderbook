@@ -1,13 +1,8 @@
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
-import { writable, derived } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
-import {
-	parseYaml,
-	RaindexClient,
-	type Address,
-	type Hex,
-	type NewConfig
-} from '@rainlanguage/orderbook';
+import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
+import type { Mock } from 'vitest';
 
 export interface LayoutData {
 	errorMessage?: string;
@@ -16,10 +11,9 @@ export interface LayoutData {
 }
 
 const REMOTE_SETTINGS_URL =
-	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/3ef26d1cc2a127cd7c096299d6f852af966285a5/settings.yaml';
+	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/b658347fd479a07805f8d82754d78e2f306d0faf/settings.yaml';
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
-	let config: NewConfig;
 	let errorMessage: string | undefined;
 	let settingsYamlText: string;
 
@@ -29,16 +23,6 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			throw new Error('Error status: ' + response.status.toString());
 		}
 		settingsYamlText = await response.text();
-
-		const configRes = parseYaml([settingsYamlText]);
-		if (configRes.error) {
-			return {
-				errorMessage: configRes.error.readableMsg,
-				stores: null,
-				raindexClient: null
-			};
-		}
-		config = configRes.value;
 	} catch (error: unknown) {
 		errorMessage = 'Failed to get site config settings. ' + (error as Error).message;
 		return {
@@ -68,34 +52,18 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		};
 	}
 
-	const settings: AppStoresInterface['settings'] = writable<NewConfig>(config);
-
-	const accounts = derived(settings, ($settings) => $settings.orderbook.accounts || {});
-	const activeAccountsItems = writable<Record<string, Address>>({});
-
-	const activeAccounts = derived(
-		[accounts, activeAccountsItems],
-		([$accounts, $activeAccountsItems]) =>
-			Object.keys($activeAccountsItems).length === 0
-				? {}
-				: Object.fromEntries(
-						Object.entries($accounts || {}).filter(([key]) => key in $activeAccountsItems)
-					)
-	);
-
 	return {
 		stores: {
-			settings,
 			selectedChainIds: writable<number[]>([]),
-			accounts,
-			activeAccountsItems,
-			activeAccounts,
+			accounts: writable<Record<string, AccountCfg>>({}),
+			activeAccountsItems: writable<Record<string, Address>>({}),
 			// Instantiate with false to show only active orders
 			showInactiveOrders: writable<boolean>(false),
 			// @ts-expect-error initially the value is empty
 			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
-			showMyItemsOnly: writable<boolean>(false)
+			showMyItemsOnly: writable<boolean>(false),
+			activeTokens: writable<Address[]>([])
 		},
 		raindexClient
 	};
@@ -105,7 +73,6 @@ export const ssr = false;
 
 if (import.meta.vitest) {
 	const { describe, it, expect, beforeEach, vi } = import.meta.vitest;
-	const { get } = await import('svelte/store');
 
 	const mockFetch = vi.fn();
 	vi.stubGlobal('fetch', mockFetch);
@@ -113,193 +80,16 @@ if (import.meta.vitest) {
 	vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
 		return {
 			...(await importOriginal()),
-			parseYaml: vi.fn()
+			RaindexClient: {
+				new: vi.fn()
+			}
 		};
 	});
 
 	describe('Layout load function', () => {
-		const mockSettingsYaml = `
-accounts:
-  account1: 0x1234567890123456789012345678901234567890
-  account2: 0x1234567890123456789012345678901234567890
-networks:
-  network1:
-    rpc: https://network1.rpc
-    chainId: 1
-    label: Network 1
-    currency: ETH
-  network2:
-    rpc: https://network2.rpc
-    chainId: 2
-    label: Network 2
-    currency: ETH
-orderbooks:
-  orderbook1:
-    address: 0x1234567890123456789012345678901234567890
-    network: network1
-    subgraph: subgraph1
-  orderbook2:
-    address: 0x1234567890123456789012345678901234567890
-    network: network2
-    subgraph: subgraph2
-  orderbook3:
-    address: 0x1234567890123456789012345678901234567890
-    network: network1
-    subgraph: subgraph3
-subgraphs:
-  subgraph1: https://subgraph1.url
-  subgraph2: https://subgraph2.url
-  subgraph3: https://subgraph3.url
-`;
-		const network1 = {
-			key: 'network1',
-			rpc: 'https://network1.rpc',
-			chainId: 1,
-			label: 'Network 1',
-			currency: 'ETH'
-		};
-		const network2 = {
-			key: 'network2',
-			rpc: 'https://network2.rpc',
-			chainId: 2,
-			label: 'Network 2',
-			currency: 'ETH'
-		};
-		const subgraph1 = {
-			key: 'subgraph1',
-			url: 'https://subgraph1.url'
-		};
-		const subgraph2 = {
-			key: 'subgraph2',
-			url: 'https://subgraph2.url'
-		};
-		const subgraph3 = {
-			key: 'subgraph3',
-			url: 'https://subgraph3.url'
-		};
-		const mockConfig = {
-			orderbook: {
-				accounts: {
-					account1: {
-						name: 'Test Account 1'
-					},
-					account2: {
-						name: 'Test Account 2'
-					}
-				},
-				networks: {
-					network1,
-					network2
-				},
-				subgraphs: {
-					subgraph1,
-					subgraph2,
-					subgraph3
-				},
-				orderbooks: {
-					orderbook1: {
-						key: 'orderbook1',
-						address: '0x1234567890123456789012345678901234567890',
-						network: network1,
-						subgraph: subgraph1
-					},
-					orderbook2: {
-						key: 'orderbook2',
-						address: '0x1234567890123456789012345678901234567890',
-						network: network2,
-						subgraph: subgraph2
-					},
-					orderbook3: {
-						key: 'orderbook3',
-						address: '0x1234567890123456789012345678901234567890',
-						network: network1,
-						subgraph: subgraph3
-					}
-				}
-			}
-		};
-
 		beforeEach(() => {
 			vi.clearAllMocks();
 			vi.resetAllMocks();
-		});
-
-		it('should load settings and initialize stores correctly', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-
-			expect(mockFetch).toHaveBeenCalledWith(REMOTE_SETTINGS_URL);
-
-			expect(result).toHaveProperty('stores');
-			const stores: AppStoresInterface | null = result.stores;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(stores).toHaveProperty('settings');
-			expect(stores).toHaveProperty('accounts');
-			expect(stores).toHaveProperty('activeAccountsItems');
-			expect(stores).toHaveProperty('activeAccounts');
-			expect(stores).toHaveProperty('showInactiveOrders');
-			expect(stores).toHaveProperty('orderHash');
-			expect(stores).toHaveProperty('hideZeroBalanceVaults');
-
-			expect(get(stores.settings)).toEqual(mockConfig);
-			if (stores.activeAccountsItems) {
-				expect(get(stores.activeAccountsItems)).toEqual({});
-			}
-			expect(get(stores.orderHash)).toEqual('');
-			expect(get(stores.hideZeroBalanceVaults)).toEqual(false);
-		});
-
-		it('should handle derived store: activeAccounts with empty activeAccountsItems', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			expect(get(stores.activeAccounts)).toEqual({});
-		});
-
-		it('should handle derived store: activeAccounts with filled activeAccountsItems', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			stores.activeAccountsItems?.set({ account1: '0x1234567890123456789012345678901234567890' });
-
-			const accounts = get(stores.activeAccounts);
-			expect(accounts).toHaveProperty('account1');
-			expect(accounts).not.toHaveProperty('account2');
 		});
 
 		it('should return errorMessage if fetch fails with non-OK status', async () => {
@@ -346,7 +136,7 @@ subgraphs:
 		});
 
 		it('should handle empty or malformed settings YAML', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
+			(RaindexClient.new as Mock).mockReturnValue({
 				value: undefined,
 				error: {
 					msg: 'Malformed settings',
@@ -365,37 +155,6 @@ subgraphs:
 			expect(result).toHaveProperty('errorMessage');
 			expect(result.errorMessage).toContain('Malformed settings');
 			expect(result.errorMessage).toContain('Malformed settings');
-		});
-
-		it('should handle multiple interrelated store updates correctly', async () => {
-			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
-				error: undefined
-			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockSettingsYaml)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			if (!stores) throw new Error('Test setup error: stores should not be null');
-
-			stores.activeAccountsItems?.set({ account1: '0x1234567890123456789012345678901234567890' });
-
-			expect(get(stores.activeAccounts)).toHaveProperty('account1');
-
-			stores.activeAccountsItems?.set({
-				account1: '0x1234567890123456789012345678901234567890',
-				account2: '0x1234567890123456789012345678901234567890'
-			});
-
-			const finalAccounts = get(stores.activeAccounts);
-			expect(Object.keys(finalAccounts).length).toBe(2);
-			expect(finalAccounts).toHaveProperty('account1');
-			expect(finalAccounts).toHaveProperty('account2');
 		});
 	});
 }

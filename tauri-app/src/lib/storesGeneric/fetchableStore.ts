@@ -11,7 +11,7 @@ interface FetchableStoreData<T> {
 export function fetchableStore<T>(
   key: string,
   defaultValue: T,
-  handleFetch: () => Promise<T>,
+  handleFetch: (data: unknown) => Promise<T>,
   serialize: (value: T) => string,
   deserialize: (s: string) => T,
 ) {
@@ -23,10 +23,10 @@ export function fetchableStore<T>(
     isFetching: $isFetching,
   }));
 
-  async function fetch() {
+  async function fetch(data: unknown) {
     isFetching.set(true);
     try {
-      const res: T = await handleFetch();
+      const res: T = await handleFetch(data);
       value.set(res);
     } catch (e) {
       reportErrorToSentry(e);
@@ -42,7 +42,7 @@ export function fetchableStore<T>(
   };
 }
 
-export const fetchableIntStore = (key: string, handleFetch: () => Promise<number>) =>
+export const fetchableIntStore = (key: string, handleFetch: (data: unknown) => Promise<number>) =>
   fetchableStore<number>(
     key,
     0,

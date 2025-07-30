@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => ({
 		'process.env': {},
 		'import.meta.vitest': 'undefined'
 	},
+	build: {
+		target: 'es2023'
+	},
 
 	test: {
 		// Jest like globals

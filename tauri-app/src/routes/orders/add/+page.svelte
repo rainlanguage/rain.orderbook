@@ -1,31 +1,30 @@
 <script lang="ts">
-  import { PageHeader, CodeMirrorDotrain, ButtonLoading } from '@rainlanguage/ui-components';
+  import {
+    PageHeader,
+    CodeMirrorDotrain,
+    ButtonLoading,
+    useRaindexClient,
+  } from '@rainlanguage/ui-components';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData } from '@rainlanguage/orderbook';
+  import { type ChartData, type DeploymentCfg, type ScenarioCfg } from '@rainlanguage/orderbook';
   import { settingsText } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
-  import type { Config } from '@rainlanguage/orderbook';
   import { DropdownRadio } from '@rainlanguage/ui-components';
   import { toasts } from '$lib/stores/toasts';
-  import type { ConfigSource } from '@rainlanguage/orderbook';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderAdd, orderAddCalldata, validateSpecVersion } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
-  import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
+  import { reportErrorToSentry } from '$lib/services/sentry';
   import { pickScenarios } from '$lib/services/pickConfig';
-  import {
-    convertConfigstringToConfig,
-    mergeDotrainConfigWithSettings,
-  } from '$lib/services/config';
-  import { mergeDotrainConfigWithSettingsProblems } from '$lib/services/configCodemirrorProblems';
+  import { checkDotrainErrors } from '$lib/services/configCodemirrorProblems';
   import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
@@ -38,29 +37,34 @@
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
   import { walletConnectNetwork } from '$lib/stores/walletconnect';
+  import { getDeployments, getScenarios } from '$lib/services/config';
+
+  const raindexClient = useRaindexClient();
 
   let isSubmitting = false;
   let isCharting = false;
   let chartData: ChartData;
   let deploymentRef: string | undefined = undefined;
   let scenarioRef: string | undefined = undefined;
-  let mergedConfigSource: ConfigSource | undefined = undefined;
-  let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
+  let allDeployments: Record<string, DeploymentCfg> = {};
+  let allScenarios: Record<string, ScenarioCfg> = {};
 
-  $: deployments = mergedConfig?.deployments;
-  $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
+  $: if ($globalDotrainFile) {
+    getDeployments().then((deployments) => (allDeployments = deployments));
+    getScenarios().then((scenarios) => (allScenarios = scenarios));
+  }
+
+  $: deployment = deploymentRef ? allDeployments[deploymentRef] : undefined;
+  $: scenarios = pickScenarios(allScenarios, $walletConnectNetwork);
 
   // Resetting the selected deployment to undefined if it is not in the current
   // strats deployment list anymore
-  $: if (deploymentRef && deployments && !Object.keys(deployments).includes(deploymentRef)) {
+  $: if (deploymentRef && allDeployments && !Object.keys(allDeployments).includes(deploymentRef)) {
     deploymentRef = undefined;
   }
 
   $: bindings = deployment ? deployment.scenario.bindings : {};
-  $: if ($globalDotrainFile.text) updateMergedConfig();
-
-  $: scenarios = pickScenarios(mergedConfig, $walletConnectNetwork);
 
   let openTab: Record<string, boolean> = {};
 
@@ -78,11 +82,7 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings(
-    $globalDotrainFile.text,
-    [$settingsText],
-    mergedConfig?.scenarios,
-  );
+  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, [$settingsText], allScenarios);
 
   $: rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -90,7 +90,7 @@
       let problems = [];
       try {
         // get problems with merging settings config with frontmatter
-        configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
+        configProblems = await checkDotrainErrors(text.text, [$settingsText]);
       } catch (e) {
         configProblems = [
           {
@@ -101,9 +101,19 @@
         ];
       }
       try {
+        const network = raindexClient.getNetworkByChainId($walletConnectNetwork);
+        if (network.error) {
+          throw new Error(network.error.readableMsg);
+        }
+
         // get problems with dotrain
         problems = await promiseTimeout(
-          problemsCallback(text, bindings, deployment?.scenario.deployer.address),
+          problemsCallback(
+            network.value.rpcs,
+            text,
+            bindings,
+            deployment?.scenario.deployer.address,
+          ),
           5000,
           'failed to parse on native parser',
         );
@@ -123,15 +133,6 @@
   $: {
     if (isNil(scenarioRef) && !isEmpty(scenarios)) {
       scenarioRef = Object.keys(scenarios)[0];
-    }
-  }
-
-  async function updateMergedConfig() {
-    try {
-      mergedConfigSource = await mergeDotrainConfigWithSettings($globalDotrainFile.text);
-      mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
-    } catch (e) {
-      reportErrorToSentry(e, SentrySeverityLevel.Info);
     }
   }
 
@@ -183,7 +184,7 @@
 
   $: debounceValidateSpecVersion($globalDotrainFile.text, [$settingsText]);
 
-  $: deploymentNetworks = getDeploymentsNetworks(deployments);
+  $: deploymentNetworks = getDeploymentsNetworks(allDeployments);
 </script>
 
 <PageHeader title="Add Order" pathname={$page.url.pathname} />
@@ -206,11 +207,11 @@
 
   <svelte:fragment slot="additionalFields">
     <div class="flex items-center justify-end gap-x-4">
-      {#if isEmpty(deployments)}
+      {#if isEmpty(allDeployments)}
         <span class="text-gray-500 dark:text-gray-400">No valid deployments found</span>
       {:else}
         <Label class="whitespace-nowrap">Select deployment</Label>
-        <DropdownRadio options={deployments} bind:value={deploymentRef}>
+        <DropdownRadio options={allDeployments} bind:value={deploymentRef}>
           <svelte:fragment slot="content" let:selectedRef>
             <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
           </svelte:fragment>

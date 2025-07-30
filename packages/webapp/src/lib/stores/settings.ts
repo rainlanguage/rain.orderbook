@@ -1,44 +1,5 @@
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import { type Hex, type NewConfig } from '@rainlanguage/orderbook';
-
-export const EMPTY_CONFIG: NewConfig = {
-	orderbook: {
-		version: '1',
-		subgraphs: {},
-		networks: {},
-		metaboards: {},
-		orderbooks: {},
-		tokens: {},
-		deployers: {}
-	},
-	dotrainOrder: {
-		deployments: {},
-		orders: {},
-		scenarios: {},
-		charts: {}
-	}
-};
-
-/**
- * A persistent store that holds the application configuration settings.
- *
- * This store is saved to local storage and persists between sessions.
- *
- * @default {} - No configuration is set by default
- * @returns A writable store containing the application configuration
- */
-export const settings = cachedWritableStore<NewConfig>(
-	'settings',
-	EMPTY_CONFIG,
-	(value) => JSON.stringify(value),
-	(str) => {
-		try {
-			return JSON.parse(str) as NewConfig;
-		} catch {
-			return EMPTY_CONFIG;
-		}
-	}
-);
+import { type Address, type Hex } from '@rainlanguage/orderbook';
 
 /**
  * A persistent store that controls whether vaults with zero balance should be hidden in the UI.
@@ -133,6 +94,27 @@ export const showInactiveOrders = cachedWritableStore<boolean>(
 			return typeof value === 'boolean' ? value : false;
 		} catch {
 			return false;
+		}
+	}
+);
+
+/**
+ * A persistent store that holds the currently selected tokens for filtering.
+ *
+ * This setting is saved to local storage and persists between sessions.
+ *
+ * @default [] - Empty array by default
+ * @returns A writable store containing selected tokens mapped by address
+ */
+export const activeTokens = cachedWritableStore<Address[]>(
+	'settings.selectedTokens',
+	[],
+	JSON.stringify,
+	(str) => {
+		try {
+			return JSON.parse(str);
+		} catch {
+			return [];
 		}
 	}
 );

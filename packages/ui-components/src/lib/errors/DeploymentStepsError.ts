@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 export enum DeploymentStepsErrorCode {
 	NO_GUI_PROVIDER = 'No GUI provider found.',
 	NO_GUI = 'Error loading GUI.',
-	NO_STRATEGY = 'No valid strategy exists at this URL',
+	NO_STRATEGY = 'No valid order exists at this URL',
 	NO_SELECT_TOKENS = 'Error loading tokens',
 	NO_TOKEN_INFO = 'Error loading token information',
 	NO_FIELD_DEFINITIONS = 'Error loading field definitions',
@@ -13,6 +13,7 @@ export enum DeploymentStepsErrorCode {
 	NO_GUI_DETAILS = 'Error getting GUI details',
 	NO_CHAIN = 'Unsupported chain ID',
 	NO_NETWORK_KEY = 'No network key found',
+	NO_AVAILABLE_TOKENS = 'Error loading available tokens',
 	SERIALIZE_ERROR = 'Error serializing state',
 	ADD_ORDER_FAILED = 'Failed to add order',
 	NO_WALLET = 'No account address found',

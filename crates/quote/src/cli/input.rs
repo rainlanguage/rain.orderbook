@@ -5,7 +5,7 @@ use alloy::primitives::{
 };
 use alloy::sol_types::SolType;
 use clap::Args;
-use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
+use rain_orderbook_bindings::IOrderBookV5::{OrderV4, QuoteV2};
 use std::str::FromStr;
 
 /// Group of valid input formats
@@ -129,29 +129,32 @@ impl TryFrom<&Vec<String>> for BatchQuoteTarget {
     fn try_from(value: &Vec<String>) -> Result<Self, Self::Error> {
         let mut batch_quote_target = BatchQuoteTarget::default();
         let mut iter = value.iter();
+
         while let Some(orderbook_str) = iter.next() {
-            if let Some(input_io_index_str) = iter.next() {
-                if let Some(output_io_index_str) = iter.next() {
-                    if let Some(order_bytes_str) = iter.next() {
-                        batch_quote_target.0.push(QuoteTarget {
-                            orderbook: Address::from_hex(orderbook_str)?,
-                            quote_config: Quote {
-                                signedContext: vec![],
-                                inputIOIndex: U256::from_str(input_io_index_str)?,
-                                outputIOIndex: U256::from_str(output_io_index_str)?,
-                                order: OrderV3::abi_decode(&decode(order_bytes_str)?, true)?,
-                            },
-                        });
-                    } else {
-                        return Err(anyhow::anyhow!("missing order bytes"));
-                    }
-                } else {
-                    return Err(anyhow::anyhow!("missing output IO index"));
-                }
-            } else {
-                return Err(anyhow::anyhow!("missing input IO index"));
-            }
+            let input_io_index_str = match iter.next() {
+                Some(s) => s,
+                None => return Err(anyhow::anyhow!("missing input IO index")),
+            };
+            let output_io_index_str = match iter.next() {
+                Some(s) => s,
+                None => return Err(anyhow::anyhow!("missing output IO index")),
+            };
+            let order_bytes_str = match iter.next() {
+                Some(s) => s,
+                None => return Err(anyhow::anyhow!("missing order bytes")),
+            };
+
+            batch_quote_target.0.push(QuoteTarget {
+                orderbook: Address::from_hex(orderbook_str)?,
+                quote_config: QuoteV2 {
+                    signedContext: vec![],
+                    inputIOIndex: U256::from_str(input_io_index_str)?,
+                    outputIOIndex: U256::from_str(output_io_index_str)?,
+                    order: OrderV4::abi_decode(&decode(order_bytes_str)?)?,
+                },
+            });
         }
+
         if batch_quote_target.0.is_empty() {
             return Err(anyhow::anyhow!("missing '--target' values"));
         }
@@ -166,25 +169,26 @@ impl TryFrom<&Vec<String>> for BatchQuoteSpec {
         let mut batch_quote_specs = BatchQuoteSpec::default();
         let mut iter = value.iter();
         while let Some(orderbook_str) = iter.next() {
-            if let Some(input_io_index_str) = iter.next() {
-                if let Some(output_io_index_str) = iter.next() {
-                    if let Some(order_hash_str) = iter.next() {
-                        batch_quote_specs.0.push(QuoteSpec {
-                            signed_context: vec![],
-                            orderbook: Address::from_hex(orderbook_str)?,
-                            order_hash: U256::from_str(order_hash_str)?,
-                            input_io_index: input_io_index_str.parse()?,
-                            output_io_index: output_io_index_str.parse()?,
-                        });
-                    } else {
-                        return Err(anyhow::anyhow!("missing order hash"));
-                    }
-                } else {
-                    return Err(anyhow::anyhow!("missing output IO index"));
-                }
-            } else {
-                return Err(anyhow::anyhow!("missing input IO index"));
-            }
+            let input_io_index_str = match iter.next() {
+                Some(s) => s,
+                None => return Err(anyhow::anyhow!("missing input IO index")),
+            };
+            let output_io_index_str = match iter.next() {
+                Some(s) => s,
+                None => return Err(anyhow::anyhow!("missing output IO index")),
+            };
+            let order_hash_str = match iter.next() {
+                Some(s) => s,
+                None => return Err(anyhow::anyhow!("missing order hash")),
+            };
+
+            batch_quote_specs.0.push(QuoteSpec {
+                signed_context: vec![],
+                orderbook: Address::from_hex(orderbook_str)?,
+                order_hash: U256::from_str(order_hash_str)?,
+                input_io_index: input_io_index_str.parse()?,
+                output_io_index: output_io_index_str.parse()?,
+            });
         }
         if batch_quote_specs.0.is_empty() {
             return Err(anyhow::anyhow!("missing '--spec' values"));
@@ -198,7 +202,7 @@ mod tests {
     use super::*;
     use alloy::primitives::hex::encode_prefixed;
     use alloy::sol_types::SolValue;
-    use rain_orderbook_bindings::IOrderBookV4::EvaluableV3;
+    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4};
 
     #[test]
     fn test_parse_input() {
@@ -259,15 +263,15 @@ mod tests {
         let output_index = 9u8;
         let orderbook1 = Address::random();
         let orderbook2 = Address::random();
-        let order1 = OrderV3 {
-            evaluable: EvaluableV3 {
+        let order1 = OrderV4 {
+            evaluable: EvaluableV4 {
                 bytecode: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0].into(),
                 ..Default::default()
             },
             ..Default::default()
         };
-        let order2 = OrderV3 {
-            evaluable: EvaluableV3 {
+        let order2 = OrderV4 {
+            evaluable: EvaluableV4 {
                 bytecode: vec![0xa, 0xb, 0xc, 0xd, 0xe, 0xf].into(),
                 ..Default::default()
             },
@@ -291,7 +295,7 @@ mod tests {
         let expected = BatchQuoteTarget(vec![
             QuoteTarget {
                 orderbook: orderbook1,
-                quote_config: Quote {
+                quote_config: QuoteV2 {
                     inputIOIndex: U256::from(input_index),
                     outputIOIndex: U256::from(output_index),
                     signedContext: vec![],
@@ -300,7 +304,7 @@ mod tests {
             },
             QuoteTarget {
                 orderbook: orderbook2,
-                quote_config: Quote {
+                quote_config: QuoteV2 {
                     inputIOIndex: U256::from(input_index),
                     outputIOIndex: U256::from(output_index),
                     signedContext: vec![],
@@ -419,7 +423,7 @@ mod tests {
             encode_prefixed(orderbook.0),
             input_io_index.to_string(),
             output_io_index.to_string(),
-            encode_prefixed(OrderV3::default().abi_encode()),
+            encode_prefixed(OrderV4::default().abi_encode()),
         ];
         let input = Input {
             input: None,

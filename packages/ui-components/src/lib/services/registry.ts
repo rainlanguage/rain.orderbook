@@ -1,4 +1,4 @@
-import type { InvalidStrategyDetail, ValidStrategyDetail } from '$lib/types/strategy';
+import type { InvalidOrderDetail, ValidOrderDetail } from '$lib/types/order';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 export type RegistryFile = {
@@ -11,9 +11,9 @@ export type RegistryDotrain = {
 	dotrain: string;
 };
 
-export interface StrategyValidationResult {
-	validStrategies: ValidStrategyDetail[];
-	invalidStrategies: InvalidStrategyDetail[];
+export interface OrderValidationResult {
+	validOrders: ValidOrderDetail[];
+	invalidOrders: InvalidOrderDetail[];
 }
 
 /**
@@ -75,12 +75,12 @@ export const fetchRegistryDotrains = async (url: string): Promise<RegistryDotrai
 	return dotrains;
 };
 
-export async function validateStrategies(
+export async function validateOrders(
 	registryDotrains: RegistryDotrain[]
-): Promise<StrategyValidationResult> {
-	const strategiesPromises = registryDotrains.map(async (registryDotrain) => {
+): Promise<OrderValidationResult> {
+	const ordersPromises = registryDotrains.map(async (registryDotrain) => {
 		try {
-			const result = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
+			const result = await DotrainOrderGui.getOrderDetails(registryDotrain.dotrain);
 
 			if (result.error) {
 				throw new Error(result.error.msg);
@@ -104,15 +104,15 @@ export async function validateStrategies(
 		}
 	});
 
-	const strategiesResults = await Promise.all(strategiesPromises);
+	const ordersResults = await Promise.all(ordersPromises);
 
-	const validStrategies = strategiesResults
+	const validOrders = ordersResults
 		.filter((result) => result.valid)
-		.map((result) => result.data as ValidStrategyDetail);
+		.map((result) => result.data as ValidOrderDetail);
 
-	const invalidStrategies = strategiesResults
+	const invalidOrders = ordersResults
 		.filter((result) => !result.valid)
-		.map((result) => result.data as InvalidStrategyDetail);
+		.map((result) => result.data as InvalidOrderDetail);
 
-	return { validStrategies, invalidStrategies };
+	return { validOrders, invalidOrders };
 }

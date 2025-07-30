@@ -29,6 +29,12 @@ keep=(
 echo "Installing Forge dependencies..."
 nix develop -c forge install
 
+echo "Setting up rain.math.float..."
+nix develop -i ${keep[@]} -c bash \
+  -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-sol-prelude)'
+nix develop -i ${keep[@]} -c bash \
+  -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-rs-prelude)'
+
 echo "Setting up rain.interpreter..."
 nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-sol-prelude)'
 nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-rs-prelude)'

@@ -19,12 +19,30 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: () => ({
+		getUniqueChainIds: vi.fn(() => ({
+			value: [1],
+			error: undefined
+		})),
+		getAllNetworks: vi.fn(() => ({
+			value: new Map([[1, { name: 'Ethereum', id: 1 }]]),
+			error: undefined
+		})),
+		getAllAccounts: vi.fn(() => ({
+			value: new Map(),
+			error: undefined
+		}))
+	})
+}));
+
 const mockVault = {
 	chainId: 1,
 	id: '0x1234567890abcdef1234567890abcdef12345678',
 	owner: '0xabcdef1234567890abcdef1234567890abcdef12',
 	vaultId: BigInt(42),
 	balance: BigInt('1000000000000000000'),
+	formattedBalance: '1',
 	token: {
 		id: '0x1111111111111111111111111111111111111111',
 		address: '0x1111111111111111111111111111111111111111',
@@ -45,10 +63,8 @@ const {
 	mockActiveOrderbookRefStore,
 	mockHideZeroBalanceVaultsStore,
 	mockOrderHashStore,
-	mockAccountsStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockSettingsStore,
 	mockActiveAccountsStore,
 	mockSelectedChainIdsStore,
 	mockShowMyItemsOnlyStore
@@ -56,9 +72,7 @@ const {
 
 const defaultProps = {
 	orderHash: mockOrderHashStore,
-	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
-	settings: mockSettingsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
@@ -161,7 +175,7 @@ describe('VaultsListTable', () => {
 		const depositButton = screen.getByTestId('deposit-button');
 		await userEvent.click(depositButton);
 
-		expect(handleDepositModal).toHaveBeenCalledWith(mockVault, undefined);
+		expect(handleDepositModal).toHaveBeenCalledWith(mockVault, undefined, new Map());
 	});
 
 	it('hides action buttons when user is not the vault owner', () => {

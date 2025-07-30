@@ -3,7 +3,10 @@ use std::str::FromStr;
 use alloy::{hex::FromHexError, primitives::Address};
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
-    yaml::{orderbook::OrderbookYaml as OrderbookYamlCfg, YamlError, YamlParsable},
+    yaml::{
+        orderbook::{OrderbookYaml as OrderbookYamlCfg, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -64,7 +67,13 @@ impl OrderbookYaml {
         )]
         validate: Option<bool>,
     ) -> Result<OrderbookYaml, OrderbookYamlError> {
-        let yaml = OrderbookYamlCfg::new(sources, validate.unwrap_or(false))?;
+        let yaml = OrderbookYamlCfg::new(
+            sources,
+            match validate {
+                Some(true) => OrderbookYamlValidation::full(),
+                _ => OrderbookYamlValidation::default(),
+            },
+        )?;
         Ok(Self { yaml })
     }
 
@@ -210,11 +219,11 @@ mod tests {
         assert_eq!(orderbook.is_err(), true);
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_string(),
-            "Invalid address: Odd number of digits"
+            "Invalid address: odd number of digits"
         );
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_readable_msg(),
-            "The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: \"Odd number of digits\""
+            "The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: \"odd number of digits\""
         );
 
         let orderbook =

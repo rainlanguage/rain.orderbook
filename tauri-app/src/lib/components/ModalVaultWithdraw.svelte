@@ -2,17 +2,20 @@
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
   import type { RaindexVault } from '@rainlanguage/orderbook';
   import { vaultWithdraw } from '$lib/services/vault';
-  import { InputTokenAmount } from '@rainlanguage/ui-components';
+  import { InputTokenAmount, useRaindexClient } from '@rainlanguage/ui-components';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import { formatUnits, hexToBytes, toHex } from 'viem';
+  import { hexToBytes, toHex } from 'viem';
+
+  const raindexClient = useRaindexClient();
 
   export let open = false;
   export let vault: RaindexVault;
   export let onWithdraw: () => void;
+
   let amount: bigint = 0n;
   let amountGTBalance: boolean;
   let isSubmitting = false;
@@ -31,7 +34,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(vault.vaultId, vault.token.id, amount);
+      await vaultWithdraw(raindexClient, vault, amount);
       onWithdraw();
     } catch (e) {
       reportErrorToSentry(e);
@@ -100,7 +103,7 @@
         Vault Balance
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {formatUnits(BigInt(vault.balance), Number(vault.token.decimals ?? 0))}
+        {vault.formattedBalance}
       </p>
     </div>
 

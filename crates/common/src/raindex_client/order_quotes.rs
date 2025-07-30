@@ -1,7 +1,85 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
-use alloy::primitives::U256;
-use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse};
+use rain_math_float::Float;
+use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
+use rain_orderbook_subgraph_client::utils::float::{F0, F1};
+use std::ops::{Div, Mul};
+
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RaindexOrderQuote {
+    pub pair: Pair,
+    pub block_number: u64,
+    #[tsify(optional)]
+    pub data: Option<RaindexOrderQuoteValue>,
+    pub success: bool,
+    #[tsify(optional)]
+    pub error: Option<String>,
+}
+impl_wasm_traits!(RaindexOrderQuote);
+impl RaindexOrderQuote {
+    pub fn try_from_batch_order_quotes_response(
+        value: BatchOrderQuotesResponse,
+    ) -> Result<Self, RaindexError> {
+        Ok(Self {
+            pair: value.pair,
+            block_number: value.block_number,
+            data: value
+                .data
+                .map(RaindexOrderQuoteValue::try_from_order_quote_value)
+                .transpose()?,
+            success: value.success,
+            error: value.error,
+        })
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RaindexOrderQuoteValue {
+    #[tsify(type = "Hex")]
+    pub max_output: Float,
+    pub formatted_max_output: String,
+    #[tsify(type = "Hex")]
+    pub max_input: Float,
+    pub formatted_max_input: String,
+    #[tsify(type = "Hex")]
+    pub ratio: Float,
+    pub formatted_ratio: String,
+    #[tsify(type = "Hex")]
+    pub inverse_ratio: Float,
+    pub formatted_inverse_ratio: String,
+}
+impl_wasm_traits!(RaindexOrderQuoteValue);
+
+impl RaindexOrderQuoteValue {
+    pub fn try_from_order_quote_value(value: OrderQuoteValue) -> Result<Self, RaindexError> {
+        let inverse_ratio = if F0.eq(value.ratio)? {
+            F0
+        } else {
+            F1.div(value.ratio)?
+        };
+
+        let formatted_inverse_ratio = if F0.eq(value.ratio)? {
+            "Infinity".to_string()
+        } else {
+            inverse_ratio.format18()?
+        };
+
+        let max_input = value.max_output.mul(value.ratio)?;
+
+        Ok(Self {
+            max_output: value.max_output,
+            formatted_max_output: value.max_output.format18()?,
+            max_input,
+            formatted_max_input: max_input.format18()?,
+            ratio: value.ratio,
+            formatted_ratio: value.ratio.format18()?,
+            inverse_ratio,
+            formatted_inverse_ratio,
+        })
+    }
+}
 
 #[wasm_export]
 impl RaindexOrder {
@@ -25,8 +103,8 @@ impl RaindexOrder {
     /// ```
     #[wasm_export(
         js_name = "getQuotes",
-        return_description = "Array of batch quote responses with trading pair information",
-        unchecked_return_type = "BatchOrderQuotesResponse[]"
+        return_description = "List of batch quote responses with trading pair information",
+        unchecked_return_type = "RaindexOrderQuote[]"
     )]
     pub async fn get_quotes(
         &self,
@@ -39,8 +117,8 @@ impl RaindexOrder {
             param_description = "Optional gas limit as string for quote simulations (uses default if None)"
         )]
         gas: Option<String>,
-    ) -> Result<Vec<BatchOrderQuotesResponse>, RaindexError> {
-        let gas_amount = gas.map(|v| U256::from_str(&v)).transpose()?;
+    ) -> Result<Vec<RaindexOrderQuote>, RaindexError> {
+        let gas_amount = gas.map(|v| v.parse::<u64>()).transpose()?;
         let rpcs = self.get_rpc_urls()?;
         let order_quotes = get_order_quotes(
             vec![self.clone().into_sg_order()?],
@@ -49,12 +127,19 @@ impl RaindexOrder {
             gas_amount,
         )
         .await?;
-        Ok(order_quotes)
+
+        let mut result_order_quotes = vec![];
+        for order_quote in order_quotes {
+            let data = RaindexOrderQuote::try_from_batch_order_quotes_response(order_quote)?;
+            result_order_quotes.push(data);
+        }
+        Ok(result_order_quotes)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
 
     #[cfg(not(target_family = "wasm"))]
@@ -62,10 +147,11 @@ mod tests {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::hex::encode_prefixed;
-        use alloy::primitives::{Address, Bytes};
+        use alloy::primitives::{Address, Bytes, U256};
         use alloy::{sol, sol_types::SolValue};
-        use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
+        use rain_math_float::Float;
+        use rain_orderbook_subgraph_client::utils::float::{F0_5, F2};
         use serde_json::{json, Value};
 
         sol!(
@@ -93,7 +179,7 @@ mod tests {
                   "id": "0x0000000000000000000000000000000000000000",
                   "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                   "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                  "balance": "987000000000000000",
+                  "balance": Float::parse("0.987".to_string()).unwrap(),
                   "token": {
                     "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                     "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
@@ -114,7 +200,7 @@ mod tests {
                   "id": "0x0000000000000000000000000000000000000000",
                   "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                   "vaultId": "75486334982066122983501547829219246999490818941767825330875804445439814023987",
-                  "balance": "797990000000000000",
+                  "balance": Float::parse("0.79799".to_string()).unwrap(),
                   "token": {
                     "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                     "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
@@ -157,7 +243,11 @@ mod tests {
             // block number 1
             server.mock(|when, then| {
                 when.path("/rpc").body_contains("blockNumber");
-                then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x1",
+                }));
             });
 
             let aggreate_result = vec![Result {
@@ -173,11 +263,11 @@ mod tests {
             let response_hex = encode_prefixed(aggreate_result.abi_encode());
             server.mock(|when, then| {
                 when.path("/rpc");
-                then.body(
-                    Response::new_success(1, &response_hex)
-                        .to_json_string()
-                        .unwrap(),
-                );
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": response_hex,
+                }));
             });
 
             let raindex_client = RaindexClient::new(
@@ -200,13 +290,32 @@ mod tests {
                 .unwrap();
             let res = order.get_quotes(None, None).await.unwrap();
             assert_eq!(res.len(), 1);
-            assert_eq!(res[0].data.unwrap().max_output, U256::from(1));
-            assert_eq!(res[0].data.unwrap().ratio, U256::from(2));
+
+            assert!(res[0].data.as_ref().unwrap().max_output.eq(F1).unwrap());
+
+            assert!((res[0].data.as_ref().unwrap().ratio.eq(F2)).unwrap());
+
             assert!(res[0].success);
             assert_eq!(res[0].error, None);
             assert_eq!(res[0].pair.pair_name, "WFLR/sFLR");
             assert_eq!(res[0].pair.input_index, 0);
             assert_eq!(res[0].pair.output_index, 0);
+
+            let res = res[0].clone();
+            let data = res.data.unwrap();
+            assert!(data.max_output.eq(F1).unwrap());
+            assert_eq!(data.formatted_max_output, "1");
+            assert!(data.max_input.eq(F2).unwrap());
+            assert_eq!(data.formatted_max_input, "2");
+            assert!(data.ratio.eq(F2).unwrap());
+            assert_eq!(data.formatted_ratio, "2");
+            assert!(data.inverse_ratio.eq(F0_5).unwrap());
+            assert_eq!(data.formatted_inverse_ratio, "0.5");
+            assert!(res.success);
+            assert_eq!(res.error, None);
+            assert_eq!(res.pair.pair_name, "WFLR/sFLR");
+            assert_eq!(res.pair.input_index, 0);
+            assert_eq!(res.pair.output_index, 0);
         }
 
         #[tokio::test]
@@ -244,10 +353,14 @@ mod tests {
                 .get_quotes(None, Some("invalid-gas".to_string()))
                 .await
                 .unwrap_err();
-            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
-            assert_eq!(
-                err.to_readable_msg(),
-                "Invalid number format: digit 18 is out of range for base 10. Please provide a valid numeric value."
+            assert!(
+                err.to_string().contains("invalid digit"),
+                "unexpected error: {err}",
+            );
+            assert!(
+                err.to_readable_msg().contains("Failed to parse an integer"),
+                "unexpected error message: \"{}\"",
+                err.to_readable_msg()
             );
         }
     }

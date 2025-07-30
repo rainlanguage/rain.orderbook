@@ -4,13 +4,11 @@
 
   import {
     orderHash,
-    accounts,
     activeAccountsItems,
     selectedChainIds,
-    settings,
     showInactiveOrders,
     hideZeroBalanceVaults,
-    activeAccounts,
+    activeTokens,
   } from '$lib/stores/settings';
 
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
@@ -20,15 +18,13 @@
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
 <VaultsListTable
-  {activeAccounts}
   {orderHash}
-  {accounts}
   {activeAccountsItems}
   {selectedChainIds}
-  {settings}
   {showInactiveOrders}
   {hideZeroBalanceVaults}
   {handleDepositModal}
   {handleWithdrawModal}
+  {activeTokens}
   showMyItemsOnly={writable(false)}
 />

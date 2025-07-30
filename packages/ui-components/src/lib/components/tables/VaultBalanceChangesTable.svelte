@@ -1,6 +1,5 @@
 <script lang="ts" generics="T">
 	import { Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
-	import { formatUnits } from 'viem';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { RaindexVault, type RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
@@ -59,12 +58,10 @@
 			tdClass="break-word p-0 text-left"
 			data-testid="vaultBalanceChangesTableBalanceChange"
 		>
-			{formatUnits(BigInt(item.amount), Number(item.token.decimals ?? 0))}
-			{item.token.symbol}
+			{`${item.formattedAmount} ${item.token.symbol}`}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableBalance">
-			{formatUnits(item.newBalance, Number(item.token.decimals ?? 0))}
-			{item.token.symbol}
+			{`${item.formattedNewBalance} ${item.token.symbol}`}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableType">
 			{item.type}

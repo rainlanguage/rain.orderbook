@@ -1,7 +1,7 @@
 use crate::{
     types::common::{
-        SgOrderWithSubgraphName, SgOrdersListFilterArgs, SgVaultWithSubgraphName,
-        SgVaultsListFilterArgs,
+        SgErc20WithSubgraphName, SgOrderWithSubgraphName, SgOrdersListFilterArgs,
+        SgVaultWithSubgraphName, SgVaultsListFilterArgs,
     },
     OrderbookSubgraphClient, OrderbookSubgraphClientError, SgPaginationArgs,
 };
@@ -103,6 +103,34 @@ impl MultiOrderbookSubgraphClient {
 
         all_vaults
     }
+
+    pub async fn tokens_list(&self) -> Vec<SgErc20WithSubgraphName> {
+        let futures = self.subgraphs.iter().map(|subgraph| {
+            let url = subgraph.url.clone();
+            async move {
+                let client = self.get_orderbook_subgraph_client(url);
+                let tokens = client.tokens_list_all().await?;
+                let wrapped_tokens: Vec<SgErc20WithSubgraphName> = tokens
+                    .into_iter()
+                    .map(|token| SgErc20WithSubgraphName {
+                        token,
+                        subgraph_name: subgraph.name.clone(),
+                    })
+                    .collect();
+                Ok::<_, OrderbookSubgraphClientError>(wrapped_tokens)
+            }
+        });
+
+        let results = join_all(futures).await;
+
+        let all_tokens: Vec<SgErc20WithSubgraphName> = results
+            .into_iter()
+            .filter_map(Result::ok)
+            .flatten()
+            .collect();
+
+        all_tokens
+    }
 }
 
 #[cfg(test)]
@@ -111,6 +139,7 @@ mod tests {
     use crate::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgOrdersListFilterArgs, SgVault,
     };
+    use crate::utils::float::*;
     use httpmock::prelude::*;
     use reqwest::Url;
     use serde_json::json;
@@ -140,6 +169,7 @@ mod tests {
             owners: vec![],
             active: None,
             order_hash: None,
+            tokens: vec![],
         }
     }
 
@@ -447,7 +477,7 @@ mod tests {
         SgVault {
             id: SgBytes(format!("0xvault_id_{}", id_suffix)),
             owner: SgBytes(format!("0xowner_vault_{}", id_suffix)),
-            vault_id: SgBigInt(format!(
+            vault_id: SgBytes(format!(
                 "{}",
                 id_suffix
                     .chars()
@@ -455,7 +485,7 @@ mod tests {
                     .fold(0, |acc, digit| acc * 10 + digit)
                     + 1000
             )),
-            balance: SgBigInt("1000000000000000000".to_string()),
+            balance: SgBytes(F1.as_hex()),
             token: sample_sg_erc20(id_suffix),
             orderbook: sample_sg_orderbook(id_suffix),
             orders_as_output: vec![],
@@ -468,6 +498,7 @@ mod tests {
         SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
+            tokens: vec![],
         }
     }
 
