@@ -402,9 +402,10 @@ impl RaindexVault {
         )]
         amount: String,
     ) -> Result<Bytes, RaindexError> {
-        let amount = self.validate_amount(&amount)?;
-        let target_amount = Float::from_fixed_decimal(amount, self.token.decimals)?;
-
+        let target_amount = Float::parse(amount)?;
+        if target_amount.is_zero()? {
+            return Err(RaindexError::ZeroAmount);
+        }
         Ok(Bytes::copy_from_slice(
             &WithdrawArgs {
                 token: self.token.address,
@@ -2015,8 +2016,9 @@ mod tests {
                 )
                 .await
                 .unwrap();
+            let amount: Float = Float::parse("0.0000000000000005".to_string()).unwrap();
             let result = vault
-                .get_withdraw_calldata("500".to_string())
+                .get_withdraw_calldata(amount.format().unwrap())
                 .await
                 .unwrap();
             assert_eq!(
@@ -2026,7 +2028,7 @@ mod tests {
                         token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
-                        targetAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
+                        targetAmount: amount.0,
                         tasks: vec![],
                     }
                     .abi_encode()
