@@ -20,6 +20,7 @@
     RaindexClient,
     RaindexOrder,
     RaindexVault,
+    VaultsList,
   } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { getAllContexts } from 'svelte';
@@ -71,6 +72,10 @@
       context,
     );
   }
+
+  function onWithdrawAll(_raindexClient: RaindexClient, _vaultsList: VaultsList) {
+    // TODO
+  }
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -88,6 +93,7 @@
     {onRemove}
     {onDeposit}
     {onWithdraw}
+    {onWithdrawAll}
     {rpcs}
   />
 </div>
