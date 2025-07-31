@@ -65,8 +65,6 @@ const {
 	mockOrderHashStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockActiveAccountsStore,
-	mockSelectedChainIdsStore,
 	mockShowMyItemsOnlyStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 

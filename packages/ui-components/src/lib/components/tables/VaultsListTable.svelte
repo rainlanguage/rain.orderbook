@@ -10,7 +10,7 @@
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { RaindexVault } from '@rainlanguage/orderbook';
+	import { RaindexVault, type Address } from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -44,12 +44,79 @@
 	const { account, matchesAccount } = useAccount();
 	const raindexClient = useRaindexClient();
 
-	$: owners =
-		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
-			? Object.values($activeAccountsItems)
-			: $showMyItemsOnly && $account
-				? [$account]
-				: [];
+	// Use our new filter store instead of props
+	const filterStore = useFilterStore();
+
+	// Get filters from our store
+	$: currentFilters = $filterStore?.getVaultsFilters() || {
+		owners: [],
+		hideZeroBalance: false,
+		tokens: undefined,
+		chainIds: undefined
+	};
+
+	$: console.log('Current filters:', currentFilters);
+
+	// Derive values from filter store
+	$: selectedChainIds = currentFilters.chainIds || [];
+	$: hideZeroBalanceVaults = currentFilters.hideZeroBalance;
+	$: activeTokens = currentFilters.tokens || [];
+	$: owners = currentFilters.owners || [];
+
+	// Create writable stores that sync with our filter store
+	// These will be used by ListViewOrderbookFilters for direct updates
+	const selectedChainIdsStore = writable<number[]>([]);
+	const hideZeroBalanceVaultsStore = writable<boolean>(false);
+	const activeTokensStore = writable<Address[]>([]);
+	const ownersStore = writable<Address[]>([]);
+
+	// Flag to prevent circular updates during initialization
+	let isInitialized = false;
+
+	// Update writable stores when filter store values change (one way sync)
+	$: {
+		selectedChainIdsStore.set(selectedChainIds);
+		hideZeroBalanceVaultsStore.set(hideZeroBalanceVaults);
+		activeTokensStore.set(activeTokens);
+		// Mark as initialized after first sync
+		if (!isInitialized) {
+			isInitialized = true;
+		}
+	}
+
+	// Subscribe to store changes and update filter store accordingly (two way sync)
+	// Only after initialization to prevent circular updates
+	selectedChainIdsStore.subscribe((chainIds) => {
+		if (isInitialized && $filterStore) {
+			$filterStore.updateVaults((builder) => builder.setChainIds(chainIds));
+			currentFilters = $filterStore.getVaultsFilters();
+		}
+	});
+
+	hideZeroBalanceVaultsStore.subscribe((hide) => {
+		if (isInitialized && $filterStore) {
+			$filterStore.updateVaults((builder) => builder.setHideZeroBalance(hide));
+			currentFilters = $filterStore.getVaultsFilters();
+		}
+	});
+
+	activeTokensStore.subscribe((tokens) => {
+		if (isInitialized && $filterStore) {
+			$filterStore.updateVaults((builder) => builder.setTokens(tokens));
+			currentFilters = $filterStore.getVaultsFilters();
+		}
+	});
+
+	showMyItemsOnly.subscribe((show) => {
+		if (isInitialized && $filterStore) {
+			if (show) {
+				$filterStore.updateVaults((builder) => builder.setOwners([$account]));
+			} else {
+				$filterStore.updateVaults((builder) => builder.setOwners([]));
+			}
+			currentFilters = $filterStore.getVaultsFilters();
+		}
+	});
 
 	$: tokensQuery = createQuery({
 		queryKey: [QKEY_TOKENS, $selectedChainIds],
@@ -67,17 +134,9 @@
 		) ?? [];
 
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_VAULTS, $hideZeroBalanceVaults, $selectedChainIds, owners, selectedTokens],
+		queryKey: [QKEY_VAULTS, currentFilters],
 		queryFn: async ({ pageParam }) => {
-			const result = await raindexClient.getVaults(
-				{
-					owners,
-					hideZeroBalance: $hideZeroBalanceVaults,
-					tokens: selectedTokens,
-					chainIds: $selectedChainIds
-				},
-				pageParam + 1
-			);
+			const result = await raindexClient.getVaults(currentFilters, pageParam + 1);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
@@ -94,7 +153,7 @@
 
 {#if $query}
 	<ListViewOrderbookFilters
-		{selectedChainIds}
+		selectedChainIds={selectedChainIdsStore}
 		{activeAccountsItems}
 		{showMyItemsOnly}
 		{showInactiveOrders}

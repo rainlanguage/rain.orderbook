@@ -8,10 +8,6 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 
 #[cfg(target_family = "wasm")]
-use js_sys;
-#[cfg(target_family = "wasm")]
-use serde_wasm_bindgen;
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::*;
 
 /// Hardcoded localStorage key for filter persistence
@@ -404,56 +400,6 @@ impl RaindexFilterStore {
         }
 
         Ok(store)
-    }
-
-    #[wasm_export(
-        js_name = "updateVaults",
-        preserve_js_class,
-        return_description = "Updates vault filters using a builder pattern, returns updated store instance"
-    )]
-    pub fn update_vaults_wasm(
-        self,
-        #[wasm_export(
-            param_description = "Builder function: (builder: VaultsFilterBuilder) => VaultsFilterBuilder"
-        )]
-        builder_update: js_sys::Function,
-    ) -> Result<RaindexFilterStore, PersistentFilterStoreError> {
-        use wasm_bindgen::JsValue;
-
-        // Get current builder and serialize for JavaScript
-        let current_filters = self.get_vaults();
-        let current_builder = VaultsFilterBuilder::from(current_filters);
-
-        let builder_js = serde_wasm_bindgen::to_value(&current_builder).map_err(|e| {
-            PersistentFilterStoreError::SaveError(format!("Failed to serialize builder: {}", e))
-        })?;
-
-        // Call JavaScript function
-        let updated_builder_js =
-            builder_update
-                .call1(&JsValue::NULL, &builder_js)
-                .map_err(|e| {
-                    PersistentFilterStoreError::SaveError(format!(
-                        "Builder function failed: {:?}",
-                        e
-                    ))
-                })?;
-
-        // Deserialize result
-        let updated_builder: VaultsFilterBuilder =
-            serde_wasm_bindgen::from_value(updated_builder_js).map_err(|e| {
-                PersistentFilterStoreError::SaveError(format!(
-                    "Failed to deserialize builder: {}",
-                    e
-                ))
-            })?;
-
-        // Use native update_vaults with a closure that returns the updated builder
-        let mut next = self.clone();
-        next.update_vaults(|_current_builder| updated_builder)
-            .map_err(|e| PersistentFilterStoreError::SaveError(e.to_string()))?;
-
-        Ok(next)
     }
 
     #[wasm_export(
