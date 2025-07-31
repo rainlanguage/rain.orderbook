@@ -346,7 +346,7 @@ mod tests {
             let vaults_list = VaultsList::new(get_vaults().await);
             let withdrawable_vaults = vaults_list.get_withdrawable_vaults();
             assert_eq!(withdrawable_vaults.len(), 1);
-            assert!(withdrawable_vaults[0].id().to_string() == "0x0234"); // vault2 has non-zero balance
+            assert_eq!(withdrawable_vaults[0].id().to_string(), "0x0234"); // vault2 has non-zero balance
         }
 
         #[tokio::test]
