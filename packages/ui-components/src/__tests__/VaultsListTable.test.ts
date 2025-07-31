@@ -12,6 +12,24 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
+// Mock useFilterStore to avoid FilterStoreProvider requirement
+vi.mock('$lib/providers/filters/useFilterStore', () => ({
+	useFilterStore: () => ({
+		subscribe: (fn: (value: any) => void) => {
+			fn({
+				getVaultsFilters: () => ({
+					owners: [],
+					hideZeroBalance: false,
+					tokens: undefined,
+					chainIds: undefined
+				}),
+				updateVaults: vi.fn()
+			});
+			return { unsubscribe: () => {} };
+		}
+	})
+}));
+
 const mockMatchesAccount = vi.fn();
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
 
@@ -59,9 +77,6 @@ vi.mock('@tanstack/svelte-query');
 
 // Hoisted mock stores
 const {
-	mockActiveNetworkRefStore,
-	mockActiveOrderbookRefStore,
-	mockHideZeroBalanceVaultsStore,
 	mockOrderHashStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
@@ -72,11 +87,6 @@ const defaultProps = {
 	orderHash: mockOrderHashStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
-	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
-	activeNetworkRef: mockActiveNetworkRefStore,
-	activeOrderbookRef: mockActiveOrderbookRefStore,
-	activeAccounts: mockActiveAccountsStore,
-	selectedChainIds: mockSelectedChainIdsStore,
 	showMyItemsOnly: mockShowMyItemsOnlyStore
 };
 

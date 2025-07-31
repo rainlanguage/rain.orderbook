@@ -2,14 +2,7 @@
   import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
 
-  import {
-    orderHash,
-    activeAccountsItems,
-    selectedChainIds,
-    showInactiveOrders,
-    hideZeroBalanceVaults,
-    activeTokens,
-  } from '$lib/stores/settings';
+  import { orderHash, activeAccountsItems, showInactiveOrders } from '$lib/stores/settings';
 
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import { writable } from 'svelte/store';
@@ -20,11 +13,8 @@
 <VaultsListTable
   {orderHash}
   {activeAccountsItems}
-  {selectedChainIds}
   {showInactiveOrders}
-  {hideZeroBalanceVaults}
   {handleDepositModal}
   {handleWithdrawModal}
-  {activeTokens}
   showMyItemsOnly={writable(false)}
 />

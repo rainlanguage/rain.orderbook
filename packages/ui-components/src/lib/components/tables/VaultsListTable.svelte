@@ -1,4 +1,5 @@
 <script lang="ts" generics="T">
+	import { writable } from 'svelte/store';
 	import { toHex } from 'viem';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -15,16 +16,16 @@
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
+	import { useFilterStore } from '$lib/providers/filters';
 	import { getAllContexts } from 'svelte';
 
 	const context = getAllContexts();
 
+	// Keep some legacy props that are not filter-related
+	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
-	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
-	export let activeTokens: AppStoresInterface['activeTokens'];
-	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let handleDepositModal:
 		| ((
@@ -61,14 +62,12 @@
 	$: selectedChainIds = currentFilters.chainIds || [];
 	$: hideZeroBalanceVaults = currentFilters.hideZeroBalance;
 	$: activeTokens = currentFilters.tokens || [];
-	$: owners = currentFilters.owners || [];
 
 	// Create writable stores that sync with our filter store
 	// These will be used by ListViewOrderbookFilters for direct updates
 	const selectedChainIdsStore = writable<number[]>([]);
 	const hideZeroBalanceVaultsStore = writable<boolean>(false);
-	const activeTokensStore = writable<Address[]>([]);
-	const ownersStore = writable<Address[]>([]);
+	const activeTokensStore = writable<`0x${string}`[]>([]);
 
 	// Flag to prevent circular updates during initialization
 	let isInitialized = false;
@@ -119,9 +118,9 @@
 	});
 
 	$: tokensQuery = createQuery({
-		queryKey: [QKEY_TOKENS, $selectedChainIds],
+		queryKey: [QKEY_TOKENS, selectedChainIds],
 		queryFn: async () => {
-			const result = await raindexClient.getAllVaultTokens($selectedChainIds);
+			const result = await raindexClient.getAllVaultTokens(selectedChainIds);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
@@ -129,8 +128,9 @@
 	});
 
 	$: selectedTokens =
-		$activeTokens?.filter(
-			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
+		activeTokens?.filter(
+			(address: string) =>
+				!$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
 		) ?? [];
 
 	$: query = createInfiniteQuery({
@@ -158,8 +158,8 @@
 		{showMyItemsOnly}
 		{showInactiveOrders}
 		{orderHash}
-		{hideZeroBalanceVaults}
-		{activeTokens}
+		hideZeroBalanceVaults={hideZeroBalanceVaultsStore}
+		activeTokens={activeTokensStore}
 		{tokensQuery}
 		{selectedTokens}
 	/>
