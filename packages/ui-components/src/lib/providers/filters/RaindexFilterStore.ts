@@ -60,13 +60,28 @@ export class RaindexFilterStore {
 			const updatedBuilder = callback(builder);
 
 			// Apply changes through WASM (this auto-saves to localStorage and vault URL params)
-			const newWasmStoreResult = this.wasmStore.setVaults(updatedBuilder.build());
+			const newWasmStoreResult = this.wasmStore.updateVaults(updatedBuilder.build());
 			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(newWasmStoreResult);
 
 			return this;
 		} catch (error) {
 			console.error('Failed to update filters:', error);
 			throw new Error(`Filter update failed: ${error}`);
+		}
+	}
+
+	/**
+	 * Directly set vault filters, replacing the current filters.
+	 * @param filters The new vault filters to set.
+	 */
+	setVaults(filters: GetVaultsFilters): RaindexFilterStore {
+		try {
+			const result = this.wasmStore.setVaults(filters);
+			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(result);
+			return this;
+		} catch (error) {
+			console.error('Failed to set vault filters:', error);
+			throw new Error(`Failed to set vault filters: ${error}`);
 		}
 	}
 

@@ -385,24 +385,31 @@ impl RaindexFilterStore {
     #[wasm_export(
         js_name = "setVaults",
         preserve_js_class,
-        return_description = "Sets vault filters and returns updated store instance"
+        return_description = "Sets vault filters without saving to persistent storage"
     )]
     pub fn set_vaults_wasm(
         self,
         filters: GetVaultsFilters,
-        skip_save: Option<bool>,
     ) -> Result<RaindexFilterStore, PersistentFilterStoreError> {
         let mut store = self;
         store.set_vaults(filters);
+        Ok(store)
+    }
 
-        // Auto-save unless explicitly skipped
-        let should_save = !skip_save.unwrap_or(false);
-        if should_save {
-            // Save to localStorage and vault-specific URL params
-            store.save_to_localstorage()?;
-            store.save_vaults_to_url()?;
-        }
-
+    #[wasm_export(
+        js_name = "updateVaults",
+        preserve_js_class,
+        return_description = "Sets vault filters and saves to persistent storage"
+    )]
+    pub fn update_vaults_wasm(
+        self,
+        filters: GetVaultsFilters,
+    ) -> Result<RaindexFilterStore, PersistentFilterStoreError> {
+        let mut store = self;
+        store.set_vaults(filters);
+        // Save to localStorage and vault-specific URL params
+        store.save_to_localstorage()?;
+        store.save_vaults_to_url()?;
         Ok(store)
     }
 
