@@ -73,46 +73,49 @@ const mockOrder: RaindexOrder = {
 	meta: undefined,
 	rainlang: undefined,
 	timestampAdded: BigInt(1234567890),
-	inputs: [],
-	outputs: [],
-	vaults: [
-		{
-			chainId: 1,
-			vaultType: 'input',
-			id: '0x0000000000000000000000000000000000000002',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'MockToken',
-				symbol: 'MCK',
-				decimals: '18'
-			},
-			balance: BigInt(0),
-			vaultId: BigInt(2),
-			owner: '0x1234567890123456789012345678901234567890',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			orderbook: orderbookAddress
-		} as unknown as RaindexVault,
-		{
-			chainId: 1,
-			vaultType: 'output',
-			id: '0x0000000000000000000000000000000000000001',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'MockToken2',
-				symbol: 'MCK2',
-				decimals: '18'
-			},
-			balance: BigInt(0),
-			vaultId: BigInt(1),
-			owner: '0x1234567890123456789012345678901234567890',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			orderbook: orderbookAddress
-		} as unknown as RaindexVault
-	],
+	inputsList: { items: [] },
+	outputsList: { items: [] },
+	inputsOutputsList: { items: [] },
+	vaultsList: {
+		items: [
+			{
+				chainId: 1,
+				vaultType: 'input',
+				id: '0x0000000000000000000000000000000000000002',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'MockToken',
+					symbol: 'MCK',
+					decimals: '18'
+				},
+				balance: BigInt(0),
+				vaultId: BigInt(2),
+				owner: '0x1234567890123456789012345678901234567890',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				orderbook: orderbookAddress
+			} as unknown as RaindexVault,
+			{
+				chainId: 1,
+				vaultType: 'output',
+				id: '0x0000000000000000000000000000000000000001',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'MockToken2',
+					symbol: 'MCK2',
+					decimals: '18'
+				},
+				balance: BigInt(0),
+				vaultId: BigInt(1),
+				owner: '0x1234567890123456789012345678901234567890',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				orderbook: orderbookAddress
+			} as unknown as RaindexVault
+		]
+	},
 	transaction: {
 		blockNumber: BigInt(12345678),
 		timestamp: BigInt(1234567890),
