@@ -184,7 +184,8 @@ const order = result.value; // RaindexOrder instance
 const rainlangExpression = order.rainlang; // string
 
 // Get all the vaults associated with this order
-const orderVaults = order.vaults; // Vault[]
+const orderVaultsList = order.vaultsList(); // RaindexVaultsList
+const orderVaults = orderVaultsList.items; // RaindexVault[]
 
 // Get calldata to remove this order from the orderbook
 // Returns hex-encoded calldata that can be sent to the orderbook contract
@@ -196,6 +197,26 @@ const trades = await order.getTradesList(); // Trade[]
 
 // More methods and properties are available in the RaindexOrder class
 ```
+
+### Order inputs / outputs / vaults
+
+An `Order` exposes a `RaindexVaultsList` wrapper around the underlying `RaindexVault[]`.
+The list offers batch operations (e.g. multicall-withdraw).  
+You can still access the raw vaults via the `items` getter:
+
+```javascript
+const orderVaultsList = order.vaultsList; // RaindexVaultsList
+const orderVaults = orderVaultsList.items; // RaindexVault[]
+```
+
+The `RaindexOrder` exposes the following methods that return a `RaindexVaultsList`:
+
+- `vaultsList`
+- `inputsList`
+- `outputsList`
+- `inputsOutputsList`
+
+NOTE: In JavaScript these are props: `order.vaultsList.items.map(...)` while in Rust they are methods
 
 ### Get all vaults
 
