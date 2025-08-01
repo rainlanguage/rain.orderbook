@@ -17,7 +17,7 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { useFilterStore } from '$lib/providers/filters';
-	import { getAllContexts } from 'svelte';
+	import { getAllContexts, onDestroy } from 'svelte';
 
 	const context = getAllContexts();
 
@@ -55,8 +55,6 @@
 		chainIds: undefined
 	};
 
-	$: console.log('Current filters:', currentFilters);
-
 	// Derive values from filter store
 	$: selectedChainIds = currentFilters.chainIds || [];
 	$: hideZeroBalanceVaults = currentFilters.hideZeroBalance;
@@ -82,38 +80,53 @@
 		}
 	}
 
+	const unsubs: (() => void)[] = [];
+
 	// Subscribe to store changes and update filter store accordingly (two way sync)
 	// Only after initialization to prevent circular updates
-	selectedChainIdsStore.subscribe((chainIds) => {
-		if (isInitialized && $filterStore) {
-			$filterStore.updateVaults((builder) => builder.setChainIds(chainIds));
-			currentFilters = $filterStore.getVaultsFilters();
-		}
-	});
-
-	hideZeroBalanceVaultsStore.subscribe((hide) => {
-		if (isInitialized && $filterStore) {
-			$filterStore.updateVaults((builder) => builder.setHideZeroBalance(hide));
-			currentFilters = $filterStore.getVaultsFilters();
-		}
-	});
-
-	activeTokensStore.subscribe((tokens) => {
-		if (isInitialized && $filterStore) {
-			$filterStore.updateVaults((builder) => builder.setTokens(tokens));
-			currentFilters = $filterStore.getVaultsFilters();
-		}
-	});
-
-	showMyItemsOnly.subscribe((show) => {
-		if (isInitialized && $filterStore) {
-			if (show) {
-				$filterStore.updateVaults((builder) => builder.setOwners([$account]));
-			} else {
-				$filterStore.updateVaults((builder) => builder.setOwners([]));
+	unsubs.push(
+		selectedChainIdsStore.subscribe((chainIds) => {
+			if (isInitialized && $filterStore) {
+				$filterStore.updateVaults((builder) => builder.setChainIds(chainIds));
+				currentFilters = $filterStore.getVaultsFilters();
 			}
-			currentFilters = $filterStore.getVaultsFilters();
-		}
+		})
+	);
+
+	unsubs.push(
+		hideZeroBalanceVaultsStore.subscribe((hide) => {
+			if (isInitialized && $filterStore) {
+				$filterStore.updateVaults((builder) => builder.setHideZeroBalance(hide));
+				currentFilters = $filterStore.getVaultsFilters();
+			}
+		})
+	);
+
+	unsubs.push(
+		activeTokensStore.subscribe((tokens) => {
+			if (isInitialized && $filterStore) {
+				$filterStore.updateVaults((builder) => builder.setTokens(tokens));
+				currentFilters = $filterStore.getVaultsFilters();
+			}
+		})
+	);
+
+	unsubs.push(
+		showMyItemsOnly.subscribe((show) => {
+			if (isInitialized && $filterStore) {
+				if (show && $account) {
+					$filterStore.updateVaults((builder) => builder.setOwners([$account]));
+				} else {
+					$filterStore.updateVaults((builder) => builder.setOwners([]));
+				}
+				currentFilters = $filterStore.getVaultsFilters();
+			}
+		})
+	);
+
+	onDestroy(() => {
+		// Clean up subscriptions
+		unsubs.forEach((unsubscribe) => unsubscribe());
 	});
 
 	$: tokensQuery = createQuery({

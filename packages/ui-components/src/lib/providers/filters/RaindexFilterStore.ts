@@ -35,7 +35,6 @@ export class RaindexFilterStore {
 	constructor() {
 		const wasmStoreResult = RaindexFilterStoreWasm.create();
 		this.wasmStore = unwrapWasmResult(wasmStoreResult);
-		return this;
 	}
 
 	/**

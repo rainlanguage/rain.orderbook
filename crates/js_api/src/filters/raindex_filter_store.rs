@@ -45,7 +45,11 @@ impl RaindexFilterStore {
         };
 
         // Try to load from persistent storage (URL params have priority over localStorage)
-        let _ = store.load();
+        // Log errors but continue with defaults if loading fails
+        if let Err(e) = store.load() {
+            #[cfg(target_family = "wasm")]
+            web_sys::console::warn_1(&format!("Failed to load filters: {}", e).into());
+        }
 
         store
     }
