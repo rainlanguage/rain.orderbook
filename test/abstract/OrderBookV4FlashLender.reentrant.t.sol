@@ -116,7 +116,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 100
     function testReenterAddOrder(uint256 loanAmount, OrderConfigV4 memory config) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        config.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
+        config.evaluable.bytecode = iParserV2.parse2("_ _:max-positive-value() 1;:;");
 
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -142,7 +142,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.validInputs[0].token = address(iToken0);
         config.validOutputs[0].token = address(iToken1);
-        config.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
+        config.evaluable.bytecode = iParserV2.parse2("_ _:max-positive-value() 1;:;");
 
         vm.recordLogs();
         iOrderbook.addOrder3(config, new TaskV2[](0));

@@ -90,7 +90,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     function testTakeOrderHandleIO00() external {
         bytes[] memory configs = new bytes[](1);
-        configs[0] = "_ _:max-value() 1;:ensure(0 \"err\");";
+        configs[0] = "_ _:max-positive-value() 1;:ensure(0 \"err\");";
         checkTakeOrderHandleIO(configs, "err", LibDecimalFloat.packLossless(type(int224).max, 0));
     }
 

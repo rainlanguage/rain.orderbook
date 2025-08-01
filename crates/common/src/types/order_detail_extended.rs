@@ -125,7 +125,7 @@ mod tests {
         let sg_order = mock_sg_order(order_id, Some(meta_bytes));
         let sg_order_id_clone = sg_order.id.clone();
 
-        let expected_rainlang = "/* 0. calculate-io */ \nusing-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC\nmax-output: max-value(),\nio: if(\n  equal-to(\n    output-token()\n    0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\n  )\n  12\n  inv(12)\n);\n\n/* 1. handle-io */ \n:;".to_string();
+        let expected_rainlang = "/* 0. calculate-io */ \nusing-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC\nmax-output: max-positive-value(),\nio: if(\n  equal-to(\n    output-token()\n    0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\n  )\n  12\n  inv(12)\n);\n\n/* 1. handle-io */ \n:;".to_string();
         let result: Result<OrderDetailExtended, TryDecodeRainlangSourceError> = sg_order.try_into();
 
         match result {
