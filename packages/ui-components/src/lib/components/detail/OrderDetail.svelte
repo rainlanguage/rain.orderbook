@@ -63,7 +63,9 @@
 	/** Callback function when withdraw all action is triggered for a vault
 	 * @param vaultsList The VaultsList struct containing the vaults to withdraw from
 	 */
-	export let onWithdrawAll: (raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void;
+	export let onWithdrawAll:
+		| ((raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void)
+		| undefined;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
@@ -178,18 +180,20 @@
 											>{'These vaults can be an input or an output for this order'}</Tooltip
 										>{/if}
 								</div>
-								<Button
-									color="light"
-									size="xs"
-									on:click={() =>
-										vaultsListByType && onWithdrawAll(raindexClient, vaultsListByType)}
-									disabled={!vaultsListByType ||
-										vaultsListByType.getWithdrawableVaults()?.value?.length === 0}
-									data-testid="withdraw-all-button"
-								>
-									<ArrowUpFromBracketOutline size="xs" class="mr-2" />
-									Withdraw all
-								</Button>
+								{#if onWithdrawAll}
+									<Button
+										color="light"
+										size="xs"
+										on:click={() =>
+											vaultsListByType && onWithdrawAll(raindexClient, vaultsListByType)}
+										disabled={!vaultsListByType ||
+											vaultsListByType.getWithdrawableVaults()?.value?.length === 0}
+										data-testid="withdraw-all-button"
+									>
+										<ArrowUpFromBracketOutline size="xs" class="mr-2" />
+										Withdraw all
+									</Button>
+								{/if}
 							</div>
 						</svelte:fragment>
 						<svelte:fragment slot="value">
@@ -225,18 +229,20 @@
 					</CardProperty>
 				{/if}
 			{/each}
-			<Button
-				size="xs"
-				on:click={() =>
-					$orderDetailQuery.data?.vaultsList &&
-					onWithdrawAll(raindexClient, $orderDetailQuery.data.vaultsList)}
-				disabled={!$orderDetailQuery.data?.vaultsList ||
-					$orderDetailQuery.data?.vaultsList?.getWithdrawableVaults()?.value?.length === 0}
-				data-testid="withdraw-all-button"
-			>
-				<ArrowUpFromBracketOutline size="xs" class="mr-2" />
-				Withdraw all vaults
-			</Button>
+			{#if onWithdrawAll}
+				<Button
+					size="xs"
+					on:click={() =>
+						$orderDetailQuery.data?.vaultsList &&
+						onWithdrawAll(raindexClient, $orderDetailQuery.data.vaultsList)}
+					disabled={!$orderDetailQuery.data?.vaultsList ||
+						$orderDetailQuery.data?.vaultsList?.getWithdrawableVaults()?.value?.length === 0}
+					data-testid="withdraw-all-button"
+				>
+					<ArrowUpFromBracketOutline size="xs" class="mr-2" />
+					Withdraw all vaults
+				</Button>
+			{/if}
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="chart" let:data>
