@@ -234,12 +234,7 @@ impl VaultsFilterBuilder {
         return_description = "A GetVaultsFilters instance with the configured values"
     )]
     pub fn build_wasm(self) -> Result<GetVaultsFilters, VaultsFilterBuilderError> {
-        Ok(GetVaultsFilters {
-            owners: self.owners,
-            hide_zero_balance: self.hide_zero_balance,
-            tokens: self.tokens,
-            chain_ids: self.chain_ids,
-        })
+        Ok(self.build())
     }
 }
 
