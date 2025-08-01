@@ -261,8 +261,8 @@ mod tests {
                 Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
             );
 
-            assert_eq!(order.outputs().len(), 1);
-            let output = &order.outputs()[0];
+            assert_eq!(order.outputs_list().items().len(), 1);
+            let output = &order.outputs_list().items()[0];
             assert_eq!(
                 output.id(),
                 Bytes::from_str(
@@ -315,8 +315,8 @@ mod tests {
             assert!(output.orders_as_outputs()[0].active);
             assert!(output.orders_as_inputs().is_empty());
 
-            assert_eq!(order.inputs().len(), 1);
-            let input = &order.inputs()[0];
+            assert_eq!(order.inputs_list().items().len(), 1);
+            let input = &order.inputs_list().items()[0];
             assert_eq!(
                 input.id(),
                 Bytes::from_str(

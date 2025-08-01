@@ -298,7 +298,7 @@ describe('OrderDetail', () => {
 		const depositButton = screen.getAllByTestId('deposit-button');
 		await user.click(depositButton[0]);
 
-		expect(mockOnDeposit).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults[1]);
+		expect(mockOnDeposit).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaultsList.items[1]);
 	});
 
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
@@ -324,6 +324,6 @@ describe('OrderDetail', () => {
 		const withdrawButton = screen.getAllByTestId('withdraw-button');
 		await user.click(withdrawButton[0]);
 
-		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults[1]);
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaultsList.items[1]);
 	});
 });

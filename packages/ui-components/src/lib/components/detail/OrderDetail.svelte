@@ -167,7 +167,7 @@
 			</CardProperty>
 
 			{#each vaultTypesMap as { key, type, getter }}
-				{@const filteredVaults = data.vaults.filter((vault) => vault.vaultType === type)}
+				{@const filteredVaults = data.vaultsList.items.filter((vault) => vault.vaultType === type)}
 				{@const vaultsListByType = data[getter]}
 				{#if filteredVaults.length !== 0}
 					<CardProperty>

@@ -18,13 +18,6 @@ impl RaindexVaultsList {
     pub fn new(vaults: Vec<RaindexVault>) -> Self {
         Self(vaults)
     }
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
     pub fn get_withdrawable_vaults(&self) -> Vec<&RaindexVault> {
         self.0
             .iter()
@@ -67,46 +60,34 @@ impl RaindexVaultsList {
     }
 }
 
-#[wasm_export]
+#[cfg(not(target_family = "wasm"))]
 impl RaindexVaultsList {
-    /// Returns the number of vaults in the list
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// const count = vaultsList.length;
-    /// console.log(`Found ${count} vaults`);
-    /// ```
-    #[wasm_export(
-        js_name = "length",
-        getter,
-        return_description = "Number of vaults in the list",
-        unchecked_return_type = "number"
-    )]
-    pub fn length_wasm(&self) -> Result<u32, VaultsListError> {
-        Ok(self.len() as u32)
+    pub fn items(&self) -> Vec<RaindexVault> {
+        self.0.clone()
     }
+}
 
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+impl RaindexVaultsList {
     /// Returns all vaults in the list
     ///
     /// ## Examples
     ///
     /// ```javascript
-    /// const allVaults = vaultsList.getVaults();
+    /// const allVaults = vaultsList.items;
     /// allVaults.forEach(vault => {
     ///   console.log(`Vault ID: ${vault.id}, Balance: ${vault.formattedBalance}`);
     /// });
     /// ```
-    #[wasm_export(
-        js_name = "getVaults",
-        return_description = "Array of all vaults",
-        unchecked_return_type = "RaindexVault[]",
-        preserve_js_class
-    )]
-    pub fn get_vaults_wasm(&self) -> Result<Vec<RaindexVault>, VaultsListError> {
-        Ok(self.0.clone())
+    #[wasm_bindgen(getter)]
+    pub fn items(&self) -> Vec<RaindexVault> {
+        self.0.clone()
     }
+}
 
+#[wasm_export]
+impl RaindexVaultsList {
     /// Returns only vaults that have a balance greater than zero
     ///
     /// ## Examples
@@ -287,7 +268,7 @@ mod tests {
         #[tokio::test]
         async fn test_get_vaults_not_empty() {
             let vaults_list = RaindexVaultsList::new(get_vaults().await);
-            assert_eq!(vaults_list.len(), 2);
+            assert_eq!(vaults_list.0.len(), 2);
         }
 
         #[tokio::test]
