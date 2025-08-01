@@ -1,5 +1,5 @@
 use super::*;
-use crate::raindex_client::vaults_list::VaultsList;
+use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
@@ -59,6 +59,15 @@ pub struct RaindexOrder {
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
 }
+
+fn get_io_by_type(order: &RaindexOrder, vault_type: RaindexVaultType) -> Vec<RaindexVault> {
+    let vaults = order.vaults();
+    vaults
+        .into_iter()
+        .filter(|v| v.vault_type() == Some(vault_type.clone()))
+        .collect()
+}
+
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexOrder {
@@ -141,29 +150,21 @@ impl RaindexOrder {
         self.trades_count
     }
 
-    fn get_io_by_type(&self, vault_type: RaindexVaultType) -> Vec<RaindexVault> {
-        let vaults = self.vaults();
-        vaults
-            .iter()
-            .filter(|v| v.vault_type() == Some(vault_type.clone()))
-            .cloned()
-            .collect()
+    #[wasm_bindgen(getter = vaultsList)]
+    pub fn vaults_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(self.vaults())
     }
-    #[wasm_bindgen(getter = vaultsList, unchecked_return_type = "VaultsList")]
-    pub fn vaults_list(&self) -> VaultsList {
-        VaultsList::new(self.vaults())
+    #[wasm_bindgen(getter = inputsList)]
+    pub fn inputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Input))
     }
-    #[wasm_bindgen(getter = inputsList, unchecked_return_type = "VaultsList")]
-    pub fn inputs_list(&self) -> VaultsList {
-        VaultsList::new(self.get_io_by_type(RaindexVaultType::Input))
+    #[wasm_bindgen(getter = outputsList)]
+    pub fn outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Output))
     }
-    #[wasm_bindgen(getter = outputsList, unchecked_return_type = "VaultsList")]
-    pub fn outputs_list(&self) -> VaultsList {
-        VaultsList::new(self.get_io_by_type(RaindexVaultType::Output))
-    }
-    #[wasm_bindgen(getter = inputsOutputsList, unchecked_return_type = "VaultsList")]
-    pub fn inputs_outputs_list(&self) -> VaultsList {
-        VaultsList::new(self.get_io_by_type(RaindexVaultType::InputOutput))
+    #[wasm_bindgen(getter = inputsOutputsList)]
+    pub fn inputs_outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::InputOutput))
     }
 }
 #[cfg(not(target_family = "wasm"))]
@@ -213,25 +214,17 @@ impl RaindexOrder {
     pub fn trades_count(&self) -> u16 {
         self.trades_count
     }
-
-    fn get_io_by_type(&self, vault_type: RaindexVaultType) -> Vec<RaindexVault> {
-        let vaults = self.vaults();
-        vaults
-            .into_iter()
-            .filter(|v| v.vault_type() == Some(vault_type.clone()))
-            .collect()
+    pub fn vaults_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(self.vaults())
     }
-    pub fn vaults_list(&self) -> VaultsList {
-        VaultsList::new(self.vaults())
+    pub fn inputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Input))
     }
-    pub fn inputs_list(&self) -> VaultsList {
-        VaultsList::new(self.get_io_by_type(RaindexVaultType::Input))
+    pub fn outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Output))
     }
-    pub fn outputs_list(&self) -> VaultsList {
-        VaultsList::new(self.get_io_by_type(RaindexVaultType::Output))
-    }
-    pub fn inputs_outputs_list(&self) -> VaultsList {
-        VaultsList::new(self.get_io_by_type(RaindexVaultType::InputOutput))
+    pub fn inputs_outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::InputOutput))
     }
 }
 

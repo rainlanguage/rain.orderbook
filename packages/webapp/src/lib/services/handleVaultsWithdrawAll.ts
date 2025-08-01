@@ -1,4 +1,4 @@
-import type { RaindexClient, RaindexVault, VaultsList } from '@rainlanguage/orderbook';
+import type { RaindexClient, RaindexVault, RaindexVaultsList } from '@rainlanguage/orderbook';
 import { type Hex } from 'viem';
 import { QKEY_VAULTS, type TransactionManager } from '@rainlanguage/ui-components';
 import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
@@ -12,7 +12,7 @@ export type WithdrawAllModalProps = {
 
 export interface MultipleVaultsWithdrawHandlerDependencies {
 	raindexClient: RaindexClient;
-	vaultsList: VaultsList;
+	vaultsList: RaindexVaultsList;
 	handleWithdrawAllModal: (props: WithdrawAllModalProps) => void;
 	handleTransactionConfirmationModal: (
 		props: TransactionConfirmationProps
@@ -53,9 +53,6 @@ export async function handleVaultsWithdrawAll(
 				try {
 					// Validate that all vaults share the same orderbook
 					const orderbook = vaults[0].orderbook;
-					if (vaults.some((vault) => vault.orderbook !== orderbook)) {
-						throw new Error('All vaults must share the same orderbook for batch withdrawal');
-					}
 					const calldataResult = await vaultsList.getWithdrawCalldata();
 					if (calldataResult.error) {
 						throw new Error(

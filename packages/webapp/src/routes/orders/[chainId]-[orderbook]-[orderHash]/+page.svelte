@@ -13,7 +13,7 @@
 		RaindexClient,
 		RaindexOrder,
 		RaindexVault,
-		VaultsList
+		RaindexVaultsList
 	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
@@ -65,7 +65,7 @@
 		});
 	}
 
-	async function onWithdrawAll(raindexClient: RaindexClient, vaultsList: VaultsList) {
+	async function onWithdrawAll(raindexClient: RaindexClient, vaultsList: RaindexVaultsList) {
 		await handleVaultsWithdrawAll({
 			raindexClient,
 			vaultsList,

@@ -12,9 +12,9 @@ static ZERO_FLOAT: Lazy<Float> = Lazy::new(|| Float::parse("0".to_string()).unwr
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[wasm_bindgen]
-pub struct VaultsList(Vec<RaindexVault>);
+pub struct RaindexVaultsList(Vec<RaindexVault>);
 
-impl VaultsList {
+impl RaindexVaultsList {
     pub fn new(vaults: Vec<RaindexVault>) -> Self {
         Self(vaults)
     }
@@ -23,9 +23,6 @@ impl VaultsList {
     }
     pub fn len(&self) -> usize {
         self.0.len()
-    }
-    pub fn get_vaults(&self) -> &Vec<RaindexVault> {
-        &self.0
     }
 
     pub fn get_withdrawable_vaults(&self) -> Vec<&RaindexVault> {
@@ -41,7 +38,13 @@ impl VaultsList {
         if vaults_to_withdraw.is_empty() {
             return Err(VaultsListError::NoWithdrawableVaults);
         }
-
+        let mut orderbook_id_iter = vaults_to_withdraw.iter().map(|v| v.orderbook());
+        let first_orderbook_id = orderbook_id_iter.next();
+        if let Some(first_id) = first_orderbook_id {
+            if orderbook_id_iter.any(|id| id != first_id) {
+                return Err(VaultsListError::MultipleOrderbooksUsed);
+            }
+        }
         // Generate multicall calldata for all vaults
         for vault in vaults_to_withdraw {
             let amount = vault.balance().format().map_err(|e| {
@@ -65,47 +68,7 @@ impl VaultsList {
 }
 
 #[wasm_export]
-impl VaultsList {
-    /// Creates a new VaultsList from an array of RaindexVault objects
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// const vaultsList = VaultsList.new([vault1, vault2, vault3]);
-    /// ```
-    #[wasm_export(
-        js_name = "new",
-        return_description = "A new VaultsList instance",
-        preserve_js_class
-    )]
-    pub fn new_wasm(
-        #[wasm_export(param_description = "Array of RaindexVault objects")] vaults: Vec<
-            RaindexVault,
-        >,
-    ) -> Result<VaultsList, VaultsListError> {
-        Ok(Self::new(vaults))
-    }
-
-    /// Creates a VaultsList from a JavaScript array using from() pattern
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// const vaultsList = VaultsList.from([vault1, vault2, vault3]);
-    /// ```
-    #[wasm_export(
-        js_name = "from",
-        return_description = "A new VaultsList instance",
-        preserve_js_class
-    )]
-    pub fn from_wasm(
-        #[wasm_export(param_description = "Array of RaindexVault objects")] vaults: Vec<
-            RaindexVault,
-        >,
-    ) -> Result<VaultsList, VaultsListError> {
-        Ok(Self::new(vaults))
-    }
-
+impl RaindexVaultsList {
     /// Returns the number of vaults in the list
     ///
     /// ## Examples
@@ -122,25 +85,6 @@ impl VaultsList {
     )]
     pub fn length_wasm(&self) -> Result<u32, VaultsListError> {
         Ok(self.len() as u32)
-    }
-
-    /// Checks if the vaults list is empty
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// if (vaultsList.isEmpty) {
-    ///   console.log("No vaults found");
-    /// }
-    /// ```
-    #[wasm_export(
-        js_name = "isEmpty",
-        getter,
-        return_description = "True if the list is empty",
-        unchecked_return_type = "boolean"
-    )]
-    pub fn is_empty_wasm(&self) -> Result<bool, VaultsListError> {
-        Ok(self.is_empty())
     }
 
     /// Returns all vaults in the list
@@ -160,7 +104,7 @@ impl VaultsList {
         preserve_js_class
     )]
     pub fn get_vaults_wasm(&self) -> Result<Vec<RaindexVault>, VaultsListError> {
-        Ok(self.get_vaults().clone())
+        Ok(self.0.clone())
     }
 
     /// Returns only vaults that have a balance greater than zero
@@ -218,6 +162,8 @@ pub enum VaultsListError {
     WithdrawMulticallError(String),
     #[error("No withdrawable vaults available")]
     NoWithdrawableVaults,
+    #[error("All vaults must share the same orderbook for batch withdrawal")]
+    MultipleOrderbooksUsed,
 }
 
 impl VaultsListError {
@@ -227,6 +173,9 @@ impl VaultsListError {
                 format!("Failed to generate withdraw multicall: {}", err)
             }
             VaultsListError::NoWithdrawableVaults => "No withdrawable vaults available".to_string(),
+            VaultsListError::MultipleOrderbooksUsed => {
+                "All vaults must share the same orderbook for batch withdrawal".to_string()
+            }
         }
     }
 }
@@ -337,13 +286,13 @@ mod tests {
 
         #[tokio::test]
         async fn test_get_vaults_not_empty() {
-            let vaults_list = VaultsList::new(get_vaults().await);
+            let vaults_list = RaindexVaultsList::new(get_vaults().await);
             assert_eq!(vaults_list.len(), 2);
         }
 
         #[tokio::test]
         async fn test_get_withdrawable_vaults() {
-            let vaults_list = VaultsList::new(get_vaults().await);
+            let vaults_list = RaindexVaultsList::new(get_vaults().await);
             let withdrawable_vaults = vaults_list.get_withdrawable_vaults();
             assert_eq!(withdrawable_vaults.len(), 1);
             assert_eq!(withdrawable_vaults[0].id().to_string(), "0x0234"); // vault2 has non-zero balance
@@ -351,7 +300,7 @@ mod tests {
 
         #[tokio::test]
         async fn test_get_withdraw_calldata() {
-            let vaults_list = VaultsList::new(get_vaults().await);
+            let vaults_list = RaindexVaultsList::new(get_vaults().await);
 
             let result = vaults_list.get_withdraw_calldata().await;
             let calldata = result.unwrap();
@@ -366,31 +315,15 @@ mod tests {
         use wasm_bindgen_test::*;
 
         #[wasm_bindgen_test]
-        async fn test_wasm_new_empty() {
-            let result = VaultsList::new_wasm(vec![]);
-            assert!(result.is_ok());
-
-            let vaults_list = result.unwrap();
-            assert_eq!(vaults_list.len(), 0);
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_wasm_from_empty() {
-            let result = VaultsList::from_wasm(vec![]);
-            let vaults_list = result.unwrap();
-            assert_eq!(vaults_list.len(), 0);
-        }
-
-        #[wasm_bindgen_test]
         async fn test_wasm_length_empty() {
-            let vaults_list = VaultsList::new(vec![]);
+            let vaults_list = RaindexVaultsList::new(vec![]);
             let result = vaults_list.length_wasm();
             assert_eq!(result.unwrap(), 0);
         }
 
         #[wasm_bindgen_test]
         async fn test_wasm_is_empty() {
-            let empty_list = VaultsList::new(vec![]);
+            let empty_list = RaindexVaultsList::new(vec![]);
             let result = empty_list.is_empty_wasm();
             assert!(result.is_ok());
             assert!(result.unwrap());
@@ -398,7 +331,7 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_wasm_get_vaults_empty() {
-            let vaults_list = VaultsList::new(vec![]);
+            let vaults_list = RaindexVaultsList::new(vec![]);
             let result = vaults_list.get_vaults_wasm();
             assert!(result.is_ok());
 
@@ -408,7 +341,7 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_wasm_get_withdrawable_vaults_empty() {
-            let vaults_list = VaultsList::new(vec![]);
+            let vaults_list = RaindexVaultsList::new(vec![]);
             let result = vaults_list.get_withdrawable_vaults_wasm();
             let withdrawable = result.unwrap();
             assert_eq!(withdrawable.len(), 0);
@@ -416,7 +349,7 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_wasm_get_withdraw_calldata_empty() {
-            let vaults_list = VaultsList::new(vec![]);
+            let vaults_list = RaindexVaultsList::new(vec![]);
             let result = vaults_list.get_withdraw_calldata_wasm().await;
             assert!(result.is_err());
         }

@@ -28,7 +28,7 @@
 		RaindexClient,
 		RaindexOrder,
 		RaindexVault,
-		VaultsList,
+		RaindexVaultsList,
 		type Address,
 		type Hex
 	} from '@rainlanguage/orderbook';
@@ -63,7 +63,7 @@
 	/** Callback function when withdraw all action is triggered for a vault
 	 * @param vaultsList The VaultsList struct containing the vaults to withdraw from
 	 */
-	export let onWithdrawAll: (raindexClient: RaindexClient, vaultsList: VaultsList) => void;
+	export let onWithdrawAll: (raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
