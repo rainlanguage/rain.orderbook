@@ -23,7 +23,7 @@ rain_orderbook_bindings = { workspace = true }
 rain_orderbook_quote = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
 wasm-bindgen-utils = { workspace = true }
-wasm-bindgen = "0.2.100"
+wasm-bindgen = { workspace = true }
 tokio = { workspace = true, features = [
     "sync",
     "macros",
