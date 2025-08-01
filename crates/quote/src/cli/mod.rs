@@ -296,8 +296,8 @@ mod tests {
                 success: true,
                 returnData: quote2Call::abi_encode_returns(&quote2Return {
                     exists: true,
-                    outputMax: Float::default().0,
-                    ioRatio: Float::default().0,
+                    outputMax: Float::default().get_inner(),
+                    ioRatio: Float::default().get_inner(),
                 })
                 .into(),
             },
@@ -305,8 +305,8 @@ mod tests {
                 success: true,
                 returnData: quote2Call::abi_encode_returns(&quote2Return {
                     exists: false,
-                    outputMax: Float::default().0,
-                    ioRatio: Float::default().0,
+                    outputMax: Float::default().get_inner(),
+                    ioRatio: Float::default().get_inner(),
                 })
                 .into(),
             },
@@ -511,8 +511,8 @@ mod tests {
                 success: true,
                 returnData: quote2Call::abi_encode_returns(&quote2Return {
                     exists: true,
-                    outputMax: Float::default().0,
-                    ioRatio: Float::default().0,
+                    outputMax: Float::default().get_inner(),
+                    ioRatio: Float::default().get_inner(),
                 })
                 .into(),
             },
@@ -520,8 +520,8 @@ mod tests {
                 success: true,
                 returnData: quote2Call::abi_encode_returns(&quote2Return {
                     exists: false,
-                    outputMax: Float::default().0,
-                    ioRatio: Float::default().0,
+                    outputMax: Float::default().get_inner(),
+                    ioRatio: Float::default().get_inner(),
                 })
                 .into(),
             },

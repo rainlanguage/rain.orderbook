@@ -49,7 +49,6 @@ mod tests {
     use alloy::{
         network::TransactionBuilder,
         primitives::{
-            aliases::I224,
             utils::{parse_ether, parse_units},
             Bytes, U256,
         },
@@ -60,6 +59,7 @@ mod tests {
     use rain_math_float::Float;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_test_fixtures::{LocalEvm, Orderbook};
+    use std::str::FromStr;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_trade_replayer_ok() {
@@ -186,7 +186,7 @@ amount price: 2 1;
             .await
             .unwrap();
 
-        let Float(amount) = Float::parse("10".to_string()).unwrap();
+        let amount = Float::parse("10".to_string()).unwrap().get_inner();
         let tx_req = orderbook
             .deposit3(
                 *token1.address(),
@@ -205,8 +205,16 @@ amount price: 2 1;
         local_evm.send_transaction(tx_req).await.unwrap();
 
         // take order from token2 holder
-        let Float(max_float) = Float::pack_lossless(I224::MAX, 1).unwrap();
-        let Float(one_float) = Float::parse("1".to_string()).unwrap();
+        // TODO: Uncomment this when we have MAX for Float
+        // let max_float = Float::pack_lossless(I224::MAX, 1).unwrap().get_inner();
+        let max_float = Float::from_fixed_decimal(
+            U256::from_str("13479973333575319897333507543509815336818572211270286240551805124607")
+                .unwrap(),
+            1,
+        )
+        .unwrap()
+        .get_inner();
+        let one_float = Float::parse("1".to_string()).unwrap().get_inner();
         let config = Orderbook::TakeOrdersConfigV4 {
             orders: vec![Orderbook::TakeOrderConfigV4 {
                 order,

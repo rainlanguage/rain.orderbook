@@ -1961,7 +1961,9 @@ mod tests {
                         token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
-                        depositAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
+                        depositAmount: Float::from_fixed_decimal(U256::from(500), 18)
+                            .unwrap()
+                            .get_inner(),
                         tasks: vec![],
                     }
                     .abi_encode()
@@ -2026,7 +2028,9 @@ mod tests {
                         token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
-                        targetAmount: Float::from_fixed_decimal(U256::from(500), 18).unwrap().0,
+                        targetAmount: Float::from_fixed_decimal(U256::from(500), 18)
+                            .unwrap()
+                            .get_inner(),
                         tasks: vec![],
                     }
                     .abi_encode()
