@@ -19,13 +19,8 @@
 	 * Initialize the filter store on component mount
 	 */
 	onMount(() => {
-		try {
-			const wrapper = new RaindexFilterStore();
-			filterStore.set(wrapper);
-		} catch (error) {
-			console.error('Failed to initialize filter store:', error);
-			// You might want to show an error message to the user here
-		}
+		const wrapper = new RaindexFilterStore();
+		filterStore.set(wrapper);
 	});
 
 	/**

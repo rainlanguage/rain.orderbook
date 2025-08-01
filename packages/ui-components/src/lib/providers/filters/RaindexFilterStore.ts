@@ -65,7 +65,6 @@ export class RaindexFilterStore {
 
 			return this;
 		} catch (error) {
-			console.error('Failed to update filters:', error);
 			throw new Error(`Filter update failed: ${error}`);
 		}
 	}
@@ -80,7 +79,6 @@ export class RaindexFilterStore {
 			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(result);
 			return this;
 		} catch (error) {
-			console.error('Failed to set vault filters:', error);
 			throw new Error(`Failed to set vault filters: ${error}`);
 		}
 	}
@@ -93,7 +91,6 @@ export class RaindexFilterStore {
 			const result = this.wasmStore.getVaults();
 			return unwrapWasmResult<GetVaultsFilters>(result);
 		} catch (error) {
-			console.error('Failed to get filters:', error);
 			throw new Error(`Failed to get filters: ${error}`);
 		}
 	}
@@ -107,7 +104,6 @@ export class RaindexFilterStore {
 			const result = this.wasmStore.save();
 			unwrapWasmResult<void>(result);
 		} catch (error) {
-			console.error('Failed to save filters:', error);
 			throw new Error(`Failed to save filters: ${error}`);
 		}
 	}
@@ -121,7 +117,6 @@ export class RaindexFilterStore {
 			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(newWasmStoreResult);
 			return this;
 		} catch (error) {
-			console.error('Failed to load filters:', error);
 			throw new Error(`Failed to load filters: ${error}`);
 		}
 	}
