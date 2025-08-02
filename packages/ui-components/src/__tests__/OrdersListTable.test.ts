@@ -21,27 +21,39 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
 
+const mockVaultsList = () => ({
+	items: [],
+	getWithdrawableVaults: () => ({ value: [], error: null })
+});
+
 const mockOrder = {
 	chainId: 1,
 	id: '0x1234567890abcdef1234567890abcdef12345678',
 	orderBytes: '',
 	orderHash: '0x4444444444444444444444444444444444444444',
 	owner: '0xabcdef1234567890abcdef1234567890abcdef12',
-	inputs: [
-		{
-			token: {
-				symbol: 'ETH'
+	inputsList: {
+		...mockVaultsList(),
+		items: [
+			{
+				token: {
+					symbol: 'ETH'
+				}
 			}
-		}
-	],
-	outputs: [
-		{
-			token: {
-				symbol: 'DAI'
+		]
+	},
+	outputsList: {
+		...mockVaultsList(),
+		items: [
+			{
+				token: {
+					symbol: 'DAI'
+				}
 			}
-		}
-	],
-	vaults: [],
+		]
+	},
+	inputsOutputsList: mockVaultsList(),
+	vaultsList: mockVaultsList(),
 	orderbook: '0x2222222222222222222222222222222222222222',
 	active: true,
 	timestampAdded: BigInt(1678901234),

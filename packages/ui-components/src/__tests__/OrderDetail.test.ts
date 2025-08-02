@@ -62,6 +62,11 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	onWithdrawAll: vi.fn()
 };
 
+const mockVaultsList = () => ({
+	items: [],
+	getWithdrawableVaults: () => ({ value: [], error: null })
+});
+
 const mockOrder: RaindexOrder = {
 	chainId: 1,
 	orderbook: orderbookAddress,
@@ -73,10 +78,11 @@ const mockOrder: RaindexOrder = {
 	meta: undefined,
 	rainlang: undefined,
 	timestampAdded: BigInt(1234567890),
-	inputsList: { items: [] },
-	outputsList: { items: [] },
-	inputsOutputsList: { items: [] },
+	inputsList: mockVaultsList(),
+	outputsList: mockVaultsList(),
+	inputsOutputsList: mockVaultsList(),
 	vaultsList: {
+		...mockVaultsList(),
 		items: [
 			{
 				chainId: 1,
