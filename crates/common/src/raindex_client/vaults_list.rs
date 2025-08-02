@@ -296,28 +296,10 @@ mod tests {
         use wasm_bindgen_test::*;
 
         #[wasm_bindgen_test]
-        async fn test_wasm_length_empty() {
+        async fn test_wasm_get_vaults() {
             let vaults_list = RaindexVaultsList::new(vec![]);
-            let result = vaults_list.length_wasm();
-            assert_eq!(result.unwrap(), 0);
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_wasm_is_empty() {
-            let empty_list = RaindexVaultsList::new(vec![]);
-            let result = empty_list.is_empty_wasm();
-            assert!(result.is_ok());
-            assert!(result.unwrap());
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_wasm_get_vaults_empty() {
-            let vaults_list = RaindexVaultsList::new(vec![]);
-            let result = vaults_list.get_vaults_wasm();
-            assert!(result.is_ok());
-
-            let retrieved_vaults = result.unwrap();
-            assert_eq!(retrieved_vaults.len(), 0);
+            let vaults = vaults_list.items();
+            assert_eq!(vaults.len(), 0);
         }
 
         #[wasm_bindgen_test]
