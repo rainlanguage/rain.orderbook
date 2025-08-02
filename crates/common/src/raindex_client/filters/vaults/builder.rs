@@ -70,6 +70,7 @@ impl VaultsFilterBuilder {
     /// ```
     #[wasm_export(
         js_name = "create",
+        preserve_js_class,
         return_description = "A new VaultsFilterBuilder instance with default values"
     )]
     pub fn new_wasm() -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
@@ -90,6 +91,7 @@ impl VaultsFilterBuilder {
     /// ```
     #[wasm_export(
         js_name = "fromFilters",
+        preserve_js_class,
         return_description = "A VaultsFilterBuilder instance created from existing filters"
     )]
     pub fn from_filters_wasm(
@@ -113,6 +115,7 @@ impl VaultsFilterBuilder {
     /// ```
     #[wasm_export(
         js_name = "setOwners",
+        preserve_js_class,
         return_description = "A new VaultsFilterBuilder instance with updated owners"
     )]
     pub fn set_owners_wasm(
@@ -144,6 +147,7 @@ impl VaultsFilterBuilder {
     /// ```
     #[wasm_export(
         js_name = "setHideZeroBalance",
+        preserve_js_class,
         return_description = "A new VaultsFilterBuilder instance with updated hide zero balance setting"
     )]
     pub fn set_hide_zero_balance_wasm(
@@ -164,6 +168,7 @@ impl VaultsFilterBuilder {
     /// ```
     #[wasm_export(
         js_name = "setTokens",
+        preserve_js_class,
         return_description = "A new VaultsFilterBuilder instance with updated tokens"
     )]
     pub fn set_tokens_wasm(
@@ -205,6 +210,7 @@ impl VaultsFilterBuilder {
     /// ```
     #[wasm_export(
         js_name = "setChainIds",
+        preserve_js_class,
         return_description = "A new VaultsFilterBuilder instance with updated chain IDs"
     )]
     pub fn set_chain_ids_wasm(
@@ -231,6 +237,7 @@ impl VaultsFilterBuilder {
     /// ```
     #[wasm_export(
         js_name = "build",
+        preserve_js_class,
         return_description = "A GetVaultsFilters instance with the configured values"
     )]
     pub fn build_wasm(self) -> Result<GetVaultsFilters, VaultsFilterBuilderError> {
