@@ -65,7 +65,7 @@
 	 */
 	export let onWithdrawAll:
 		| ((raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void)
-		| undefined;
+		| undefined = undefined;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
