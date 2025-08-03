@@ -617,30 +617,34 @@ impl RaindexOrder {
             order_bytes: Bytes::from_str(&order.order_bytes.0)?,
             order_hash: Bytes::from_str(&order.order_hash.0)?,
             owner: Address::from_str(&order.owner.0)?,
-            inputs: order
-                .inputs
-                .iter()
-                .map(|v| {
-                    RaindexVault::try_from_sg_vault(
-                        raindex_client.clone(),
-                        chain_id,
-                        v.clone(),
-                        Some(RaindexVaultType::Input),
-                    )
-                })
-                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
-            outputs: order
-                .outputs
-                .iter()
-                .map(|v| {
-                    RaindexVault::try_from_sg_vault(
-                        raindex_client.clone(),
-                        chain_id,
-                        v.clone(),
-                        Some(RaindexVaultType::Output),
-                    )
-                })
-                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
+            inputs: {
+                order
+                    .inputs
+                    .iter()
+                    .map(|v| {
+                        RaindexVault::try_from_sg_vault(
+                            raindex_client.clone(),
+                            chain_id,
+                            v.clone(),
+                            Some(RaindexVaultType::Input),
+                        )
+                    })
+                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
+            },
+            outputs: {
+                order
+                    .outputs
+                    .iter()
+                    .map(|v| {
+                        RaindexVault::try_from_sg_vault(
+                            raindex_client.clone(),
+                            chain_id,
+                            v.clone(),
+                            Some(RaindexVaultType::Output),
+                        )
+                    })
+                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
+            },
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
@@ -666,14 +670,14 @@ impl RaindexOrder {
             order_hash: SgBytes(self.order_hash().to_string()),
             owner: SgBytes(self.owner().to_string()),
             outputs: self
-                .outputs_list()
-                .items()
+                .outputs
+                .clone()
                 .into_iter()
                 .map(|v| v.into_sg_vault())
                 .collect::<Result<Vec<SgVault>, RaindexError>>()?,
             inputs: self
-                .inputs_list()
-                .items()
+                .inputs
+                .clone()
                 .into_iter()
                 .map(|v| v.into_sg_vault())
                 .collect::<Result<Vec<SgVault>, RaindexError>>()?,
