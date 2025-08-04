@@ -533,7 +533,9 @@ timestamp,timestamp_display,from,amount,amount_display_signed,change_type_displa
         .await
         .unwrap();
 
-        let Float(amount) = Float::from_fixed_decimal(amount, decimals).unwrap();
+        let amount = Float::from_fixed_decimal(amount, decimals)
+            .unwrap()
+            .get_inner();
 
         let expected: Bytes = deposit3Call {
             token: Address::default(),
@@ -567,7 +569,7 @@ timestamp,timestamp_display,from,amount,amount_display_signed,change_type_displa
         .await
         .unwrap();
 
-        let Float(target_amount_bytes) = target_amount;
+        let target_amount_bytes = target_amount.get_inner();
 
         let expected: Bytes = withdraw3Call {
             token: Address::default(),
