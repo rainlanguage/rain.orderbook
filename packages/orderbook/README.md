@@ -184,7 +184,7 @@ const order = result.value; // RaindexOrder instance
 const rainlangExpression = order.rainlang; // string
 
 // Get all the vaults associated with this order
-const orderVaultsList = order.vaultsList(); // RaindexVaultsList
+const orderVaultsList = order.vaultsList; // RaindexVaultsList
 const orderVaults = orderVaultsList.items; // RaindexVault[]
 
 // Get calldata to remove this order from the orderbook
@@ -209,14 +209,12 @@ const orderVaultsList = order.vaultsList; // RaindexVaultsList
 const orderVaults = orderVaultsList.items; // RaindexVault[]
 ```
 
-The `RaindexOrder` exposes the following methods that return a `RaindexVaultsList`:
+The `RaindexOrder` exposes the following getters that return a `RaindexVaultsList`:
 
 - `vaultsList`
 - `inputsList`
 - `outputsList`
 - `inputsOutputsList`
-
-NOTE: In JavaScript these are props: `order.vaultsList.items.map(...)` while in Rust they are methods
 
 ### Get all vaults
 
