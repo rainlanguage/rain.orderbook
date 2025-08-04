@@ -1,4 +1,5 @@
 use super::*;
+use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
@@ -58,6 +59,15 @@ pub struct RaindexOrder {
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
 }
+
+fn get_io_by_type(order: &RaindexOrder, vault_type: RaindexVaultType) -> Vec<RaindexVault> {
+    let vaults = order.vaults_list().items();
+    vaults
+        .into_iter()
+        .filter(|v| v.vault_type() == Some(vault_type.clone()))
+        .collect()
+}
+
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexOrder {
@@ -80,35 +90,6 @@ impl RaindexOrder {
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn owner(&self) -> String {
         self.owner.to_string()
-    }
-    #[wasm_bindgen(getter)]
-    pub fn inputs(&self) -> Vec<RaindexVault> {
-        self.inputs.clone()
-    }
-    #[wasm_bindgen(getter)]
-    pub fn outputs(&self) -> Vec<RaindexVault> {
-        self.outputs.clone()
-    }
-    /// Returns a combined view of all vaults associated with this order.
-    ///
-    /// This method merges input and output vaults, properly handling vaults that serve
-    /// both roles by marking them as InputOutput type. The returned list contains each
-    /// unique vault exactly once with the correct type classification.
-    ///
-    /// ## Returns
-    ///
-    /// - `Vec<RaindexVault>` - All vaults with proper type classification
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// order.vaults.forEach(vault => {
-    ///   console.log(`${vault.id}: ${vault.vaultType}`);
-    /// });
-    /// ```
-    #[wasm_bindgen(getter)]
-    pub fn vaults(&self) -> Vec<RaindexVault> {
-        get_vaults_with_type(self.inputs.clone(), self.outputs.clone())
     }
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn orderbook(&self) -> String {
@@ -139,6 +120,26 @@ impl RaindexOrder {
     pub fn trades_count(&self) -> u16 {
         self.trades_count
     }
+
+    #[wasm_bindgen(getter = vaultsList)]
+    pub fn vaults_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_vaults_with_type(
+            self.inputs.clone(),
+            self.outputs.clone(),
+        ))
+    }
+    #[wasm_bindgen(getter = inputsList)]
+    pub fn inputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Input))
+    }
+    #[wasm_bindgen(getter = outputsList)]
+    pub fn outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Output))
+    }
+    #[wasm_bindgen(getter = inputsOutputsList)]
+    pub fn inputs_outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::InputOutput))
+    }
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexOrder {
@@ -156,15 +157,6 @@ impl RaindexOrder {
     }
     pub fn owner(&self) -> Address {
         self.owner
-    }
-    pub fn inputs(&self) -> Vec<RaindexVault> {
-        self.inputs.clone()
-    }
-    pub fn outputs(&self) -> Vec<RaindexVault> {
-        self.outputs.clone()
-    }
-    pub fn vaults(&self) -> Vec<RaindexVault> {
-        get_vaults_with_type(self.inputs.clone(), self.outputs.clone())
     }
     pub fn orderbook(&self) -> Address {
         self.orderbook
@@ -186,6 +178,21 @@ impl RaindexOrder {
     }
     pub fn trades_count(&self) -> u16 {
         self.trades_count
+    }
+    pub fn vaults_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_vaults_with_type(
+            self.inputs.clone(),
+            self.outputs.clone(),
+        ))
+    }
+    pub fn inputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Input))
+    }
+    pub fn outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Output))
+    }
+    pub fn inputs_outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::InputOutput))
     }
 }
 
@@ -610,30 +617,34 @@ impl RaindexOrder {
             order_bytes: Bytes::from_str(&order.order_bytes.0)?,
             order_hash: Bytes::from_str(&order.order_hash.0)?,
             owner: Address::from_str(&order.owner.0)?,
-            inputs: order
-                .inputs
-                .iter()
-                .map(|v| {
-                    RaindexVault::try_from_sg_vault(
-                        raindex_client.clone(),
-                        chain_id,
-                        v.clone(),
-                        Some(RaindexVaultType::Input),
-                    )
-                })
-                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
-            outputs: order
-                .outputs
-                .iter()
-                .map(|v| {
-                    RaindexVault::try_from_sg_vault(
-                        raindex_client.clone(),
-                        chain_id,
-                        v.clone(),
-                        Some(RaindexVaultType::Output),
-                    )
-                })
-                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
+            inputs: {
+                order
+                    .inputs
+                    .iter()
+                    .map(|v| {
+                        RaindexVault::try_from_sg_vault(
+                            raindex_client.clone(),
+                            chain_id,
+                            v.clone(),
+                            Some(RaindexVaultType::Input),
+                        )
+                    })
+                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
+            },
+            outputs: {
+                order
+                    .outputs
+                    .iter()
+                    .map(|v| {
+                        RaindexVault::try_from_sg_vault(
+                            raindex_client.clone(),
+                            chain_id,
+                            v.clone(),
+                            Some(RaindexVaultType::Output),
+                        )
+                    })
+                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
+            },
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
@@ -659,12 +670,14 @@ impl RaindexOrder {
             order_hash: SgBytes(self.order_hash().to_string()),
             owner: SgBytes(self.owner().to_string()),
             outputs: self
-                .outputs()
+                .outputs
+                .clone()
                 .into_iter()
                 .map(|v| v.into_sg_vault())
                 .collect::<Result<Vec<SgVault>, RaindexError>>()?,
             inputs: self
-                .inputs()
+                .inputs
+                .clone()
                 .into_iter()
                 .map(|v| v.into_sg_vault())
                 .collect::<Result<Vec<SgVault>, RaindexError>>()?,
@@ -1231,10 +1244,19 @@ mod tests {
             assert_eq!(res.inputs[1].id(), expected_order.inputs[1].id());
             assert_eq!(res.outputs[1].id(), expected_order.outputs[1].id());
 
-            assert_eq!(res.vaults().len(), 3);
-            assert_eq!(res.vaults()[0].id(), expected_order.inputs[0].id());
-            assert_eq!(res.vaults()[1].id(), expected_order.outputs[0].id());
-            assert_eq!(res.vaults()[2].id(), expected_order.inputs[1].id());
+            assert_eq!(res.vaults_list().items().len(), 3);
+            assert_eq!(
+                res.vaults_list().items()[0].id(),
+                expected_order.inputs[0].id()
+            );
+            assert_eq!(
+                res.vaults_list().items()[1].id(),
+                expected_order.outputs[0].id()
+            );
+            assert_eq!(
+                res.vaults_list().items()[2].id(),
+                expected_order.inputs[1].id()
+            );
         }
 
         #[tokio::test]

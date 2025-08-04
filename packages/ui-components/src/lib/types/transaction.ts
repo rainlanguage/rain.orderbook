@@ -12,6 +12,7 @@ export type VaultActionArgs = {
 export enum TransactionName {
 	REMOVAL = 'Order Removal',
 	WITHDRAWAL = 'Vault Withdrawal',
+	WITHDRAWAL_MULTIPLE = 'Vaults Withdrawal',
 	APPROVAL = 'Token Approval',
 	DEPOSIT = 'Vault Deposit'
 }
