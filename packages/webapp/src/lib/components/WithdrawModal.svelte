@@ -92,7 +92,7 @@
 			bind:value={amount}
 			symbol={vault.token.symbol}
 			decimals={Number(vault.token.decimals)}
-			maxValue={vault.balance.toBigint()}
+			maxValue={vault.balance.toFixedDecimal(vault.token.decimals).value}
 		/>
 		<div class="flex flex-col justify-end gap-2">
 			<div class="flex gap-2">

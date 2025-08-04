@@ -205,8 +205,7 @@ amount price: 2 1;
         local_evm.send_transaction(tx_req).await.unwrap();
 
         // take order from token2 holder
-        // TODO: Uncomment this when we have MAX for Float
-        // let max_float = Float::pack_lossless(I224::MAX, 1).unwrap().get_inner();
+        // TODO: Replace this with max_positive_value from Float when available
         let max_float = Float::from_fixed_decimal(
             U256::from_str("13479973333575319897333507543509815336818572211270286240551805124607")
                 .unwrap(),

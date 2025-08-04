@@ -33,7 +33,7 @@ describe('WithdrawModal', () => {
 			}
 		}),
 		vaultId: '1',
-		balance: Float.fromFixedDecimal(1000000000000000000n, 18).value as Float,
+		balance: Float.parse('1').value as Float,
 		formattedBalance: '1'
 	} as unknown as RaindexVault;
 
