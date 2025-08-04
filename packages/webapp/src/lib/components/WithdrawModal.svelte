@@ -49,7 +49,10 @@
 		amount = 0n;
 	}
 
-	$: validation = validateAmount(amount, vault.balance.toBigint());
+	$: validation = validateAmount(
+		amount,
+		vault.balance.toFixedDecimalLossy(vault.token.decimals).value as bigint
+	);
 </script>
 
 <Modal bind:open autoclose={false} size="md">
