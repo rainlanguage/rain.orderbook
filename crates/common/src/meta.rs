@@ -53,7 +53,7 @@ mod tests {
 
     const RAINLANG_SOURCE: &str = r#"/* 0. calculate-io */ 
 using-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC
-max-output: max-positive-value(),
+max-output: max-value(),
 io: if(
   equal-to(
     output-token()

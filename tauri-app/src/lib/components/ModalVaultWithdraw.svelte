@@ -21,7 +21,7 @@
   let isSubmitting = false;
   let selectWallet = false;
 
-  $: amountGTBalance = vault !== undefined && amount > BigInt(vault.balance);
+  $: amountGTBalance = vault !== undefined && amount > vault.balance.toBigint();
 
   function reset() {
     open = false;
@@ -118,7 +118,7 @@
         bind:value={amount}
         symbol={vault.token.symbol}
         decimals={Number(vault.token.decimals ?? 0)}
-        maxValue={BigInt(vault.balance)}
+        maxValue={vault.balance.toBigint()}
       />
 
       <Helper color="red" class="h-6 text-sm">

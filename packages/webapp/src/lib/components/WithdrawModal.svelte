@@ -9,7 +9,7 @@
 	import { validateAmount } from '$lib/services/validateAmount';
 	import { fade } from 'svelte/transition';
 	import truncateEthAddress from 'truncate-eth-address';
-	import type { AccountBalance } from '@rainlanguage/orderbook';
+	import { type AccountBalance } from '@rainlanguage/orderbook';
 
 	/**
 	 * Modal component for withdrawing tokens from a vault.
@@ -49,7 +49,7 @@
 		amount = 0n;
 	}
 
-	$: validation = validateAmount(amount, BigInt(vault.balance));
+	$: validation = validateAmount(amount, vault.balance.toBigint());
 </script>
 
 <Modal bind:open autoclose={false} size="md">
@@ -89,7 +89,7 @@
 			bind:value={amount}
 			symbol={vault.token.symbol}
 			decimals={Number(vault.token.decimals)}
-			maxValue={vault.balance}
+			maxValue={vault.balance.toBigint()}
 		/>
 		<div class="flex flex-col justify-end gap-2">
 			<div class="flex gap-2">
