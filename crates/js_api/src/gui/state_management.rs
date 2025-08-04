@@ -1,11 +1,10 @@
 use super::*;
+use alloy::primitives::keccak256;
 use rain_orderbook_app_settings::{
     gui::GuiDepositCfg,
     order::{OrderIOCfg, VaultType},
     token::TokenCfg,
 };
-use alloy::primitives::keccak256;
-use rain_orderbook_app_settings::{gui::GuiDepositCfg, order::OrderIOCfg, token::TokenCfg};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 use wasm_bindgen::JsValue;

@@ -528,7 +528,7 @@ impl DotrainOrderGui {
                 vault_list
                     .into_iter()
                     .enumerate()
-                    .map(move |(index, vault_id)| {
+                    .map(move |(index, (token_key, vault_id))| {
                         let key = format!("{}_{}", io_type, index);
                         let value = vault_id.map(|v| format!("0x{:x}", v));
                         (key, value)
@@ -589,11 +589,12 @@ impl DotrainOrderGui {
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
         let dotrain_instance_v1 = self.generate_dotrain_instance_v1()?;
+        let doc = RainMetaDocumentV1Item::try_from(dotrain_instance_v1)?;
 
         let calldata = AddOrderArgs::new_from_deployment(
             self.dotrain_order.dotrain()?,
             deployment.deployment.as_ref().clone(),
-            Some(dotrain_instance_v1),
+            Some(vec![doc]),
         )
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)
