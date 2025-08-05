@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn verify_binary_representations() {
         // Verify that hard-coded binary representations match original values
-        // TODO: Uncomment this when we have min_negative_value
+        // TODO: Uncomment this when we have Float::min_negative
         // assert!(FMIN
         //     .eq(Float::pack_lossless(I224::MIN, i32::MAX).unwrap())
         //     .unwrap());
@@ -125,7 +125,7 @@ mod tests {
         assert!(F50.eq(Float::parse("50".to_string()).unwrap()).unwrap());
         assert!(F100.eq(Float::parse("100".to_string()).unwrap()).unwrap());
         assert!(F1000.eq(Float::parse("1000".to_string()).unwrap()).unwrap());
-        // TODO: Uncomment this when we have max_positive_value
+        // TODO: Uncomment this when we have Float::max_positive
         // assert!(FMAX
         //     .eq(Float::pack_lossless(I224::MAX, i32::MAX).unwrap())
         //     .unwrap());
