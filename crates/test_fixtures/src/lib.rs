@@ -313,8 +313,9 @@ impl LocalEvm {
 
         self.send_transaction(tx).await.unwrap();
 
-        let Float(raw_deposit_amount) =
-            Float::from_fixed_decimal(deposit_amount, decimals).unwrap();
+        let raw_deposit_amount = Float::from_fixed_decimal(deposit_amount, decimals)
+            .unwrap()
+            .get_inner();
 
         let tx = self
             .orderbook

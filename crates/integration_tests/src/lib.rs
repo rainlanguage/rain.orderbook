@@ -125,8 +125,8 @@ amount price: get("amount") 52;
             .unwrap()
             .unwrap();
 
-        let amount = Float(quote._1);
-        let price = Float(quote._2);
+        let amount = Float::from_raw(quote._1);
+        let price = Float::from_raw(quote._2);
 
         let expected_amount = Float::parse("100".to_string()).unwrap();
         let expected_price = Float::parse("52".to_string()).unwrap();

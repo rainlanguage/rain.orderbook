@@ -47,7 +47,7 @@ impl TryFrom<DepositArgs> for deposit3Call {
     type Error = FloatError;
 
     fn try_from(val: DepositArgs) -> Result<Self, Self::Error> {
-        let Float(amount) = Float::from_fixed_decimal(val.amount, val.decimals)?;
+        let amount = Float::from_fixed_decimal(val.amount, val.decimals)?.get_inner();
 
         let call = deposit3Call {
             token: val.token,
@@ -156,7 +156,7 @@ mod tests {
             address!("1234567890abcdef1234567890abcdef12345678")
         );
         assert_eq!(deposit_call.vaultId, B256::from(U256::from(42)));
-        let Float(amount) = Float::parse("0.000123".to_string()).unwrap();
+        let amount = Float::parse("0.000123".to_string()).unwrap().get_inner();
         assert_eq!(deposit_call.depositAmount, amount);
     }
 
@@ -206,7 +206,7 @@ mod tests {
             max_fee_per_gas: Some(100),
         };
 
-        let Float(amount) = Float::parse("100".to_string()).unwrap();
+        let amount = Float::parse("100".to_string()).unwrap().get_inner();
         let deposit_call = deposit3Call {
             token: Address::ZERO,
             vaultId: B256::from(U256::from(42)),
