@@ -563,7 +563,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			assert.equal(order.vaultsList.items[0].vaultType, 'input');
 			assert.equal(order.vaultsList.items[0].vaultId, '0x0234');
-			assert.equal(order.vaultsList.items[0].balance.format18(), '12');
+			assert.equal(order.vaultsList.items[0].balance.format18().value, '12');
 			assert.equal(
 				order.vaultsList.items[0].token.id,
 				'0x1d80c49bbbcd1c0911346656b529df9e5c2f783d'
@@ -578,7 +578,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			assert.equal(order.vaultsList.items[1].vaultType, 'output');
 			assert.equal(order.vaultsList.items[1].vaultId, '0x0123');
-			assert.equal(order.vaultsList.items[1].balance.format18(), '10');
+			assert.equal(order.vaultsList.items[1].balance.format18().value, '10');
 			assert.equal(
 				order.vaultsList.items[1].token.id,
 				'0x12e605bc104e93b45e1ad99f9e555f659051c2bb'
@@ -593,7 +593,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			assert.equal(order.vaultsList.items[2].vaultType, 'inputOutput');
 			assert.equal(order.vaultsList.items[2].vaultId, '0x0345');
-			assert.equal(order.vaultsList.items[2].balance.format18(), '13');
+			assert.equal(order.vaultsList.items[2].balance.format18().value, '13');
 			assert.equal(
 				order.vaultsList.items[2].token.id,
 				'0x0000000000000000000000000000000000000000'
