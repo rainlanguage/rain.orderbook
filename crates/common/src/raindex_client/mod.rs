@@ -147,7 +147,18 @@ impl RaindexClient {
         let metaboards: std::collections::HashMap<
             String,
             rain_orderbook_app_settings::metaboard::MetaboardCfg,
-        > = self.orderbook_yaml.get_metaboards()?;
+        > = match self.orderbook_yaml.get_metaboards() {
+            Ok(metaboards) => metaboards,
+            Err(_) => {
+                // If metaboards section is missing, return appropriate error
+                return Err(RaindexError::NoMetaboardsConfigured);
+            }
+        };
+
+        // Check if metaboards are configured at all
+        if metaboards.is_empty() {
+            return Err(RaindexError::NoMetaboardsConfigured);
+        }
 
         for net in &networks {
             if let Some(metaboard) = metaboards.get(&net.key) {
@@ -162,7 +173,7 @@ impl RaindexClient {
             }
         }
         if result.is_empty() {
-            return Err(RaindexError::NoNetworksConfigured);
+            return Err(RaindexError::NoMetaboardsConfigured);
         }
         Ok(result)
     }
@@ -243,6 +254,8 @@ pub enum RaindexError {
     ChainIdNotFound(u32),
     #[error("No networks configured")]
     NoNetworksConfigured,
+    #[error("No metaboards configured for any chain")]
+    NoMetaboardsConfigured,
     #[error("Subgraph not configured for chain ID: {0}")]
     SubgraphNotConfigured(String),
     #[error(transparent)]
@@ -303,6 +316,12 @@ pub enum RaindexError {
     AmountFormatterError(#[from] AmountFormatterError),
     #[error("Cannot parse metadata: {0}")]
     ParseMetaError(#[from] rain_metadata::Error),
+    #[error("Metaboard not configured for chain ID: {0}")]
+    MetaboardNotConfigured(u32),
+    #[error("Metaboard subgraph error: {0}")]
+    MetaboardSubgraphError(String),
+    #[error("Invalid dotrain source metadata found")]
+    InvalidDotrainSourceMetadata,
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -323,6 +342,10 @@ impl RaindexError {
             ),
             RaindexError::NoNetworksConfigured => {
                 "No networks configured. Please check your configuration.".to_string()
+            }
+            RaindexError::NoMetaboardsConfigured => {
+                "No metaboards configured for any chain. Please check your configuration."
+                    .to_string()
             }
             RaindexError::SubgraphNotConfigured(chain_id) => {
                 format!("No subgraph is configured for chain ID '{}'.", chain_id)
@@ -414,6 +437,15 @@ impl RaindexError {
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
             RaindexError::ParseMetaError(err) => format!("Cannot parse metadata: {err}"),
+            RaindexError::MetaboardNotConfigured(chain_id) => {
+                format!("Metaboard is not configured for chain ID: {chain_id}")
+            }
+            RaindexError::MetaboardSubgraphError(err) => {
+                format!("Failed to query metaboard subgraph: {err}")
+            }
+            RaindexError::InvalidDotrainSourceMetadata => {
+                "Found metadata but it could not be parsed as valid dotrain source".to_string()
+            }
         }
     }
 }
@@ -857,7 +889,7 @@ deployers:
             let client = RaindexClient::new(vec![yaml], None).unwrap();
 
             let err = client.get_metaboards_by_chain_id(None).unwrap_err();
-            assert!(matches!(err, RaindexError::NoNetworksConfigured));
+            assert!(matches!(err, RaindexError::NoMetaboardsConfigured));
         }
     }
 }

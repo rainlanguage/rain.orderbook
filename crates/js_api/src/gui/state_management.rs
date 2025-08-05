@@ -473,14 +473,24 @@ mod tests {
             "Token 3".to_string(),
             "TKN3".to_string(),
         );
-        gui.save_deposit("token3".to_string(), "100".to_string())
+        gui.set_deposit("token3".to_string(), "100".to_string())
             .unwrap();
-        gui.save_field_value("binding-1".to_string(), "100".to_string())
+        gui.set_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();
-        gui.save_field_value("binding-2".to_string(), "0".to_string())
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
             .unwrap();
-        gui.set_vault_id(true, 0, Some("199".to_string())).unwrap();
-        gui.set_vault_id(false, 0, Some("299".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("199".to_string()),
+        )
+        .unwrap();
+        gui.set_vault_id(
+            VaultType::Output,
+            "token2".to_string(),
+            Some("299".to_string()),
+        )
+        .unwrap();
 
         let serialized_state = gui.serialize_state().unwrap();
 
@@ -514,8 +524,14 @@ mod tests {
             }
         );
         let vault_ids = restored_gui.get_vault_ids().unwrap().0;
-        assert_eq!(vault_ids.get("input").unwrap()[0], Some(U256::from(199)));
-        assert_eq!(vault_ids.get("output").unwrap()[0], Some(U256::from(299)));
+        assert_eq!(
+            vault_ids.get("input").unwrap().get("token1").unwrap(),
+            &Some(U256::from(199))
+        );
+        assert_eq!(
+            vault_ids.get("output").unwrap().get("token2").unwrap(),
+            &Some(U256::from(299))
+        );
     }
 
     #[wasm_bindgen_test]

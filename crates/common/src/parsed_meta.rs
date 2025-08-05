@@ -94,7 +94,8 @@ mod tests {
                 "token1".to_string(),
                 TokenCfg {
                     network: "mainnet".to_string(),
-                    address: Address::from_hex("0x123456789").unwrap(),
+                    address: Address::from_hex("0x1234567890123456789012345678901234567890")
+                        .unwrap(),
                 },
             )]),
             vault_ids: BTreeMap::from([("vault1".to_string(), Some("value4".to_string()))]),

@@ -43,7 +43,10 @@ impl CliOrderAddArgs {
         )?;
         let config_deployment = dotrain_yaml.get_deployment(&self.deployment)?;
 
-        Ok(AddOrderArgs::new_from_deployment(text.clone(), config_deployment.clone(), None).await?)
+        Ok(
+            AddOrderArgs::new_from_deployment(text.clone(), config_deployment.clone(), None)
+                .await?,
+        )
     }
 }
 
