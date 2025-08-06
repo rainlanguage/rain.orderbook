@@ -237,18 +237,19 @@ impl DotrainRegistry {
         )]
         registry_url: String,
     ) -> Result<DotrainRegistry, DotrainRegistryError> {
-        let mut instance = DotrainRegistry {
-            registry_url: registry_url.clone(),
-            registry: "".to_string(),
-            settings_url: "".to_string(),
-            settings: "".to_string(),
-            order_urls: HashMap::new(),
-            orders: HashMap::new(),
-        };
-        instance.fetch_and_parse_registry().await?;
-        instance.fetch_and_store_settings().await?;
-        instance.fetch_and_store_orders().await?;
-        Ok(instance)
+        let (registry_content, settings_url, order_urls) =
+            Self::fetch_and_parse_registry(&registry_url).await?;
+        let settings = Self::fetch_settings(&settings_url).await?;
+        let orders = Self::fetch_orders(&order_urls).await?;
+
+        Ok(DotrainRegistry {
+            registry_url,
+            registry: registry_content,
+            settings_url,
+            settings,
+            order_urls,
+            orders,
+        })
     }
 
     /// Gets details for all orders in the registry.
@@ -411,14 +412,17 @@ impl DotrainRegistry {
 }
 
 impl DotrainRegistry {
-    async fn fetch_and_parse_registry(&mut self) -> Result<(), DotrainRegistryError> {
-        let registry_content = self.fetch_url_content(&self.registry_url).await?;
-        self.registry = registry_content.clone();
-        self.parse_registry_content(registry_content)?;
-        Ok(())
+    async fn fetch_and_parse_registry(
+        registry_url: &str,
+    ) -> Result<(String, String, HashMap<String, String>), DotrainRegistryError> {
+        let registry_content = Self::fetch_url_content(registry_url).await?;
+        let (settings_url, order_urls) = Self::parse_registry_content(&registry_content)?;
+        Ok((registry_content, settings_url, order_urls))
     }
 
-    fn parse_registry_content(&mut self, content: String) -> Result<(), DotrainRegistryError> {
+    fn parse_registry_content(
+        content: &str,
+    ) -> Result<(String, HashMap<String, String>), DotrainRegistryError> {
         let lines: Vec<&str> = content
             .lines()
             .map(|line| line.trim())
@@ -438,7 +442,8 @@ impl DotrainRegistry {
             ));
         }
 
-        self.settings_url = first_line.to_string();
+        let settings_url = first_line.to_string();
+        let mut order_urls = HashMap::new();
 
         for line in &lines[1..] {
             let parts: Vec<&str> = line.split_whitespace().collect();
@@ -452,13 +457,13 @@ impl DotrainRegistry {
             let key = parts[0].to_string();
             let url = parts[1].to_string();
 
-            self.order_urls.insert(key, url);
+            order_urls.insert(key, url);
         }
 
-        Ok(())
+        Ok((settings_url, order_urls))
     }
 
-    async fn fetch_url_content(&self, url: &str) -> Result<String, DotrainRegistryError> {
+    async fn fetch_url_content(url: &str) -> Result<String, DotrainRegistryError> {
         let response = reqwest::get(url)
             .await
             .map_err(|e| DotrainRegistryError::HttpError(e.to_string()))?;
@@ -476,18 +481,18 @@ impl DotrainRegistry {
             .map_err(|e| DotrainRegistryError::HttpError(e.to_string()))
     }
 
-    async fn fetch_and_store_settings(&mut self) -> Result<(), DotrainRegistryError> {
-        let settings_content = self.fetch_url_content(&self.settings_url).await?;
-        self.settings = settings_content;
-        Ok(())
+    async fn fetch_settings(settings_url: &str) -> Result<String, DotrainRegistryError> {
+        Self::fetch_url_content(settings_url).await
     }
 
-    async fn fetch_and_store_orders(&mut self) -> Result<(), DotrainRegistryError> {
+    async fn fetch_orders(
+        order_urls: &HashMap<String, String>,
+    ) -> Result<HashMap<String, String>, DotrainRegistryError> {
         use futures::future::join_all;
 
         let mut futures = Vec::new();
 
-        for (key, url) in &self.order_urls {
+        for (key, url) in order_urls {
             let key_clone = key.clone();
             let url_clone = url.clone();
             futures.push(async move {
@@ -502,13 +507,14 @@ impl DotrainRegistry {
         }
 
         let results = join_all(futures).await;
+        let mut orders = HashMap::new();
 
         for result in results {
             let (key, content) = result?;
-            self.orders.insert(key, content);
+            orders.insert(key, content);
         }
 
-        Ok(())
+        Ok(orders)
     }
 
     fn merge_content_for_order(&self, order_key: &str) -> Result<String, DotrainRegistryError> {
@@ -676,50 +682,31 @@ _ _: 1 1;
 
         #[wasm_bindgen_test]
         fn test_parse_registry_content() {
-            let mut registry = DotrainRegistry {
-                registry_url: "test".to_string(),
-                registry: "".to_string(),
-                settings_url: "".to_string(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: HashMap::new(),
-            };
+            let (settings_url, order_urls) =
+                DotrainRegistry::parse_registry_content(MOCK_REGISTRY_CONTENT).unwrap();
 
-            registry
-                .parse_registry_content(MOCK_REGISTRY_CONTENT.to_string())
-                .unwrap();
-
-            assert_eq!(registry.settings_url, "https://example.com/settings.yaml");
-            assert_eq!(registry.order_urls.len(), 2);
+            assert_eq!(settings_url, "https://example.com/settings.yaml");
+            assert_eq!(order_urls.len(), 2);
             assert_eq!(
-                registry.order_urls.get("fixed-limit"),
+                order_urls.get("fixed-limit"),
                 Some(&"https://example.com/fixed-limit.rain".to_string())
             );
             assert_eq!(
-                registry.order_urls.get("auction-dca"),
+                order_urls.get("auction-dca"),
                 Some(&"https://example.com/auction-dca.rain".to_string())
             );
         }
 
         #[wasm_bindgen_test]
         fn test_parse_invalid_registry_content() {
-            let mut registry = DotrainRegistry {
-                registry_url: "test".to_string(),
-                registry: "".to_string(),
-                settings_url: "".to_string(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: HashMap::new(),
-            };
-
-            let result = registry.parse_registry_content("".to_string());
+            let result = DotrainRegistry::parse_registry_content("");
             assert!(result.is_err());
 
-            let result = registry.parse_registry_content("invalid first line".to_string());
+            let result = DotrainRegistry::parse_registry_content("invalid first line");
             assert!(result.is_err());
 
-            let result = registry.parse_registry_content(
-                "https://example.com/settings.yaml\ninvalid-entry".to_string(),
+            let result = DotrainRegistry::parse_registry_content(
+                "https://example.com/settings.yaml\ninvalid-entry",
             );
             assert!(result.is_err());
         }
@@ -1062,25 +1049,17 @@ _ _: 1 1;
                 then.status(200).body(test_registry_content.clone());
             });
 
-            let mut registry = DotrainRegistry {
-                registry_url: format!("{}/registry.txt", server.url("")),
-                registry: "".to_string(),
-                settings_url: "".to_string(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: HashMap::new(),
-            };
+            let registry_url = format!("{}/registry.txt", server.url(""));
+            let (registry_content, settings_url, order_urls) =
+                DotrainRegistry::fetch_and_parse_registry(&registry_url)
+                    .await
+                    .unwrap();
 
-            registry.fetch_and_parse_registry().await.unwrap();
-
-            assert_eq!(registry.registry, test_registry_content);
-            assert_eq!(
-                registry.settings_url,
-                format!("{}/settings.yaml", server.url(""))
-            );
-            assert_eq!(registry.order_urls.len(), 2);
-            assert!(registry.order_urls.contains_key("order1"));
-            assert!(registry.order_urls.contains_key("order2"));
+            assert_eq!(registry_content, test_registry_content);
+            assert_eq!(settings_url, format!("{}/settings.yaml", server.url("")));
+            assert_eq!(order_urls.len(), 2);
+            assert!(order_urls.contains_key("order1"));
+            assert!(order_urls.contains_key("order2"));
         }
 
         #[tokio::test]
@@ -1092,19 +1071,10 @@ _ _: 1 1;
                 then.status(200).body("test content");
             });
 
-            let registry = DotrainRegistry {
-                registry_url: "".to_string(),
-                registry: "".to_string(),
-                settings_url: "".to_string(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: HashMap::new(),
-            };
-
-            let content = registry
-                .fetch_url_content(&format!("{}/test.txt", server.url("")))
-                .await
-                .unwrap();
+            let content =
+                DotrainRegistry::fetch_url_content(&format!("{}/test.txt", server.url("")))
+                    .await
+                    .unwrap();
 
             assert_eq!(content, "test content");
         }
@@ -1118,18 +1088,8 @@ _ _: 1 1;
                 then.status(500);
             });
 
-            let registry = DotrainRegistry {
-                registry_url: "".to_string(),
-                registry: "".to_string(),
-                settings_url: "".to_string(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: HashMap::new(),
-            };
-
-            let result = registry
-                .fetch_url_content(&format!("{}/error.txt", server.url("")))
-                .await;
+            let result =
+                DotrainRegistry::fetch_url_content(&format!("{}/error.txt", server.url(""))).await;
 
             assert!(result.is_err());
             match result.err().unwrap() {
@@ -1141,7 +1101,7 @@ _ _: 1 1;
         }
 
         #[tokio::test]
-        async fn test_fetch_and_store_settings() {
+        async fn test_fetch_settings() {
             let server = MockServer::start_async().await;
 
             server.mock(|when, then| {
@@ -1149,22 +1109,16 @@ _ _: 1 1;
                 then.status(200).body("test settings content");
             });
 
-            let mut registry = DotrainRegistry {
-                registry_url: "".to_string(),
-                registry: "".to_string(),
-                settings_url: format!("{}/settings.yaml", server.url("")),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: HashMap::new(),
-            };
+            let settings =
+                DotrainRegistry::fetch_settings(&format!("{}/settings.yaml", server.url("")))
+                    .await
+                    .unwrap();
 
-            registry.fetch_and_store_settings().await.unwrap();
-
-            assert_eq!(registry.settings, "test settings content");
+            assert_eq!(settings, "test settings content");
         }
 
         #[tokio::test]
-        async fn test_fetch_and_store_orders() {
+        async fn test_fetch_orders() {
             let server = MockServer::start_async().await;
 
             server.mock(|when, then| {
@@ -1177,40 +1131,27 @@ _ _: 1 1;
                 then.status(200).body(get_second_dotrain_content());
             });
 
-            let mut registry = DotrainRegistry {
-                registry_url: "".to_string(),
-                registry: "".to_string(),
-                settings_url: "".to_string(),
-                settings: "".to_string(),
-                order_urls: vec![
-                    (
-                        "order1".to_string(),
-                        format!("{}/order1.rain", server.url("")),
-                    ),
-                    (
-                        "order2".to_string(),
-                        format!("{}/order2.rain", server.url("")),
-                    ),
-                ]
-                .into_iter()
-                .collect(),
-                orders: HashMap::new(),
-            };
+            let order_urls: HashMap<String, String> = vec![
+                (
+                    "order1".to_string(),
+                    format!("{}/order1.rain", server.url("")),
+                ),
+                (
+                    "order2".to_string(),
+                    format!("{}/order2.rain", server.url("")),
+                ),
+            ]
+            .into_iter()
+            .collect();
 
-            registry.fetch_and_store_orders().await.unwrap();
+            let orders = DotrainRegistry::fetch_orders(&order_urls).await.unwrap();
 
-            assert_eq!(registry.orders.len(), 2);
-            assert_eq!(
-                registry.orders.get("order1").unwrap(),
-                &get_first_dotrain_content()
-            );
-            assert_eq!(
-                registry.orders.get("order2").unwrap(),
-                &get_second_dotrain_content()
-            );
+            assert_eq!(orders.len(), 2);
+            assert_eq!(orders.get("order1").unwrap(), &get_first_dotrain_content());
+            assert_eq!(orders.get("order2").unwrap(), &get_second_dotrain_content());
 
-            let order1_content = registry.orders.get("order1").unwrap();
-            let order2_content = registry.orders.get("order2").unwrap();
+            let order1_content = orders.get("order1").unwrap();
+            let order2_content = orders.get("order2").unwrap();
             assert_ne!(order1_content, order2_content);
             assert!(order1_content.contains("_ _: 0 0;"));
             assert!(order2_content.contains("_ _: 1 1;"));
