@@ -162,9 +162,7 @@ impl DotrainRegistryError {
             DotrainRegistryError::UrlParseError(err) => {
                 format!("Invalid URL format: {}. Please ensure the URL is properly formatted.", err)
             }
-            DotrainRegistryError::GuiError(err) => {
-                format!("GUI error: {}", err)
-            }
+            DotrainRegistryError::GuiError(err) => err.to_readable_msg()
         }
     }
 }
