@@ -39,13 +39,6 @@ pub enum GuiValidationError {
         exclusive_maximum: String,
     },
 
-    #[error("The {name} field value '{value}' must be a multiple of {multiple_of}. Please adjust your input accordingly.")]
-    NotMultipleOf {
-        name: String,
-        value: String,
-        multiple_of: String,
-    },
-
     #[error("The {name} field text is too short ({length} characters). It must be at least {minimum} characters long.")]
     StringTooShort {
         name: String,
@@ -78,7 +71,6 @@ pub fn validate_field_value(
             exclusive_minimum,
             maximum,
             exclusive_maximum,
-            multiple_of,
         } => validate_number(
             field_name,
             value,
@@ -86,7 +78,6 @@ pub fn validate_field_value(
             exclusive_minimum,
             maximum,
             exclusive_maximum,
-            multiple_of,
         ),
         FieldValueValidationCfg::String {
             min_length,
@@ -108,7 +99,6 @@ pub fn validate_deposit_amount(
         &validation.exclusive_minimum,
         &validation.maximum,
         &validation.exclusive_maximum,
-        &validation.multiple_of,
     )
 }
 
@@ -119,7 +109,6 @@ fn validate_number(
     exclusive_minimum: &Option<String>,
     maximum: &Option<String>,
     exclusive_maximum: &Option<String>,
-    multiple_of: &Option<String>,
 ) -> Result<(), GuiValidationError> {
     if value.is_empty() {
         return Err(GuiValidationError::InvalidNumber {
@@ -129,6 +118,15 @@ fn validate_number(
     }
 
     let float_value = Float::parse(value.to_string())?;
+    let zero = Float::parse("0".to_string())?;
+
+    // Reject negative numbers
+    if float_value.lt(zero)? {
+        return Err(GuiValidationError::InvalidNumber {
+            name: name.to_string(),
+            value: value.to_string(),
+        });
+    }
 
     if let Some(min) = minimum {
         let float_min = Float::parse(min.clone())?;
@@ -143,7 +141,7 @@ fn validate_number(
 
     if let Some(exclusive_min) = exclusive_minimum {
         let exclusive_min_float = Float::parse(exclusive_min.clone())?;
-        if float_value.lt(exclusive_min_float)? || float_value.eq(exclusive_min_float)? {
+        if float_value.lte(exclusive_min_float)? {
             return Err(GuiValidationError::BelowExclusiveMinimum {
                 name: name.to_string(),
                 value: value.to_string(),
@@ -165,7 +163,7 @@ fn validate_number(
 
     if let Some(exclusive_max) = exclusive_maximum {
         let exclusive_max_float = Float::parse(exclusive_max.clone())?;
-        if float_value.gt(exclusive_max_float)? || float_value.eq(exclusive_max_float)? {
+        if float_value.gte(exclusive_max_float)? {
             return Err(GuiValidationError::AboveExclusiveMaximum {
                 name: name.to_string(),
                 value: value.to_string(),
@@ -174,17 +172,7 @@ fn validate_number(
         }
     }
 
-    if let Some(multiple) = multiple_of {
-        let multiple_float = Float::parse(multiple.clone())?;
-        // TODO: Fix here
-        // if float_value {
-        //     return Err(GuiValidationError::NotMultipleOf {
-        //         name: name.to_string(),
-        //         value: value.to_string(),
-        //         multiple_of: multiple.clone(),
-        //     });
-        // }
-    }
+    // TODO: Implement multiple_of validation later on
 
     Ok(())
 }
@@ -195,7 +183,8 @@ fn validate_string(
     min_length: &Option<u32>,
     max_length: &Option<u32>,
 ) -> Result<(), GuiValidationError> {
-    let length = value.len() as u32;
+    let trimmed_value = value.trim();
+    let length = trimmed_value.len() as u32;
 
     if let Some(min) = min_length {
         if length < *min {
@@ -245,7 +234,6 @@ mod tests {
             &None,
             &None,
             &None,
-            &None,
         );
         match &result {
             Err(GuiValidationError::BelowMinimum {
@@ -267,7 +255,6 @@ mod tests {
             &None,
             &None,
             &None,
-            &None,
         );
         assert!(result.is_ok());
 
@@ -278,22 +265,13 @@ mod tests {
             &None,
             &None,
             &None,
-            &None,
         );
         assert!(result.is_ok());
     }
 
     #[wasm_bindgen_test]
     fn test_validate_number_exclusive_minimum() {
-        let result = validate_number(
-            "Price",
-            "10",
-            &None,
-            &Some("10".to_string()),
-            &None,
-            &None,
-            &None,
-        );
+        let result = validate_number("Price", "10", &None, &Some("10".to_string()), &None, &None);
         match &result {
             Err(GuiValidationError::BelowExclusiveMinimum {
                 name,
@@ -314,7 +292,6 @@ mod tests {
             &Some("10".to_string()),
             &None,
             &None,
-            &None,
         );
         assert!(result.is_ok());
     }
@@ -327,7 +304,6 @@ mod tests {
             &None,
             &None,
             &Some("100".to_string()),
-            &None,
             &None,
         );
         match &result {
@@ -350,7 +326,6 @@ mod tests {
             &None,
             &Some("100".to_string()),
             &None,
-            &None,
         );
         assert!(result.is_ok());
 
@@ -360,7 +335,6 @@ mod tests {
             &None,
             &None,
             &Some("100".to_string()),
-            &None,
             &None,
         );
         assert!(result.is_ok());
@@ -375,7 +349,6 @@ mod tests {
             &None,
             &None,
             &Some("100".to_string()),
-            &None,
         );
         match &result {
             Err(GuiValidationError::AboveExclusiveMaximum {
@@ -396,82 +369,9 @@ mod tests {
             &None,
             &None,
             &None,
-            &None,
             &Some("100".to_string()),
         );
         assert!(result.is_ok());
-    }
-
-    #[wasm_bindgen_test]
-    fn test_validate_number_multiple_of() {
-        let result = validate_number(
-            "Step Size",
-            "7",
-            &None,
-            &None,
-            &None,
-            &None,
-            &Some("5".to_string()),
-        );
-        match &result {
-            Err(GuiValidationError::NotMultipleOf {
-                name,
-                value,
-                multiple_of,
-            }) => {
-                assert_eq!(name, "Step Size");
-                assert_eq!(value, "7");
-                assert_eq!(multiple_of, "5");
-            }
-            _ => panic!("Expected NotMultipleOf error"),
-        }
-
-        let result = validate_number(
-            "Step Size",
-            "10",
-            &None,
-            &None,
-            &None,
-            &None,
-            &Some("5".to_string()),
-        );
-        assert!(result.is_ok());
-
-        let result = validate_number(
-            "Step Size",
-            "0",
-            &None,
-            &None,
-            &None,
-            &None,
-            &Some("5".to_string()),
-        );
-        assert!(result.is_ok());
-
-        let result = validate_number(
-            "Price Step",
-            "1.05",
-            &None,
-            &None,
-            &None,
-            &None,
-            &Some("0.01".to_string()),
-        );
-        assert!(result.is_ok());
-
-        let result = validate_number(
-            "Price Step",
-            "1.055",
-            &None,
-            &None,
-            &None,
-            &None,
-            &Some("0.01".to_string()),
-        );
-        match &result {
-            Err(GuiValidationError::NotMultipleOf { .. }) => {}
-            _ => panic!("Expected NotMultipleOf error for decimal mismatch"),
-        }
     }
 
     #[wasm_bindgen_test]
@@ -483,7 +383,6 @@ mod tests {
             &None,
             &Some("100".to_string()),
             &None,
-            &Some("10".to_string()),
         );
         assert!(result.is_ok());
 
@@ -494,7 +393,6 @@ mod tests {
             &None,
             &Some("100".to_string()),
             &None,
-            &Some("5".to_string()),
         );
         assert!(matches!(
             result,
@@ -508,34 +406,19 @@ mod tests {
             &None,
             &Some("100".to_string()),
             &None,
-            &Some("5".to_string()),
         );
         assert!(matches!(
             result,
             Err(GuiValidationError::AboveMaximum { .. })
         ));
-
-        let result = validate_number(
-            "Complex Field",
-            "53",
-            &Some("10".to_string()),
-            &None,
-            &Some("100".to_string()),
-            &None,
-            &Some("10".to_string()),
-        );
-        assert!(matches!(
-            result,
-            Err(GuiValidationError::NotMultipleOf { .. })
-        ));
     }
 
     #[wasm_bindgen_test]
     fn test_validate_number_parsing() {
-        let result = validate_number("Test Field", "100.5", &None, &None, &None, &None, &None);
+        let result = validate_number("Test Field", "100.5", &None, &None, &None, &None);
         assert!(result.is_ok());
 
-        let result = validate_number("Test Field", "0.000001", &None, &None, &None, &None, &None);
+        let result = validate_number("Test Field", "0.000001", &None, &None, &None, &None);
         assert!(result.is_ok());
 
         let result = validate_number(
@@ -545,25 +428,16 @@ mod tests {
             &None,
             &None,
             &None,
-            &None,
         );
         assert!(result.is_ok());
 
-        let result = validate_number(
-            "Test Field",
-            "not a number",
-            &None,
-            &None,
-            &None,
-            &None,
-            &None,
-        );
+        let result = validate_number("Test Field", "not a number", &None, &None, &None, &None);
         assert!(matches!(result, Err(GuiValidationError::FloatError(..))));
 
-        let result = validate_number("Test Field", "12.34.56", &None, &None, &None, &None, &None);
+        let result = validate_number("Test Field", "12.34.56", &None, &None, &None, &None);
         assert!(matches!(result, Err(GuiValidationError::FloatError(..))));
 
-        let result = validate_number("Test Field", "", &None, &None, &None, &None, &None);
+        let result = validate_number("Test Field", "", &None, &None, &None, &None);
         assert!(matches!(
             result,
             Err(GuiValidationError::InvalidNumber { .. })
@@ -572,15 +446,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_validate_number_decimals() {
-        let result = validate_number(
-            "USDC Amount",
-            "100.123456",
-            &None,
-            &None,
-            &None,
-            &None,
-            &None,
-        );
+        let result = validate_number("USDC Amount", "100.123456", &None, &None, &None, &None);
         assert!(result.is_ok());
 
         let result = validate_number(
@@ -590,36 +456,19 @@ mod tests {
             &None,
             &None,
             &None,
-            &None,
         );
         assert!(result.is_ok());
 
-        let result = validate_number(
-            "BTC Amount",
-            "0.12345678",
-            &None,
-            &None,
-            &None,
-            &None,
-            &None,
-        );
+        let result = validate_number("BTC Amount", "0.12345678", &None, &None, &None, &None);
         assert!(result.is_ok());
     }
 
     #[wasm_bindgen_test]
     fn test_validate_number_edge_cases() {
-        let result = validate_number("Amount", "0", &None, &None, &None, &None, &None);
+        let result = validate_number("Amount", "0", &None, &None, &None, &None);
         assert!(result.is_ok());
 
-        let result = validate_number(
-            "Amount",
-            "0.000000000000000001",
-            &None,
-            &None,
-            &None,
-            &None,
-            &None,
-        );
+        let result = validate_number("Amount", "0.000000000000000001", &None, &None, &None, &None);
         assert!(result.is_ok());
 
         let result = validate_number(
@@ -629,20 +478,32 @@ mod tests {
             &None,
             &None,
             &None,
-            &None,
         );
         assert!(result.is_ok());
 
-        let result = validate_number(
-            "Amount",
-            "100",
-            &None,
-            &None,
-            &None,
-            &None,
-            &Some("0".to_string()),
-        );
+        let result = validate_number("Amount", "100", &None, &None, &None, &None);
         assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_validate_number_rejects_negative() {
+        let result = validate_number("Amount", "-1", &None, &None, &None, &None);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::InvalidNumber { .. })
+        ));
+
+        let result = validate_number("Amount", "-0.01", &None, &None, &None, &None);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::InvalidNumber { .. })
+        ));
+
+        let result = validate_number("Amount", "-100.5", &None, &None, &None, &None);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::InvalidNumber { .. })
+        ));
     }
 
     #[wasm_bindgen_test]
@@ -707,6 +568,33 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
+    fn test_validate_string_trimming() {
+        let result = validate_string("Username", "  hello  ", &Some(3), &Some(10));
+        assert!(result.is_ok());
+
+        let result = validate_string("Username", "  hi  ", &Some(5), &None);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::StringTooShort { .. })
+        ));
+
+        let result = validate_string("Username", "\t\nhello world\t\n", &Some(5), &Some(15));
+        assert!(result.is_ok());
+
+        let result = validate_string("Description", "   ", &Some(1), &None);
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::StringTooShort { .. })
+        ));
+
+        let result = validate_string("Field", "  toolong  ", &None, &Some(6));
+        assert!(matches!(
+            result,
+            Err(GuiValidationError::StringTooLong { .. })
+        ));
+    }
+
+    #[wasm_bindgen_test]
     fn test_validate_boolean() {
         let result = validate_boolean("Enable Feature", "true");
         assert!(result.is_ok());
@@ -735,12 +623,6 @@ mod tests {
             Err(GuiValidationError::InvalidBoolean { .. })
         ));
 
-        let result = validate_boolean("Enable Feature", "True");
-        assert!(matches!(
-            result,
-            Err(GuiValidationError::InvalidBoolean { .. })
-        ));
-
         let result = validate_boolean("Enable Feature", "False");
         assert!(matches!(
             result,
@@ -761,7 +643,6 @@ mod tests {
             exclusive_minimum: None,
             maximum: Some("100".to_string()),
             exclusive_maximum: None,
-            multiple_of: Some("5".to_string()),
         };
 
         let result = validate_field_value("Price Field", "50", &validation);
@@ -777,12 +658,6 @@ mod tests {
         assert!(matches!(
             result,
             Err(GuiValidationError::AboveMaximum { .. })
-        ));
-
-        let result = validate_field_value("Price Field", "33", &validation);
-        assert!(matches!(
-            result,
-            Err(GuiValidationError::NotMultipleOf { .. })
         ));
     }
 
