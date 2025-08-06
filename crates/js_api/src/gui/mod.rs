@@ -1005,9 +1005,8 @@ gui:
           validation:
             type: number
             decimals: 18
-            minimum: "10"
-            maximum: "1000"
-            multiple-of: "0.01"
+            minimum: 10
+            maximum: 1000
         
         - binding: quantity-field
           name: Quantity Field
@@ -1015,8 +1014,8 @@ gui:
           validation:
             type: number
             decimals: 18
-            exclusive-minimum: "0"
-            exclusive-maximum: "100000"
+            exclusive-minimum: 0
+            exclusive-maximum: 100000
         
         - binding: percentage-field
           name: Percentage Field
@@ -1024,10 +1023,9 @@ gui:
           validation:
             type: number
             decimals: 18
-            minimum: "0"
-            maximum: "100"
-            exclusive-maximum: "101"
-            multiple-of: "0.1"
+            minimum: 0
+            maximum: 100
+            exclusive-maximum: 101
         
         - binding: simple-number
           name: Simple Number
@@ -1077,29 +1075,28 @@ gui:
           name: Preset Number
           description: Number field with presets and validation
           presets:
-            - name: "Low"
-              value: "50"
-            - name: "Medium"
-              value: "100"
-            - name: "High"
-              value: "150"
+            - name: Low
+              value: 50
+            - name: Medium
+              value: 100
+            - name: High
+              value: 150
           validation:
             type: number
             decimals: 18
-            minimum: "10"
-            maximum: "200"
-            multiple-of: "10"
+            minimum: 10
+            maximum: 200
         
         - binding: preset-string-field
           name: Preset String
           description: String field with presets and validation
           presets:
-            - name: "Option A"
-              value: "alpha"
-            - name: "Option B"
-              value: "beta"
-            - name: "Option C"
-              value: "gamma"
+            - name: Option A
+              value: alpha
+            - name: Option B
+              value: beta
+            - name: Option C
+              value: gamma
           validation:
             type: string
             min-length: 4
@@ -1114,30 +1111,24 @@ gui:
         # Deposit with minimum amount validation
         - token: token1
           validation:
-            minimum: "100"
-        
+            minimum: 100
+
         # Deposit with maximum amount validation
         - token: token2
           validation:
-            maximum: "10000"
+            maximum: 10000
         
         # Deposit with exclusive bounds
         - token: token3
           validation:
-            exclusive-minimum: "0"
-            exclusive-maximum: "50000"
-        
+            exclusive-minimum: 0
+            exclusive-maximum: 50000
+
         # Deposit with all constraints
         - token: token4
           validation:
-            minimum: "10"
-            maximum: "1000"
-            multiple-of: "5"
-        
-        # Deposit with multiple-of constraint only
-        - token: token5
-          validation:
-            multiple-of: "0.1"
+            minimum: 10
+            maximum: 1000
         
         # Deposit without validation
         - token: token6
