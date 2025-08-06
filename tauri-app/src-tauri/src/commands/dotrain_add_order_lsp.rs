@@ -147,7 +147,7 @@ _ _: 0 0;
         
         _: ensure(ABC),
         
-        max-output: max-value(),
+        max-output: max-positive-value(),
         io: if(
           equal-to(
             output-token()

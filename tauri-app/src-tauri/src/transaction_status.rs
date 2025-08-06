@@ -91,7 +91,7 @@ mod tests {
         let app = tauri::test::mock_app();
         let notice = TransactionStatusNoticeRwLock::new("test".to_string(), 1);
 
-        let Float(zero) = Float::parse("0".to_string()).unwrap();
+        let zero = Float::parse("0".to_string()).unwrap().get_inner();
 
         notice.update_status_and_emit(
             &app.handle(),

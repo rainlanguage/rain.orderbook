@@ -188,7 +188,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         Float expectedTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(expectedTakerOutput18, 18);
 
         TestOrder[] memory testOrders = new TestOrder[](1);
-        testOrders[0] = TestOrder(owner, "_ _:max-value() 2;:;");
+        testOrders[0] = TestOrder(owner, "_ _:max-positive-value() 2;:;");
 
         TestVault[] memory testVaults = new TestVault[](2);
         testVaults[0] = TestVault(owner, address(iToken1), expectedTakerInput, Float.wrap(0));

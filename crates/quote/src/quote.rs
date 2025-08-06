@@ -39,8 +39,8 @@ impl_wasm_traits!(OrderQuoteValue);
 impl From<quote2Return> for OrderQuoteValue {
     fn from(v: quote2Return) -> Self {
         Self {
-            max_output: Float(v.outputMax),
-            ratio: Float(v.ioRatio),
+            max_output: Float::from_raw(v.outputMax),
+            ratio: Float::from_raw(v.ioRatio),
         }
     }
 }
@@ -711,8 +711,8 @@ mod tests {
             success: true,
             returnData: quote2Call::abi_encode_returns(&quote2Return {
                 exists: true,
-                outputMax: one.0,
-                ioRatio: two.0,
+                outputMax: one.get_inner(),
+                ioRatio: two.get_inner(),
             })
             .into(),
         }]
@@ -775,8 +775,8 @@ mod tests {
             success: true,
             returnData: quote2Call::abi_encode_returns(&quote2Return {
                 exists: true,
-                outputMax: one.0,
-                ioRatio: two.0,
+                outputMax: one.get_inner(),
+                ioRatio: two.get_inner(),
             })
             .into(),
         }]
@@ -873,8 +873,8 @@ mod tests {
             success: true,
             returnData: quote2Call::abi_encode_returns(&quote2Return {
                 exists: true,
-                outputMax: one.0,
-                ioRatio: two.0,
+                outputMax: one.get_inner(),
+                ioRatio: two.get_inner(),
             })
             .into(),
         }]
@@ -975,8 +975,8 @@ mod tests {
             success: true,
             returnData: quote2Call::abi_encode_returns(&quote2Return {
                 exists: true,
-                outputMax: one.0,
-                ioRatio: two.0,
+                outputMax: one.get_inner(),
+                ioRatio: two.get_inner(),
             })
             .into(),
         }]
@@ -1063,8 +1063,8 @@ mod tests {
             success: true,
             returnData: quote2Call::abi_encode_returns(&quote2Return {
                 exists: true,
-                outputMax: one.0,
-                ioRatio: two.0,
+                outputMax: one.get_inner(),
+                ioRatio: two.get_inner(),
             })
             .into(),
         }]

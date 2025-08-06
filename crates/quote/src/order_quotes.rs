@@ -394,8 +394,10 @@ amount price: context<3 0>() context<4 0>();
             .await
             .unwrap();
 
-        let token1_as_float = Float(B256::from(U256::from_str(&setup.token1.address.0).unwrap()));
-        let token2_as_float = Float(B256::from(U256::from_str(&setup.token2.address.0).unwrap()));
+        let token1_as_float =
+            Float::from_raw(B256::from(U256::from_str(&setup.token1.address.0).unwrap()));
+        let token2_as_float =
+            Float::from_raw(B256::from(U256::from_str(&setup.token2.address.0).unwrap()));
 
         let block_number = setup.local_evm.provider.get_block_number().await.unwrap();
         let expected = vec![

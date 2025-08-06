@@ -34,6 +34,7 @@ pub mod remove_orders;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
+pub mod vaults_list;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
