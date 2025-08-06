@@ -2143,4 +2143,643 @@ gui:
         let res = GuiCfg::check_gui_key_exists(vec![get_document(yaml)]).unwrap();
         assert!(!res);
     }
+
+    #[test]
+    fn test_parse_deposit_validation() {
+        let yaml_prefix = r#"
+networks:
+    network1:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+scenarios:
+    scenario1:
+        bindings:
+            test: test
+        deployer: deployer1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
+deployments:
+    deployment1:
+        scenario: scenario1
+        order: order1
+"#;
+
+        // Test deposit validation with all fields
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+                  validation:
+                    minimum: "100"
+                    exclusive-minimum: "50"
+                    maximum: "1000"
+                    exclusive-maximum: "2000"
+            fields:
+                - binding: test
+                  name: test
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let deployment = gui.deployments.get("deployment1").unwrap();
+        let deposit = &deployment.deposits[0];
+        let validation = deposit.validation.as_ref().unwrap();
+
+        assert_eq!(validation.minimum, Some("100".to_string()));
+        assert_eq!(validation.exclusive_minimum, Some("50".to_string()));
+        assert_eq!(validation.maximum, Some("1000".to_string()));
+        assert_eq!(validation.exclusive_maximum, Some("2000".to_string()));
+
+        // Test deposit validation with partial fields
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+                  validation:
+                    minimum: "100"
+                    maximum: "1000"
+            fields:
+                - binding: test
+                  name: test
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let deposit = &gui.deployments.get("deployment1").unwrap().deposits[0];
+        let validation = deposit.validation.as_ref().unwrap();
+
+        assert_eq!(validation.minimum, Some("100".to_string()));
+        assert_eq!(validation.exclusive_minimum, None);
+        assert_eq!(validation.maximum, Some("1000".to_string()));
+        assert_eq!(validation.exclusive_maximum, None);
+
+        // Test deposit without validation
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let deposit = &gui.deployments.get("deployment1").unwrap().deposits[0];
+        assert!(deposit.validation.is_none());
+    }
+
+    #[test]
+    fn test_parse_field_validation_number() {
+        let yaml_prefix = r#"
+networks:
+    network1:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+scenarios:
+    scenario1:
+        bindings:
+            test: test
+        deployer: deployer1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
+deployments:
+    deployment1:
+        scenario: scenario1
+        order: order1
+"#;
+
+        // Test number validation with all fields
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: number
+                    minimum: "0"
+                    exclusive-minimum: "-1"
+                    maximum: "100"
+                    exclusive-maximum: "101"
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let field = &gui.deployments.get("deployment1").unwrap().fields[0];
+        if let Some(FieldValueValidationCfg::Number {
+            minimum,
+            exclusive_minimum,
+            maximum,
+            exclusive_maximum,
+        }) = &field.validation
+        {
+            assert_eq!(*minimum, Some("0".to_string()));
+            assert_eq!(*exclusive_minimum, Some("-1".to_string()));
+            assert_eq!(*maximum, Some("100".to_string()));
+            assert_eq!(*exclusive_maximum, Some("101".to_string()));
+        } else {
+            panic!("Expected Number validation type");
+        }
+
+        // Test number validation with partial fields
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: number
+                    minimum: "0"
+                    maximum: "100"
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let field = &gui.deployments.get("deployment1").unwrap().fields[0];
+        if let Some(FieldValueValidationCfg::Number {
+            minimum,
+            exclusive_minimum,
+            maximum,
+            exclusive_maximum,
+        }) = &field.validation
+        {
+            assert_eq!(*minimum, Some("0".to_string()));
+            assert_eq!(*exclusive_minimum, None);
+            assert_eq!(*maximum, Some("100".to_string()));
+            assert_eq!(*exclusive_maximum, None);
+        } else {
+            panic!("Expected Number validation type");
+        }
+    }
+
+    #[test]
+    fn test_parse_field_validation_string() {
+        let yaml_prefix = r#"
+networks:
+    network1:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+scenarios:
+    scenario1:
+        bindings:
+            test: test
+        deployer: deployer1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
+deployments:
+    deployment1:
+        scenario: scenario1
+        order: order1
+"#;
+
+        // Test string validation with all fields
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: string
+                    min-length: 5
+                    max-length: 50
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let field = &gui.deployments.get("deployment1").unwrap().fields[0];
+        if let Some(FieldValueValidationCfg::String {
+            min_length,
+            max_length,
+        }) = &field.validation
+        {
+            assert_eq!(*min_length, Some(5));
+            assert_eq!(*max_length, Some(50));
+        } else {
+            panic!("Expected String validation type");
+        }
+
+        // Test string validation with partial fields
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: string
+                    min-length: 1
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let field = &gui.deployments.get("deployment1").unwrap().fields[0];
+        if let Some(FieldValueValidationCfg::String {
+            min_length,
+            max_length,
+        }) = &field.validation
+        {
+            assert_eq!(*min_length, Some(1));
+            assert_eq!(*max_length, None);
+        } else {
+            panic!("Expected String validation type");
+        }
+
+        // Test string validation with no length constraints
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: string
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let field = &gui.deployments.get("deployment1").unwrap().fields[0];
+        if let Some(FieldValueValidationCfg::String {
+            min_length,
+            max_length,
+        }) = &field.validation
+        {
+            assert_eq!(*min_length, None);
+            assert_eq!(*max_length, None);
+        } else {
+            panic!("Expected String validation type");
+        }
+    }
+
+    #[test]
+    fn test_parse_field_validation_boolean() {
+        let yaml_prefix = r#"
+networks:
+    network1:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+scenarios:
+    scenario1:
+        bindings:
+            test: test
+        deployer: deployer1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
+deployments:
+    deployment1:
+        scenario: scenario1
+        order: order1
+"#;
+
+        // Test boolean validation
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: boolean
+"#;
+        let gui = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let field = &gui.deployments.get("deployment1").unwrap().fields[0];
+        if let Some(FieldValueValidationCfg::Boolean) = &field.validation {
+            // Boolean validation type correctly parsed
+        } else {
+            panic!("Expected Boolean validation type");
+        }
+    }
+
+    #[test]
+    fn test_parse_field_validation_errors() {
+        let yaml_prefix = r#"
+networks:
+    network1:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+scenarios:
+    scenario1:
+        bindings:
+            test: test
+        deployer: deployer1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
+deployments:
+    deployment1:
+        scenario: scenario1
+        order: order1
+"#;
+
+        // Test missing type field
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    minimum: "0"
+"#;
+        let error = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "type".to_string(),
+                    expected: "a string".to_string()
+                },
+                location: "validation for field index '0' in gui deployment 'deployment1'"
+                    .to_string(),
+            }
+        );
+
+        // Test invalid type value
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: invalid-type
+"#;
+        let error = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "type".to_string(),
+                    expected: "one of: number, string, boolean".to_string()
+                },
+                location: "validation for field index '0' in gui deployment 'deployment1'"
+                    .to_string(),
+            }
+        );
+
+        // Test invalid min-length value for string
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: string
+                    min-length: invalid
+"#;
+        let error = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "min-length".to_string(),
+                    expected: "a valid number".to_string()
+                },
+                location: "validation for field index '0' in gui deployment 'deployment1'"
+                    .to_string(),
+            }
+        );
+
+        // Test invalid max-length value for string
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+            fields:
+                - binding: test
+                  name: test
+                  validation:
+                    type: string
+                    max-length: invalid
+"#;
+        let error = GuiCfg::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "max-length".to_string(),
+                    expected: "a valid number".to_string()
+                },
+                location: "validation for field index '0' in gui deployment 'deployment1'"
+                    .to_string(),
+            }
+        );
+    }
 }
