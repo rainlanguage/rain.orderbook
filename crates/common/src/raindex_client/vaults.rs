@@ -324,17 +324,15 @@ impl RaindexVault {
         Ok(balance_changes)
     }
 
-    fn validate_amount(&self, amount: &str) -> Result<Float, RaindexError> {
-        let amount_float = Float::parse(amount.to_string())?;
+    fn validate_amount(&self, amount: Float) -> Result<(), RaindexError> {
         let zero_float = Float::parse("0".to_string())?;
-
-        if amount_float.is_zero()? {
+        if amount.is_zero()? {
             return Err(RaindexError::ZeroAmount);
         }
-        if amount_float.lt(zero_float)? {
+        if amount.lt(zero_float)? {
             return Err(RaindexError::NegativeAmount);
         }
-        Ok(amount_float)
+        Ok(())
     }
 
     /// Generates transaction calldata for depositing tokens into a vault
@@ -360,17 +358,11 @@ impl RaindexVault {
     )]
     pub async fn get_deposit_calldata(
         &self,
-        #[wasm_export(
-            param_description = "Amount to deposit in human-readable format (e.g., \"10.5\")"
-        )]
-        amount: String,
+        #[wasm_export(param_description = "Amount to deposit in Float value")] amount: Float,
     ) -> Result<Bytes, RaindexError> {
-        let amount = self.validate_amount(&amount)?;
-
+        self.validate_amount(amount)?;
         let (deposit_args, _) = self.get_deposit_and_transaction_args(amount).await?;
-
         let call = deposit3Call::try_from(deposit_args)?;
-
         Ok(Bytes::copy_from_slice(&call.abi_encode()))
     }
 
@@ -397,20 +389,14 @@ impl RaindexVault {
     )]
     pub async fn get_withdraw_calldata(
         &self,
-        #[wasm_export(
-            param_description = "Amount to withdraw in human-readable format (e.g., \"55.2\")"
-        )]
-        amount: String,
+        #[wasm_export(param_description = "Amount to withdraw in Float value")] amount: Float,
     ) -> Result<Bytes, RaindexError> {
-        let target_amount = Float::parse(amount)?;
-        if target_amount.is_zero()? {
-            return Err(RaindexError::ZeroAmount);
-        }
+        self.validate_amount(amount)?;
         Ok(Bytes::copy_from_slice(
             &WithdrawArgs {
                 token: self.token.address,
                 vault_id: B256::from(self.vault_id),
-                target_amount,
+                target_amount: amount,
             }
             .get_withdraw_calldata()
             .await?,
@@ -468,12 +454,10 @@ impl RaindexVault {
     )]
     pub async fn get_approval_calldata(
         &self,
-        #[wasm_export(
-            param_description = "Amount requiring approval in human-readable format (e.g., \"20.75\")"
-        )]
-        amount: String,
+        #[wasm_export(param_description = "Amount requiring approval in Float value")]
+        amount: Float,
     ) -> Result<Bytes, RaindexError> {
-        let amount = self.validate_amount(&amount)?;
+        self.validate_amount(amount)?;
 
         let (deposit_args, transaction_args) =
             self.get_deposit_and_transaction_args(amount).await?;
@@ -1955,7 +1939,10 @@ mod tests {
                 )
                 .await
                 .unwrap();
-            let result = vault.get_deposit_calldata("500".to_string()).await.unwrap();
+            let result = vault
+                .get_deposit_calldata(Float::parse("500".to_string()).unwrap())
+                .await
+                .unwrap();
             assert_eq!(
                 result,
                 Bytes::copy_from_slice(
@@ -1971,7 +1958,7 @@ mod tests {
             );
 
             let err = vault
-                .get_deposit_calldata("0".to_string())
+                .get_deposit_calldata(Float::parse("0".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ZeroAmount.to_string());
@@ -2018,10 +2005,7 @@ mod tests {
                 .await
                 .unwrap();
             let amount: Float = Float::parse("0.0000000000000005".to_string()).unwrap();
-            let result = vault
-                .get_withdraw_calldata(amount.format().unwrap())
-                .await
-                .unwrap();
+            let result = vault.get_withdraw_calldata(amount).await.unwrap();
             assert_eq!(
                 result,
                 Bytes::copy_from_slice(
@@ -2037,7 +2021,7 @@ mod tests {
             );
 
             let err = vault
-                .get_withdraw_calldata("0".to_string())
+                .get_withdraw_calldata(Float::parse("0".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ZeroAmount.to_string());
@@ -2084,7 +2068,7 @@ mod tests {
                 .await
                 .unwrap();
             let result = vault
-                .get_approval_calldata("600".to_string())
+                .get_approval_calldata(Float::parse("600".to_string()).unwrap())
                 .await
                 .unwrap();
             assert_eq!(
@@ -2099,19 +2083,19 @@ mod tests {
             );
 
             let err = vault
-                .get_approval_calldata("0".to_string())
+                .get_approval_calldata(Float::parse("0".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ZeroAmount.to_string());
 
             let err = vault
-                .get_approval_calldata("90".to_string())
+                .get_approval_calldata(Float::parse("90".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ExistingAllowance.to_string());
 
             let err = vault
-                .get_approval_calldata("100".to_string())
+                .get_approval_calldata(Float::parse("100".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ExistingAllowance.to_string());

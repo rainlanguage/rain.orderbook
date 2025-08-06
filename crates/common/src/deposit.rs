@@ -11,6 +11,7 @@ use rain_math_float::{Float, FloatError};
 use rain_orderbook_bindings::IERC20::approveCall;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::allowanceCall};
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_family = "wasm"))]
 use std::ops::Sub;
 use thiserror::Error;
 
