@@ -84,6 +84,23 @@
 		}
 	});
 
+	$: dotrainSourceQuery = createQuery({
+		queryKey: [orderHash, QKEY_ORDER + orderHash + '-dotrain-source'],
+		queryFn: async () => {
+			if (!$orderDetailQuery.data) throw new Error('Order data not available');
+			const result = await $orderDetailQuery.data.fetchDotrainSource();
+			console.log('>', result);
+			if (result.error) throw new Error(result.error.readableMsg);
+			return result.value;
+		},
+		enabled: $orderDetailQuery.isSuccess && $orderDetailQuery.data?.parsed_meta.length > 0
+	});
+
+	// Helper to get DotrainGuiStateV1 from parsed_meta
+	$: dotrainGuiState = $orderDetailQuery.data?.parsed_meta.find(
+		(meta) => 'DotrainGuiStateV1' in meta
+	)?.DotrainGuiStateV1;
+
 	const interval = setInterval(async () => {
 		await invalidateTanstackQueries(queryClient, [orderHash]);
 	}, 10000);
@@ -276,6 +293,35 @@
 				<div>TODO: Issue #1989</div>
 				<!-- <OrderApy order={data} /> -->
 			</TabItem>
+			{#if dotrainGuiState}
+				<TabItem title="State">
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">Dotrain GUI State</h3>
+						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+							<pre class="text-sm">{JSON.stringify(
+									Object.fromEntries(
+										Object.entries(dotrainGuiState).map(([key, value]) => [
+											key,
+											value instanceof Map ? Object.fromEntries(value.entries()) : value
+										])
+									),
+									null,
+									2
+								)}</pre>
+						</div>
+					</div>
+				</TabItem>
+			{/if}
+			{#if $dotrainSourceQuery.isSuccess && $dotrainSourceQuery.data}
+				<TabItem title="Dotrain">
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">Dotrain Source</h3>
+						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+							<pre class="whitespace-pre-wrap text-sm">{$dotrainSourceQuery.data}</pre>
+						</div>
+					</div>
+				</TabItem>
+			{/if}
 		</Tabs>
 	</svelte:fragment>
 </TanstackPageContentDetail>
