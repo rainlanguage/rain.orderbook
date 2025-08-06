@@ -32,8 +32,6 @@ pub enum FieldValueValidationCfg {
         maximum: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         exclusive_maximum: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        multiple_of: Option<String>,
     },
     String {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -58,8 +56,6 @@ pub struct DepositValidationCfg {
     pub maximum: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exclusive_maximum: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub multiple_of: Option<String>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DepositValidationCfg);
@@ -912,10 +908,6 @@ fn parse_deposit_validation(yaml: &Hash) -> Result<DepositValidationCfg, YamlErr
             .get(&StrictYaml::String("exclusive-maximum".to_string()))
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        multiple_of: yaml
-            .get(&StrictYaml::String("multiple-of".to_string()))
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string()),
     })
 }
 
@@ -946,9 +938,6 @@ fn parse_field_validation(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
             exclusive_maximum: get_hash_value_as_option(yaml, "exclusive-maximum")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string()),
-            multiple_of: get_hash_value_as_option(yaml, "multiple-of")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
         }),

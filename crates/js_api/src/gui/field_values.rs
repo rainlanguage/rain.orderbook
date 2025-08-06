@@ -637,28 +637,6 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_set_field_value_number_multiple_of() {
-        let mut gui = initialize_validation_gui().await;
-
-        let result = gui.set_field_value("price-field".to_string(), "99.99".to_string());
-        assert!(result.is_ok());
-
-        let result = gui.set_field_value("price-field".to_string(), "99.999".to_string());
-        match result {
-            Err(GuiError::ValidationError(validation::GuiValidationError::NotMultipleOf {
-                name,
-                value,
-                multiple_of,
-            })) => {
-                assert_eq!(name, "Price Field");
-                assert_eq!(value, "99.999");
-                assert_eq!(multiple_of, "0.01");
-            }
-            _ => panic!("Expected NotMultipleOf error"),
-        }
-    }
-
-    #[wasm_bindgen_test]
     async fn test_set_field_value_number_exclusive_bounds() {
         let mut gui = initialize_validation_gui().await;
 
@@ -707,14 +685,6 @@ mod tests {
 
         let result = gui.set_field_value("percentage-field".to_string(), "50.5".to_string());
         assert!(result.is_ok());
-
-        let result = gui.set_field_value("percentage-field".to_string(), "50.55".to_string());
-        assert!(matches!(
-            result,
-            Err(GuiError::ValidationError(
-                validation::GuiValidationError::NotMultipleOf { .. }
-            ))
-        ));
 
         let result = gui.set_field_value("percentage-field".to_string(), "0".to_string());
         assert!(result.is_ok());
@@ -899,14 +869,6 @@ mod tests {
         assert!(!field_value.is_preset);
         assert_eq!(field_value.value, "120");
 
-        let result = gui.set_field_value("preset-number-field".to_string(), "125".to_string());
-        assert!(matches!(
-            result,
-            Err(GuiError::ValidationError(
-                validation::GuiValidationError::NotMultipleOf { .. }
-            ))
-        ));
-
         let result = gui.set_field_value("preset-number-field".to_string(), "5".to_string());
         assert!(matches!(
             result,
@@ -1042,14 +1004,5 @@ mod tests {
 
         let result = gui.set_field_value("price-field".to_string(), "999.99".to_string());
         assert!(result.is_ok());
-
-        let result =
-            gui.set_field_value("price-field".to_string(), "100.00000000000001".to_string());
-        assert!(matches!(
-            result,
-            Err(GuiError::ValidationError(
-                validation::GuiValidationError::NotMultipleOf { .. }
-            ))
-        ));
     }
 }

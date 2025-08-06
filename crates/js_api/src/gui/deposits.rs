@@ -590,25 +590,12 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_save_deposit_multiple_constraints() {
         let mut gui = initialize_validation_gui().await;
+        
         let result = gui
             .set_deposit("token4".to_string(), "50".to_string())
             .await;
         assert!(result.is_ok());
-        let result = gui
-            .set_deposit("token4".to_string(), "53".to_string())
-            .await;
-        match result {
-            Err(GuiError::ValidationError(validation::GuiValidationError::NotMultipleOf {
-                name,
-                value,
-                multiple_of,
-            })) => {
-                assert_eq!(name, "Token 4");
-                assert_eq!(value, "53");
-                assert_eq!(multiple_of, "5");
-            }
-            _ => panic!("Expected NotMultipleOf error"),
-        }
+
         let result = gui.set_deposit("token4".to_string(), "5".to_string()).await;
         assert!(matches!(
             result,
@@ -616,6 +603,7 @@ mod tests {
                 validation::GuiValidationError::BelowMinimum { .. }
             ))
         ));
+
         let result = gui
             .set_deposit("token4".to_string(), "1005".to_string())
             .await;
@@ -625,6 +613,7 @@ mod tests {
                 validation::GuiValidationError::AboveMaximum { .. }
             ))
         ));
+
         let result = gui
             .set_deposit("token4".to_string(), "10".to_string())
             .await;
@@ -632,42 +621,6 @@ mod tests {
 
         let result = gui
             .set_deposit("token4".to_string(), "1000".to_string())
-            .await;
-        assert!(result.is_ok());
-    }
-
-    #[wasm_bindgen_test]
-    async fn test_save_deposit_multiple_of_only() {
-        let mut gui = initialize_validation_gui().await;
-        let result = gui
-            .set_deposit("token5".to_string(), "123.4".to_string())
-            .await;
-        assert!(result.is_ok());
-        let result = gui
-            .set_deposit("token5".to_string(), "123.45".to_string())
-            .await;
-        match result {
-            Err(GuiError::ValidationError(validation::GuiValidationError::NotMultipleOf {
-                name,
-                value,
-                multiple_of,
-            })) => {
-                assert_eq!(name, "Token 5");
-                assert_eq!(value, "123.45");
-                assert_eq!(multiple_of, "0.1");
-            }
-            _ => panic!("Expected NotMultipleOf error"),
-        }
-        let result = gui.set_deposit("token5".to_string(), "0".to_string()).await;
-        assert!(result.is_ok());
-
-        let result = gui
-            .set_deposit("token5".to_string(), "0.1".to_string())
-            .await;
-        assert!(result.is_ok());
-
-        let result = gui
-            .set_deposit("token5".to_string(), "999999.9".to_string())
             .await;
         assert!(result.is_ok());
     }
