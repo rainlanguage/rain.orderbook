@@ -26,13 +26,12 @@ pub enum CalldataFunction {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
-
 pub struct TokenAllowance {
     #[tsify(type = "string")]
     token: Address,
-    allowance: Float,
+    #[tsify(type = "string")]
+    allowance: U256,
 }
-impl_wasm_traits!(TokenAllowance);
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct AllowancesResult(Vec<TokenAllowance>);
@@ -188,7 +187,7 @@ impl DotrainOrderGui {
             .await?;
         return Ok(TokenAllowance {
             token: deposit_args.token,
-            allowance: Float::from_fixed_decimal(allowance, deposit_args.decimals)?,
+            allowance,
         });
     }
 
@@ -270,13 +269,9 @@ impl DotrainOrderGui {
                 .address;
 
             let erc20 = ERC20::new(rpcs, token);
-            let decimals = erc20.decimals().await?;
             let allowance = erc20.allowance(owner, tx_args.orderbook_address).await?;
 
-            results.push(TokenAllowance {
-                token,
-                allowance: Float::from_fixed_decimal(allowance, decimals)?,
-            });
+            results.push(TokenAllowance { token, allowance });
         }
 
         Ok(AllowancesResult(results))
@@ -341,12 +336,13 @@ impl DotrainOrderGui {
             };
 
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
+            let allowance_float = Float::from_fixed_decimal(token_allowance.allowance, decimals)?;
 
-            if token_allowance.allowance.lt(*deposit_amount)? {
+            if allowance_float.lt(*deposit_amount)? {
                 let calldata = approveCall {
                     spender: tx_args.orderbook_address,
                     amount: deposit_amount
-                        .sub(token_allowance.allowance)?
+                        .sub(allowance_float)?
                         .to_fixed_decimal(decimals)?,
                 }
                 .abi_encode();

@@ -3,7 +3,7 @@ import {
 	handleVaultDeposit,
 	type VaultDepositHandlerDependencies
 } from '../lib/services/handleVaultDeposit';
-import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
+import { Float, type RaindexClient, type RaindexVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import { waitFor } from '@testing-library/svelte';
 import type { TransactionManager } from '@rainlanguage/ui-components';
@@ -60,7 +60,7 @@ describe('handleVaultDeposit', () => {
 	});
 
 	describe('onSubmit callback from handleDepositModal', () => {
-		const mockAmount = 100n;
+		const mockAmount = Float.parse('100').value as Float;
 		const mockApprovalCalldata = '0xapprovalcalldata' as Hex;
 		const mockDepositCalldata = '0xdepositcalldata' as Hex;
 		const mockTxHashApproval = '0xtxhashapproval' as Hex;
@@ -83,9 +83,9 @@ describe('handleVaultDeposit', () => {
 			const onSubmitCall = mockHandleDepositModal.mock.calls[0][0].onSubmit;
 			await onSubmitCall(mockAmount);
 
-			expect(mockVault.getApprovalCalldata).toHaveBeenCalledWith(mockAmount.toString());
+			expect(mockVault.getApprovalCalldata).toHaveBeenCalledWith(mockAmount);
 			expect(mockErrToast).not.toHaveBeenCalledWith('Approval error');
-			expect(mockVault.getDepositCalldata).toHaveBeenCalledWith(mockAmount.toString());
+			expect(mockVault.getDepositCalldata).toHaveBeenCalledWith(mockAmount);
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 				open: true,
@@ -153,7 +153,7 @@ describe('handleVaultDeposit', () => {
 				entity: mockVault
 			});
 
-			expect(mockVault.getDepositCalldata).toHaveBeenCalledWith(mockAmount.toString());
+			expect(mockVault.getDepositCalldata).toHaveBeenCalledWith(mockAmount);
 			await waitFor(() => {
 				expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
 				expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(2, {

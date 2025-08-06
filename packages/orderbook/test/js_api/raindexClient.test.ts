@@ -1691,11 +1691,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const vault = extractWasmEncodedData(
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
-			const res = extractWasmEncodedData(await vault.getDepositCalldata('500'));
+			const res = extractWasmEncodedData(
+				await vault.getDepositCalldata(Float.parse('500').value as Float)
+			);
 			assert.equal(res.length, 330);
 		});
 
-		it('should handle zero deposit amount', async () => {
+		it('should handle invalid deposit amount', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
@@ -1707,22 +1709,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = await vault.getDepositCalldata('0');
+			let res = await vault.getDepositCalldata(Float.parse('0').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Zero amount');
-		});
 
-		it('should throw error for invalid deposit amount', async () => {
-			await mockServer
-				.forPost('/sg1')
-				.once()
-				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
-			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
-			);
-
-			const res = await vault.getDepositCalldata('-100');
+			res = await vault.getDepositCalldata(Float.parse('-100').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Negative amount');
 		});
@@ -1739,14 +1730,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			let res = await vault.getWithdrawCalldata('500');
+			let res = await vault.getWithdrawCalldata(Float.parse('500').value as Float);
 			if (res.error) assert.fail('expected to resolve, but failed');
 			assert.equal(res.value.length, 330);
 
-			res = await vault.getWithdrawCalldata('0');
+			res = await vault.getWithdrawCalldata(Float.parse('0').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Zero amount');
 			assert.equal(res.error.readableMsg, 'Amount cannot be zero');
+
+			res = await vault.getWithdrawCalldata(Float.parse('-100').value as Float);
+			if (!res.error) assert.fail('expected to reject, but resolved');
+			assert.equal(res.error.msg, 'Negative amount');
+			assert.equal(res.error.readableMsg, 'Amount cannot be negative');
 		});
 
 		it('should read allowance for a vault', async () => {
@@ -1790,7 +1786,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = extractWasmEncodedData(await vault.getApprovalCalldata('600'));
+			const res = extractWasmEncodedData(
+				await vault.getApprovalCalldata(Float.parse('600').value as Float)
+			);
 			assert.ok(res.startsWith('0x'));
 			assert.equal(res.length, 138);
 		});
@@ -1815,7 +1813,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = await vault.getApprovalCalldata('100');
+			const res = await vault.getApprovalCalldata(Float.parse('100').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Existing allowance');
 		});
@@ -1840,7 +1838,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = await vault.getApprovalCalldata('90');
+			const res = await vault.getApprovalCalldata(Float.parse('90').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Existing allowance');
 		});

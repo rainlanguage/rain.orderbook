@@ -4,7 +4,7 @@ import DepositModal from '$lib/components/DepositModal.svelte';
 import type { ComponentProps } from 'svelte';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
-import type { RaindexVault } from '@rainlanguage/orderbook';
+import { Float, type RaindexVault } from '@rainlanguage/orderbook';
 
 type ModalProps = ComponentProps<DepositModal>;
 
@@ -32,7 +32,7 @@ describe('DepositModal', () => {
 		}),
 		chainId: 1,
 		orderbook: '0x123',
-		balance: BigInt(1)
+		balance: Float.parse('1').value as Float
 	} as unknown as RaindexVault;
 
 	const mockOnSubmit = vi.fn();
@@ -70,7 +70,9 @@ describe('DepositModal', () => {
 		const depositButton = screen.getByTestId('deposit-button');
 		await fireEvent.click(depositButton);
 
-		expect(mockOnSubmit).toHaveBeenCalledWith(BigInt(1000000000000000000));
+		expect(mockOnSubmit).toHaveBeenCalledOnce();
+		const actualArg = mockOnSubmit.mock.calls[0][0];
+		expect(actualArg.format().value).toBe('1');
 	});
 
 	it('shows error when amount exceeds balance', async () => {
