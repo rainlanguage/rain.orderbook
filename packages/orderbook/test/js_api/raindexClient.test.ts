@@ -1724,7 +1724,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const res = await vault.getDepositCalldata('-100');
 			if (!res.error) assert.fail('expected to reject, but resolved');
-			assert.equal(res.error.msg, 'invalid digit: -');
+			assert.equal(res.error.msg, 'Negative amount');
 		});
 
 		it('should get withdraw calldata for a vault', async () => {
@@ -1806,7 +1806,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				JSON.stringify({
 					jsonrpc: '2.0',
 					id: 1,
-					result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+					result: '0x0000000000000000000000000000000000000000000000056BC75E2D63100000'
 				})
 			);
 
@@ -1831,7 +1831,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				JSON.stringify({
 					jsonrpc: '2.0',
 					id: 1,
-					result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+					result: '0x0000000000000000000000000000000000000000000000056BC75E2D63100000'
 				})
 			);
 

@@ -2,6 +2,7 @@ use alloy::primitives::Address;
 use alloy_ethers_typecast::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
+use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
     gui::{
@@ -693,6 +694,8 @@ pub enum GuiError {
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
+    #[error(transparent)]
+    FloatError(#[from] FloatError),
 }
 
 impl GuiError {
@@ -776,6 +779,9 @@ impl GuiError {
             GuiError::UrlParseError(err) => format!("URL parsing error: {err}"),
             GuiError::AmountFormatterError(err) =>
                 format!("There was a problem formatting the amount: {err}"),
+            GuiError::FloatError(err) => {
+                format!("There was a problem with the float value: {err}")
+            }
         }
     }
 }

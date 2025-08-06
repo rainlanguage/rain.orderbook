@@ -1,8 +1,9 @@
 use super::*;
 use alloy::{
-    primitives::{utils::parse_units, Bytes, B256, U256},
+    primitives::{Bytes, B256, U256},
     sol_types::SolCall,
 };
+use rain_math_float::Float;
 use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
@@ -13,6 +14,7 @@ use rain_orderbook_bindings::{
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
+use std::ops::Sub;
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use url::Url;
 
@@ -23,17 +25,16 @@ pub enum CalldataFunction {
     DepositAndAddOrder,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 
 pub struct TokenAllowance {
     #[tsify(type = "string")]
     token: Address,
-    #[tsify(type = "string")]
-    allowance: U256,
+    allowance: Float,
 }
 impl_wasm_traits!(TokenAllowance);
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct AllowancesResult(Vec<TokenAllowance>);
 impl_wasm_traits!(AllowancesResult);
 
@@ -47,16 +48,16 @@ impl_wasm_traits!(ApprovalCalldataResult);
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub enum DepositCalldataResult {
     NoDeposits,
-    Calldatas(#[tsify(type = "string[]")] Vec<Bytes>),
+    Calldatas(#[tsify(type = "Hex[]")] Vec<Bytes>),
 }
 impl_wasm_traits!(DepositCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct AddOrderCalldataResult(#[tsify(type = "string")] Bytes);
+pub struct AddOrderCalldataResult(#[tsify(type = "Hex")] Bytes);
 impl_wasm_traits!(AddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DepositAndAddOrderCalldataResult(#[tsify(type = "string")] Bytes);
+pub struct DepositAndAddOrderCalldataResult(#[tsify(type = "Hex")] Bytes);
 impl_wasm_traits!(DepositAndAddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -67,7 +68,7 @@ pub struct IOVaultIds(
 impl_wasm_traits!(IOVaultIds);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct WithdrawCalldataResult(#[tsify(type = "string[]")] Vec<Bytes>);
+pub struct WithdrawCalldataResult(#[tsify(type = "Hex[]")] Vec<Bytes>);
 impl_wasm_traits!(WithdrawCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -97,7 +98,7 @@ impl_wasm_traits!(DeploymentTransactionArgs);
 pub struct ApprovalCalldata {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub token: Address,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "Hex"))]
     pub calldata: Bytes,
 }
 #[cfg(target_family = "wasm")]
@@ -106,7 +107,7 @@ impl_wasm_traits!(ApprovalCalldata);
 #[derive(Debug)]
 pub struct VaultAndDeposit {
     pub order_io: OrderIOCfg,
-    pub deposit_amount: U256,
+    pub deposit_amount: Float,
     pub index: usize,
 }
 
@@ -140,11 +141,11 @@ impl DotrainOrderGui {
         })
     }
 
-    async fn get_deposits_as_map(&self) -> Result<HashMap<Address, U256>, GuiError> {
-        let mut map: HashMap<Address, U256> = HashMap::new();
+    async fn get_deposits_as_map(&self) -> Result<HashMap<Address, Float>, GuiError> {
+        let mut map: HashMap<Address, Float> = HashMap::new();
         for d in self.get_deposits()? {
             let token_info = self.get_token_info(d.token.clone()).await?;
-            let amount = parse_units(&d.amount, token_info.decimals)?.into();
+            let amount = Float::parse(d.amount)?;
             map.insert(token_info.address, amount);
         }
         Ok(map)
@@ -187,7 +188,7 @@ impl DotrainOrderGui {
             .await?;
         return Ok(TokenAllowance {
             token: deposit_args.token,
-            allowance,
+            allowance: Float::from_fixed_decimal(allowance, deposit_args.decimals)?,
         });
     }
 
@@ -269,10 +270,13 @@ impl DotrainOrderGui {
                 .address;
 
             let erc20 = ERC20::new(rpcs, token);
-
+            let decimals = erc20.decimals().await?;
             let allowance = erc20.allowance(owner, tx_args.orderbook_address).await?;
 
-            results.push(TokenAllowance { token, allowance });
+            results.push(TokenAllowance {
+                token,
+                allowance: Float::from_fixed_decimal(allowance, decimals)?,
+            });
         }
 
         Ok(AllowancesResult(results))
@@ -338,10 +342,12 @@ impl DotrainOrderGui {
 
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
 
-            if token_allowance.allowance < *deposit_amount {
+            if token_allowance.allowance.lt(*deposit_amount)? {
                 let calldata = approveCall {
                     spender: tx_args.orderbook_address,
-                    amount: *deposit_amount - token_allowance.allowance,
+                    amount: deposit_amount
+                        .sub(token_allowance.allowance)?
+                        .to_fixed_decimal(decimals)?,
                 }
                 .abi_encode();
 
@@ -417,7 +423,7 @@ impl DotrainOrderGui {
             index,
         } in vaults_and_deposits
         {
-            if deposit_amount == U256::ZERO {
+            if deposit_amount.eq(Float::parse("0".to_string())?)? {
                 continue;
             }
 

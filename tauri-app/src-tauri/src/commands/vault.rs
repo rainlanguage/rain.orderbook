@@ -97,7 +97,9 @@ pub async fn vault_deposit_approve_calldata(
 ) -> CommandResult<Bytes> {
     let calldata = approveCall {
         spender: transaction_args.orderbook_address,
-        amount: deposit_args.amount,
+        amount: deposit_args
+            .amount
+            .to_fixed_decimal(deposit_args.decimals)?,
     }
     .abi_encode();
 
@@ -492,7 +494,7 @@ timestamp,timestamp_display,from,amount,amount_display_signed,change_type_displa
             DepositArgs {
                 token: Address::default(),
                 vault_id: B256::from(U256::from(1)),
-                amount,
+                amount: Float::from_fixed_decimal(amount, 18).unwrap(),
                 decimals,
             },
             TransactionArgs {
@@ -526,7 +528,7 @@ timestamp,timestamp_display,from,amount,amount_display_signed,change_type_displa
             DepositArgs {
                 token: Address::default(),
                 vault_id: B256::from(U256::from(1)),
-                amount,
+                amount: Float::from_fixed_decimal(amount, decimals).unwrap(),
                 decimals,
             },
         )

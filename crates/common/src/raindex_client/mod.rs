@@ -223,6 +223,8 @@ pub enum RaindexError {
     WriteLockError,
     #[error("Zero amount")]
     ZeroAmount,
+    #[error("Negative amount")]
+    NegativeAmount,
     #[error("Existing allowance")]
     ExistingAllowance,
     #[error(transparent)]
@@ -321,6 +323,7 @@ impl RaindexError {
                 "Failed to modify the YAML configuration due to a lock error".to_string()
             }
             RaindexError::ZeroAmount => "Amount cannot be zero".to_string(),
+            RaindexError::NegativeAmount => "Amount cannot be negative".to_string(),
             RaindexError::WritableTransactionExecuteError(err) => {
                 format!("Failed to execute transaction: {}", err)
             }
