@@ -32,9 +32,14 @@ function unwrapWasmResult<T>(result: WasmEncodedResult<T>): T {
 export class RaindexFilterStore {
 	private wasmStore: RaindexFilterStoreWasm;
 
+	private subscribers: Array<(store: RaindexFilterStore) => void> = [];
+
 	constructor() {
 		const wasmStoreResult = RaindexFilterStoreWasm.create();
 		this.wasmStore = unwrapWasmResult(wasmStoreResult);
+
+		// Postpone initial notification to ensure subscribers can register first
+		setTimeout(() => this.notifySubscribers(), 0);
 	}
 
 	/**
@@ -63,6 +68,7 @@ export class RaindexFilterStore {
 			const newWasmStoreResult = this.wasmStore.updateVaults(updatedBuilder.build());
 			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(newWasmStoreResult);
 
+			this.notifySubscribers();
 			return this;
 		} catch (error) {
 			throw new Error(`Filter update failed: ${error}`);
@@ -77,6 +83,7 @@ export class RaindexFilterStore {
 		try {
 			const result = this.wasmStore.setVaults(filters);
 			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(result);
+			this.notifySubscribers();
 			return this;
 		} catch (error) {
 			throw new Error(`Failed to set vault filters: ${error}`);
@@ -115,9 +122,36 @@ export class RaindexFilterStore {
 		try {
 			const newWasmStoreResult = this.wasmStore.load();
 			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(newWasmStoreResult);
+			this.notifySubscribers();
 			return this;
 		} catch (error) {
 			throw new Error(`Failed to load filters: ${error}`);
+		}
+	}
+
+	/**
+	 * Subscribe to filter store updates.
+	 * Callbacks will be invoked whenever filters change.
+	 * @param callback Function to call with the updated store
+	 * @returns Unsubscribe function to remove the callback
+	 * @example
+	 * ```typescript
+	 * const unsubscribe = store.subscribe(updatedStore => {
+	 *   console.log('Filters updated:', updatedStore.getVaultsFilters());
+	 * });
+	 * // Call unsubscribe() to stop receiving updates
+	 * ```
+	 */
+	subscribe(callback: (store: RaindexFilterStore) => void): () => void {
+		this.subscribers.push(callback);
+		return () => {
+			this.subscribers = this.subscribers.filter((sub) => sub !== callback);
+		};
+	}
+
+	private notifySubscribers(): void {
+		for (const subscriber of this.subscribers) {
+			subscriber(this);
 		}
 	}
 }

@@ -1,7 +1,5 @@
 import { getContext } from 'svelte';
-import type { Readable } from 'svelte/store';
-import type { RaindexFilterStore } from './RaindexFilterStore';
-import { FILTER_STORE_CONTEXT } from './FilterStoreProvider.svelte';
+import { FILTER_STORE_CONTEXT, type FilterStoreContext } from './FilterStoreProvider.svelte';
 
 /**
  * Hook for accessing the filter store from any Svelte component.
@@ -27,8 +25,8 @@ import { FILTER_STORE_CONTEXT } from './FilterStoreProvider.svelte';
  * </script>
  * ```
  */
-export function useFilterStore(): Readable<RaindexFilterStore> {
-	const store = getContext<Readable<RaindexFilterStore>>(FILTER_STORE_CONTEXT);
+export function useFilterStore(): FilterStoreContext {
+	const store = getContext<FilterStoreContext>(FILTER_STORE_CONTEXT);
 
 	if (!store) {
 		throw new Error(

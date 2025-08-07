@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
-	import { writable } from 'svelte/store';
+	import ListViewVaultFilters from '../ListViewVaultFilters.svelte';
+
 	import { toHex } from 'viem';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -7,25 +8,19 @@
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
-	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { RaindexVault } from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
-	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { useFilterStore } from '$lib/providers/filters';
-	import { getAllContexts, onDestroy } from 'svelte';
+	import { getAllContexts } from 'svelte';
 
 	const context = getAllContexts();
 
 	// Keep some legacy props that are not filter-related
-	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
-	export let orderHash: AppStoresInterface['orderHash'];
-	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let handleDepositModal:
 		| ((
 				vault: RaindexVault,
@@ -41,114 +36,26 @@
 		  ) => void)
 		| undefined = undefined;
 
-	const { account, matchesAccount } = useAccount();
+	const { matchesAccount } = useAccount();
 	const raindexClient = useRaindexClient();
 
 	// Use our new filter store instead of props
-	const filterStore = useFilterStore();
-
-	// Get filters from our store
-	$: currentFilters = $filterStore?.getVaultsFilters() || {
-		owners: [],
-		hideZeroBalance: false,
-		tokens: undefined,
-		chainIds: undefined
-	};
-
-	// Derive values from filter store
-	$: selectedChainIds = currentFilters.chainIds || [];
-	$: hideZeroBalanceVaults = currentFilters.hideZeroBalance;
-	$: activeTokens = currentFilters.tokens || [];
-
-	// Create writable stores that sync with our filter store
-	// These will be used by ListViewOrderbookFilters for direct updates
-	const selectedChainIdsStore = writable<number[]>([]);
-	const hideZeroBalanceVaultsStore = writable<boolean>(false);
-	const activeTokensStore = writable<`0x${string}`[]>([]);
-
-	// Flag to prevent circular updates during initialization
-	let isInitialized = false;
-
-	// Update writable stores when filter store values change (one way sync)
-	$: {
-		selectedChainIdsStore.set(selectedChainIds);
-		hideZeroBalanceVaultsStore.set(hideZeroBalanceVaults);
-		activeTokensStore.set(activeTokens);
-		// Mark as initialized after first sync
-		if (!isInitialized) {
-			isInitialized = true;
-		}
-	}
-
-	const unsubs: (() => void)[] = [];
-
-	// Subscribe to store changes and update filter store accordingly (two way sync)
-	// Only after initialization to prevent circular updates
-	unsubs.push(
-		selectedChainIdsStore.subscribe((chainIds) => {
-			if (isInitialized && $filterStore) {
-				$filterStore.updateVaults((builder) => builder.setChainIds(chainIds));
-				currentFilters = $filterStore.getVaultsFilters();
-			}
-		})
-	);
-
-	unsubs.push(
-		hideZeroBalanceVaultsStore.subscribe((hide) => {
-			if (isInitialized && $filterStore) {
-				$filterStore.updateVaults((builder) => builder.setHideZeroBalance(hide));
-				currentFilters = $filterStore.getVaultsFilters();
-			}
-		})
-	);
-
-	unsubs.push(
-		activeTokensStore.subscribe((tokens) => {
-			if (isInitialized && $filterStore) {
-				$filterStore.updateVaults((builder) => builder.setTokens(tokens));
-				currentFilters = $filterStore.getVaultsFilters();
-			}
-		})
-	);
-
-	unsubs.push(
-		showMyItemsOnly.subscribe((show) => {
-			if (isInitialized && $filterStore) {
-				if (show && $account) {
-					$filterStore.updateVaults((builder) => builder.setOwners([$account]));
-				} else {
-					$filterStore.updateVaults((builder) => builder.setOwners([]));
-				}
-				currentFilters = $filterStore.getVaultsFilters();
-			}
-		})
-	);
-
-	onDestroy(() => {
-		// Clean up subscriptions
-		unsubs.forEach((unsubscribe) => unsubscribe());
-	});
+	const { currentVaultsFilters } = useFilterStore();
 
 	$: tokensQuery = createQuery({
-		queryKey: [QKEY_TOKENS, selectedChainIds],
+		queryKey: [QKEY_TOKENS, $currentVaultsFilters.chainIds],
 		queryFn: async () => {
-			const result = await raindexClient.getAllVaultTokens(selectedChainIds);
+			const result = await raindexClient.getAllVaultTokens($currentVaultsFilters.chainIds);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
 		enabled: true
 	});
 
-	$: selectedTokens =
-		activeTokens?.filter(
-			(address: string) =>
-				!$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
-		) ?? [];
-
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_VAULTS, currentFilters],
+		queryKey: [QKEY_VAULTS, $currentVaultsFilters],
 		queryFn: async ({ pageParam }) => {
-			const result = await raindexClient.getVaults(currentFilters, pageParam + 1);
+			const result = await raindexClient.getVaults($currentVaultsFilters, pageParam + 1);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
@@ -164,17 +71,7 @@
 </script>
 
 {#if $query}
-	<ListViewOrderbookFilters
-		selectedChainIds={selectedChainIdsStore}
-		{activeAccountsItems}
-		{showMyItemsOnly}
-		{showInactiveOrders}
-		{orderHash}
-		hideZeroBalanceVaults={hideZeroBalanceVaultsStore}
-		activeTokens={activeTokensStore}
-		{tokensQuery}
-		{selectedTokens}
-	/>
+	<ListViewVaultFilters {tokensQuery} />
 	<AppTable
 		{query}
 		queryKey={QKEY_VAULTS}
