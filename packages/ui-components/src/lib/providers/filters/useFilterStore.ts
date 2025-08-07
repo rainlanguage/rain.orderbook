@@ -5,7 +5,7 @@ import { FILTER_STORE_CONTEXT, type FilterStoreContext } from './FilterStoreProv
  * Hook for accessing the filter store from any Svelte component.
  * Must be used within a component that is wrapped by FilterStoreProvider.
  *
- * @returns A readable store containing the RaindexFilterStore and current vaults filters.
+ * @returns A FilterStoreContext containing the filter store and current vaults filters.
  * @throws Error if called outside of FilterStoreProvider context
  *
  * @example

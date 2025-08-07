@@ -57,7 +57,11 @@
 	// to preload actual filter values in UI components
 	let isInited = false;
 	$: {
-		if (!isInited && !deepEqual($currentVaultsFilters, DEFAULT_VAULT_FILTERS)) {
+		if (
+			!isInited &&
+			$currentVaultsFilters &&
+			!deepEqual($currentVaultsFilters, DEFAULT_VAULT_FILTERS)
+		) {
 			const filters = $currentVaultsFilters;
 			showMyItemsOnly.set(!!(filters.owners && filters.owners.length > 0));
 			hideZeroBalanceVaults.set(!!filters.hideZeroBalance);

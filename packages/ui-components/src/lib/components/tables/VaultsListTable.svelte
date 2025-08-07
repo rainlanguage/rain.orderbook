@@ -42,10 +42,12 @@
 	// Use our new filter store instead of props
 	const { currentVaultsFilters } = useFilterStore();
 
+	$: chainIds = $currentVaultsFilters?.chainIds ?? [];
+
 	$: tokensQuery = createQuery({
-		queryKey: [QKEY_TOKENS, $currentVaultsFilters.chainIds],
+		queryKey: [QKEY_TOKENS, chainIds],
 		queryFn: async () => {
-			const result = await raindexClient.getAllVaultTokens($currentVaultsFilters.chainIds);
+			const result = await raindexClient.getAllVaultTokens(chainIds);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
