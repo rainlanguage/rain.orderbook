@@ -74,12 +74,7 @@ impl VaultsFilterBuilder {
         return_description = "A new VaultsFilterBuilder instance with default values"
     )]
     pub fn new_wasm() -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
-        Ok(Self {
-            owners: Vec::new(),
-            hide_zero_balance: false,
-            tokens: None,
-            chain_ids: None,
-        })
+        Ok(Self::default())
     }
 
     /// Creates a VaultsFilterBuilder from existing filters.
