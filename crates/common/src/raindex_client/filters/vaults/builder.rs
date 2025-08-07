@@ -97,12 +97,7 @@ impl VaultsFilterBuilder {
     pub fn from_filters_wasm(
         filters: GetVaultsFilters,
     ) -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
-        Ok(Self {
-            owners: filters.owners,
-            hide_zero_balance: filters.hide_zero_balance,
-            tokens: filters.tokens,
-            chain_ids: filters.chain_ids,
-        })
+        Ok(Self::from(filters))
     }
 
     /// Sets the owners for the filter.
