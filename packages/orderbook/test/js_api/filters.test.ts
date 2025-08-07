@@ -20,7 +20,7 @@ describe('RaindexFilterStore', () => {
 		const result = RaindexFilterStore.create();
 		const store = result.value!;
 
-		const builder = VaultsFilterBuilder.create().value!;
+		const builder = VaultsFilterBuilder.new().value!;
 		const newFilters = builder
 			.setOwners(['0x1234567890abcdef1234567890abcdef12345678' as `0x${string}`])
 			.value!.setHideZeroBalance(true)

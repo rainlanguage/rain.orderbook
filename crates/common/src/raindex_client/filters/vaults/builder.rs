@@ -66,10 +66,10 @@ impl VaultsFilterBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const builder = VaultsFilterBuilder.create();
+    /// const builder = VaultsFilterBuilder.new();
     /// ```
     #[wasm_export(
-        js_name = "create",
+        js_name = "new",
         preserve_js_class,
         return_description = "A new VaultsFilterBuilder instance with default values"
     )]
@@ -110,7 +110,7 @@ impl VaultsFilterBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const builder = VaultsFilterBuilder.create()
+    /// const builder = VaultsFilterBuilder.new()
     ///     .setOwners(["0x1234567890abcdef1234567890abcdef12345678"]);
     /// ```
     #[wasm_export(
@@ -142,7 +142,7 @@ impl VaultsFilterBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const builder = VaultsFilterBuilder.create()
+    /// const builder = VaultsFilterBuilder.new()
     ///     .setHideZeroBalance(true);
     /// ```
     #[wasm_export(
@@ -163,7 +163,7 @@ impl VaultsFilterBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const builder = VaultsFilterBuilder.create()
+    /// const builder = VaultsFilterBuilder.new()
     ///     .setTokens(["0x1111111111111111111111111111111111111111"]);
     /// ```
     #[wasm_export(
@@ -205,7 +205,7 @@ impl VaultsFilterBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const builder = VaultsFilterBuilder.create()
+    /// const builder = VaultsFilterBuilder.new()
     ///     .setChainIds([1, 137, 10]);
     /// ```
     #[wasm_export(
@@ -230,7 +230,7 @@ impl VaultsFilterBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const filters = VaultsFilterBuilder.create()
+    /// const filters = VaultsFilterBuilder.new()
     ///     .setOwners(["0x1234567890abcdef1234567890abcdef12345678"])
     ///     .setHideZeroBalance(true)
     ///     .build();
