@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { deepEqual } from '@wagmi/core';
 
 	import { DEFAULT_VAULT_FILTERS, useFilterStore } from '$lib/providers/filters';
@@ -16,6 +16,7 @@
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import { onDestroy } from 'svelte';
 
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 
@@ -67,7 +68,7 @@
 	}
 
 	// Sync from individual stores to FilterStore
-	state.subscribe((filters) => {
+	const unsub = state.subscribe((filters) => {
 		if (!isInited) return;
 		$filterStore?.updateVaults((builder) =>
 			builder
@@ -77,6 +78,8 @@
 				.setTokens(filters.tokens)
 		);
 	});
+
+	onDestroy(() => unsub());
 
 	// TODO: Once OrderFilters are fully migrated to the new filter store,
 	// we can remove these legacy props and use the filter store directly
@@ -105,7 +108,7 @@
 		<DropdownTokensFilter
 			{tokensQuery}
 			{activeTokens}
-			selectedTokens={$currentVaultsFilters.tokens ?? []}
+			selectedTokens={$activeTokens}
 			label="Tokens"
 		/>
 		<DropdownActiveNetworks {selectedChainIds} />

@@ -1,4 +1,4 @@
-use anyhow;
+use anyhow::Error;
 use serde::{Deserialize, Serialize};
 
 use crate::raindex_client::filters::vaults::{
@@ -23,7 +23,7 @@ pub trait FilterStore {
 
     /// Update vault filters using a builder function.
     /// Returns an error if the operation fails (e.g., persistence failure).
-    fn update_vaults<F>(&mut self, update_fn: F) -> Result<(), anyhow::Error>
+    fn update_vaults<F>(&mut self, update_fn: F) -> Result<(), Error>
     where
         F: FnOnce(VaultsFilterBuilder) -> VaultsFilterBuilder;
 }
