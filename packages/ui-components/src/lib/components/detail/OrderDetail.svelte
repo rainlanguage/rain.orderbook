@@ -76,7 +76,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: orderDetailQuery = createQuery<RaindexOrder>({
-		queryKey: [orderHash, QKEY_ORDER + orderHash],
+		queryKey: [orderHash, QKEY_ORDER],
 		queryFn: async () => {
 			const result = await raindexClient.getOrderByHash(chainId, orderbookAddress, orderHash);
 			if (result.error) throw new Error(result.error.readableMsg);
@@ -84,25 +84,25 @@
 		}
 	});
 
+	// Helper to get DotrainGuiStateV1 from parsed_meta
+	$: dotrainGuiState = $orderDetailQuery.data?.parsed_meta?.find(
+		(meta) => 'DotrainGuiStateV1' in meta
+	)?.DotrainGuiStateV1;
+
 	$: dotrainSourceQuery = createQuery({
-		queryKey: [orderHash, QKEY_ORDER + orderHash + '-dotrain-source'],
+		queryKey: [orderHash, QKEY_ORDER, dotrainGuiState?.dotrain_hash ?? 'unknown'],
 		queryFn: async () => {
 			if (!$orderDetailQuery.data) throw new Error('Order data not available');
 			const result = await $orderDetailQuery.data.fetchDotrainSource();
 			console.log('>', result);
 			if (result.error) throw new Error(result.error.readableMsg);
-			return result.value;
+			return result.value ?? '';
 		},
-		enabled: $orderDetailQuery.isSuccess && $orderDetailQuery.data?.parsed_meta.length > 0
+		enabled: $orderDetailQuery.isSuccess && dotrainGuiState?.dotrain_hash !== undefined
 	});
 
-	// Helper to get DotrainGuiStateV1 from parsed_meta
-	$: dotrainGuiState = $orderDetailQuery.data?.parsed_meta.find(
-		(meta) => 'DotrainGuiStateV1' in meta
-	)?.DotrainGuiStateV1;
-
 	const interval = setInterval(async () => {
-		await invalidateTanstackQueries(queryClient, [orderHash]);
+		await invalidateTanstackQueries(queryClient, [orderHash, QKEY_ORDER]);
 	}, 10000);
 
 	onDestroy(() => {

@@ -472,7 +472,7 @@ impl DotrainOrderGui {
 
     fn generate_dotrain_instance_v1(&self) -> Result<DotrainGuiStateV1, GuiError> {
         let dotrain_source: RainMetaDocumentV1Item =
-            DotrainSourceV1(self.dotrain_order.dotrain()?.clone()).into();
+            DotrainSourceV1(self.generate_dotrain_text()?).into();
         let dotrain_hash = dotrain_source.hash(false)?;
 
         // Convert deposits to ValueCfg format directly

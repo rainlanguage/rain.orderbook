@@ -8,10 +8,12 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
-use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+use alloy::hex::encode;
+use alloy::primitives::{Address, Bytes, U256};
 use rain_metaboard_subgraph::metaboard_client::{
     MetaboardSubgraphClient, MetaboardSubgraphClientError,
 };
+use rain_metaboard_subgraph::types::metas::BigInt as MetaboardBigInt;
 use rain_metadata::{types::dotrain::source_v1::DotrainSourceV1, RainMetaDocumentV1Item};
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
@@ -482,7 +484,9 @@ impl RaindexOrder {
         let metaboard_client = MetaboardSubgraphClient::new(metaboard_args.url.clone());
 
         // Query metaboard subgraph using dotrain_hash as subject
-        let metabytes_result = metaboard_client.get_metabytes_by_hash(&dotrain_hash).await;
+        let metabytes_result = metaboard_client
+            .get_metabytes_by_subject(&MetaboardBigInt(encode(dotrain_hash)))
+            .await;
 
         let metabytes = match metabytes_result {
             Ok(bytes) => bytes,
