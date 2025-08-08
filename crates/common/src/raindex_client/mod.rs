@@ -11,9 +11,12 @@ use alloy::{
     },
 };
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::yaml::{
-    orderbook::{OrderbookYaml, OrderbookYamlValidation},
-    YamlError, YamlParsable,
+use rain_orderbook_app_settings::{
+    network::NetworkCfg,
+    yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
@@ -121,28 +124,34 @@ impl RaindexClient {
         Ok(RaindexClient { orderbook_yaml })
     }
 
+    fn resolve_networks(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<Vec<NetworkCfg>, RaindexError> {
+        match chain_ids {
+            Some(ids) if !ids.is_empty() => {
+                let mut networks = Vec::new();
+                for id in ids {
+                    networks.push(self.orderbook_yaml.get_network_by_chain_id(id)?);
+                }
+                Ok(networks)
+            }
+            Some(_) | None => {
+                let all_nets = self.orderbook_yaml.get_networks()?;
+                let mut networks = Vec::new();
+                for network in all_nets.values() {
+                    networks.push(network.clone());
+                }
+                Ok(networks)
+            }
+        }
+    }
+
     fn get_metaboards_by_chain_id(
         &self,
         chain_ids: Option<Vec<u32>>,
     ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
-        let networks = match chain_ids {
-            Some(ids) if !ids.is_empty() => {
-                let mut nets = Vec::new();
-                for id in ids {
-                    nets.push(self.orderbook_yaml.get_network_by_chain_id(id)?);
-                }
-                nets
-            }
-            Some(_) | None => {
-                let all_nets = self.orderbook_yaml.get_networks()?;
-                let mut nets = Vec::new();
-                for network in all_nets.values() {
-                    nets.push(network.clone());
-                }
-                nets
-            }
-        };
-
+        let networks = self.resolve_networks(chain_ids)?;
         let mut result = BTreeMap::new();
         let metaboards: std::collections::HashMap<
             String,
@@ -182,47 +191,22 @@ impl RaindexClient {
         &self,
         chain_ids: Option<Vec<u32>>,
     ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
-        let result = match chain_ids {
-            Some(ids) if !ids.is_empty() => {
-                let mut multi_subgraph_args = BTreeMap::new();
-                for id in ids {
-                    let network = self.orderbook_yaml.get_network_by_chain_id(id)?;
-                    let orderbooks = self
-                        .orderbook_yaml
-                        .get_orderbooks_by_network_key(&network.key)?;
-                    for orderbook in orderbooks {
-                        multi_subgraph_args.entry(id).or_insert(Vec::new()).push(
-                            MultiSubgraphArgs {
-                                url: orderbook.subgraph.url.clone(),
-                                name: network.label.clone().unwrap_or(network.key.clone()),
-                            },
-                        );
-                    }
-                }
-                multi_subgraph_args
+        let networks = self.resolve_networks(chain_ids)?;
+        let mut result = BTreeMap::new();
+        for network in networks {
+            let orderbooks = self
+                .orderbook_yaml
+                .get_orderbooks_by_network_key(&network.key)?;
+            for orderbook in orderbooks {
+                result
+                    .entry(network.chain_id)
+                    .or_insert(Vec::new())
+                    .push(MultiSubgraphArgs {
+                        url: orderbook.subgraph.url.clone(),
+                        name: network.label.clone().unwrap_or(network.key.clone()),
+                    });
             }
-            Some(_) | None => {
-                let mut multi_subgraph_args = BTreeMap::new();
-                let networks = self.orderbook_yaml.get_networks()?;
-
-                for network in networks.values() {
-                    let orderbooks = self
-                        .orderbook_yaml
-                        .get_orderbooks_by_network_key(&network.key)?;
-                    for orderbook in orderbooks {
-                        multi_subgraph_args
-                            .entry(network.chain_id)
-                            .or_insert(Vec::new())
-                            .push(MultiSubgraphArgs {
-                                url: orderbook.subgraph.url.clone(),
-                                name: network.label.clone().unwrap_or(network.key.clone()),
-                            });
-                    }
-                }
-                multi_subgraph_args
-            }
-        };
-
+        }
         if result.is_empty() {
             return Err(RaindexError::NoNetworksConfigured);
         }
