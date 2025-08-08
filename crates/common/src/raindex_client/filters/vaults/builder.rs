@@ -118,9 +118,9 @@ impl VaultsFilterBuilder {
     ) -> Result<VaultsFilterBuilder, VaultsFilterBuilderError> {
         let mut rust_owners = Vec::new();
         for owner_str in owners {
-            let address = owner_str.parse::<Address>().map_err(|e| {
-                VaultsFilterBuilderError::InvalidAddress(format!("Invalid address: {}", e))
-            })?;
+            let address = owner_str
+                .parse::<Address>()
+                .map_err(|_| VaultsFilterBuilderError::InvalidAddress(owner_str.clone()))?;
             rust_owners.push(address);
         }
         let next = self.clone().set_owners(rust_owners);
@@ -172,12 +172,9 @@ impl VaultsFilterBuilder {
         let mut tokens_list = Vec::new();
         if let Some(tokens_vec) = tokens {
             for token_str in tokens_vec {
-                let address = token_str.parse::<Address>().map_err(|e| {
-                    VaultsFilterBuilderError::InvalidAddress(format!(
-                        "Invalid token address: {}",
-                        e
-                    ))
-                })?;
+                let address = token_str
+                    .parse::<Address>()
+                    .map_err(|_| VaultsFilterBuilderError::InvalidAddress(token_str.clone()))?;
                 tokens_list.push(address);
             }
         }
