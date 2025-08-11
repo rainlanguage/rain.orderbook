@@ -192,7 +192,7 @@ using-words-from raindex-subparser
 
 _: ensure(ABC),
 
-max-output: max-value(),
+max-output: max-positive-value(),
 io: if(
   equal-to(
     output-token()

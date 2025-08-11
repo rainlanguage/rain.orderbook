@@ -88,8 +88,8 @@ export function createMockDecimalFloatFunctions(): void {
   function fromFixedDecimal(amount: BigInt, result: Bytes): void {
     createMockedFunction(
       getDecimalFloatAddress(),
-      "fromFixedDecimalLosslessPacked",
-      "fromFixedDecimalLosslessPacked(uint256,uint8):(bytes32)"
+      "fromFixedDecimalLossless",
+      "fromFixedDecimalLossless(uint256,uint8):(bytes32)"
     )
       .withArgs([
         ethereum.Value.fromUnsignedBigInt(amount),

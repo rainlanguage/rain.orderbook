@@ -1,4 +1,5 @@
 use super::*;
+use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
@@ -58,6 +59,15 @@ pub struct RaindexOrder {
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
 }
+
+fn get_io_by_type(order: &RaindexOrder, vault_type: RaindexVaultType) -> Vec<RaindexVault> {
+    let vaults = order.vaults_list().items();
+    vaults
+        .into_iter()
+        .filter(|v| v.vault_type() == Some(vault_type.clone()))
+        .collect()
+}
+
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexOrder {
@@ -80,35 +90,6 @@ impl RaindexOrder {
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn owner(&self) -> String {
         self.owner.to_string()
-    }
-    #[wasm_bindgen(getter)]
-    pub fn inputs(&self) -> Vec<RaindexVault> {
-        self.inputs.clone()
-    }
-    #[wasm_bindgen(getter)]
-    pub fn outputs(&self) -> Vec<RaindexVault> {
-        self.outputs.clone()
-    }
-    /// Returns a combined view of all vaults associated with this order.
-    ///
-    /// This method merges input and output vaults, properly handling vaults that serve
-    /// both roles by marking them as InputOutput type. The returned list contains each
-    /// unique vault exactly once with the correct type classification.
-    ///
-    /// ## Returns
-    ///
-    /// - `Vec<RaindexVault>` - All vaults with proper type classification
-    ///
-    /// ## Examples
-    ///
-    /// ```javascript
-    /// order.vaults.forEach(vault => {
-    ///   console.log(`${vault.id}: ${vault.vaultType}`);
-    /// });
-    /// ```
-    #[wasm_bindgen(getter)]
-    pub fn vaults(&self) -> Vec<RaindexVault> {
-        get_vaults_with_type(self.inputs.clone(), self.outputs.clone())
     }
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn orderbook(&self) -> String {
@@ -139,6 +120,26 @@ impl RaindexOrder {
     pub fn trades_count(&self) -> u16 {
         self.trades_count
     }
+
+    #[wasm_bindgen(getter = vaultsList)]
+    pub fn vaults_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_vaults_with_type(
+            self.inputs.clone(),
+            self.outputs.clone(),
+        ))
+    }
+    #[wasm_bindgen(getter = inputsList)]
+    pub fn inputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Input))
+    }
+    #[wasm_bindgen(getter = outputsList)]
+    pub fn outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Output))
+    }
+    #[wasm_bindgen(getter = inputsOutputsList)]
+    pub fn inputs_outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::InputOutput))
+    }
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexOrder {
@@ -156,15 +157,6 @@ impl RaindexOrder {
     }
     pub fn owner(&self) -> Address {
         self.owner
-    }
-    pub fn inputs(&self) -> Vec<RaindexVault> {
-        self.inputs.clone()
-    }
-    pub fn outputs(&self) -> Vec<RaindexVault> {
-        self.outputs.clone()
-    }
-    pub fn vaults(&self) -> Vec<RaindexVault> {
-        get_vaults_with_type(self.inputs.clone(), self.outputs.clone())
     }
     pub fn orderbook(&self) -> Address {
         self.orderbook
@@ -186,6 +178,21 @@ impl RaindexOrder {
     }
     pub fn trades_count(&self) -> u16 {
         self.trades_count
+    }
+    pub fn vaults_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_vaults_with_type(
+            self.inputs.clone(),
+            self.outputs.clone(),
+        ))
+    }
+    pub fn inputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Input))
+    }
+    pub fn outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::Output))
+    }
+    pub fn inputs_outputs_list(&self) -> RaindexVaultsList {
+        RaindexVaultsList::new(get_io_by_type(self, RaindexVaultType::InputOutput))
     }
 }
 
@@ -601,8 +608,7 @@ impl RaindexOrder {
         let rainlang = order
             .meta
             .as_ref()
-            .map(|meta| meta.0.try_decode_rainlangsource())
-            .transpose()?;
+            .and_then(|meta| meta.0.try_decode_rainlangsource().ok());
 
         Ok(Self {
             raindex_client: raindex_client.clone(),
@@ -611,30 +617,34 @@ impl RaindexOrder {
             order_bytes: Bytes::from_str(&order.order_bytes.0)?,
             order_hash: Bytes::from_str(&order.order_hash.0)?,
             owner: Address::from_str(&order.owner.0)?,
-            inputs: order
-                .inputs
-                .iter()
-                .map(|v| {
-                    RaindexVault::try_from_sg_vault(
-                        raindex_client.clone(),
-                        chain_id,
-                        v.clone(),
-                        Some(RaindexVaultType::Input),
-                    )
-                })
-                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
-            outputs: order
-                .outputs
-                .iter()
-                .map(|v| {
-                    RaindexVault::try_from_sg_vault(
-                        raindex_client.clone(),
-                        chain_id,
-                        v.clone(),
-                        Some(RaindexVaultType::Output),
-                    )
-                })
-                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
+            inputs: {
+                order
+                    .inputs
+                    .iter()
+                    .map(|v| {
+                        RaindexVault::try_from_sg_vault(
+                            raindex_client.clone(),
+                            chain_id,
+                            v.clone(),
+                            Some(RaindexVaultType::Input),
+                        )
+                    })
+                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
+            },
+            outputs: {
+                order
+                    .outputs
+                    .iter()
+                    .map(|v| {
+                        RaindexVault::try_from_sg_vault(
+                            raindex_client.clone(),
+                            chain_id,
+                            v.clone(),
+                            Some(RaindexVaultType::Output),
+                        )
+                    })
+                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
+            },
             orderbook: Address::from_str(&order.orderbook.id.0)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
@@ -660,12 +670,14 @@ impl RaindexOrder {
             order_hash: SgBytes(self.order_hash().to_string()),
             owner: SgBytes(self.owner().to_string()),
             outputs: self
-                .outputs()
+                .outputs
+                .clone()
                 .into_iter()
                 .map(|v| v.into_sg_vault())
                 .collect::<Result<Vec<SgVault>, RaindexError>>()?,
             inputs: self
-                .inputs()
+                .inputs
+                .clone()
                 .into_iter()
                 .map(|v| v.into_sg_vault())
                 .collect::<Result<Vec<SgVault>, RaindexError>>()?,
@@ -1232,10 +1244,70 @@ mod tests {
             assert_eq!(res.inputs[1].id(), expected_order.inputs[1].id());
             assert_eq!(res.outputs[1].id(), expected_order.outputs[1].id());
 
-            assert_eq!(res.vaults().len(), 3);
-            assert_eq!(res.vaults()[0].id(), expected_order.inputs[0].id());
-            assert_eq!(res.vaults()[1].id(), expected_order.outputs[0].id());
-            assert_eq!(res.vaults()[2].id(), expected_order.inputs[1].id());
+            assert_eq!(res.vaults_list().items().len(), 3);
+            assert_eq!(
+                res.vaults_list().items()[0].id(),
+                expected_order.inputs[0].id()
+            );
+            assert_eq!(
+                res.vaults_list().items()[1].id(),
+                expected_order.outputs[0].id()
+            );
+            assert_eq!(
+                res.vaults_list().items()[2].id(),
+                expected_order.inputs[1].id()
+            );
+        }
+
+        #[tokio::test]
+        async fn test_invalid_meta() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [
+                            json!({
+                            "id": "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1",
+                            "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000f08bcbce72f62c95dcb7c07dcb5ed26acfcfbc1100000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000005c00000000000000000000000000000000000000000000000000000000000000640392c489ef67afdc348209452c338ea5ba2b6152b936e152f610d05e1a20621a40000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae60000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000049d000000000000000000000000000000000000000000000000000000000000000f0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000c7d713b49da0000914d696e20747261646520616d6f756e742e00000000000000000000000000008b616d6f756e742d75736564000000000000000000000000000000000000000000000000000000000000000000000000000000000000000340aad21b3b70000000000000000000000000000000000000000000000000006194049f30f7200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b1a2bc2ec500000000000000000000000000000000000000000000000000000e043da6172500008f6c6173742d74726164652d74696d65000000000000000000000000000000008d6c6173742d74726164652d696f0000000000000000000000000000000000008c696e697469616c2d74696d650000000000000000000000000000000000000000000000000000000000000000000000000000000000000006f05b59d3b200000000000000000000000000000000000000000000000000008ac7230489e80000000000000000000000020000915e36ef882941816356bc3718df868054f868ad000000000000000000000000000000000000000000000000000000000000027d0a00000024007400e0015801b401e001f40218025c080500040b20000200100001001000000b120003001000010b110004001000030b0100051305000201100001011000003d120000011000020010000003100404211200001d02000001100003031000010c1200004911000003100404001000012b12000001100003031000010c1200004a0200001a0b00090b1000060b20000700100000001000011b1200001a10000047120000001000001a1000004712000001100000011000002e12000001100005011000042e120000001000053d12000001100004001000042e1200000010000601100005001000032e120000481200011d0b020a0010000001100000011000062713000001100003031000010c12000049110000001000030010000247120000001000010b110008001000050110000700100001201200001f12000001100000011000004712000000100006001000073d120000011000002b12000000100008001000043b120000160901080b1000070b10000901100008001000013d1200001b12000001100006001000013d1200000b100009001000033a120000001000040010000248120001001000000b110008001000053d12000000100006001000042b1200000a0401011a10000001100009031000010c1200004a020000001000000110000a031000010c1200004a020000040200010110000b031000010c120000491100000803000201100009031000010c120000491100000110000a031000010c12000049110000100c01030110000d001000002e1200000110000c3e1200000010000100100001001000010010000100100001001000010010000100100001001000013d1a0000020100010210000e3611000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012a6e3c06415539f92823a18ba63e1c0303040c4892970a0d1e3a27663d7583b33000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012a6e3c06415539f92823a18ba63e1c0303040c4892970a0d1e3a27663d7583b33",
+                            "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4",
+                            "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
+                            "outputs": [],
+                            "inputs": [],
+                            "orderbook": {
+                                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
+                            },
+                            "active": true,
+                            "timestampAdded": "1739448802",
+                            "meta": "0x123456",
+                            "addEvents": [],
+                            "trades": [],
+                            "removeEvents": []
+                            })
+                        ]
+                    }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    // not used
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+            let res = raindex_client
+                .get_order_by_hash(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Bytes::from_str("0x0123").unwrap(),
+                )
+                .await;
+            assert!(res.is_ok());
         }
 
         #[tokio::test]
