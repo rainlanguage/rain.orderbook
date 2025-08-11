@@ -472,7 +472,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.fail(errorMessage ?? result.error.msg);
 		}
 
-		if (typeof void 0 === typeof result.value) {
+		if (result.value === undefined) {
 			return result.value as T;
 		}
 
