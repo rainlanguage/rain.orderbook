@@ -1,7 +1,7 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationClient, PaginationClientError, SgPaginationArgs};
-use crate::performance::vol::{get_vaults_vol, VaultVolume};
-use crate::performance::OrderPerformance;
+// use crate::performance::vol::{get_vaults_vol, VaultVolume};
+// use crate::performance::OrderPerformance;
 use crate::types::add_order::{SgTransactionAddOrdersQuery, TransactionAddOrdersVariables};
 use crate::types::common::*;
 use crate::types::order::{
@@ -22,7 +22,7 @@ use wasm_bindgen_utils::prelude::*;
 
 mod order;
 mod order_trade;
-mod performance;
+// mod performance;
 mod token;
 mod transaction;
 mod vault;
@@ -43,8 +43,8 @@ pub enum OrderbookSubgraphClientError {
     ParseError(#[from] alloy::primitives::ruint::ParseError),
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
-    #[error(transparent)]
-    PerformanceError(#[from] crate::performance::PerformanceError),
+    // #[error(transparent)]
+    // PerformanceError(#[from] crate::performance::PerformanceError),
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),

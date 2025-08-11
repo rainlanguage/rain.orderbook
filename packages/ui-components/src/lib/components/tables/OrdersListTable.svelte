@@ -163,10 +163,10 @@
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
-			{item.inputs.map((t) => t.token.symbol)}
+			{item.inputsList.items.map((t) => t.token.symbol)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
-			{item.outputs.map((t) => t.token.symbol)}
+			{item.outputsList.items.map((t) => t.token.symbol)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
 			>{item.tradesCount > 99 ? '>99' : item.tradesCount}</TableBodyCell

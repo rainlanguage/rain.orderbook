@@ -2,10 +2,12 @@
 	import { InputAddon, Button, Alert } from 'flowbite-svelte';
 	import { InfoCircleSolid } from 'flowbite-svelte-icons';
 	import { parseUnits } from 'viem';
+	import type { Hex } from '@rainlanguage/orderbook';
+	import { Float } from '@rainlanguage/float';
 
 	export let symbol: string | undefined = undefined;
 	export let decimals: number = 0;
-	export let maxValue: bigint | undefined = undefined;
+	export let maxValue: bigint | Hex | undefined = undefined;
 	let inputValue: string = '';
 	export let value: bigint = 0n;
 
@@ -28,8 +30,25 @@
 	function fillMaxValue() {
 		if (!maxValue) return;
 
-		value = maxValue;
-		inputValue = maxValue.toString().padStart(decimals + 1, '0');
+		if (typeof maxValue === 'bigint') {
+			value = maxValue;
+		} else {
+			const maxFloat = Float.fromHex(maxValue);
+
+			if (maxFloat.error) {
+				throw new Error(maxFloat.error.readableMsg);
+			}
+
+			const bigint = maxFloat.value?.toFixedDecimal(decimals);
+
+			if (bigint.error) {
+				throw new Error(bigint.error.readableMsg);
+			}
+
+			value = bigint.value;
+		}
+
+		inputValue = value.toString().padStart(decimals + 1, '0');
 		inputValue = inputValue.slice(0, -decimals) + '.' + inputValue.slice(-decimals);
 		inputValue = inputValue.replace(/\.?0+$/, '');
 	}

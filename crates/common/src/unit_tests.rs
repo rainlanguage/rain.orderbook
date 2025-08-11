@@ -1,20 +1,26 @@
 use alloy::primitives::U256;
-use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
+use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::{
     prelude::RngCore,
     test_runner::{RngAlgorithm, TestRng},
 };
-use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
+use rain_interpreter_bindings::IInterpreterStoreV3::FullyQualifiedNamespace;
 use rain_interpreter_eval::{
     error::ForkCallError,
     eval::ForkEvalArgs,
     fork::{Forker, NewForkedEvm},
-    trace::{RainEvalResultError, RainEvalResults},
+    trace::RainEvalResults,
 };
 use rain_orderbook_app_settings::{
-    blocks::BlockError, config::*, deployer::DeployerCfg, unit_test::TestConfig,
+    blocks::BlockError,
+    deployer::DeployerCfg,
+    unit_test::TestConfig,
+    yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use std::sync::Arc;
 use thiserror::Error;
@@ -23,9 +29,10 @@ use thiserror::Error;
 pub struct TestRunner {
     pub forker: Forker,
     pub dotrains: Dotrains,
-    pub settings: Settings,
+    pub orderbook_yamls: OrderbookYamls,
     pub rng: TestRng,
     pub test_setup: TestSetup,
+    pub test_config: TestConfig,
 }
 
 #[derive(Clone)]
@@ -42,9 +49,9 @@ pub struct Dotrains {
 }
 
 #[derive(Clone)]
-pub struct Settings {
-    pub main_config: Config,
-    pub test_config: TestConfig,
+pub struct OrderbookYamls {
+    pub main: OrderbookYaml,
+    pub test: OrderbookYaml,
 }
 
 #[derive(Error, Debug)]
@@ -61,10 +68,10 @@ pub enum TestRunnerError {
     JoinError(#[from] tokio::task::JoinError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-    #[error(transparent)]
-    RainEvalResultError(#[from] RainEvalResultError),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
+    #[error(transparent)]
+    YamlError(#[from] YamlError),
 }
 
 impl From<ForkCallError> for TestRunnerError {
@@ -77,19 +84,31 @@ impl TestRunner {
     pub async fn new(
         dotrain: &str,
         test_dotrain: &str,
-        settings: Config,
-        test_settings: TestConfig,
+        test_config: &TestConfig,
         seed: Option<[u8; 32]>,
-    ) -> Self {
-        Self {
-            forker: Forker::new(),
+    ) -> Result<Self, TestRunnerError> {
+        let main_orderbook_yaml = OrderbookYaml::new(
+            vec![RainDocument::get_front_matter(dotrain)
+                .unwrap_or("")
+                .to_string()],
+            OrderbookYamlValidation::default(),
+        )?;
+        let test_orderbook_yaml = OrderbookYaml::new(
+            vec![RainDocument::get_front_matter(test_dotrain)
+                .unwrap_or("")
+                .to_string()],
+            OrderbookYamlValidation::default(),
+        )?;
+
+        Ok(Self {
+            forker: Forker::new().unwrap(),
             dotrains: Dotrains {
                 main_dotrain: dotrain.into(),
                 test_dotrain: test_dotrain.into(),
             },
-            settings: Settings {
-                main_config: settings,
-                test_config: test_settings,
+            orderbook_yamls: OrderbookYamls {
+                main: main_orderbook_yaml,
+                test: test_orderbook_yaml,
             },
             rng: TestRng::from_seed(RngAlgorithm::ChaCha, &seed.unwrap_or([0; 32])),
             test_setup: TestSetup {
@@ -97,12 +116,12 @@ impl TestRunner {
                 deployer: Arc::new(DeployerCfg::dummy()),
                 scenario_name: String::new(),
             },
-        }
+            test_config: test_config.clone(),
+        })
     }
 
     fn get_final_bindings(&mut self, is_test_dotrain: bool) -> Vec<Rebind> {
         let scenario_bindings: Vec<Rebind> = self
-            .settings
             .test_config
             .scenario
             .bindings
@@ -165,6 +184,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context: vec![vec![U256::from(0); 1]; 1],
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -216,6 +237,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -261,6 +284,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -316,6 +341,8 @@ impl TestRunner {
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
+                inputs: vec![],
+                state_overlay: vec![],
             };
             fork_clone
                 .fork_eval(args)
@@ -363,15 +390,11 @@ impl TestRunner {
     }
 
     pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
-        self.test_setup.deployer = self
-            .settings
-            .main_config
-            .deployers
-            .get(&self.settings.test_config.scenario_name)
-            .ok_or(TestRunnerError::ScenarioNotFound(
-                self.settings.test_config.scenario_name.clone(),
-            ))?
-            .clone();
+        self.test_setup.deployer = Arc::new(
+            self.orderbook_yamls
+                .main
+                .get_deployer(&self.test_config.scenario_name)?,
+        );
 
         // Fetch the latest block number
         let rpcs = self
@@ -382,11 +405,12 @@ impl TestRunner {
             .iter()
             .map(|rpc| rpc.to_string())
             .collect::<Vec<String>>();
-        let block_number = ReadableClientHttp::new_from_urls(rpcs.clone())?
+
+        let block_number = ReadableClient::new_from_http_urls(rpcs.clone())?
             .get_block_number()
             .await?;
+
         let blocks = self
-            .settings
             .test_config
             .scenario
             .blocks
@@ -411,28 +435,13 @@ impl TestRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::{
-        config_source::ConfigSource, spec_version::SpecVersion, unit_test::UnitTestConfigSource,
-    };
+    use rain_orderbook_app_settings::{spec_version::SpecVersion, unit_test::UnitTestConfigSource};
     use rain_orderbook_test_fixtures::LocalEvm;
-
-    fn get_main_config(dotrain: &str) -> Config {
-        let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap()
-    }
 
     fn get_test_config(test_dotrain: &str) -> TestConfig {
         let frontmatter = RainDocument::get_front_matter(test_dotrain).unwrap();
         let source = serde_yaml::from_str::<UnitTestConfigSource>(frontmatter).unwrap();
-        source
-            .test
-            .try_into_test_config()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap()
+        source.test.into_test_config()
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -509,11 +518,11 @@ _: output-vault-decrease();
             spec_version = SpecVersion::current()
         );
 
-        let main_config = get_main_config(&dotrain);
         let test_config = get_test_config(&test_dotrain);
 
-        let mut runner =
-            TestRunner::new(&dotrain, &test_dotrain, main_config, test_config, None).await;
+        let mut runner = TestRunner::new(&dotrain, &test_dotrain, &test_config, None)
+            .await
+            .unwrap();
 
         runner
             .run_unit_test()

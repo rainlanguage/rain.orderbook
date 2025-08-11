@@ -1,5 +1,6 @@
 import type { Writable } from 'svelte/store';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
+import { checkSettingsErrors } from './config';
 
 export type ParseConfigSourceFn = (settingsContent: string) => Promise<void>;
 
@@ -11,10 +12,9 @@ export interface ApplySettingsResult {
 export async function applySettings(
   settingsContent: string,
   settingsTextStore: Writable<string>,
-  parseConfigSourceFn: ParseConfigSourceFn,
 ): Promise<ApplySettingsResult> {
   try {
-    await parseConfigSourceFn(settingsContent);
+    await checkSettingsErrors([settingsContent]);
     settingsTextStore.set(settingsContent);
     return { settingsStatus: 'success' };
   } catch (error) {

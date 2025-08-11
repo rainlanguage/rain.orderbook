@@ -35,7 +35,8 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 		onSubmit: async (amount: bigint) => {
 			let calldata: string;
 			try {
-				const calldataResult = await vault.getWithdrawCalldata(amount.toString());
+				const fAmount = formatUnits(amount, Number(vault.token.decimals));
+				const calldataResult = await vault.getWithdrawCalldata(fAmount);
 				if (calldataResult.error) {
 					return errToast(calldataResult.error.msg);
 				}

@@ -4,15 +4,15 @@ use crate::{
     OrderQuoteValue,
 };
 use alloy::primitives::{Address, U256};
-use alloy_ethers_typecast::transaction::ReadableClient;
-use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
+use alloy_ethers_typecast::ReadableClient;
+use rain_orderbook_bindings::IOrderBookV5::{OrderV4, QuoteV2};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct BatchOrderQuotesResponse {
@@ -42,14 +42,14 @@ pub async fn get_order_quotes(
     orders: Vec<SgOrder>,
     block_number: Option<u64>,
     rpcs: Vec<String>,
-    gas: Option<U256>,
+    gas: Option<u64>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     let req_block_number = match block_number {
         Some(block) => block,
         None => {
-            ReadableClient::new_from_urls(rpcs.clone())?
+            ReadableClient::new_from_http_urls(rpcs.clone())?
                 .get_block_number()
                 .await?
         }
@@ -58,7 +58,7 @@ pub async fn get_order_quotes(
     for order in &orders {
         let mut pairs: Vec<Pair> = Vec::new();
         let mut quote_targets: Vec<QuoteTarget> = Vec::new();
-        let order_struct: OrderV3 = order.clone().try_into()?;
+        let order_struct: OrderV4 = order.clone().try_into()?;
         let orderbook = Address::from_str(&order.orderbook.id.0)?;
 
         for (input_index, input) in order_struct.validInputs.iter().enumerate() {
@@ -91,7 +91,7 @@ pub async fn get_order_quotes(
 
                 let quote_target = QuoteTarget {
                     orderbook,
-                    quote_config: Quote {
+                    quote_config: QuoteV2 {
                         order: order_struct.clone(),
                         inputIOIndex: U256::from(input_index),
                         outputIOIndex: U256::from(output_index),
@@ -162,13 +162,15 @@ mod tests {
         providers::Provider,
         sol_types::{SolCall, SolValue},
     };
-    use alloy_ethers_typecast::transaction::ReadableClientError;
+    use alloy_ethers_typecast::ReadableClientError;
+    use rain_math_float::Float;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_subgraph_client::types::{
         common::{SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault},
         order_detail_traits::OrderDetailError,
     };
+    use rain_orderbook_subgraph_client::utils::float::*;
     use rain_orderbook_test_fixtures::LocalEvm;
 
     struct TestSetup {
@@ -305,12 +307,12 @@ amount price: context<3 0>() context<4 0>();
         )
     }
 
-    fn create_vault(setup: &TestSetup, token: &SgErc20) -> SgVault {
+    fn create_vault(vault_id: B256, setup: &TestSetup, token: &SgErc20) -> SgVault {
         SgVault {
-            id: SgBytes(B256::random().to_string()),
+            id: SgBytes(vault_id.to_string()),
             token: token.clone(),
-            balance: SgBigInt("123".to_string()),
-            vault_id: SgBigInt(B256::random().to_string()),
+            balance: SgBytes(F6.as_hex()),
+            vault_id: SgBytes(vault_id.to_string()),
             owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
             orderbook: SgOrderbook {
                 id: SgBytes(setup.orderbook.to_string()),
@@ -350,14 +352,19 @@ amount price: context<3 0>() context<4 0>();
     async fn test_get_order_quotes_ok() {
         let setup = setup_test().await;
 
+        let vault_id_const = B256::from(U256::from(1u64));
+        let vault_id1 = vault_id_const; // for token1
+        let vault_id2 = vault_id_const; // for token2
+
         // Deposit in token1 and token2 vaults
         setup
             .local_evm
             .deposit(
                 setup.owner,
                 Address::from_str(&setup.token1.address.0).unwrap(),
-                U256::MAX,
-                U256::from(1),
+                U256::from(10).pow(U256::from(66)),
+                18,
+                vault_id1,
             )
             .await;
         setup
@@ -365,16 +372,17 @@ amount price: context<3 0>() context<4 0>();
             .deposit(
                 setup.owner,
                 Address::from_str(&setup.token2.address.0).unwrap(),
-                U256::MAX,
-                U256::from(1),
+                U256::from(10).pow(U256::from(66)),
+                18,
+                vault_id2,
             )
             .await;
 
         let dotrain = create_dotrain_config(&setup);
         let order = create_order(&setup, dotrain).await;
 
-        let vault1 = create_vault(&setup, &setup.token1);
-        let vault2 = create_vault(&setup, &setup.token2);
+        let vault1 = create_vault(vault_id1, &setup, &setup.token1);
+        let vault2 = create_vault(vault_id2, &setup, &setup.token2);
 
         // does not follow the actual original order's io order
         let inputs = vec![vault2.clone(), vault1.clone()];
@@ -386,8 +394,11 @@ amount price: context<3 0>() context<4 0>();
             .await
             .unwrap();
 
-        let token1_as_u256 = U256::from_str(&setup.token1.address.0).unwrap();
-        let token2_as_u256 = U256::from_str(&setup.token2.address.0).unwrap();
+        let token1_as_float =
+            Float::from_raw(B256::from(U256::from_str(&setup.token1.address.0).unwrap()));
+        let token2_as_float =
+            Float::from_raw(B256::from(U256::from_str(&setup.token2.address.0).unwrap()));
+
         let block_number = setup.local_evm.provider.get_block_number().await.unwrap();
         let expected = vec![
             BatchOrderQuotesResponse {
@@ -398,8 +409,8 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: token1_as_u256,
-                    ratio: token2_as_u256,
+                    max_output: token1_as_float,
+                    ratio: token2_as_float,
                 }),
                 success: true,
                 error: None,
@@ -412,14 +423,38 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: token2_as_u256,
-                    ratio: token1_as_u256,
+                    max_output: token2_as_float,
+                    ratio: token1_as_float,
                 }),
                 success: true,
                 error: None,
             },
         ];
-        assert_eq!(result, expected);
+
+        assert_eq!(result.len(), expected.len());
+
+        for (res, exp) in result.iter().zip(expected.iter()) {
+            assert_eq!(res.pair, exp.pair);
+            assert_eq!(res.block_number, exp.block_number);
+            assert_eq!(res.success, exp.success);
+            assert_eq!(res.error, exp.error);
+
+            let actual_data = res.data.unwrap();
+            let expected_data = exp.data.unwrap();
+
+            assert!(
+                actual_data.max_output.eq(expected_data.max_output).unwrap(),
+                "actual_data.max_output: {}, expected_data.max_output: {}",
+                actual_data.max_output.format().unwrap(),
+                expected_data.max_output.format().unwrap()
+            );
+            assert!(
+                actual_data.ratio.eq(expected_data.ratio).unwrap(),
+                "actual_data.ratio: {}, expected_data.ratio: {}",
+                actual_data.ratio.format().unwrap(),
+                expected_data.ratio.format().unwrap()
+            );
+        }
     }
 
     #[tokio::test]

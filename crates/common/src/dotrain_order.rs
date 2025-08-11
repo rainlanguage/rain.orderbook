@@ -3,18 +3,23 @@ use crate::{
     rainlang::compose_to_rainlang,
 };
 use alloy::primitives::Address;
-use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
+use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
-use rain_orderbook_app_settings::remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg};
-use rain_orderbook_app_settings::remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg};
 use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::{
     dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
 };
-use rain_orderbook_app_settings::ParseConfigSourceError;
+use rain_orderbook_app_settings::{
+    remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
+    yaml::dotrain::DotrainYamlValidation,
+};
+use rain_orderbook_app_settings::{
+    remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg},
+    yaml::orderbook::OrderbookYamlValidation,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -68,9 +73,6 @@ pub enum DotrainOrderError {
     #[error("DotrainOrder is not initialized")]
     DotrainOrderNotInitialized,
 
-    #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
-
     #[error("Scenario {0} not found")]
     ScenarioNotFound(String),
 
@@ -84,7 +86,7 @@ pub enum DotrainOrderError {
     AuthoringMetaV2Error(#[from] AuthoringMetaV2Error),
 
     #[error(transparent)]
-    FetchAuthoringMetaV2WordError(Box<FetchAuthoringMetaV2WordError>),
+    FetchAuthoringMetaV2WordError(#[from] Box<FetchAuthoringMetaV2WordError>),
 
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
@@ -134,68 +136,56 @@ impl DotrainOrderError {
             DotrainOrderError::DotrainOrderNotInitialized => {
                 "DotrainOrder is not initialized. Please call initialize() first.".to_string()
             }
-            DotrainOrderError::ParseConfigSourceError(e) => {
-                format!("Error parsing the configuration source: {}", e)
-            }
             DotrainOrderError::ScenarioNotFound(name) => {
-                format!("Scenario '{}' is not defined in the configuration.", name)
+                format!("Scenario '{name}' is not defined in the configuration.")
             }
             DotrainOrderError::MetaboardNotFound(name) => {
-                format!("Metaboard configuration for network '{}' is missing.", name)
+                format!("Metaboard configuration for network '{name}' is missing.")
             }
             DotrainOrderError::ComposeError(e) => {
-                format!(
-                    "Error composing the Rainlang script from the .rain file: {}",
-                    e
-                )
+                format!("Error composing the Rainlang script from the .rain file: {e}")
             }
             DotrainOrderError::AuthoringMetaV2Error(e) => {
-                format!("Error processing contract authoring metadata: {}", e)
+                format!("Error processing contract authoring metadata: {e}")
             }
             DotrainOrderError::FetchAuthoringMetaV2WordError(e) => {
-                format!(
-                    "Error fetching words from contract authoring metadata: {}",
-                    e
-                )
+                format!("Error fetching words from contract authoring metadata: {e}")
             }
             DotrainOrderError::ReadableClientError(e) => {
-                format!("Problem communicating with the rpc: {}", e)
+                format!("Problem communicating with the rpc: {e}")
             }
             DotrainOrderError::ParserError(e) => {
-                format!("Error parsing the Rainlang script: {}", e)
+                format!("Error parsing the Rainlang script: {e}")
             }
             DotrainOrderError::CleanUnusedFrontmatterError(e) => {
-                format!("Internal configuration processing error: {}", e)
+                format!("Internal configuration processing error: {e}")
             }
             DotrainOrderError::SpecVersionMismatch(expected, got) => {
-                format!("Configuration version mismatch. Expected '{}', but found '{}'. Please update 'version'.", expected, got)
+                format!("Configuration version mismatch. Expected '{expected}', but found '{got}'. Please update 'version'.")
             }
             DotrainOrderError::MissingSpecVersion(expected) => {
-                format!(
-                    "The required 'version' field is missing. Please add it and set it to '{}'.",
-                    expected
-                )
+                format!("The required 'version' field is missing. Please add it and set it to '{expected}'.")
             }
             DotrainOrderError::DeploymentNotFound(name) => {
-                format!("Deployment '{}' is not defined in the configuration.", name)
+                format!("Deployment '{name}' is not defined in the configuration.")
             }
             DotrainOrderError::OrderNotFound(name) => {
-                format!("Order '{}' is not defined in the configuration.", name)
+                format!("Order '{name}' is not defined in the configuration.")
             }
             DotrainOrderError::TokenNotFound(name) => {
-                format!("Token '{}' is not defined in the configuration.", name)
+                format!("Token '{name}' is not defined in the configuration.")
             }
             DotrainOrderError::InvalidVaultIdIndex => {
                 "Internal error: Invalid index used for vault ID.".to_string()
             }
             DotrainOrderError::YamlError(e) => {
-                format!("Error parsing the YAML configuration: {}", e)
+                format!("Error parsing the YAML configuration: {e}")
             }
             DotrainOrderError::ParseRemoteNetworksError(e) => {
-                format!("Error parsing the remote networks configuration: {}", e)
+                format!("Error parsing the remote networks configuration: {e}")
             }
             DotrainOrderError::ParseRemoteTokensError(e) => {
-                format!("Error parsing the remote tokens configuration: {}", e)
+                format!("Error parsing the remote tokens configuration: {e}")
             }
         }
     }
@@ -255,7 +245,7 @@ impl DotrainOrder {
     pub fn dummy() -> Self {
         Self {
             dotrain: "".to_string(),
-            dotrain_yaml: DotrainYaml::new(vec![], false).unwrap(),
+            dotrain_yaml: DotrainYaml::new(vec![], DotrainYamlValidation::default()).unwrap(),
         }
     }
 }
@@ -314,7 +304,8 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
-        let mut orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
+        let mut orderbook_yaml =
+            OrderbookYaml::new(sources.clone(), OrderbookYamlValidation::default())?;
         let spec_version = orderbook_yaml.get_spec_version()?;
         if !SpecVersion::is_current(&spec_version) {
             return Err(DotrainOrderError::SpecVersionMismatch(
@@ -323,7 +314,7 @@ impl DotrainOrder {
             ));
         }
 
-        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
+        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), DotrainYamlValidation::default())?;
 
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
@@ -510,7 +501,7 @@ impl DotrainOrder {
             .iter()
             .map(|rpc| rpc.to_string())
             .collect();
-        let client = ReadableClient::new_from_urls(rpcs)?;
+        let client = ReadableClient::new_from_http_urls(rpcs)?;
         let pragmas = parser.parse_pragma_text(&rainlang, client).await?;
         Ok(pragmas)
     }
@@ -628,11 +619,11 @@ impl DotrainOrder {
 mod tests {
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
-    use alloy_ethers_typecast::rpc::Response;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use serde_bytes::ByteBuf;
+    use serde_json::json;
 
     sol!(
         struct AuthoringMetaV2Sol {
@@ -1253,49 +1244,43 @@ _ _: 0 0;
         // mock contract calls
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7ffffffff");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[0]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::left_padding_from(&[0]).to_string()
+            }));
         });
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::left_padding_from(&[1]).to_string()
+            }));
         });
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x6f5aa28d");
-            then.body(
-                Response::new_success(1, &B256::random().to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": B256::random().to_string()
+            }));
         });
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x5514ca20");
-            then.body(
-                Response::new_success(
-                    1,
-                    &encode_prefixed(
-                        PragmaV1 {
-                            usingWordsFrom: with_pragma_addresses,
-                        }
-                        .abi_encode(),
-                    ),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(PragmaV1 {
+                    usingWordsFrom: with_pragma_addresses,
+                }.abi_encode())
+            }));
         });
 
         // mock sg query
         server.mock(|when, then| {
             when.path("/sg");
-            then.status(200).json_body_obj(&serde_json::json!({
+            then.status(200).json_body_obj(&json!({
                 "data": {
                     "metaV1S": [{
                         "meta": encode_prefixed(

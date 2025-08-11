@@ -1,6 +1,6 @@
 use crate::types::{TransactionStatus, TransactionStatusNotice};
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::WriteTransactionStatus;
+use alloy_ethers_typecast::WriteTransactionStatus;
 use chrono::Utc;
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager, Runtime};
@@ -11,7 +11,7 @@ impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
         match val {
             WriteTransactionStatus::PendingPrepare(_) => TransactionStatus::PendingPrepare,
             WriteTransactionStatus::PendingSign(_) => TransactionStatus::PendingSign,
-            WriteTransactionStatus::PendingSend(_) => TransactionStatus::PendingSend,
+            WriteTransactionStatus::Sending => TransactionStatus::Sending,
             WriteTransactionStatus::Confirmed(receipt) => {
                 TransactionStatus::Confirmed(format!("{:?}", receipt.transaction_hash))
             }
@@ -71,9 +71,10 @@ impl TransactionStatusNoticeRwLock {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
-    use alloy_ethers_typecast::transaction::WriteContractParameters;
-    use rain_orderbook_bindings::IOrderBookV4::deposit2Call;
+    use alloy::primitives::{Address, B256};
+    use alloy_ethers_typecast::WriteContractParameters;
+    use rain_math_float::Float;
+    use rain_orderbook_bindings::IOrderBookV5::deposit3Call;
 
     #[test]
     fn test_new() {
@@ -90,13 +91,15 @@ mod tests {
         let app = tauri::test::mock_app();
         let notice = TransactionStatusNoticeRwLock::new("test".to_string(), 1);
 
+        let zero = Float::parse("0".to_string()).unwrap().get_inner();
+
         notice.update_status_and_emit(
             &app.handle(),
             WriteTransactionStatus::PendingPrepare(Box::new(WriteContractParameters {
-                call: deposit2Call {
+                call: deposit3Call {
                     token: Address::ZERO,
-                    vaultId: U256::ZERO,
-                    amount: U256::ZERO,
+                    vaultId: B256::ZERO,
+                    depositAmount: zero,
                     tasks: Vec::new(),
                 },
                 address: Address::ZERO,

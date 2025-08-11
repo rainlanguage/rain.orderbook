@@ -1,4 +1,4 @@
-use super::{cache::Cache, *};
+use super::{cache::Cache, ValidationConfig, *};
 use crate::{
     accounts::AccountCfg, metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg,
     remote_tokens::RemoteTokensCfg, sentry::Sentry, spec_version::SpecVersion,
@@ -27,8 +27,71 @@ pub struct OrderbookYaml {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderbookYaml);
 
+#[derive(Debug, Clone, Default)]
+pub struct OrderbookYamlValidation {
+    pub networks: bool,
+    pub remote_networks: bool,
+    pub tokens: bool,
+    pub remote_tokens: bool,
+    pub subgraphs: bool,
+    pub orderbooks: bool,
+    pub metaboards: bool,
+    pub deployers: bool,
+}
+impl OrderbookYamlValidation {
+    pub fn full() -> Self {
+        OrderbookYamlValidation {
+            networks: true,
+            remote_networks: true,
+            tokens: true,
+            remote_tokens: true,
+            subgraphs: true,
+            orderbooks: true,
+            metaboards: true,
+            deployers: true,
+        }
+    }
+}
+impl ValidationConfig for OrderbookYamlValidation {
+    fn should_validate_networks(&self) -> bool {
+        self.networks
+    }
+    fn should_validate_remote_networks(&self) -> bool {
+        self.remote_networks
+    }
+    fn should_validate_tokens(&self) -> bool {
+        self.tokens
+    }
+    fn should_validate_remote_tokens(&self) -> bool {
+        self.remote_tokens
+    }
+    fn should_validate_subgraphs(&self) -> bool {
+        self.subgraphs
+    }
+    fn should_validate_orderbooks(&self) -> bool {
+        self.orderbooks
+    }
+    fn should_validate_metaboards(&self) -> bool {
+        self.metaboards
+    }
+    fn should_validate_deployers(&self) -> bool {
+        self.deployers
+    }
+    fn should_validate_orders(&self) -> bool {
+        false
+    }
+    fn should_validate_scenarios(&self) -> bool {
+        false
+    }
+    fn should_validate_deployments(&self) -> bool {
+        false
+    }
+}
+
 impl YamlParsable for OrderbookYaml {
-    fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
+    type ValidationConfig = OrderbookYamlValidation;
+
+    fn new(sources: Vec<String>, validate: OrderbookYamlValidation) -> Result<Self, YamlError> {
         let mut documents = Vec::new();
 
         for source in sources {
@@ -42,14 +105,29 @@ impl YamlParsable for OrderbookYaml {
             documents.push(document);
         }
 
-        if validate {
+        if validate.should_validate_networks() {
             NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
+        }
+        if validate.should_validate_remote_networks() {
             RemoteNetworksCfg::parse_all_from_yaml(documents.clone(), None)?;
+        }
+        if validate.should_validate_tokens() {
             TokenCfg::parse_all_from_yaml(documents.clone(), None)?;
+        }
+        if validate.should_validate_remote_tokens() {
+            RemoteTokensCfg::parse_from_yaml_optional(documents.clone(), None)?;
+        }
+        if validate.should_validate_subgraphs() {
             SubgraphCfg::parse_all_from_yaml(documents.clone(), None)?;
+        }
+        if validate.should_validate_orderbooks() {
             OrderbookCfg::parse_all_from_yaml(documents.clone(), None)?;
-            DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
+        }
+        if validate.should_validate_metaboards() {
             MetaboardCfg::parse_all_from_yaml(documents.clone(), None)?;
+        }
+        if validate.should_validate_deployers() {
+            DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
 
         Ok(OrderbookYaml {
@@ -398,7 +476,11 @@ mod tests {
 
     #[test]
     fn test_full_yaml() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
 
         assert_eq!(ob_yaml.get_network_keys().unwrap().len(), 1);
         let network = ob_yaml.get_network("mainnet").unwrap();
@@ -511,7 +593,11 @@ mod tests {
 
     #[test]
     fn test_update_network_rpc() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
 
         let mut network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
@@ -549,7 +635,11 @@ mod tests {
 
     #[test]
     fn test_update_token_address() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
 
         let mut token = ob_yaml.get_token("token1").unwrap();
         assert_eq!(
@@ -581,7 +671,8 @@ networks:
             - "https://mainnet.infura.io"
         chain-id: "1"
 "#;
-        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
 
         TokenCfg::add_record_to_yaml(
             ob_yaml.documents.clone(),
@@ -608,7 +699,11 @@ networks:
 
     #[test]
     fn test_remove_token_from_yaml() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
 
         assert!(ob_yaml.get_token("token1").is_ok());
         TokenCfg::remove_record_from_yaml(ob_yaml.documents.clone(), "token1").unwrap();
@@ -620,7 +715,8 @@ networks:
         let yaml = r#"
 test: test
 "#;
-        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
 
         ob_yaml
             .add_metaboard("test-metaboard", "https://test-metaboard.com")
@@ -638,7 +734,11 @@ test: test
 
     #[test]
     fn test_get_network_by_chain_id() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
 
         // Test successful lookup
         let network = ob_yaml.get_network_by_chain_id(1).unwrap();
@@ -667,7 +767,11 @@ test: test
 
     #[test]
     fn test_get_orderbook_by_network_key() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
 
         // Test successful lookup
         let orderbooks = ob_yaml.get_orderbooks_by_network_key("mainnet").unwrap();
@@ -739,7 +843,7 @@ test: test
             spec_version = SpecVersion::current()
         );
 
-        let ob_yaml = OrderbookYaml::new(vec![yaml], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
 
         // Test each network
         let mainnet = ob_yaml.get_network_by_chain_id(1).unwrap();
