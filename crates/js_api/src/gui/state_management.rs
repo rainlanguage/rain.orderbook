@@ -1,5 +1,4 @@
 use super::*;
-use alloy::hex;
 use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
 use rain_orderbook_app_settings::{
     gui::GuiDepositCfg,
