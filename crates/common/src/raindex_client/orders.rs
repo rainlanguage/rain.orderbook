@@ -452,11 +452,13 @@ impl RaindexOrder {
         };
 
         // Get dotrain_hash from gui_state
-        let dotrain_hash = gui_state.dotrain_hash.clone();
+        let dotrain_hash = gui_state.dotrain_hash;
 
-        // Get metaboard subgraph client for this chain
-        let raindex_client = self.read_raindex_client()?;
-        let metaboards = raindex_client.get_metaboards_by_chain_id(Some(vec![self.chain_id]))?;
+        // Get metaboard subgraph client for this chain - scope the lock to avoid holding across await
+        let metaboards = {
+            let raindex_client = self.read_raindex_client()?;
+            raindex_client.get_metaboards_by_chain_id(Some(vec![self.chain_id]))?
+        };
 
         let metaboard_args = metaboards
             .get(&self.chain_id)
@@ -850,7 +852,7 @@ mod tests {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::primitives::U256;
+        use alloy::primitives::{FixedBytes, U256};
         use httpmock::MockServer;
         use rain_math_float::Float;
         use rain_metadata::types::dotrain::{
@@ -2040,7 +2042,7 @@ orderbooks:
 
             // Create test dotrain source
             let test_source = DotrainSourceV1("# Test dotrain source\n:ensure(1);".to_string());
-            let source_item = RainMetaDocumentV1Item::try_from(test_source.clone()).unwrap();
+            let source_item = RainMetaDocumentV1Item::from(test_source.clone());
             let source_bytes = source_item.cbor_encode().unwrap();
 
             // Create DotrainGuiStateV1 with the same hash

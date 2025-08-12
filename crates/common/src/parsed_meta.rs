@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn test_from_meta_item_source_v1() {
         let source = get_default_dotrain_source();
-        let item = RainMetaDocumentV1Item::try_from(source.clone()).unwrap();
+        let item = RainMetaDocumentV1Item::from(source.clone());
         let result = ParsedMeta::from_meta_item(&item).unwrap();
         assert!(result.is_some());
 
@@ -136,7 +136,7 @@ mod tests {
 
         let items = vec![
             RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
-            RainMetaDocumentV1Item::try_from(source.clone()).unwrap(),
+            RainMetaDocumentV1Item::from(source.clone()),
         ];
 
         let results = ParsedMeta::parse_multiple(&items).unwrap();
