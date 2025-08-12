@@ -1,5 +1,6 @@
 use super::*;
-use alloy::primitives::keccak256;
+use alloy::hex;
+use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
 use rain_orderbook_app_settings::{
     gui::GuiDepositCfg,
     order::{OrderIOCfg, VaultType},
@@ -32,9 +33,9 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
-        let dotrain_bytes = bincode::serialize(&dotrain)?;
-        let hash = keccak256(dotrain_bytes);
+    pub fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
+        let dotrain_source = DotrainSourceV1(dotrain);
+        let hash = dotrain_source.hash();
         Ok(URL_SAFE.encode(hash))
     }
 
