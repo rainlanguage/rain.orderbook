@@ -8,7 +8,7 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
-use alloy::hex::encode;
+use alloy::hex::encode_prefixed;
 use alloy::primitives::{Address, Bytes, U256};
 use rain_metaboard_subgraph::metaboard_client::{
     MetaboardSubgraphClient, MetaboardSubgraphClientError,
@@ -469,7 +469,7 @@ impl RaindexOrder {
 
         // Query metaboard subgraph using dotrain_hash as subject
         let metabytes_result = metaboard_client
-            .get_metabytes_by_subject(&MetaboardBigInt(encode(dotrain_hash)))
+            .get_metabytes_by_subject(&MetaboardBigInt(encode_prefixed(dotrain_hash)))
             .await;
 
         let metabytes = match metabytes_result {
@@ -2048,14 +2048,15 @@ orderbooks:
             // Create DotrainGuiStateV1 with the same hash
             let gui_state = get_default_gui_state(test_source.hash());
 
-            // Mock metaboard response with hex encoding for metahash
-            let metahash_hex = format!("0x{}", alloy::primitives::hex::encode(test_source.hash()));
-            let metabytes_hex = format!("0x{}", alloy::primitives::hex::encode(&source_bytes));
+            let subject_hex = alloy::primitives::hex::encode_prefixed(test_source.hash());
+            let metabytes_hex = alloy::primitives::hex::encode_prefixed(&source_bytes);
+
+            println!("Subject: {}", subject_hex);
 
             metaboard_server.mock(|when, then| {
                 when.method(httpmock::Method::POST)
                     .path("/")
-                    .body_contains(&metahash_hex);
+                    .body_contains(&subject_hex);
                 then.status(200)
                     .header("content-type", "application/json")
                     .json_body(json!({
@@ -2071,7 +2072,7 @@ orderbooks:
                                         "metas": [],
                                         "address": "0x1234567890123456789012345678901234567890"
                                     },
-                                    "subject": "0x9c87325c70cbdecf7683149e01c086869f527def2209be6deec90bc77cd05af1"
+                                    "subject": subject_hex
                                 }
                             ]
                         }
