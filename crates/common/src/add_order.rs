@@ -99,8 +99,8 @@ impl AddOrderArgs {
     pub async fn new_from_deployment(
         dotrain: String,
         deployment: DeploymentCfg,
-        // Additional meta documents to include in the order
-        // RainlangSourceV1 will be included automatically
+        // Additional meta documents to include in the order;
+        // RainlangSourceV1 will always be included automatically
         additional_meta: Option<Vec<RainMetaDocumentV1Item>>,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id = B256::random();
@@ -162,7 +162,7 @@ impl AddOrderArgs {
         Ok(rainlang_parsed.bytecode.into())
     }
 
-    /// Generate RainlangSource meta and optionally DotrainGuiStateV1 meta
+    /// Generate RainlangSource meta and append any additional meta documents if present
     fn try_generate_meta(&self, rainlang: String) -> Result<Vec<u8>, AddOrderArgsError> {
         let mut meta_docs = Vec::new();
 

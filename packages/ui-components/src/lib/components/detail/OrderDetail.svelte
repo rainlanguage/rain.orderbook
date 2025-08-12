@@ -94,7 +94,6 @@
 		queryFn: async () => {
 			if (!$orderDetailQuery.data) throw new Error('Order data not available');
 			const result = await $orderDetailQuery.data.fetchDotrainSource();
-			console.log('>', result);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value ?? '';
 		},
@@ -312,16 +311,29 @@
 					</div>
 				</TabItem>
 			{/if}
-			{#if $dotrainSourceQuery.isSuccess && $dotrainSourceQuery.data}
-				<TabItem title="Dotrain">
+			<TabItem title="Dotrain">
+				{#if $dotrainSourceQuery.isLoading}
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">Loading Dotrain Source...</h3>
+					</div>
+				{:else if $dotrainSourceQuery.isError}
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">Failed to load Dotrain Source</h3>
+						<p class="text-red-500">{$dotrainSourceQuery.error?.message}</p>
+					</div>
+				{:else if $dotrainSourceQuery.isSuccess && $dotrainSourceQuery.data}
 					<div class="mb-4">
 						<h3 class="mb-2 text-lg font-medium">Dotrain Source</h3>
 						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
 							<pre class="whitespace-pre-wrap text-sm">{$dotrainSourceQuery.data}</pre>
 						</div>
 					</div>
-				</TabItem>
-			{/if}
+				{:else}
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">No Dotrain Source Available</h3>
+					</div>
+				{/if}
+			</TabItem>
 		</Tabs>
 	</svelte:fragment>
 </TanstackPageContentDetail>

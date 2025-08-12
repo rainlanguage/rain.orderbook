@@ -40,25 +40,6 @@ const DEFAULT_PAGE_SIZE: u16 = 100;
 /// Helper function to map TryDecodeRainlangSourceError to rain_metadata::Error
 /// This ensures consistent error handling by wrapping all metadata parsing errors
 /// in the same ParseMetaError variant
-#[cfg(not(target_family = "wasm"))]
-fn map_decode_error_to_rain_metadata_error(
-    e: crate::meta::TryDecodeRainlangSourceError,
-) -> rain_metadata::Error {
-    use crate::meta::TryDecodeRainlangSourceError;
-    match e {
-        TryDecodeRainlangSourceError::FromHexError(_) => {
-            rain_metadata::Error::DecodeHexStringError(
-                alloy::primitives::hex::FromHexError::InvalidHexCharacter { c: '?', index: 0 },
-            )
-        }
-        TryDecodeRainlangSourceError::FromUtf8Error(_) => rain_metadata::Error::CorruptMeta,
-        TryDecodeRainlangSourceError::MissingRainlangSourceV1 => rain_metadata::Error::UnknownMeta,
-        TryDecodeRainlangSourceError::RainMetadataError(err) => err,
-        TryDecodeRainlangSourceError::RainlangSourceMismatch => rain_metadata::Error::CorruptMeta,
-    }
-}
-
-#[cfg(target_family = "wasm")]
 fn map_decode_error_to_rain_metadata_error(
     e: crate::meta::TryDecodeRainlangSourceError,
 ) -> rain_metadata::Error {
@@ -431,8 +412,9 @@ impl RaindexOrder {
     /// ## Returns
     ///
     /// - `Some(DotrainSourceV1)` - If the source is found and parsed successfully
-    /// - `None` - If no DotrainGuiStateV1 is present or no source found with the hash
-    /// - `Err(RaindexError)` - If there's an error during the fetch or parsing process
+    /// - `None` - If no DotrainGuiStateV1 is present or the metaboard has no entries for the hash
+    /// - `Err(InvalidDotrainSourceMetadata)` - If entries are found but cannot be parsed as DotrainSourceV1
+    /// - `Err(RaindexError)` - For other failures during the fetch or parsing process
     ///
     /// ## Examples
     ///

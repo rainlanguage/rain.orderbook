@@ -43,13 +43,11 @@ impl ParsedMeta {
     pub fn parse_multiple(
         items: &[RainMetaDocumentV1Item],
     ) -> Result<Vec<Self>, rain_metadata::Error> {
-        let mut results = Vec::new();
-        for item in items {
-            if let Some(metadata) = Self::from_meta_item(item)? {
-                results.push(metadata);
-            }
-        }
-        Ok(results)
+        items
+            .iter()
+            .map(Self::from_meta_item)
+            .collect::<Result<Vec<_>, _>>()
+            .map(|v| v.into_iter().flatten().collect())
     }
 
     /// Parse metadata from raw bytes
