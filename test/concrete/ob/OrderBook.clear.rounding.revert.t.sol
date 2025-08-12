@@ -20,10 +20,15 @@ import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrByteco
 /// @notice A test harness for testing the OrderBook clear function will run
 /// handle IO and revert if it fails.
 contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
-    function userDeposit(bytes memory rainString, address owner, address inputToken, address outputToken, uint8 inputDecimals, uint8 outputDecimals, uint256 outputDeposit)
-        internal
-        returns (OrderV3 memory)
-    {
+    function userDeposit(
+        bytes memory rainString,
+        address owner,
+        address inputToken,
+        address outputToken,
+        uint8 inputDecimals,
+        uint8 outputDecimals,
+        uint256 outputDeposit
+    ) internal returns (OrderV3 memory) {
         uint256 vaultId = 0;
 
         OrderConfigV3 memory config;
@@ -62,7 +67,6 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     }
 
     function testClearOrderHandleRoundingIO1() external {
-
         address aliceInputToken = address(0x100);
         address aliceOutputToken = address(0x101);
         address alice = address(0x102);
@@ -76,14 +80,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         OrderV3 memory bobOrder = userDeposit(bobString, bob, aliceOutputToken, aliceInputToken, 6, 18, 1000e18);
 
         ClearConfig memory clearConfig = ClearConfig(0, 0, 0, 0, 1, 1);
-        
+
         vm.startPrank(carol);
         iOrderbook.clear2(aliceOrder, bobOrder, clearConfig, new SignedContextV1[](0), new SignedContextV1[](0));
         vm.stopPrank();
-        
-        
     }
-
-
-
 }
