@@ -19,7 +19,7 @@ serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 uuid = { version = "1.7.0", features = ["serde"] }
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "1014cbd72fab790b4ab1f5aab3e6780f13cd8efb" }
-rain-metadata = { path = "../../../rain.metadata/crates/cli" }
+rain-metadata = { path = "../../lib/rain.interpreter/lib/rain.metadata/crates/cli" }
 rain-math-float = { path = "../../lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float/crates/float" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
