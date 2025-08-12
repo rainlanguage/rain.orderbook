@@ -21,6 +21,13 @@ import {
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
+function assertHex(input: string): void {
+	// Check if it matches hex pattern (0x followed by hex chars)
+	assert.match(input, /^0x[0-9a-fA-F]+$/, `Expected valid hex string, got: ${input}`);
+	// Check if length is even (each byte is 2 hex chars)
+	assert.equal(input.length % 2, 0, `Hex string length must be even, got length: ${input.length}`);
+}
+
 const guiConfig = `
 gui:
   name: Fixed limit
@@ -1298,7 +1305,7 @@ ${dotrain}`;
 			gui.setFieldValue('test-binding', '10');
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert(addOrderCalldata.length > 0);
+			assertHex(addOrderCalldata);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1333,7 +1340,7 @@ ${dotrain}`;
 				);
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert(addOrderCalldata.length > 0);
+			assertHex(addOrderCalldata);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1375,7 +1382,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert(calldata.length > 0);
+			assertHex(calldata);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1418,7 +1425,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert(calldata.length > 0);
+			assertHex(calldata);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1478,7 +1485,7 @@ ${dotrainWithoutVaultIds}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert(calldata.length > 0);
+			assertHex(calldata);
 
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1766,7 +1773,7 @@ ${dotrainWithoutVaultIds}`;
 				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
-			assert(result.deploymentCalldata.length > 0);
+			assertHex(result.deploymentCalldata);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 
@@ -1776,7 +1783,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(result.approvals.length, 0);
-			assert(result.deploymentCalldata.length > 0);
+			assertHex(result.deploymentCalldata);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 		});
