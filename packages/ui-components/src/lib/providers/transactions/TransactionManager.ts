@@ -12,9 +12,9 @@ import {
 	type RaindexOrder,
 	RaindexClient,
 	type Address,
-	type Hex
+	type Hex,
+	Float
 } from '@rainlanguage/orderbook';
-import { formatUnits } from 'viem';
 
 /**
  * Function type for adding toast notifications to the UI.
@@ -309,14 +309,13 @@ export class TransactionManager {
 	 */
 	public async createDepositTransaction(
 		args: InternalTransactionArgs & {
-			amount: bigint;
+			amount: Float;
 			entity: RaindexVault;
 			raindexClient: RaindexClient;
 		}
 	): Promise<Transaction> {
 		const tokenSymbol = args.entity.token.symbol;
-		const readableAmount = formatUnits(args.amount, Number(args.entity.token.decimals));
-		const name = `Depositing ${readableAmount} ${tokenSymbol}`;
+		const name = `Depositing ${args.amount.format().value} ${tokenSymbol}`;
 		const errorMessage = 'Deposit failed.';
 		const successMessage = 'Deposit successful.';
 		const {

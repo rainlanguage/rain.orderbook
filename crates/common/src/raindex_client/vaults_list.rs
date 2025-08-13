@@ -40,10 +40,7 @@ impl RaindexVaultsList {
         }
         // Generate multicall calldata for all vaults
         for vault in vaults_to_withdraw {
-            let amount = vault.balance().format().map_err(|e| {
-                VaultsListError::WithdrawMulticallError(format!("Failed to format balance: {}", e))
-            })?;
-            match vault.get_withdraw_calldata(amount.clone()).await {
+            match vault.get_withdraw_calldata(vault.balance()).await {
                 Ok(calldata) => calldatas.push(calldata),
                 Err(e) => return Err(VaultsListError::WithdrawMulticallError(e.to_readable_msg())),
             }
