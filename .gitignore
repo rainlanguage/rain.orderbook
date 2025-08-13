@@ -21,3 +21,8 @@ tauri-app/src/lib/types
 .claude/
 .ai_docs/
 .ai_spec/
+
+crates/cli/fetch_events_results.json
+crates/cli/stress_test_results.json
+crates/cli/decoded_events.json
+crates/cli/events.sql

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
-import {loadEnv} from "vite";
+import { loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => ({
 	assetsInclude: ['**/*.rain'],
@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => ({
 	define: {
 		'process.env': {},
 		'import.meta.vitest': 'undefined'
+	},
+	optimizeDeps: {
+		exclude: ['sqlite-worker']
 	},
 
 	test: {
@@ -26,9 +29,7 @@ export default defineConfig(({ mode }) => ({
 		testTimeout: 10000,
 		server: {
 			deps: {
-				inline: [
-					/@reown\/appkit/, /@tanstack\/svelte-query/, /@rainlanguage\/orderbook/
-				]
+				inline: [/@reown\/appkit/, /@tanstack\/svelte-query/, /@rainlanguage\/orderbook/]
 			}
 		},
 		deps: {

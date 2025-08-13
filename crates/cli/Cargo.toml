@@ -27,6 +27,10 @@ tracing-subscriber = { workspace = true, features = ['env-filter'] }
 comfy-table = { workspace = true }
 chrono = { workspace = true }
 csv = { workspace = true }
+serde_json = { workspace = true }
+futures = { workspace = true }
+hex = "0.4"
+md5 = "0.7"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
