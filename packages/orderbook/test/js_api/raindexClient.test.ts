@@ -11,7 +11,8 @@ import {
 	SgTransaction,
 	SgAddOrderWithOrder,
 	SgRemoveOrderWithOrder,
-	Hex
+	Hex,
+	Float
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
@@ -556,45 +557,54 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				order.rainlang,
 				'/* 0. calculate-io */ \nusing-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC\namt: 100,\nio: call<2>();\n\n/* 1. handle-io */ \n:call<3>(),\n:ensure(equal-to(output-vault-decrease() 100) "must take full amount");\n\n/* 2. get-io-ratio-now */ \nelapsed: call<4>(),\nio: saturating-sub(0.0177356 div(mul(elapsed sub(0.0177356 0.0173844)) 60));\n\n/* 3. one-shot */ \n:ensure(is-zero(get(hash(order-hash() "has-executed"))) "has executed"),\n:set(hash(order-hash() "has-executed") 1);\n\n/* 4. get-elapsed */ \n_: sub(now() get(hash(order-hash() "deploy-time")));'
 			);
-			assert.equal(order.inputs.length, order1.inputs.length);
-			assert.equal(order.outputs.length, order1.outputs.length);
-			assert.equal(order.vaults.length, 3);
+			assert.equal(order.inputsList.items.length, 1);
+			assert.equal(order.outputsList.items.length, 1);
+			assert.equal(order.vaultsList.items.length, 3);
 
-			assert.equal(order.vaults[0].vaultType, 'input');
-			assert.equal(order.vaults[0].vaultId, '0x0234');
+			assert.equal(order.vaultsList.items[0].vaultType, 'input');
+			assert.equal(order.vaultsList.items[0].vaultId, '0x0234');
+			assert.equal(order.vaultsList.items[0].balance.format18().value, '12');
 			assert.equal(
-				order.vaults[0].balance,
-				'0x000000000000000000000000000000000000000000000000000000000000000c'
+				order.vaultsList.items[0].token.id,
+				'0x1d80c49bbbcd1c0911346656b529df9e5c2f783d'
 			);
-			assert.equal(order.vaults[0].token.id, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
-			assert.equal(order.vaults[0].token.address, '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
-			assert.equal(order.vaults[0].token.name, 'Wrapped FLR');
-			assert.equal(order.vaults[0].token.symbol, 'WFLR');
-			assert.equal(order.vaults[0].token.decimals, BigInt(18));
+			assert.equal(
+				order.vaultsList.items[0].token.address,
+				'0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d'
+			);
+			assert.equal(order.vaultsList.items[0].token.name, 'Wrapped FLR');
+			assert.equal(order.vaultsList.items[0].token.symbol, 'WFLR');
+			assert.equal(order.vaultsList.items[0].token.decimals, BigInt(18));
 
-			assert.equal(order.vaults[1].vaultType, 'output');
-			assert.equal(order.vaults[1].vaultId, '0x0123');
+			assert.equal(order.vaultsList.items[1].vaultType, 'output');
+			assert.equal(order.vaultsList.items[1].vaultId, '0x0123');
+			assert.equal(order.vaultsList.items[1].balance.format18().value, '10');
 			assert.equal(
-				order.vaults[1].balance,
-				'0x000000000000000000000000000000000000000000000000000000000000000a'
+				order.vaultsList.items[1].token.id,
+				'0x12e605bc104e93b45e1ad99f9e555f659051c2bb'
 			);
-			assert.equal(order.vaults[1].token.id, '0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
-			assert.equal(order.vaults[1].token.address, '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-			assert.equal(order.vaults[1].token.name, 'Staked FLR');
-			assert.equal(order.vaults[1].token.symbol, 'sFLR');
-			assert.equal(order.vaults[1].token.decimals, BigInt(18));
+			assert.equal(
+				order.vaultsList.items[1].token.address,
+				'0x12e605bc104e93B45e1aD99F9e555f659051c2BB'
+			);
+			assert.equal(order.vaultsList.items[1].token.name, 'Staked FLR');
+			assert.equal(order.vaultsList.items[1].token.symbol, 'sFLR');
+			assert.equal(order.vaultsList.items[1].token.decimals, BigInt(18));
 
-			assert.equal(order.vaults[2].vaultType, 'inputOutput');
-			assert.equal(order.vaults[2].vaultId, '0x0345');
+			assert.equal(order.vaultsList.items[2].vaultType, 'inputOutput');
+			assert.equal(order.vaultsList.items[2].vaultId, '0x0345');
+			assert.equal(order.vaultsList.items[2].balance.format18().value, '13');
 			assert.equal(
-				order.vaults[2].balance,
-				'0x000000000000000000000000000000000000000000000000000000000000000d'
+				order.vaultsList.items[2].token.id,
+				'0x0000000000000000000000000000000000000000'
 			);
-			assert.equal(order.vaults[2].token.id, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[2].token.address, '0x0000000000000000000000000000000000000000');
-			assert.equal(order.vaults[2].token.name, 'T3');
-			assert.equal(order.vaults[2].token.symbol, 'T3');
-			assert.equal(order.vaults[2].token.decimals, '0');
+			assert.equal(
+				order.vaultsList.items[2].token.address,
+				'0x0000000000000000000000000000000000000000'
+			);
+			assert.equal(order.vaultsList.items[2].token.name, 'T3');
+			assert.equal(order.vaultsList.items[2].token.symbol, 'T3');
+			assert.equal(order.vaultsList.items[2].token.decimals, '0');
 		});
 
 		// it('should get the total volume for an order', async () => {
@@ -1504,7 +1514,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result.length, 2);
 			assert.equal(result[0].vaultId, BigInt(vault1.vaultId));
 			assert.equal(result[0].owner, vault1.owner);
-			assert.equal(result[0].balance, vault1.balance);
+			assert.equal(result[0].balance.format18().value, '1.000001');
 			assert.equal(result[0].token.id, vault1.token.id);
 			assert.equal(result[0].token.address, vault1.token.address);
 			assert.equal(result[0].token.name, vault1.token.name);
@@ -1512,7 +1522,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result[0].token.decimals, BigInt(vault1.token.decimals ?? 0));
 			assert.equal(result[1].vaultId, BigInt(vault2.vaultId));
 			assert.equal(result[1].owner, vault2.owner);
-			assert.equal(result[1].balance, vault2.balance);
+			assert.equal(result[1].balance.format18().value, '1.000001');
 			assert.equal(result[1].token.id, vault2.token.id);
 			assert.equal(result[1].token.address, vault2.token.address);
 			assert.equal(result[1].token.name, vault2.token.name);
@@ -1530,7 +1540,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			assert.equal(result.vaultId, BigInt(vault1.vaultId));
 			assert.equal(result.owner, vault1.owner);
-			assert.equal(result.balance, vault1.balance);
+			assert.equal(result.balance.format18().value, '1.000001');
 			assert.equal(result.token.id, vault1.token.id);
 			assert.equal(result.token.address, vault1.token.address);
 			assert.equal(result.token.name, vault1.token.name);
@@ -1585,18 +1595,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const result = extractWasmEncodedData(await vault.getBalanceChanges());
 
 			assert.equal(result[0].type, 'deposit');
-			assert.equal(
-				result[0].amount,
-				'0x0000000000000000000000000000000000000000000000000000000000000005'
-			);
-			assert.equal(
-				result[0].newBalance,
-				'0x0000000000000000000000000000000000000000000000000000000000000005'
-			);
-			assert.equal(
-				result[0].oldBalance,
-				'0x0000000000000000000000000000000000000000000000000000000000000000'
-			);
+			assert.equal(result[0].amount.format18().value, '5');
+			assert.equal(result[0].newBalance.format18().value, '5');
+			assert.equal(result[0].oldBalance.format18().value, '0');
 			assert.equal(result[0].timestamp, BigInt('1734054063'));
 			assert.equal(
 				result[0].transaction.id,
@@ -1690,11 +1691,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const vault = extractWasmEncodedData(
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
-			const res = extractWasmEncodedData(await vault.getDepositCalldata('500'));
+			const res = extractWasmEncodedData(
+				await vault.getDepositCalldata(Float.parse('500').value as Float)
+			);
 			assert.equal(res.length, 330);
 		});
 
-		it('should handle zero deposit amount', async () => {
+		it('should handle invalid deposit amount', async () => {
 			await mockServer
 				.forPost('/sg1')
 				.once()
@@ -1706,24 +1709,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = await vault.getDepositCalldata('0');
+			let res = await vault.getDepositCalldata(Float.parse('0').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Zero amount');
-		});
 
-		it('should throw error for invalid deposit amount', async () => {
-			await mockServer
-				.forPost('/sg1')
-				.once()
-				.thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
-			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
-			);
-
-			const res = await vault.getDepositCalldata('-100');
+			res = await vault.getDepositCalldata(Float.parse('-100').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
-			assert.equal(res.error.msg, 'invalid digit: -');
+			assert.equal(res.error.msg, 'Negative amount');
 		});
 
 		it('should get withdraw calldata for a vault', async () => {
@@ -1738,14 +1730,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			let res = await vault.getWithdrawCalldata('500');
+			let res = await vault.getWithdrawCalldata(Float.parse('500').value as Float);
 			if (res.error) assert.fail('expected to resolve, but failed');
 			assert.equal(res.value.length, 330);
 
-			res = await vault.getWithdrawCalldata('0');
+			res = await vault.getWithdrawCalldata(Float.parse('0').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Zero amount');
 			assert.equal(res.error.readableMsg, 'Amount cannot be zero');
+
+			res = await vault.getWithdrawCalldata(Float.parse('-100').value as Float);
+			if (!res.error) assert.fail('expected to reject, but resolved');
+			assert.equal(res.error.msg, 'Negative amount');
+			assert.equal(res.error.readableMsg, 'Amount cannot be negative');
 		});
 
 		it('should read allowance for a vault', async () => {
@@ -1789,7 +1786,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = extractWasmEncodedData(await vault.getApprovalCalldata('600'));
+			const res = extractWasmEncodedData(
+				await vault.getApprovalCalldata(Float.parse('600').value as Float)
+			);
 			assert.ok(res.startsWith('0x'));
 			assert.equal(res.length, 138);
 		});
@@ -1805,7 +1804,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				JSON.stringify({
 					jsonrpc: '2.0',
 					id: 1,
-					result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+					result: '0x0000000000000000000000000000000000000000000000056BC75E2D63100000'
 				})
 			);
 
@@ -1814,7 +1813,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = await vault.getApprovalCalldata('100');
+			const res = await vault.getApprovalCalldata(Float.parse('100').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Existing allowance');
 		});
@@ -1830,7 +1829,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				JSON.stringify({
 					jsonrpc: '2.0',
 					id: 1,
-					result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+					result: '0x0000000000000000000000000000000000000000000000056BC75E2D63100000'
 				})
 			);
 
@@ -1839,7 +1838,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 
-			const res = await vault.getApprovalCalldata('90');
+			const res = await vault.getApprovalCalldata(Float.parse('90').value as Float);
 			if (!res.error) assert.fail('expected to reject, but resolved');
 			assert.equal(res.error.msg, 'Existing allowance');
 		});

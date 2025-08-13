@@ -127,8 +127,8 @@ mod tests {
                 success: true,
                 returnData: quote2Call::abi_encode_returns(&quote2Return {
                     exists: true,
-                    outputMax: one.0,
-                    ioRatio: two.0,
+                    outputMax: one.get_inner(),
+                    ioRatio: two.get_inner(),
                 })
                 .into(),
             },
@@ -136,8 +136,8 @@ mod tests {
                 success: true,
                 returnData: quote2Call::abi_encode_returns(&quote2Return {
                     exists: false,
-                    outputMax: zero.0,
-                    ioRatio: zero.0,
+                    outputMax: zero.get_inner(),
+                    ioRatio: zero.get_inner(),
                 })
                 .into(),
             },

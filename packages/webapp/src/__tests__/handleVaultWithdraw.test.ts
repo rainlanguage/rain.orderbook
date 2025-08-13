@@ -3,7 +3,7 @@ import {
 	handleVaultWithdraw,
 	type VaultWithdrawHandlerDependencies
 } from '../lib/services/handleVaultWithdraw';
-import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
+import { Float, type RaindexClient, type RaindexVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 
@@ -63,7 +63,7 @@ describe('handleVaultWithdraw', () => {
 		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
-		await onSubmitCall(100n);
+		await onSubmitCall(Float.parse('100').value as Float);
 
 		expect(mockErrToast).toHaveBeenCalledWith('Calldata error');
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe('handleVaultWithdraw', () => {
 		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
-		await onSubmitCall(100n);
+		await onSubmitCall(Float.parse('100').value as Float);
 
 		expect(mockErrToast).toHaveBeenCalledWith('Failed to get calldata for vault withdrawal.');
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe('handleVaultWithdraw', () => {
 		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
-		await onSubmitCall(100n);
+		await onSubmitCall(Float.parse('0.1').value as Float);
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 			open: true,
@@ -116,7 +116,7 @@ describe('handleVaultWithdraw', () => {
 		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
-		await onSubmitCall(100n);
+		await onSubmitCall(Float.parse('100').value as Float);
 
 		const onConfirmCall = mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
 		onConfirmCall(mockTxHash);

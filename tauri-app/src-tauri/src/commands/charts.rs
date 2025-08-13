@@ -148,7 +148,7 @@ charts:
 #fixed-io !The io ratio for the limit order.
 #calculate-io
 using-words-from raindex-subparser
-max-output: max-value(),
+max-output: max-positive-value(),
 io: fixed-io;
 #handle-io
 :;

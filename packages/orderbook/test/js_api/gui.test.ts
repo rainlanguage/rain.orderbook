@@ -16,7 +16,8 @@ import {
 	TokenInfo,
 	AllGuiConfig,
 	WasmEncodedResult,
-	FieldValue
+	FieldValue,
+	Float
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
@@ -472,7 +473,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.fail(errorMessage ?? result.error.msg);
 		}
 
-		if (typeof void 0 === typeof result.value) {
+		if (result.value === undefined) {
 			return result.value as T;
 		}
 
@@ -1168,9 +1169,31 @@ ${dotrain}`;
 		});
 
 		it('generates approval calldatas', async () => {
-			// token2 allowance - 1000 * 10^18
+			// decimal call
 			await mockServer
 				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
+			// allowance - 1000 * 10^18
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000003635C9ADC5DEA00000'
+				);
+			// decimal call
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
+			// allowance - 1000 * 10^18
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000003635C9ADC5DEA00000'
 				);
@@ -1237,7 +1260,7 @@ ${dotrain}`;
 			assert.equal(
 				// @ts-expect-error - result is valid
 				result.Calldatas[0],
-				'0x7921a9620000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a0630000000000000000000000000000000000000000000000000000000000000001ffffffee000000000000000000000000000000000000010f0cf064dd5920000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000'
+				'0x7921a9620000000000000000000000008f3cf7ad23cd3cadbd9735aff958023239c6a0630000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000138800000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000'
 			);
 
 			// Test no deposits case
@@ -1700,6 +1723,13 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should generate deployment transaction args', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0x313ce567')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
 			await mockServer
 				.forPost('/rpc-url')
 				.thenSendJsonRpcResult(

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { AccountBalance, RaindexVault } from '@rainlanguage/orderbook';
+  import { Float, type AccountBalance, type RaindexVault } from '@rainlanguage/orderbook';
   import { vaultDeposit } from '$lib/services/vault';
   import { InputTokenAmount, useRaindexClient } from '@rainlanguage/ui-components';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -17,7 +17,7 @@
   export let vault: RaindexVault;
   export let onDeposit: () => void;
 
-  let amount: bigint;
+  let amount: Float;
   let isSubmitting = false;
   let selectWallet = false;
   let userBalance: AccountBalance = {
@@ -28,7 +28,7 @@
   function reset() {
     open = false;
     if (!isSubmitting) {
-      amount = 0n;
+      amount = Float.parse('0').value as Float;
       selectWallet = false;
     }
   }
@@ -52,8 +52,13 @@
       if (allowance.error) {
         throw new Error(allowance.error.readableMsg);
       }
-      if (BigInt(allowance.value) < amount) {
-        const calldata = await vault.getApprovalCalldata(amount.toString());
+      let allowanceFloat = Float.parse(allowance.value);
+      if (allowanceFloat.error) {
+        throw new Error(allowanceFloat.error.readableMsg);
+      }
+
+      if (allowanceFloat.value.lt(amount).value) {
+        const calldata = await vault.getApprovalCalldata(amount);
         if (calldata.error) {
           throw new Error(calldata.error.readableMsg);
         }
@@ -62,7 +67,7 @@
         await approveTx.wait(1);
       }
 
-      const calldata = await vault.getDepositCalldata(amount.toString());
+      const calldata = await vault.getDepositCalldata(amount);
       if (calldata.error) {
         throw new Error(calldata.error.readableMsg);
       }
@@ -150,8 +155,7 @@
         <InputTokenAmount
           bind:value={amount}
           symbol={vault.token.symbol}
-          decimals={Number(vault.token.decimals) ?? 0}
-          maxValue={userBalance.balance}
+          maxValue={Float.fromFixedDecimal(userBalance.balance, vault.token.decimals).value}
         />
       </ButtonGroup>
     </div>
@@ -162,7 +166,7 @@
           selectWallet = true;
           open = false;
         }}
-        disabled={!amount || amount === 0n || isSubmitting}
+        disabled={!amount || amount.isZero().value || isSubmitting}
       >
         Proceed
       </Button>

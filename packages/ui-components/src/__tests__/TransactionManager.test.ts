@@ -7,13 +7,13 @@ import type { ToastProps } from '../lib/types/toast';
 import { TransactionName, type InternalTransactionArgs } from '../lib/types/transaction';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 import {
+	Float,
 	RaindexClient,
 	RaindexOrder,
 	RaindexTransaction,
 	RaindexVault,
 	type Address
 } from '@rainlanguage/orderbook';
-import { formatUnits } from 'viem';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
 vi.mock('../lib/models/Transaction', () => ({
@@ -24,7 +24,8 @@ vi.mock('../lib/services/getExplorerLink', () => ({
 	getExplorerLink: vi.fn()
 }));
 
-vi.mock('@rainlanguage/orderbook', () => ({
+vi.mock('@rainlanguage/orderbook', async (importOriginal) => ({
+	...(await importOriginal()),
 	getTransactionRemoveOrders: vi.fn(),
 	getTransaction: vi.fn(),
 	getTransactionAddOrders: vi.fn()
@@ -529,7 +530,7 @@ describe('TransactionManager', () => {
 			}
 		} as unknown as RaindexVault;
 		const mockArgs: InternalTransactionArgs & {
-			amount: bigint;
+			amount: Float;
 			entity: RaindexVault;
 			raindexClient: RaindexClient;
 		} = {
@@ -537,7 +538,7 @@ describe('TransactionManager', () => {
 			chainId: 1,
 			queryKey: '0xvaultid',
 			entity: mockEntity,
-			amount: 1000000000000000000n,
+			amount: Float.parse('1').value as Float,
 			raindexClient: mockRaindexClient
 		};
 
@@ -551,17 +552,12 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			const expectedReadableAmount = formatUnits(
-				mockArgs.amount,
-				Number(mockEntity.token.decimals)
-			);
-
 			await manager.createDepositTransaction(mockArgs);
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				expect.objectContaining({
 					...mockArgs,
-					name: `Depositing ${expectedReadableAmount} ${mockEntity.token.symbol}`,
+					name: `Depositing ${mockArgs.amount.format().value} ${mockEntity.token.symbol}`,
 					errorMessage: 'Deposit failed.',
 					successMessage: 'Deposit successful.',
 					queryKey: mockArgs.queryKey,

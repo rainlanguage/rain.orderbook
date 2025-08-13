@@ -22,7 +22,7 @@ impl From<WithdrawArgs> for withdraw3Call {
         withdraw3Call {
             token: val.token,
             vaultId: val.vault_id,
-            targetAmount: val.target_amount.0,
+            targetAmount: val.target_amount.get_inner(),
             tasks: vec![],
         }
     }
@@ -80,7 +80,7 @@ mod tests {
             address!("1234567890abcdef1234567890abcdef12345678")
         );
         assert_eq!(withdraw_call.vaultId, B256::from(U256::from(42)));
-        assert_eq!(withdraw_call.targetAmount, amount.0);
+        assert_eq!(withdraw_call.targetAmount, amount.get_inner());
     }
 
     #[tokio::test]
@@ -96,7 +96,7 @@ mod tests {
         let expected_calldata = withdraw3Call {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
             vaultId: B256::from(U256::from(42)),
-            targetAmount: amount.0,
+            targetAmount: amount.get_inner(),
             tasks: vec![],
         }
         .abi_encode();
@@ -116,7 +116,7 @@ mod tests {
             max_fee_per_gas: Some(100),
         };
 
-        let Float(amount) = Float::parse("456".to_string()).unwrap();
+        let amount = Float::parse("456".to_string()).unwrap().get_inner();
         let withdraw_call = withdraw3Call {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
             vaultId: B256::from(U256::from(123)),
