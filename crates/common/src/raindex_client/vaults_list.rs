@@ -24,6 +24,20 @@ impl RaindexVaultsList {
             .filter(|vault| vault.balance().gt(*ZERO_FLOAT).unwrap_or(false))
             .collect()
     }
+
+    pub fn pick_by_ids(&self, ids: Vec<String>) -> RaindexVaultsList {
+        let filtered_vaults = self
+            .0
+            .iter()
+            .filter(|vault| {
+                let vault_id = vault.id().to_string();
+                ids.contains(&vault_id)
+            })
+            .cloned()
+            .collect();
+        RaindexVaultsList::new(filtered_vaults)
+    }
+
     pub async fn get_withdraw_calldata(&self) -> Result<Bytes, VaultsListError> {
         let mut calldatas: Vec<Bytes> = Vec::new();
         let vaults_to_withdraw = self.get_withdrawable_vaults();
@@ -131,6 +145,27 @@ impl RaindexVaultsList {
     pub async fn get_withdraw_calldata_wasm(&self) -> Result<Bytes, VaultsListError> {
         let calldata = self.get_withdraw_calldata().await?;
         Ok(calldata)
+    }
+
+    /// Filters vaults by a list of IDs and returns a new RaindexVaultsList
+    ///
+    /// Creates a new vault list containing only vaults whose IDs match
+    /// the provided list of IDs.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const filteredVaults = vaultsList.pickByIds(['0x123', '0x456']);
+    /// console.log(`Filtered to ${filteredVaults.items.length} vaults`);
+    /// ```
+    #[wasm_export(
+        js_name = "pickByIds",
+        return_description = "New RaindexVaultsList containing only vaults with matching IDs",
+        unchecked_return_type = "RaindexVaultsList",
+        preserve_js_class
+    )]
+    pub fn pick_by_ids_wasm(&self, ids: Vec<String>) -> Result<RaindexVaultsList, VaultsListError> {
+        Ok(self.pick_by_ids(ids))
     }
 }
 
@@ -285,6 +320,32 @@ mod tests {
             assert!(!calldata.is_empty());
             assert!(calldata.len() > 2); // should contain vault2's ID
         }
+
+        #[tokio::test]
+        async fn test_pick_by_ids() {
+            let vaults_list = RaindexVaultsList::new(get_vaults().await);
+
+            // Test filtering by existing IDs
+            let ids = vec!["0x0123".to_string(), "0x0234".to_string()];
+            let filtered = vaults_list.pick_by_ids(ids);
+            assert_eq!(filtered.items().len(), 2);
+
+            // Test filtering by single ID
+            let ids = vec!["0x0234".to_string()];
+            let filtered = vaults_list.pick_by_ids(ids);
+            assert_eq!(filtered.items().len(), 1);
+            assert_eq!(filtered.items()[0].id().to_string(), "0x0234");
+
+            // Test filtering by non-existent ID
+            let ids = vec!["0x9999".to_string()];
+            let filtered = vaults_list.pick_by_ids(ids);
+            assert_eq!(filtered.items().len(), 0);
+
+            // Test empty IDs list
+            let ids = vec![];
+            let filtered = vaults_list.pick_by_ids(ids);
+            assert_eq!(filtered.items().len(), 0);
+        }
     }
 
     #[cfg(target_family = "wasm")]
@@ -312,6 +373,15 @@ mod tests {
             let vaults_list = RaindexVaultsList::new(vec![]);
             let result = vaults_list.get_withdraw_calldata_wasm().await;
             assert!(result.is_err());
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_wasm_pick_by_ids_empty() {
+            let vaults_list = RaindexVaultsList::new(vec![]);
+            let ids = vec!["0x123".to_string()];
+            let result = vaults_list.pick_by_ids_wasm(ids);
+            let filtered = result.unwrap();
+            assert_eq!(filtered.items().len(), 0);
         }
     }
 }

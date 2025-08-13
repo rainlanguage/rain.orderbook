@@ -1,21 +1,29 @@
 <script lang="ts">
 	import { toHex } from 'viem';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
+	import {
+		Button,
+		Checkbox,
+		Dropdown,
+		DropdownItem,
+		TableBodyCell,
+		TableHeadCell
+	} from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
-	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
+	import { ArrowUpFromBracketOutline, DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { RaindexVault, RaindexVaultsList } from '@rainlanguage/orderbook';
+	import { Float, RaindexClient, RaindexVault, RaindexVaultsList } from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { getAllContexts } from 'svelte';
+	import Tooltip from '../Tooltip.svelte';
 
 	const context = getAllContexts();
 
@@ -39,6 +47,10 @@
 				refetch: () => void,
 				context: ReturnType<typeof getAllContexts>
 		  ) => void)
+		| undefined = undefined;
+
+	export let onWithdrawAll:
+		| ((raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void)
 		| undefined = undefined;
 
 	const { account, matchesAccount } = useAccount();
@@ -89,6 +101,50 @@
 		enabled: true
 	});
 
+	let selectedVaults = new Set<string>();
+	let selectedVaultsOnChainId: number | null = null;
+	const getToggleSelectVaultHandler = (vaultId: string, chainId: number) => (e: Event) => {
+		e.stopPropagation();
+
+		if (selectedVaults.has(vaultId)) {
+			selectedVaults.delete(vaultId);
+			if (selectedVaults.size === 0) {
+				selectedVaultsOnChainId = null;
+			}
+		} else {
+			selectedVaults.add(vaultId);
+			if (!selectedVaultsOnChainId) {
+				selectedVaultsOnChainId = chainId;
+			}
+		}
+		// To trigger Svelte update
+		selectedVaults = new Set(selectedVaults);
+	};
+	const stopPropagation = (e: Event) => e.stopPropagation();
+	const handleWithdrawAll = () => {
+		const vaultsList = $query.data?.pages[0];
+		if (!onWithdrawAll || !vaultsList) {
+			return;
+		}
+		const filteredVaultsListResult = vaultsList.pickByIds(Array.from(selectedVaults));
+		if (!filteredVaultsListResult || filteredVaultsListResult.error) {
+			// TODO: Show error
+			return;
+		}
+		return onWithdrawAll(raindexClient, filteredVaultsListResult.value);
+	};
+
+	const ZERO_FLOAT = Float.parse('0').value;
+	const isZeroBalance = (item: RaindexVault) => {
+		if (!ZERO_FLOAT) return true;
+		return item.balance.eq(ZERO_FLOAT).value;
+	};
+	const isSameChainId = (item: RaindexVault) => {
+		return selectedVaultsOnChainId === null || selectedVaultsOnChainId === item.chainId;
+	};
+	const isDisabled = (item: RaindexVault) => {
+		return !isSameChainId(item) || isZeroBalance(item);
+	};
 	const AppTable = TanstackAppTable<RaindexVault, RaindexVaultsList>;
 </script>
 
@@ -117,10 +173,22 @@
 			<div class="mt-2 flex w-full justify-between">
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
+					<Button
+						size="xs"
+						on:click={handleWithdrawAll}
+						disabled={!onWithdrawAll || selectedVaults.size === 0}
+						data-testid="withdraw-all-button"
+					>
+						<ArrowUpFromBracketOutline size="xs" class="mr-2" />
+						{selectedVaults.size > 0
+							? `Withdraw selected (${selectedVaults.size})`
+							: 'Withdraw vaults'}
+					</Button>
 				</div>
 			</div>
 		</svelte:fragment>
 		<svelte:fragment slot="head">
+			<TableHeadCell padding="p-0"></TableHeadCell>
 			<TableHeadCell padding="p-4">Network</TableHeadCell>
 			<TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
 			<TableHeadCell padding="px-4 py-4">Orderbook</TableHeadCell>
@@ -132,6 +200,25 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="bodyRow" let:item>
+			<TableBodyCell tdClass="px-0" on:click={stopPropagation}>
+				<Checkbox
+					class={`block px-2 py-4 ${$account !== item.owner ? 'invisible' : ''}`}
+					checked={selectedVaults.has(item.id)}
+					disabled={isDisabled(item)}
+					on:change={getToggleSelectVaultHandler(item.id, item.chainId)}
+					on:click={stopPropagation}
+				/>
+				{#if isDisabled(item)}
+					<Tooltip>
+						{isZeroBalance(item)
+							? 'This vault has a zero balance'
+							: !isSameChainId(item)
+								? 'This vault is on a different network'
+								: 'This vault has a non-zero balance'}
+					</Tooltip>
+				{/if}
+			</TableBodyCell>
+
 			<TableBodyCell tdClass="px-4 py-2" data-testid="vault-network">
 				{getNetworkName(Number(item.chainId))}
 			</TableBodyCell>

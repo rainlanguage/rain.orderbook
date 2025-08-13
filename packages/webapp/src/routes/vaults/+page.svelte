@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
+	import {
+		PageHeader,
+		useAccount,
+		useToasts,
+		useTransactions,
+		VaultsListTable
+	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import {
 		hideZeroBalanceVaults,
@@ -8,8 +14,28 @@
 		activeTokens
 	} from '$lib/stores/settings';
 	import { selectedChainIds } from '$lib/stores/settings';
+	import { handleTransactionConfirmationModal, handleWithdrawAllModal } from '$lib/services/modal';
+	import type { RaindexClient, RaindexVaultsList } from '@rainlanguage/orderbook';
+	import { handleVaultsWithdrawAll } from '../../lib/services/handleVaultsWithdrawAll';
+	import type { Hex } from 'viem';
 
 	const { activeAccountsItems, showInactiveOrders } = $page.data.stores;
+
+	const { account } = useAccount();
+	const { errToast } = useToasts();
+	const { manager } = useTransactions();
+
+	async function onWithdrawAll(raindexClient: RaindexClient, vaultsList: RaindexVaultsList) {
+		await handleVaultsWithdrawAll({
+			raindexClient,
+			vaultsList,
+			handleWithdrawAllModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			account: $account as Hex
+		});
+	}
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
@@ -22,4 +48,5 @@
 	{hideZeroBalanceVaults}
 	{activeTokens}
 	{selectedChainIds}
+	{onWithdrawAll}
 />
