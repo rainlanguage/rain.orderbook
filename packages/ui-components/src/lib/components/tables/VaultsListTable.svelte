@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { toHex } from 'viem';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -10,7 +10,7 @@
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { RaindexVault } from '@rainlanguage/orderbook';
+	import { RaindexVault, RaindexVaultsList } from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -83,13 +83,13 @@
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
-			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
+			return lastPage.items.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: true
 	});
 
-	const AppTable = TanstackAppTable<RaindexVault>;
+	const AppTable = TanstackAppTable<RaindexVault, RaindexVaultsList>;
 </script>
 
 {#if $query}
@@ -106,6 +106,7 @@
 	/>
 	<AppTable
 		{query}
+		dataSelector={(page) => page.items}
 		queryKey={QKEY_VAULTS}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {

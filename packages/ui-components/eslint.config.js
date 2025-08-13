@@ -20,16 +20,26 @@ export default ts.config(
 		rules: {
 			'no-console': process.env.NODE_ENV === 'production' || process.env.CI ? 'error' : 'off',
 			'no-trailing-spaces': 'error',
-			'@typescript-eslint/ban-ts-comment': 'off'
+			'@typescript-eslint/ban-ts-comment': 'off',
+			// Allow undefined variables for TypeScript (handled by TypeScript compiler)
+			'@typescript-eslint/no-undef': 'off'
 		}
 	},
 	{
 		files: ['**/*.svelte'],
-
 		languageOptions: {
 			parserOptions: {
-				parser: ts.parser
+				parser: ts.parser,
+				extraFileExtensions: ['.svelte'],
+				svelteFeatures: {
+					// Enable support for generics in Svelte components
+					experimentalGenerics: true
+				}
 			}
+		},
+		rules: {
+			// Allow undefined variables in Svelte generics
+			'no-undef': 'off'
 		}
 	},
 	{
