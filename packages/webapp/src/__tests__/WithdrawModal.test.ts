@@ -66,18 +66,15 @@ describe('WithdrawModal', () => {
 			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
 		});
 
-		const inputAmount = '1';
-		const expectedAmountBigInt = BigInt(
-			parseFloat(inputAmount) * 10 ** Number(mockVault.token.decimals)
-		);
-
 		const amountInput = screen.getByRole('textbox');
-		await fireEvent.input(amountInput, { target: { value: inputAmount } });
+		await fireEvent.input(amountInput, { target: { value: '1' } });
 
 		const withdrawButton = screen.getByTestId('withdraw-button');
 		await fireEvent.click(withdrawButton);
 
-		expect(defaultProps.onSubmit).toHaveBeenCalledWith(expectedAmountBigInt);
+		expect(defaultProps.onSubmit).toHaveBeenCalledTimes(1);
+		const actualArg = mockOnSubmit.mock.calls[0][0];
+		expect(actualArg.format().value).toBe('1');
 	});
 
 	it('shows error when amount exceeds balance', async () => {

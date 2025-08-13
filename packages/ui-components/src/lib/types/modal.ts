@@ -1,11 +1,11 @@
-import type { RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
+import type { Float, RaindexOrder, RaindexVault } from '@rainlanguage/orderbook';
 import type { VaultActionArgs } from './transaction';
 import type { Hex } from 'viem';
 
 export type VaultActionModalProps = {
 	open: boolean;
 	args: VaultActionArgs;
-	onSubmit: (amount: bigint) => void;
+	onSubmit: (amount: Float) => void;
 };
 
 export type DisclaimerModalProps = {

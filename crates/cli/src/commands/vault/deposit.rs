@@ -4,6 +4,7 @@ use crate::{
 use alloy::primitives::{Address, B256, U256};
 use anyhow::Result;
 use clap::Args;
+use rain_math_float::Float;
 use rain_orderbook_common::{deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs};
 use tracing::info;
 
@@ -46,7 +47,7 @@ impl Execute for CliVaultDepositArgs {
         let deposit_args: DepositArgs = DepositArgs {
             token: self.token,
             vault_id: self.vault_id,
-            amount: self.amount,
+            amount: Float::from_fixed_decimal(self.amount, decimals)?,
             decimals,
         };
 
