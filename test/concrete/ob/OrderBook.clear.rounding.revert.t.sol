@@ -4,9 +4,7 @@ pragma solidity =0.8.25;
 
 import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {
-    TOFU_DECIMALS_SELECTOR
-} from "../../../src/lib/LibTOFUTokenDecimals.sol";
+import {TOFU_DECIMALS_SELECTOR} from "../../../src/lib/LibTOFUTokenDecimals.sol";
 import {
     ClearConfigV2,
     OrderV4,
@@ -27,10 +25,15 @@ import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     using LibDecimalFloat for Float;
 
-    function userDeposit(bytes memory rainString, address owner, address inputToken, address outputToken, uint8 inputDecimals, uint8 outputDecimals, int256 outputDeposit)
-        internal
-        returns (OrderV4 memory)
-    {
+    function userDeposit(
+        bytes memory rainString,
+        address owner,
+        address inputToken,
+        address outputToken,
+        uint8 inputDecimals,
+        uint8 outputDecimals,
+        int256 outputDeposit
+    ) internal returns (OrderV4 memory) {
         bytes32 vaultId = 0;
 
         OrderConfigV4 memory config;
@@ -91,5 +94,4 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         iOrderbook.clear3(aliceOrder, bobOrder, clearConfig, new SignedContextV1[](0), new SignedContextV1[](0));
         vm.stopPrank();
     }
-    
 }
