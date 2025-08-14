@@ -20,8 +20,6 @@ export default ts.config(
 		rules: {
 			'no-console': process.env.NODE_ENV === 'production' || process.env.CI ? 'error' : 'off',
 			'no-trailing-spaces': 'error',
-			'@typescript-eslint/ban-ts-comment': 'off',
-			// Allow undefined variables for TypeScript (handled by TypeScript compiler)
 			'@typescript-eslint/no-undef': 'off'
 		}
 	},

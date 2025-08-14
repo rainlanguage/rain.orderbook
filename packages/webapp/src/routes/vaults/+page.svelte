@@ -16,7 +16,7 @@
 	import { selectedChainIds } from '$lib/stores/settings';
 	import { handleTransactionConfirmationModal, handleWithdrawAllModal } from '$lib/services/modal';
 	import type { RaindexClient, RaindexVaultsList } from '@rainlanguage/orderbook';
-	import { handleVaultsWithdrawAll } from '../../lib/services/handleVaultsWithdrawAll';
+	import { handleVaultsWithdrawAll } from '$lib/services/handleVaultsWithdrawAll';
 	import type { Hex } from 'viem';
 
 	const { activeAccountsItems, showInactiveOrders } = $page.data.stores;

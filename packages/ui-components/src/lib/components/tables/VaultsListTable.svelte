@@ -113,7 +113,7 @@
 			}
 		} else {
 			selectedVaults.add(vaultId);
-			if (!selectedVaultsOnChainId) {
+			if (selectedVaultsOnChainId === null) {
 				selectedVaultsOnChainId = chainId;
 			}
 		}
@@ -212,9 +212,7 @@
 					<Tooltip>
 						{isZeroBalance(item)
 							? 'This vault has a zero balance'
-							: !isSameChainId(item)
-								? 'This vault is on a different network'
-								: 'This vault has a non-zero balance'}
+							: 'This vault is on a different network'}
 					</Tooltip>
 				{/if}
 			</TableBodyCell>

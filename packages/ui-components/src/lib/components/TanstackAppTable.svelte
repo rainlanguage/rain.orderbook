@@ -42,7 +42,7 @@
 		}}
 	/>
 </div>
-{#if data?.pages[0].length === 0}
+{#if (data?.pages?.[0]?.length ?? 0) === 0}
 	<div data-testid="emptyMessage" class="text-center text-gray-900 dark:text-white">
 		{emptyMessage}
 	</div>
@@ -56,7 +56,6 @@
 		</TableHead>
 		<TableBody>
 			{#each data.pages as page}
-				<!-- {#each dataSelector($query)?.pages as page} -->
 				{#each page as item}
 					<TableBodyRow
 						class="whitespace-nowrap"
