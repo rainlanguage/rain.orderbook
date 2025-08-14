@@ -1,13 +1,19 @@
 import {
 	RaindexFilterStore as RaindexFilterStoreWasm,
 	type GetVaultsFilters,
+	type GetOrdersFilters,
 	type WasmEncodedResult
 } from '@rainlanguage/orderbook';
 import { GetVaultsFilterBuilder } from './GetVaultsFilterBuilder.js';
+import { GetOrdersFilterBuilder } from './GetOrdersFilterBuilder.js';
 
 export type GetVaultsFilterUpdateCallback = (
 	builder: GetVaultsFilterBuilder
 ) => GetVaultsFilterBuilder;
+
+export type GetOrdersFilterUpdateCallback = (
+	builder: GetOrdersFilterBuilder
+) => GetOrdersFilterBuilder;
 
 /**
  * Helper function to unwrap WASM encoded results
@@ -98,7 +104,67 @@ export class RaindexFilterStore {
 			const result = this.wasmStore.getVaults();
 			return unwrapWasmResult<GetVaultsFilters>(result);
 		} catch (error) {
-			throw new Error(`Failed to get filters: ${error}`);
+			throw new Error(`Failed to get vault filters: ${error}`);
+		}
+	}
+
+	/**
+	 * Update orders filters using a fluent builder API
+	 *
+	 * @example
+	 * ```typescript
+	 * const updated = store.updateOrders(builder =>
+	 *   builder.setOwners([address]).setActive(true)
+	 * );
+	 * ```
+	 */
+	updateOrders(callback: GetOrdersFilterUpdateCallback): RaindexFilterStore {
+		try {
+			// Get current filters from WASM store
+			const currentFiltersResult = this.wasmStore.getOrders();
+			const currentFilters = unwrapWasmResult<GetOrdersFilters>(currentFiltersResult);
+
+			// Create builder with current state
+			const builder = new GetOrdersFilterBuilder(currentFilters);
+
+			// Let user update the builder
+			const updatedBuilder = callback(builder);
+
+			// Apply changes through WASM (this auto-saves to localStorage and orders URL params)
+			const newWasmStoreResult = this.wasmStore.updateOrders(updatedBuilder.build());
+			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(newWasmStoreResult);
+
+			this.notifySubscribers();
+			return this;
+		} catch (error) {
+			throw new Error(`Orders filter update failed: ${error}`);
+		}
+	}
+
+	/**
+	 * Directly set orders filters, replacing the current filters.
+	 * @param filters The new orders filters to set.
+	 */
+	setOrders(filters: GetOrdersFilters): RaindexFilterStore {
+		try {
+			const result = this.wasmStore.setOrders(filters);
+			this.wasmStore = unwrapWasmResult<RaindexFilterStoreWasm>(result);
+			this.notifySubscribers();
+			return this;
+		} catch (error) {
+			throw new Error(`Failed to set orders filters: ${error}`);
+		}
+	}
+
+	/**
+	 * Get current orders filters
+	 */
+	getOrdersFilters(): GetOrdersFilters {
+		try {
+			const result = this.wasmStore.getOrders();
+			return unwrapWasmResult<GetOrdersFilters>(result);
+		} catch (error) {
+			throw new Error(`Failed to get orders filters: ${error}`);
 		}
 	}
 
