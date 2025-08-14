@@ -1,8 +1,9 @@
 use alloy::sol_types::SolEvent;
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_bindings::IOrderBookV4::{
-    AddOrderV2, Deposit, RemoveOrderV2, TakeOrderV2, Withdraw,
+use rain_orderbook_bindings::{
+    IOrderBookV4::{AddOrderV2, Deposit, RemoveOrderV2, TakeOrderV2, Withdraw},
+    OrderBook::MetaV1_2,
 };
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -124,6 +125,7 @@ impl FetchEvents {
             Withdraw::SIGNATURE_HASH.to_string(),      // withdraw
             Deposit::SIGNATURE_HASH.to_string(),       // deposit
             RemoveOrderV2::SIGNATURE_HASH.to_string(), // remove order
+            MetaV1_2::SIGNATURE_HASH.to_string(),      // meta
         ])]);
 
         println!("Block diff: {}", latest_block - start_block);

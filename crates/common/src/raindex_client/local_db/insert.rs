@@ -1,55 +1,15 @@
-use anyhow::{Context, Result};
-use clap::Args;
 use serde_json::Value;
-use std::fs;
-use std::path::PathBuf;
 
-#[derive(Args)]
-pub struct EventsToSql {
-    #[arg(
-        short,
-        long,
-        default_value = "decoded_events.json",
-        help = "Path to the decoded events JSON file"
-    )]
-    pub input: PathBuf,
-
-    #[arg(
-        short,
-        long,
-        default_value = "events.sql",
-        help = "Path to output SQL file"
-    )]
-    pub output: PathBuf,
-}
-
-impl EventsToSql {
-    pub async fn execute(self) -> Result<()> {
-        let content = fs::read_to_string(&self.input)
-            .with_context(|| format!("Failed to read input file: {:?}", self.input))?;
-
-        let data: Value = serde_json::from_str(&content).context("Failed to parse JSON")?;
-
-        let sql_statements = generate_sql(&data)?;
-
-        fs::write(&self.output, sql_statements)
-            .with_context(|| format!("Failed to write output file: {:?}", self.output))?;
-        println!("SQL statements written to {:?}", self.output);
-
-        Ok(())
-    }
-}
-
-fn generate_sql(data: &Value) -> Result<String> {
+pub fn decoded_events_to_sql(data: Value) -> Result<String, Box<dyn std::error::Error>> {
     let mut sql = String::new();
-    
+
     // Start transaction for all events
     sql.push_str("BEGIN TRANSACTION;\n\n");
 
     let events = data
         .get("decoded_events")
         .and_then(|v| v.as_array())
-        .context("No decoded_events array found")?;
+        .ok_or("No decoded_events array found")?;
 
     for event in events {
         match event.get("event_type").and_then(|v| v.as_str()) {
@@ -89,10 +49,10 @@ fn generate_sql(data: &Value) -> Result<String> {
     Ok(sql)
 }
 
-fn generate_deposit_sql(event: &Value) -> Result<String> {
+fn generate_deposit_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")
-        .context("Missing decoded_data in Deposit event")?;
+        .ok_or("Missing decoded_data in Deposit event")?;
 
     let transaction_hash = get_string_field(event, "transaction_hash")?;
     let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
@@ -115,10 +75,10 @@ fn generate_deposit_sql(event: &Value) -> Result<String> {
     Ok(sql)
 }
 
-fn generate_withdraw_sql(event: &Value) -> Result<String> {
+fn generate_withdraw_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")
-        .context("Missing decoded_data in Withdraw event")?;
+        .ok_or("Missing decoded_data in Withdraw event")?;
 
     let transaction_hash = get_string_field(event, "transaction_hash")?;
     let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
@@ -142,16 +102,14 @@ fn generate_withdraw_sql(event: &Value) -> Result<String> {
     Ok(sql)
 }
 
-fn generate_add_order_sql(event: &Value) -> Result<String> {
+fn generate_add_order_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")
-        .context("Missing decoded_data in AddOrderV2 event")?;
+        .ok_or("Missing decoded_data in AddOrderV2 event")?;
     let order = decoded_data
         .get("order")
-        .context("Missing order in AddOrderV2 event")?;
-    let evaluable = order
-        .get("evaluable")
-        .context("Missing evaluable in order")?;
+        .ok_or("Missing order in AddOrderV2 event")?;
+    let evaluable = order.get("evaluable").ok_or("Missing evaluable in order")?;
 
     let transaction_hash = get_string_field(event, "transaction_hash")?;
     let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
@@ -176,16 +134,19 @@ fn generate_add_order_sql(event: &Value) -> Result<String> {
     ));
 
     // Insert IOs for this order using the specific transaction hash and log index
-    let order_event_id_query = &format!("(SELECT id FROM order_events WHERE transaction_hash = '{}' AND log_index = {})", transaction_hash, log_index);
+    let order_event_id_query = &format!(
+        "(SELECT id FROM order_events WHERE transaction_hash = '{}' AND log_index = {})",
+        transaction_hash, log_index
+    );
     sql.push_str(&generate_order_ios_sql(order, order_event_id_query)?);
 
     Ok(sql)
 }
 
-fn generate_remove_order_sql(event: &Value) -> Result<String> {
+fn generate_remove_order_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")
-        .context("Missing decoded_data in RemoveOrderV2 event")?;
+        .ok_or("Missing decoded_data in RemoveOrderV2 event")?;
 
     let transaction_hash = get_string_field(event, "transaction_hash")?;
     let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
@@ -206,16 +167,16 @@ fn generate_remove_order_sql(event: &Value) -> Result<String> {
     Ok(sql)
 }
 
-fn generate_take_order_sql(event: &Value) -> Result<String> {
+fn generate_take_order_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")
-        .context("Missing decoded_data in TakeOrderV2 event")?;
+        .ok_or("Missing decoded_data in TakeOrderV2 event")?;
     let config = decoded_data
         .get("config")
-        .context("Missing config in TakeOrderV2 event")?;
+        .ok_or("Missing config in TakeOrderV2 event")?;
     let order = config
         .get("order")
-        .context("Missing order in TakeOrderV2 config")?;
+        .ok_or("Missing order in TakeOrderV2 config")?;
 
     let transaction_hash = get_string_field(event, "transaction_hash")?;
     let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
@@ -223,7 +184,7 @@ fn generate_take_order_sql(event: &Value) -> Result<String> {
     let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
 
     let sender = get_string_field(decoded_data, "sender")?;
-    
+
     // Get order details from the config
     let order_owner = get_string_field(order, "owner")?;
     let order_nonce = get_string_field(order, "nonce")?;
@@ -252,11 +213,11 @@ fn generate_take_order_sql(event: &Value) -> Result<String> {
                 "INSERT INTO take_order_contexts (take_order_id, context_index, signer, signature) VALUES ((SELECT id FROM take_orders WHERE transaction_hash = '{}' AND log_index = {}), {}, '{}', '{}');\n",
                 transaction_hash, log_index, context_index, signer, signature
             ));
-            
+
             // Insert context values for this specific context
             if let Some(context_values) = context.get("context").and_then(|v| v.as_array()) {
                 for (value_index, value) in context_values.iter().enumerate() {
-                    let context_value = value.as_str().context("Context value must be string")?;
+                    let context_value = value.as_str().ok_or("Context value must be string")?;
                     sql.push_str(&format!(
                         "INSERT INTO context_values (context_id, value_index, value) VALUES (last_insert_rowid(), {}, '{}');\n",
                         value_index, context_value
@@ -269,13 +230,13 @@ fn generate_take_order_sql(event: &Value) -> Result<String> {
     Ok(sql)
 }
 
-fn generate_clear_sql(event: &Value) -> Result<String> {
+fn generate_clear_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")
-        .context("Missing decoded_data in ClearV2 event")?;
+        .ok_or("Missing decoded_data in ClearV2 event")?;
     let clear_config = decoded_data
         .get("clear_config")
-        .context("Missing clear_config in ClearV2 event")?;
+        .ok_or("Missing clear_config in ClearV2 event")?;
 
     let transaction_hash = get_string_field(event, "transaction_hash")?;
     let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
@@ -289,19 +250,19 @@ fn generate_clear_sql(event: &Value) -> Result<String> {
     let alice_input_io_index = clear_config
         .get("alice_input_io_index")
         .and_then(|v| v.as_u64())
-        .context("Missing alice_input_io_index")?;
+        .ok_or("Missing alice_input_io_index")?;
     let alice_output_io_index = clear_config
         .get("alice_output_io_index")
         .and_then(|v| v.as_u64())
-        .context("Missing alice_output_io_index")?;
+        .ok_or("Missing alice_output_io_index")?;
     let bob_input_io_index = clear_config
         .get("bob_input_io_index")
         .and_then(|v| v.as_u64())
-        .context("Missing bob_input_io_index")?;
+        .ok_or("Missing bob_input_io_index")?;
     let bob_output_io_index = clear_config
         .get("bob_output_io_index")
         .and_then(|v| v.as_u64())
-        .context("Missing bob_output_io_index")?;
+        .ok_or("Missing bob_output_io_index")?;
     let alice_bounty_vault_id = get_string_field(clear_config, "alice_bounty_vault_id")?;
     let bob_bounty_vault_id = get_string_field(clear_config, "bob_bounty_vault_id")?;
 
@@ -316,10 +277,10 @@ fn generate_clear_sql(event: &Value) -> Result<String> {
     Ok(sql)
 }
 
-fn generate_meta_sql(event: &Value) -> Result<String> {
+fn generate_meta_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")
-        .context("Missing decoded_data in MetaV1_2 event")?;
+        .ok_or("Missing decoded_data in MetaV1_2 event")?;
 
     let transaction_hash = get_string_field(event, "transaction_hash")?;
     let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
@@ -341,12 +302,15 @@ fn generate_meta_sql(event: &Value) -> Result<String> {
     Ok(sql)
 }
 
-fn generate_order_ios_sql(order: &Value, order_event_id_query: &str) -> Result<String> {
+fn generate_order_ios_sql(
+    order: &Value,
+    order_event_id_query: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
     let mut sql = String::new();
-    
+
     // Collect all IOs first
     let mut all_ios = Vec::new();
-    
+
     // Process valid_inputs
     if let Some(inputs) = order.get("valid_inputs").and_then(|v| v.as_array()) {
         for (index, input) in inputs.iter().enumerate() {
@@ -354,10 +318,13 @@ fn generate_order_ios_sql(order: &Value, order_event_id_query: &str) -> Result<S
             let decimals = input
                 .get("decimals")
                 .and_then(|v| v.as_u64())
-                .context("Missing decimals in input IO")?;
+                .ok_or("Missing decimals in input IO")?;
             let vault_id = get_string_field(input, "vault_id")?;
 
-            all_ios.push(format!("({}, 'input', {}, '{}', {}, '{}')", order_event_id_query, index, token, decimals, vault_id));
+            all_ios.push(format!(
+                "({}, 'input', {}, '{}', {}, '{}')",
+                order_event_id_query, index, token, decimals, vault_id
+            ));
         }
     }
 
@@ -368,10 +335,13 @@ fn generate_order_ios_sql(order: &Value, order_event_id_query: &str) -> Result<S
             let decimals = output
                 .get("decimals")
                 .and_then(|v| v.as_u64())
-                .context("Missing decimals in output IO")?;
+                .ok_or("Missing decimals in output IO")?;
             let vault_id = get_string_field(output, "vault_id")?;
 
-            all_ios.push(format!("({}, 'output', {}, '{}', {}, '{}')", order_event_id_query, index, token, decimals, vault_id));
+            all_ios.push(format!(
+                "({}, 'output', {}, '{}', {}, '{}')",
+                order_event_id_query, index, token, decimals, vault_id
+            ));
         }
     }
 
@@ -385,15 +355,18 @@ fn generate_order_ios_sql(order: &Value, order_event_id_query: &str) -> Result<S
     Ok(sql)
 }
 
-fn get_string_field<'a>(value: &'a Value, field: &str) -> Result<&'a str> {
+fn get_string_field<'a>(
+    value: &'a Value,
+    field: &str,
+) -> Result<&'a str, Box<dyn std::error::Error>> {
     value
         .get(field)
         .and_then(|v| v.as_str())
-        .with_context(|| format!("Missing or invalid {} field", field))
+        .ok_or_else(|| format!("Missing or invalid {} field", field).into())
 }
 
-fn hex_to_decimal(hex_str: &str) -> Result<u64> {
+fn hex_to_decimal(hex_str: &str) -> Result<u64, Box<dyn std::error::Error>> {
     let hex_str = hex_str.strip_prefix("0x").unwrap_or(hex_str);
     u64::from_str_radix(hex_str, 16)
-        .with_context(|| format!("Failed to parse hex string: {}", hex_str))
+        .map_err(|_| format!("Failed to parse hex string: {}", hex_str).into())
 }

@@ -26,6 +26,7 @@ use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod local_db;
 pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
@@ -189,6 +190,8 @@ impl RaindexClient {
 
 #[derive(Error, Debug)]
 pub enum RaindexError {
+    #[error("{0}")]
+    CustomError(String),
     #[error("Invalid yaml configuration")]
     InvalidYamlConfig,
     #[error("Chain ID not found: {0}")]
@@ -264,6 +267,9 @@ impl From<Erc20Error> for RaindexError {
 impl RaindexError {
     pub fn to_readable_msg(&self) -> String {
         match self {
+            RaindexError::CustomError(msg) => {
+                format!("{}", msg)
+            }
             RaindexError::InvalidYamlConfig => {
                 "The YAML configuration is invalid. Please check your configuration.".to_string()
             }

@@ -42,6 +42,7 @@ futures = { workspace = true }
 rain-error-decoding = { workspace = true }
 rain-interpreter-eval = { workspace = true }
 wasm-bindgen-utils = { workspace = true }
+web-sys = { version = "0.3", features = ["console"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }

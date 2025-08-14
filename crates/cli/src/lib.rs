@@ -1,4 +1,4 @@
-use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
+use crate::commands::{Chart, DbImport, Order, Subgraph, Trade, Vault, Words};
 use crate::decode_events::DecodeEvents;
 use crate::events_to_sql::EventsToSql;
 use crate::execute::Execute;
@@ -45,6 +45,9 @@ pub enum Orderbook {
 
     #[command(name = "events-to-sql")]
     EventsToSql(EventsToSql),
+
+    #[command(name = "db-import")]
+    DbImport(DbImport),
 }
 
 impl Orderbook {
@@ -60,6 +63,7 @@ impl Orderbook {
             Orderbook::FetchEvents(fetch_events) => fetch_events.execute().await,
             Orderbook::DecodeEvents(decode_events) => decode_events.execute().await,
             Orderbook::EventsToSql(events_to_sql) => events_to_sql.execute().await,
+            Orderbook::DbImport(db_import) => db_import.execute().await,
         }
     }
 }
