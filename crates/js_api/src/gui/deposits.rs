@@ -587,7 +587,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_save_deposit_multiple_constraints() {
         let mut gui = initialize_validation_gui().await;
-        
+
         let result = gui
             .set_deposit("token4".to_string(), "50".to_string())
             .await;
