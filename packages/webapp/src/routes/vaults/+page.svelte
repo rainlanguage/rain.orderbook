@@ -26,6 +26,10 @@
 	const { manager } = useTransactions();
 
 	async function onWithdrawAll(raindexClient: RaindexClient, vaultsList: RaindexVaultsList) {
+		if (!$account) {
+			errToast('Please connect your wallet to withdraw');
+			return;
+		}
 		await handleVaultsWithdrawAll({
 			raindexClient,
 			vaultsList,

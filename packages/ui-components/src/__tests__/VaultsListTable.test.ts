@@ -20,10 +20,6 @@ vi.mock('$lib/providers/toasts/useToasts', () => ({
 const mockMatchesAccount = vi.fn();
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
 
-vi.mock('$lib/providers/wallet/useAccount', () => ({
-	useAccount: vi.fn()
-}));
-
 vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: () => ({
 		getUniqueChainIds: vi.fn(() => ({
@@ -61,7 +57,7 @@ const mockVault = {
 } as unknown as RaindexVault;
 
 const mockVaultsList = {
-	items: [mockVault],
+	items: [mockVault]
 } as unknown as RaindexVaultsList;
 
 vi.mock('@tanstack/svelte-query');
@@ -207,7 +203,7 @@ describe('VaultsListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[]] },
+					data: { pages: [{ items: [] }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true

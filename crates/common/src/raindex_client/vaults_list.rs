@@ -39,8 +39,9 @@ impl RaindexVaultsList {
     }
 
     pub fn concat(&self, other: &RaindexVaultsList) -> RaindexVaultsList {
-        let mut combined_vaults = self.0.clone();
-        combined_vaults.extend(other.0.clone());
+        let mut combined_vaults = Vec::with_capacity(self.0.len() + other.0.len());
+        combined_vaults.extend_from_slice(&self.0);
+        combined_vaults.extend_from_slice(&other.0);
         RaindexVaultsList::new(combined_vaults)
     }
 
@@ -156,7 +157,8 @@ impl RaindexVaultsList {
     /// Filters vaults by a list of IDs and returns a new RaindexVaultsList
     ///
     /// Creates a new vault list containing only vaults whose IDs match
-    /// the provided list of IDs.
+    /// the provided list of IDs. The original list order is preserved;
+    /// the input `ids` order does not affect the result ordering.
     ///
     /// ## Examples
     ///
