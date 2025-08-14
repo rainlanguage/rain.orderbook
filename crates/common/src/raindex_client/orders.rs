@@ -3,6 +3,7 @@ use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
+        filters::orders::filter::GetOrdersFilters,
         transactions::RaindexTransaction,
         vaults::{RaindexVault, RaindexVaultType},
     },
@@ -11,9 +12,7 @@ use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
-        common::{
-            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
-        },
+        common::{SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgVault},
         // Id,
     },
     MultiOrderbookSubgraphClient,
@@ -555,46 +554,6 @@ impl RaindexClient {
             .await?;
         let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
         Ok(order)
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct GetOrdersFilters {
-    #[tsify(type = "Address[]")]
-    pub owners: Vec<Address>,
-    #[tsify(optional)]
-    pub active: Option<bool>,
-    #[tsify(optional, type = "Hex")]
-    pub order_hash: Option<Bytes>,
-    #[tsify(optional, type = "Address[]")]
-    pub tokens: Option<Vec<Address>>,
-}
-impl_wasm_traits!(GetOrdersFilters);
-
-impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
-    type Error = RaindexError;
-    fn try_from(filters: GetOrdersFilters) -> Result<Self, Self::Error> {
-        Ok(Self {
-            owners: filters
-                .owners
-                .into_iter()
-                .map(|owner| SgBytes(owner.to_string()))
-                .collect(),
-            active: filters.active,
-            order_hash: filters
-                .order_hash
-                .map(|order_hash| SgBytes(order_hash.to_string())),
-            tokens: filters
-                .tokens
-                .map(|tokens| {
-                    tokens
-                        .into_iter()
-                        .map(|token| token.to_string().to_lowercase())
-                        .collect()
-                })
-                .unwrap_or_default(),
-        })
     }
 }
 
