@@ -17,7 +17,7 @@ import {EvaluableV3} from "rain.interpreter.interface/interface/IInterpreterCall
 contract OrderBookWithdrawRoundingTest is OrderBookExternalMockTest {
     using Math for uint256;
 
-    function testWithdrawRoundingRevert() external
+    function testWithdrawRounding() external
     {
         
         address alice = address(0x3392c4b753fe2f12C34a4e4C90e2023F79498C3B); // Fix: assign a proper address
@@ -55,8 +55,7 @@ contract OrderBookWithdrawRoundingTest is OrderBookExternalMockTest {
         emit Withdraw(alice, address(iToken0), vaultId, withdrawAmount, depositAmount);
 
         TaskV1[] memory task = new TaskV1[](1);
-        // bytecode for empty rainlang source `:;`
-        bytes memory taskBytecode = hex"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000701000000000000";
+        bytes memory taskBytecode = hex"";
         task[0] = TaskV1(EvaluableV3(iInterpreter, iStore, taskBytecode), new SignedContextV1[](0));
         
         iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, task);
