@@ -1,8 +1,9 @@
 use anyhow::Error;
 use serde::{Deserialize, Serialize};
 
-use crate::raindex_client::filters::vaults::{
-    builder::VaultsFilterBuilder, filter::GetVaultsFilters,
+use crate::raindex_client::filters::{
+    orders::{builder::OrdersFilterBuilder, filter::GetOrdersFilters},
+    vaults::{builder::VaultsFilterBuilder, filter::GetVaultsFilters},
 };
 
 /// Builder trait for constructing filters.
@@ -26,4 +27,13 @@ pub trait FilterStore {
     fn update_vaults<F>(&mut self, update_fn: F) -> Result<(), Error>
     where
         F: FnOnce(VaultsFilterBuilder) -> VaultsFilterBuilder;
+
+    fn get_orders(&self) -> GetOrdersFilters;
+    fn set_orders(&mut self, filters: GetOrdersFilters);
+
+    /// Update orders filters using a builder function.
+    /// Returns an error if the operation fails (e.g., persistence failure).
+    fn update_orders<F>(&mut self, update_fn: F) -> Result<(), Error>
+    where
+        F: FnOnce(OrdersFilterBuilder) -> OrdersFilterBuilder;
 }
