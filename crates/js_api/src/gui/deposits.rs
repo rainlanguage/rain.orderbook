@@ -121,14 +121,14 @@ impl DotrainOrderGui {
     ///
     /// ```javascript
     /// // Set a custom deposit amount
-    /// const result = gui.setDeposit("usdc", "1000.50");
+    /// const result = await gui.setDeposit("usdc", "1000.50");
     /// if (result.error) {
     ///   console.error("Deposit error:", result.error.readableMsg);
     ///   return;
     /// }
     /// ```
     #[wasm_export(js_name = "setDeposit", unchecked_return_type = "void")]
-    pub fn set_deposit(
+    pub async fn set_deposit(
         &mut self,
         #[wasm_export(param_description = "Token key from the deposits configuration")]
         token: String,
@@ -138,6 +138,11 @@ impl DotrainOrderGui {
 
         if amount.is_empty() {
             return Err(GuiError::DepositAmountCannotBeEmpty);
+        }
+
+        if let Some(validation) = &gui_deposit.validation {
+            let token_info = self.get_token_info(token.clone()).await?;
+            validation::validate_deposit_amount(&token_info.name, &amount, validation)?;
         }
 
         let value = match gui_deposit.presets.as_ref() {
@@ -285,7 +290,10 @@ impl DotrainOrderGui {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gui::tests::{initialize_gui, initialize_gui_with_select_tokens};
+    use crate::gui::tests::{
+        initialize_gui, initialize_gui_with_select_tokens, initialize_validation_gui,
+    };
+    use crate::gui::validation;
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -333,6 +341,7 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         gui.set_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
 
         let deposit = gui.get_deposits().unwrap();
@@ -350,6 +359,7 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         gui.set_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
 
         let deposit = gui.get_deposits().unwrap();
@@ -363,6 +373,7 @@ mod tests {
 
         let err = gui
             .set_deposit("token1".to_string(), "".to_string())
+            .await
             .unwrap_err();
         assert_eq!(
             err.to_string(),
@@ -376,6 +387,7 @@ mod tests {
         let mut gui = initialize_gui_with_select_tokens().await;
         let err = gui
             .set_deposit("token3".to_string(), "999".to_string())
+            .await
             .unwrap_err();
         assert_eq!(
             err.to_string(),
@@ -392,6 +404,7 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         gui.set_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
         let deposit = gui.get_deposits().unwrap();
         assert_eq!(deposit.len(), 1);
@@ -432,6 +445,7 @@ mod tests {
         assert!(!has_any_deposit);
 
         gui.set_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
         let has_any_deposit = gui.has_any_deposit().unwrap();
         assert!(has_any_deposit);
@@ -442,6 +456,7 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         gui.set_deposit("token1".to_string(), "999".to_string())
+            .await
             .unwrap();
         gui.check_deposits().unwrap();
         gui.unset_deposit("token1".to_string()).unwrap();
@@ -466,5 +481,230 @@ mod tests {
             err.to_readable_msg(),
             "A deposit for token is required but has not been set for deployment 'select-token-deployment'."
         );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit_minimum_validation() {
+        let mut gui = initialize_validation_gui().await;
+        let result = gui
+            .set_deposit("token1".to_string(), "50".to_string())
+            .await;
+        match result {
+            Err(GuiError::ValidationError(validation::GuiValidationError::BelowMinimum {
+                name,
+                value,
+                minimum,
+            })) => {
+                assert_eq!(name, "Token 1");
+                assert_eq!(value, "50");
+                assert_eq!(minimum, "100");
+            }
+            _ => panic!("Expected BelowMinimum error"),
+        }
+        let result = gui
+            .set_deposit("token1".to_string(), "100".to_string())
+            .await;
+        assert!(result.is_ok());
+        let result = gui
+            .set_deposit("token1".to_string(), "500".to_string())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit_maximum_validation() {
+        let mut gui = initialize_validation_gui().await;
+        let result = gui
+            .set_deposit("token2".to_string(), "5000".to_string())
+            .await;
+        assert!(result.is_ok());
+        let result = gui
+            .set_deposit("token2".to_string(), "10000".to_string())
+            .await;
+        assert!(result.is_ok());
+        let result = gui
+            .set_deposit("token2".to_string(), "15000".to_string())
+            .await;
+        match result {
+            Err(GuiError::ValidationError(validation::GuiValidationError::AboveMaximum {
+                name,
+                value,
+                maximum,
+            })) => {
+                assert_eq!(name, "Token 2");
+                assert_eq!(value, "15000");
+                assert_eq!(maximum, "10000");
+            }
+            _ => panic!("Expected AboveMaximum error"),
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit_exclusive_bounds() {
+        let mut gui = initialize_validation_gui().await;
+        let result = gui.set_deposit("token3".to_string(), "0".to_string()).await;
+        match result {
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::BelowExclusiveMinimum {
+                    name,
+                    value,
+                    exclusive_minimum,
+                },
+            )) => {
+                assert_eq!(name, "Token 3");
+                assert_eq!(value, "0");
+                assert_eq!(exclusive_minimum, "0");
+            }
+            _ => panic!("Expected BelowExclusiveMinimum error"),
+        }
+        let result = gui
+            .set_deposit("token3".to_string(), "0.001".to_string())
+            .await;
+        assert!(result.is_ok());
+        let result = gui
+            .set_deposit("token3".to_string(), "49999.999".to_string())
+            .await;
+        assert!(result.is_ok());
+        let result = gui
+            .set_deposit("token3".to_string(), "50000".to_string())
+            .await;
+        match result {
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::AboveExclusiveMaximum {
+                    name,
+                    value,
+                    exclusive_maximum,
+                },
+            )) => {
+                assert_eq!(name, "Token 3");
+                assert_eq!(value, "50000");
+                assert_eq!(exclusive_maximum, "50000");
+            }
+            _ => panic!("Expected AboveExclusiveMaximum error"),
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit_multiple_constraints() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui
+            .set_deposit("token4".to_string(), "50".to_string())
+            .await;
+        assert!(result.is_ok());
+
+        let result = gui.set_deposit("token4".to_string(), "5".to_string()).await;
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::BelowMinimum { .. }
+            ))
+        ));
+
+        let result = gui
+            .set_deposit("token4".to_string(), "1005".to_string())
+            .await;
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::AboveMaximum { .. }
+            ))
+        ));
+
+        let result = gui
+            .set_deposit("token4".to_string(), "10".to_string())
+            .await;
+        assert!(result.is_ok());
+
+        let result = gui
+            .set_deposit("token4".to_string(), "1000".to_string())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit_no_validation() {
+        let mut gui = initialize_validation_gui().await;
+        let result = gui.set_deposit("token6".to_string(), "0".to_string()).await;
+        assert!(result.is_ok());
+
+        let result = gui
+            .set_deposit("token6".to_string(), "123456789.123456789".to_string())
+            .await;
+        assert!(result.is_ok());
+
+        let result = gui
+            .set_deposit("token6".to_string(), "0.00000001".to_string())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit_invalid_formats() {
+        let mut gui = initialize_validation_gui().await;
+
+        let result = gui
+            .set_deposit("token1".to_string(), "abc".to_string())
+            .await;
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::FloatError(..)
+            ))
+        ));
+
+        let result = gui
+            .set_deposit("token1".to_string(), "12.34.56".to_string())
+            .await;
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::FloatError(..)
+            ))
+        ));
+
+        let result = gui
+            .set_deposit("token1".to_string(), "12,345".to_string())
+            .await;
+        assert!(matches!(
+            result,
+            Err(GuiError::ValidationError(
+                validation::GuiValidationError::FloatError(..)
+            ))
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit_edge_cases() {
+        let mut gui = initialize_validation_gui().await;
+        let result = gui
+            .set_deposit("token3".to_string(), "0.001".to_string())
+            .await;
+        assert!(result.is_ok());
+        let result = gui
+            .set_deposit("token2".to_string(), "9999.999999999".to_string())
+            .await;
+        assert!(result.is_ok());
+        let result = gui
+            .set_deposit("token1".to_string(), "100.00000".to_string())
+            .await;
+        assert!(result.is_ok());
+        let result = gui
+            .set_deposit("token1".to_string(), "00100".to_string())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit_with_presets_and_validation() {
+        let mut gui = initialize_validation_gui().await;
+        let result = gui
+            .set_deposit("token1".to_string(), "200".to_string())
+            .await;
+        assert!(result.is_ok());
+        let deposits = gui.get_deposits().unwrap();
+        assert_eq!(deposits.len(), 1);
+        assert_eq!(deposits[0].token, "token1");
+        assert_eq!(deposits[0].amount, "200");
     }
 }

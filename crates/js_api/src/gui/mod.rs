@@ -37,6 +37,7 @@ mod field_values;
 mod order_operations;
 mod select_tokens;
 mod state_management;
+mod validation;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
@@ -689,6 +690,8 @@ pub enum GuiError {
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
+    ValidationError(#[from] validation::GuiValidationError),
+    #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
@@ -774,6 +777,7 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
+            GuiError::ValidationError(err) => format!("Validation error: {}", err),
             GuiError::UrlParseError(err) => format!("URL parsing error: {err}"),
             GuiError::AmountFormatterError(err) =>
                 format!("There was a problem formatting the amount: {err}"),
@@ -986,6 +990,239 @@ _ _: 0 0;
         )
     }
 
+    pub fn get_yaml_with_validation() -> String {
+        format!(
+            r#"
+version: {spec_version}
+gui:
+  name: Validation Test
+  description: Test deployment with various validation rules
+  deployments:
+    validation-deployment:
+      name: Validation Test Deployment
+      description: Testing all validation scenarios
+      fields:
+        # Number validation tests
+        - binding: price-field
+          name: Price Field
+          description: Field with number validation
+          validation:
+            type: number
+            decimals: 18
+            minimum: 10
+            maximum: 1000
+        
+        - binding: quantity-field
+          name: Quantity Field
+          description: Field with exclusive bounds
+          validation:
+            type: number
+            decimals: 18
+            exclusive-minimum: 0
+            exclusive-maximum: 100000
+        
+        - binding: percentage-field
+          name: Percentage Field
+          description: Field with all number constraints
+          validation:
+            type: number
+            decimals: 18
+            minimum: 0
+            maximum: 100
+            exclusive-maximum: 101
+        
+        - binding: simple-number
+          name: Simple Number
+          description: Number field with no constraints
+          validation:
+            type: number
+            decimals: 18
+        
+        # String validation tests
+        - binding: username-field
+          name: Username
+          description: Field with string length validation
+          validation:
+            type: string
+            min-length: 3
+            max-length: 20
+        
+        - binding: description-field
+          name: Description
+          description: Field with only max length
+          validation:
+            type: string
+            max-length: 500
+        
+        - binding: code-field
+          name: Code
+          description: Field with only min length
+          validation:
+            type: string
+            min-length: 5
+        
+        - binding: any-string
+          name: Any String
+          description: String field with no constraints
+          validation:
+            type: string
+        
+        # Boolean validation test
+        - binding: enabled-field
+          name: Enabled
+          description: Boolean field
+          validation:
+            type: boolean
+        
+        # Fields with presets and validation
+        - binding: preset-number-field
+          name: Preset Number
+          description: Number field with presets and validation
+          presets:
+            - name: Low
+              value: 50
+            - name: Medium
+              value: 100
+            - name: High
+              value: 150
+          validation:
+            type: number
+            decimals: 18
+            minimum: 10
+            maximum: 200
+        
+        - binding: preset-string-field
+          name: Preset String
+          description: String field with presets and validation
+          presets:
+            - name: Option A
+              value: alpha
+            - name: Option B
+              value: beta
+            - name: Option C
+              value: gamma
+          validation:
+            type: string
+            min-length: 4
+            max-length: 10
+        
+        # Field without validation
+        - binding: no-validation-field
+          name: No Validation
+          description: Field without any validation
+          
+      deposits:
+        # Deposit with minimum amount validation
+        - token: token1
+          validation:
+            minimum: 100
+
+        # Deposit with maximum amount validation
+        - token: token2
+          validation:
+            maximum: 10000
+        
+        # Deposit with exclusive bounds
+        - token: token3
+          validation:
+            exclusive-minimum: 0
+            exclusive-maximum: 50000
+
+        # Deposit with all constraints
+        - token: token4
+          validation:
+            minimum: 10
+            maximum: 1000
+        
+        # Deposit without validation
+        - token: token6
+networks:
+    test-network:
+        rpcs:
+            - http://localhost:8085
+        chain-id: 1
+        network-id: 1
+        currency: ETH
+subgraphs:
+    test-sg: https://test.subgraph.com
+deployers:
+    test-deployer:
+        network: test-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+    test-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: test-network
+        subgraph: test-sg
+tokens:
+    token1:
+        network: test-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: Token 1
+        symbol: T1
+    token2:
+        network: test-network
+        address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+        decimals: 6
+        label: Token 2
+        symbol: T2
+    token3:
+        network: test-network
+        address: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+        decimals: 6
+        label: Token 3
+        symbol: T3
+    token4:
+        network: test-network
+        address: 0x6B175474E89094C44Da98b954EedeAC495271d0F
+        decimals: 18
+        label: Token 4
+        symbol: T4
+    token5:
+        network: test-network
+        address: 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+        decimals: 18
+        label: Token 5
+        symbol: T5
+    token6:
+        network: test-network
+        address: 0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39
+        decimals: 8
+        label: Token 6
+        symbol: T6
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            test: 1
+orders:
+    test-order:
+      inputs:
+        - token: token1
+          vault-id: 1
+      outputs:
+        - token: token1
+          vault-id: 1
+      deployer: test-deployer
+      orderbook: test-orderbook
+deployments:
+    validation-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#test !
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#,
+            spec_version = SpecVersion::current()
+        )
+    }
+
     pub async fn initialize_gui(deployment_name: Option<String>) -> DotrainOrderGui {
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
@@ -1000,6 +1237,16 @@ _ _: 0 0;
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
             "select-token-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap()
+    }
+
+    pub async fn initialize_validation_gui() -> DotrainOrderGui {
+        DotrainOrderGui::new_with_deployment(
+            get_yaml_with_validation(),
+            "validation-deployment".to_string(),
             None,
         )
         .await
