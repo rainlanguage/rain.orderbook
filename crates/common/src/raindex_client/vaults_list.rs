@@ -191,7 +191,10 @@ impl RaindexVaultsList {
         unchecked_return_type = "RaindexVaultsList",
         preserve_js_class
     )]
-    pub fn concat_wasm(&self, other: &RaindexVaultsList) -> Result<RaindexVaultsList, VaultsListError> {
+    pub fn concat_wasm(
+        &self,
+        other: &RaindexVaultsList,
+    ) -> Result<RaindexVaultsList, VaultsListError> {
         Ok(self.concat(other))
     }
 }
@@ -379,7 +382,7 @@ mod tests {
             let vaults = get_vaults().await;
             let first_vault = vec![vaults[0].clone()];
             let second_vault = vec![vaults[1].clone()];
-            
+
             let vaults_list1 = RaindexVaultsList::new(first_vault);
             let vaults_list2 = RaindexVaultsList::new(second_vault);
 
