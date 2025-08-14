@@ -20,6 +20,12 @@ pub struct Context {
     pub select_tokens: Option<Vec<String>>,
     pub gui_context: Option<GuiContext>,
     pub yaml_cache: Option<YamlCache>,
+    pub price_callback: Option<PriceCallback>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PriceCallback {
+    pub callback_id: String,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -32,6 +38,12 @@ pub enum ContextError {
     InvalidIndex(String),
     #[error("Property not found: {0}")]
     PropertyNotFound(String),
+    #[error("Price callback not available")]
+    NoPriceCallback,
+    #[error("Price callback failed: {0}")]
+    PriceCallbackError(String),
+    #[error("Invalid io-ratio expression: {0}")]
+    InvalidIoRatioExpression(String),
 }
 
 impl ContextError {
@@ -45,6 +57,12 @@ impl ContextError {
                 format!("The index '{}' in your YAML configuration is invalid. Please ensure the index is a valid number and within the bounds of the array.", index),
             ContextError::PropertyNotFound(property) =>
                 format!("The property '{}' was not found in your YAML configuration. Please check that this property is defined correctly.", property),
+            ContextError::NoPriceCallback =>
+                "Price callback is not available. Please provide a price callback function when creating the DotrainOrderGui instance.".to_string(),
+            ContextError::PriceCallbackError(error) =>
+                format!("Failed to fetch price data: {}. Please check your price callback implementation and network connectivity.", error),
+            ContextError::InvalidIoRatioExpression(expr) =>
+                format!("Invalid io-ratio expression '{}'. Expected format: io-ratio(input_address, output_address)", expr),
         }
     }
 }
@@ -195,6 +213,7 @@ impl Context {
             select_tokens: None,
             gui_context: None,
             yaml_cache: None,
+            price_callback: None,
         }
     }
 
@@ -205,6 +224,9 @@ impl Context {
             new_context.select_tokens.clone_from(&context.select_tokens);
             new_context.gui_context.clone_from(&context.gui_context);
             new_context.yaml_cache.clone_from(&context.yaml_cache);
+            new_context
+                .price_callback
+                .clone_from(&context.price_callback);
         }
         new_context
     }
@@ -243,6 +265,11 @@ impl Context {
         self
     }
 
+    pub fn add_price_callback(&mut self, callback_id: String) -> &mut Self {
+        self.price_callback = Some(PriceCallback { callback_id });
+        self
+    }
+
     pub fn set_remote_networks(
         &mut self,
         remote_networks: HashMap<String, NetworkCfg>,
@@ -271,11 +298,47 @@ impl Context {
     }
 
     fn resolve_path(&self, path: &str) -> Result<String, ContextError> {
+        // Check if this is an io-ratio function call
+        if path.starts_with("io-ratio(") && path.ends_with(')') {
+            return self.resolve_io_ratio(path);
+        }
+
         let parts: Vec<&str> = path.split('.').collect();
 
         match parts.first() {
             Some(&"order") => self.resolve_order_path(&parts[1..]),
             _ => Err(ContextError::InvalidPath(path.to_string())),
+        }
+    }
+
+    fn resolve_io_ratio(&self, expression: &str) -> Result<String, ContextError> {
+        // Parse io-ratio(input, output) expression
+        let inner = &expression[9..expression.len() - 1]; // Remove "io-ratio(" and ")"
+        let parts: Vec<&str> = inner.split(',').map(|s| s.trim()).collect();
+
+        if parts.len() != 2 {
+            return Err(ContextError::InvalidIoRatioExpression(
+                expression.to_string(),
+            ));
+        }
+
+        let input_path = parts[0];
+        let output_path = parts[1];
+
+        // Resolve the input and output addresses
+        let input_address = self.resolve_path(input_path)?;
+        let output_address = self.resolve_path(output_path)?;
+
+        // Call the price callback if available
+        if let Some(price_callback) = &self.price_callback {
+            // For now, return a placeholder. The actual callback will be implemented
+            // in the GUI layer where we have access to JavaScript functions
+            Ok(format!(
+                "PRICE_RATIO_PLACEHOLDER:{}:{}",
+                input_address, output_address
+            ))
+        } else {
+            Err(ContextError::NoPriceCallback)
         }
     }
 
@@ -552,5 +615,104 @@ mod tests {
             yaml_cache.remote_tokens,
             context.yaml_cache.unwrap().remote_tokens
         );
+    }
+
+    #[test]
+    fn test_price_callback_context() {
+        let mut context = Context::new();
+        context.add_price_callback("test_callback_id".to_string());
+
+        assert!(context.price_callback.is_some());
+        assert_eq!(
+            context.price_callback.unwrap().callback_id,
+            "test_callback_id"
+        );
+    }
+
+    #[test]
+    fn test_io_ratio_expression_parsing() {
+        let mut context = Context::new();
+        let order = setup_test_order_with_vault_id();
+        context.add_order(order);
+        context.add_price_callback("test_callback".to_string());
+
+        // Test valid io-ratio expression
+        let result = context
+            .resolve_path("io-ratio(order.inputs.0.token.address, order.outputs.0.token.address)");
+        assert!(result.is_ok());
+        let resolved = result.unwrap();
+        assert!(resolved.contains("PRICE_RATIO_PLACEHOLDER"));
+        assert!(resolved.contains("0x4242424242424242424242424242424242424242"));
+    }
+
+    #[test]
+    fn test_io_ratio_expression_invalid_format() {
+        let mut context = Context::new();
+        let order = setup_test_order_with_vault_id();
+        context.add_order(order);
+        context.add_price_callback("test_callback".to_string());
+
+        // Test invalid io-ratio expression (missing parameter)
+        let result = context.resolve_path("io-ratio(order.inputs.0.token.address)");
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            ContextError::InvalidIoRatioExpression(_)
+        ));
+    }
+
+    #[test]
+    fn test_io_ratio_expression_no_callback() {
+        let mut context = Context::new();
+        let order = setup_test_order_with_vault_id();
+        context.add_order(order);
+        // Don't add price callback
+
+        let result = context
+            .resolve_path("io-ratio(order.inputs.0.token.address, order.outputs.0.token.address)");
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ContextError::NoPriceCallback));
+    }
+
+    #[test]
+    fn test_io_ratio_expression_invalid_path() {
+        let mut context = Context::new();
+        let order = setup_test_order_with_vault_id();
+        context.add_order(order);
+        context.add_price_callback("test_callback".to_string());
+
+        // Test io-ratio with invalid token path
+        let result = context.resolve_path("io-ratio(invalid.path, order.outputs.0.token.address)");
+        assert!(result.is_err());
+        // Should fail when trying to resolve the invalid path
+    }
+
+    #[test]
+    fn test_context_from_context_preserves_price_callback() {
+        let mut original_context = Context::new();
+        original_context.add_price_callback("test_callback".to_string());
+
+        let new_context = Context::from_context(Some(&original_context));
+
+        assert!(new_context.price_callback.is_some());
+        assert_eq!(
+            new_context.price_callback.unwrap().callback_id,
+            "test_callback"
+        );
+    }
+
+    #[test]
+    fn test_io_ratio_interpolation() {
+        let mut context = Context::new();
+        let order = setup_test_order_with_vault_id();
+        context.add_order(order);
+        context.add_price_callback("test_callback".to_string());
+
+        // Test io-ratio interpolation in a string
+        let result = context.interpolate("Current price: ${io-ratio(order.inputs.0.token.address, order.outputs.0.token.address)}");
+        assert!(result.is_ok());
+        let interpolated = result.unwrap();
+        assert!(interpolated.contains("Current price: PRICE_RATIO_PLACEHOLDER"));
+        assert!(interpolated.contains("0x4242424242424242424242424242424242424242"));
     }
 }

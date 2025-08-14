@@ -23,6 +23,40 @@ We use wasm-bindgen to create the `orderbook` package from our Rust crates, whic
 
 This same package is [published to npm](https://www.npmjs.com/package/@rainlanguage/orderbook), allowing developers to more easily create their own frontends for Raindex.
 
+## New Features
+
+### 🎯 Dynamic Price Ratio Support
+
+The DotrainOrderGui now supports dynamic price ratio resolution using `${io-ratio(input, output)}` expressions in YAML configurations. This allows strategy writers to reference real-time market prices without hardcoding values.
+
+**Key Benefits:**
+- **Automatic Price Fetching**: Strategies can automatically use current market prices
+- **User-Friendly Defaults**: No more manual price lookups for users
+- **Flexible Integration**: Works with any price API (SushiSwap, 1inch, CoinGecko, etc.)
+- **Error Handling**: Comprehensive error handling for network issues and invalid data
+
+**Quick Example:**
+```yaml
+fields:
+  - binding: initial-io
+    name: Kickoff ${order.inputs.0.token.symbol} per ${order.outputs.0.token.symbol}
+    description: Current market price: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
+    default: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
+```
+
+```javascript
+const priceCallback = async (inputTokenAddress, outputTokenAddress) => {
+  const response = await fetch(`/api/price/${inputTokenAddress}/${outputTokenAddress}`);
+  return (await response.json()).ratio.toString();
+};
+
+const gui = await DotrainOrderGui.newWithDeploymentAndPriceCallback(
+  yaml, deployment, stateCallback, priceCallback
+);
+```
+
+📚 **Learn More**: See [docs/price-ratio-functionality.md](docs/price-ratio-functionality.md) for complete documentation and [examples/](examples/) for implementation examples.
+
 ## Setup for local development
 
 ### Environment Setup
