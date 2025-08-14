@@ -11,7 +11,7 @@ export interface LayoutData {
 }
 
 const REMOTE_SETTINGS_URL =
-	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/75ed6dab2ba064858dac2c56087cf819ac41f046/settings.yaml';
+	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/5c5962da1745fc7344e030364572399f1214e073/settings.yaml';
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let errorMessage: string | undefined;
