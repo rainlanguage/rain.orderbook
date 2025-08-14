@@ -361,6 +361,13 @@ mod tests {
             let filtered = vaults_list.pick_by_ids(ids);
             assert_eq!(filtered.items().len(), 2);
 
+            // Verify order preservation: original vault sequence must prevail
+            let ids_reversed = vec!["0x0234".to_string(), "0x0123".to_string()];
+            let filtered_rev = vaults_list.pick_by_ids(ids_reversed);
+            assert_eq!(filtered_rev.items().len(), 2);
+            assert_eq!(filtered_rev.items()[0].id().to_string(), "0x0123");
+            assert_eq!(filtered_rev.items()[1].id().to_string(), "0x0234");
+
             // Test filtering by single ID
             let ids = vec!["0x0234".to_string()];
             let filtered = vaults_list.pick_by_ids(ids);
