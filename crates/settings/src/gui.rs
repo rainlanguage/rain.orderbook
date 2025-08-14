@@ -840,6 +840,7 @@ impl YamlParseableValue for GuiCfg {
                         };
 
                         let default = optional_string(field_yaml, "default");
+                        let interpolated_default = default.map(|default| context.interpolate(&default)).transpose()?;
                         let show_custom_field = optional_string(field_yaml, "show-custom-field").map(|v| v.eq("true"));
 
                         let validation = optional_hash(field_yaml, "validation").map(|validation_yaml| {
@@ -853,7 +854,7 @@ impl YamlParseableValue for GuiCfg {
                             name: interpolated_name,
                             description: interpolated_description,
                             presets,
-                            default,
+                            default: interpolated_default,
                             show_custom_field,
                             validation,
                         };
