@@ -82,8 +82,7 @@ const defaultProps = {
 	showMyItemsOnly: mockShowMyItemsOnlyStore
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type VaultsListTableProps = ComponentProps<VaultsListTable<any>>;
+type VaultsListTableProps = ComponentProps<VaultsListTable>;
 
 describe('VaultsListTable', () => {
 	beforeEach(() => {
