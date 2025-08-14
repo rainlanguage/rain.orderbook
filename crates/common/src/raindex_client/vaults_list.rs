@@ -26,13 +26,12 @@ impl RaindexVaultsList {
     }
 
     pub fn pick_by_ids(&self, ids: Vec<String>) -> RaindexVaultsList {
+        use std::collections::HashSet;
+        let ids_set: HashSet<String> = ids.into_iter().collect();
         let filtered_vaults = self
             .0
             .iter()
-            .filter(|vault| {
-                let vault_id = vault.id().to_string();
-                ids.contains(&vault_id)
-            })
+            .filter(|vault| ids_set.contains(&vault.id().to_string()))
             .cloned()
             .collect();
         RaindexVaultsList::new(filtered_vaults)
