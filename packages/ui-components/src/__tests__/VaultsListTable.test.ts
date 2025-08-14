@@ -3,13 +3,18 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
-import type { RaindexVault } from '@rainlanguage/orderbook';
+import { Float, type RaindexVault, type RaindexVaultsList } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
+import { useToasts } from '$lib/providers/toasts/useToasts';
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
+}));
+
+vi.mock('$lib/providers/toasts/useToasts', () => ({
+	useToasts: vi.fn()
 }));
 
 const mockMatchesAccount = vi.fn();
@@ -41,7 +46,7 @@ const mockVault = {
 	id: '0x1234567890abcdef1234567890abcdef12345678',
 	owner: '0xabcdef1234567890abcdef1234567890abcdef12',
 	vaultId: BigInt(42),
-	balance: BigInt('1000000000000000000'),
+	balance: Float.parse('1000000000000000000').value,
 	formattedBalance: '1',
 	token: {
 		id: '0x1111111111111111111111111111111111111111',
@@ -54,6 +59,10 @@ const mockVault = {
 	ordersAsInput: [],
 	ordersAsOutput: []
 } as unknown as RaindexVault;
+
+const mockVaultsList = {
+	items: [mockVault],
+} as unknown as RaindexVaultsList;
 
 vi.mock('@tanstack/svelte-query');
 
@@ -91,6 +100,12 @@ describe('VaultsListTable', () => {
 			matchesAccount: mockMatchesAccount,
 			account: mockAccountStore
 		});
+		(useToasts as Mock).mockReturnValue({
+			errToast: vi.fn(),
+			successToast: vi.fn(),
+			warningToast: vi.fn(),
+			infoToast: vi.fn()
+		});
 	});
 	it('displays vault information correctly', async () => {
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
@@ -98,7 +113,7 @@ describe('VaultsListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockVault]] },
+					data: { pages: [mockVaultsList] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -122,7 +137,7 @@ describe('VaultsListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockVault]] },
+					data: { pages: [mockVaultsList] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -151,7 +166,7 @@ describe('VaultsListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockVault]] },
+					data: { pages: [mockVaultsList] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
