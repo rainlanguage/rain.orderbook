@@ -159,6 +159,10 @@ impl RaindexVaultsList {
     /// the provided list of IDs. The original list order is preserved;
     /// the input `ids` order does not affect the result ordering.
     ///
+    /// Notes:
+    /// - Duplicate IDs in `ids` are ignored (deduplicated).
+    /// - Unknown IDs are ignored (they do not cause errors).
+    ///
     /// ## Examples
     ///
     /// ```javascript
@@ -383,6 +387,12 @@ mod tests {
             let ids = vec![];
             let filtered = vaults_list.pick_by_ids(ids);
             assert_eq!(filtered.items().len(), 0);
+
+            // Test duplicate IDs are deduped
+            let ids_duped = vec!["0x0123".to_string(), "0x0123".to_string()];
+            let filtered_duped = vaults_list.pick_by_ids(ids_duped);
+            assert_eq!(filtered_duped.items().len(), 1);
+            assert_eq!(filtered_duped.items()[0].id().to_string(), "0x0123");
         }
 
         #[tokio::test]
