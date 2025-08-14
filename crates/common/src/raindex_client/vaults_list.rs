@@ -38,6 +38,12 @@ impl RaindexVaultsList {
         RaindexVaultsList::new(filtered_vaults)
     }
 
+    pub fn concat(&self, other: &RaindexVaultsList) -> RaindexVaultsList {
+        let mut combined_vaults = self.0.clone();
+        combined_vaults.extend(other.0.clone());
+        RaindexVaultsList::new(combined_vaults)
+    }
+
     pub async fn get_withdraw_calldata(&self) -> Result<Bytes, VaultsListError> {
         let mut calldatas: Vec<Bytes> = Vec::new();
         let vaults_to_withdraw = self.get_withdrawable_vaults();
@@ -166,6 +172,27 @@ impl RaindexVaultsList {
     )]
     pub fn pick_by_ids_wasm(&self, ids: Vec<String>) -> Result<RaindexVaultsList, VaultsListError> {
         Ok(self.pick_by_ids(ids))
+    }
+
+    /// Concatenates this vault list with another vault list and returns a new RaindexVaultsList
+    ///
+    /// Creates a new vault list containing all vaults from both lists.
+    /// The order is preserved: items from the current list first, then items from the other list.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const combinedVaults = vaultsList1.concat(vaultsList2);
+    /// console.log(`Combined ${combinedVaults.items.length} vaults`);
+    /// ```
+    #[wasm_export(
+        js_name = "concat",
+        return_description = "New RaindexVaultsList containing vaults from both lists",
+        unchecked_return_type = "RaindexVaultsList",
+        preserve_js_class
+    )]
+    pub fn concat_wasm(&self, other: &RaindexVaultsList) -> Result<RaindexVaultsList, VaultsListError> {
+        Ok(self.concat(other))
     }
 }
 
@@ -346,6 +373,33 @@ mod tests {
             let filtered = vaults_list.pick_by_ids(ids);
             assert_eq!(filtered.items().len(), 0);
         }
+
+        #[tokio::test]
+        async fn test_concat() {
+            let vaults = get_vaults().await;
+            let first_vault = vec![vaults[0].clone()];
+            let second_vault = vec![vaults[1].clone()];
+            
+            let vaults_list1 = RaindexVaultsList::new(first_vault);
+            let vaults_list2 = RaindexVaultsList::new(second_vault);
+
+            // Test concatenation
+            let combined = vaults_list1.concat(&vaults_list2);
+            assert_eq!(combined.items().len(), 2);
+            assert_eq!(combined.items()[0].id().to_string(), "0x0123");
+            assert_eq!(combined.items()[1].id().to_string(), "0x0234");
+
+            // Test concatenation with empty list
+            let empty_list = RaindexVaultsList::new(vec![]);
+            let combined_with_empty = vaults_list1.concat(&empty_list);
+            assert_eq!(combined_with_empty.items().len(), 1);
+            assert_eq!(combined_with_empty.items()[0].id().to_string(), "0x0123");
+
+            // Test empty list concatenation
+            let empty_combined = empty_list.concat(&vaults_list1);
+            assert_eq!(empty_combined.items().len(), 1);
+            assert_eq!(empty_combined.items()[0].id().to_string(), "0x0123");
+        }
     }
 
     #[cfg(target_family = "wasm")]
@@ -382,6 +436,15 @@ mod tests {
             let result = vaults_list.pick_by_ids_wasm(ids);
             let filtered = result.unwrap();
             assert_eq!(filtered.items().len(), 0);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_wasm_concat_empty() {
+            let vaults_list1 = RaindexVaultsList::new(vec![]);
+            let vaults_list2 = RaindexVaultsList::new(vec![]);
+            let result = vaults_list1.concat_wasm(&vaults_list2);
+            let combined = result.unwrap();
+            assert_eq!(combined.items().len(), 0);
         }
     }
 }

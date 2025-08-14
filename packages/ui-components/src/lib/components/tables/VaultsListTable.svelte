@@ -24,8 +24,10 @@
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { getAllContexts } from 'svelte';
 	import Tooltip from '../Tooltip.svelte';
+	import { useToasts } from '$lib/providers/toasts/useToasts';
 
 	const context = getAllContexts();
+	const { errToast } = useToasts();
 
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -122,16 +124,42 @@
 	};
 	const stopPropagation = (e: Event) => e.stopPropagation();
 	const handleWithdrawAll = () => {
-		const vaultsList = $query.data?.pages[0];
-		if (!onWithdrawAll || !vaultsList) {
+		const pages = $query.data?.pages ?? [];
+		if (!onWithdrawAll || pages.length === 0) {
 			return;
 		}
-		const filteredVaultsListResult = vaultsList.pickByIds(Array.from(selectedVaults));
-		if (!filteredVaultsListResult || filteredVaultsListResult.error) {
-			// TODO: Show error
-			return;
+		// Combine across all loaded pages so selections beyond the first page are respected
+		const selectedIds = Array.from(selectedVaults);
+		// Get all vault lists from all pages
+		const vaultsLists = pages.flatMap((page) => page);
+		try {
+			// We need to pick by ids from all vaults first to get filtered copies,
+			// otherwise it may break wasm reference
+			const filteredVaultListResults = vaultsLists.reduce(
+				(prev, cur) => {
+					const result = cur.pickByIds(selectedIds);
+					if (result.error) {
+						throw new Error(result.error.readableMsg);
+					}
+					return [...prev, result.value];
+				},
+				<RaindexVaultsList[]>[]
+			);
+			// Now we can combine filtered VaultLists into one
+			const [first, ...rest] = filteredVaultListResults;
+			const combinedVaultsList = rest.reduce((prev, cur) => {
+				const result = prev.concat(cur);
+				if (result.error) {
+					throw new Error(result.error.readableMsg);
+				}
+				return result.value;
+			}, first);
+			return onWithdrawAll(raindexClient, combinedVaultsList);
+		} catch (err) {
+			if (err instanceof Error) {
+				errToast(err.message);
+			}
 		}
-		return onWithdrawAll(raindexClient, filteredVaultsListResult.value);
 	};
 
 	const ZERO_FLOAT = Float.parse('0').value;
