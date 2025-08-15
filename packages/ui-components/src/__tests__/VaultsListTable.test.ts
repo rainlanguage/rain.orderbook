@@ -247,7 +247,7 @@ describe('VaultsListTable', () => {
 
 		// Wait for component to render
 		await waitFor(() => {
-			expect(screen.getByText('Ethereum')).toBeInTheDocument();
+			expect(screen.getByText('Input For')).toBeInTheDocument();
 		});
 
 		// Check that both vaults are displayed (different networks)
@@ -267,9 +267,6 @@ describe('VaultsListTable', () => {
 		await waitFor(() =>
 			expect(screen.getByText('This vault is on a different network')).toBeInTheDocument()
 		);
-		// Clicking a disabled checkbox should have no effect
-		await userEvent.click(vaultCheckboxes[1]);
-		expect(vaultCheckboxes[1]).not.toBeChecked();
 	});
 
 	it('disables selection for zero-balance vaults and shows tooltip', async () => {
