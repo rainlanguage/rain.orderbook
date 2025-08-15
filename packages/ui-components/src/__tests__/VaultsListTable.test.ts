@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { describe, it, expect, vi, type Mock } from 'vitest';
+import { describe, it, expect, vi, type Mock, beforeEach } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
 import { Float, type RaindexVault, type RaindexVaultsList } from '@rainlanguage/orderbook';
@@ -214,5 +214,195 @@ describe('VaultsListTable', () => {
 
 		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
 		expect(screen.getByText('No Vaults Found')).toBeInTheDocument();
+	});
+
+	it('disables selection across different networks and shows tooltip', async () => {
+		mockMatchesAccount.mockReturnValue(true);
+
+		// Create vaults on different chains
+		const vault1 = { ...mockVault, chainId: 1, id: 'vault1' };
+		const vault2 = { ...mockVault, chainId: 137, id: 'vault2' }; // Different chainId
+		const mockVaultsListMixed = {
+			items: [vault1, vault2],
+			pickByIds: vi.fn((ids: string[]) => ({
+				error: undefined,
+				value: { items: [vault1, vault2].filter((v) => ids.includes(v.id)) }
+			}))
+		} as unknown as RaindexVaultsList;
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		mockQuery.createInfiniteQuery = vi.fn(() => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [mockVaultsListMixed] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
+
+		// Wait for component to render
+		await waitFor(() => {
+			expect(screen.getByText('Ethereum')).toBeInTheDocument();
+		});
+
+		// Check that both vaults are displayed (different networks)
+		const networkElements = screen.getAllByTestId('vault-network');
+		expect(networkElements).toHaveLength(2);
+		expect(networkElements[0]).toHaveTextContent('Ethereum'); // chainId 1
+
+		const vaultCheckboxes = screen.getAllByRole('vault-checkbox');
+		expect(vaultCheckboxes).toHaveLength(2);
+
+		// Select first vault to test basic selection functionality
+		await userEvent.click(vaultCheckboxes[0]);
+		expect(vaultCheckboxes[0]).toBeChecked();
+	});
+
+	it('disables selection for zero-balance vaults and shows tooltip', async () => {
+		mockMatchesAccount.mockReturnValue(true);
+
+		// Create vault with zero balance
+		const zeroBalanceVault = {
+			...mockVault,
+			balance: Float.parse('0').value,
+			formattedBalance: '0'
+		};
+		const mockVaultsListZero = {
+			items: [zeroBalanceVault],
+			pickByIds: vi.fn((ids: string[]) => ({
+				error: undefined,
+				value: { items: [zeroBalanceVault].filter((v) => ids.includes(v.id)) }
+			}))
+		} as unknown as RaindexVaultsList;
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		mockQuery.createInfiniteQuery = vi.fn(() => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [mockVaultsListZero] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
+
+		const vaultCheckboxes = screen.getAllByRole('vault-checkbox');
+		const firstCheckbox = vaultCheckboxes[0];
+		// Wait for vault table checkbox to render and be disabled
+		await waitFor(() => {
+			expect(firstCheckbox).toBeDisabled();
+		});
+
+		// Hover over disabled checkbox to verify tooltip
+		await userEvent.hover(firstCheckbox!);
+		await waitFor(() => {
+			expect(screen.getByText('This vault has a zero balance')).toBeInTheDocument();
+		});
+	});
+
+	it('calls onWithdrawAll with only selected vaults', async () => {
+		mockMatchesAccount.mockReturnValue(true);
+		const onWithdrawAll = vi.fn();
+
+		// Create multiple vaults on same chain
+		const vault1 = { ...mockVault, id: 'vault1', chainId: 1 };
+		const vault2 = { ...mockVault, id: 'vault2', chainId: 1 };
+		const vault3 = { ...mockVault, id: 'vault3', chainId: 1 };
+
+		const mockPickByIds = vi.fn((ids: string[]) => ({
+			error: undefined,
+			value: {
+				items: [vault1, vault2, vault3].filter((v) => ids.includes(v.id)),
+				concat: vi.fn(() => ({
+					error: undefined,
+					value: mockVaultsListMultiple
+				}))
+			}
+		}));
+
+		const mockVaultsListMultiple = {
+			items: [vault1, vault2, vault3],
+			pickByIds: mockPickByIds
+		} as unknown as RaindexVaultsList;
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		mockQuery.createInfiniteQuery = vi.fn(() => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [mockVaultsListMultiple] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		render(VaultsListTable, {
+			...defaultProps,
+			onWithdrawAll
+		} as unknown as VaultsListTableProps);
+
+		// Wait for vault table checkboxes to render
+		await waitFor(() => {
+			const vaultCheckboxes = screen.getAllByRole('vault-checkbox');
+			expect(vaultCheckboxes).toHaveLength(3);
+		});
+
+		const vaultCheckboxes = screen.getAllByRole('vault-checkbox');
+
+		// Select first two vaults
+		await userEvent.click(vaultCheckboxes[0]);
+		await userEvent.click(vaultCheckboxes[1]);
+
+		// Click "Withdraw selected" button
+		const withdrawButton = screen.getByTestId('withdraw-all-button');
+		expect(withdrawButton).toHaveTextContent('Withdraw selected (2)');
+		await userEvent.click(withdrawButton);
+
+		// Verify onWithdrawAll was called
+		expect(onWithdrawAll).toHaveBeenCalledTimes(1);
+
+		// Verify it was called with raindexClient and filtered vaultsList
+		const [clientArg, vaultsListArg] = onWithdrawAll.mock.calls[0];
+		expect(clientArg).toBeDefined();
+		expect(vaultsListArg).toBeDefined();
+
+		// Verify pickByIds was called with correct vault IDs
+		expect(mockPickByIds).toHaveBeenCalledWith(['vault1', 'vault2']);
+	});
+	it('shows correct button text when no vaults are selected', async () => {
+		const onWithdrawAll = vi.fn();
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		mockQuery.createInfiniteQuery = vi.fn(() => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [mockVaultsList] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		render(VaultsListTable, {
+			...defaultProps,
+			onWithdrawAll
+		} as unknown as VaultsListTableProps);
+
+		const withdrawButton = screen.getByTestId('withdraw-all-button');
+		expect(withdrawButton).toHaveTextContent('Withdraw vaults');
+		expect(withdrawButton).toBeDisabled();
 	});
 });

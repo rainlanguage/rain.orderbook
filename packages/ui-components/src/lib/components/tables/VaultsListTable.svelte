@@ -230,6 +230,7 @@
 		<svelte:fragment slot="bodyRow" let:item>
 			<TableBodyCell tdClass="px-0" on:click={stopPropagation}>
 				<Checkbox
+					role="vault-checkbox"
 					class={`block px-2 py-4 ${$account !== item.owner ? 'invisible' : ''}`}
 					checked={selectedVaults.has(item.id)}
 					disabled={isDisabled(item)}
