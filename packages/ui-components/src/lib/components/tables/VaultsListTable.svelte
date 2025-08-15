@@ -171,11 +171,11 @@
 		if (!ZERO_FLOAT) return true;
 		return item.balance.eq(ZERO_FLOAT).value;
 	};
-	const isSameChainId = (item: RaindexVault) => {
-		return selectedVaultsOnChainId === null || selectedVaultsOnChainId === item.chainId;
+	const isSameChainId = (item: RaindexVault, chainId: number | null) => {
+		return chainId === null || chainId === item.chainId;
 	};
-	const isDisabled = (item: RaindexVault) => {
-		return !isSameChainId(item) || isZeroBalance(item);
+	const isDisabled = (item: RaindexVault, chainId: number | null) => {
+		return !isSameChainId(item, chainId) || isZeroBalance(item);
 	};
 	const AppTable = TanstackAppTable<RaindexVault, RaindexVaultsList>;
 </script>
@@ -237,11 +237,11 @@
 					data-testid="vault-checkbox"
 					class={`block px-2 py-4 ${$account !== item.owner ? 'invisible' : ''}`}
 					checked={selectedVaults.has(item.id)}
-					disabled={isDisabled(item)}
+					disabled={isDisabled(item, selectedVaultsOnChainId)}
 					on:change={getToggleSelectVaultHandler(item.id, item.chainId)}
 					on:click={stopPropagation}
 				/>
-				{#if isDisabled(item)}
+				{#if isDisabled(item, selectedVaultsOnChainId)}
 					<Tooltip>
 						{isZeroBalance(item)
 							? 'This vault has a zero balance'
