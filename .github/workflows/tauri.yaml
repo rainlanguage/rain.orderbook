@@ -1,5 +1,9 @@
 name: Tauri builds
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-tauri-build
@@ -24,13 +28,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     env:
-      DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
-      CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
-      CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
-      CI_DEPLOY_SEPOLIA_RPC_URL: ${{ vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
-      CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
-      CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
-      RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
       COMMIT_SHA: ${{ github.sha }}
     steps:
       - name: Free up disk space in action runner (Ubuntu)
@@ -83,14 +80,14 @@ jobs:
 
       - run: ./prep-all.sh
         env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
 
       - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
         working-directory: ./tauri-app
         env:
-          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
       - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
         working-directory: ./tauri-app
 
@@ -101,4 +98,3 @@ jobs:
       - run: rm -rf tauri-app/src-tauri/target/debug tauri-app/src-tauri/target/release
 
       - run: nix develop .#tauri-shell --command tauri-rs-test
-
