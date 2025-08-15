@@ -36,6 +36,17 @@ pub async fn orders_list_write_csv(
     Ok(())
 }
 
+fn gui_state_to_meta(
+    gui_state: Option<DotrainGuiStateV1>,
+) -> Result<Option<Vec<RainMetaDocumentV1Item>>, AddOrderArgsError> {
+    gui_state
+        .map(|state| {
+            let doc = RainMetaDocumentV1Item::try_from(state).map_err(AddOrderArgsError::from)?;
+            Ok(vec![doc])
+        })
+        .transpose()
+}
+
 #[tauri::command]
 pub async fn order_add<R: Runtime>(
     app_handle: AppHandle<R>,
@@ -48,13 +59,7 @@ pub async fn order_add<R: Runtime>(
         TransactionStatusNoticeRwLock::new("Add order".into(), deployment.order.network.chain_id);
 
     // Convert GUI state to additional meta if provided
-    let additional_meta = if let Some(state) = gui_state {
-        let doc =
-            RainMetaDocumentV1Item::try_from(state).map_err(|e| AddOrderArgsError::from(e))?;
-        Some(vec![doc])
-    } else {
-        None
-    };
+    let additional_meta = gui_state_to_meta(gui_state)?;
 
     let add_order_args =
         AddOrderArgs::new_from_deployment(dotrain, deployment, additional_meta).await?;
@@ -112,13 +117,7 @@ pub async fn order_add_calldata<R: Runtime>(
     gui_state: Option<DotrainGuiStateV1>,
 ) -> CommandResult<Bytes> {
     // Convert GUI state to additional meta if provided
-    let additional_meta = if let Some(state) = gui_state {
-        let doc =
-            RainMetaDocumentV1Item::try_from(state).map_err(|e| AddOrderArgsError::from(e))?;
-        Some(vec![doc])
-    } else {
-        None
-    };
+    let additional_meta = gui_state_to_meta(gui_state)?;
 
     let add_order_args =
         AddOrderArgs::new_from_deployment(dotrain, deployment, additional_meta).await?;

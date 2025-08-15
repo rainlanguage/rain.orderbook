@@ -12,7 +12,7 @@ import type {
 export async function orderAdd(
   dotrain: string,
   deployment: DeploymentCfg,
-  guiState?: DotrainGuiStateV1
+  guiState?: DotrainGuiStateV1,
 ) {
   await invoke('order_add', {
     dotrain,
@@ -50,7 +50,7 @@ export async function orderRemove(raindexClient: RaindexClient, order: RaindexOr
 export async function orderAddCalldata(
   dotrain: string,
   deployment: DeploymentCfg,
-  guiState?: DotrainGuiStateV1
+  guiState?: DotrainGuiStateV1,
 ) {
   return await invoke('order_add_calldata', {
     dotrain,

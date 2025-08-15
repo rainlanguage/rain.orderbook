@@ -2051,8 +2051,6 @@ orderbooks:
             let subject_hex = alloy::primitives::hex::encode_prefixed(test_source.hash());
             let metabytes_hex = alloy::primitives::hex::encode_prefixed(&source_bytes);
 
-            println!("Subject: {}", subject_hex);
-
             metaboard_server.mock(|when, then| {
                 when.method(httpmock::Method::POST)
                     .path("/")
