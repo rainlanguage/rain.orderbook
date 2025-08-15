@@ -1,8 +1,4 @@
 <script lang="ts">
-	import { deepEqual } from '@wagmi/core';
-
-	import { DEFAULT_VAULT_FILTERS, useFilterStore } from '$lib/providers/filters';
-
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
 	import type { Readable } from 'svelte/store';
