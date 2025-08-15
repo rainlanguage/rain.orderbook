@@ -305,9 +305,11 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         LibFixedPointDecimalScale.scale18(
                             targetAmount,
                             tokenDecimals,
-                            // Error on overflow.
+                            // Saturate on overflow.
+                            // Withdrawer may provide a silly large number that
+                            // overflows on rescale, to signify "withdraw all".
                             // Rounding down is the default.
-                            0
+                            FLAG_SATURATE
                         )
                     )
                 ),
