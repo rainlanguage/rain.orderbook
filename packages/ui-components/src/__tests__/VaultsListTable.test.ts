@@ -255,12 +255,18 @@ describe('VaultsListTable', () => {
 		expect(networkElements).toHaveLength(2);
 		expect(networkElements[0]).toHaveTextContent('Ethereum'); // chainId 1
 
-		const vaultCheckboxes = screen.getAllByRole('vault-checkbox');
+		const vaultCheckboxes = screen.getAllByTestId('vault-checkbox');
 		expect(vaultCheckboxes).toHaveLength(2);
 
 		// Select first vault to test basic selection functionality
 		await userEvent.click(vaultCheckboxes[0]);
 		expect(vaultCheckboxes[0]).toBeChecked();
+		// Second checkbox should be disabled (different network) and show tooltip on hover
+		expect(vaultCheckboxes[1]).toBeDisabled();
+		await userEvent.hover(vaultCheckboxes[1]);
+		await waitFor(() =>
+		  expect(screen.getByText('This vault is on a different network')).toBeInTheDocument()
+		);
 	});
 
 	it('disables selection for zero-balance vaults and shows tooltip', async () => {
@@ -295,7 +301,7 @@ describe('VaultsListTable', () => {
 
 		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
 
-		const vaultCheckboxes = screen.getAllByRole('vault-checkbox');
+		const vaultCheckboxes = screen.getAllByTestId('vault-checkbox');
 		const firstCheckbox = vaultCheckboxes[0];
 		// Wait for vault table checkbox to render and be disabled
 		await waitFor(() => {
@@ -354,11 +360,11 @@ describe('VaultsListTable', () => {
 
 		// Wait for vault table checkboxes to render
 		await waitFor(() => {
-			const vaultCheckboxes = screen.getAllByRole('vault-checkbox');
+			const vaultCheckboxes = screen.getAllByTestId('vault-checkbox');
 			expect(vaultCheckboxes).toHaveLength(3);
 		});
 
-		const vaultCheckboxes = screen.getAllByRole('vault-checkbox');
+		const vaultCheckboxes = screen.getAllByTestId('vault-checkbox');
 
 		// Select first two vaults
 		await userEvent.click(vaultCheckboxes[0]);

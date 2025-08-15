@@ -146,6 +146,10 @@
 				<RaindexVaultsList[]>[]
 			);
 			// Now we can combine filtered VaultLists into one
+			if (filteredVaultListResults.length === 0) {
+				errToast('No selected vaults found in the loaded pages. Please refresh and try again.');
+				return;
+			}
 			const [first, ...rest] = filteredVaultListResults;
 			const combinedVaultsList = rest.reduce((prev, cur) => {
 				const result = prev.concat(cur);
@@ -230,7 +234,7 @@
 		<svelte:fragment slot="bodyRow" let:item>
 			<TableBodyCell tdClass="px-0" on:click={stopPropagation}>
 				<Checkbox
-					role="vault-checkbox"
+					data-testid="vault-checkbox"
 					class={`block px-2 py-4 ${$account !== item.owner ? 'invisible' : ''}`}
 					checked={selectedVaults.has(item.id)}
 					disabled={isDisabled(item)}
