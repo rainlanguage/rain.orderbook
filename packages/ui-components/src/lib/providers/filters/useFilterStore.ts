@@ -11,17 +11,15 @@ import { FILTER_STORE_CONTEXT, type FilterStoreContext } from './FilterStoreProv
  * @example
  * ```svelte
  * <script>
- *   import { useFilterStore } from './providers/filters/useFilterStore.js';
+ *   import { useFilterStore } from '@rainlanguage/ui-components';
  *
- *   const filterStore = useFilterStore();
+ *   const { filterStore, currentVaultsFilters } = useFilterStore();
  *
- *   function updateOwners(addresses) {
- *     $filterStore = $filterStore?.update(builder =>
- *       builder.setOwners(addresses)
- *     );
- *   }
+ *   const updateOwners = (addresses) => {
+ *     $filterStore?.updateVaults((builder) => builder.setOwners(addresses));
+ *   };
  *
- *   $: currentFilters = $filterStore?.getFilters();
+ *   $: console.log('Current vault filters', $currentVaultsFilters);
  * </script>
  * ```
  */

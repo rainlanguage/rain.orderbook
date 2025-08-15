@@ -36,7 +36,7 @@
 		  ) => void)
 		| undefined = undefined;
 
-	const { matchesAccount } = useAccount();
+	const { account } = useAccount();
 	const raindexClient = useRaindexClient();
 
 	// Use our new filter store instead of props
@@ -150,7 +150,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.owner)}
+			{#if handleDepositModal && handleWithdrawModal && $account && item.owner.toLowerCase() === $account.toLowerCase()}
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"

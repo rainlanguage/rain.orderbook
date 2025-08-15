@@ -31,7 +31,7 @@ impl std::error::Error for PersistentFilterStoreError {}
 
 impl From<anyhow::Error> for PersistentFilterStoreError {
     fn from(err: anyhow::Error) -> Self {
-        PersistentFilterStoreError::FilterUpdateError(format!("{:?}", err))
+        PersistentFilterStoreError::FilterUpdateError(err.to_string())
     }
 }
 

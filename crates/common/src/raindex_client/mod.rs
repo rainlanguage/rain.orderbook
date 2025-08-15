@@ -38,7 +38,7 @@ pub mod vaults;
 pub mod vaults_list;
 
 // Re-export commonly used types
-pub use filters::{VaultsFilterBuilder, VaultsFilterBuilderError};
+pub use filters::{GetVaultsFilters, VaultsFilterBuilder, VaultsFilterBuilderError};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);

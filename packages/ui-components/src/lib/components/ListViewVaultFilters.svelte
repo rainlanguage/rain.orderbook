@@ -39,14 +39,15 @@
 	const activeTokens = writable<`0x${string}`[]>([]);
 
 	const state = derived(
-		[showMyItemsOnly, hideZeroBalanceVaults, selectedChainIds, activeTokens],
+		[showMyItemsOnly, hideZeroBalanceVaults, selectedChainIds, activeTokens, account],
 		([
 			showMyItemsOnly,
 			hideZeroBalanceVaults,
 			selectedChainIds,
-			activeTokens
+			activeTokens,
+			accountVal
 		]): GetVaultsFilters => ({
-			owners: showMyItemsOnly && $account ? [$account] : [],
+			owners: showMyItemsOnly && accountVal ? [accountVal] : [],
 			hideZeroBalance: hideZeroBalanceVaults,
 			chainIds: selectedChainIds.length > 0 ? selectedChainIds : undefined,
 			tokens: activeTokens.length > 0 ? activeTokens : undefined
@@ -57,11 +58,7 @@
 	// to preload actual filter values in UI components
 	let isInited = false;
 	$: {
-		if (
-			!isInited &&
-			$currentVaultsFilters &&
-			!deepEqual($currentVaultsFilters, DEFAULT_VAULT_FILTERS)
-		) {
+		if (!isInited && $currentVaultsFilters) {
 			const filters = $currentVaultsFilters;
 			showMyItemsOnly.set(!!(filters.owners && filters.owners.length > 0));
 			hideZeroBalanceVaults.set(!!filters.hideZeroBalance);
@@ -98,7 +95,7 @@
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
-		{#if !accounts.error && accounts.value.size === 0}
+		{#if !accounts.error}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
 				<CheckboxMyItemsOnly context="vaults" {showMyItemsOnly} />
 				{#if !$account}
