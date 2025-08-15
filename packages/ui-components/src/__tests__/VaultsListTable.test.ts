@@ -265,8 +265,11 @@ describe('VaultsListTable', () => {
 		expect(vaultCheckboxes[1]).toBeDisabled();
 		await userEvent.hover(vaultCheckboxes[1]);
 		await waitFor(() =>
-		  expect(screen.getByText('This vault is on a different network')).toBeInTheDocument()
+			expect(screen.getByText('This vault is on a different network')).toBeInTheDocument()
 		);
+		// Clicking a disabled checkbox should have no effect
+		await userEvent.click(vaultCheckboxes[1]);
+		expect(vaultCheckboxes[1]).not.toBeChecked();
 	});
 
 	it('disables selection for zero-balance vaults and shows tooltip', async () => {

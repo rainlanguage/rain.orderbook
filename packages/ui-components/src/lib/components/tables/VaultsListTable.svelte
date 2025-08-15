@@ -220,7 +220,7 @@
 			</div>
 		</svelte:fragment>
 		<svelte:fragment slot="head">
-			<TableHeadCell padding="p-0"></TableHeadCell>
+			<TableHeadCell padding="p-0"><span class="sr-only">Select</span></TableHeadCell>
 			<TableHeadCell padding="p-4">Network</TableHeadCell>
 			<TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
 			<TableHeadCell padding="px-4 py-4">Orderbook</TableHeadCell>
