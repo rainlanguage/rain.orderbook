@@ -63,7 +63,11 @@ vi.mock('$lib/stores/wagmi', () => ({
 vi.mock('$lib/services/handleGuiInitialization', async () => ({
 	handleGuiInitialization: async (dotrain: string, deploymentKey: string) => {
 		const { DotrainOrderGui } = await import('@rainlanguage/orderbook');
-		const result = await DotrainOrderGui.newWithDeployment(dotrain, deploymentKey, mockPushGuiStateToUrlHistory);
+		const result = await DotrainOrderGui.newWithDeployment(
+			dotrain,
+			deploymentKey,
+			mockPushGuiStateToUrlHistory
+		);
 		if (result.error) return { gui: null, error: result.error.readableMsg };
 		return { gui: result.value, error: null };
 	}
@@ -232,19 +236,20 @@ describe('Full Deployment Tests', () => {
 				}
 
 				// Restore GUI State from the captured state
-				const gui = (await DotrainOrderGui.newFromState(
-					fixedLimitOrder,
-					latestGuiState,
-					null
-				)).value as DotrainOrderGui;
+				const gui = (await DotrainOrderGui.newFromState(fixedLimitOrder, latestGuiState, null))
+					.value as DotrainOrderGui;
 
 				// Ensure that GUI State already contains expected values
 				const token1Info = await gui.getTokenInfo('token1');
 				const token2Info = await gui.getTokenInfo('token2');
 				const fieldValue = gui.getFieldValue('fixed-io');
 
-				expect(token1Info?.value?.address.toLowerCase()).toEqual('0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
-				expect(token2Info?.value?.address.toLowerCase()).toEqual('0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
+				expect(token1Info?.value?.address.toLowerCase()).toEqual(
+					'0x12e605bc104e93b45e1ad99f9e555f659051c2bb'
+				);
+				expect(token2Info?.value?.address.toLowerCase()).toEqual(
+					'0x1d80c49bbbcd1c0911346656b529df9e5c2f783d'
+				);
 				expect(fieldValue?.value?.value).toEqual('10');
 
 				const args = await gui.getDeploymentTransactionArgs(
