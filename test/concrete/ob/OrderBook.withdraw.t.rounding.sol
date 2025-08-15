@@ -7,7 +7,7 @@ import {Test} from "forge-std/Test.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
+import {IERC20} from "test/util/concrete/Reenteroor.sol";
 import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -59,7 +59,7 @@ contract OrderBookWithdrawTestRounding is OrderBookExternalMockTest {
         vm.stopPrank();
         
         // Should still have zero balance since no deposit was made
-        assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).isZero(), "vault balance should be zero");
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).isZero(), "vault balance should be zero");
     }
 
     
