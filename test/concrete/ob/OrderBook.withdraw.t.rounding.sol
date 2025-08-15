@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import {OrderBookExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookExternalMockTest.sol";
+import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
 import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -32,7 +32,6 @@ contract OrderBookWithdrawTestRounding is OrderBookExternalMockTest {
         withdrawAmount18 = bound(withdrawAmount18, 1, type(uint256).max);
         decimals = bound(decimals, 0, 18);
         
-        vm.prank(alice);
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), 0),
@@ -55,7 +54,9 @@ contract OrderBookWithdrawTestRounding is OrderBookExternalMockTest {
         emit WithdrawV2(alice, address(iToken0), vaultId, withdrawAmount, Float.wrap(0), 0);
         
         TaskV2[] memory task = new TaskV2[](0);
+        vm.prank(alice);
         iOrderbook.withdraw3(address(iToken0), vaultId, withdrawAmount, task);
+        vm.stopPrank();
         
         // Should still have zero balance since no deposit was made
         assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).isZero(), "vault balance should be zero");
