@@ -13,6 +13,7 @@
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { onDestroy } from 'svelte';
+	import { useFilterStore } from '$lib/providers/filters';
 
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 
