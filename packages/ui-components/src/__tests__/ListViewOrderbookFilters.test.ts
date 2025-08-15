@@ -30,8 +30,7 @@ vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: vi.fn()
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
+type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters>;
 
 describe('ListViewOrderbookFilters', () => {
 	const mockGetAllAccounts = vi.fn();

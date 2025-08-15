@@ -1,4 +1,4 @@
-<script lang="ts" generics="T extends keyof SeriesOptionsMap, D, O">
+<script lang="ts" generics="T extends keyof SeriesOptionsMap, O">
 	import type { Readable } from 'svelte/store';
 
 	// eslint-disable-next-line no-undef

@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
