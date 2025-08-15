@@ -240,8 +240,9 @@
 					disabled={isDisabled(item, selectedVaultsOnChainId)}
 					on:change={getToggleSelectVaultHandler(item.id, item.chainId)}
 					on:click={stopPropagation}
+					aria-label={`Select vault ${item.id}`}
 				/>
-				{#if isDisabled(item, selectedVaultsOnChainId)}
+				{#if $account === item.owner && isDisabled(item, selectedVaultsOnChainId)}
 					<Tooltip>
 						{isZeroBalance(item)
 							? 'This vault has a zero balance'
