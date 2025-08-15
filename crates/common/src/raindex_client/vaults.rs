@@ -2,7 +2,9 @@ use super::*;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
-    raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
+    raindex_client::{
+        filters::GetVaultsFilters, orders::RaindexOrderAsIO, transactions::RaindexTransaction,
+    },
     transaction::TransactionArgs,
     utils::amount_formatter::format_amount_u256,
     withdraw::WithdrawArgs,
@@ -17,7 +19,7 @@ use rain_orderbook_subgraph_client::{
     types::{
         common::{
             SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTradeVaultBalanceChange,
-            SgVault, SgVaultBalanceChangeUnwrapped, SgVaultsListFilterArgs,
+            SgVault, SgVaultBalanceChangeUnwrapped,
         },
         Id,
     },
@@ -957,12 +959,7 @@ impl RaindexClient {
     pub async fn get_vaults(
         &self,
         #[wasm_export(
-            js_name = "chainIds",
-            param_description = "Specific networks to query (optional)"
-        )]
-        chain_ids: Option<ChainIds>,
-        #[wasm_export(
-            param_description = "Optional filtering options including owners and hide_zero_balance"
+            param_description = "Optional filtering options including owners, hideZeroBalance, tokens, and chainIds"
         )]
         filters: Option<GetVaultsFilters>,
         #[wasm_export(param_description = "Optional page number (defaults to 1)")] page: Option<
@@ -970,21 +967,18 @@ impl RaindexClient {
         >,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let multi_subgraph_args =
-            self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
+
+        // Extract chain_ids from filters if provided
+        let chain_ids = filters.as_ref().and_then(|f| f.chain_ids.clone());
+        let multi_subgraph_args = self.get_multi_subgraph_args(chain_ids)?;
+
         let client = MultiOrderbookSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
         );
 
         let vaults = client
             .vaults_list(
-                filters
-                    .unwrap_or(GetVaultsFilters {
-                        owners: vec![],
-                        hide_zero_balance: false,
-                        tokens: None,
-                    })
-                    .try_into()?,
+                filters.unwrap_or_default().try_into()?,
                 SgPaginationArgs {
                     page: page.unwrap_or(1),
                     page_size: DEFAULT_PAGE_SIZE,
@@ -1132,40 +1126,6 @@ impl RaindexClient {
             None,
         )?;
         Ok(vault)
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct GetVaultsFilters {
-    #[tsify(type = "Address[]")]
-    pub owners: Vec<Address>,
-    pub hide_zero_balance: bool,
-    #[tsify(optional, type = "Address[]")]
-    pub tokens: Option<Vec<Address>>,
-}
-impl_wasm_traits!(GetVaultsFilters);
-
-impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
-    type Error = RaindexError;
-    fn try_from(filters: GetVaultsFilters) -> Result<Self, Self::Error> {
-        Ok(Self {
-            owners: filters
-                .owners
-                .into_iter()
-                .map(|owner| SgBytes(owner.to_string()))
-                .collect(),
-            hide_zero_balance: filters.hide_zero_balance,
-            tokens: filters
-                .tokens
-                .map(|tokens| {
-                    tokens
-                        .into_iter()
-                        .map(|token| token.to_string().to_lowercase())
-                        .collect()
-                })
-                .unwrap_or_default(),
-        })
     }
 }
 
@@ -1374,8 +1334,7 @@ mod tests {
                 None,
             )
             .unwrap();
-
-            let result = raindex_client.get_vaults(None, None, None).await.unwrap();
+            let result = raindex_client.get_vaults(None, None).await.unwrap();
             assert_eq!(result.len(), 2);
 
             let vault1 = result[0].clone();
@@ -2185,10 +2144,11 @@ mod tests {
                     "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 )
                 .unwrap()]),
+                chain_ids: None,
             };
 
             let result = raindex_client
-                .get_vaults(None, Some(filters), None)
+                .get_vaults(Some(filters), None)
                 .await
                 .unwrap();
 
@@ -2239,10 +2199,11 @@ mod tests {
                     Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
                     Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
+                chain_ids: None,
             };
 
             let result = raindex_client
-                .get_vaults(None, Some(filters), None)
+                .get_vaults(Some(filters), None)
                 .await
                 .unwrap();
 

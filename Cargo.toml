@@ -57,6 +57,7 @@ portpicker = "0.1.1"
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "1014cbd72fab790b4ab1f5aab3e6780f13cd8efb" }
 rain-math-float = { path = "lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float/crates/float" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "bf08b5ab305287fc49408a441d6375f35dc280db" }
+wasm-bindgen = "0.2.100"
 wasm-bindgen-utils = { git = "https://github.com/rainlanguage/rain.wasm", rev = "06990d85a0b7c55378a1c8cca4dd9e2bc34a596a" }
 tempfile = "3.20.0"
 eyre = "0.6.12"

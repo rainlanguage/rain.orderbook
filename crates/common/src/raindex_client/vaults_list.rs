@@ -258,7 +258,7 @@ mod tests {
                 None,
             )
             .unwrap();
-            let vaults = raindex_client.get_vaults(None, None, None).await.unwrap();
+            let vaults = raindex_client.get_vaults(None, None).await.unwrap();
             vaults
         }
 
