@@ -17,15 +17,13 @@ import {EvaluableV3} from "rain.interpreter.interface/interface/IInterpreterCall
 contract OrderBookWithdrawRoundingTest is OrderBookExternalMockTest {
     using Math for uint256;
 
-    function testWithdrawRounding() external
-    {
-        
+    function testWithdrawRounding() external {
         address alice = address(0x3392c4b753fe2f12C34a4e4C90e2023F79498C3B); // Fix: assign a proper address
-        uint256 vaultId = 0x12345; 
+        uint256 vaultId = 0x12345;
         // In order to replicate the exact fail, there wasnt any deposit made to the vault.
         uint256 depositAmount = 0;
         uint256 withdrawAmount = type(uint256).max;
-        
+
         vm.prank(alice);
         // Fix: Mock the token properly for all calls, not just the specific one
         vm.mockCall(
@@ -33,21 +31,17 @@ contract OrderBookWithdrawRoundingTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        
+
         // Fix: Also mock approve if needed
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.approve.selector, address(iOrderbook), type(uint256).max),
             abi.encode(true)
         );
-        
+
         // Mock decimals() to return 6
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(6)
-        );
-        
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
+
         vm.mockCall(
             address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, depositAmount), abi.encode(true)
         );
@@ -57,7 +51,7 @@ contract OrderBookWithdrawRoundingTest is OrderBookExternalMockTest {
         TaskV1[] memory task = new TaskV1[](1);
         bytes memory taskBytecode = hex"";
         task[0] = TaskV1(EvaluableV3(iInterpreter, iStore, taskBytecode), new SignedContextV1[](0));
-        
+
         iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, task);
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), 0);
     }
