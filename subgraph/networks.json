@@ -7,8 +7,8 @@
     },
     "base": {
         "OrderBook": {
-            "address": "0x5f0ef3256ac5d2c57ac8550d3f0d5aa914be84df",
-            "startBlock": 34148305
+            "address": "0x84c6e7F5A1e5dD89594Cc25BEf4722A1b8871aE6",
+            "startBlock": 34241018
         }
     },
     "bsc": {
@@ -19,8 +19,8 @@
     },
     "arbitrum-one": {
         "OrderBook": {
-            "address": "0x783b82f0fBF6743882072AE2393B108F5938898B",
-            "startBlock": 367977688
+            "address": "0xbc176c5884ca778b91729c0092245905df28cd8f",
+            "startBlock": 368726460
         }
     },
     "matic": {
