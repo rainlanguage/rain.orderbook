@@ -1,6 +1,6 @@
 use rain_metadata::{
     types::{
-        dotrain::gui_state_v1::{DotrainGuiStateV1, TokenCfg, ValueCfg},
+        dotrain::gui_state_v1::{DotrainGuiStateV1, ShortenedTokenCfg, ValueCfg},
         dotrain::source_v1::DotrainSourceV1,
     },
     RainMetaDocumentV1Item,
@@ -491,8 +491,8 @@ impl DotrainOrderGui {
             })
             .collect();
 
-        // Convert select_tokens to TokenCfg format directly
-        let select_tokens: BTreeMap<String, TokenCfg> = {
+        // Convert select_tokens to ShortenedTokenCfg format directly
+        let select_tokens: BTreeMap<String, ShortenedTokenCfg> = {
             let mut result = BTreeMap::new();
             let deployment_select_tokens = GuiCfg::parse_select_tokens(
                 self.dotrain_order.dotrain_yaml().documents,
@@ -508,7 +508,7 @@ impl DotrainOrderGui {
                     {
                         result.insert(
                             select_token.key,
-                            TokenCfg {
+                            ShortenedTokenCfg {
                                 network: token.network.key.clone(),
                                 address: token.address,
                             },

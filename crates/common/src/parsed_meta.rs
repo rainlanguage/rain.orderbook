@@ -61,7 +61,7 @@ impl ParsedMeta {
 #[cfg(test)]
 mod tests {
     use alloy::{hex::FromHex, primitives::Address};
-    use rain_metadata::types::dotrain::gui_state_v1::{TokenCfg, ValueCfg};
+    use rain_metadata::types::dotrain::gui_state_v1::{ShortenedTokenCfg, ValueCfg};
 
     use super::*;
     use std::collections::BTreeMap;
@@ -90,7 +90,7 @@ mod tests {
             )]),
             select_tokens: BTreeMap::from([(
                 "token1".to_string(),
-                TokenCfg {
+                ShortenedTokenCfg {
                     network: "mainnet".to_string(),
                     address: Address::from_hex("0x1234567890123456789012345678901234567890")
                         .unwrap(),

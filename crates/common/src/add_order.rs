@@ -1651,7 +1651,7 @@ price: 2e18;
             )]),
             select_tokens: BTreeMap::from([(
                 "token1".to_string(),
-                rain_metadata::types::dotrain::gui_state_v1::TokenCfg {
+                rain_metadata::types::dotrain::gui_state_v1::ShortenedTokenCfg {
                     network: "ethereum".to_string(),
                     address: Address::default(),
                 },
