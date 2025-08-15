@@ -36,6 +36,14 @@ pub enum DepositError {
     FloatError(#[from] FloatError),
 }
 
+/// Lightweight args for ERC20 approval/allowance flows where vault_id is irrelevant.
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ApproveArgs {
+    pub token: Address,
+    pub amount: Float,
+    pub decimals: u8,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DepositArgs {
     pub token: Address,
@@ -59,7 +67,7 @@ impl TryFrom<DepositArgs> for deposit3Call {
     }
 }
 
-impl DepositArgs {
+impl ApproveArgs {
     /// Execute read IERC20 allowance call
     pub async fn read_allowance(
         &self,
@@ -112,6 +120,43 @@ impl DepositArgs {
         }
 
         Ok(())
+    }
+}
+
+impl From<DepositArgs> for ApproveArgs {
+    fn from(value: DepositArgs) -> Self {
+        ApproveArgs {
+            token: value.token,
+            amount: value.amount,
+            decimals: value.decimals,
+        }
+    }
+}
+
+impl DepositArgs {
+    /// Execute read IERC20 allowance call (deprecated: use ApproveArgs::read_allowance)
+    #[deprecated(note = "Use ApproveArgs::read_allowance instead; DepositArgs is for deposits")]
+    pub async fn read_allowance(
+        &self,
+        owner: Address,
+        transaction_args: TransactionArgs,
+    ) -> Result<U256, DepositError> {
+        let approve_args: ApproveArgs = self.clone().into();
+        approve_args.read_allowance(owner, transaction_args).await
+    }
+
+    /// Execute IERC20 approve call (deprecated: use ApproveArgs::execute_approve)
+    #[cfg(not(target_family = "wasm"))]
+    #[deprecated(note = "Use ApproveArgs::execute_approve instead; DepositArgs is for deposits")]
+    pub async fn execute_approve<S: Fn(WriteTransactionStatus<approveCall>)>(
+        &self,
+        transaction_args: TransactionArgs,
+        transaction_status_changed: S,
+    ) -> Result<(), DepositError> {
+        let approve_args: ApproveArgs = self.clone().into();
+        approve_args
+            .execute_approve(transaction_args, transaction_status_changed)
+            .await
     }
 
     /// Execute OrderbookV3 deposit call
