@@ -474,6 +474,7 @@ mod tests {
             "TKN3".to_string(),
         );
         gui.set_deposit("token3".to_string(), "100".to_string())
+            .await
             .unwrap();
         gui.set_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();

@@ -8,7 +8,7 @@ use rain_metadata::{
 
 use super::*;
 use alloy::{
-    primitives::{utils::parse_units, Bytes, FixedBytes, B256, U256},
+    primitives::{Bytes, FixedBytes, B256, U256},
     sol_types::SolCall,
 };
 use rain_math_float::Float;
@@ -353,7 +353,7 @@ impl DotrainOrderGui {
                 let calldata = approveCall {
                     spender: tx_args.orderbook_address,
                     amount: deposit_amount
-                        .sub(allowance_float)?
+                        .sub_js(&allowance_float)?
                         .to_fixed_decimal(decimals)?,
                 }
                 .abi_encode();
@@ -1086,6 +1086,7 @@ mod tests {
 
         // Set up deposits and vault IDs to test DotrainGuiStateV1
         gui.set_deposit("token1".to_string(), "500".to_string())
+            .await
             .unwrap();
         gui.set_vault_id(
             VaultType::Input,
