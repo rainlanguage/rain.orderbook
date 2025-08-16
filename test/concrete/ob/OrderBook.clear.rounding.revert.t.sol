@@ -85,4 +85,24 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         iOrderbook.clear2(aliceOrder, bobOrder, clearConfig, new SignedContextV1[](0), new SignedContextV1[](0));
         vm.stopPrank();
     }
+
+    function testClearOrderHandleRoundingIO2() external {
+        address aliceInputToken = address(0x100);
+        address aliceOutputToken = address(0x101);
+        address alice = address(0x102);
+        address bob = address(0x103);
+        address carol = address(0x104);
+
+        bytes memory aliceString = "_ _:1.31265123527323842 0.003025306690465745;:;";
+        bytes memory bobString = "_ _:0.0055458 126.727037181795737818;:;";
+
+        OrderV3 memory aliceOrder = userDeposit(aliceString, alice, aliceInputToken, aliceOutputToken, 18, 6, 1000e6);
+        OrderV3 memory bobOrder = userDeposit(bobString, bob, aliceOutputToken, aliceInputToken, 6, 18, 1000e18);
+
+        ClearConfig memory clearConfig = ClearConfig(0, 0, 0, 0, 1, 1);
+
+        vm.startPrank(carol);
+        iOrderbook.clear2(aliceOrder, bobOrder, clearConfig, new SignedContextV1[](0), new SignedContextV1[](0));
+        vm.stopPrank();
+    }
 }
