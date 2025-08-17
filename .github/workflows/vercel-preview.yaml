@@ -74,17 +74,12 @@ jobs:
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: test
 
-      - name: Install Vercel CLI
+      - name: Install Vercel CLI (local, pinned)
         shell: bash --noprofile --norc -euo pipefail {0}
-        working-directory: /tmp
-        env:
-          NPM_CONFIG_USERCONFIG: /dev/null
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_PREFIX: /usr/local
-          PATH: /usr/local/bin:/usr/bin:/bin
         run: |
-          npm install --global vercel@canary --registry="$NPM_CONFIG_REGISTRY" --prefix="$NPM_CONFIG_PREFIX"
+          VERCEL_DIR="$(mktemp -d)"
+          npm install --no-audit --no-fund --no-save --prefix "$VERCEL_DIR" vercel@33.4.1
+          echo "VERCEL_BIN=$VERCEL_DIR/node_modules/.bin/vercel" >> "$GITHUB_ENV"
       - name: Pull Vercel Environment Information
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
@@ -92,8 +87,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          export PATH="/usr/local/bin:/usr/bin:/bin"
-          /usr/local/bin/vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          "$VERCEL_BIN" pull --yes --environment=preview --token="$VERCEL_TOKEN"
       - name: Deploy Project Artifacts to Vercel
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
@@ -101,8 +95,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          export PATH="/usr/local/bin:/usr/bin:/bin"
-          /usr/local/bin/vercel deploy --prebuilt --token="$VERCEL_TOKEN" packages/webapp
+          "$VERCEL_BIN" deploy --prebuilt --token="$VERCEL_TOKEN" packages/webapp
 
   Deploy-Preview-PR:
     if: ${{ github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'vercel-preview') }}
@@ -140,24 +133,19 @@ jobs:
 
       - run: ./prep-all.sh
         env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID != '' && secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+          PUBLIC_WALLETCONNECT_PROJECT_ID: test
 
       - run: nix develop .#webapp-shell -c npm run build
         working-directory: packages/webapp
         env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID != '' && secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+          PUBLIC_WALLETCONNECT_PROJECT_ID: test
 
-      - name: Install Vercel CLI
+      - name: Install Vercel CLI (local, pinned)
         shell: bash --noprofile --norc -euo pipefail {0}
-        working-directory: /tmp
-        env:
-          NPM_CONFIG_USERCONFIG: /dev/null
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_PREFIX: /usr/local
-          PATH: /usr/local/bin:/usr/bin:/bin
         run: |
-          npm install --global vercel@canary --registry="$NPM_CONFIG_REGISTRY" --prefix="$NPM_CONFIG_PREFIX"
+          VERCEL_DIR="$(mktemp -d)"
+          npm install --no-audit --no-fund --no-save --prefix "$VERCEL_DIR" vercel@33.4.1
+          echo "VERCEL_BIN=$VERCEL_DIR/node_modules/.bin/vercel" >> "$GITHUB_ENV"
       - name: Pull Vercel Environment Information
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
@@ -165,8 +153,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          export PATH="/usr/local/bin:/usr/bin:/bin"
-          /usr/local/bin/vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          "$VERCEL_BIN" pull --yes --environment=preview --token="$VERCEL_TOKEN"
       - name: Deploy Project Artifacts to Vercel
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
@@ -174,5 +161,4 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          export PATH="/usr/local/bin:/usr/bin:/bin"
-          /usr/local/bin/vercel deploy --prebuilt --token="$VERCEL_TOKEN" packages/webapp
+          "$VERCEL_BIN" deploy --prebuilt --token="$VERCEL_TOKEN" packages/webapp
