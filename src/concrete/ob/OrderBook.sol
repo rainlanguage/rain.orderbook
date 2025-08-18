@@ -980,9 +980,9 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         // If Alice's input is greater than Bob's max output, Alice's input is
         // capped at Bob's max output.
-        bool isAliceInputCapped = false;
-        if (Input18Amount.unwrap(aliceInputMax18) > Output18Amount.unwrap(bobOrderIOCalculation.outputMax)) {
-            isAliceInputCapped = true;
+        bool isAliceInputCapped =
+            Input18Amount.unwrap(aliceInputMax18) > Output18Amount.unwrap(bobOrderIOCalculation.outputMax);
+        if (isAliceInputCapped) {
             aliceInputMax18 = Input18Amount.wrap(Output18Amount.unwrap(bobOrderIOCalculation.outputMax));
 
             // Alice's output is capped at her input / her IO ratio.
