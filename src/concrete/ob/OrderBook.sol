@@ -997,22 +997,27 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // This is only safe if we have previously checked that the decimals
         // match for alice and bob per token, otherwise bob could manipulate
         // alice's intent.
-        uint256 aliceInputUp = Input18Amount.unwrap(aliceInputMax18).scaleN(
-            bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals, FLAG_ROUND_UP
-        );
-        aliceInput = Input18Amount.unwrap(aliceInputMax18).scaleN(
-            bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals, 0
-        );
+        uint256 aliceInputDecimals =
+            bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals;
+        uint256 aliceInputUp = Input18Amount.unwrap(aliceInputMax18).scaleN(aliceInputDecimals, FLAG_ROUND_UP);
+        aliceInput = Input18Amount.unwrap(aliceInputMax18).scaleN(aliceInputDecimals, 0);
 
         if (aliceInputUp > aliceInput) {
-            uint256 OIRatio = uint256(1e18).fixedPointDiv(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
-            aliceOutputMax18 = Output18Amount.wrap(Output18Amount.unwrap(aliceOutputMax18) - OIRatio);
+            uint256 aliceDiffOutput18;
+            unchecked {
+                uint256 aliceDiffInput18 = (aliceInputUp - aliceInput).scale18(aliceInputDecimals, 0);
+                // Round up the output diff so that alice increases her effective
+                // IO ratio.
+                aliceDiffOutput18 = aliceDiffInput18.fixedPointDiv(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
+            }
+
+            aliceOutputMax18 = Output18Amount.wrap(Output18Amount.unwrap(aliceOutputMax18) - aliceDiffOutput18);
         }
 
         // Alice's final output is the scaled version of the 18 decimal output,
         // rounded down to benefit Alice.
-        aliceOutput = Output18Amount.unwrap(aliceOutputMax18).scaleN(
-            aliceOrderIOCalculation.order.validOutputs[aliceOrderIOCalculation.outputIOIndex].decimals, 0
-        );
+        uint256 aliceOutputDecimals =
+            aliceOrderIOCalculation.order.validOutputs[aliceOrderIOCalculation.outputIOIndex].decimals;
+        aliceOutput = Output18Amount.unwrap(aliceOutputMax18).scaleN(aliceOutputDecimals, 0);
     }
 }
