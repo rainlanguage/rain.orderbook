@@ -53,21 +53,21 @@
 
 	// Sync from FilterStore to individual stores
 	// to preload actual filter values in UI components
-	let isInited = false;
 	$: {
-		if (!isInited && $currentVaultsFilters) {
+		if ($currentVaultsFilters) {
 			const filters = $currentVaultsFilters;
 			showMyItemsOnly.set(!!(filters.owners && filters.owners.length > 0));
 			hideZeroBalanceVaults.set(!!filters.hideZeroBalance);
 			selectedChainIds.set(filters.chainIds ?? []);
 			activeTokens.set(filters.tokens ?? []);
-			isInited = true;
 		}
 	}
 
-	// Sync from individual stores to FilterStore
+	// Sync from individual stores to FilterStore (with protection against update loops)
+	let isUpdating = false;
 	const unsub = state.subscribe((filters) => {
-		if (!isInited) return;
+		if (isUpdating) return;
+		isUpdating = true;
 		$filterStore?.updateVaults((builder) =>
 			builder
 				.setOwners(filters.owners)
@@ -75,6 +75,7 @@
 				.setChainIds(filters.chainIds)
 				.setTokens(filters.tokens)
 		);
+		setTimeout(() => (isUpdating = false), 0);
 	});
 
 	onDestroy(() => unsub());
