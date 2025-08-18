@@ -1005,9 +1005,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         aliceInput = Input18Amount.unwrap(aliceInputMax18).scaleN(aliceInputDecimals, 0);
 
         if (aliceInputUp > aliceInput) {
-            if (!isAliceInputCapped) {
-                aliceInput = aliceInputUp;
-            } else {
+            if (isAliceInputCapped) {
                 uint256 aliceDiffOutput18;
                 unchecked {
                     uint256 aliceDiffInput18 = (aliceInputUp - aliceInput).scale18(aliceInputDecimals, 0);
@@ -1018,6 +1016,8 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 }
 
                 aliceOutputMax18 = Output18Amount.wrap(Output18Amount.unwrap(aliceOutputMax18) - aliceDiffOutput18);
+            } else {
+                aliceInput = aliceInputUp;
             }
         }
 
