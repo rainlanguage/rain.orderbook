@@ -1005,6 +1005,11 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         aliceInput = Input18Amount.unwrap(aliceInputMax18).scaleN(aliceInputDecimals, 0);
 
         if (aliceInputUp > aliceInput) {
+            // If alice's input was capped, we need to use the rounded down
+            // scaled input, so that it doesn't accidentally exceed the cap.
+            // But if we round her input down, we have to also reduce her output
+            // by the OI ratio (inverse of the IO ratio) so that she doesn't
+            // experience a worse IO ratio than she set.
             if (isAliceInputCapped) {
                 uint256 aliceDiffOutput18;
                 unchecked {
@@ -1016,7 +1021,14 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 }
 
                 aliceOutputMax18 = Output18Amount.wrap(Output18Amount.unwrap(aliceOutputMax18) - aliceDiffOutput18);
-            } else {
+            }
+            // If alice's input was not capped, then we can use the rounded up
+            // version of her input and leave her output as is. This is important
+            // because it's likely that bob's input is capped/set to her output
+            // in this case, so decreasing alice's output here would cause bob to
+            // effectively exceed his cap.
+            // Rounding up alice's input here respects her IO ratio.
+            else {
                 aliceInput = aliceInputUp;
             }
         }
