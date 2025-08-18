@@ -14,9 +14,9 @@
 	export let query: CreateInfiniteQueryResult<InfiniteData<InputData, unknown>, Error>;
 	export let emptyMessage: string = 'None found';
 	export let rowHoverable = true;
-	// Selector to extract T[] from each page of type R
-	export let dataSelector: (pageData: InputData) => DataItem[] = (data) =>
-		data as unknown as DataItem[];
+	// Selector to extract DataItem[] from each page of type InputData
+	export let dataSelector: (pageData: InputData) => DataItem[] = (pageData) =>
+		Array.isArray(pageData) ? (pageData as unknown as DataItem[]) : [];
 
 	// Transform the query data by applying dataSelector to each page
 	$: data = $query.data

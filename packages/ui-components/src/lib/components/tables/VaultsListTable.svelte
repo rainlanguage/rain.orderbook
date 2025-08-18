@@ -52,10 +52,10 @@
 		| undefined = undefined;
 
 	export let onWithdrawAll:
-		| ((raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void)
+		| ((raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void | Promise<void>)
 		| undefined = undefined;
 
-	const { account, matchesAccount } = useAccount();
+	const { account } = useAccount();
 	const raindexClient = useRaindexClient();
 
 	$: owners =
@@ -103,6 +103,12 @@
 		enabled: true
 	});
 
+	$: if (selectedVaults.size > 0 && !$account) {
+		// If User disconnected — clear selected vaults
+		selectedVaults = new Set<string>();
+		selectedVaultsOnChainId = null;
+	}
+
 	let selectedVaults = new Set<string>();
 	let selectedVaultsOnChainId: number | null = null;
 	const getToggleSelectVaultHandler = (vaultId: string, chainId: number) => (e: Event) => {
@@ -130,12 +136,10 @@
 		}
 		// Combine across all loaded pages so selections beyond the first page are respected
 		const selectedIds = Array.from(selectedVaults);
-		// Get all vault lists from all pages
-		const vaultsLists = pages.flatMap((page) => page);
 		try {
 			// We need to pick by ids from all vaults first to get filtered copies,
 			// otherwise it may break wasm reference
-			const filteredVaultListResults = vaultsLists.reduce(
+			const filteredVaultListResults = pages.reduce(
 				(prev, cur) => {
 					const result = cur.pickByIds(selectedIds);
 					if (result.error) {
@@ -300,7 +304,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.owner)}
+			{#if handleDepositModal && handleWithdrawModal && item.owner.toLowerCase() === $account?.toLowerCase()}
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"
