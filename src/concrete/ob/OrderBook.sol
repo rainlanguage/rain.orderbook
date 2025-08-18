@@ -980,7 +980,9 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         // If Alice's input is greater than Bob's max output, Alice's input is
         // capped at Bob's max output.
-        if (Input18Amount.unwrap(aliceInputMax18) > Output18Amount.unwrap(bobOrderIOCalculation.outputMax)) {
+        bool isAliceInputCapped =
+            Input18Amount.unwrap(aliceInputMax18) > Output18Amount.unwrap(bobOrderIOCalculation.outputMax);
+        if (isAliceInputCapped) {
             aliceInputMax18 = Input18Amount.wrap(Output18Amount.unwrap(bobOrderIOCalculation.outputMax));
 
             // Alice's output is capped at her input / her IO ratio.
@@ -1003,15 +1005,32 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         aliceInput = Input18Amount.unwrap(aliceInputMax18).scaleN(aliceInputDecimals, 0);
 
         if (aliceInputUp > aliceInput) {
-            uint256 aliceDiffOutput18;
-            unchecked {
-                uint256 aliceDiffInput18 = (aliceInputUp - aliceInput).scale18(aliceInputDecimals, 0);
-                // Round up the output diff so that alice increases her effective
-                // IO ratio.
-                aliceDiffOutput18 = aliceDiffInput18.fixedPointDiv(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
-            }
+            // If alice's input was capped, we need to use the rounded down
+            // scaled input, so that it doesn't accidentally exceed the cap.
+            // But if we round her input down, we have to also reduce her output
+            // by the OI ratio (inverse of the IO ratio) so that she doesn't
+            // experience a worse IO ratio than she set.
+            if (isAliceInputCapped) {
+                uint256 aliceDiffOutput18;
+                unchecked {
+                    uint256 aliceDiffInput18 = (aliceInputUp - aliceInput).scale18(aliceInputDecimals, 0);
+                    // Round up the output diff so that alice increases her effective
+                    // IO ratio.
+                    aliceDiffOutput18 =
+                        aliceDiffInput18.fixedPointDiv(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
+                }
 
-            aliceOutputMax18 = Output18Amount.wrap(Output18Amount.unwrap(aliceOutputMax18) - aliceDiffOutput18);
+                aliceOutputMax18 = Output18Amount.wrap(Output18Amount.unwrap(aliceOutputMax18) - aliceDiffOutput18);
+            }
+            // If alice's input was not capped, then we can use the rounded up
+            // version of her input and leave her output as is. This is important
+            // because it's likely that bob's input is capped/set to her output
+            // in this case, so decreasing alice's output here would cause bob to
+            // effectively exceed his cap.
+            // Rounding up alice's input here respects her IO ratio.
+            else {
+                aliceInput = aliceInputUp;
+            }
         }
 
         // Alice's final output is the scaled version of the 18 decimal output,
