@@ -1502,10 +1502,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
 				await raindexClient.getVaults(
-					undefined,
 					{
 						owners: [],
-						hideZeroBalance: false
+						hideZeroBalance: false,
+						chainIds: undefined
 					},
 					1
 				)

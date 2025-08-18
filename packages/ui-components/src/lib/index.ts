@@ -151,3 +151,11 @@ export { TransactionManager } from './providers/transactions/TransactionManager'
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
+
+// Filters
+export {
+	FilterStoreProvider,
+	useFilterStore,
+	RaindexFilterStore,
+	GetVaultsFilterBuilder
+} from './providers/filters';

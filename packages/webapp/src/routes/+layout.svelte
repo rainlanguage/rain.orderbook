@@ -11,7 +11,8 @@
 		ToastProvider,
 		WalletProvider,
 		FixedBottomTransaction,
-		RaindexClientProvider
+		RaindexClientProvider,
+		FilterStoreProvider
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
@@ -49,28 +50,32 @@
 <ToastProvider>
 	<WalletProvider account={signerAddress}>
 		<QueryClientProvider client={queryClient}>
-			<TransactionProviderWrapper>
-				<LoadingWrapper>
-					{#if $page.url.pathname === '/'}
-						<Homepage {colorTheme} />
-					{:else if errorMessage}
-						<ErrorPage />
-					{:else}
-						<RaindexClientProvider {raindexClient}>
-							<div
-								data-testid="layout-container"
-								class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-							>
-								<Sidebar {colorTheme} page={$page} />
-								<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-									<slot />
-								</main>
-							</div>
-						</RaindexClientProvider>
-					{/if}
-					<FixedBottomTransaction />
-				</LoadingWrapper>
-			</TransactionProviderWrapper>
+			<FilterStoreProvider>
+				<TransactionProviderWrapper>
+					<LoadingWrapper>
+						{#if $page.url.pathname === '/'}
+							<Homepage {colorTheme} />
+						{:else if errorMessage}
+							<ErrorPage />
+						{:else}
+							<RaindexClientProvider {raindexClient}>
+								<div
+									data-testid="layout-container"
+									class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+								>
+									<Sidebar {colorTheme} page={$page} />
+									<main
+										class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8"
+									>
+										<slot />
+									</main>
+								</div>
+							</RaindexClientProvider>
+						{/if}
+						<FixedBottomTransaction />
+					</LoadingWrapper>
+				</TransactionProviderWrapper>
+			</FilterStoreProvider>
 		</QueryClientProvider>
 	</WalletProvider>
 </ToastProvider>

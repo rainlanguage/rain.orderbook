@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import ListViewVaultFilters from '../ListViewVaultFilters.svelte';
+
 	import { toHex } from 'viem';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -6,26 +8,19 @@
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
-	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { RaindexVault } from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
-	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
+	import { useFilterStore } from '$lib/providers/filters';
 	import { getAllContexts } from 'svelte';
 
 	const context = getAllContexts();
 
-	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
-	export let orderHash: AppStoresInterface['orderHash'];
-	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
-	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
-	export let activeTokens: AppStoresInterface['activeTokens'];
-	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	// Keep some legacy props that are not filter-related
 	export let handleDepositModal:
 		| ((
 				vault: RaindexVault,
@@ -41,43 +36,28 @@
 		  ) => void)
 		| undefined = undefined;
 
-	const { account, matchesAccount } = useAccount();
+	const { account } = useAccount();
 	const raindexClient = useRaindexClient();
 
-	$: owners =
-		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
-			? Object.values($activeAccountsItems)
-			: $showMyItemsOnly && $account
-				? [$account]
-				: [];
+	// Use our new filter store instead of props
+	const { currentVaultsFilters } = useFilterStore();
+
+	$: chainIds = $currentVaultsFilters?.chainIds ?? [];
 
 	$: tokensQuery = createQuery({
-		queryKey: [QKEY_TOKENS, $selectedChainIds],
+		queryKey: [QKEY_TOKENS, chainIds],
 		queryFn: async () => {
-			const result = await raindexClient.getAllVaultTokens($selectedChainIds);
+			const result = await raindexClient.getAllVaultTokens(chainIds);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
 		enabled: true
 	});
 
-	$: selectedTokens =
-		$activeTokens?.filter(
-			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
-		) ?? [];
-
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_VAULTS, $hideZeroBalanceVaults, $selectedChainIds, owners, selectedTokens],
+		queryKey: [QKEY_VAULTS, $currentVaultsFilters],
 		queryFn: async ({ pageParam }) => {
-			const result = await raindexClient.getVaults(
-				$selectedChainIds,
-				{
-					owners,
-					hideZeroBalance: $hideZeroBalanceVaults,
-					tokens: selectedTokens
-				},
-				pageParam + 1
-			);
+			const result = await raindexClient.getVaults($currentVaultsFilters, pageParam + 1);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
@@ -93,17 +73,7 @@
 </script>
 
 {#if $query}
-	<ListViewOrderbookFilters
-		{selectedChainIds}
-		{activeAccountsItems}
-		{showMyItemsOnly}
-		{showInactiveOrders}
-		{orderHash}
-		{hideZeroBalanceVaults}
-		{activeTokens}
-		{tokensQuery}
-		{selectedTokens}
-	/>
+	<ListViewVaultFilters {tokensQuery} />
 	<AppTable
 		{query}
 		queryKey={QKEY_VAULTS}
@@ -180,7 +150,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.owner)}
+			{#if handleDepositModal && handleWithdrawModal && $account && item.owner.toLowerCase() === $account.toLowerCase()}
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"
