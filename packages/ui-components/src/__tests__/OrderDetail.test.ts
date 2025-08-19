@@ -16,7 +16,7 @@ import type { ComponentProps } from 'svelte';
 import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 import { useToasts } from '$lib/providers/toasts/useToasts';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-import { QKEY_ORDER } from '../lib';
+import { QKEY_ORDER } from '$lib';
 
 vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: vi.fn()
