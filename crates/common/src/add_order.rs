@@ -176,10 +176,15 @@ impl AddOrderArgs {
         };
         meta_docs.push(rainlang_meta_doc);
 
-        // Add existing meta documents if any
+        // Add existing meta documents if any, excluding RainlangSourceV1 to avoid duplication
         if let Some(existing_meta) = &self.meta {
             if !existing_meta.is_empty() {
-                meta_docs.extend(existing_meta.iter().cloned());
+                meta_docs.extend(
+                    existing_meta
+                        .iter()
+                        .filter(|i| i.magic != KnownMagic::RainlangSourceV1)
+                        .cloned(),
+                );
             }
         }
 
@@ -1673,10 +1678,6 @@ price: 2e18;
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
-
-        // Meta should contain both RainlangSourceV1 and DotrainGuiStateV1 documents
-        // The bytes should be longer than the original test since we have additional meta
-        assert!(meta_bytes.len() > 105);
 
         // Verify that we can decode the meta documents
         let decoded_docs = RainMetaDocumentV1Item::cbor_decode(&meta_bytes).unwrap();

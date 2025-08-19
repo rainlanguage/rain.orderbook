@@ -2048,8 +2048,8 @@ orderbooks:
             // Create DotrainGuiStateV1 with the same hash
             let gui_state = get_default_gui_state(test_source.hash());
 
-            let subject_hex = alloy::primitives::hex::encode_prefixed(test_source.hash());
-            let metabytes_hex = alloy::primitives::hex::encode_prefixed(&source_bytes);
+            let subject_hex = encode_prefixed(test_source.hash());
+            let metabytes_hex = encode_prefixed(&source_bytes);
 
             metaboard_server.mock(|when, then| {
                 when.method(httpmock::Method::POST)

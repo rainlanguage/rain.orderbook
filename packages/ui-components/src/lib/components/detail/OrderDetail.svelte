@@ -110,7 +110,7 @@
 
 	const handleRefresh = async () => {
 		try {
-			await invalidateTanstackQueries(queryClient, [orderHash]);
+			await invalidateTanstackQueries(queryClient, [orderHash, QKEY_ORDER]);
 		} catch {
 			errToast('Failed to refresh');
 		}

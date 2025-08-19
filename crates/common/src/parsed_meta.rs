@@ -21,6 +21,7 @@ impl ParsedMeta {
     /// Parse metadata directly from RainMetaDocumentV1Item
     /// Returns Some(ParsedMeta) if the item is a type we need for the frontend,
     /// None otherwise (filtering out unnecessary metadata types)
+    /// Unsupported meta types will be ignored
     pub fn from_meta_item(
         item: &RainMetaDocumentV1Item,
     ) -> Result<Option<Self>, rain_metadata::Error> {
@@ -169,5 +170,32 @@ mod tests {
         let invalid_bytes = b"invalid cbor data";
         let result = ParsedMeta::parse_from_bytes(invalid_bytes);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_from_bytes_valid() {
+        // Arrange two items
+        let source = DotrainSourceV1("hello".to_string());
+        let gui = DotrainGuiStateV1 {
+            dotrain_hash: source.hash(),
+            field_values: std::collections::BTreeMap::new(),
+            deposits: std::collections::BTreeMap::new(),
+            select_tokens: std::collections::BTreeMap::new(),
+            vault_ids: std::collections::BTreeMap::new(),
+            selected_deployment: "d".to_string(),
+        };
+        let items = vec![
+            RainMetaDocumentV1Item::from(source.clone()),
+            RainMetaDocumentV1Item::try_from(gui.clone()).unwrap(),
+        ];
+        let bytes = RainMetaDocumentV1Item::cbor_encode_seq(&items, KnownMagic::RainMetaDocumentV1)
+            .unwrap();
+
+        // Act
+        let parsed = ParsedMeta::parse_from_bytes(&bytes).unwrap();
+
+        // Assert
+        assert!(matches!(&parsed[0], ParsedMeta::DotrainSourceV1(s) if s.0 == source.0));
+        assert!(matches!(&parsed[1], ParsedMeta::DotrainGuiStateV1(g) if g == &gui));
     }
 }
