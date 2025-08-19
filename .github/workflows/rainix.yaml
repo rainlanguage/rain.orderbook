@@ -49,10 +49,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       COMMIT_SHA: ${{ github.sha }}
-      # This is a test key, we don't broadcast our deploys during automated runs,
-      # but we still need a key to run the script. Should go without saying, but
-      # NEVER USE THIS IN PRODUCTION FOR ANYTHING.
-      DEPLOYMENT_KEY: "0xa590156781b232f3fc5361e153ab2c35ac94d172949d9e983bcbc4a29770c06b"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -94,6 +90,19 @@ jobs:
           gc-max-store-size-linux: 10G
 
       - run: ./pointers.sh
+
+      - name: Generate ephemeral deployment key
+        run: |
+          # Generate wallet within nix develop environment
+          WALLET_OUTPUT=$(nix develop -c cast wallet new)
+
+          # Extract the private key
+          KEY=$(echo "$WALLET_OUTPUT" | grep "Private key:" | awk '{print $3}')
+
+          # Store in GitHub environment (overwrites the hardcoded test key)
+          echo "DEPLOYMENT_KEY=$KEY" >> "$GITHUB_ENV"
+
+          echo "Generated ephemeral deployment key for this run"
 
       - name: Run ${{ matrix.task }}
 
