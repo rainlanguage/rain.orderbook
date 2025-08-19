@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS context_values;
+DROP TABLE IF EXISTS take_order_contexts;
+DROP TABLE IF EXISTS take_orders;
+DROP TABLE IF EXISTS order_ios;
+DROP TABLE IF EXISTS order_events;
+DROP TABLE IF EXISTS clears;
+DROP TABLE IF EXISTS meta_events;
+DROP TABLE IF EXISTS withdrawals;
+DROP TABLE IF EXISTS deposits;
+DROP TABLE IF EXISTS sync_status;
+VACUUM;

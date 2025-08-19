@@ -198,8 +198,8 @@ fn decode_take_order_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn std
                     })
                 }).collect::<Vec<_>>()
             },
-            "input": format!("{}", decoded.2),
-            "output": format!("{}", decoded.3)
+            "input": format!("{}", decoded.3),
+            "output": format!("{}", decoded.2)
         })),
         Err(e) => Ok(serde_json::json!({
             "raw_data": data_str,

@@ -7,6 +7,7 @@ use web_sys::console;
 mod decode;
 mod fetch;
 mod insert;
+mod query;
 
 #[wasm_export]
 impl RaindexClient {
