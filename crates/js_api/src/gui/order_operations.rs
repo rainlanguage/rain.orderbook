@@ -475,17 +475,17 @@ impl DotrainOrderGui {
             DotrainSourceV1(self.dotrain_order.dotrain()?.clone()).into();
         let dotrain_hash = dotrain_source.hash(false)?;
 
-        // Convert deposits to ValueCfg format directly
+        // Use normalized deposit amounts (resolve presets to actual values)
         let deposits: BTreeMap<String, ValueCfg> = self
-            .deposits
-            .iter()
-            .map(|(k, v)| {
+            .get_deposits()?
+            .into_iter()
+            .map(|d| {
                 (
-                    k.clone(),
+                    d.token.clone(),
                     ValueCfg {
-                        id: k.clone(),
+                        id: d.token,
                         name: None,
-                        value: v.value.clone(),
+                        value: d.amount,
                     },
                 )
             })
@@ -536,21 +536,27 @@ impl DotrainOrderGui {
             })
             .collect();
 
-        // Convert field values to ValueCfg format directly
+        // Convert field values to ValueCfg with normalized value and optional preset ID
         let field_values: BTreeMap<String, ValueCfg> = self
             .field_values
             .iter()
             .map(|(k, v)| {
-                (
+                let normalized = self.get_field_value(k.clone())?;
+                Ok((
                     k.clone(),
                     ValueCfg {
-                        id: k.clone(),
+                        // Preserve preset linkage if applicable; otherwise leave blank
+                        id: if v.is_preset {
+                            v.value.clone()
+                        } else {
+                            k.clone()
+                        },
                         name: None,
-                        value: v.value.clone(),
+                        value: normalized.value,
                     },
-                )
+                ))
             })
-            .collect();
+            .collect::<Result<_, GuiError>>()?;
 
         Ok(DotrainGuiStateV1 {
             dotrain_hash: FixedBytes(dotrain_hash),
