@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
 	import type { Readable } from 'svelte/store';

@@ -2,7 +2,9 @@ use super::*;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
-    raindex_client::{orders::RaindexOrderAsIO, transactions::RaindexTransaction},
+    raindex_client::{
+        orders::RaindexOrderAsIO, transactions::RaindexTransaction, vaults_list::RaindexVaultsList,
+    },
     transaction::TransactionArgs,
     utils::amount_formatter::format_amount_u256,
     withdraw::WithdrawArgs,
@@ -951,7 +953,6 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getVaults",
         return_description = "Array of raindex vault instances",
-        unchecked_return_type = "RaindexVault[]",
         preserve_js_class
     )]
     pub async fn get_vaults(
@@ -968,7 +969,7 @@ impl RaindexClient {
         #[wasm_export(param_description = "Optional page number (defaults to 1)")] page: Option<
             u16,
         >,
-    ) -> Result<Vec<RaindexVault>, RaindexError> {
+    ) -> Result<RaindexVaultsList, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
         let multi_subgraph_args =
             self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
@@ -1009,7 +1010,7 @@ impl RaindexClient {
                 Ok(vault)
             })
             .collect::<Result<Vec<RaindexVault>, RaindexError>>()?;
-        Ok(vaults)
+        Ok(RaindexVaultsList::new(vaults))
     }
 
     /// Fetches detailed information for a specific vault
@@ -1375,7 +1376,11 @@ mod tests {
             )
             .unwrap();
 
-            let result = raindex_client.get_vaults(None, None, None).await.unwrap();
+            let result = raindex_client
+                .get_vaults(None, None, None)
+                .await
+                .unwrap()
+                .items();
             assert_eq!(result.len(), 2);
 
             let vault1 = result[0].clone();
@@ -2190,7 +2195,8 @@ mod tests {
             let result = raindex_client
                 .get_vaults(None, Some(filters), None)
                 .await
-                .unwrap();
+                .unwrap()
+                .items();
 
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].id, Bytes::from_str("0x0123").unwrap());
@@ -2244,7 +2250,8 @@ mod tests {
             let result = raindex_client
                 .get_vaults(None, Some(filters), None)
                 .await
-                .unwrap();
+                .unwrap()
+                .items();
 
             assert_eq!(result.len(), 2);
         }
