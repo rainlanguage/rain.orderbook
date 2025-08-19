@@ -239,14 +239,14 @@
 			<TableBodyCell tdClass="px-0" on:click={stopPropagation}>
 				<Checkbox
 					data-testid="vault-checkbox"
-					class={`block px-2 py-4 ${$account !== item.owner ? 'invisible' : ''}`}
+					class={`block px-2 py-4 ${$account?.toLowerCase() !== item.owner.toLowerCase() ? 'invisible' : ''}`}
 					checked={selectedVaults.has(item.id)}
 					disabled={isDisabled(item, selectedVaultsOnChainId)}
 					on:change={getToggleSelectVaultHandler(item.id, item.chainId)}
 					on:click={stopPropagation}
 					aria-label={`Select vault ${item.id}`}
 				/>
-				{#if $account === item.owner && isDisabled(item, selectedVaultsOnChainId)}
+				{#if $account?.toLowerCase() === item.owner.toLowerCase() && isDisabled(item, selectedVaultsOnChainId)}
 					<Tooltip>
 						{isZeroBalance(item)
 							? 'This vault has a zero balance'
