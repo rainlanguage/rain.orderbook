@@ -2,12 +2,10 @@
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
 	import type { Readable } from 'svelte/store';
-	import { derived, writable } from 'svelte/store';
 	import DropdownActiveNetworks from './dropdown/DropdownActiveNetworks.svelte';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
-	import type { GetOrdersFilters, RaindexVaultToken, Address } from '@rainlanguage/orderbook';
-	import type { Hex } from 'viem';
+	import type { RaindexVaultToken } from '@rainlanguage/orderbook';
 	import Tooltip from './Tooltip.svelte';
 	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
@@ -15,126 +13,39 @@
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { onDestroy } from 'svelte';
 	import { useFilterStore } from '$lib/providers/filters';
 
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 
 	const { account } = useAccount();
-	const { filterStore, currentOrdersFilters, isLoaded } = useFilterStore();
+	const { currentOrdersFilters, ordersHandlers } = useFilterStore();
 	const raindexClient = useRaindexClient();
 
 	$: networks = raindexClient.getAllNetworks();
 	$: accounts = raindexClient.getAllAccounts();
 
-	//
-	// Using Writable stores as mediator between components and filter store
-	// This follows the same pattern as ListViewVaultFilters.svelte
-	//
-	const showMyItemsOnly = writable(false);
-	const showInactiveOrders = writable(false);
-	const selectedChainIds = writable<number[]>([]);
-	const activeTokens = writable<Address[]>([]);
-	const orderHash = writable<Hex>('' as Hex);
-	const activeAccountsItems = writable<Record<string, Address>>({});
+	// Direct access to current filter values for component props
+	$: currentFilters = $currentOrdersFilters;
 
-	// Track if we've completed the initial sync from FilterStore
-	let hasCompletedInitialSync = false;
-	const state = derived(
-		[
-			showMyItemsOnly,
-			showInactiveOrders,
-			selectedChainIds,
-			activeTokens,
-			orderHash,
-			activeAccountsItems,
-			account
-		],
-		([
-			showMyItemsOnly,
-			showInactiveOrders,
-			selectedChainIds,
-			activeTokens,
-			orderHash,
-			activeAccountsItems,
-			accountVal
-		]): GetOrdersFilters => {
-			// Don't derive state until after initial sync to prevent overwriting URL params
-			if (!hasCompletedInitialSync) {
-				return {
-					owners: [],
-					active: undefined,
-					orderHash: undefined,
-					tokens: undefined,
-					chainIds: undefined
-				};
-			}
+	// Convert owners to activeAccountsItems format
+	$: activeAccountsItems = (() => {
+		if (!currentFilters.owners || currentFilters.owners.length === 0) return {};
+		if (accounts.error || !accounts.value) return {};
 
-			// Determine owners: prioritize activeAccountsItems, then showMyItemsOnly
-			let owners: Address[] = [];
-			if (Object.keys(activeAccountsItems).length > 0) {
-				owners = Object.values(activeAccountsItems);
-			} else if (showMyItemsOnly && accountVal) {
-				owners = [accountVal];
-			}
-
-			return {
-				owners,
-				active: showInactiveOrders ? undefined : true, // undefined means show all, true means only active
-				orderHash:
-					orderHash && orderHash.length > 0 && orderHash !== '0x' ? (orderHash as Hex) : undefined,
-				tokens: activeTokens.length > 0 ? activeTokens : undefined,
-				chainIds: selectedChainIds.length > 0 ? selectedChainIds : undefined
-			};
+		const accountsMap = new Map();
+		for (const [name, address] of accounts.value.entries()) {
+			accountsMap.set(address, name);
 		}
-	);
 
-	// Sync from FilterStore to individual stores ONLY when first loaded
-	// This ensures URL params are preserved and only loaded once
-	$: {
-		if ($isLoaded && !hasCompletedInitialSync) {
-			const filters = $currentOrdersFilters;
-
-			// Set UI stores based on loaded filters (FROM FilterStore TO UI)
-			showMyItemsOnly.set(
-				!!(
-					filters.owners &&
-					filters.owners.length > 0 &&
-					Object.keys($activeAccountsItems).length === 0
-				)
-			);
-			showInactiveOrders.set(filters.active === undefined);
-			selectedChainIds.set(filters.chainIds ?? []);
-			activeTokens.set(filters.tokens ?? []);
-			orderHash.set((filters.orderHash ?? '') as Hex);
-
-			hasCompletedInitialSync = true;
-		}
-	}
-
-	// Sync from individual stores to FilterStore
-	// only after initial load to prevent overwriting persistent stores
-	let isUpdating = false;
-	const unsub = state.subscribe((filters) => {
-		if (isUpdating || !hasCompletedInitialSync) return; // Wait for initial sync to complete
-		isUpdating = true;
-		$filterStore?.updateOrders((builder) =>
-			builder
-				.setOwners(filters.owners)
-				.setActive(filters.active)
-				.setOrderHash(filters.orderHash)
-				.setTokens(filters.tokens)
-				.setChainIds(filters.chainIds)
-		);
-		setTimeout(() => (isUpdating = false), 0);
-	});
-
-	onDestroy(() => unsub());
-
-	$: selectedTokens =
-		$activeTokens?.filter(
-			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
-		) ?? [];
+		const result: Record<string, string> = {};
+		currentFilters.owners.forEach((owner) => {
+			const name = accountsMap.get(owner);
+			if (name) {
+				result[name] = owner;
+			}
+		});
+		return result;
+	})();
 </script>
 
 <div
@@ -149,24 +60,45 @@
 		{#if !accounts.error}
 			{#if accounts.value.size === 0}
 				<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
-					<CheckboxMyItemsOnly context="orders" {showMyItemsOnly} />
+					<CheckboxMyItemsOnly
+						context="orders"
+						currentOwners={currentFilters.owners}
+						onChange={ordersHandlers.handleMyItemsOnlyChange}
+					/>
 					{#if !$account}
 						<Tooltip>Connect a wallet to filter by order owner</Tooltip>
 					{/if}
 				</div>
 			{:else}
-				<DropdownOrderListAccounts {activeAccountsItems} />
+				<DropdownOrderListAccounts
+					{activeAccountsItems}
+					onChange={ordersHandlers.handleAccountsChange}
+				/>
 			{/if}
 		{/if}
 
-		<InputOrderHash {orderHash} />
+		<InputOrderHash
+			value={currentFilters.orderHash ?? ''}
+			onChange={ordersHandlers.handleOrderHashChange}
+		/>
 
 		<div class="mt-4">
-			<CheckboxActiveOrders {showInactiveOrders} />
+			<CheckboxActiveOrders
+				checked={currentFilters.active === undefined}
+				onChange={ordersHandlers.handleActiveOrdersChange}
+			/>
 		</div>
 
-		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
+		<DropdownTokensFilter
+			{tokensQuery}
+			selectedTokens={currentFilters.tokens ?? []}
+			onChange={ordersHandlers.handleTokensChange}
+			label="Tokens"
+		/>
 
-		<DropdownActiveNetworks {selectedChainIds} />
+		<DropdownActiveNetworks
+			selectedChainIds={currentFilters.chainIds ?? []}
+			onChange={ordersHandlers.handleChainIdsChange}
+		/>
 	{/if}
 </div>

@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { Checkbox, Label } from 'flowbite-svelte';
-	import type { AppStoresInterface } from '$lib/types/appStores';
-	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+
+	export let checked: boolean = false;
+	export let onChange: (checked: boolean) => void;
 
 	function handleHideZeroBalanceChange() {
-		$hideZeroBalanceVaults = !$hideZeroBalanceVaults;
+		const newValue = !checked;
+		checked = newValue;
+		onChange(newValue);
 	}
 </script>
 
@@ -15,9 +18,5 @@
 	>
 		Hide empty vaults
 	</Label>
-	<Checkbox
-		id="hide-empty-vaults"
-		checked={$hideZeroBalanceVaults}
-		on:change={handleHideZeroBalanceChange}
-	/>
+	<Checkbox id="hide-empty-vaults" {checked} on:change={handleHideZeroBalanceChange} />
 </div>

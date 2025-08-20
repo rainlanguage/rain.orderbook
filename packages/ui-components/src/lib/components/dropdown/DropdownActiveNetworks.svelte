@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { AppStoresInterface } from '$lib/types/appStores';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 	const raindexClient = useRaindexClient();
 
-	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
+	export let selectedChainIds: number[] = [];
+	export let onChange: (chainIds: number[]) => void;
 
 	let dropdownOptions: Record<string, string> = {};
 	$: {
@@ -25,7 +25,8 @@
 
 	function handleStatusChange(event: CustomEvent<Record<string, string>>) {
 		const chainIds = Object.keys(event.detail).map(Number);
-		selectedChainIds.set(chainIds);
+		selectedChainIds = chainIds;
+		onChange(chainIds);
 	}
 
 	let value: Record<string, string> = {};
@@ -35,7 +36,7 @@
 			value = {};
 		} else {
 			value = Object.fromEntries(
-				$selectedChainIds.map((chainId) => [
+				selectedChainIds.map((chainId) => [
 					String(chainId),
 					getNetworkName(chainId) ?? `Chain ${chainId}`
 				])

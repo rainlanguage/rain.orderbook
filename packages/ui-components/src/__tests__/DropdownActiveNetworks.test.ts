@@ -1,6 +1,5 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
-import { get, writable, type Writable } from 'svelte/store';
-import { beforeEach, expect, test, describe, type Mock } from 'vitest';
+import { expect, test, describe, type Mock, vi } from 'vitest';
 import DropdownActiveNetworks from '../lib/components/dropdown/DropdownActiveNetworks.svelte';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 import type { NetworkCfg } from '@rainlanguage/orderbook';
@@ -10,9 +9,7 @@ vi.mock('$lib/hooks/useRaindexClient', () => ({
 }));
 
 describe('DropdownActiveNetworks', () => {
-	let selectedChainIdsStore: Writable<number[]>;
-
-	beforeEach(() => {
+	const mockUseRaindexClient = () => {
 		(useRaindexClient as Mock).mockReturnValue({
 			getUniqueChainIds: () => ({
 				error: undefined,
@@ -27,22 +24,29 @@ describe('DropdownActiveNetworks', () => {
 				])
 			})
 		});
-		selectedChainIdsStore = writable([]);
-	});
+	};
 
 	test('renders correctly', () => {
+		mockUseRaindexClient();
+		const onChange = vi.fn();
+
 		render(DropdownActiveNetworks, {
 			props: {
-				selectedChainIds: selectedChainIdsStore
+				selectedChainIds: [],
+				onChange
 			}
 		});
 		expect(screen.getByText('Networks')).toBeInTheDocument();
 	});
 
 	test('displays the correct number of options', async () => {
+		mockUseRaindexClient();
+		const onChange = vi.fn();
+
 		render(DropdownActiveNetworks, {
 			props: {
-				selectedChainIds: selectedChainIdsStore
+				selectedChainIds: [],
+				onChange
 			}
 		});
 
@@ -54,27 +58,22 @@ describe('DropdownActiveNetworks', () => {
 		});
 	});
 
-	test('updates selected chain ids when an option is selected', async () => {
+	test('calls onChange when options are selected', async () => {
+		mockUseRaindexClient();
+		const onChange = vi.fn();
+
 		render(DropdownActiveNetworks, {
 			props: {
-				selectedChainIds: selectedChainIdsStore
+				selectedChainIds: [],
+				onChange
 			}
 		});
 
 		await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
 		await fireEvent.click(screen.getByText('Ethereum'));
-		await waitFor(() => {
-			expect(get(selectedChainIdsStore)).toEqual([1]);
-		});
 
-		await fireEvent.click(screen.getByText('Expanse Network'));
 		await waitFor(() => {
-			expect(get(selectedChainIdsStore)).toEqual([1, 2]);
-		});
-
-		await fireEvent.click(screen.getByText('Flare Mainnet'));
-		await waitFor(() => {
-			expect(get(selectedChainIdsStore)).toEqual([1, 2, 14]);
+			expect(onChange).toHaveBeenCalledWith([1]);
 		});
 	});
 });

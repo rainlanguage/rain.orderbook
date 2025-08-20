@@ -3,15 +3,14 @@
 	import { ChevronDownSolid, SearchSolid } from 'flowbite-svelte-icons';
 	import { isEmpty } from 'lodash';
 	import type { Address, RaindexVaultToken } from '@rainlanguage/orderbook';
-	import type { AppStoresInterface } from '../../types/appStores';
 	import type { Readable } from 'svelte/store';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
 	import { getTokenDisplayName } from '../../utils/tokens';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
-	export let activeTokens: AppStoresInterface['activeTokens'];
-	export let selectedTokens: Address[];
+	export let selectedTokens: Address[] = [];
+	export let onChange: (tokens: Address[]) => void;
 
 	export let label: string = 'Filter by tokens';
 	export let allLabel: string = 'All tokens';
@@ -67,18 +66,15 @@
 		selectedTokens.includes(address) ? -1 : 1
 	);
 
-	function updateSelectedTokens(newSelection: Address[]) {
-		activeTokens.set(newSelection);
-	}
-
 	function toggleToken({ address }: RaindexVaultToken) {
 		if (!address) return;
 
-		const idx = $activeTokens.indexOf(address);
+		const idx = selectedTokens.indexOf(address);
 		const newSelection =
-			idx !== -1 ? $activeTokens.filter((addr) => addr !== address) : [...$activeTokens, address];
+			idx !== -1 ? selectedTokens.filter((addr) => addr !== address) : [...selectedTokens, address];
 
-		updateSelectedTokens(newSelection);
+		selectedTokens = newSelection;
+		onChange(newSelection);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -164,7 +160,7 @@
 								? 'bg-blue-100 dark:bg-blue-900'
 								: ''}"
 							on:click={() => toggleToken(token)}
-							checked={!!(token.address && $activeTokens.includes(token.address))}
+							checked={!!(token.address && selectedTokens.includes(token.address))}
 						>
 							<div class="ml-2 flex w-full">
 								<div class="flex-1 text-sm font-medium">{getTokenDisplayName(token)}</div>
