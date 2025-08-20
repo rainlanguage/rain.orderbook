@@ -2,7 +2,7 @@ use super::*;
 use crate::raindex_client::local_db::decode::decode_events;
 use crate::raindex_client::local_db::fetch::fetch_events;
 use crate::raindex_client::local_db::insert::decoded_events_to_sql;
-use web_sys::console;
+use crate::raindex_client::local_db::query::execute_query_no_result;
 
 pub mod decode;
 pub mod fetch;
@@ -13,57 +13,93 @@ pub mod query;
 impl RaindexClient {
     #[wasm_export(js_name = "syncDatabase", unchecked_return_type = "void")]
     pub async fn sync_database(
-        #[wasm_export(param_description = "JavaScript function called with the SQL commands")]
-        callback: js_sys::Function,
+        #[wasm_export(param_description = "JavaScript function to execute database queries")]
+        db_callback: js_sys::Function,
+        #[wasm_export(param_description = "JavaScript function called with status updates")]
+        status_callback: js_sys::Function,
     ) -> Result<(), RaindexError> {
-        console::log_1(&"Starting database sync process".into());
+        let _ = status_callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_str("Starting database sync process"),
+        );
 
-        console::log_1(&"Fetching events...".into());
-        let events = match fetch_events("0xd2938e7c9fe3597f78832ce780feb61945c377d7", 19033330u64).await {
-            Ok(result) => result,
-            Err(e) => {
-                console::log_1(&format!("Fetch error: {}", e).into());
-                return Err(RaindexError::CustomError(e.to_string()));
-            }
-        };
-        console::log_2(
-            &"Fetched events:".into(),
-            &format!("{} events", events.as_array().map_or(0, |arr| arr.len())).into(),
+        let _ = status_callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_str("Fetching events..."),
+        );
+        let events =
+            match fetch_events("0xd2938e7c9fe3597f78832ce780feb61945c377d7", 19033330u64).await {
+                Ok(result) => result,
+                Err(e) => {
+                    let _ = status_callback.call1(
+                        &wasm_bindgen::JsValue::NULL,
+                        &wasm_bindgen::JsValue::from_str(&format!("Fetch error: {}", e)),
+                    );
+                    return Err(RaindexError::CustomError(e.to_string()));
+                }
+            };
+        let _ = status_callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_str(&format!(
+                "Fetched events: {} events",
+                events.as_array().map_or(0, |arr| arr.len())
+            )),
         );
 
         // Decode the events
-        console::log_1(&"Decoding events...".into());
+        let _ = status_callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_str("Decoding events..."),
+        );
         let decoded_result = match decode_events(events) {
             Ok(result) => result,
             Err(e) => {
-                console::log_1(&format!("Decode error: {}", e).into());
+                let _ = status_callback.call1(
+                    &wasm_bindgen::JsValue::NULL,
+                    &wasm_bindgen::JsValue::from_str(&format!("Decode error: {}", e)),
+                );
                 return Err(RaindexError::CustomError(e.to_string()));
             }
         };
-        console::log_1(&"Events decoded successfully".into());
+        let _ = status_callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_str("Events decoded successfully"),
+        );
 
         // Generate SQL from decoded events
-        console::log_1(&"Generating SQL commands...".into());
+        let _ = status_callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_str("Generating SQL commands..."),
+        );
         let sql_commands = match decoded_events_to_sql(decoded_result) {
             Ok(result) => result,
             Err(e) => {
-                console::log_1(&format!("SQL generation error: {}", e).into());
+                let _ = status_callback.call1(
+                    &wasm_bindgen::JsValue::NULL,
+                    &wasm_bindgen::JsValue::from_str(&format!("SQL generation error: {}", e)),
+                );
                 return Err(RaindexError::CustomError(e.to_string()));
             }
         };
-        console::log_2(
-            &"Generated SQL commands:".into(),
-            &format!("{} characters", sql_commands.len()).into(),
-        );
-
-        // Call the callback with the SQL commands
-        console::log_1(&"Calling callback with SQL commands".into());
-        let _ = callback.call1(
+        let _ = status_callback.call1(
             &wasm_bindgen::JsValue::NULL,
-            &wasm_bindgen::JsValue::from_str(&sql_commands),
+            &wasm_bindgen::JsValue::from_str(&format!(
+                "Generated SQL commands: {} characters",
+                sql_commands.len()
+            )),
         );
 
-        console::log_1(&"Database sync process completed successfully".into());
+        // Execute the SQL commands locally
+        let _ = status_callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_str("Executing SQL commands locally"),
+        );
+        execute_query_no_result(&db_callback, &sql_commands).await?;
+
+        let _ = status_callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_str("Database sync process completed successfully"),
+        );
         Ok(())
     }
 }

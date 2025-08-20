@@ -11,6 +11,7 @@
 	let queryResults: unknown = null;
 	let isLoading = false;
 	let error = '';
+	let syncStatus = '';
 
 	// Input fields for parameterized queries
 	let showOrderHashInput = false;
@@ -87,6 +88,7 @@
 		}
 
 		isLoading = false;
+		syncStatus = ''; // Clear sync status when operation completes
 	}
 
 	function executeCommonQuery(query: string) {
@@ -94,16 +96,6 @@
 		executeQuery();
 	}
 
-	async function syncDatabase() {
-		try {
-			isLoading = true;
-			await RaindexClient.syncDatabase(async (data: string) => {
-				executeCommonQuery(data);
-			});
-		} catch (error) {
-			console.error('Error syncing database:', error);
-		}
-	}
 </script>
 
 <PageHeader title="Database Playground" pathname={$page.url.pathname} />
@@ -145,7 +137,17 @@
 							>
 								Create Tables
 							</Button>
-							<Button on:click={syncDatabase} disabled={isLoading} color="light" size="sm">
+							<Button
+								on:click={() => {
+									syncStatus = '';
+									executeRaindexQuery(() => RaindexClient.syncDatabase(queryFn, (status) => {
+										syncStatus = status;
+									}));
+								}}
+								disabled={isLoading}
+								color="light"
+								size="sm"
+							>
 								Sync Database
 							</Button>
 							<Button
@@ -425,6 +427,19 @@
 					<h3 class="mb-3 text-lg font-medium text-red-800 dark:text-red-200">Error</h3>
 					<pre
 						class="overflow-x-auto rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">{error}</pre>
+				</div>
+			{/if}
+
+			{#if syncStatus}
+				<div
+					class="rounded-lg border border-blue-300 bg-white p-6 shadow-sm dark:border-blue-600 dark:bg-gray-800"
+				>
+					<h3 class="mb-3 text-lg font-medium text-blue-800 dark:text-blue-200">Sync Status</h3>
+					<div
+						class="rounded-lg bg-blue-50 p-4 text-sm text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+					>
+						{syncStatus}
+					</div>
 				</div>
 			{/if}
 
