@@ -11,7 +11,16 @@ pub fn decoded_events_to_sql(data: Value) -> Result<String, Box<dyn std::error::
         .and_then(|v| v.as_array())
         .ok_or("No decoded_events array found")?;
 
+    let mut max_block_number: Option<u64> = None;
+
     for event in events {
+        // Track the maximum block number from all processed events
+        if let Ok(block_number_str) = get_string_field(event, "block_number") {
+            if let Ok(block_number) = hex_to_decimal(block_number_str) {
+                max_block_number = Some(max_block_number.map_or(block_number, |max| max.max(block_number)));
+            }
+        }
+
         match event.get("event_type").and_then(|v| v.as_str()) {
             Some("Deposit") => {
                 sql.push_str(&generate_deposit_sql(event)?);
@@ -44,6 +53,14 @@ pub fn decoded_events_to_sql(data: Value) -> Result<String, Box<dyn std::error::
                 eprintln!("Warning: Event missing event_type field");
             }
         }
+    }
+
+    // Update sync status with the highest block number processed
+    if let Some(max_block) = max_block_number {
+        sql.push_str(&format!(
+            "\nUPDATE sync_status SET last_synced_block = {}, updated_at = CURRENT_TIMESTAMP WHERE id = 1;\n",
+            max_block
+        ));
     }
 
     // Commit the transaction for all events
