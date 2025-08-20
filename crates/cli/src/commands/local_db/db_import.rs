@@ -9,10 +9,10 @@ pub struct DbImport;
 
 impl DbImport {
     pub async fn execute(self) -> Result<()> {
-        let db_path = "events.db";
-        let sql_file_path = "events.sql";
-        let dump_file_path = "events_dump.sql";
-        let compressed_file_path = "events_dump.sql.gz";
+        let db_path = "src/commands/local_db/events.db";
+        let sql_file_path = "src/commands/local_db/events.sql";
+        let dump_file_path = "src/commands/local_db/events_dump.sql";
+        let compressed_file_path = "src/commands/local_db/events_dump.sql.gz";
 
         // Check if SQL file exists
         if !Path::new(sql_file_path).exists() {
@@ -27,7 +27,8 @@ impl DbImport {
 
         // Create database and tables
         println!("Creating SQLite database: {}", db_path);
-        let tables_sql_path = "src/tables-v2.sql";
+        let tables_sql_path =
+            "../../crates/common/src/raindex_client/local_db/query/sql/create_tables.sql";
 
         // Create tables first
         let output = Command::new("sqlite3")
@@ -105,39 +106,7 @@ impl DbImport {
             1.0 / compression_ratio
         );
 
-        // Show database info
-        let db_size = fs::metadata(db_path)?.len();
-        println!(
-            "Original database size: {} bytes ({:.2} MB)",
-            db_size,
-            db_size as f64 / 1_000_000.0
-        );
-
-        // Get row counts
-        let output = Command::new("sqlite3")
-            .arg(db_path)
-            .arg("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
-            .output()?;
-
-        if output.status.success() {
-            let tables = String::from_utf8_lossy(&output.stdout);
-            println!("\nTable row counts:");
-            for table in tables.lines() {
-                if !table.is_empty() {
-                    let count_output = Command::new("sqlite3")
-                        .arg(db_path)
-                        .arg(format!("SELECT COUNT(*) FROM {};", table))
-                        .output()?;
-
-                    if count_output.status.success() {
-                        let count = String::from_utf8_lossy(&count_output.stdout)
-                            .trim()
-                            .to_string();
-                        println!("  {}: {} rows", table, count);
-                    }
-                }
-            }
-        }
+        println!("Database ready for queries: {}", db_path);
 
         Ok(())
     }

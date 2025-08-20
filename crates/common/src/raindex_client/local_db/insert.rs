@@ -291,7 +291,6 @@ fn generate_after_clear_sql(event: &Value) -> Result<String, Box<dyn std::error:
     Ok(sql)
 }
 
-
 fn generate_meta_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")

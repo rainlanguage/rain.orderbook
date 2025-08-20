@@ -197,13 +197,8 @@ pub async fn fetch_events() -> Result<serde_json::Value, Box<dyn std::error::Err
     // Collect all events
     let mut all_events = Vec::new();
 
-    for result in results {
-        match result {
-            Ok(events_data) => {
-                all_events.extend(events_data);
-            }
-            Err(_) => {}
-        }
+    for events_data in results.into_iter().flatten() {
+        all_events.extend(events_data);
     }
 
     // Sort events by block number

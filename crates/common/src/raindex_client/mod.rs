@@ -267,9 +267,7 @@ impl From<Erc20Error> for RaindexError {
 impl RaindexError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            RaindexError::CustomError(msg) => {
-                format!("{}", msg)
-            }
+            RaindexError::CustomError(msg) => msg.to_string(),
             RaindexError::InvalidYamlConfig => {
                 "The YAML configuration is invalid. Please check your configuration.".to_string()
             }

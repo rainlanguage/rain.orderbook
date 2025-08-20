@@ -1,17 +1,12 @@
-use crate::commands::{Chart, DbImport, Order, Subgraph, Trade, Vault, Words};
-use crate::decode_events::DecodeEvents;
-use crate::events_to_sql::EventsToSql;
+use crate::commands::local_db::{DbImport, DecodeEvents, EventsToSql, FetchEvents};
+use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
-use crate::fetch_events::FetchEvents;
 use anyhow::Result;
 use clap::Subcommand;
 use rain_orderbook_quote::cli::Quoter;
 
 mod commands;
-mod decode_events;
-mod events_to_sql;
 mod execute;
-mod fetch_events;
 mod output;
 mod status;
 mod subgraph;
