@@ -9,5 +9,6 @@ export { useFilterStore } from './useFilterStore';
 export {
 	default as FilterStoreProvider,
 	FILTER_STORE_CONTEXT,
-	DEFAULT_VAULT_FILTERS
+	DEFAULT_VAULT_FILTERS,
+	DEFAULT_ORDER_FILTERS
 } from './FilterStoreProvider.svelte';

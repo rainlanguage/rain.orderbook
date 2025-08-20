@@ -158,5 +158,7 @@ export {
 	useFilterStore,
 	RaindexFilterStore,
 	GetVaultsFilterBuilder,
-	GetOrdersFilterBuilder
+	GetOrdersFilterBuilder,
+	DEFAULT_VAULT_FILTERS,
+	DEFAULT_ORDER_FILTERS
 } from './providers/filters';

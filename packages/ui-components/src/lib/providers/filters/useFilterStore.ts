@@ -5,7 +5,7 @@ import { FILTER_STORE_CONTEXT, type FilterStoreContext } from './FilterStoreProv
  * Hook for accessing the filter store from any Svelte component.
  * Must be used within a component that is wrapped by FilterStoreProvider.
  *
- * @returns A FilterStoreContext containing the filter store and current vaults filters.
+ * @returns A FilterStoreContext containing the filter store, current vaults filters, and current orders filters.
  * @throws Error if called outside of FilterStoreProvider context
  *
  * @example
@@ -13,13 +13,18 @@ import { FILTER_STORE_CONTEXT, type FilterStoreContext } from './FilterStoreProv
  * <script>
  *   import { useFilterStore } from '@rainlanguage/ui-components';
  *
- *   const { filterStore, currentVaultsFilters } = useFilterStore();
+ *   const { filterStore, currentVaultsFilters, currentOrdersFilters } = useFilterStore();
  *
- *   const updateOwners = (addresses) => {
+ *   const updateVaultOwners = (addresses) => {
  *     $filterStore?.updateVaults((builder) => builder.setOwners(addresses));
  *   };
  *
+ *   const updateOrdersActive = (active) => {
+ *     $filterStore?.updateOrders((builder) => builder.setActive(active));
+ *   };
+ *
  *   $: console.log('Current vault filters', $currentVaultsFilters);
+ *   $: console.log('Current orders filters', $currentOrdersFilters);
  * </script>
  * ```
  */
