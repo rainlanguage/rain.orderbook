@@ -1,17 +1,13 @@
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::raindex_client::local_db::fetch::fetch_events;
+use rain_orderbook_common::raindex_client::local_db::fetch::{fetch_events, HyperRpcClient};
 use std::fs::File;
 use std::io::Write;
 
 #[derive(Debug, Clone, Parser)]
 pub struct FetchEvents {
-    #[clap(
-        short,
-        long,
-        default_value = "src/commands/local_db/fetch_events_results.json"
-    )]
-    pub output_file: String,
+    #[clap(short, long)]
+    pub output_file: Option<String>,
 }
 
 impl FetchEvents {
@@ -20,11 +16,21 @@ impl FetchEvents {
 
         let total_start = std::time::Instant::now();
 
+        let client = HyperRpcClient {};
+        let end_block = client
+            .get_latest_block_number()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to get latest block number: {}", e))?;
+
         // Call the common fetch function
         // TODO: end block should change
-        let all_events = fetch_events("0xd2938e7c9fe3597f78832ce780feb61945c377d7", 19033330u64, 0)
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to fetch events: {}", e))?;
+        let all_events = fetch_events(
+            "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+            19033330u64,
+            end_block,
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch events: {}", e))?;
 
         let total_time = total_start.elapsed();
 
@@ -68,9 +74,12 @@ impl FetchEvents {
         );
 
         // Save results to file
-        let mut file = File::create(&self.output_file)?;
+        let output_filename = self
+            .output_file
+            .unwrap_or_else(|| format!("events_{}.json", end_block));
+        let mut file = File::create(&output_filename)?;
         file.write_all(serde_json::to_string_pretty(&output_data)?.as_bytes())?;
-        println!("Events and results saved to: {}", self.output_file);
+        println!("Events and results saved to: {}", output_filename);
 
         Ok(())
     }

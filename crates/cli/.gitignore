@@ -1,7 +1,7 @@
 target
 
-fetch_events_results.json
-decoded_events.json
-events.sql
-events_dump.sql.gz
-events.db
+events_*.json
+decoded_events_*.json
+events_*.sql
+dump_*.sql.gz
+events_*.db

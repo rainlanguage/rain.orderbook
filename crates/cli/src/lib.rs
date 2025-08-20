@@ -1,9 +1,39 @@
-use crate::commands::local_db::{DbImport, DecodeEvents, EventsToSql, FetchEvents};
+use crate::commands::local_db::{DbImport, DecodeEvents, EventsToSql, FetchEvents, FullPipeline};
 use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
 use rain_orderbook_quote::cli::Quoter;
+
+#[derive(Subcommand)]
+pub enum LocalDb {
+    #[command(name = "fetch-events")]
+    FetchEvents(FetchEvents),
+
+    #[command(name = "decode-events")]
+    DecodeEvents(DecodeEvents),
+
+    #[command(name = "events-to-sql")]
+    EventsToSql(EventsToSql),
+
+    #[command(name = "db-import")]
+    DbImport(DbImport),
+
+    #[command(name = "full-pipeline")]
+    FullPipeline(FullPipeline),
+}
+
+impl LocalDb {
+    pub async fn execute(self) -> Result<()> {
+        match self {
+            LocalDb::FetchEvents(fetch_events) => fetch_events.execute().await,
+            LocalDb::DecodeEvents(decode_events) => decode_events.execute().await,
+            LocalDb::EventsToSql(events_to_sql) => events_to_sql.execute().await,
+            LocalDb::DbImport(db_import) => db_import.execute().await,
+            LocalDb::FullPipeline(full_pipeline) => full_pipeline.execute().await,
+        }
+    }
+}
 
 mod commands;
 mod execute;
@@ -32,17 +62,8 @@ pub enum Orderbook {
 
     Words(Words),
 
-    #[command(name = "fetch-events")]
-    FetchEvents(FetchEvents),
-
-    #[command(name = "decode-events")]
-    DecodeEvents(DecodeEvents),
-
-    #[command(name = "events-to-sql")]
-    EventsToSql(EventsToSql),
-
-    #[command(name = "db-import")]
-    DbImport(DbImport),
+    #[command(name = "local-db", subcommand)]
+    LocalDb(LocalDb),
 }
 
 impl Orderbook {
@@ -55,10 +76,7 @@ impl Orderbook {
             Orderbook::Quote(quote) => quote.execute().await,
             Orderbook::Subgraph(subgraph) => subgraph.execute().await,
             Orderbook::Words(words) => words.execute().await,
-            Orderbook::FetchEvents(fetch_events) => fetch_events.execute().await,
-            Orderbook::DecodeEvents(decode_events) => decode_events.execute().await,
-            Orderbook::EventsToSql(events_to_sql) => events_to_sql.execute().await,
-            Orderbook::DbImport(db_import) => db_import.execute().await,
+            Orderbook::LocalDb(local_db) => local_db.execute().await,
         }
     }
 }

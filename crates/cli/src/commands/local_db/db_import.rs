@@ -5,14 +5,32 @@ use std::path::Path;
 use std::process::Command;
 
 #[derive(Parser)]
-pub struct DbImport;
+pub struct DbImport {
+    #[clap(short, long, help = "Path to the SQL file to import")]
+    pub input: String,
+}
 
 impl DbImport {
     pub async fn execute(self) -> Result<()> {
-        let db_path = "src/commands/local_db/events.db";
-        let sql_file_path = "src/commands/local_db/events.sql";
-        let dump_file_path = "src/commands/local_db/events_dump.sql";
-        let compressed_file_path = "src/commands/local_db/events_dump.sql.gz";
+        // Extract block number from input filename (e.g., "events_12345.sql" -> "12345")
+        let input_filename = Path::new(&self.input)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or(&self.input);
+
+        let block_suffix = if let Some(block_num) = input_filename
+            .strip_prefix("events_")
+            .and_then(|s| s.strip_suffix(".sql"))
+        {
+            format!("_{}", block_num)
+        } else {
+            String::new()
+        };
+
+        let db_path = format!("src/commands/local_db/events{}.db", block_suffix);
+        let sql_file_path = &self.input;
+        let dump_file_path = format!("src/commands/local_db/dump{}.sql", block_suffix);
+        let compressed_file_path = format!("src/commands/local_db/dump{}.sql.gz", block_suffix);
 
         // Check if SQL file exists
         if !Path::new(sql_file_path).exists() {
@@ -20,8 +38,8 @@ impl DbImport {
         }
 
         // Remove existing database if it exists
-        if Path::new(db_path).exists() {
-            fs::remove_file(db_path)?;
+        if Path::new(&db_path).exists() {
+            fs::remove_file(&db_path)?;
             println!("Removed existing database: {}", db_path);
         }
 
@@ -32,7 +50,7 @@ impl DbImport {
 
         // Create tables first
         let output = Command::new("sqlite3")
-            .arg(db_path)
+            .arg(&db_path)
             .arg(format!(".read {}", tables_sql_path))
             .output()?;
 
@@ -47,7 +65,7 @@ impl DbImport {
         // Execute the events SQL file
         println!("Importing data from: {}", sql_file_path);
         let output = Command::new("sqlite3")
-            .arg(db_path)
+            .arg(&db_path)
             .arg(format!(".read {}", sql_file_path))
             .output()?;
 
@@ -61,7 +79,10 @@ impl DbImport {
 
         // Dump the database
         println!("Dumping database to: {}", dump_file_path);
-        let output = Command::new("sqlite3").arg(db_path).arg(".dump").output()?;
+        let output = Command::new("sqlite3")
+            .arg(&db_path)
+            .arg(".dump")
+            .output()?;
 
         if !output.status.success() {
             anyhow::bail!(
@@ -70,8 +91,8 @@ impl DbImport {
             );
         }
 
-        fs::write(dump_file_path, output.stdout)?;
-        let dump_size = fs::metadata(dump_file_path)?.len();
+        fs::write(&dump_file_path, output.stdout)?;
+        let dump_size = fs::metadata(&dump_file_path)?.len();
         println!(
             "Dump file size: {} bytes ({:.2} MB)",
             dump_size,
@@ -82,7 +103,7 @@ impl DbImport {
         println!("Compressing dump to: {}", compressed_file_path);
         let output = Command::new("gzip")
             .arg("-f") // force overwrite
-            .arg(dump_file_path)
+            .arg(&dump_file_path)
             .output()?;
 
         if !output.status.success() {
@@ -92,7 +113,7 @@ impl DbImport {
             );
         }
 
-        let compressed_size = fs::metadata(compressed_file_path)?.len();
+        let compressed_size = fs::metadata(&compressed_file_path)?.len();
         let compression_ratio = compressed_size as f64 / dump_size as f64;
 
         println!(

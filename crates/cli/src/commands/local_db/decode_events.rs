@@ -6,19 +6,11 @@ use std::io::Write;
 
 #[derive(Debug, Clone, Parser)]
 pub struct DecodeEvents {
-    #[clap(
-        short,
-        long,
-        default_value = "src/commands/local_db/fetch_events_results.json"
-    )]
+    #[clap(short, long)]
     pub input_file: String,
 
-    #[clap(
-        short,
-        long,
-        default_value = "src/commands/local_db/decoded_events.json"
-    )]
-    pub output_file: String,
+    #[clap(short, long)]
+    pub output_file: Option<String>,
 }
 
 impl DecodeEvents {
@@ -59,8 +51,26 @@ impl DecodeEvents {
             }
         }
 
+        // Determine output filename
+        let output_filename = self.output_file.unwrap_or_else(|| {
+            // Extract block number from input filename (e.g., "events_12345.json" -> "12345")
+            let input_filename = std::path::Path::new(&self.input_file)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or(&self.input_file);
+
+            if let Some(block_num) = input_filename
+                .strip_prefix("events_")
+                .and_then(|s| s.strip_suffix(".json"))
+            {
+                format!("decoded_events_{}.json", block_num)
+            } else {
+                "decoded_events.json".to_string()
+            }
+        });
+
         // Write to output file
-        let mut file = File::create(&self.output_file)?;
+        let mut file = File::create(&output_filename)?;
         file.write_all(serde_json::to_string_pretty(&output_data)?.as_bytes())?;
 
         // Extract statistics for CLI output
@@ -92,7 +102,7 @@ impl DecodeEvents {
             }
         }
 
-        println!("Decoded events saved to: {}", self.output_file);
+        println!("Decoded events saved to: {}", output_filename);
 
         Ok(())
     }

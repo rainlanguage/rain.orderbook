@@ -6,21 +6,11 @@ use std::path::PathBuf;
 
 #[derive(Args)]
 pub struct EventsToSql {
-    #[arg(
-        short,
-        long,
-        default_value = "src/commands/local_db/decoded_events.json",
-        help = "Path to the decoded events JSON file"
-    )]
+    #[arg(short, long, help = "Path to the decoded events JSON file")]
     pub input: PathBuf,
 
-    #[arg(
-        short,
-        long,
-        default_value = "src/commands/local_db/events.sql",
-        help = "Path to output SQL file"
-    )]
-    pub output: PathBuf,
+    #[arg(short, long, help = "Path to output SQL file")]
+    pub output: Option<PathBuf>,
 }
 
 impl EventsToSql {
@@ -35,15 +25,40 @@ impl EventsToSql {
 
         println!("Generating SQL statements...");
 
+        // Extract block number from input filename for both SQL function and output filename
+        let input_filename = self
+            .input
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("decoded_events");
+
+        let (block_num, block_num_u64) = if let Some(block_str) = input_filename
+            .strip_prefix("decoded_events_")
+            .and_then(|s| s.strip_suffix(".json"))
+        {
+            let block_u64 = block_str.parse::<u64>().unwrap_or(0);
+            (Some(block_str), block_u64)
+        } else {
+            (None, 0)
+        };
+
         // Call the common insert function
-        // TODO: end block should change
-        let sql_statements = decoded_events_to_sql(data, 0)
+        let sql_statements = decoded_events_to_sql(data, block_num_u64)
             .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
 
-        fs::write(&self.output, sql_statements)
-            .with_context(|| format!("Failed to write output file: {:?}", self.output))?;
+        // Determine output filename
+        let output_path = self.output.unwrap_or_else(|| {
+            if let Some(block_num) = block_num {
+                PathBuf::from(format!("events_{}.sql", block_num))
+            } else {
+                PathBuf::from("events.sql")
+            }
+        });
 
-        println!("SQL statements written to {:?}", self.output);
+        fs::write(&output_path, sql_statements)
+            .with_context(|| format!("Failed to write output file: {:?}", output_path))?;
+
+        println!("SQL statements written to {:?}", output_path);
 
         Ok(())
     }
