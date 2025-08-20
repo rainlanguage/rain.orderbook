@@ -18,7 +18,7 @@
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 
 	const { account } = useAccount();
-	const { filterStore, currentVaultsFilters } = useFilterStore();
+	const { filterStore, currentVaultsFilters, isLoaded } = useFilterStore();
 	const raindexClient = useRaindexClient();
 
 	$: networks = raindexClient.getAllNetworks();
@@ -35,6 +35,8 @@
 	const selectedChainIds = writable<number[]>([]);
 	const activeTokens = writable<`0x${string}`[]>([]);
 
+	// Track if we've completed the initial sync from FilterStore
+	let hasCompletedInitialSync = false;
 	const state = derived(
 		[showMyItemsOnly, hideZeroBalanceVaults, selectedChainIds, activeTokens, account],
 		([
@@ -43,30 +45,47 @@
 			selectedChainIds,
 			activeTokens,
 			accountVal
-		]): GetVaultsFilters => ({
-			owners: showMyItemsOnly && accountVal ? [accountVal] : [],
-			hideZeroBalance: hideZeroBalanceVaults,
-			chainIds: selectedChainIds.length > 0 ? selectedChainIds : undefined,
-			tokens: activeTokens.length > 0 ? activeTokens : undefined
-		})
+		]): GetVaultsFilters => {
+			// Don't derive state until after initial sync to prevent overwriting URL params
+			if (!hasCompletedInitialSync) {
+				return {
+					owners: [],
+					hideZeroBalance: false,
+					chainIds: undefined,
+					tokens: undefined
+				};
+			}
+
+			return {
+				owners: showMyItemsOnly && accountVal ? [accountVal] : [],
+				hideZeroBalance: hideZeroBalanceVaults,
+				chainIds: selectedChainIds.length > 0 ? selectedChainIds : undefined,
+				tokens: activeTokens.length > 0 ? activeTokens : undefined
+			};
+		}
 	);
 
-	// Sync from FilterStore to individual stores
-	// to preload actual filter values in UI components
+	// Sync from FilterStore to individual stores ONLY when first loaded
+	// This ensures URL params are preserved and only loaded once
 	$: {
-		if ($currentVaultsFilters) {
+		if ($isLoaded && !hasCompletedInitialSync) {
 			const filters = $currentVaultsFilters;
+
+			// Set UI stores based on loaded filters (FROM FilterStore TO UI)
 			showMyItemsOnly.set(!!(filters.owners && filters.owners.length > 0));
 			hideZeroBalanceVaults.set(!!filters.hideZeroBalance);
 			selectedChainIds.set(filters.chainIds ?? []);
 			activeTokens.set(filters.tokens ?? []);
+
+			hasCompletedInitialSync = true;
 		}
 	}
 
-	// Sync from individual stores to FilterStore (with protection against update loops)
+	// Sync from individual stores to FilterStore
+	// only after initial load to prevent overwriting persistent stores
 	let isUpdating = false;
 	const unsub = state.subscribe((filters) => {
-		if (isUpdating) return;
+		if (isUpdating || !hasCompletedInitialSync) return; // Wait for initial sync to complete
 		isUpdating = true;
 		$filterStore?.updateVaults((builder) =>
 			builder

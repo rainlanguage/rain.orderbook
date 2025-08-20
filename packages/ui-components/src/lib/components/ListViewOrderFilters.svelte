@@ -21,7 +21,7 @@
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 
 	const { account } = useAccount();
-	const { filterStore, currentOrdersFilters } = useFilterStore();
+	const { filterStore, currentOrdersFilters, isLoaded } = useFilterStore();
 	const raindexClient = useRaindexClient();
 
 	$: networks = raindexClient.getAllNetworks();
@@ -35,9 +35,11 @@
 	const showInactiveOrders = writable(false);
 	const selectedChainIds = writable<number[]>([]);
 	const activeTokens = writable<Address[]>([]);
-	const orderHash = writable<Hex>(undefined);
+	const orderHash = writable<Hex>('' as Hex);
 	const activeAccountsItems = writable<Record<string, Address>>({});
 
+	// Track if we've completed the initial sync from FilterStore
+	let hasCompletedInitialSync = false;
 	const state = derived(
 		[
 			showMyItemsOnly,
@@ -57,6 +59,17 @@
 			activeAccountsItems,
 			accountVal
 		]): GetOrdersFilters => {
+			// Don't derive state until after initial sync to prevent overwriting URL params
+			if (!hasCompletedInitialSync) {
+				return {
+					owners: [],
+					active: undefined,
+					orderHash: undefined,
+					tokens: undefined,
+					chainIds: undefined
+				};
+			}
+
 			// Determine owners: prioritize activeAccountsItems, then showMyItemsOnly
 			let owners: Address[] = [];
 			if (Object.keys(activeAccountsItems).length > 0) {
@@ -68,18 +81,21 @@
 			return {
 				owners,
 				active: showInactiveOrders ? undefined : true, // undefined means show all, true means only active
-				orderHash: orderHash ? (orderHash as Hex) : undefined,
+				orderHash:
+					orderHash && orderHash.length > 0 && orderHash !== '0x' ? (orderHash as Hex) : undefined,
 				tokens: activeTokens.length > 0 ? activeTokens : undefined,
 				chainIds: selectedChainIds.length > 0 ? selectedChainIds : undefined
 			};
 		}
 	);
 
-	// Sync from FilterStore to individual stores
-	// to preload actual filter values in UI components
+	// Sync from FilterStore to individual stores ONLY when first loaded
+	// This ensures URL params are preserved and only loaded once
 	$: {
-		if ($currentOrdersFilters) {
+		if ($isLoaded && !hasCompletedInitialSync) {
 			const filters = $currentOrdersFilters;
+
+			// Set UI stores based on loaded filters (FROM FilterStore TO UI)
 			showMyItemsOnly.set(
 				!!(
 					filters.owners &&
@@ -90,15 +106,17 @@
 			showInactiveOrders.set(filters.active === undefined);
 			selectedChainIds.set(filters.chainIds ?? []);
 			activeTokens.set(filters.tokens ?? []);
-			orderHash.set(filters.orderHash as Hex);
-			// Note: activeAccountsItems is handled separately by DropdownOrderListAccounts
+			orderHash.set((filters.orderHash ?? '') as Hex);
+
+			hasCompletedInitialSync = true;
 		}
 	}
 
-	// Sync from individual stores to FilterStore (with protection against update loops)
+	// Sync from individual stores to FilterStore
+	// only after initial load to prevent overwriting persistent stores
 	let isUpdating = false;
 	const unsub = state.subscribe((filters) => {
-		if (isUpdating) return;
+		if (isUpdating || !hasCompletedInitialSync) return; // Wait for initial sync to complete
 		isUpdating = true;
 		$filterStore?.updateOrders((builder) =>
 			builder

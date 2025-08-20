@@ -30,7 +30,7 @@
 	// End of optional props
 
 	const { matchesAccount } = useAccount();
-	const { currentOrdersFilters } = useFilterStore();
+	const { currentOrdersFilters, isLoaded } = useFilterStore();
 	const raindexClient = useRaindexClient();
 
 	$: tokensQuery = createQuery({
@@ -40,7 +40,7 @@
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
-		enabled: true
+		enabled: $isLoaded
 	});
 
 	$: query = createInfiniteQuery({
@@ -55,7 +55,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-		enabled: true
+		enabled: $isLoaded
 	});
 
 	const AppTable = TanstackAppTable<RaindexOrder>;

@@ -25,6 +25,7 @@
 		filterStore: Readable<RaindexFilterStore>;
 		currentVaultsFilters: Readable<GetVaultsFilters>;
 		currentOrdersFilters: Readable<GetOrdersFilters>;
+		isLoaded: Readable<boolean>;
 	};
 </script>
 
@@ -39,6 +40,7 @@
 	const filterStore: Writable<RaindexFilterStore | null> = writable(null);
 	const currentVaultsFilters = writable(DEFAULT_VAULT_FILTERS);
 	const currentOrdersFilters = writable(DEFAULT_ORDER_FILTERS);
+	const isLoaded = writable(false);
 
 	/**
 	 * Initialize the filter store on component mount
@@ -57,9 +59,11 @@
 					...DEFAULT_ORDER_FILTERS,
 					...store.getOrdersFilters()
 				});
+				isLoaded.set(store.isLoaded);
 			} else {
 				currentVaultsFilters.set(DEFAULT_VAULT_FILTERS);
 				currentOrdersFilters.set(DEFAULT_ORDER_FILTERS);
+				isLoaded.set(false);
 			}
 		});
 	});
@@ -70,7 +74,8 @@
 	setContext(FILTER_STORE_CONTEXT, {
 		filterStore,
 		currentVaultsFilters,
-		currentOrdersFilters
+		currentOrdersFilters,
+		isLoaded
 	});
 </script>
 

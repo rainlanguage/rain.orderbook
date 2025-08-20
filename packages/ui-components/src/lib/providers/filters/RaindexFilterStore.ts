@@ -37,6 +37,7 @@ function unwrapWasmResult<T>(result: WasmEncodedResult<T>): T {
  */
 export class RaindexFilterStore {
 	private wasmStore: RaindexFilterStoreWasm;
+	private _isLoaded: boolean = false;
 
 	private subscribers: Array<(store: RaindexFilterStore) => void> = [];
 
@@ -45,7 +46,18 @@ export class RaindexFilterStore {
 		this.wasmStore = unwrapWasmResult(wasmStoreResult);
 
 		// Postpone initial notification to ensure subscribers can register first
-		setTimeout(() => this.notifySubscribers(), 0);
+		// and mark as loaded after initial setup
+		setTimeout(() => {
+			this._isLoaded = true;
+			this.notifySubscribers();
+		}, 0);
+	}
+
+	/**
+	 * Whether the filter store has completed its initial load from URL params and localStorage
+	 */
+	get isLoaded(): boolean {
+		return this._isLoaded;
 	}
 
 	/**
