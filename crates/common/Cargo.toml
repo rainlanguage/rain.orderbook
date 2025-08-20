@@ -43,6 +43,7 @@ rain-error-decoding = { workspace = true }
 rain-interpreter-eval = { workspace = true }
 wasm-bindgen-utils = { workspace = true }
 web-sys = { version = "0.3", features = ["console"] }
+flate2 = "1.0.34"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }

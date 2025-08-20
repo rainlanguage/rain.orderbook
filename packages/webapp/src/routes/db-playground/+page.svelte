@@ -31,6 +31,11 @@
 	onMount(async () => {
 		await init();
 		db = SQLiteWasmDatabase.new();
+
+		// Auto-start syncing after db is initialized
+		if (db && !db.error && db.value) {
+			await startAutoSync();
+		}
 	});
 
 	async function executeQuery() {
@@ -102,11 +107,10 @@
 
 		autoSyncEnabled = true;
 
-		// Get current sync status first
-		await updateSyncStatus();
-
 		// Initial sync
 		await performAutoSync();
+		// Get current sync status
+		await updateSyncStatus();
 
 		// Set up interval for every 5 seconds
 		autoSyncInterval = setInterval(async () => {
@@ -205,19 +209,55 @@
 						<h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
 							Database Operations
 						</h3>
-						{#if autoSyncEnabled}
-							<div class="text-right text-sm">
-								<div class="flex items-center text-blue-700 dark:text-blue-300">
-									<div class="mr-2 h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-									<span class="font-medium">Auto-Sync Active</span>
+						<div class="flex items-center gap-3">
+							{#if autoSyncEnabled || lastSyncedBlock}
+								<div class="text-right text-sm">
+									<div class="flex items-center text-blue-700 dark:text-blue-300">
+										{#if autoSyncEnabled}
+											<div class="mr-2 h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+											<span class="font-medium">Auto-Sync Active</span>
+										{:else}
+											<div class="mr-2 h-2 w-2 rounded-full bg-gray-400"></div>
+											<span class="font-medium text-gray-500">Auto-Sync Stopped</span>
+										{/if}
+									</div>
+									<div class="text-xs text-blue-600 dark:text-blue-400">
+										Block: {lastSyncedBlock || 'Loading...'} | Last: {lastSyncTime
+											? lastSyncTime.toLocaleTimeString()
+											: 'Loading...'}
+									</div>
 								</div>
-								<div class="text-xs text-blue-600 dark:text-blue-400">
-									Block: {lastSyncedBlock || 'Loading...'} | Last: {lastSyncTime
-										? lastSyncTime.toLocaleTimeString()
-										: 'Loading...'}
-								</div>
-							</div>
-						{/if}
+							{/if}
+							<button
+								on:click={() => {
+									if (autoSyncEnabled) {
+										stopAutoSync();
+									} else {
+										startAutoSync();
+									}
+								}}
+								disabled={isLoading}
+								class="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors {autoSyncEnabled
+									? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
+									: 'border-green-500 bg-green-500 text-white hover:bg-green-600'} {isLoading
+									? 'cursor-not-allowed opacity-50'
+									: 'cursor-pointer'}"
+								title={autoSyncEnabled ? 'Stop Auto-Sync' : 'Start Auto-Sync'}
+							>
+								{#if autoSyncEnabled}
+									<!-- Stop/Pause Icon -->
+									<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+										<rect x="6" y="4" width="4" height="16" />
+										<rect x="14" y="4" width="4" height="16" />
+									</svg>
+								{:else}
+									<!-- Play Icon -->
+									<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+										<polygon points="5,3 19,12 5,21" />
+									</svg>
+								{/if}
+							</button>
+						</div>
 					</div>
 
 					<!-- Database Management Section -->
@@ -226,35 +266,6 @@
 							Database Management
 						</h4>
 						<div class="flex flex-wrap gap-2">
-							<Button
-								on:click={() => executeRaindexQuery(() => RaindexClient.createTables(queryFn))}
-								disabled={isLoading}
-								color="light"
-								size="sm"
-							>
-								Create Tables
-							</Button>
-							<Button
-								on:click={() => {
-									syncStatus = '';
-									executeRaindexQuery(() =>
-										RaindexClient.syncDatabase(
-											queryFn,
-											// @ts-expect-error - Status callback parameter types not properly defined
-											(status) => {
-												syncStatus = status;
-											},
-											'0xd2938e7c9fe3597f78832ce780feb61945c377d7', // contract address
-											BigInt(19033330) // default start block
-										)
-									);
-								}}
-								disabled={isLoading}
-								color="light"
-								size="sm"
-							>
-								Sync Database
-							</Button>
 							<Button
 								on:click={() => {
 									executeRaindexQuery(() => RaindexClient.fetchAllTables(queryFn));
@@ -272,37 +283,6 @@
 								size="sm"
 							>
 								Clear All Tables & Views
-							</Button>
-						</div>
-					</div>
-
-					<!-- Indexer Status Management Section -->
-					<div class="mb-6">
-						<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-							Indexer Status Management
-						</h4>
-						<div class="flex flex-wrap gap-2">
-							<Button
-								on:click={() => executeRaindexQuery(() => RaindexClient.getSyncStatus(queryFn))}
-								disabled={isLoading}
-								color="light"
-								size="sm"
-							>
-								Get Sync Status
-							</Button>
-							<Button
-								on:click={() => {
-									if (autoSyncEnabled) {
-										stopAutoSync();
-									} else {
-										startAutoSync();
-									}
-								}}
-								disabled={isLoading}
-								color={autoSyncEnabled ? 'red' : 'green'}
-								size="sm"
-							>
-								{autoSyncEnabled ? 'Stop Auto-Sync' : 'Start Auto-Sync'}
 							</Button>
 						</div>
 					</div>

@@ -30,6 +30,21 @@ impl HyperRpcClient {
         format!("{}/{}", RPC_URL, API_TOKEN)
     }
 
+    pub async fn fetch_url(
+        &self,
+        url: &str,
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+        let response = client.get(url).send().await?;
+
+        if !response.status().is_success() {
+            return Err(format!("HTTP request failed with status: {}", response.status()).into());
+        }
+
+        let bytes = response.bytes().await?;
+        Ok(bytes.to_vec())
+    }
+
     pub async fn get_latest_block_number(
         &self,
     ) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {

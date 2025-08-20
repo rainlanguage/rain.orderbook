@@ -6336,6 +6336,7 @@ dependencies = [
  "csv",
  "dotrain",
  "dotrain-lsp",
+ "flate2",
  "futures",
  "httpmock",
  "once_cell",

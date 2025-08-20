@@ -18,8 +18,11 @@ impl FullPipeline {
         println!("=================================");
 
         // Determine the base directory for all files
-        let base_dir = self.output_dir.as_deref().unwrap_or("src/commands/local_db");
-        
+        let base_dir = self
+            .output_dir
+            .as_deref()
+            .unwrap_or("src/commands/local_db");
+
         // Step 1: Fetch events
         println!("\n1. Fetching events...");
         let fetch_events = FetchEvents {
@@ -28,9 +31,9 @@ impl FullPipeline {
         fetch_events.execute().await?;
 
         // Find the events file - check both current directory and target directory
-        let events_file = find_latest_events_file()
-            .or_else(|_| find_latest_events_file_in_dir(base_dir))?;
-        
+        let events_file =
+            find_latest_events_file().or_else(|_| find_latest_events_file_in_dir(base_dir))?;
+
         // Move the file to the target directory if needed
         let target_events_file = if events_file.starts_with(base_dir) {
             // File is already in the target directory
@@ -72,13 +75,13 @@ impl FullPipeline {
         } else {
             "decoded_events.json".to_string()
         };
-        
+
         // The decoded file is created in the current directory, move it to target
         let target_decoded_file = format!("{}/{}", base_dir, decoded_filename);
         if std::path::Path::new(&decoded_filename).exists() {
             std::fs::rename(&decoded_filename, &target_decoded_file)?;
         }
-        
+
         let decoded_file = target_decoded_file;
 
         // Step 3: Convert to SQL
@@ -95,13 +98,13 @@ impl FullPipeline {
         } else {
             "events.sql".to_string()
         };
-        
+
         // The SQL file is created in the current directory, move it to target
         let target_sql_file = format!("{}/{}", base_dir, sql_filename);
         if std::path::Path::new(&sql_filename).exists() {
             std::fs::rename(&sql_filename, &target_sql_file)?;
         }
-        
+
         let sql_file = target_sql_file;
 
         // Step 4: Import to database and create dump
@@ -173,7 +176,7 @@ fn find_latest_events_file_in_dir(dir: &str) -> Result<String> {
     for entry in fs::read_dir(search_dir)? {
         let entry = entry?;
         let path = entry.path();
-        
+
         if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
             if filename.starts_with("events_") && filename.ends_with(".json") {
                 if let Ok(metadata) = entry.metadata() {
