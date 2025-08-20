@@ -19,7 +19,7 @@ impl RaindexClient {
         console::log_1(&"Starting database sync process".into());
 
         console::log_1(&"Fetching events...".into());
-        let events = match fetch_events().await {
+        let events = match fetch_events("0xd2938e7c9fe3597f78832ce780feb61945c377d7", 19033330u64).await {
             Ok(result) => result,
             Err(e) => {
                 console::log_1(&format!("Fetch error: {}", e).into());

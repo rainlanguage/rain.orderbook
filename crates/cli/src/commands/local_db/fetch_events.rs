@@ -21,7 +21,7 @@ impl FetchEvents {
         let total_start = std::time::Instant::now();
 
         // Call the common fetch function
-        let all_events = fetch_events()
+        let all_events = fetch_events("0xd2938e7c9fe3597f78832ce780feb61945c377d7", 19033330u64)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to fetch events: {}", e))?;
 
