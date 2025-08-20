@@ -1,42 +1,49 @@
 ##
-## SECURITY MODEL FOR VERCEL PREVIEW DEPLOYS FOR INTERNAL BRANCHES (READ BEFORE EDITING)
+## SECURITY MODEL FOR VERCEL PREVIEW DEPLOYS (PR TARGET) — READ BEFORE EDITING
 ##
-## This workflow runs on non-main branch pushes in this repository (not forks):
-##  - PR-target preview deploys (for forks) are isolated in a separate workflow
-##    file and use a different Vercel org and project.
-##  - Regardless, secrets are passed only to the Vercel CLI steps (not to build/test steps).
+## This workflow allows preview deploys for fork PRs with strict safeguards:
+##  - Uses pull_request_target so secrets are available only in the base repo context.
+##  - Additionally requires a maintainer to add the 'vercel-preview' label AND approve the 'vercel-preview' environment.
+##  - Never runs when files in '.github/workflows/**' change (paths-ignore).
+##  - Builds PR code WITHOUT secrets using a placeholder env value.
+##  - Secrets are passed only to the Vercel CLI steps (not to build/test steps).
 ##  - Shell runs with 'bash --noprofile --norc -euo pipefail'.
 ##  - The Vercel CLI is invoked via an absolute path stored in $VERCEL_BIN to avoid PATH hijacking.
 ##
 ## WARNING: Changing any of the following may break the security model:
-##  - Triggers and environment usage.
+##  - Triggers (pull_request_target), label requirement, or environment approval.
+##  - The '.github/workflows/**' paths-ignore.
 ##  - Introducing PR-controlled inputs into steps that use secrets.
 ##  - Relaxing the shell/ PATH hardening, or calling 'vercel' via PATH.
 ##  - Moving secrets to top-level env or earlier steps.
 ## If you modify this file, re-validate these invariants.
-name: GitHub Actions Vercel Preview Deployment
+##
+name: GitHub Actions Vercel Preview Deployment (PR Target)
 on:
-  push:
-    branches-ignore:
-      - main
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+    paths-ignore:
+      - ".github/workflows/**"
 concurrency:
-  group: ${{ format('{0}-vercel-preview', github.ref) }}
+  group: ${{ format('pr-{0}-vercel-preview', github.event.pull_request.number) }}
   cancel-in-progress: true
 jobs:
-  Deploy-Preview-Push:
-    if: github.event_name == 'push'
+  Deploy-Preview-PR:
+    if: contains(github.event.pull_request.labels.*.name, 'vercel-preview')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+    environment: vercel-preview
     env:
       COMMIT_SHA: ${{ github.sha }}
     steps:
-      - name: Checkout repository
+      - name: Checkout PR head
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: nixbuild/nix-quick-install-action@v30
         with:
@@ -46,23 +53,18 @@ jobs:
       - name: Restore and save Nix store
         uses: nix-community/cache-nix-action@v6
         with:
-          # restore and save a cache using this key
           primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
-          # if there's no cache hit, restore a cache by this prefix
           restore-prefixes-first-match: nix-${{ runner.os }}-
-          # collect garbage until the Nix store size (in bytes) is at most this number
-          # before trying to save a new cache
-          # 1G = 1073741824
           gc-max-store-size-linux: 1G
 
       - run: ./prep-all.sh
         env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+          PUBLIC_WALLETCONNECT_PROJECT_ID: test
 
       - run: nix develop .#webapp-shell -c npm run build
         working-directory: packages/webapp
         env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+          PUBLIC_WALLETCONNECT_PROJECT_ID: test
 
       - name: Install Vercel CLI (local, pinned)
         shell: bash --noprofile --norc -euo pipefail {0}
@@ -73,16 +75,16 @@ jobs:
       - name: Pull Vercel Environment Information
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID_PREVIEWS }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PREVIEWS }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_PREVIEWS }}
         run: |
           "$VERCEL_BIN" pull --yes --environment=preview --token="$VERCEL_TOKEN"
       - name: Deploy Project Artifacts to Vercel
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID_PREVIEWS }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PREVIEWS }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_PREVIEWS }}
         run: |
           "$VERCEL_BIN" deploy --prebuilt --token="$VERCEL_TOKEN" packages/webapp
