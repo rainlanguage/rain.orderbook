@@ -95,7 +95,6 @@
 		sqlQuery = query;
 		executeQuery();
 	}
-
 </script>
 
 <PageHeader title="Database Playground" pathname={$page.url.pathname} />
@@ -140,9 +139,17 @@
 							<Button
 								on:click={() => {
 									syncStatus = '';
-									executeRaindexQuery(() => RaindexClient.syncDatabase(queryFn, (status) => {
-										syncStatus = status;
-									}));
+									executeRaindexQuery(() =>
+										RaindexClient.syncDatabase(
+											queryFn,
+											// @ts-ignore
+											(status) => {
+												syncStatus = status;
+											},
+											'0xd2938e7c9fe3597f78832ce780feb61945c377d7', // contract address
+											BigInt(19033330) // default start block
+										)
+									);
 								}}
 								disabled={isLoading}
 								color="light"
@@ -167,6 +174,14 @@
 								size="sm"
 							>
 								Clear All Tables & Views
+							</Button>
+							<Button
+								on:click={() => executeRaindexQuery(() => RaindexClient.getSyncStatus(queryFn))}
+								disabled={isLoading}
+								color="light"
+								size="sm"
+							>
+								Get Sync Status
 							</Button>
 						</div>
 					</div>

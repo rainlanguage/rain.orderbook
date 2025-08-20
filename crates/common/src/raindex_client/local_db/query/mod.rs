@@ -130,6 +130,17 @@ pub struct AllVaultsResponse {
 }
 impl_wasm_traits!(AllVaultsResponse);
 
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncStatusResponse {
+    pub id: u64,
+    #[serde(alias = "last_synced_block")]
+    pub last_synced_block: u64,
+    #[serde(alias = "updated_at")]
+    pub updated_at: Option<String>,
+}
+impl_wasm_traits!(SyncStatusResponse);
+
 /// Helper function to split SQL statements by semicolons
 fn split_sql_statements(sql: &str) -> Vec<String> {
     sql.split(';')
@@ -214,6 +225,28 @@ where
         Err(RaindexError::CustomError(
             "No valid response from database queries".to_string(),
         ))
+    }
+}
+
+/// Get the last synced block from sync_status table
+pub async fn get_last_synced_block(
+    callback: &js_sys::Function,
+) -> Result<u64, RaindexError> {
+    let sql = "SELECT id, last_synced_block, updated_at FROM sync_status WHERE id = 1";
+    
+    match execute_query_with_callback::<Vec<SyncStatusResponse>>(callback, sql).await {
+        Ok(results) => {
+            if let Some(sync_status) = results.first() {
+                Ok(sync_status.last_synced_block)
+            } else {
+                // If no sync_status record exists, return 0 to indicate fresh start
+                Ok(0)
+            }
+        }
+        Err(_) => {
+            // If table doesn't exist or query fails, return 0 to indicate fresh start
+            Ok(0)
+        }
     }
 }
 
@@ -401,5 +434,19 @@ impl RaindexClient {
     ) -> Result<(), RaindexError> {
         let sql = get_clear_tables_query();
         execute_query_no_result(&callback, &sql).await
+    }
+
+    /// Get the current sync status
+    #[wasm_export(
+        js_name = "getSyncStatus",
+        return_description = "JSON array with sync status information",
+        unchecked_return_type = "Array<{id: number, last_synced_block: number, updated_at: string | null}>"
+    )]
+    pub async fn get_sync_status(
+        #[wasm_export(param_description = "JavaScript function to execute SQL queries")]
+        callback: js_sys::Function,
+    ) -> Result<Vec<SyncStatusResponse>, RaindexError> {
+        let sql = "SELECT id, last_synced_block, updated_at FROM sync_status WHERE id = 1";
+        execute_query_with_callback::<Vec<SyncStatusResponse>>(&callback, sql).await
     }
 }

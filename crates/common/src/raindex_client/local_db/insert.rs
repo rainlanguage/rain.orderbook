@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-pub fn decoded_events_to_sql(data: Value) -> Result<String, Box<dyn std::error::Error>> {
+pub fn decoded_events_to_sql(data: Value, end_block: u64) -> Result<String, Box<dyn std::error::Error>> {
     let mut sql = String::new();
 
     // Start transaction for all events
@@ -55,13 +55,11 @@ pub fn decoded_events_to_sql(data: Value) -> Result<String, Box<dyn std::error::
         }
     }
 
-    // Update sync status with the highest block number processed
-    if let Some(max_block) = max_block_number {
-        sql.push_str(&format!(
-            "\nUPDATE sync_status SET last_synced_block = {}, updated_at = CURRENT_TIMESTAMP WHERE id = 1;\n",
-            max_block
-        ));
-    }
+    // Update sync status with the end block (always update regardless of events found)
+    sql.push_str(&format!(
+        "\nUPDATE sync_status SET last_synced_block = {}, updated_at = CURRENT_TIMESTAMP WHERE id = 1;\n",
+        end_block
+    ));
 
     // Commit the transaction for all events
     sql.push_str("\nCOMMIT;\n");

@@ -102,11 +102,11 @@ impl HyperRpcClient {
     }
 }
 
-pub async fn fetch_events(contract_address: &str, start_block: u64) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
-    let client = HyperRpcClient {};
-
-    let latest_block = client.get_latest_block_number().await?;
-
+pub async fn fetch_events(
+    contract_address: &str,
+    start_block: u64,
+    end_block: u64,
+) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
     let chunk_size = 50000u64; // Optimal block chunk size
 
     // Use multiple event signatures for filtering
@@ -124,8 +124,8 @@ pub async fn fetch_events(contract_address: &str, start_block: u64) -> Result<se
     // Prepare all chunk ranges
     let mut chunks = Vec::new();
     let mut current_block = start_block;
-    while current_block <= latest_block {
-        let to_block = std::cmp::min(current_block + chunk_size - 1, latest_block);
+    while current_block <= end_block {
+        let to_block = std::cmp::min(current_block + chunk_size - 1, end_block);
         chunks.push((current_block, to_block));
         current_block = to_block + 1;
     }
