@@ -1,6 +1,9 @@
 use serde_json::Value;
 
-pub fn decoded_events_to_sql(data: Value, end_block: u64) -> Result<String, Box<dyn std::error::Error>> {
+pub fn decoded_events_to_sql(
+    data: Value,
+    end_block: u64,
+) -> Result<String, Box<dyn std::error::Error>> {
     let mut sql = String::new();
 
     // Start transaction for all events
@@ -17,7 +20,8 @@ pub fn decoded_events_to_sql(data: Value, end_block: u64) -> Result<String, Box<
         // Track the maximum block number from all processed events
         if let Ok(block_number_str) = get_string_field(event, "block_number") {
             if let Ok(block_number) = hex_to_decimal(block_number_str) {
-                max_block_number = Some(max_block_number.map_or(block_number, |max| max.max(block_number)));
+                max_block_number =
+                    Some(max_block_number.map_or(block_number, |max| max.max(block_number)));
             }
         }
 

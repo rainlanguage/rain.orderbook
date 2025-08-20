@@ -36,7 +36,8 @@ impl EventsToSql {
         println!("Generating SQL statements...");
 
         // Call the common insert function
-        let sql_statements = decoded_events_to_sql(data)
+        // TODO: end block should change
+        let sql_statements = decoded_events_to_sql(data, 0)
             .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
 
         fs::write(&self.output, sql_statements)

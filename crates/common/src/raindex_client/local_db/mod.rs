@@ -19,7 +19,9 @@ impl RaindexClient {
         status_callback: js_sys::Function,
         #[wasm_export(param_description = "The contract address to sync events for")]
         contract_address: String,
-        #[wasm_export(param_description = "The default start block number (used when no sync history exists)")]
+        #[wasm_export(
+            param_description = "The default start block number (used when no sync history exists)"
+        )]
         default_start_block: u64,
     ) -> Result<(), RaindexError> {
         let _ = status_callback.call1(
@@ -65,7 +67,10 @@ impl RaindexClient {
             // No sync history, use the default start block
             let _ = status_callback.call1(
                 &wasm_bindgen::JsValue::NULL,
-                &wasm_bindgen::JsValue::from_str(&format!("No sync history found, starting from block {}", default_start_block)),
+                &wasm_bindgen::JsValue::from_str(&format!(
+                    "No sync history found, starting from block {}",
+                    default_start_block
+                )),
             );
             default_start_block
         } else {
@@ -73,7 +78,10 @@ impl RaindexClient {
             let resume_block = last_synced_block + 1;
             let _ = status_callback.call1(
                 &wasm_bindgen::JsValue::NULL,
-                &wasm_bindgen::JsValue::from_str(&format!("Resuming sync from block {} (last synced: {})", resume_block, last_synced_block)),
+                &wasm_bindgen::JsValue::from_str(&format!(
+                    "Resuming sync from block {} (last synced: {})",
+                    resume_block, last_synced_block
+                )),
             );
             resume_block
         };
@@ -82,26 +90,31 @@ impl RaindexClient {
         if start_block > latest_block {
             let _ = status_callback.call1(
                 &wasm_bindgen::JsValue::NULL,
-                &wasm_bindgen::JsValue::from_str(&format!("Already up to date: start block {} > latest block {}", start_block, latest_block)),
+                &wasm_bindgen::JsValue::from_str(&format!(
+                    "Already up to date: start block {} > latest block {}",
+                    start_block, latest_block
+                )),
             );
             return Ok(());
         }
 
         let _ = status_callback.call1(
             &wasm_bindgen::JsValue::NULL,
-            &wasm_bindgen::JsValue::from_str(&format!("Fetching events from block {} to {}", start_block, latest_block)),
+            &wasm_bindgen::JsValue::from_str(&format!(
+                "Fetching events from block {} to {}",
+                start_block, latest_block
+            )),
         );
-        let events =
-            match fetch_events(&contract_address, start_block, latest_block).await {
-                Ok(result) => result,
-                Err(e) => {
-                    let _ = status_callback.call1(
-                        &wasm_bindgen::JsValue::NULL,
-                        &wasm_bindgen::JsValue::from_str(&format!("Fetch error: {}", e)),
-                    );
-                    return Err(RaindexError::CustomError(e.to_string()));
-                }
-            };
+        let events = match fetch_events(&contract_address, start_block, latest_block).await {
+            Ok(result) => result,
+            Err(e) => {
+                let _ = status_callback.call1(
+                    &wasm_bindgen::JsValue::NULL,
+                    &wasm_bindgen::JsValue::from_str(&format!("Fetch error: {}", e)),
+                );
+                return Err(RaindexError::CustomError(e.to_string()));
+            }
+        };
         let _ = status_callback.call1(
             &wasm_bindgen::JsValue::NULL,
             &wasm_bindgen::JsValue::from_str(&format!(

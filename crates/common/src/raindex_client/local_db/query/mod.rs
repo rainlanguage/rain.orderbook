@@ -229,11 +229,9 @@ where
 }
 
 /// Get the last synced block from sync_status table
-pub async fn get_last_synced_block(
-    callback: &js_sys::Function,
-) -> Result<u64, RaindexError> {
+pub async fn get_last_synced_block(callback: &js_sys::Function) -> Result<u64, RaindexError> {
     let sql = "SELECT id, last_synced_block, updated_at FROM sync_status WHERE id = 1";
-    
+
     match execute_query_with_callback::<Vec<SyncStatusResponse>>(callback, sql).await {
         Ok(results) => {
             if let Some(sync_status) = results.first() {
@@ -322,7 +320,7 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "fetchAllTables",
         return_description = "JSON array of table names",
-        unchecked_return_type = "Array<{name: string}>"
+        unchecked_return_type = "TableResponse[]"
     )]
     pub async fn fetch_all_tables(
         #[wasm_export(param_description = "JavaScript function to execute SQL queries")]
@@ -336,7 +334,7 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getActiveOrders",
         return_description = "JSON array of active orders",
-        unchecked_return_type = "Array<{order_hash: string, owner: string, creation_time: number, inputs: string, outputs: string, trade_count: number}>"
+        unchecked_return_type = "ActiveOrderResponse[]"
     )]
     pub async fn get_active_orders(
         #[wasm_export(param_description = "JavaScript function to execute SQL queries")]
@@ -350,7 +348,7 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getOrderTrades",
         return_description = "JSON array of trades",
-        unchecked_return_type = "Array<{trade_date: string, transaction_hash: string, input_amount: string, output_amount: string}>"
+        unchecked_return_type = "OrderTradeResponse[]"
     )]
     pub async fn get_order_trades(
         #[wasm_export(param_description = "JavaScript function to execute SQL queries")]
@@ -369,7 +367,7 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getOrderVaultVolumes",
         return_description = "JSON array of vault volumes",
-        unchecked_return_type = "Array<{vault_id: string, token: string, decimals: number, total_in: number, total_out: number, net_volume: number, total_volume: number}>"
+        unchecked_return_type = "OrderVaultVolumeResponse[]"
     )]
     pub async fn get_order_vault_volumes(
         #[wasm_export(param_description = "JavaScript function to execute SQL queries")]
@@ -388,7 +386,7 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getVaultBalanceHistory",
         return_description = "JSON array of vault balance history",
-        unchecked_return_type = "Array<{date: string | null, tx_hash: string, balance_change: string, balance_change_type: string, block_number: number, log_index: number}>"
+        unchecked_return_type = "VaultBalanceHistoryResponse[]"
     )]
     pub async fn get_vault_balance_history(
         #[wasm_export(param_description = "JavaScript function to execute SQL queries")]
@@ -412,7 +410,7 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getAllVaults",
         return_description = "JSON array of all vaults",
-        unchecked_return_type = "Array<{vault_id: string, token: string, decimals: number, owner: string, balance: number, input_order_hashes: string, output_order_hashes: string}>"
+        unchecked_return_type = "AllVaultsResponse[]"
     )]
     pub async fn get_all_vaults(
         #[wasm_export(param_description = "JavaScript function to execute SQL queries")]
@@ -440,7 +438,7 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getSyncStatus",
         return_description = "JSON array with sync status information",
-        unchecked_return_type = "Array<{id: number, last_synced_block: number, updated_at: string | null}>"
+        unchecked_return_type = "SyncStatusResponse[]"
     )]
     pub async fn get_sync_status(
         #[wasm_export(param_description = "JavaScript function to execute SQL queries")]

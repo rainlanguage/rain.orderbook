@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { PageHeader } from '@rainlanguage/ui-components';
 	import { Button, Textarea, Input, Label } from 'flowbite-svelte';
@@ -12,6 +12,12 @@
 	let isLoading = false;
 	let error = '';
 	let syncStatus = '';
+
+	// Auto-sync state variables
+	let autoSyncEnabled = false;
+	let lastSyncedBlock: string | null = null;
+	let lastSyncTime: Date | null = null;
+	let autoSyncInterval: ReturnType<typeof setInterval> | null = null;
 
 	// Input fields for parameterized queries
 	let showOrderHashInput = false;
@@ -91,17 +97,94 @@
 		syncStatus = ''; // Clear sync status when operation completes
 	}
 
-	function executeCommonQuery(query: string) {
-		sqlQuery = query;
-		executeQuery();
+	async function startAutoSync() {
+		if (!db?.value || autoSyncEnabled) return;
+
+		autoSyncEnabled = true;
+
+		// Get current sync status first
+		await updateSyncStatus();
+
+		// Initial sync
+		await performAutoSync();
+
+		// Set up interval for every 5 seconds
+		autoSyncInterval = setInterval(async () => {
+			await performAutoSync();
+		}, 5000);
 	}
+
+	async function updateSyncStatus() {
+		if (!db?.value) return;
+
+		try {
+			const queryFn = db.value.query.bind(db.value);
+			const statusResult = await RaindexClient.getSyncStatus(queryFn);
+
+			console.log('Sync status result:', statusResult); // Debug log
+
+			if (!statusResult.error && statusResult.value) {
+				const statusArray = statusResult.value;
+				console.log('Status array:', statusArray); // Debug log
+
+				if (statusArray && statusArray.length > 0) {
+					const latestStatus = statusArray[statusArray.length - 1];
+					lastSyncedBlock = latestStatus.lastSyncedBlock.toString();
+					lastSyncTime = latestStatus.updatedAt ? new Date(latestStatus.updatedAt) : new Date();
+					console.log('Updated status:', { lastSyncedBlock, lastSyncTime }); // Debug log
+				}
+			} else {
+				console.log('Error getting sync status:', statusResult.error);
+			}
+		} catch (err) {
+			console.error('Failed to get sync status:', err);
+		}
+	}
+
+	function stopAutoSync() {
+		autoSyncEnabled = false;
+		if (autoSyncInterval) {
+			clearInterval(autoSyncInterval);
+			autoSyncInterval = null;
+		}
+	}
+
+	async function performAutoSync() {
+		if (!db?.value || isLoading) return;
+
+		try {
+			const queryFn = db.value.query.bind(db.value);
+
+			// Sync database
+			const syncResult = await RaindexClient.syncDatabase(
+				queryFn,
+				() => {}, // Don't update syncStatus for auto-sync
+				'0xd2938e7c9fe3597f78832ce780feb61945c377d7', // contract address
+				BigInt(19033330) // default start block
+			);
+
+			if (syncResult.error) {
+				console.error('Auto-sync error:', syncResult.error.msg);
+				return;
+			}
+
+			// Update sync status display
+			await updateSyncStatus();
+		} catch (err) {
+			console.error('Auto-sync failed:', err);
+		}
+	}
+
+	onDestroy(() => {
+		stopAutoSync();
+	});
 </script>
 
 <PageHeader title="Database Playground" pathname={$page.url.pathname} />
 
 {#if db}
 	{#if db.error}
-		<div class="mx-auto max-w-4xl p-4">
+		<div class="mx-auto max-w-6xl p-4">
 			<div
 				class="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/20"
 			>
@@ -113,14 +196,29 @@
 		</div>
 	{:else if db.value}
 		{@const queryFn = db.value.query.bind(db.value)}
-		<div class="mx-auto max-w-4xl space-y-6 p-4">
+		<div class="mx-auto max-w-6xl space-y-6 p-4">
 			<div
 				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<div class="mb-4">
-					<h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
-						Database Operations
-					</h3>
+					<div class="mb-4 flex items-center justify-between">
+						<h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+							Database Operations
+						</h3>
+						{#if autoSyncEnabled}
+							<div class="text-right text-sm">
+								<div class="flex items-center text-blue-700 dark:text-blue-300">
+									<div class="mr-2 h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+									<span class="font-medium">Auto-Sync Active</span>
+								</div>
+								<div class="text-xs text-blue-600 dark:text-blue-400">
+									Block: {lastSyncedBlock || 'Loading...'} | Last: {lastSyncTime
+										? lastSyncTime.toLocaleTimeString()
+										: 'Loading...'}
+								</div>
+							</div>
+						{/if}
+					</div>
 
 					<!-- Database Management Section -->
 					<div class="mb-6">
@@ -142,7 +240,7 @@
 									executeRaindexQuery(() =>
 										RaindexClient.syncDatabase(
 											queryFn,
-											// @ts-ignore
+											// @ts-expect-error - Status callback parameter types not properly defined
 											(status) => {
 												syncStatus = status;
 											},
@@ -175,6 +273,15 @@
 							>
 								Clear All Tables & Views
 							</Button>
+						</div>
+					</div>
+
+					<!-- Indexer Status Management Section -->
+					<div class="mb-6">
+						<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+							Indexer Status Management
+						</h4>
+						<div class="flex flex-wrap gap-2">
 							<Button
 								on:click={() => executeRaindexQuery(() => RaindexClient.getSyncStatus(queryFn))}
 								disabled={isLoading}
@@ -182,6 +289,20 @@
 								size="sm"
 							>
 								Get Sync Status
+							</Button>
+							<Button
+								on:click={() => {
+									if (autoSyncEnabled) {
+										stopAutoSync();
+									} else {
+										startAutoSync();
+									}
+								}}
+								disabled={isLoading}
+								color={autoSyncEnabled ? 'red' : 'green'}
+								size="sm"
+							>
+								{autoSyncEnabled ? 'Stop Auto-Sync' : 'Start Auto-Sync'}
 							</Button>
 						</div>
 					</div>
@@ -474,7 +595,7 @@
 		</div>
 	{/if}
 {:else}
-	<div class="mx-auto max-w-4xl p-4">
+	<div class="mx-auto max-w-6xl p-4">
 		<div
 			class="rounded-lg border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800"
 		>
