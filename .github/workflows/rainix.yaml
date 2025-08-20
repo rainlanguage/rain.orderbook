@@ -49,6 +49,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       COMMIT_SHA: ${{ github.sha }}
+      # This is the address of a metaboard on Sepolia. It's needed for the sol
+      # artifact deploy dry run.
+      DEPLOY_METABOARD_ADDRESS: "0x77991674ca8887D4ee1b583DB7324B41d5f894c4"
     steps:
       - uses: actions/checkout@v4
         with:
