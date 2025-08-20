@@ -29,9 +29,10 @@ on:
     paths-ignore:
       - ".github/workflows/**"
 concurrency:
-  group: ${{ github.ref }}-vercel-preview
+  group: ${{ github.event_name == 'pull_request_target'
+              && format('pr-{0}-vercel-preview', github.event.pull_request.number)
+              || format('{0}-vercel-preview', github.ref) }}
   cancel-in-progress: true
-
 jobs:
   Deploy-Preview-Push:
     if: github.event_name == 'push'
