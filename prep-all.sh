@@ -26,6 +26,8 @@ keep=(
   -k PUBLIC_WALLETCONNECT_PROJECT_ID
 )
 
+env
+
 echo "Installing Forge dependencies..."
 nix develop -c forge install
 
