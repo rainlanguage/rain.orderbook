@@ -10,7 +10,7 @@ export { default as Refresh } from './components/icon/Refresh.svelte';
 export { default as CheckboxActiveOrders } from './components/checkbox/CheckboxActiveOrders.svelte';
 export { default as InputOrderHash } from './components/input/InputOrderHash.svelte';
 export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBalanceVault.svelte';
-export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
+export { default as ListViewOrderFilters } from './components/ListViewOrderFilters.svelte';
 export { default as OrdersListTable } from './components/tables/OrdersListTable.svelte';
 export { default as VaultsListTable } from './components/tables/VaultsListTable.svelte';
 export { default as PageHeader } from './components/PageHeader.svelte';

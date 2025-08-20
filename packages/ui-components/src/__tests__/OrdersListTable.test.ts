@@ -8,7 +8,7 @@ import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 
-vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
+vi.mock('../lib/components/ListViewOrderFilters.svelte', async () => {
 	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		default: MockComponent
