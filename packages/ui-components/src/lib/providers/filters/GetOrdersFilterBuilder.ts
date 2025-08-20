@@ -11,6 +11,7 @@ import type { Address, Hex, GetOrdersFilters } from '@rainlanguage/orderbook';
  *   .setActive(true)
  *   .setOrderHash("0x123...")
  *   .setTokens([tokenAddress])
+ *   .setChainIds([1, 137])
  *   .build();
  * ```
  */
@@ -23,7 +24,8 @@ export class GetOrdersFilterBuilder {
 			owners: [...currentFilters.owners],
 			active: currentFilters.active,
 			orderHash: currentFilters.orderHash,
-			tokens: currentFilters.tokens ? [...currentFilters.tokens] : currentFilters.tokens
+			tokens: currentFilters.tokens ? [...currentFilters.tokens] : currentFilters.tokens,
+			chainIds: currentFilters.chainIds ? [...currentFilters.chainIds] : currentFilters.chainIds
 		};
 	}
 
@@ -68,6 +70,16 @@ export class GetOrdersFilterBuilder {
 	}
 
 	/**
+	 * Set the chain IDs to filter by.
+	 * @param chainIds Array of chain IDs, or undefined to clear filter
+	 * @returns This builder instance for chaining
+	 */
+	setChainIds(chainIds?: number[]) {
+		this.filters.chainIds = chainIds ? [...chainIds] : undefined;
+		return this;
+	}
+
+	/**
 	 * Build the final filter object.
 	 * @returns The constructed GetOrdersFilters object
 	 */
@@ -76,7 +88,8 @@ export class GetOrdersFilterBuilder {
 			owners: [...this.filters.owners],
 			active: this.filters.active,
 			orderHash: this.filters.orderHash,
-			tokens: this.filters.tokens ? [...this.filters.tokens] : this.filters.tokens
+			tokens: this.filters.tokens ? [...this.filters.tokens] : this.filters.tokens,
+			chainIds: this.filters.chainIds ? [...this.filters.chainIds] : this.filters.chainIds
 		};
 	}
 }

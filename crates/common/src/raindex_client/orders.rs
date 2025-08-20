@@ -400,17 +400,17 @@ impl RaindexClient {
     /// Queries orders with filtering and pagination across configured networks
     ///
     /// Retrieves a list of orders from the specified network or all configured networks,
-    /// with support for filtering by owner, status, and order hash. Results are paginated
+    /// with support for filtering by owner, status, order hash, tokens, and chainIds. Results are paginated
     /// for efficient data retrieval.
     ///
     /// ## Examples
     ///
     /// ```javascript
     /// const result = await client.getOrders(
-    ///   137, // Polygon network
     ///   {
     ///     owners: ["0x1234567890abcdef1234567890abcdef12345678"],
-    ///     active: true
+    ///     active: true,
+    ///     chainIds: [137] // Polygon network
     ///   },
     ///   1
     /// );
@@ -430,20 +430,17 @@ impl RaindexClient {
     pub async fn get_orders(
         &self,
         #[wasm_export(
-            js_name = "chainIds",
-            param_description = "Specific blockchain network to query (optional, queries all networks if not specified)"
-        )]
-        chain_ids: Option<ChainIds>,
-        #[wasm_export(
-            param_description = "Filtering criteria including owners, active status, and order hash (optional)"
+            param_description = "Optional filtering options including owners, active status, order hash, tokens, and chainIds"
         )]
         filters: Option<GetOrdersFilters>,
         #[wasm_export(param_description = "Page number for pagination (optional, defaults to 1)")]
         page: Option<u16>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
-        let multi_subgraph_args =
-            self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
+
+        // Extract chain_ids from filters if provided
+        let chain_ids = filters.as_ref().and_then(|f| f.chain_ids.clone());
+        let multi_subgraph_args = self.get_multi_subgraph_args(chain_ids)?;
 
         let client = MultiOrderbookSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
@@ -457,6 +454,7 @@ impl RaindexClient {
                         active: None,
                         order_hash: None,
                         tokens: None,
+                        chain_ids: None,
                     })
                     .try_into()?,
                 SgPaginationArgs {
@@ -1000,6 +998,7 @@ mod tests {
                 active: None,
                 order_hash: None,
                 tokens: None,
+                chain_ids: None,
             };
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
@@ -1013,7 +1012,7 @@ mod tests {
             )
             .unwrap();
             let result = raindex_client
-                .get_orders(None, Some(filter_args), Some(1))
+                .get_orders(Some(filter_args), Some(1))
                 .await
                 .unwrap();
 

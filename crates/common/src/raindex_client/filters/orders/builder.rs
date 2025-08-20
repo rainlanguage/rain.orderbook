@@ -63,6 +63,8 @@ pub struct OrdersFilterBuilder {
     pub order_hash: Option<Bytes>,
     #[wasm_bindgen(skip)]
     pub tokens: Option<Vec<Address>>,
+    #[wasm_bindgen(skip)]
+    pub chain_ids: Option<Vec<u32>>,
 }
 
 #[wasm_export]
@@ -225,6 +227,31 @@ impl OrdersFilterBuilder {
         Ok(next)
     }
 
+    /// Sets the chain IDs filter.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const builder = OrdersFilterBuilder.new()
+    ///     .setChainIds([1, 137, 42161]);
+    /// ```
+    #[wasm_export(
+        js_name = "setChainIds",
+        preserve_js_class,
+        return_description = "A new OrdersFilterBuilder instance with updated chain IDs filter"
+    )]
+    pub fn set_chain_ids_wasm(
+        self,
+        #[wasm_export(
+            param_description = "Array of chain IDs",
+            unchecked_param_type = "ChainIds | null"
+        )]
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<OrdersFilterBuilder, OrdersFilterBuilderError> {
+        let next = self.clone().set_chain_ids(chain_ids);
+        Ok(next)
+    }
+
     /// Builds the final GetOrdersFilters from the builder.
     ///
     /// ## Examples
@@ -270,6 +297,12 @@ impl OrdersFilterBuilder {
         self
     }
 
+    /// Sets the chain IDs filter.
+    pub fn set_chain_ids(mut self, chain_ids: Option<Vec<u32>>) -> Self {
+        self.chain_ids = chain_ids;
+        self
+    }
+
     /// Builds the final GetOrdersFilters from the builder.
     pub fn build(self) -> GetOrdersFilters {
         GetOrdersFilters {
@@ -277,6 +310,7 @@ impl OrdersFilterBuilder {
             active: self.active,
             order_hash: self.order_hash,
             tokens: self.tokens,
+            chain_ids: self.chain_ids,
         }
     }
 }
@@ -288,6 +322,7 @@ impl From<GetOrdersFilters> for OrdersFilterBuilder {
             active: filters.active,
             order_hash: filters.order_hash,
             tokens: filters.tokens,
+            chain_ids: filters.chain_ids,
         }
     }
 }
@@ -344,6 +379,7 @@ mod tests {
             active: Some(true),
             order_hash: None,
             tokens: None,
+            chain_ids: Some(vec![1, 137]),
         };
 
         let builder = OrdersFilterBuilder::from(original_filters.clone());
@@ -353,5 +389,6 @@ mod tests {
         assert_eq!(rebuilt_filters.active, original_filters.active);
         assert_eq!(rebuilt_filters.order_hash, original_filters.order_hash);
         assert_eq!(rebuilt_filters.tokens, original_filters.tokens);
+        assert_eq!(rebuilt_filters.chain_ids, original_filters.chain_ids);
     }
 }

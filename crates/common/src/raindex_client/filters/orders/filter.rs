@@ -18,6 +18,8 @@ pub struct GetOrdersFilters {
     pub order_hash: Option<Bytes>,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
+    #[tsify(optional, type = "ChainIds")]
+    pub chain_ids: Option<Vec<u32>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
@@ -68,6 +70,7 @@ mod tests {
             tokens: Some(vec!["0xfedcba0987654321fedcba0987654321fedcba09"
                 .parse()
                 .unwrap()]),
+            chain_ids: Some(vec![1, 137]),
         };
 
         let sg_filters: SgOrdersListFilterArgs = filters.try_into().unwrap();
@@ -85,5 +88,6 @@ mod tests {
         assert!(filters.active.is_none());
         assert!(filters.order_hash.is_none());
         assert!(filters.tokens.is_none());
+        assert!(filters.chain_ids.is_none());
     }
 }
