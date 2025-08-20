@@ -105,5 +105,7 @@ jobs:
           echo "Generated ephemeral deployment key for this run"
 
       - name: Run ${{ matrix.task }}
+        env:
+          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_SEPOLIA_RPC_URL || vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
 
         run: nix develop -c ${{ matrix.task }}
