@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {IRouteProcessor} from "sushixswap-v2/src/interfaces/IRouteProcessor.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
@@ -79,23 +78,23 @@ contract BalancerRouterOrderBookV4ArbOrderTaker is OrderBookV4ArbOrderTaker {
             takeOrdersData,
             (address, SwapPathExactAmountIn)
         );
-        
+
+        // validate the swap tokens
+        require(address(route.tokenIn) == inputToken, "Input token of the given balancer route doesnt match the order's IO");
+        require(address(route.steps[route.steps.length - 1].tokenOut) == outputToken, "Output token of the given balancer route doesnt match the order's IO");
+
         // approve permit2 for the input token
         IERC20(inputToken).approve(address(iPermit2), type(uint256).max);
         iPermit2.approve(inputToken, _balancerRouter, type(uint160).max, 0); // 0 expiration means no expiration
-
-        // Validate the swap tokens
-        require(address(route.tokenIn) == inputToken, "Invalid input token");
-        require(address(route.steps[route.steps.length - 1].tokenOut) == outputToken, "Invalid output token");
 
         IBatchRouter balancerRouter = IBatchRouter(_balancerRouter);
 
         route.exactAmountIn = inputAmountSent;
         route.minAmountOut = totalOutputAmount;
-        SwapPathExactAmountIn[] memory paths = new SwapPathExactAmountIn[](1);
-        paths[0] = route;
+        SwapPathExactAmountIn[] memory batchRoute = new SwapPathExactAmountIn[](1);
+        batchRoute[0] = route;
 
-        (uint256[] memory pathAmountsOut, address[] memory tokensOut, uint256[] memory amountsOut) = balancerRouter.swapExactIn(paths, type(uint256).max, false, "0x");
+        (uint256[] memory pathAmountsOut, address[] memory tokensOut, uint256[] memory amountsOut) = balancerRouter.swapExactIn(batchRoute, type(uint256).max, false, "0x");
         (pathAmountsOut, tokensOut, amountsOut);
 
         IERC20(inputToken).approve(address(iPermit2), 0);
