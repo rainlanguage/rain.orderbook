@@ -4,10 +4,10 @@ use crate::raindex_client::local_db::fetch::fetch_events;
 use crate::raindex_client::local_db::insert::decoded_events_to_sql;
 use web_sys::console;
 
-mod decode;
-mod fetch;
-mod insert;
-mod query;
+pub mod decode;
+pub mod fetch;
+pub mod insert;
+pub mod query;
 
 #[wasm_export]
 impl RaindexClient {

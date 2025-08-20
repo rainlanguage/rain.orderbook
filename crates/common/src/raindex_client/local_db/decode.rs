@@ -1,6 +1,12 @@
-use alloy::{hex, sol_types::SolEvent};
+use alloy::primitives::keccak256;
+use alloy::{
+    hex,
+    sol_types::{SolEvent, SolValue},
+};
 use rain_orderbook_bindings::{
-    IOrderBookV4::{AddOrderV2, Deposit, RemoveOrderV2, TakeOrderV2, Withdraw},
+    IOrderBookV4::{
+        AddOrderV2, AfterClear, ClearV2, Deposit, OrderV3, RemoveOrderV2, TakeOrderV2, Withdraw,
+    },
     OrderBook::MetaV1_2,
 };
 use serde::{Deserialize, Serialize};
@@ -29,6 +35,8 @@ pub fn decode_events(
     topic_map.insert(Withdraw::SIGNATURE_HASH.to_string(), "Withdraw");
     topic_map.insert(Deposit::SIGNATURE_HASH.to_string(), "Deposit");
     topic_map.insert(RemoveOrderV2::SIGNATURE_HASH.to_string(), "RemoveOrderV2");
+    topic_map.insert(ClearV2::SIGNATURE_HASH.to_string(), "ClearV2");
+    topic_map.insert(AfterClear::SIGNATURE_HASH.to_string(), "AfterClear");
     topic_map.insert(MetaV1_2::SIGNATURE_HASH.to_string(), "MetaV1_2");
 
     let mut decoded_events = Vec::new();
@@ -66,6 +74,8 @@ pub fn decode_events(
                         "Withdraw" => decode_withdraw(data_str)?,
                         "Deposit" => decode_deposit(data_str)?,
                         "RemoveOrderV2" => decode_remove_order_v2(data_str)?,
+                        "ClearV2" => decode_clear_v2(data_str)?,
+                        "AfterClear" => decode_after_clear(data_str)?,
                         "MetaV1_2" => decode_meta_v1_2(data_str)?,
                         _ => {
                             serde_json::json!({
@@ -118,6 +128,12 @@ pub fn decode_events(
     });
 
     Ok(output_data)
+}
+
+fn compute_order_hash(order: &OrderV3) -> Result<String, Box<dyn std::error::Error>> {
+    let encoded = order.abi_encode();
+    let hash = keccak256(&encoded);
+    Ok(format!("0x{}", hex::encode(hash)))
 }
 
 fn decode_add_order_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
@@ -273,6 +289,94 @@ fn decode_remove_order_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn s
                     })
                 }).collect::<Vec<_>>()
             }
+        })),
+        Err(e) => Ok(serde_json::json!({
+            "raw_data": data_str,
+            "decode_error": e.to_string()
+        })),
+    }
+}
+
+fn decode_clear_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
+
+    match ClearV2::abi_decode_data(&data_bytes, true) {
+        Ok(decoded) => {
+            // Extract alice vault IDs using IO indices
+            let alice_input_vault_id = if let Some(input) = decoded
+                .1
+                .validInputs
+                .get(decoded.3.aliceInputIOIndex.to::<u64>() as usize)
+            {
+                format!("0x{:x}", input.vaultId)
+            } else {
+                return Err("Alice input IO index out of bounds".into());
+            };
+
+            let alice_output_vault_id = if let Some(output) = decoded
+                .1
+                .validOutputs
+                .get(decoded.3.aliceOutputIOIndex.to::<u64>() as usize)
+            {
+                format!("0x{:x}", output.vaultId)
+            } else {
+                return Err("Alice output IO index out of bounds".into());
+            };
+
+            // Extract bob vault IDs using IO indices
+            let bob_input_vault_id = if let Some(input) = decoded
+                .2
+                .validInputs
+                .get(decoded.3.bobInputIOIndex.to::<u64>() as usize)
+            {
+                format!("0x{:x}", input.vaultId)
+            } else {
+                return Err("Bob input IO index out of bounds".into());
+            };
+
+            let bob_output_vault_id = if let Some(output) = decoded
+                .2
+                .validOutputs
+                .get(decoded.3.bobOutputIOIndex.to::<u64>() as usize)
+            {
+                format!("0x{:x}", output.vaultId)
+            } else {
+                return Err("Bob output IO index out of bounds".into());
+            };
+
+            // Compute order hashes
+            let alice_order_hash = compute_order_hash(&decoded.1)?;
+            let bob_order_hash = compute_order_hash(&decoded.2)?;
+
+            Ok(serde_json::json!({
+                "sender": format!("0x{:x}", decoded.0),
+                "alice_owner": format!("0x{:x}", decoded.1.owner),
+                "bob_owner": format!("0x{:x}", decoded.2.owner),
+                "alice_order_hash": alice_order_hash,
+                "bob_order_hash": bob_order_hash,
+                "alice_input_vault_id": alice_input_vault_id,
+                "alice_output_vault_id": alice_output_vault_id,
+                "bob_input_vault_id": bob_input_vault_id,
+                "bob_output_vault_id": bob_output_vault_id
+            }))
+        }
+        Err(e) => Ok(serde_json::json!({
+            "raw_data": data_str,
+            "decode_error": e.to_string()
+        })),
+    }
+}
+
+fn decode_after_clear(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
+
+    match AfterClear::abi_decode_data(&data_bytes, true) {
+        Ok(decoded) => Ok(serde_json::json!({
+            "sender": format!("0x{:x}", decoded.0),
+            "alice_input": format!("{}", decoded.1.aliceInput),
+            "alice_output": format!("{}", decoded.1.aliceOutput),
+            "bob_input": format!("{}", decoded.1.bobInput),
+            "bob_output": format!("{}", decoded.1.bobOutput)
         })),
         Err(e) => Ok(serde_json::json!({
             "raw_data": data_str,

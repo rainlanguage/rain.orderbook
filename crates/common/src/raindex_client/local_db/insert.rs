@@ -29,7 +29,10 @@ pub fn decoded_events_to_sql(data: Value) -> Result<String, Box<dyn std::error::
                 sql.push_str(&generate_take_order_sql(event)?);
             }
             Some("ClearV2") => {
-                sql.push_str(&generate_clear_sql(event)?);
+                sql.push_str(&generate_clear_v2_sql(event)?);
+            }
+            Some("AfterClear") => {
+                sql.push_str(&generate_after_clear_sql(event)?);
             }
             Some("MetaV1_2") => {
                 sql.push_str(&generate_meta_sql(event)?);
@@ -230,13 +233,10 @@ fn generate_take_order_sql(event: &Value) -> Result<String, Box<dyn std::error::
     Ok(sql)
 }
 
-fn generate_clear_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
+fn generate_clear_v2_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event
         .get("decoded_data")
         .ok_or("Missing decoded_data in ClearV2 event")?;
-    let clear_config = decoded_data
-        .get("clear_config")
-        .ok_or("Missing clear_config in ClearV2 event")?;
 
     let transaction_hash = get_string_field(event, "transaction_hash")?;
     let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
@@ -244,38 +244,53 @@ fn generate_clear_sql(event: &Value) -> Result<String, Box<dyn std::error::Error
     let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
 
     let sender = get_string_field(decoded_data, "sender")?;
+    let alice_owner = get_string_field(decoded_data, "alice_owner")?;
+    let bob_owner = get_string_field(decoded_data, "bob_owner")?;
     let alice_order_hash = get_string_field(decoded_data, "alice_order_hash")?;
     let bob_order_hash = get_string_field(decoded_data, "bob_order_hash")?;
-
-    let alice_input_io_index = clear_config
-        .get("alice_input_io_index")
-        .and_then(|v| v.as_u64())
-        .ok_or("Missing alice_input_io_index")?;
-    let alice_output_io_index = clear_config
-        .get("alice_output_io_index")
-        .and_then(|v| v.as_u64())
-        .ok_or("Missing alice_output_io_index")?;
-    let bob_input_io_index = clear_config
-        .get("bob_input_io_index")
-        .and_then(|v| v.as_u64())
-        .ok_or("Missing bob_input_io_index")?;
-    let bob_output_io_index = clear_config
-        .get("bob_output_io_index")
-        .and_then(|v| v.as_u64())
-        .ok_or("Missing bob_output_io_index")?;
-    let alice_bounty_vault_id = get_string_field(clear_config, "alice_bounty_vault_id")?;
-    let bob_bounty_vault_id = get_string_field(clear_config, "bob_bounty_vault_id")?;
+    let alice_input_vault_id = get_string_field(decoded_data, "alice_input_vault_id")?;
+    let alice_output_vault_id = get_string_field(decoded_data, "alice_output_vault_id")?;
+    let bob_input_vault_id = get_string_field(decoded_data, "bob_input_vault_id")?;
+    let bob_output_vault_id = get_string_field(decoded_data, "bob_output_vault_id")?;
 
     let mut sql = String::new();
 
-    // Insert directly into clears table with metadata and all clear data
+    // Insert into clear_v2_events table
     sql.push_str(&format!(
-        "INSERT INTO clears (block_number, block_timestamp, transaction_hash, log_index, sender, alice_order_hash, bob_order_hash, alice_input_io_index, alice_output_io_index, bob_input_io_index, bob_output_io_index, alice_bounty_vault_id, bob_bounty_vault_id) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, {}, {}, '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, alice_order_hash, bob_order_hash, alice_input_io_index, alice_output_io_index, bob_input_io_index, bob_output_io_index, alice_bounty_vault_id, bob_bounty_vault_id
+        "INSERT INTO clear_v2_events (block_number, block_timestamp, transaction_hash, log_index, sender, alice_owner, bob_owner, alice_order_hash, bob_order_hash, alice_input_vault_id, alice_output_vault_id, bob_input_vault_id, bob_output_vault_id) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');\n",
+        block_number, block_timestamp, transaction_hash, log_index, sender, alice_owner, bob_owner, alice_order_hash, bob_order_hash, alice_input_vault_id, alice_output_vault_id, bob_input_vault_id, bob_output_vault_id
     ));
 
     Ok(sql)
 }
+
+fn generate_after_clear_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
+    let decoded_data = event
+        .get("decoded_data")
+        .ok_or("Missing decoded_data in AfterClear event")?;
+
+    let transaction_hash = get_string_field(event, "transaction_hash")?;
+    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
+    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
+    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
+
+    let sender = get_string_field(decoded_data, "sender")?;
+    let alice_input = get_string_field(decoded_data, "alice_input")?;
+    let alice_output = get_string_field(decoded_data, "alice_output")?;
+    let bob_input = get_string_field(decoded_data, "bob_input")?;
+    let bob_output = get_string_field(decoded_data, "bob_output")?;
+
+    let mut sql = String::new();
+
+    // Insert into after_clear_events table
+    sql.push_str(&format!(
+        "INSERT INTO after_clear_events (block_number, block_timestamp, transaction_hash, log_index, sender, alice_input, alice_output, bob_input, bob_output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}');\n",
+        block_number, block_timestamp, transaction_hash, log_index, sender, alice_input, alice_output, bob_input, bob_output
+    ));
+
+    Ok(sql)
+}
+
 
 fn generate_meta_sql(event: &Value) -> Result<String, Box<dyn std::error::Error>> {
     let decoded_data = event

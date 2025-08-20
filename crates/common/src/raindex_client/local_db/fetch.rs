@@ -1,7 +1,9 @@
 use alloy::sol_types::SolEvent;
 use futures::StreamExt;
 use rain_orderbook_bindings::{
-    IOrderBookV4::{AddOrderV2, Deposit, RemoveOrderV2, TakeOrderV2, Withdraw},
+    IOrderBookV4::{
+        AddOrderV2, AfterClear, ClearV2, Deposit, RemoveOrderV2, TakeOrderV2, Withdraw,
+    },
     OrderBook::MetaV1_2,
 };
 use serde::{Deserialize, Serialize};
@@ -116,6 +118,8 @@ pub async fn fetch_events() -> Result<serde_json::Value, Box<dyn std::error::Err
         Withdraw::SIGNATURE_HASH.to_string(),      // withdraw
         Deposit::SIGNATURE_HASH.to_string(),       // deposit
         RemoveOrderV2::SIGNATURE_HASH.to_string(), // remove order
+        ClearV2::SIGNATURE_HASH.to_string(),       // clear
+        AfterClear::SIGNATURE_HASH.to_string(),    // after clear
         MetaV1_2::SIGNATURE_HASH.to_string(),      // meta
     ])]);
 
@@ -129,7 +133,7 @@ pub async fn fetch_events() -> Result<serde_json::Value, Box<dyn std::error::Err
     }
 
     // Process chunks with concurrency limit to avoid timeouts
-    let results: Vec<Result<Vec<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>>> = 
+    let results: Vec<Result<Vec<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>>> =
         futures::stream::iter(chunks)
             .map(|(from_block, to_block)| {
                 let client = HyperRpcClient {};

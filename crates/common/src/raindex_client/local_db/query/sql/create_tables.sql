@@ -129,31 +129,6 @@ CREATE TABLE IF NOT EXISTS context_values (
     UNIQUE(context_id, value_index)
 );
 
-CREATE TABLE IF NOT EXISTS clears (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    block_number INTEGER NOT NULL,
-    block_timestamp INTEGER NOT NULL,
-    transaction_hash TEXT NOT NULL,
-    log_index INTEGER NOT NULL,
-    sender TEXT NOT NULL,
-    alice_order_hash TEXT NOT NULL,
-    bob_order_hash TEXT NOT NULL,
-    alice_input_io_index INTEGER NOT NULL,
-    alice_output_io_index INTEGER NOT NULL,
-    bob_input_io_index INTEGER NOT NULL,
-    bob_output_io_index INTEGER NOT NULL,
-    alice_bounty_vault_id TEXT NOT NULL,
-    bob_bounty_vault_id TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(transaction_hash, log_index)
-);
-
-CREATE INDEX IF NOT EXISTS idx_clears_sender ON clears(sender);
-CREATE INDEX IF NOT EXISTS idx_clears_alice_hash ON clears(alice_order_hash);
-CREATE INDEX IF NOT EXISTS idx_clears_bob_hash ON clears(bob_order_hash);
-CREATE INDEX IF NOT EXISTS idx_clears_block ON clears(block_number);
-CREATE INDEX IF NOT EXISTS idx_clears_tx ON clears(transaction_hash);
-
 CREATE TABLE IF NOT EXISTS meta_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     block_number INTEGER NOT NULL,
@@ -171,3 +146,47 @@ CREATE INDEX IF NOT EXISTS idx_meta_sender ON meta_events(sender);
 CREATE INDEX IF NOT EXISTS idx_meta_subject ON meta_events(subject);
 CREATE INDEX IF NOT EXISTS idx_meta_block ON meta_events(block_number);
 CREATE INDEX IF NOT EXISTS idx_meta_tx ON meta_events(transaction_hash);
+
+CREATE TABLE IF NOT EXISTS clear_v2_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    block_number INTEGER NOT NULL,
+    block_timestamp INTEGER NOT NULL,
+    transaction_hash TEXT NOT NULL,
+    log_index INTEGER NOT NULL,
+    sender TEXT NOT NULL,
+    alice_owner TEXT NOT NULL,
+    bob_owner TEXT NOT NULL,
+    alice_order_hash TEXT NOT NULL,
+    bob_order_hash TEXT NOT NULL,
+    alice_input_vault_id TEXT NOT NULL,
+    alice_output_vault_id TEXT NOT NULL,
+    bob_input_vault_id TEXT NOT NULL,
+    bob_output_vault_id TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(transaction_hash, log_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_clear_v2_tx ON clear_v2_events(transaction_hash);
+CREATE INDEX IF NOT EXISTS idx_clear_v2_block ON clear_v2_events(block_number);
+CREATE INDEX IF NOT EXISTS idx_clear_v2_alice_hash ON clear_v2_events(alice_order_hash);
+CREATE INDEX IF NOT EXISTS idx_clear_v2_bob_hash ON clear_v2_events(bob_order_hash);
+CREATE INDEX IF NOT EXISTS idx_clear_v2_sender ON clear_v2_events(sender);
+
+CREATE TABLE IF NOT EXISTS after_clear_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    block_number INTEGER NOT NULL,
+    block_timestamp INTEGER NOT NULL,
+    transaction_hash TEXT NOT NULL,
+    log_index INTEGER NOT NULL,
+    sender TEXT NOT NULL,
+    alice_input TEXT NOT NULL,
+    alice_output TEXT NOT NULL,
+    bob_input TEXT NOT NULL,
+    bob_output TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(transaction_hash, log_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_after_clear_tx ON after_clear_events(transaction_hash);
+CREATE INDEX IF NOT EXISTS idx_after_clear_block ON after_clear_events(block_number);
+CREATE INDEX IF NOT EXISTS idx_after_clear_sender ON after_clear_events(sender);
