@@ -7,8 +7,8 @@
 ##  - Never runs when files in '.github/workflows/**' change (paths-ignore).
 ##  - Builds PR code WITHOUT secrets using a placeholder env value.
 ##  - Secrets are passed only to the Vercel CLI steps (not to build/test steps).
-##  - Shell runs with 'bash --noprofile --norc -euo pipefail' and a minimal PATH.
-##  - The Vercel CLI is invoked by absolute path '/usr/local/bin/vercel' to avoid PATH hijacking.
+##  - Shell runs with 'bash --noprofile --norc -euo pipefail'.
+##  - The Vercel CLI is invoked via an absolute path stored in $VERCEL_BIN to avoid PATH hijacking.
 ##
 ## WARNING: Changing any of the following may break the security model:
 ##  - Triggers (pull_request_target), label requirement, or environment approval.
