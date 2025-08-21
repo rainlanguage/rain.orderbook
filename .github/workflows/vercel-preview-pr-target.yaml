@@ -32,19 +32,17 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'vercel-preview')
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: read
+       contents: read
     environment: vercel-preview
-    env:
-      COMMIT_SHA: ${{ github.sha }}
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.sha }}
-
+          persist-credentials: false
       - uses: nixbuild/nix-quick-install-action@v30
         with:
           nix_conf: |
@@ -70,9 +68,9 @@ jobs:
         shell: bash --noprofile --norc -euo pipefail {0}
         run: |
           VERCEL_DIR="$(mktemp -d)"
-          npm install --no-audit --no-fund --no-save --prefix "$VERCEL_DIR" vercel@33.4.1
+          npm install --no-audit --no-fund --no-save --ignore-scripts --prefix "$VERCEL_DIR" vercel@33.4.1
           echo "VERCEL_BIN=$VERCEL_DIR/node_modules/.bin/vercel" >> "$GITHUB_ENV"
-      - name: Pull Vercel Environment Information
+          test -x "$VERCEL_DIR/node_modules/.bin/vercel"
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID_PREVIEWS }}
