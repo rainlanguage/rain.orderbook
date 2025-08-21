@@ -319,4 +319,257 @@ mod tests {
         assert_eq!(filters.tokens, converted_back.tokens);
         assert_eq!(filters.chain_ids, converted_back.chain_ids);
     }
+
+    #[cfg(target_family = "wasm")]
+    mod wasm_tests {
+        use super::*;
+        use wasm_bindgen_test::*;
+
+        #[wasm_bindgen_test]
+        fn test_new_wasm_creates_default_builder() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let filters = builder.build_wasm().unwrap();
+
+            assert!(filters.owners.is_empty());
+            assert!(!filters.hide_zero_balance);
+            assert!(filters.tokens.is_none());
+            assert!(filters.chain_ids.is_none());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_from_filters_wasm_preserves_data() {
+            let original_filters = GetVaultsFilters {
+                owners: vec!["0x1234567890abcdef1234567890abcdef12345678"
+                    .parse()
+                    .unwrap()],
+                hide_zero_balance: true,
+                tokens: Some(vec!["0xfedcba0987654321fedcba0987654321fedcba09"
+                    .parse()
+                    .unwrap()]),
+                chain_ids: Some(vec![1, 137]),
+            };
+
+            let builder = VaultsFilterBuilder::from_filters_wasm(original_filters.clone()).unwrap();
+            let rebuilt_filters = builder.build_wasm().unwrap();
+
+            assert_eq!(rebuilt_filters.owners, original_filters.owners);
+            assert_eq!(
+                rebuilt_filters.hide_zero_balance,
+                original_filters.hide_zero_balance
+            );
+            assert_eq!(rebuilt_filters.tokens, original_filters.tokens);
+            assert_eq!(rebuilt_filters.chain_ids, original_filters.chain_ids);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_owners_wasm_with_valid_addresses() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let owners = vec![
+                "0x1234567890abcdef1234567890abcdef12345678".to_string(),
+                "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd".to_string(),
+            ];
+
+            let updated_builder = builder.set_owners_wasm(owners.clone()).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert_eq!(filters.owners.len(), 2);
+            // Compare addresses by parsing expected values instead of string representation
+            let expected_addr1: Address = "0x1234567890abcdef1234567890abcdef12345678"
+                .parse()
+                .unwrap();
+            let expected_addr2: Address = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+                .parse()
+                .unwrap();
+            assert_eq!(filters.owners[0], expected_addr1);
+            assert_eq!(filters.owners[1], expected_addr2);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_owners_wasm_with_invalid_address() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let invalid_owners = vec!["invalid_address".to_string()];
+
+            let result = builder.set_owners_wasm(invalid_owners);
+            assert!(result.is_err());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_owners_wasm_with_empty_array() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let empty_owners = vec![];
+
+            let updated_builder = builder.set_owners_wasm(empty_owners).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert!(filters.owners.is_empty());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_hide_zero_balance_wasm_true() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let updated_builder = builder.set_hide_zero_balance_wasm(true).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert!(filters.hide_zero_balance);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_hide_zero_balance_wasm_false() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let updated_builder = builder.set_hide_zero_balance_wasm(false).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert!(!filters.hide_zero_balance);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_tokens_wasm_with_valid_addresses() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let tokens = Some(vec![
+                "0x1111111111111111111111111111111111111111".to_string(),
+                "0x2222222222222222222222222222222222222222".to_string(),
+            ]);
+
+            let updated_builder = builder.set_tokens_wasm(tokens).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert!(filters.tokens.is_some());
+            let token_vec = filters.tokens.unwrap();
+            assert_eq!(token_vec.len(), 2);
+            // Compare by parsing expected addresses
+            let expected_token1: Address = "0x1111111111111111111111111111111111111111"
+                .parse()
+                .unwrap();
+            let expected_token2: Address = "0x2222222222222222222222222222222222222222"
+                .parse()
+                .unwrap();
+            assert_eq!(token_vec[0], expected_token1);
+            assert_eq!(token_vec[1], expected_token2);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_tokens_wasm_with_invalid_address() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let invalid_tokens = Some(vec!["invalid_token".to_string()]);
+
+            let result = builder.set_tokens_wasm(invalid_tokens);
+            assert!(result.is_err());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_tokens_wasm_with_none() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let updated_builder = builder.set_tokens_wasm(None).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert!(filters.tokens.is_none());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_tokens_wasm_with_empty_array() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let empty_tokens = Some(vec![]);
+
+            let updated_builder = builder.set_tokens_wasm(empty_tokens).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            // Empty array should result in None
+            assert!(filters.tokens.is_none());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_chain_ids_wasm_with_valid_ids() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let chain_ids = Some(vec![1, 137, 10]);
+
+            let updated_builder = builder.set_chain_ids_wasm(chain_ids.clone()).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert_eq!(filters.chain_ids, chain_ids);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_chain_ids_wasm_with_none() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let updated_builder = builder.set_chain_ids_wasm(None).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert!(filters.chain_ids.is_none());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_set_chain_ids_wasm_with_empty_array() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let empty_chain_ids = Some(vec![]);
+
+            let updated_builder = builder.set_chain_ids_wasm(empty_chain_ids).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert_eq!(filters.chain_ids, Some(vec![]));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_build_wasm_returns_correct_filters() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+            let owners = vec!["0x1234567890abcdef1234567890abcdef12345678".to_string()];
+            let tokens = Some(vec![
+                "0xfedcba0987654321fedcba0987654321fedcba09".to_string()
+            ]);
+            let chain_ids = Some(vec![1, 137]);
+
+            let configured_builder = builder
+                .set_owners_wasm(owners)
+                .unwrap()
+                .set_hide_zero_balance_wasm(true)
+                .unwrap()
+                .set_tokens_wasm(tokens)
+                .unwrap()
+                .set_chain_ids_wasm(chain_ids.clone())
+                .unwrap();
+
+            let filters = configured_builder.build_wasm().unwrap();
+
+            assert_eq!(filters.owners.len(), 1);
+            assert!(filters.hide_zero_balance);
+            assert!(filters.tokens.is_some());
+            assert_eq!(filters.chain_ids, chain_ids);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_mixed_case_addresses_wasm() {
+            let builder = VaultsFilterBuilder::new_wasm().unwrap();
+
+            // Test mixed case address (checksummed)
+            let mixed_case_address = "0x1234567890aBcDeF1234567890AbCdEf12345678".to_string();
+            let owners = vec![mixed_case_address.clone()];
+
+            let updated_builder = builder.set_owners_wasm(owners).unwrap();
+            let filters = updated_builder.build_wasm().unwrap();
+
+            assert_eq!(filters.owners.len(), 1);
+            // Compare with parsed expected address instead of string representation
+            let expected_addr: Address = "0x1234567890abcdef1234567890abcdef12345678"
+                .parse()
+                .unwrap();
+            assert_eq!(filters.owners[0], expected_addr);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_multiple_operations_on_same_builder_wasm() {
+            let original_builder = VaultsFilterBuilder::new_wasm().unwrap();
+
+            // First operation
+            let builder1 = original_builder.set_hide_zero_balance_wasm(true).unwrap();
+            let filters1 = builder1.build_wasm().unwrap();
+
+            // Second operation on new builder (can't reuse original in WASM)
+            let original_builder2 = VaultsFilterBuilder::new_wasm().unwrap();
+            let builder2 = original_builder2.set_hide_zero_balance_wasm(false).unwrap();
+            let filters2 = builder2.build_wasm().unwrap();
+
+            // Verify different results
+            assert!(filters1.hide_zero_balance);
+            assert!(!filters2.hide_zero_balance);
+        }
+    }
 }
