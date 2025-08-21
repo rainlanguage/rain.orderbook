@@ -32,7 +32,6 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'vercel-preview')
     runs-on: ubuntu-latest
     permissions:
-     permissions:
        contents: read
     environment: vercel-preview
     env:
