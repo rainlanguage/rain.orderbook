@@ -21,11 +21,11 @@ export class GetOrdersFilterBuilder {
 	constructor(currentFilters: GetOrdersFilters) {
 		// Deep clone to avoid mutations
 		this.filters = {
-			owners: [...currentFilters.owners],
+			owners: currentFilters.owners ?? [],
 			active: currentFilters.active,
 			orderHash: currentFilters.orderHash,
-			tokens: currentFilters.tokens ? [...currentFilters.tokens] : currentFilters.tokens,
-			chainIds: currentFilters.chainIds ? [...currentFilters.chainIds] : currentFilters.chainIds
+			tokens: currentFilters.tokens,
+			chainIds: currentFilters.chainIds
 		};
 	}
 
@@ -85,11 +85,11 @@ export class GetOrdersFilterBuilder {
 	 */
 	build(): GetOrdersFilters {
 		return {
-			owners: [...this.filters.owners],
+			owners: this.filters.owners ?? [],
 			active: this.filters.active,
 			orderHash: this.filters.orderHash,
-			tokens: this.filters.tokens ? [...this.filters.tokens] : this.filters.tokens,
-			chainIds: this.filters.chainIds ? [...this.filters.chainIds] : this.filters.chainIds
+			tokens: this.filters.tokens,
+			chainIds: this.filters.chainIds
 		};
 	}
 }

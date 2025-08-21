@@ -2,11 +2,8 @@ use super::errors::PersistentFilterStoreError;
 use super::traits::PersistentFilterStore;
 use anyhow;
 use rain_orderbook_common::raindex_client::filters::{
-    orders::builder::OrdersFilterBuilder,
-    orders::filter::GetOrdersFilters,
-    traits::FilterStore,
-    vaults::builder::VaultsFilterBuilder,
-    vaults::filter::GetVaultsFilters,
+    orders::builder::OrdersFilterBuilder, orders::filter::GetOrdersFilters, traits::FilterStore,
+    vaults::builder::VaultsFilterBuilder, vaults::filter::GetVaultsFilters,
 };
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
@@ -740,6 +737,7 @@ mod tests {
         // Set new filters with non-default values
         let owner = Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap();
         let new_filters = GetOrdersFilters {
+            chain_ids: None,
             owners: vec![owner],
             active: Some(true),
             order_hash: None,
