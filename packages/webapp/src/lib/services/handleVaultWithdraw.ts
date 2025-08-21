@@ -1,5 +1,5 @@
-import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
-import { formatUnits, type Hex } from 'viem';
+import type { Float, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
+import { type Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 import type {
 	VaultActionModalProps,
@@ -32,17 +32,17 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 			vault,
 			account
 		},
-		onSubmit: async (amount: bigint) => {
+		onSubmit: async (amount: Float) => {
 			let calldata: string;
 			try {
-				const calldataResult = await vault.getWithdrawCalldata(amount.toString());
+				const calldataResult = await vault.getWithdrawCalldata(amount);
 				if (calldataResult.error) {
 					return errToast(calldataResult.error.msg);
 				}
 				calldata = calldataResult.value;
 				handleTransactionConfirmationModal({
 					open: true,
-					modalTitle: `Withdrawing ${formatUnits(amount, Number(vault.token.decimals))} ${vault.token.symbol}...`,
+					modalTitle: `Withdrawing ${amount.format().value} ${vault.token.symbol}...`,
 					args: {
 						entity: vault,
 						toAddress: vault.orderbook,

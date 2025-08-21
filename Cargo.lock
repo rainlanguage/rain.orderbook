@@ -6582,7 +6582,7 @@ dependencies = [
  "revm 25.0.0",
  "serde",
  "thiserror 2.0.12",
- "wasm-bindgen-utils 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]

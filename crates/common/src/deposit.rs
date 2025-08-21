@@ -1,8 +1,5 @@
 use crate::transaction::{TransactionArgs, TransactionArgsError, WritableTransactionExecuteError};
 use alloy::primitives::{Address, B256, U256};
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
-
 use alloy_ethers_typecast::{
     ReadContractParametersBuilder, ReadContractParametersBuilderError, ReadableClient,
     ReadableClientError, WritableClientError,
@@ -13,6 +10,10 @@ use rain_math_float::{Float, FloatError};
 #[cfg(not(target_family = "wasm"))]
 use rain_orderbook_bindings::IERC20::approveCall;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::allowanceCall};
+use serde::{Deserialize, Serialize};
+#[cfg(not(target_family = "wasm"))]
+use std::ops::Sub;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum DepositError {
@@ -39,7 +40,7 @@ pub enum DepositError {
 pub struct DepositArgs {
     pub token: Address,
     pub vault_id: B256,
-    pub amount: U256,
+    pub amount: Float,
     pub decimals: u8,
 }
 
@@ -47,12 +48,10 @@ impl TryFrom<DepositArgs> for deposit3Call {
     type Error = FloatError;
 
     fn try_from(val: DepositArgs) -> Result<Self, Self::Error> {
-        let Float(amount) = Float::from_fixed_decimal(val.amount, val.decimals)?;
-
         let call = deposit3Call {
             token: val.token,
             vaultId: val.vault_id,
-            depositAmount: amount,
+            depositAmount: val.amount.get_inner(),
             tasks: vec![],
         };
 
@@ -93,12 +92,16 @@ impl DepositArgs {
         let current_allowance = self
             .read_allowance(address, transaction_args.clone())
             .await?;
+        let current_allowance_float = Float::from_fixed_decimal(current_allowance, self.decimals)?;
 
         // If more allowance is required, then call approve for the difference
-        if current_allowance < self.amount {
+        if current_allowance_float.lt(self.amount)? {
             let approve_call = approveCall {
                 spender: transaction_args.orderbook_address,
-                amount: self.amount - current_allowance,
+                amount: self
+                    .amount
+                    .sub(current_allowance_float)?
+                    .to_fixed_decimal(self.decimals)?,
             };
             let params =
                 transaction_args.try_into_write_contract_parameters(approve_call, self.token)?;
@@ -145,7 +148,7 @@ mod tests {
         let args = DepositArgs {
             token: address!("1234567890abcdef1234567890abcdef12345678"),
             vault_id: B256::from(U256::from(42)),
-            amount: U256::from(123),
+            amount: Float::from_fixed_decimal(U256::from(123), 6).unwrap(),
             decimals: 6,
         };
 
@@ -156,7 +159,7 @@ mod tests {
             address!("1234567890abcdef1234567890abcdef12345678")
         );
         assert_eq!(deposit_call.vaultId, B256::from(U256::from(42)));
-        let Float(amount) = Float::parse("0.000123".to_string()).unwrap();
+        let amount = Float::parse("0.000123".to_string()).unwrap().get_inner();
         assert_eq!(deposit_call.depositAmount, amount);
     }
 
@@ -177,7 +180,7 @@ mod tests {
         let args = DepositArgs {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
             vault_id: B256::from(U256::from(42)),
-            amount: U256::from(100),
+            amount: Float::from_fixed_decimal(U256::from(100), 18).unwrap(),
             decimals: 18,
         };
 
@@ -206,7 +209,7 @@ mod tests {
             max_fee_per_gas: Some(100),
         };
 
-        let Float(amount) = Float::parse("100".to_string()).unwrap();
+        let amount = Float::parse("100".to_string()).unwrap().get_inner();
         let deposit_call = deposit3Call {
             token: Address::ZERO,
             vaultId: B256::from(U256::from(42)),

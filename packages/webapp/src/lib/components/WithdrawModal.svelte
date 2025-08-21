@@ -9,7 +9,7 @@
 	import { validateAmount } from '$lib/services/validateAmount';
 	import { fade } from 'svelte/transition';
 	import truncateEthAddress from 'truncate-eth-address';
-	import type { AccountBalance } from '@rainlanguage/orderbook';
+	import { Float, type AccountBalance } from '@rainlanguage/orderbook';
 
 	/**
 	 * Modal component for withdrawing tokens from a vault.
@@ -17,11 +17,11 @@
 	 */
 	export let open: boolean;
 	export let args: VaultActionArgs;
-	export let onSubmit: (amount: bigint) => void;
+	export let onSubmit: (amount: Float) => void;
 
 	const { vault, account } = args;
 
-	let amount: bigint = 0n;
+	let amount: Float = Float.parse('0').value as Float;
 	let userBalance: AccountBalance = {
 		balance: 0n,
 		formattedBalance: '0'
@@ -46,10 +46,10 @@
 
 	function handleClose() {
 		open = false;
-		amount = 0n;
+		amount = Float.parse('0').value as Float;
 	}
 
-	$: validation = validateAmount(amount, BigInt(vault.balance));
+	$: validation = validateAmount(amount, vault.balance);
 </script>
 
 <Modal bind:open autoclose={false} size="md">
@@ -85,12 +85,7 @@
 				<p>Connect your wallet to continue.</p>
 			{/if}
 		</div>
-		<InputTokenAmount
-			bind:value={amount}
-			symbol={vault.token.symbol}
-			decimals={Number(vault.token.decimals)}
-			maxValue={vault.balance}
-		/>
+		<InputTokenAmount bind:value={amount} symbol={vault.token.symbol} maxValue={vault.balance} />
 		<div class="flex flex-col justify-end gap-2">
 			<div class="flex gap-2">
 				<Button color="alternative" on:click={handleClose}>Cancel</Button>

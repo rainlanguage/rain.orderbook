@@ -20,6 +20,24 @@ const mockGui: DotrainOrderGui = {
 			decimals: 18,
 			address: '0x456'
 		}
+	}),
+	getAllTokens: vi.fn().mockResolvedValue({
+		value: [
+			{
+				key: 'token1',
+				address: '0x1234567890123456789012345678901234567890',
+				name: 'Test Token 1',
+				symbol: 'TEST1',
+				decimals: 18
+			},
+			{
+				key: 'token2',
+				address: '0x0987654321098765432109876543210987654321',
+				name: 'Another Token',
+				symbol: 'ANOTHER',
+				decimals: 6
+			}
+		]
 	})
 } as unknown as DotrainOrderGui;
 
@@ -30,23 +48,6 @@ vi.mock('../lib/hooks/useGui', () => ({
 describe('SelectToken', () => {
 	let mockStateUpdateCallback: Mock;
 
-	const mockTokens = [
-		{
-			key: 'input',
-			address: '0x1234567890123456789012345678901234567890',
-			name: 'Test Token 1',
-			symbol: 'TEST1',
-			decimals: 18
-		},
-		{
-			key: 'output',
-			address: '0x0987654321098765432109876543210987654321',
-			name: 'Another Token',
-			symbol: 'ANOTHER',
-			decimals: 6
-		}
-	];
-
 	const mockProps: SelectTokenComponentProps = {
 		token: {
 			key: 'input',
@@ -54,8 +55,6 @@ describe('SelectToken', () => {
 			description: 'test description'
 		},
 		onSelectTokenSelect: vi.fn(),
-		availableTokens: mockTokens,
-		loading: false,
 		tokenBalances: new Map()
 	};
 
@@ -130,26 +129,6 @@ describe('SelectToken', () => {
 		});
 	});
 
-	it('does nothing if gui is not defined', async () => {
-		const user = userEvent.setup();
-		(useGui as Mock).mockReturnValue(null);
-
-		const { queryByRole } = render(SelectToken, {
-			...mockProps,
-			availableTokens: []
-		});
-
-		const input = queryByRole('textbox');
-		if (input) {
-			await userEvent.clear(input);
-			await user.paste('0x456');
-		}
-
-		await waitFor(() => {
-			expect(mockGui.setSelectToken).not.toHaveBeenCalled();
-		});
-	});
-
 	it('replaces the token and triggers state update twice if the token is already set', async () => {
 		const mockGuiWithTokenSet = {
 			...mockGui,
@@ -190,24 +169,6 @@ describe('SelectToken', () => {
 
 		await waitFor(() => {
 			expect(mockProps.onSelectTokenSelect).toHaveBeenCalled();
-		});
-	});
-
-	it('switches to custom mode automatically if selected token is not in available tokens', async () => {
-		mockGui.getTokenInfo = vi.fn().mockResolvedValue({
-			value: {
-				name: 'Custom Token',
-				symbol: 'CUSTOM',
-				address: '0xCustomTokenAddress',
-				decimals: 18
-			}
-		});
-
-		render(SelectToken, mockProps);
-
-		await waitFor(() => {
-			expect(screen.queryByText('Select a token...')).not.toBeInTheDocument();
-			expect(screen.getByPlaceholderText('Enter token address (0x...)')).toBeInTheDocument();
 		});
 	});
 
@@ -270,16 +231,7 @@ describe('SelectToken', () => {
 			(useGui as Mock).mockReturnValue(mockGuiNoToken);
 
 			render(SelectToken, {
-				...mockProps,
-				availableTokens: [
-					{
-						key: 'input',
-						address: '0x456',
-						name: 'Test Token 1',
-						symbol: 'TEST1',
-						decimals: 18
-					}
-				]
+				...mockProps
 			});
 
 			const dropdownButton = screen.getByText('Select a token...');
@@ -323,52 +275,19 @@ describe('SelectToken', () => {
 			(useGui as Mock).mockReturnValue(mockGuiNoToken);
 
 			render(SelectToken, {
-				...mockProps,
-				availableTokens: [
-					{
-						key: 'output',
-						address: '0x456',
-						name: 'Test Token 1',
-						symbol: 'TEST1',
-						decimals: 18
-					},
-					{
-						key: 'input',
-						address: '0x789',
-						name: 'Test Token 2',
-						symbol: 'TEST2',
-						decimals: 18
-					}
-				]
+				...mockProps
 			});
 
 			const dropdownButton = screen.getByText('Select a token...');
 			await user.click(dropdownButton);
 
-			const secondToken = screen.getByText('Test Token 2');
+			const secondToken = screen.getByText('Another Token');
 			await user.click(secondToken);
 
-			expect(mockGuiNoToken.setSelectToken).toHaveBeenCalledWith('input', '0x789');
-		});
-
-		it('shows loading state when tokens are loading', () => {
-			render(SelectToken, {
-				...mockProps,
-				loading: true
-			});
-
-			expect(screen.getByText('Loading tokens...')).toBeInTheDocument();
-		});
-
-		it('defaults to custom mode when no tokens are available', () => {
-			render(SelectToken, {
-				...mockProps,
-				availableTokens: []
-			});
-
-			expect(screen.getByPlaceholderText('Enter token address (0x...)')).toBeInTheDocument();
-			expect(screen.queryByTestId('dropdown-mode-button')).not.toBeInTheDocument();
-			expect(screen.queryByTestId('custom-mode-button')).not.toBeInTheDocument();
+			expect(mockGuiNoToken.setSelectToken).toHaveBeenCalledWith(
+				'input',
+				'0x0987654321098765432109876543210987654321'
+			);
 		});
 
 		it('displays selected token info when token is selected', async () => {

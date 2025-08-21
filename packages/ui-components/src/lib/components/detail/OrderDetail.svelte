@@ -28,6 +28,7 @@
 		RaindexClient,
 		RaindexOrder,
 		RaindexVault,
+		RaindexVaultsList,
 		type Address,
 		type Hex
 	} from '@rainlanguage/orderbook';
@@ -58,6 +59,13 @@
 	 * @param vault The vault to withdraw from
 	 */
 	export let onWithdraw: (raindexClient: RaindexClient, vault: RaindexVault) => void;
+
+	/** Callback function when withdraw all action is triggered for a vault
+	 * @param vaultsList The VaultsList struct containing the vaults to withdraw from
+	 */
+	export let onWithdrawAll:
+		| ((raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void)
+		| undefined = undefined;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
@@ -91,6 +99,16 @@
 			errToast('Failed to refresh');
 		}
 	};
+
+	const vaultTypesMap = [
+		{ key: 'Output vaults', type: 'output', getter: 'outputsList' },
+		{ key: 'Input vaults', type: 'input', getter: 'inputsList' },
+		{
+			key: 'Input & output vaults',
+			type: 'inputOutput',
+			getter: 'inputsOutputsList'
+		}
+	] as const;
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -148,19 +166,36 @@
 				</svelte:fragment>
 			</CardProperty>
 
-			{#each [{ key: 'Output vaults', type: 'output' }, { key: 'Input vaults', type: 'input' }, { key: 'Input & output vaults', type: 'inputOutput' }] as { key, type }}
-				{@const filteredVaults = data.vaults.filter((vault) => vault.vaultType === type)}
+			{#each vaultTypesMap as { key, type, getter }}
+				{@const filteredVaults = data.vaultsList.items.filter((vault) => vault.vaultType === type)}
+				{@const vaultsListByType = data[getter]}
 				{#if filteredVaults.length !== 0}
 					<CardProperty>
-						<svelte:fragment slot="key"
-							><div class="flex items-center gap-x-2">
-								{key}
-								{#if type === 'InputOutput'}
-									<InfoCircleOutline class="h-4 w-4" /><Tooltip
-										>{'These vaults can be an input or an output for this order'}</Tooltip
-									>{/if}
-							</div></svelte:fragment
-						>
+						<svelte:fragment slot="key">
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-x-2">
+									{key}
+									{#if type === 'inputOutput'}
+										<InfoCircleOutline class="h-4 w-4" /><Tooltip
+											>{'These vaults can be an input or an output for this order'}</Tooltip
+										>{/if}
+								</div>
+								{#if onWithdrawAll}
+									<Button
+										color="light"
+										size="xs"
+										on:click={() =>
+											vaultsListByType && onWithdrawAll(raindexClient, vaultsListByType)}
+										disabled={!vaultsListByType ||
+											vaultsListByType.getWithdrawableVaults()?.value?.length === 0}
+										data-testid="withdraw-all-button"
+									>
+										<ArrowUpFromBracketOutline size="xs" class="mr-2" />
+										Withdraw all
+									</Button>
+								{/if}
+							</div>
+						</svelte:fragment>
 						<svelte:fragment slot="value">
 							<div class="mt-2 space-y-2">
 								{#each filteredVaults as vault}
@@ -194,6 +229,20 @@
 					</CardProperty>
 				{/if}
 			{/each}
+			{#if onWithdrawAll}
+				<Button
+					size="xs"
+					on:click={() =>
+						$orderDetailQuery.data?.vaultsList &&
+						onWithdrawAll(raindexClient, $orderDetailQuery.data.vaultsList)}
+					disabled={!$orderDetailQuery.data?.vaultsList ||
+						$orderDetailQuery.data?.vaultsList?.getWithdrawableVaults()?.value?.length === 0}
+					data-testid="withdraw-all-button"
+				>
+					<ArrowUpFromBracketOutline size="xs" class="mr-2" />
+					Withdraw all vaults
+				</Button>
+			{/if}
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="chart" let:data>
