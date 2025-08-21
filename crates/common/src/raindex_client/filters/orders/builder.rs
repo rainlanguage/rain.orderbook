@@ -55,16 +55,11 @@ impl From<OrdersFilterBuilderError> for WasmEncodedError {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct OrdersFilterBuilder {
-    #[wasm_bindgen(skip)]
-    pub owners: Vec<Address>,
-    #[wasm_bindgen(skip)]
-    pub active: Option<bool>,
-    #[wasm_bindgen(skip)]
-    pub order_hash: Option<Bytes>,
-    #[wasm_bindgen(skip)]
-    pub tokens: Option<Vec<Address>>,
-    #[wasm_bindgen(skip)]
-    pub chain_ids: Option<Vec<u32>>,
+    owners: Vec<Address>,
+    active: Option<bool>,
+    order_hash: Option<Bytes>,
+    tokens: Option<Vec<Address>>,
+    chain_ids: Option<Vec<u32>>,
 }
 
 #[wasm_export]
@@ -173,7 +168,7 @@ impl OrdersFilterBuilder {
         self,
         #[wasm_export(
             param_description = "Order hash as hexadecimal string",
-            unchecked_param_type = "Hex | null"
+            unchecked_param_type = "Hex | undefined"
         )]
         order_hash: Option<String>,
     ) -> Result<OrdersFilterBuilder, OrdersFilterBuilderError> {
@@ -206,7 +201,7 @@ impl OrdersFilterBuilder {
         self,
         #[wasm_export(
             param_description = "Array of token addresses",
-            unchecked_param_type = "Address[] | null"
+            unchecked_param_type = "Address[] | undefined"
         )]
         tokens: Option<Vec<String>>,
     ) -> Result<OrdersFilterBuilder, OrdersFilterBuilderError> {
@@ -244,7 +239,7 @@ impl OrdersFilterBuilder {
         self,
         #[wasm_export(
             param_description = "Array of chain IDs",
-            unchecked_param_type = "ChainIds | null"
+            unchecked_param_type = "ChainIds | undefined"
         )]
         chain_ids: Option<Vec<u32>>,
     ) -> Result<OrdersFilterBuilder, OrdersFilterBuilderError> {

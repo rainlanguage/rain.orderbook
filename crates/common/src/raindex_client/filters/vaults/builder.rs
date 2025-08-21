@@ -49,14 +49,10 @@ impl From<VaultsFilterBuilderError> for WasmEncodedError {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct VaultsFilterBuilder {
-    #[wasm_bindgen(skip)]
-    pub owners: Vec<Address>,
-    #[wasm_bindgen(skip)]
-    pub hide_zero_balance: bool,
-    #[wasm_bindgen(skip)]
-    pub tokens: Option<Vec<Address>>,
-    #[wasm_bindgen(skip)]
-    pub chain_ids: Option<Vec<u32>>,
+    owners: Vec<Address>,
+    hide_zero_balance: bool,
+    tokens: Option<Vec<Address>>,
+    chain_ids: Option<Vec<u32>>,
 }
 
 #[wasm_export]
