@@ -1,38 +1,44 @@
 import { render, fireEvent, screen } from '@testing-library/svelte';
-import { get, writable, type Writable } from 'svelte/store';
-import { beforeEach, expect, test, describe } from 'vitest';
+import { expect, test, describe, vi } from 'vitest';
 import CheckboxZeroBalanceVault from '../lib/components/CheckboxZeroBalanceVault.svelte';
 
 describe('CheckboxZeroBalanceVault', () => {
-	let hideZeroBalanceVaults: Writable<boolean>;
-
-	beforeEach(() => {
-		hideZeroBalanceVaults = writable(false);
-	});
-
 	test('renders correctly', () => {
+		const onChange = vi.fn();
 		render(CheckboxZeroBalanceVault, {
 			props: {
-				hideZeroBalanceVaults
+				checked: false,
+				onChange
 			}
 		});
 		expect(screen.getByText('Hide empty vaults')).toBeInTheDocument();
 	});
 
-	test('toggles store value when clicked', async () => {
-		render(CheckboxZeroBalanceVault, {
+	test('calls onChange when clicked', async () => {
+		const onChange = vi.fn();
+		const { rerender } = render(CheckboxZeroBalanceVault, {
 			props: {
-				hideZeroBalanceVaults
+				checked: false,
+				onChange
 			}
 		});
 
 		const checkbox = screen.getByRole('checkbox');
-		expect(get(hideZeroBalanceVaults)).toBe(false);
+		expect(checkbox).not.toBeChecked();
 
 		await fireEvent.click(checkbox);
-		expect(get(hideZeroBalanceVaults)).toBe(true);
+		expect(onChange).toHaveBeenCalledWith(true);
 
-		await fireEvent.click(checkbox);
-		expect(get(hideZeroBalanceVaults)).toBe(false);
+		// Test checked state
+		rerender({
+			checked: true,
+			onChange
+		});
+
+		const checkedBox = screen.getByRole('checkbox');
+		expect(checkedBox).toBeChecked();
+
+		await fireEvent.click(checkedBox);
+		expect(onChange).toHaveBeenCalledWith(false);
 	});
 });

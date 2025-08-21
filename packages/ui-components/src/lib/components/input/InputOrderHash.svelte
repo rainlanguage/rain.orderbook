@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { Label } from 'flowbite-svelte';
-	import type { AppStoresInterface } from '$lib/types/appStores';
-	import type { Hex } from '@rainlanguage/orderbook';
 
-	export let orderHash: AppStoresInterface['orderHash'];
-	export let value = $orderHash;
+	export let value: string = '';
+	export let onChange: (value: string) => void;
 
 	function handleChange(event: Event) {
 		const input = event.target as HTMLInputElement;
-		value = input.value as Hex;
-		$orderHash = value;
+		const newValue = input.value;
+		value = newValue;
+		onChange(newValue);
 	}
 </script>
 

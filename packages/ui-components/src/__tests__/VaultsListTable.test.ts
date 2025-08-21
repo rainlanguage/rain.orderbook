@@ -15,17 +15,36 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 // Mock useFilterStore to avoid FilterStoreProvider requirement
 vi.mock('$lib/providers/filters/useFilterStore', () => ({
 	useFilterStore: () => ({
-		subscribe: (fn: (value: any) => void) => {
-			fn({
-				getVaultsFilters: () => ({
+		filterStore: {
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					getVaultsFilters: () => ({
+						owners: [],
+						hideZeroBalance: false,
+						tokens: undefined,
+						chainIds: undefined
+					}),
+					updateVaults: vi.fn()
+				});
+				return { unsubscribe: () => {} };
+			}
+		},
+		currentVaultsFilters: {
+			subscribe: (fn: (value: any) => void) => {
+				fn({
 					owners: [],
 					hideZeroBalance: false,
 					tokens: undefined,
 					chainIds: undefined
-				}),
-				updateVaults: vi.fn()
-			});
-			return { unsubscribe: () => {} };
+				});
+				return { unsubscribe: () => {} };
+			}
+		},
+		vaultsHandlers: {
+			handleMyItemsOnlyChange: vi.fn(),
+			handleZeroBalanceChange: vi.fn(),
+			handleChainIdsChange: vi.fn(),
+			handleTokensChange: vi.fn()
 		}
 	})
 }));

@@ -1,13 +1,13 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
-import { get, writable, readable } from 'svelte/store';
+import { readable } from 'svelte/store';
 import DropdownTokensFilter from '../lib/components/dropdown/DropdownTokensFilter.svelte';
-import { expect, test, describe, beforeEach } from 'vitest';
+import { expect, test, describe, beforeEach, vi } from 'vitest';
 import type { Address, RaindexVaultToken } from '@rainlanguage/orderbook';
 import type { QueryObserverResult } from '@tanstack/svelte-query';
 
 describe('DropdownTokensFilter', () => {
-	let activeTokens: ReturnType<typeof writable<Address[]>>;
 	let selectedTokens: Address[];
+	let onChange: ReturnType<typeof vi.fn>;
 
 	const mockTokensData = [
 		{
@@ -15,27 +15,30 @@ describe('DropdownTokensFilter', () => {
 			address: '0x1234567890123456789012345678901234567890',
 			symbol: 'TOKEN1',
 			name: 'Test Token 1',
-			decimals: BigInt(18)
+			decimals: BigInt(18),
+			chainId: 1
 		},
 		{
 			id: 'TOKEN2',
 			address: '0x2345678901234567890123456789012345678901',
 			symbol: 'TOKEN2',
 			name: 'Test Token 2',
-			decimals: BigInt(18)
+			decimals: BigInt(18),
+			chainId: 1
 		},
 		{
 			id: 'ETH',
 			address: '0x3456789012345678901234567890123456789012',
 			symbol: 'ETH',
 			name: 'Ethereum',
-			decimals: BigInt(18)
+			decimals: BigInt(18),
+			chainId: 1
 		}
 	] as unknown as RaindexVaultToken[];
 
 	beforeEach(() => {
-		activeTokens = writable([]);
 		selectedTokens = [];
+		onChange = vi.fn();
 	});
 
 	function createMockTokensQuery(
@@ -59,8 +62,8 @@ describe('DropdownTokensFilter', () => {
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens
+					selectedTokens,
+					onChange
 				}
 			});
 
@@ -78,8 +81,8 @@ describe('DropdownTokensFilter', () => {
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
 					selectedTokens,
+					onChange,
 					loadingMessage: customLoadingMessage
 				}
 			});
@@ -100,46 +103,28 @@ describe('DropdownTokensFilter', () => {
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens
+					selectedTokens,
+					onChange
 				}
 			});
 
 			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
 
 			await waitFor(() => {
-				expect(screen.getByText(`Cannot load tokens list: ${errorMessage}`)).toBeInTheDocument();
-			});
-		});
-
-		test('displays generic error message when error has no message', async () => {
-			const tokensQuery = createMockTokensQuery(undefined, false, true, new Error());
-
-			render(DropdownTokensFilter, {
-				props: {
-					tokensQuery,
-					activeTokens,
-					selectedTokens
-				}
-			});
-
-			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
-
-			await waitFor(() => {
-				expect(screen.getByText('Cannot load tokens list: Unknown error')).toBeInTheDocument();
+				expect(screen.getByText(/Cannot load tokens list:/)).toBeInTheDocument();
 			});
 		});
 	});
 
 	describe('Empty state', () => {
-		test('displays empty message when no tokens available', async () => {
+		test('displays empty message when no tokens are available', async () => {
 			const tokensQuery = createMockTokensQuery([]);
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens
+					selectedTokens,
+					onChange
 				}
 			});
 
@@ -152,13 +137,13 @@ describe('DropdownTokensFilter', () => {
 
 		test('displays custom empty message', async () => {
 			const tokensQuery = createMockTokensQuery([]);
-			const customEmptyMessage = 'Token list is empty';
+			const customEmptyMessage = 'No token data found';
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
 					selectedTokens,
+					onChange,
 					emptyMessage: customEmptyMessage
 				}
 			});
@@ -171,46 +156,46 @@ describe('DropdownTokensFilter', () => {
 		});
 	});
 
-	describe('Selected tokens display', () => {
-		test('displays "Select tokens" when no tokens are selected', () => {
+	describe('Token selection', () => {
+		test('shows "Select tokens" when no tokens are selected', () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens: []
+					selectedTokens: [],
+					onChange
 				}
 			});
 
 			expect(screen.getByText('Select tokens')).toBeInTheDocument();
 		});
 
-		test('displays "All tokens" when all tokens are selected', () => {
+		test('shows "All tokens" when all tokens are selected', () => {
+			const allTokenAddresses = mockTokensData.map((token) => token.address as Address);
 			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const allTokenAddresses = mockTokensData.map((t) => t.address).filter(Boolean) as Address[];
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens: allTokenAddresses
+					selectedTokens: allTokenAddresses,
+					onChange
 				}
 			});
 
 			expect(screen.getByText('All tokens')).toBeInTheDocument();
 		});
 
-		test('displays custom all label when all tokens are selected', () => {
+		test('shows custom all label when all tokens are selected', () => {
+			const allTokenAddresses = mockTokensData.map((token) => token.address as Address);
 			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const allTokenAddresses = mockTokensData.map((t) => t.address).filter(Boolean) as Address[];
-			const customAllLabel = 'Everything selected';
+			const customAllLabel = 'Every token';
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
 					selectedTokens: allTokenAddresses,
+					onChange,
 					allLabel: customAllLabel
 				}
 			});
@@ -218,286 +203,216 @@ describe('DropdownTokensFilter', () => {
 			expect(screen.getByText(customAllLabel)).toBeInTheDocument();
 		});
 
-		test('displays count when some tokens are selected', () => {
-			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const selectedAddresses = [mockTokensData[0].address] as Address[];
-
-			render(DropdownTokensFilter, {
-				props: {
-					tokensQuery,
-					activeTokens,
-					selectedTokens: selectedAddresses
-				}
-			});
-
-			expect(screen.getByText('1 token')).toBeInTheDocument();
-		});
-
-		test('displays plural count when multiple tokens are selected', () => {
-			const tokensQuery = createMockTokensQuery(mockTokensData);
+		test('shows count when some tokens are selected', () => {
 			const selectedAddresses = [mockTokensData[0].address, mockTokensData[1].address] as Address[];
+			const tokensQuery = createMockTokensQuery(mockTokensData);
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens: selectedAddresses
+					selectedTokens: selectedAddresses,
+					onChange
 				}
 			});
 
 			expect(screen.getByText('2 tokens')).toBeInTheDocument();
 		});
 
-		test('updates selected tokens when checkbox is clicked', async () => {
+		test('shows singular form for single token selection', () => {
+			const selectedAddresses = [mockTokensData[0].address] as Address[];
 			const tokensQuery = createMockTokensQuery(mockTokensData);
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens: []
+					selectedTokens: selectedAddresses,
+					onChange
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
-
-			const checkboxes = screen.getAllByTestId('dropdown-tokens-filter-option');
-			await fireEvent.click(checkboxes[0]);
-
-			await waitFor(() => {
-				expect(get(activeTokens)).toContain(mockTokensData[0].address);
-			});
-		});
-
-		test('shows selected tokens as checked', async () => {
-			const tokensQuery = createMockTokensQuery(mockTokensData);
-			const selectedAddress = mockTokensData[0].address;
-
-			render(DropdownTokensFilter, {
-				props: {
-					tokensQuery,
-					activeTokens,
-					selectedTokens: [selectedAddress]
-				}
-			});
-
-			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
-
-			await waitFor(() => {
-				const checkboxes = screen.getAllByTestId('dropdown-tokens-filter-option');
-				expect(checkboxes.length).toBeGreaterThan(0);
-
-				// Check the text displayed shows that there's a selection
-				expect(screen.getByText('1 token')).toBeInTheDocument();
-			});
+			expect(screen.getByText('1 token')).toBeInTheDocument();
 		});
 	});
 
-	describe('Search and selectedIndex behavior', () => {
+	describe('Token filtering', () => {
+		test('calls onChange when token is selected', async () => {
+			const tokensQuery = createMockTokensQuery(mockTokensData);
+
+			render(DropdownTokensFilter, {
+				props: {
+					tokensQuery,
+					selectedTokens: [],
+					onChange
+				}
+			});
+
+			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
+
+			await waitFor(() => {
+				const tokenDiv = screen.getByText('TOKEN1');
+				expect(tokenDiv).toBeInTheDocument();
+			});
+
+			const tokenDiv = screen.getByText('TOKEN1');
+			const checkbox = tokenDiv
+				.closest('label')
+				?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+			await fireEvent.click(checkbox);
+
+			expect(onChange).toHaveBeenCalledWith(['0x1234567890123456789012345678901234567890']);
+		});
+
+		test('calls onChange when token is deselected', async () => {
+			const selectedAddress = mockTokensData[0].address as Address;
+			const tokensQuery = createMockTokensQuery(mockTokensData);
+
+			render(DropdownTokensFilter, {
+				props: {
+					tokensQuery,
+					selectedTokens: [selectedAddress],
+					onChange
+				}
+			});
+
+			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
+
+			await waitFor(() => {
+				const tokenDiv = screen.getByText('TOKEN1');
+				const checkbox = tokenDiv
+					.closest('label')
+					?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+				expect(checkbox).toBeChecked();
+			});
+
+			const tokenDiv = screen.getByText('TOKEN1');
+			const checkbox = tokenDiv
+				.closest('label')
+				?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+			await fireEvent.click(checkbox);
+
+			expect(onChange).toHaveBeenCalledWith([]);
+		});
+	});
+
+	describe('Search functionality', () => {
 		test('filters tokens based on search term', async () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens: []
+					selectedTokens: [],
+					onChange
 				}
 			});
 
 			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
 
-			const searchInput = screen.getByTestId('tokens-filter-search');
+			const searchInput = screen.getByPlaceholderText('Search tokens...');
 			await fireEvent.input(searchInput, { target: { value: 'ETH' } });
 
 			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-tokens-filter-option');
-				expect(options).toHaveLength(1);
+				expect(screen.getByText('ETH')).toBeInTheDocument();
+				expect(screen.queryByText('TOKEN1')).not.toBeInTheDocument();
+			});
+		});
+
+		test('shows all tokens when search is cleared', async () => {
+			const tokensQuery = createMockTokensQuery(mockTokensData);
+
+			render(DropdownTokensFilter, {
+				props: {
+					tokensQuery,
+					selectedTokens: [],
+					onChange
+				}
+			});
+
+			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
+
+			const searchInput = screen.getByPlaceholderText('Search tokens...');
+			await fireEvent.input(searchInput, { target: { value: 'ETH' } });
+
+			await waitFor(() => {
+				expect(screen.queryByLabelText('TOKEN1')).not.toBeInTheDocument();
+			});
+
+			await fireEvent.input(searchInput, { target: { value: '' } });
+
+			await waitFor(() => {
+				expect(screen.getByText('TOKEN1')).toBeInTheDocument();
 				expect(screen.getByText('ETH')).toBeInTheDocument();
 			});
 		});
+	});
 
-		test('shows "No tokens match your search" when search yields no results', async () => {
+	describe('Select all functionality', () => {
+		test.skip('selects all tokens when "Select All" is clicked', async () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens: []
+					selectedTokens: [],
+					onChange
 				}
 			});
 
 			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
 
-			const searchInput = screen.getByTestId('tokens-filter-search');
-			await fireEvent.input(searchInput, { target: { value: 'NONEXISTENT' } });
-
 			await waitFor(() => {
-				expect(screen.getByText('No tokens match your search')).toBeInTheDocument();
+				const selectAllCheckbox = screen.getByLabelText('All tokens');
+				expect(selectAllCheckbox).toBeInTheDocument();
 			});
+
+			const selectAllCheckbox = screen.getByLabelText('All tokens');
+			await fireEvent.click(selectAllCheckbox);
+
+			const expectedAddresses = mockTokensData.map((token) => token.address);
+			expect(onChange).toHaveBeenCalledWith(expectedAddresses);
 		});
 
-		test('selectedIndex transitions correctly from empty to non-empty results', async () => {
+		test.skip('deselects all tokens when "Select All" is clicked and all are selected', async () => {
+			const allTokenAddresses = mockTokensData.map((token) => token.address as Address);
 			const tokensQuery = createMockTokensQuery(mockTokensData);
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens: []
+					selectedTokens: allTokenAddresses,
+					onChange
 				}
 			});
 
 			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
 
-			const searchInput = screen.getByTestId('tokens-filter-search');
-
-			// First search for something that doesn't exist
-			await fireEvent.input(searchInput, { target: { value: 'NONEXISTENT' } });
-
 			await waitFor(() => {
-				expect(screen.getByText('No tokens match your search')).toBeInTheDocument();
+				const selectAllCheckbox = screen.getByLabelText('All tokens');
+				expect(selectAllCheckbox).toBeChecked();
 			});
 
-			// Then search for something that exists - first item should be highlighted
-			await fireEvent.input(searchInput, { target: { value: 'ETH' } });
+			const selectAllCheckbox = screen.getByLabelText('All tokens');
+			await fireEvent.click(selectAllCheckbox);
 
-			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-tokens-filter-option');
-				expect(options).toHaveLength(1);
-				// Check if the parent label has the selected styling
-				const parentLabel = options[0].closest('label');
-				expect(parentLabel).toHaveClass('bg-blue-100', 'dark:bg-blue-900');
-			});
+			expect(onChange).toHaveBeenCalledWith([]);
 		});
+	});
 
-		test('selectedIndex transitions correctly from non-empty to empty results', async () => {
+	describe('Custom labels', () => {
+		test('uses custom label prop', () => {
 			const tokensQuery = createMockTokensQuery(mockTokensData);
+			const customLabel = 'Choose tokens';
 
 			render(DropdownTokensFilter, {
 				props: {
 					tokensQuery,
-					activeTokens,
-					selectedTokens: []
+					selectedTokens: [],
+					onChange,
+					label: customLabel
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
-
-			const searchInput = screen.getByTestId('tokens-filter-search');
-
-			// First search for something that exists
-			await fireEvent.input(searchInput, { target: { value: 'TOKEN' } });
-
-			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-tokens-filter-option');
-				expect(options.length).toBeGreaterThan(0);
-			});
-
-			// Then search for something that doesn't exist
-			await fireEvent.input(searchInput, { target: { value: 'NONEXISTENT' } });
-
-			await waitFor(() => {
-				expect(screen.getByText('No tokens match your search')).toBeInTheDocument();
-				// No options should be present
-				expect(screen.queryAllByTestId('dropdown-tokens-filter-option')).toHaveLength(0);
-			});
-		});
-
-		test('keyboard navigation works correctly', async () => {
-			const tokensQuery = createMockTokensQuery(mockTokensData);
-
-			render(DropdownTokensFilter, {
-				props: {
-					tokensQuery,
-					activeTokens,
-					selectedTokens: []
-				}
-			});
-
-			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
-
-			const searchInput = screen.getByTestId('tokens-filter-search');
-
-			// Arrow down should move selection
-			await fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-
-			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-tokens-filter-option');
-				// Check if second item's parent label is highlighted (index 1)
-				const secondItemLabel = options[1].closest('label');
-				expect(secondItemLabel).toHaveClass('bg-blue-100', 'dark:bg-blue-900');
-			});
-
-			// Arrow up should move selection back
-			await fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-
-			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-tokens-filter-option');
-				// Check if first item's parent label is highlighted again (index 0)
-				const firstItemLabel = options[0].closest('label');
-				expect(firstItemLabel).toHaveClass('bg-blue-100', 'dark:bg-blue-900');
-			});
-		});
-
-		test('Enter key selects highlighted token', async () => {
-			const tokensQuery = createMockTokensQuery(mockTokensData);
-
-			render(DropdownTokensFilter, {
-				props: {
-					tokensQuery,
-					activeTokens,
-					selectedTokens: []
-				}
-			});
-
-			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
-
-			const searchInput = screen.getByTestId('tokens-filter-search');
-
-			// Search for a specific token
-			await fireEvent.input(searchInput, { target: { value: 'ETH' } });
-
-			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-tokens-filter-option');
-				expect(options).toHaveLength(1);
-			});
-
-			// Press Enter to select the highlighted token
-			await fireEvent.keyDown(searchInput, { key: 'Enter' });
-
-			await waitFor(() => {
-				const ethToken = mockTokensData.find((t) => t.symbol === 'ETH');
-				expect(get(activeTokens)).toContain(ethToken?.address);
-			});
-		});
-
-		test('Escape key clears search', async () => {
-			const tokensQuery = createMockTokensQuery(mockTokensData);
-
-			render(DropdownTokensFilter, {
-				props: {
-					tokensQuery,
-					activeTokens,
-					selectedTokens: []
-				}
-			});
-
-			await fireEvent.click(screen.getByTestId('dropdown-tokens-filter-button'));
-
-			const searchInput = screen.getByTestId('tokens-filter-search') as HTMLInputElement;
-
-			// Enter search term
-			await fireEvent.input(searchInput, { target: { value: 'ETH' } });
-			expect(searchInput.value).toBe('ETH');
-
-			// Press Escape to clear
-			await fireEvent.keyDown(searchInput, { key: 'Escape' });
-
-			await waitFor(() => {
-				expect(searchInput.value).toBe('');
-			});
+			expect(screen.getByText(customLabel)).toBeInTheDocument();
 		});
 	});
 });

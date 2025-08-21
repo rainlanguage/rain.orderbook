@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Checkbox } from 'flowbite-svelte';
-	import type { AppStoresInterface } from '$lib/types/appStores';
-	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
-	let checked: boolean = $showInactiveOrders ? true : false;
+
+	export let checked: boolean = false;
+	export let onChange: (checked: boolean) => void;
 
 	function handleChange() {
-		$showInactiveOrders = !$showInactiveOrders;
+		onChange(!checked);
 	}
 </script>
 

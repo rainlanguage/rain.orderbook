@@ -1,5 +1,5 @@
 <script lang="ts" context="module">
-	import type { GetVaultsFilters } from '@rainlanguage/orderbook';
+	import type { GetVaultsFilters, GetOrdersFilters } from '@rainlanguage/orderbook';
 	import type { Readable } from 'svelte/store';
 	/**
 	 * Svelte context key for the filter store
@@ -13,9 +13,19 @@
 		chainIds: undefined
 	};
 
+	export const DEFAULT_ORDER_FILTERS: GetOrdersFilters = {
+		owners: [],
+		active: undefined,
+		orderHash: undefined,
+		tokens: undefined,
+		chainIds: undefined
+	};
+
 	export type FilterStoreContext = {
 		filterStore: Readable<RaindexFilterStore>;
 		currentVaultsFilters: Readable<GetVaultsFilters>;
+		currentOrdersFilters: Readable<GetOrdersFilters>;
+		isLoaded: Readable<boolean>;
 	};
 </script>
 
@@ -29,6 +39,8 @@
 	 */
 	const filterStore: Writable<RaindexFilterStore | null> = writable(null);
 	const currentVaultsFilters = writable(DEFAULT_VAULT_FILTERS);
+	const currentOrdersFilters = writable(DEFAULT_ORDER_FILTERS);
+	const isLoaded = writable(false);
 
 	/**
 	 * Initialize the filter store on component mount
@@ -43,8 +55,15 @@
 					...DEFAULT_VAULT_FILTERS,
 					...store.getVaultsFilters()
 				});
+				currentOrdersFilters.set({
+					...DEFAULT_ORDER_FILTERS,
+					...store.getOrdersFilters()
+				});
+				isLoaded.set(store.isLoaded);
 			} else {
 				currentVaultsFilters.set(DEFAULT_VAULT_FILTERS);
+				currentOrdersFilters.set(DEFAULT_ORDER_FILTERS);
+				isLoaded.set(false);
 			}
 		});
 	});
@@ -54,7 +73,9 @@
 	 */
 	setContext(FILTER_STORE_CONTEXT, {
 		filterStore,
-		currentVaultsFilters
+		currentVaultsFilters,
+		currentOrdersFilters,
+		isLoaded
 	});
 </script>
 

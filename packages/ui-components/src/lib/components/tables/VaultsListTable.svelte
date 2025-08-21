@@ -40,7 +40,7 @@
 	const raindexClient = useRaindexClient();
 
 	// Use our new filter store instead of props
-	const { currentVaultsFilters } = useFilterStore();
+	const { currentVaultsFilters, isLoaded } = useFilterStore();
 
 	$: chainIds = $currentVaultsFilters?.chainIds ?? [];
 
@@ -51,7 +51,7 @@
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
-		enabled: true
+		enabled: $isLoaded
 	});
 
 	$: query = createInfiniteQuery({
@@ -66,7 +66,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-		enabled: true
+		enabled: $isLoaded
 	});
 
 	const AppTable = TanstackAppTable<RaindexVault>;

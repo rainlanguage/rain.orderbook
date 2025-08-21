@@ -8,7 +8,7 @@ import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 
-vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
+vi.mock('../lib/components/ListViewOrderFilters.svelte', async () => {
 	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		default: MockComponent
@@ -17,6 +17,44 @@ vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
+}));
+
+// Mock useFilterStore to avoid FilterStoreProvider requirement
+vi.mock('$lib/providers/filters/useFilterStore', () => ({
+	useFilterStore: () => ({
+		filterStore: {
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					getOrdersFilters: () => ({
+						owners: [],
+						hideZeroBalance: false,
+						tokens: undefined,
+						chainIds: undefined
+					}),
+					updateOrders: vi.fn()
+				});
+				return { unsubscribe: () => {} };
+			}
+		},
+		currentOrdersFilters: {
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					owners: [],
+					hideZeroBalance: false,
+					tokens: undefined,
+					chainIds: undefined
+				});
+				return { unsubscribe: () => {} };
+			}
+		},
+		ordersHandlers: {
+			handleMyItemsOnlyChange: vi.fn(),
+			handleChainIdsChange: vi.fn(),
+			handleTokensChange: vi.fn(),
+			handleOrderHashChange: vi.fn(),
+			handleAccountsChange: vi.fn()
+		}
+	})
 }));
 
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
