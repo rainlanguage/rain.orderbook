@@ -39,6 +39,12 @@ vi.mock('$lib/providers/filters/useFilterStore', () => ({
 				});
 				return { unsubscribe: () => {} };
 			}
+		},
+		vaultsHandlers: {
+			handleMyItemsOnlyChange: vi.fn(),
+			handleZeroBalanceChange: vi.fn(),
+			handleChainIdsChange: vi.fn(),
+			handleTokensChange: vi.fn()
 		}
 	})
 }));

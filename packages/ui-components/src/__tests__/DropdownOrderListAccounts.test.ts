@@ -12,9 +12,9 @@ describe('DropdownOrderListAccounts', () => {
 		(useRaindexClient as Mock).mockReturnValue({
 			getAllAccounts: vi.fn().mockReturnValue({
 				value: new Map([
-					['address1', '0x1234567890123456789012345678901234567890'],
-					['address2', '0x1234567890123456789012345678901234567891'],
-					['address3', '0x1234567890123456789012345678901234567892']
+					['address1', { address: '0x1234567890123456789012345678901234567890', key: 'address1' }],
+					['address2', { address: '0x1234567890123456789012345678901234567891', key: 'address2' }],
+					['address3', { address: '0x1234567890123456789012345678901234567892', key: 'address3' }]
 				])
 			})
 		});

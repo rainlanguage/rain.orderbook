@@ -16,7 +16,7 @@ describe('CheckboxZeroBalanceVault', () => {
 
 	test('calls onChange when clicked', async () => {
 		const onChange = vi.fn();
-		render(CheckboxZeroBalanceVault, {
+		const { rerender } = render(CheckboxZeroBalanceVault, {
 			props: {
 				checked: false,
 				onChange
@@ -30,11 +30,9 @@ describe('CheckboxZeroBalanceVault', () => {
 		expect(onChange).toHaveBeenCalledWith(true);
 
 		// Test checked state
-		render(CheckboxZeroBalanceVault, {
-			props: {
-				checked: true,
-				onChange
-			}
+		rerender({
+			checked: true,
+			onChange
 		});
 
 		const checkedBox = screen.getByRole('checkbox');
