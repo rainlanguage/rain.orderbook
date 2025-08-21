@@ -32,8 +32,8 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'vercel-preview')
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: read
+     permissions:
+       contents: read
     environment: vercel-preview
     env:
       COMMIT_SHA: ${{ github.sha }}
