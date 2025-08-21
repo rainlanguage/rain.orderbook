@@ -60,6 +60,8 @@ nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w tauri-app)'
 
+env
+
 # Temporarily disable command echoing
 set +x
 
