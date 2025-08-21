@@ -27,7 +27,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+    permissions:
       contents: read
     env:
       COMMIT_SHA: ${{ github.sha }}
