@@ -27,10 +27,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-    permissions:
       contents: read
-    env:
-      COMMIT_SHA: ${{ github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

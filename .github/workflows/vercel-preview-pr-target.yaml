@@ -34,8 +34,6 @@ jobs:
     permissions:
        contents: read
     environment: vercel-preview
-    env:
-      COMMIT_SHA: ${{ github.sha }}
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v4
