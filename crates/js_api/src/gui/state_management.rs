@@ -32,6 +32,7 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
+    #[wasm_export(skip)]
     pub fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
         let dotrain_source = DotrainSourceV1(dotrain);
         let hash = dotrain_source.hash();
