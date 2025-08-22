@@ -33,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
        contents: read
+    env:
+      COMMIT_SHA: ${{ github.sha }}
     environment: vercel-preview
     steps:
       - name: Checkout PR head
