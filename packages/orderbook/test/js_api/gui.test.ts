@@ -17,16 +17,8 @@ import {
 	AllGuiConfig,
 	WasmEncodedResult,
 	FieldValue,
-	Float
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
-
-function assertHex(input: string): void {
-	// Check if it matches hex pattern (0x followed by hex chars)
-	assert.match(input, /^0x[0-9a-fA-F]+$/, `Expected valid hex string, got: ${input}`);
-	// Check if length is even (each byte is 2 hex chars)
-	assert.equal(input.length % 2, 0, `Hex string length must be even, got length: ${input.length}`);
-}
 
 const guiConfig = `
 gui:
@@ -1340,7 +1332,7 @@ ${dotrain}`;
 				);
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assertHex(addOrderCalldata);
+			assert.equal(addOrderCalldata.length, 2634);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1382,7 +1374,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assertHex(calldata);
+			assert.equal(calldata.length, 3594);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1425,7 +1417,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assertHex(calldata);
+			assert.equal(calldata.length, 3658);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1485,7 +1477,7 @@ ${dotrainWithoutVaultIds}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assertHex(calldata);
+			assert.equal(calldata.length, 3914);
 
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1773,7 +1765,7 @@ ${dotrainWithoutVaultIds}`;
 				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
-			assertHex(result.deploymentCalldata);
+			assert.equal(result.deploymentCalldata.length, 3594);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 
@@ -1783,7 +1775,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(result.approvals.length, 0);
-			assertHex(result.deploymentCalldata);
+			assert.equal(result.deploymentCalldata.length, 2954);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 		});
