@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { PageHeader } from '@rainlanguage/ui-components';
 	import { Button, Textarea, Input, Label } from 'flowbite-svelte';
-	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from 'sqlite-worker';
+	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from 'sqlite-web';
 	import { RaindexClient } from '@rainlanguage/orderbook';
 
 	let db: WasmEncodedResult<SQLiteWasmDatabase> | null = null;

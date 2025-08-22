@@ -1,7 +1,7 @@
 SELECT 
   datetime(CASE WHEN block_timestamp = 0 THEN NULL ELSE block_timestamp END, 'unixepoch') as date,
   transaction_hash as tx_hash,
-  printf('%.0f', CAST(amount AS REAL)) as balance_change,
+  amount as balance_change,
   'deposit' as balance_change_type,
   block_number,
   log_index
@@ -13,7 +13,7 @@ UNION ALL
 SELECT 
   datetime(CASE WHEN block_timestamp = 0 THEN NULL ELSE block_timestamp END, 'unixepoch') as date,
   transaction_hash as tx_hash,
-  printf('%.0f', -CAST(amount AS REAL)) as balance_change,
+  '-' || amount as balance_change,
   'withdrawal' as balance_change_type,
   block_number,
   log_index
@@ -25,7 +25,7 @@ UNION ALL
 SELECT 
   datetime(CASE WHEN t.block_timestamp = 0 THEN NULL ELSE t.block_timestamp END, 'unixepoch') as date,
   t.transaction_hash as tx_hash,
-  printf('%.0f', CAST(t.input_amount AS REAL)) as balance_change,
+  t.input_amount as balance_change,
   'take_order' as balance_change_type,
   t.block_number,
   t.log_index
@@ -42,7 +42,7 @@ UNION ALL
 SELECT 
   datetime(CASE WHEN t.block_timestamp = 0 THEN NULL ELSE t.block_timestamp END, 'unixepoch') as date,
   t.transaction_hash as tx_hash,
-  printf('%.0f', -CAST(t.output_amount AS REAL)) as balance_change,
+  '-' || t.output_amount as balance_change,
   'take_order' as balance_change_type,
   t.block_number,
   t.log_index
@@ -59,7 +59,7 @@ UNION ALL
 SELECT 
   datetime(CASE WHEN c.block_timestamp = 0 THEN NULL ELSE c.block_timestamp END, 'unixepoch') as date,
   c.transaction_hash as tx_hash,
-  printf('%.0f', -CAST(ac.alice_output AS REAL)) as balance_change,
+  '-' || ac.alice_output as balance_change,
   'clear' as balance_change_type,
   c.block_number,
   c.log_index
@@ -77,7 +77,7 @@ UNION ALL
 SELECT 
   datetime(CASE WHEN c.block_timestamp = 0 THEN NULL ELSE c.block_timestamp END, 'unixepoch') as date,
   c.transaction_hash as tx_hash,
-  printf('%.0f', CAST(ac.alice_input AS REAL)) as balance_change,
+  ac.alice_input as balance_change,
   'clear' as balance_change_type,
   c.block_number,
   c.log_index
@@ -95,7 +95,7 @@ UNION ALL
 SELECT 
   datetime(CASE WHEN c.block_timestamp = 0 THEN NULL ELSE c.block_timestamp END, 'unixepoch') as date,
   c.transaction_hash as tx_hash,
-  printf('%.0f', -CAST(ac.bob_output AS REAL)) as balance_change,
+  '-' || ac.bob_output as balance_change,
   'clear' as balance_change_type,
   c.block_number,
   c.log_index
@@ -113,7 +113,7 @@ UNION ALL
 SELECT 
   datetime(CASE WHEN c.block_timestamp = 0 THEN NULL ELSE c.block_timestamp END, 'unixepoch') as date,
   c.transaction_hash as tx_hash,
-  printf('%.0f', CAST(ac.bob_input AS REAL)) as balance_change,
+  ac.bob_input as balance_change,
   'clear' as balance_change_type,
   c.block_number,
   c.log_index

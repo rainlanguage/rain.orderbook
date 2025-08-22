@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
 		'import.meta.vitest': 'undefined'
 	},
 	optimizeDeps: {
-		exclude: ['sqlite-worker']
+		exclude: ['sqlite-web']
 	},
 
 	test: {
