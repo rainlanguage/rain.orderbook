@@ -24,6 +24,7 @@ use rain_orderbook_common::{
 };
 use std::{
     collections::{BTreeMap, HashMap},
+    ops::Sub,
     str::FromStr,
     sync::Arc,
 };
@@ -353,7 +354,7 @@ impl DotrainOrderGui {
                 let calldata = approveCall {
                     spender: tx_args.orderbook_address,
                     amount: deposit_amount
-                        .sub_js(&allowance_float)?
+                        .sub(allowance_float)?
                         .to_fixed_decimal(decimals)?,
                 }
                 .abi_encode();
