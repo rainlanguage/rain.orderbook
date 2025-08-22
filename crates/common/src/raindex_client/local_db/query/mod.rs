@@ -122,7 +122,7 @@ pub struct AllVaultsResponse {
     pub token: String,
     pub decimals: Option<u8>,
     pub owner: String,
-    pub balance: f64,
+    pub balance: String,
     #[serde(alias = "input_order_hashes")]
     pub input_order_hashes: Option<String>,
     #[serde(alias = "output_order_hashes")]
