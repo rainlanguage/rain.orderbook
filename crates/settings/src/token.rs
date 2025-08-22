@@ -18,7 +18,7 @@ use yaml::context::Context;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct SettingsTokenCfg {
+pub struct TokenCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
@@ -33,12 +33,9 @@ pub struct SettingsTokenCfg {
     pub symbol: Option<String>,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(SettingsTokenCfg);
+impl_wasm_traits!(TokenCfg);
 
-// Type alias for backward compatibility
-pub type TokenCfg = SettingsTokenCfg;
-
-impl SettingsTokenCfg {
+impl TokenCfg {
     pub fn validate_address(value: &str) -> Result<Address, ParseTokenConfigSourceError> {
         Address::from_str(value).map_err(ParseTokenConfigSourceError::AddressParseError)
     }

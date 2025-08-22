@@ -30,7 +30,7 @@ impl_wasm_traits!(VaultType);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderIOCfg {
-    pub token: Option<Arc<SettingsTokenCfg>>,
+    pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(rename = "vaultId"),
@@ -371,8 +371,7 @@ impl OrderCfg {
 
                         let token_key =
                             require_string(input, Some("token"), Some(location.clone()))?;
-                        let res =
-                            SettingsTokenCfg::parse_network_key(documents.clone(), &token_key);
+                        let res = TokenCfg::parse_network_key(documents.clone(), &token_key);
                         if let Ok(key) = res {
                             if let Some(ref existing_key) = network_key {
                                 if *existing_key != key {
@@ -399,8 +398,7 @@ impl OrderCfg {
 
                         let token_key =
                             require_string(output, Some("token"), Some(location.clone()))?;
-                        let res =
-                            SettingsTokenCfg::parse_network_key(documents.clone(), &token_key);
+                        let res = TokenCfg::parse_network_key(documents.clone(), &token_key);
                         if let Ok(key) = res {
                             if let Some(ref existing_key) = network_key {
                                 if *existing_key != key {
@@ -537,7 +535,7 @@ impl YamlParsableHash for OrderCfg {
 
         let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), context);
         let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), context);
-        let tokens = SettingsTokenCfg::parse_all_from_yaml(documents.clone(), context);
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
         if let Some(context) = context {
             if context.select_tokens.is_none() && tokens.is_err() {
