@@ -23,7 +23,7 @@
       <ExclamationCircleSolid class="h-10 w-10" color="yellow" />
       <div data-testid="status-pending-sign">
         <div class="mb-2 text-xl">Awaiting Signature</div>
-        <div>Please review and sign the transaction on your Ledger device</div>
+        <div>Please review and sign the transaction in your wallet</div>
       </div>
     {:else if transactionStatusNotice.status.type === 'Sending'}
       <Spinner data-testid="status-sending" />

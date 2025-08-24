@@ -28,7 +28,6 @@ use commands::vault::{
     vault_balance_changes_list_write_csv, vault_deposit, vault_deposit_approve_calldata,
     vault_deposit_calldata, vault_withdraw, vault_withdraw_calldata, vaults_list_write_csv,
 };
-use commands::wallet::get_address_from_ledger;
 use shared_state::SharedState;
 
 fn main() {
@@ -57,7 +56,6 @@ fn run_tauri_app() {
             order_add,
             order_remove,
             order_trades_list_write_csv,
-            get_address_from_ledger,
             get_chainid,
             get_block_number,
             parse_dotrain,

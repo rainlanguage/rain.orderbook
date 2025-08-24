@@ -33,7 +33,6 @@
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
   import { executeWalletConnectOrder } from '$lib/services/executeWalletConnectOrder';
-  import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
   import { walletConnectNetwork } from '$lib/stores/walletconnect';
@@ -147,16 +146,6 @@
     isCharting = false;
   }
 
-  async function handleExecuteLedger() {
-    isSubmitting = true;
-    try {
-      if (!deployment) throw Error('Select a deployment to add order');
-      await executeLedgerOrder($globalDotrainFile.text, deployment, orderAdd, reportErrorToSentry);
-    } catch (e: unknown) {
-      toasts.error((e as Error).message || 'Ledger execution failed');
-    }
-    isSubmitting = false;
-  }
 
   async function handleExecuteWalletConnect() {
     isSubmitting = true;
@@ -277,6 +266,5 @@
   title="Add Order"
   execButtonLabel="Add Order"
   executeWalletconnect={handleExecuteWalletConnect}
-  executeLedger={handleExecuteLedger}
   bind:isSubmitting
 />

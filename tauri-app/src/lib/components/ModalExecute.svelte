@@ -1,11 +1,8 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
-  import { ledgerWalletAddress } from '$lib/stores/wallets';
-  import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
   import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
   import {
-    IconLedger,
     IconWalletConnect,
     ButtonLoading,
     getNetworkName,
@@ -15,34 +12,25 @@
   export let open = false;
   export let title: string;
   export let execButtonLabel: string;
-  export let executeLedger: () => Promise<void>;
   export let executeWalletconnect: () => Promise<void>;
   export let isSubmitting = false;
   export let onBack: (() => void) | undefined = undefined;
   export let chainId: number | undefined = undefined;
   export let overrideNetwork: NetworkCfg | undefined = undefined;
 
-  let selectedLedger = false;
   let selectedWalletconnect = false;
 
   function reset() {
     open = false;
     if (!isSubmitting) {
-      selectedLedger = false;
       selectedWalletconnect = false;
     }
   }
 </script>
 
 <Modal {title} bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
-  {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount && !$ledgerWalletAddress}
+  {#if !selectedWalletconnect && !$walletconnectAccount}
     <div class="flex justify-center space-x-4">
-      <Button class="text-lg" on:click={() => (selectedLedger = true)}>
-        <div class="mr-4">
-          <IconLedger />
-        </div>
-        Ledger Wallet
-      </Button>
       <Button class="text-lg" on:click={() => (selectedWalletconnect = true)}>
         <div class="mr-3">
           <IconWalletConnect />
@@ -62,25 +50,7 @@
         >
       {/if}
     </div>
-  {:else if selectedLedger || $ledgerWalletAddress}
-    <InputLedgerWallet />
-    <div
-      class={!$ledgerWalletAddress
-        ? 'flex justify-between space-x-4'
-        : 'flex justify-end space-x-4'}
-    >
-      {#if !$ledgerWalletAddress}
-        <Button color="alternative" on:click={() => (selectedLedger = false)}>Back</Button>
-      {/if}
-      <ButtonLoading
-        on:click={() => executeLedger().finally(() => reset())}
-        disabled={isSubmitting || !$ledgerWalletAddress}
-        loading={isSubmitting}
-      >
-        {execButtonLabel}
-      </ButtonLoading>
-    </div>
-  {:else if selectedWalletconnect || $walletconnectAccount}
+  {:else}
     <InputWalletConnect priorityChainIds={chainId ? [chainId] : []} />
     <div
       class={!$walletconnectAccount
