@@ -17,16 +17,6 @@
   let isSubmitting = false;
   let openOrderRemoveModal = true;
 
-  async function executeLedger() {
-    isSubmitting = true;
-    try {
-      await orderRemove(raindexClient, order);
-      onOrderRemoved();
-    } catch (e) {
-      reportErrorToSentry(e);
-    }
-    isSubmitting = false;
-  }
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
@@ -51,7 +41,6 @@
   bind:open={openOrderRemoveModal}
   title="Remove Order"
   execButtonLabel="Remove Order"
-  {executeLedger}
   {executeWalletconnect}
   bind:isSubmitting
 />

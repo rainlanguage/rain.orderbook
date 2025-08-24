@@ -1,6 +1,5 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import type {
   DeploymentCfg,
   RaindexClient,
@@ -15,7 +14,7 @@ export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
     transactionArgs: {
       rpcs: deployment.order.network.rpcs,
       orderbook_address: deployment.order.orderbook?.address,
-      derivation_index: get(ledgerWalletDerivationIndex),
+      derivation_index: null,
       chain_id: deployment.order.network.chainId,
     },
   });
@@ -32,7 +31,7 @@ export async function orderRemove(raindexClient: RaindexClient, order: RaindexOr
     transactionArgs: {
       rpcs: orderbook.value.network.rpcs,
       orderbook_address: order.orderbook,
-      derivation_index: get(ledgerWalletDerivationIndex),
+      derivation_index: null,
       chain_id: order.chainId,
     },
     subgraphArgs: {

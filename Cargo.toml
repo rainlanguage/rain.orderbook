@@ -68,8 +68,6 @@ path = "crates/bindings"
 [workspace.dependencies.rain_orderbook_common]
 path = "crates/common"
 
-[workspace.dependencies.rain_orderbook_cli]
-path = "crates/cli"
 
 [workspace.dependencies.rain_orderbook_subgraph_client]
 path = "crates/subgraph"
