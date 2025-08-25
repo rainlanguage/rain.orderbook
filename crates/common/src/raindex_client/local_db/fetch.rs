@@ -1,4 +1,4 @@
-use crate::hyper_rpc::{fetch_block_timestamps, HyperRpcClient};
+use crate::hyper_rpc::{HyperRpcClient, HyperRpcError};
 use alloy::{primitives::U256, sol_types::SolEvent};
 use futures::StreamExt;
 use rain_orderbook_bindings::{
@@ -7,7 +7,7 @@ use rain_orderbook_bindings::{
     },
     OrderBook::MetaV1_2,
 };
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub async fn fetch_url(url: &str) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
     let client = reqwest::Client::new();
@@ -19,6 +19,63 @@ pub async fn fetch_url(url: &str) -> Result<Vec<u8>, Box<dyn std::error::Error +
 
     let bytes = response.bytes().await?;
     Ok(bytes.to_vec())
+}
+
+async fn fetch_block_timestamps(
+    chain_id: u32,
+    block_numbers: Vec<u64>,
+) -> Result<HashMap<u64, String>, HyperRpcError> {
+    if block_numbers.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let client = HyperRpcClient::new(chain_id)?;
+    let results: Vec<Result<(u64, String), HyperRpcError>> = futures::stream::iter(block_numbers)
+        .map(|block_number| {
+            let client = client.clone();
+            async move {
+                let mut result: Result<String, HyperRpcError> = Err(HyperRpcError::MissingField {
+                    field: "Not attempted".to_string(),
+                });
+                for _attempt in 1..=3 {
+                    result = client.get_block_by_number(block_number).await;
+                    if result.is_ok() {
+                        break;
+                    }
+                }
+
+                match result {
+                    Ok(response) => {
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&response) {
+                            if let Some(result) = json.get("result") {
+                                if let Some(block) = result.as_object() {
+                                    if let Some(timestamp) =
+                                        block.get("timestamp").and_then(|t| t.as_str())
+                                    {
+                                        return Ok((block_number, timestamp.to_string()));
+                                    }
+                                }
+                            }
+                        }
+                        Err(HyperRpcError::MissingField {
+                            field: "timestamp".to_string(),
+                        })
+                    }
+                    Err(e) => Err(e),
+                }
+            }
+        })
+        .buffer_unordered(14)
+        .collect()
+        .await;
+
+    let mut timestamps = HashMap::new();
+
+    for (block_number, timestamp) in results.into_iter().flatten() {
+        timestamps.insert(block_number, timestamp);
+    }
+
+    Ok(timestamps)
 }
 
 async fn backfill_missing_timestamps(
