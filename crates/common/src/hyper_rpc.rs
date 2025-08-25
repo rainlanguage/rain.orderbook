@@ -23,7 +23,7 @@ impl HyperRpcClient {
         Ok(Self { chain_id })
     }
 
-    fn get_url(&self) -> Result<String, HyperRpcError> {
+    pub fn get_url(&self) -> Result<String, HyperRpcError> {
         let api_token =
             std::env::var("HYPER_API_TOKEN").map_err(|_| HyperRpcError::MissingApiToken)?;
         let rpc_url =
@@ -243,7 +243,10 @@ mod tests {
     fn test_new_with_unsupported_chain_id() {
         let client = HyperRpcClient::new(9999);
         assert!(client.is_err());
-        assert!(matches!(client.unwrap_err(), HyperRpcError::UnsupportedChainId { chain_id: 9999 }));
+        assert!(matches!(
+            client.unwrap_err(),
+            HyperRpcError::UnsupportedChainId { chain_id: 9999 }
+        ));
     }
 
     #[test]
@@ -251,7 +254,7 @@ mod tests {
         let _guard = ENV_MUTEX.lock().unwrap();
         let original_token = env::var("HYPER_API_TOKEN").ok();
         env::set_var("HYPER_API_TOKEN", "test_token_123");
-        
+
         let client = HyperRpcClient::new(8453).unwrap();
         let url = client.get_url();
         assert!(url.is_ok());
@@ -259,7 +262,7 @@ mod tests {
             url.unwrap(),
             "https://base.rpc.hypersync.xyz//test_token_123"
         );
-        
+
         if let Some(token) = original_token {
             env::set_var("HYPER_API_TOKEN", token);
         } else {
@@ -272,12 +275,12 @@ mod tests {
         let _guard = ENV_MUTEX.lock().unwrap();
         let original_token = env::var("HYPER_API_TOKEN").ok();
         env::remove_var("HYPER_API_TOKEN");
-        
+
         let client = HyperRpcClient::new(8453).unwrap();
         let url = client.get_url();
         assert!(url.is_err());
         assert!(matches!(url.unwrap_err(), HyperRpcError::MissingApiToken));
-        
+
         if let Some(token) = original_token {
             env::set_var("HYPER_API_TOKEN", token);
         }
