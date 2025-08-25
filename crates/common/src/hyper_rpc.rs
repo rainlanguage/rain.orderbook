@@ -1,18 +1,25 @@
-use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use thiserror::Error;
 
-static RPC_URLS: LazyLock<HashMap<u32, &'static str>> = LazyLock::new(|| {
+static RPC_URLS: LazyLock<HashMap<u32, String>> = LazyLock::new(|| {
+    let api_token = env!(
+        "HYPER_API_TOKEN",
+        "HYPER_API_TOKEN environment variable must be set at compile time"
+    );
     let mut map = HashMap::new();
-    map.insert(8453, "https://base.rpc.hypersync.xyz/"); // Base
+    map.insert(
+        8453,
+        format!("https://base.rpc.hypersync.xyz/{}", api_token),
+    );
     map
 });
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HyperRpcClient {
     chain_id: u32,
+    rpc_url: String,
 }
 
 impl HyperRpcClient {
@@ -20,25 +27,20 @@ impl HyperRpcClient {
         if !RPC_URLS.contains_key(&chain_id) {
             return Err(HyperRpcError::UnsupportedChainId { chain_id });
         }
-        Ok(Self { chain_id })
+        Ok(Self {
+            chain_id,
+            rpc_url: RPC_URLS.get(&chain_id).unwrap().clone(),
+        })
     }
 
-    pub fn get_url(&self) -> Result<String, HyperRpcError> {
-        let api_token =
-            std::env::var("HYPER_API_TOKEN").map_err(|_| HyperRpcError::MissingApiToken)?;
-        let rpc_url =
-            RPC_URLS
-                .get(&self.chain_id)
-                .ok_or_else(|| HyperRpcError::UnsupportedChainId {
-                    chain_id: self.chain_id,
-                })?;
-        Ok(format!("{}/{}", rpc_url, api_token))
+    pub fn get_url(&self) -> &str {
+        &self.rpc_url
     }
 
     pub async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
         let client = reqwest::Client::new();
         let response = client
-            .post(self.get_url()?)
+            .post(self.get_url())
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
                 "jsonrpc": "2.0",
@@ -80,7 +82,7 @@ impl HyperRpcClient {
     ) -> Result<String, HyperRpcError> {
         let client = reqwest::Client::new();
         let response = client
-            .post(self.get_url()?)
+            .post(self.get_url())
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
                 "jsonrpc": "2.0",
@@ -115,7 +117,7 @@ impl HyperRpcClient {
         let block_hex = format!("0x{:x}", block_number);
 
         let response = client
-            .post(self.get_url()?)
+            .post(self.get_url())
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
                 "jsonrpc": "2.0",
@@ -139,73 +141,17 @@ impl HyperRpcClient {
 
         Ok(text)
     }
-}
 
-pub async fn fetch_block_timestamps(
-    chain_id: u32,
-    block_numbers: Vec<u64>,
-) -> Result<HashMap<u64, String>, HyperRpcError> {
-    if block_numbers.is_empty() {
-        return Ok(HashMap::new());
+    #[cfg(test)]
+    fn update_rpc_url(&mut self, new_url: String) {
+        self.rpc_url = new_url;
     }
-
-    let client = HyperRpcClient::new(chain_id)?;
-    let results: Vec<Result<(u64, String), HyperRpcError>> = futures::stream::iter(block_numbers)
-        .map(|block_number| {
-            let client = client.clone();
-            async move {
-                // Retry logic for failed requests
-                let mut result: Result<String, HyperRpcError> = Err(HyperRpcError::MissingField {
-                    field: "Not attempted".to_string(),
-                });
-                for _attempt in 1..=3 {
-                    result = client.get_block_by_number(block_number).await;
-                    if result.is_ok() {
-                        break;
-                    }
-                }
-
-                match result {
-                    Ok(response) => {
-                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&response) {
-                            if let Some(result) = json.get("result") {
-                                if let Some(block) = result.as_object() {
-                                    if let Some(timestamp) =
-                                        block.get("timestamp").and_then(|t| t.as_str())
-                                    {
-                                        return Ok((block_number, timestamp.to_string()));
-                                    }
-                                }
-                            }
-                        }
-                        Err(HyperRpcError::MissingField {
-                            field: "timestamp".to_string(),
-                        })
-                    }
-                    Err(e) => Err(e),
-                }
-            }
-        })
-        .buffer_unordered(14) // Same concurrency as event fetching
-        .collect()
-        .await;
-
-    let mut timestamps = HashMap::new();
-
-    for (block_number, timestamp) in results.into_iter().flatten() {
-        timestamps.insert(block_number, timestamp);
-    }
-
-    Ok(timestamps)
 }
 
 #[derive(Debug, Error)]
 pub enum HyperRpcError {
     #[error("Unsupported chain ID: {chain_id}")]
     UnsupportedChainId { chain_id: u32 },
-
-    #[error("HYPER_API_TOKEN environment variable not set")]
-    MissingApiToken,
 
     #[error("Network request failed: {0}")]
     NetworkError(#[from] reqwest::Error),
@@ -226,10 +172,7 @@ pub enum HyperRpcError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
-    use std::sync::Mutex;
-
-    static ENV_MUTEX: Mutex<()> = Mutex::new(());
+    use httpmock::MockServer;
 
     #[test]
     fn test_new_with_supported_chain_id() {
@@ -249,40 +192,310 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_get_url_with_valid_api_token() {
-        let _guard = ENV_MUTEX.lock().unwrap();
-        let original_token = env::var("HYPER_API_TOKEN").ok();
-        env::set_var("HYPER_API_TOKEN", "test_token_123");
+    #[tokio::test]
+    async fn test_get_latest_block_number_valid_response() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_blockNumber"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": "0x1b4"}"#);
+        });
 
-        let client = HyperRpcClient::new(8453).unwrap();
-        let url = client.get_url();
-        assert!(url.is_ok());
-        assert_eq!(
-            url.unwrap(),
-            "https://base.rpc.hypersync.xyz//test_token_123"
-        );
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
 
-        if let Some(token) = original_token {
-            env::set_var("HYPER_API_TOKEN", token);
-        } else {
-            env::remove_var("HYPER_API_TOKEN");
-        }
+        let result = client.get_latest_block_number().await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 436);
+
+        mock.assert();
     }
 
-    #[test]
-    fn test_get_url_with_missing_api_token() {
-        let _guard = ENV_MUTEX.lock().unwrap();
-        let original_token = env::var("HYPER_API_TOKEN").ok();
-        env::remove_var("HYPER_API_TOKEN");
+    #[tokio::test]
+    async fn test_get_latest_block_number_rpc_error() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Invalid params"}}"#);
+        });
 
-        let client = HyperRpcClient::new(8453).unwrap();
-        let url = client.get_url();
-        assert!(url.is_err());
-        assert!(matches!(url.unwrap_err(), HyperRpcError::MissingApiToken));
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
 
-        if let Some(token) = original_token {
-            env::set_var("HYPER_API_TOKEN", token);
-        }
+        let result = client.get_latest_block_number().await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HyperRpcError::RpcError { .. }
+        ));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_latest_block_number_missing_result() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_latest_block_number().await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HyperRpcError::MissingField { .. }
+        ));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_logs_valid_request_all_params() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getLogs"}"#)
+                .json_body_partial(r#"{"params": [{"fromBlock": "0x1", "toBlock": "0x2", "address": "0x123", "topics": [["0xabc"]]}]}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": [{"blockNumber": "0x1", "logIndex": "0x0"}]}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let topics = Some(vec![Some(vec!["0xabc".to_string()])]);
+        let result = client.get_logs("0x1", "0x2", "0x123", topics).await;
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(response.contains("blockNumber"));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_logs_valid_request_none_topics() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getLogs"}"#)
+                .json_body_partial(r#"{"params": [{"fromBlock": "0x1", "toBlock": "0x2", "address": "0x123", "topics": null}]}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": []}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_logs("0x1", "0x2", "0x123", None).await;
+        assert!(result.is_ok());
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_logs_rpc_error() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "Query returned more than 10000 results"}}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_logs("0x1", "0x1000", "0x123", None).await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HyperRpcError::RpcError { .. }
+        ));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_block_by_number_valid_response() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getBlockByNumber"}"#)
+                .json_body_partial(r#"{"params": ["0x1b4", false]}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0x1b4", "timestamp": "0x6234567"}}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_block_by_number(436).await;
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(response.contains("0x1b4"));
+        assert!(response.contains("timestamp"));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_block_by_number_hex_conversion() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .json_body_partial(r#"{"params": ["0xff", false]}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0xff"}}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_block_by_number(255).await;
+        assert!(result.is_ok());
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_block_by_number_rpc_error() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Invalid block number"}}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_block_by_number(999999999).await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HyperRpcError::RpcError { .. }
+        ));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_latest_block_number_invalid_hex() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_blockNumber"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": "0xGGG"}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_latest_block_number().await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HyperRpcError::HexParseError(_)
+        ));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_latest_block_number_non_string_result() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_blockNumber"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": 436}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_latest_block_number().await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HyperRpcError::MissingField { .. }
+        ));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_block_by_number_zero() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getBlockByNumber"}"#)
+                .json_body_partial(r#"{"params": ["0x0", false]}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0x0", "timestamp": "0x0"}}"#);
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_block_by_number(0).await;
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(response.contains("0x0"));
+
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_get_block_by_number_large_number() {
+        let server = MockServer::start();
+        let large_block = u64::MAX - 1; // 18446744073709551614
+        let expected_hex = "0xfffffffffffffffe";
+
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getBlockByNumber"}"#)
+                .json_body_partial(format!(r#"{{"params": ["{}", false]}}"#, expected_hex));
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(format!(r#"{{"jsonrpc": "2.0", "id": 1, "result": {{"number": "{}", "timestamp": "0x123456"}}}}"#, expected_hex));
+        });
+
+        let mut client = HyperRpcClient::new(8453).unwrap();
+        client.update_rpc_url(server.base_url());
+
+        let result = client.get_block_by_number(large_block).await;
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(response.contains(expected_hex));
+
+        mock.assert();
     }
 }
