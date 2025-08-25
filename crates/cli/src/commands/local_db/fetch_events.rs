@@ -17,16 +17,18 @@ impl FetchEvents {
         let total_start = std::time::Instant::now();
 
         let client = HyperRpcClient {};
+        let start_block = 19033330u64;
         let end_block = client
             .get_latest_block_number()
             .await
             .map_err(|e| anyhow::anyhow!("Failed to get latest block number: {}", e))?;
 
-        // Call the common fetch function
-        // TODO: end block should change
+        // let start_block = 19036351u64;
+        // let end_block = 34658179u64;
+
         let all_events = fetch_events(
             "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
-            19033330u64,
+            start_block,
             end_block,
         )
         .await
@@ -49,7 +51,7 @@ impl FetchEvents {
         let output_data = serde_json::json!({
             "metadata": {
                 "test_config": {
-                    "start_block": 19033330u64,
+                    "start_block": start_block,
                     "contract_address": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
                     "note": "Using common fetch logic from rain_orderbook_common"
                 },

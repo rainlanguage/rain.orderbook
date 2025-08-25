@@ -25,8 +25,8 @@ const REQUIRED_TABLES: &[&str] = &[
     "after_clear_events",
 ];
 
-const DB_DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/106ea01f862baaf1e52aa857edea4d723de945b6/dump_34453244.sql.gz";
-const DB_DUMP_END_BLOCK: u64 = 34453244;
+const DB_DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/04132781c84cb1ace2a84208687e0449f67d45e8/dump_34660510.sql.gz";
+const DB_DUMP_END_BLOCK: u64 = 34660510;
 
 async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, RaindexError> {
     match RaindexClient::fetch_all_tables(db_callback.clone()).await {

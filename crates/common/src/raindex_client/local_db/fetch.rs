@@ -1,4 +1,4 @@
-use alloy::sol_types::SolEvent;
+use alloy::{primitives::U256, sol_types::SolEvent};
 use futures::StreamExt;
 use rain_orderbook_bindings::{
     IOrderBookV4::{
@@ -7,6 +7,7 @@ use rain_orderbook_bindings::{
     OrderBook::MetaV1_2,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 const API_TOKEN: &str = "41e50e69-6da4-4462-b70e-c7b5e7b70f05";
 const RPC_URL: &str = "https://base.rpc.hypersync.xyz/";
@@ -115,6 +116,145 @@ impl HyperRpcClient {
 
         Ok(text)
     }
+
+    pub async fn get_block_by_number(
+        &self,
+        block_number: u64,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+        let block_hex = format!("0x{:x}", block_number);
+
+        let response = client
+            .post(Self::get_url())
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "eth_getBlockByNumber",
+                "params": [block_hex, false]
+            }))
+            .send()
+            .await?;
+
+        let text = response.text().await?;
+
+        // Check for RPC errors in the response
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
+            if let Some(error) = json.get("error") {
+                return Err(format!("RPC error: {}", error).into());
+            }
+        }
+
+        Ok(text)
+    }
+}
+
+pub async fn fetch_block_timestamps(
+    block_numbers: Vec<u64>,
+) -> Result<HashMap<u64, String>, Box<dyn std::error::Error + Send + Sync>> {
+    if block_numbers.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let client = HyperRpcClient {};
+    let results: Vec<Result<(u64, String), Box<dyn std::error::Error + Send + Sync>>> =
+        futures::stream::iter(block_numbers)
+            .map(|block_number| {
+                let client = client.clone();
+                async move {
+                    // Retry logic for failed requests
+                    let mut result = Err("Not attempted".into());
+                    for _attempt in 1..=3 {
+                        result = client.get_block_by_number(block_number).await;
+                        if result.is_ok() {
+                            break;
+                        }
+                    }
+
+                    match result {
+                        Ok(response) => {
+                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&response) {
+                                if let Some(result) = json.get("result") {
+                                    if let Some(block) = result.as_object() {
+                                        if let Some(timestamp) =
+                                            block.get("timestamp").and_then(|t| t.as_str())
+                                        {
+                                            return Ok((block_number, timestamp.to_string()));
+                                        }
+                                    }
+                                }
+                            }
+                            Err(
+                                format!("Failed to parse timestamp for block {}", block_number)
+                                    .into(),
+                            )
+                        }
+                        Err(e) => Err(e),
+                    }
+                }
+            })
+            .buffer_unordered(14) // Same concurrency as event fetching
+            .collect()
+            .await;
+
+    let mut timestamps = HashMap::new();
+
+    for (block_number, timestamp) in results.into_iter().flatten() {
+        timestamps.insert(block_number, timestamp);
+    }
+
+    Ok(timestamps)
+}
+
+async fn backfill_missing_timestamps(
+    events: &mut serde_json::Value,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let events_array = match events.as_array_mut() {
+        Some(array) => array,
+        None => return Err("Events is not an array".into()),
+    };
+
+    // Find events missing blockTimestamp and collect unique block numbers
+    let mut missing_blocks = HashSet::new();
+
+    for event in events_array.iter() {
+        if event.get("blockTimestamp").is_none() {
+            if let Some(block_number_hex) = event.get("blockNumber").and_then(|v| v.as_str()) {
+                if let Ok(block_u256) = block_number_hex.parse::<U256>() {
+                    missing_blocks.insert(block_u256.to::<u64>());
+                }
+            }
+        }
+    }
+
+    if missing_blocks.is_empty() {
+        return Ok(());
+    }
+
+    // Fetch timestamps for missing blocks
+    let block_numbers: Vec<u64> = missing_blocks.into_iter().collect();
+    let timestamps = fetch_block_timestamps(block_numbers).await?;
+
+    // Inject timestamps into events
+    for event in events_array.iter_mut() {
+        if event.get("blockTimestamp").is_none() {
+            if let Some(block_number_hex) = event.get("blockNumber").and_then(|v| v.as_str()) {
+                if let Ok(block_u256) = block_number_hex.parse::<U256>() {
+                    let block_number = block_u256.to::<u64>();
+                    if let Some(timestamp) = timestamps.get(&block_number) {
+                        if let Some(event_obj) = event.as_object_mut() {
+                            event_obj.insert(
+                                "blockTimestamp".to_string(),
+                                serde_json::Value::String(timestamp.clone()),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub async fn fetch_events(
@@ -122,7 +262,7 @@ pub async fn fetch_events(
     start_block: u64,
     end_block: u64,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
-    let chunk_size = 50000u64; // Optimal block chunk size
+    let chunk_size = 5000u64; // Balance between performance and reliability
 
     // Use multiple event signatures for filtering
     let topics = Some(vec![Some(vec![
@@ -203,7 +343,7 @@ pub async fn fetch_events(
                     }
                 }
             })
-            .buffer_unordered(10) // Max 10 concurrent requests
+            .buffer_unordered(10) // Max 14 concurrent requests
             .collect()
             .await;
 
@@ -219,15 +359,21 @@ pub async fn fetch_events(
         let block_a = a
             .get("blockNumber")
             .and_then(|v| v.as_str())
-            .and_then(|s| u64::from_str_radix(s.strip_prefix("0x").unwrap_or(s), 16).ok())
+            .and_then(|s| s.parse::<U256>().ok())
+            .map(|u| u.to::<u64>())
             .unwrap_or(0);
         let block_b = b
             .get("blockNumber")
             .and_then(|v| v.as_str())
-            .and_then(|s| u64::from_str_radix(s.strip_prefix("0x").unwrap_or(s), 16).ok())
+            .and_then(|s| s.parse::<U256>().ok())
+            .map(|u| u.to::<u64>())
             .unwrap_or(0);
         block_a.cmp(&block_b)
     });
 
-    Ok(serde_json::Value::Array(all_events))
+    // Backfill missing timestamps
+    let mut events_array = serde_json::Value::Array(all_events);
+    let _ = backfill_missing_timestamps(&mut events_array).await;
+
+    Ok(events_array)
 }
