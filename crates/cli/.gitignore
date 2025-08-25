@@ -1,1 +1,7 @@
 target
+
+events_*.json
+decoded_events_*.json
+events_*.sql
+dump_*.sql.gz
+events_*.db
