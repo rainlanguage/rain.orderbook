@@ -22,6 +22,7 @@ pub async fn fetch_url(url: &str) -> Result<Vec<u8>, Box<dyn std::error::Error +
 }
 
 async fn backfill_missing_timestamps(
+    chain_id: u32,
     events: &mut serde_json::Value,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let events_array = match events.as_array_mut() {
@@ -48,7 +49,7 @@ async fn backfill_missing_timestamps(
 
     // Fetch timestamps for missing blocks
     let block_numbers: Vec<u64> = missing_blocks.into_iter().collect();
-    let timestamps = fetch_block_timestamps(block_numbers).await?;
+    let timestamps = fetch_block_timestamps(chain_id, block_numbers).await?;
 
     // Inject timestamps into events
     for event in events_array.iter_mut() {
@@ -73,6 +74,7 @@ async fn backfill_missing_timestamps(
 }
 
 pub async fn fetch_events(
+    chain_id: u32,
     contract_address: &str,
     start_block: u64,
     end_block: u64,
@@ -101,20 +103,25 @@ pub async fn fetch_events(
     }
 
     // Process chunks with concurrency limit to avoid timeouts
-    let results: Vec<Result<Vec<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>>> =
+    let results: Vec<Result<Vec<serde_json::Value>, crate::hyper_rpc::HyperRpcError>> =
         futures::stream::iter(chunks)
             .map(|(from_block, to_block)| {
-                let client = HyperRpcClient {};
                 let topics = topics.clone();
                 let contract_address = contract_address.to_string();
 
                 async move {
+                    let client = match HyperRpcClient::new(chain_id) {
+                        Ok(client) => client,
+                        Err(e) => return Err(e),
+                    };
                     let from_block_hex = format!("0x{:x}", from_block);
                     let to_block_hex = format!("0x{:x}", to_block);
 
                     // Retry logic for failed requests
-                    let mut result: Result<String, Box<dyn std::error::Error + Send + Sync>> =
-                        Err("Not attempted".into());
+                    let mut result: Result<String, crate::hyper_rpc::HyperRpcError> =
+                        Err(crate::hyper_rpc::HyperRpcError::MissingField {
+                            field: "Not attempted".to_string(),
+                        });
                     for _attempt in 1..=3 {
                         result = client
                             .get_logs(
@@ -188,7 +195,7 @@ pub async fn fetch_events(
 
     // Backfill missing timestamps
     let mut events_array = serde_json::Value::Array(all_events);
-    let _ = backfill_missing_timestamps(&mut events_array).await;
+    let _ = backfill_missing_timestamps(chain_id, &mut events_array).await;
 
     Ok(events_array)
 }
