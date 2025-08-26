@@ -459,7 +459,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_empty_block_numbers() {
-        let db = SqliteWeb::new(8453).unwrap();
+        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
         let config = FetchConfig::default();
         let result = db.fetch_block_timestamps(vec![], &config).await;
         assert!(result.is_ok());
@@ -468,7 +468,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_rpc_client_creation_failure() {
-        let result = SqliteWeb::new(999999);
+        let result = SqliteWeb::new(999999, "test_token".to_string());
         assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
     }
 
@@ -485,7 +485,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -522,7 +522,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -548,7 +548,7 @@ mod tests {
                 .body("invalid json");
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -569,7 +569,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -593,7 +593,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -623,7 +623,7 @@ mod tests {
             });
         }
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -653,7 +653,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error"},"id":1}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -697,7 +697,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -717,7 +717,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_events_with_existing_timestamps() {
-        let db = SqliteWeb::new(8453).unwrap();
+        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
         let config = FetchConfig::default();
 
         let mut events = json!([
@@ -762,7 +762,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -792,7 +792,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_invalid_events_format() {
-        let db = SqliteWeb::new(8453).unwrap();
+        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
         let config = FetchConfig::default();
 
         let mut events = json!({
@@ -818,7 +818,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -854,7 +854,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_block_number_extraction_failures() {
-        let db = SqliteWeb::new(8453).unwrap();
+        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
         let config = FetchConfig::default();
 
         let mut events = json!([
@@ -883,7 +883,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_empty_events_array() {
-        let db = SqliteWeb::new(8453).unwrap();
+        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
         let config = FetchConfig::default();
 
         let mut events = json!([]);
@@ -907,7 +907,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error"},"id":1}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -940,7 +940,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1033,7 +1033,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1111,7 +1111,7 @@ mod tests {
             then.status(200);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1165,7 +1165,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Internal error"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1230,7 +1230,7 @@ mod tests {
                 );
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1292,7 +1292,7 @@ mod tests {
                 );
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1356,7 +1356,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1474,7 +1474,7 @@ mod tests {
                 }"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1556,7 +1556,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1617,7 +1617,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1682,7 +1682,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1717,7 +1717,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1741,7 +1741,7 @@ mod tests {
     async fn test_fetch_events_with_config_start_block_greater_than_end_block() {
         let server = MockServer::start();
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1777,7 +1777,7 @@ mod tests {
                 .body("invalid json");
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1815,7 +1815,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1887,7 +1887,7 @@ mod tests {
             then.status(200);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -1963,7 +1963,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -2004,7 +2004,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -2066,7 +2066,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 
@@ -2119,7 +2119,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453).unwrap();
+        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
 

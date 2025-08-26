@@ -1,19 +1,4 @@
-use std::collections::HashMap;
-use std::sync::LazyLock;
 use thiserror::Error;
-
-static RPC_URLS: LazyLock<HashMap<u32, String>> = LazyLock::new(|| {
-    let api_token = env!(
-        "HYPER_API_TOKEN",
-        "HYPER_API_TOKEN environment variable must be set at compile time"
-    );
-    let mut map = HashMap::new();
-    map.insert(
-        8453,
-        format!("https://base.rpc.hypersync.xyz/{}", api_token),
-    );
-    map
-});
 
 #[derive(Clone)]
 pub struct HyperRpcClient {
@@ -37,14 +22,12 @@ impl std::fmt::Debug for HyperRpcClient {
 }
 
 impl HyperRpcClient {
-    pub fn new(chain_id: u32) -> Result<Self, HyperRpcError> {
-        if !RPC_URLS.contains_key(&chain_id) {
-            return Err(HyperRpcError::UnsupportedChainId { chain_id });
-        }
-        Ok(Self {
-            chain_id,
-            rpc_url: RPC_URLS.get(&chain_id).unwrap().clone(),
-        })
+    pub fn new(chain_id: u32, api_token: String) -> Result<Self, HyperRpcError> {
+        let rpc_url = match chain_id {
+            8453 => format!("https://base.rpc.hypersync.xyz/{}", api_token),
+            _ => return Err(HyperRpcError::UnsupportedChainId { chain_id }),
+        };
+        Ok(Self { chain_id, rpc_url })
     }
 
     pub fn get_url(&self) -> &str {
@@ -190,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_new_with_supported_chain_id() {
-        let client = HyperRpcClient::new(8453);
+        let client = HyperRpcClient::new(8453, "test_token".to_string());
         assert!(client.is_ok());
         let client = client.unwrap();
         assert_eq!(client.chain_id, 8453);
@@ -198,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_new_with_unsupported_chain_id() {
-        let client = HyperRpcClient::new(9999);
+        let client = HyperRpcClient::new(9999, "test_token".to_string());
         assert!(client.is_err());
         assert!(matches!(
             client.unwrap_err(),
@@ -218,7 +201,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": "0x1b4"}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_latest_block_number().await;
@@ -238,7 +221,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Invalid params"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_latest_block_number().await;
@@ -261,7 +244,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_latest_block_number().await;
@@ -287,7 +270,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": [{"blockNumber": "0x1", "logIndex": "0x0"}]}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let topics = Some(vec![Some(vec!["0xabc".to_string()])]);
@@ -312,7 +295,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": []}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_logs("0x1", "0x2", "0x123", None).await;
@@ -331,7 +314,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "Query returned more than 10000 results"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_logs("0x1", "0x1000", "0x123", None).await;
@@ -357,7 +340,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0x1b4", "timestamp": "0x6234567"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_block_by_number(436).await;
@@ -380,7 +363,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0xff"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_block_by_number(255).await;
@@ -399,7 +382,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Invalid block number"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_block_by_number(999999999).await;
@@ -424,7 +407,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": "0xGGG"}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_latest_block_number().await;
@@ -449,7 +432,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": 436}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_latest_block_number().await;
@@ -475,7 +458,7 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0x0", "timestamp": "0x0"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_block_by_number(0).await;
@@ -502,7 +485,7 @@ mod tests {
                 .body(format!(r#"{{"jsonrpc": "2.0", "id": 1, "result": {{"number": "{}", "timestamp": "0x123456"}}}}"#, expected_hex));
         });
 
-        let mut client = HyperRpcClient::new(8453).unwrap();
+        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
         client.update_rpc_url(server.base_url());
 
         let result = client.get_block_by_number(large_block).await;

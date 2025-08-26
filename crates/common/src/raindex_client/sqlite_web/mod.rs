@@ -58,8 +58,8 @@ impl SqliteWebError {
 }
 
 impl SqliteWeb {
-    pub fn new(chain_id: u32) -> Result<Self, SqliteWebError> {
-        let client = HyperRpcClient::new(chain_id)?;
+    pub fn new(chain_id: u32, api_token: String) -> Result<Self, SqliteWebError> {
+        let client = HyperRpcClient::new(chain_id, api_token)?;
         Ok(Self { client })
     }
 
