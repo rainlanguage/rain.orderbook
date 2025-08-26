@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use thiserror::Error;
@@ -16,10 +15,25 @@ static RPC_URLS: LazyLock<HashMap<u32, String>> = LazyLock::new(|| {
     map
 });
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone)]
 pub struct HyperRpcClient {
     chain_id: u32,
     rpc_url: String,
+}
+
+impl std::fmt::Debug for HyperRpcClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let redacted_url = if let Some(last_slash) = self.rpc_url.rfind('/') {
+            format!("{}/***", &self.rpc_url[..last_slash])
+        } else {
+            "***".to_string()
+        };
+
+        f.debug_struct("HyperRpcClient")
+            .field("chain_id", &self.chain_id)
+            .field("rpc_url", &redacted_url)
+            .finish()
+    }
 }
 
 impl HyperRpcClient {
@@ -49,7 +63,8 @@ impl HyperRpcClient {
                 "params": []
             }))
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
         let json: serde_json::Value = response.json().await?;
 
@@ -96,7 +111,8 @@ impl HyperRpcClient {
                 }]
             }))
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
         let text = response.text().await?;
 
@@ -126,7 +142,8 @@ impl HyperRpcClient {
                 "params": [block_hex, false]
             }))
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
         let text = response.text().await?;
 
