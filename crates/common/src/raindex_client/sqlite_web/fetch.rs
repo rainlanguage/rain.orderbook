@@ -135,10 +135,8 @@ impl SqliteWeb {
         });
 
         let mut events_array = serde_json::Value::Array(all_events);
-        let _ = self
-            .backfill_missing_timestamps(&mut events_array, config)
-            .await;
-
+        self.backfill_missing_timestamps(&mut events_array, config)
+            .await?;
         Ok(events_array)
     }
 
