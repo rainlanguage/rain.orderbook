@@ -1509,7 +1509,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					},
 					1
 				)
-			);
+			).items;
 
 			assert.equal(result.length, 2);
 			assert.equal(result[0].vaultId, BigInt(vault1.vaultId));
