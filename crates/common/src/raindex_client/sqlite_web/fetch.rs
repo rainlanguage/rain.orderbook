@@ -79,12 +79,19 @@ impl SqliteWeb {
         let mut current_block = start_block;
         let chunk_size = config.chunk_size.max(1);
         while current_block <= end_block {
-            let to_block = std::cmp::min(current_block + chunk_size - 1, end_block);
+            let to_block = std::cmp::min(
+                current_block.saturating_add(chunk_size).saturating_sub(1),
+                end_block
+            );
             chunks.push((current_block, to_block));
-            current_block = to_block + 1;
+            current_block = to_block.saturating_add(1);
+            if to_block == u64::MAX {
+                break;
+            }
         }
 
         let contract_address = contract_address.to_string();
+        let concurrency = config.max_concurrent_requests.max(1);
         let results: Vec<Vec<serde_json::Value>> = futures::stream::iter(chunks)
             .map(|(from_block, to_block)| {
                 let topics = topics.clone();
@@ -121,7 +128,7 @@ impl SqliteWeb {
                     Ok::<_, SqliteWebError>(rpc_envelope.result.unwrap_or_default())
                 }
             })
-            .buffer_unordered(config.max_concurrent_requests)
+            .buffer_unordered(concurrency)
             .try_collect()
             .await?;
 
@@ -149,6 +156,7 @@ impl SqliteWeb {
             return Ok(HashMap::new());
         }
 
+        let concurrency = config.max_concurrent_blocks.max(1);
         let results: Vec<Result<(u64, String), SqliteWebError>> =
             futures::stream::iter(block_numbers)
                 .map(|block_number| {
@@ -187,7 +195,7 @@ impl SqliteWeb {
                         Ok((block_number, timestamp))
                     }
                 })
-                .buffer_unordered(config.max_concurrent_blocks)
+                .buffer_unordered(concurrency)
                 .collect()
                 .await;
 
@@ -270,7 +278,7 @@ fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError
             field: "blockNumber".to_string(),
         })?;
 
-    let block_u256 = if let Some(hex_digits) = block_number_str.strip_prefix("0x") {
+    let block_u256 = if let Some(hex_digits) = block_number_str.strip_prefix("0x").or_else(|| block_number_str.strip_prefix("0X")) {
         if hex_digits.is_empty() {
             return Err(SqliteWebError::invalid_block_number(
                 block_number_str,
