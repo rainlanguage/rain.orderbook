@@ -1,3 +1,7 @@
 [target.wasm32-unknown-unknown]
 # Required to make the rand feature of alloy work for wasm32-unknown-unknown
 rustflags = ["--cfg", "getrandom_backend=\"wasm_js\""]
+
+[test]
+# Limit test threads to avoid "too many open files" errors with mock servers
+threads = 1

@@ -354,13 +354,13 @@ mod tests {
         assert!(extract_block_number(&event).is_err());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_retry_with_attempts_success_first_try() {
         let result = retry_with_attempts(|| async { Ok::<i32, HyperRpcError>(42) }, 3).await;
         assert!(result.is_ok());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_retry_with_attempts_success_after_retry() {
         use std::sync::{Arc, Mutex};
         let attempt_count = Arc::new(Mutex::new(0));
@@ -390,7 +390,7 @@ mod tests {
         assert_eq!(result.unwrap(), 42);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_retry_with_attempts_all_fail() {
         let operation = || async {
             Err::<i32, HyperRpcError>(HyperRpcError::RpcError {
@@ -414,7 +414,7 @@ mod tests {
         assert_eq!(config.max_retry_attempts, 3);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_empty_block_numbers() {
         let db = SqliteWeb::new(8453).unwrap();
         let config = FetchConfig::default();
@@ -423,13 +423,13 @@ mod tests {
         assert!(result.unwrap().is_empty());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_rpc_client_creation_failure() {
         let result = SqliteWeb::new(999999);
         assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_single_block_success() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -456,7 +456,7 @@ mod tests {
         assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_multiple_blocks_success() {
         let server = MockServer::start();
         let mock1 = server.mock(|when, then| {
@@ -495,7 +495,7 @@ mod tests {
         assert_eq!(timestamps.get(&101), Some(&"0x64b8c124".to_string()));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_malformed_json_response() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -516,7 +516,7 @@ mod tests {
         assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_missing_result_field() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -540,7 +540,7 @@ mod tests {
         assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_missing_timestamp_field() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -564,7 +564,7 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_concurrent_requests_limit() {
         let server = MockServer::start();
 
@@ -597,7 +597,7 @@ mod tests {
         assert_eq!(timestamps.len(), 5);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_retry_exhaustion() {
         let server = MockServer::start();
 
@@ -623,7 +623,7 @@ mod tests {
         assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_retry_with_eventual_success() {
         use std::sync::atomic::{AtomicUsize, Ordering};
         static RETRY_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -672,7 +672,7 @@ mod tests {
         success_mock.assert_hits(1);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_events_with_existing_timestamps() {
         let db = SqliteWeb::new(8453).unwrap();
         let config = FetchConfig::default();
@@ -698,7 +698,7 @@ mod tests {
         assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_events_missing_timestamps() {
         let server = MockServer::start();
         let mock1 = server.mock(|when, then| {
@@ -747,7 +747,7 @@ mod tests {
         assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_invalid_events_format() {
         let db = SqliteWeb::new(8453).unwrap();
         let config = FetchConfig::default();
@@ -763,7 +763,7 @@ mod tests {
         ));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_mixed_events() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -809,7 +809,7 @@ mod tests {
         assert_eq!(events_array[2]["blockTimestamp"], "0x64b8c125");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_block_number_extraction_failures() {
         let db = SqliteWeb::new(8453).unwrap();
         let config = FetchConfig::default();
@@ -838,7 +838,7 @@ mod tests {
         assert!(events_array[2].get("blockTimestamp").is_none());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_empty_events_array() {
         let db = SqliteWeb::new(8453).unwrap();
         let config = FetchConfig::default();
@@ -852,7 +852,7 @@ mod tests {
         assert!(events_array.is_empty());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_timestamp_fetch_failures() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -885,7 +885,7 @@ mod tests {
         mock.assert();
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_backfill_missing_timestamps_event_mutation_verification() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -931,7 +931,7 @@ mod tests {
         assert_eq!(event["blockNumber"], "0x64");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_event_sorting_by_block_number() {
         let server = MockServer::start();
 
@@ -995,7 +995,7 @@ mod tests {
         assert_eq!(events_array[2]["transactionHash"], "0x789");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_block_timestamps_concurrency_limit_enforcement() {
         use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -1077,7 +1077,7 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_fails_when_chunk_fails_after_retries() {
         let server = MockServer::start();
 
@@ -1113,7 +1113,7 @@ mod tests {
         assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_chunk_boundary_edge_cases() {
         let server = MockServer::start();
 
@@ -1155,7 +1155,7 @@ mod tests {
         assert_eq!(events.as_array().unwrap().len(), 1);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_chunk_size_one() {
         let server = MockServer::start();
 
@@ -1194,7 +1194,7 @@ mod tests {
         assert!(events_array.iter().any(|e| e["blockNumber"] == "0x7"));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_exact_chunk_boundaries() {
         let server = MockServer::start();
 
@@ -1236,7 +1236,7 @@ mod tests {
         assert!(events_array.iter().any(|e| e["blockNumber"] == "0x2af7"));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_realistic_rpc_responses() {
         let server = MockServer::start();
 
@@ -1351,7 +1351,7 @@ mod tests {
         assert!(block1 <= block2, "Events should be sorted by block number");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_retry_with_real_network_failure_scenarios() {
         let server = MockServer::start();
         use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1400,7 +1400,7 @@ mod tests {
         assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_retry_with_network_timeout_scenarios() {
         let server = MockServer::start();
         use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1433,7 +1433,7 @@ mod tests {
         assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_retry_with_rate_limiting_simulation() {
         let server = MockServer::start();
         use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1483,7 +1483,7 @@ mod tests {
         assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_empty_rpc_results() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -1515,7 +1515,7 @@ mod tests {
         assert_eq!(events.as_array().unwrap().len(), 0);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_start_block_greater_than_end_block() {
         let server = MockServer::start();
 
@@ -1538,7 +1538,7 @@ mod tests {
         assert_eq!(events.as_array().unwrap().len(), 0);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_malformed_json_response() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -1571,7 +1571,7 @@ mod tests {
         assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_missing_result_field() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -1604,7 +1604,7 @@ mod tests {
         assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_max_concurrent_requests_limit() {
         let server = MockServer::start();
         use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1687,7 +1687,7 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_different_chunk_sizes() {
         let server = MockServer::start();
 
@@ -1725,7 +1725,7 @@ mod tests {
         assert!(!events.as_array().unwrap().is_empty());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_with_config_very_large_range() {
         let server = MockServer::start();
 
@@ -1762,7 +1762,7 @@ mod tests {
         assert_eq!(events.as_array().unwrap().len(), 0);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_events_wrapper_uses_default_config() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
