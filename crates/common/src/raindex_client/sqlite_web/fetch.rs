@@ -1,7 +1,7 @@
 use super::{SqliteWeb, SqliteWebError};
 use crate::hyper_rpc::HyperRpcError;
 use alloy::{primitives::U256, sol_types::SolEvent};
-use futures::StreamExt;
+use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::{
     IOrderBookV5::{
         AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
@@ -84,47 +84,41 @@ impl SqliteWeb {
         }
 
         let contract_address = contract_address.to_string();
-        let results: Vec<Result<Vec<serde_json::Value>, SqliteWebError>> =
-            futures::stream::iter(chunks)
-                .map(|(from_block, to_block)| {
-                    let topics = topics.clone();
-                    let contract_address = contract_address.clone();
-                    let client = self.client.clone();
-                    let max_attempts = config.max_retry_attempts;
+        let results: Vec<Vec<serde_json::Value>> = futures::stream::iter(chunks)
+            .map(|(from_block, to_block)| {
+                let topics = topics.clone();
+                let contract_address = contract_address.clone();
+                let client = self.client.clone();
+                let max_attempts = config.max_retry_attempts;
 
-                    async move {
-                        let from_block_hex = format!("0x{:x}", from_block);
-                        let to_block_hex = format!("0x{:x}", to_block);
+                async move {
+                    let from_block_hex = format!("0x{:x}", from_block);
+                    let to_block_hex = format!("0x{:x}", to_block);
 
-                        let response = retry_with_attempts(
-                            || {
-                                client.get_logs(
-                                    &from_block_hex,
-                                    &to_block_hex,
-                                    &contract_address,
-                                    topics.clone(),
-                                )
-                            },
-                            max_attempts,
-                        )
-                        .await?;
+                    let response = retry_with_attempts(
+                        || {
+                            client.get_logs(
+                                &from_block_hex,
+                                &to_block_hex,
+                                &contract_address,
+                                topics.clone(),
+                            )
+                        },
+                        max_attempts,
+                    )
+                    .await?;
 
-                        let rpc_response: RpcResponse<Vec<serde_json::Value>> =
-                            serde_json::from_str(&response)?;
-                        Ok(rpc_response.result.unwrap_or_default())
-                    }
-                })
-                .buffer_unordered(config.max_concurrent_requests)
-                .collect()
-                .await;
+                    let rpc_response: RpcResponse<Vec<serde_json::Value>> =
+                        serde_json::from_str(&response)?;
+                    Ok::<_, SqliteWebError>(rpc_response.result.unwrap_or_default())
+                }
+            })
+            .buffer_unordered(config.max_concurrent_requests)
+            .try_collect()
+            .await?;
 
-        let mut all_events = Vec::new();
-        for result in results {
-            match result {
-                Ok(events) => all_events.extend(events),
-                Err(e) => return Err(e),
-            }
-        }
+        // Flatten chunked results
+        let mut all_events: Vec<serde_json::Value> = results.into_iter().flatten().collect();
 
         all_events.sort_by(|a, b| {
             let block_a = extract_block_number(a).unwrap_or(0);
