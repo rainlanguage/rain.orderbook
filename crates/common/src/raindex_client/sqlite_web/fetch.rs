@@ -262,13 +262,9 @@ fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError
             field: "blockNumber".to_string(),
         })?;
 
-    let block_u256 =
-        block_number_hex
-            .parse::<U256>()
-            .map_err(|e| SqliteWebError::InvalidBlockNumber {
-                value: block_number_hex.to_string(),
-                source: e,
-            })?;
+    let block_u256 = block_number_hex
+        .parse::<U256>()
+        .map_err(|e| SqliteWebError::invalid_block_number(block_number_hex, e))?;
     Ok(block_u256.to::<u64>())
 }
 

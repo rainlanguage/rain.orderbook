@@ -48,11 +48,11 @@ pub enum SqliteWebError {
     HttpStatus { status: u16 },
 }
 
-impl From<ParseError> for SqliteWebError {
-    fn from(error: ParseError) -> Self {
+impl SqliteWebError {
+    pub fn invalid_block_number(value: impl Into<String>, source: ParseError) -> Self {
         SqliteWebError::InvalidBlockNumber {
-            value: "unknown".to_string(),
-            source: error,
+            value: value.into(),
+            source,
         }
     }
 }
