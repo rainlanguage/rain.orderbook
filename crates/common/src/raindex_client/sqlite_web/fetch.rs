@@ -301,8 +301,6 @@ fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hyper_rpc::HyperRpcClient;
-    use httpmock::prelude::*;
     use serde_json::json;
 
     #[test]
@@ -408,85 +406,91 @@ mod tests {
         assert!(extract_block_number(&event).is_err());
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_retry_with_attempts_success_first_try() {
-        let result = retry_with_attempts(|| async { Ok::<i32, HyperRpcError>(42) }, 3).await;
-        assert!(result.is_ok());
-    }
+    #[cfg(not(target_family = "wasm"))]
+    mod tokio_tests {
+        use super::*;
+        use crate::hyper_rpc::HyperRpcClient;
+        use httpmock::prelude::*;
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_retry_with_attempts_success_after_retry() {
-        use std::sync::{Arc, Mutex};
-        let attempt_count = Arc::new(Mutex::new(0));
-        let operation = {
-            let attempt_count = attempt_count.clone();
-            move || {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_retry_with_attempts_success_first_try() {
+            let result = retry_with_attempts(|| async { Ok::<i32, HyperRpcError>(42) }, 3).await;
+            assert!(result.is_ok());
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_retry_with_attempts_success_after_retry() {
+            use std::sync::{Arc, Mutex};
+            let attempt_count = Arc::new(Mutex::new(0));
+            let operation = {
                 let attempt_count = attempt_count.clone();
-                async move {
-                    let mut count = attempt_count.lock().unwrap();
-                    *count += 1;
-                    let current_attempt = *count;
-                    drop(count);
+                move || {
+                    let attempt_count = attempt_count.clone();
+                    async move {
+                        let mut count = attempt_count.lock().unwrap();
+                        *count += 1;
+                        let current_attempt = *count;
+                        drop(count);
 
-                    if current_attempt < 3 {
-                        Err(HyperRpcError::RpcError {
-                            message: "temporary error".to_string(),
-                        })
-                    } else {
-                        Ok::<i32, HyperRpcError>(42)
+                        if current_attempt < 3 {
+                            Err(HyperRpcError::RpcError {
+                                message: "temporary error".to_string(),
+                            })
+                        } else {
+                            Ok::<i32, HyperRpcError>(42)
+                        }
                     }
                 }
-            }
-        };
+            };
 
-        let result = retry_with_attempts(operation, 5).await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), 42);
-    }
+            let result = retry_with_attempts(operation, 5).await;
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), 42);
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_retry_with_attempts_all_fail() {
-        let operation = || async {
-            Err::<i32, HyperRpcError>(HyperRpcError::RpcError {
-                message: "always fails".to_string(),
-            })
-        };
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_retry_with_attempts_all_fail() {
+            let operation = || async {
+                Err::<i32, HyperRpcError>(HyperRpcError::RpcError {
+                    message: "always fails".to_string(),
+                })
+            };
 
-        let result = retry_with_attempts(operation, 3).await;
-        assert!(matches!(
-            result,
-            Err(SqliteWebError::Rpc(HyperRpcError::RpcError { ref message })) if message == "always fails"
-        ));
-    }
+            let result = retry_with_attempts(operation, 3).await;
+            assert!(matches!(
+                result,
+                Err(SqliteWebError::Rpc(HyperRpcError::RpcError { ref message })) if message == "always fails"
+            ));
+        }
 
-    #[test]
-    fn test_fetch_config_defaults() {
-        let config = FetchConfig::default();
-        assert_eq!(config.chunk_size, 5000);
-        assert_eq!(config.max_concurrent_requests, 10);
-        assert_eq!(config.max_concurrent_blocks, 14);
-        assert_eq!(config.max_retry_attempts, 3);
-    }
+        #[test]
+        fn test_fetch_config_defaults() {
+            let config = FetchConfig::default();
+            assert_eq!(config.chunk_size, 5000);
+            assert_eq!(config.max_concurrent_requests, 10);
+            assert_eq!(config.max_concurrent_blocks, 14);
+            assert_eq!(config.max_retry_attempts, 3);
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_empty_block_numbers() {
-        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
-        let config = FetchConfig::default();
-        let result = db.fetch_block_timestamps(vec![], &config).await;
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
-    }
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_empty_block_numbers() {
+            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let config = FetchConfig::default();
+            let result = db.fetch_block_timestamps(vec![], &config).await;
+            assert!(result.is_ok());
+            assert!(result.unwrap().is_empty());
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_rpc_client_creation_failure() {
-        let result = SqliteWeb::new(999999, "test_token".to_string());
-        assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
-    }
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_rpc_client_creation_failure() {
+            let result = SqliteWeb::new(999999, "test_token".to_string());
+            assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_single_block_success() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_single_block_success() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .header("content-type", "application/json")
@@ -496,24 +500,24 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
+            let config = FetchConfig::default();
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
 
-        mock.assert();
-        assert!(result.is_ok());
-        let timestamps = result.unwrap();
-        assert_eq!(timestamps.len(), 1);
-        assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
-    }
+            mock.assert();
+            assert!(result.is_ok());
+            let timestamps = result.unwrap();
+            assert_eq!(timestamps.len(), 1);
+            assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_multiple_blocks_success() {
-        let server = MockServer::start();
-        let mock1 = server.mock(|when, then| {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_multiple_blocks_success() {
+            let server = MockServer::start();
+            let mock1 = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .header("content-type", "application/json")
@@ -523,7 +527,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let mock2 = server.mock(|when, then| {
+            let mock2 = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .header("content-type", "application/json")
@@ -533,97 +537,97 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
-        let result = db.fetch_block_timestamps(vec![100, 101], &config).await;
+            let config = FetchConfig::default();
+            let result = db.fetch_block_timestamps(vec![100, 101], &config).await;
 
-        mock1.assert();
-        mock2.assert();
-        assert!(result.is_ok());
-        let timestamps = result.unwrap();
-        assert_eq!(timestamps.len(), 2);
-        assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
-        assert_eq!(timestamps.get(&101), Some(&"0x64b8c124".to_string()));
-    }
+            mock1.assert();
+            mock2.assert();
+            assert!(result.is_ok());
+            let timestamps = result.unwrap();
+            assert_eq!(timestamps.len(), 2);
+            assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
+            assert_eq!(timestamps.get(&101), Some(&"0x64b8c124".to_string()));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_malformed_json_response() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
-            when.method(POST).path("/");
-            then.status(200)
-                .header("content-type", "application/json")
-                .body("invalid json");
-        });
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_malformed_json_response() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body("invalid json");
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
+            let config = FetchConfig::default();
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
 
-        mock.assert();
-        assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
-    }
+            mock.assert();
+            assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_missing_result_field() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
-            when.method(POST).path("/");
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
-        });
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_missing_result_field() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            max_retry_attempts: 1,
-            ..FetchConfig::default()
-        };
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
+            let config = FetchConfig {
+                max_retry_attempts: 1,
+                ..FetchConfig::default()
+            };
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
 
-        mock.assert();
-        assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
-    }
+            mock.assert();
+            assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_missing_timestamp_field() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
-            when.method(POST).path("/");
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64"}}"#);
-        });
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_missing_timestamp_field() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64"}}"#);
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
+            let config = FetchConfig::default();
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
 
-        mock.assert();
-        assert!(result.is_err());
-        assert!(
-            matches!(result.unwrap_err(), SqliteWebError::MissingField { ref field } if field == "timestamp")
-        );
-    }
+            mock.assert();
+            assert!(result.is_err());
+            assert!(
+                matches!(result.unwrap_err(), SqliteWebError::MissingField { ref field } if field == "timestamp")
+            );
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_concurrent_requests_limit() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_concurrent_requests_limit() {
+            let server = MockServer::start();
 
-        for i in 0..5 {
-            server.mock(|when, then| {
+            for i in 0..5 {
+                server.mock(|when, then| {
                 when.method(POST)
                     .path("/")
                     .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":[format!("0x{:x}", 100 + i),false]}));
@@ -632,30 +636,30 @@ mod tests {
                     .body(format!(r#"{{"jsonrpc":"2.0","id":1,"result":{{"timestamp":"0x64b8c{:03x}"}}}}"#, 123 + i))
                     .delay(std::time::Duration::from_millis(100));
             });
+            }
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig {
+                max_concurrent_blocks: 2,
+                ..FetchConfig::default()
+            };
+            let result = db
+                .fetch_block_timestamps(vec![100, 101, 102, 103, 104], &config)
+                .await;
+
+            assert!(result.is_ok());
+            let timestamps = result.unwrap();
+            assert_eq!(timestamps.len(), 5);
         }
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_retry_exhaustion() {
+            let server = MockServer::start();
 
-        let config = FetchConfig {
-            max_concurrent_blocks: 2,
-            ..FetchConfig::default()
-        };
-        let result = db
-            .fetch_block_timestamps(vec![100, 101, 102, 103, 104], &config)
-            .await;
-
-        assert!(result.is_ok());
-        let timestamps = result.unwrap();
-        assert_eq!(timestamps.len(), 5);
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_retry_exhaustion() {
-        let server = MockServer::start();
-
-        server.mock(|when, then| {
+            server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .header("content-type", "application/json");
@@ -664,29 +668,29 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error"},"id":1}"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            max_retry_attempts: 2,
-            ..FetchConfig::default()
-        };
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
+            let config = FetchConfig {
+                max_retry_attempts: 2,
+                ..FetchConfig::default()
+            };
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
 
-        assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
-    }
+            assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_retry_with_eventual_success() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-        static RETRY_COUNTER: AtomicUsize = AtomicUsize::new(0);
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_retry_with_eventual_success() {
+            use std::sync::atomic::{AtomicUsize, Ordering};
+            static RETRY_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-        RETRY_COUNTER.store(0, Ordering::Relaxed);
+            RETRY_COUNTER.store(0, Ordering::Relaxed);
 
-        let server = MockServer::start();
+            let server = MockServer::start();
 
-        let error_mock = server.mock(|when, then| {
+            let error_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .header("content-type", "application/json")
@@ -698,64 +702,64 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error"},"id":1}"#);
         });
 
-        let success_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .header("content-type", "application/json")
-                .matches(|_req| RETRY_COUNTER.load(Ordering::Relaxed) > 0);
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
-        });
+            let success_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .header("content-type", "application/json")
+                    .matches(|_req| RETRY_COUNTER.load(Ordering::Relaxed) > 0);
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            max_retry_attempts: 3,
-            ..FetchConfig::default()
-        };
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
+            let config = FetchConfig {
+                max_retry_attempts: 3,
+                ..FetchConfig::default()
+            };
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
 
-        assert!(result.is_ok());
-        let timestamps = result.unwrap();
-        assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
+            assert!(result.is_ok());
+            let timestamps = result.unwrap();
+            assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
 
-        error_mock.assert_hits(1);
-        success_mock.assert_hits(1);
-    }
+            error_mock.assert_hits(1);
+            success_mock.assert_hits(1);
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_backfill_missing_timestamps_events_with_existing_timestamps() {
-        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
-        let config = FetchConfig::default();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_backfill_missing_timestamps_events_with_existing_timestamps() {
+            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let config = FetchConfig::default();
 
-        let mut events = json!([
-            {
-                "blockNumber": "0x64",
-                "blockTimestamp": "0x64b8c123",
-                "data": "some data"
-            },
-            {
-                "blockNumber": "0x65",
-                "blockTimestamp": "0x64b8c124",
-                "data": "other data"
-            }
-        ]);
+            let mut events = json!([
+                {
+                    "blockNumber": "0x64",
+                    "blockTimestamp": "0x64b8c123",
+                    "data": "some data"
+                },
+                {
+                    "blockNumber": "0x65",
+                    "blockTimestamp": "0x64b8c124",
+                    "data": "other data"
+                }
+            ]);
 
-        let result = db.backfill_missing_timestamps(&mut events, &config).await;
-        assert!(result.is_ok());
+            let result = db.backfill_missing_timestamps(&mut events, &config).await;
+            assert!(result.is_ok());
 
-        let events_array = events.as_array().unwrap();
-        assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
-        assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
-    }
+            let events_array = events.as_array().unwrap();
+            assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
+            assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_backfill_missing_timestamps_events_missing_timestamps() {
-        let server = MockServer::start();
-        let mock1 = server.mock(|when, then| {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_backfill_missing_timestamps_events_missing_timestamps() {
+            let server = MockServer::start();
+            let mock1 = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x64",false]}));
@@ -764,7 +768,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let mock2 = server.mock(|when, then| {
+            let mock2 = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x65",false]}));
@@ -773,54 +777,54 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
+            let config = FetchConfig::default();
 
-        let mut events = json!([
-            {
-                "blockNumber": "0x64",
-                "data": "some data"
-            },
-            {
-                "blockNumber": "0x65",
-                "data": "other data"
-            }
-        ]);
+            let mut events = json!([
+                {
+                    "blockNumber": "0x64",
+                    "data": "some data"
+                },
+                {
+                    "blockNumber": "0x65",
+                    "data": "other data"
+                }
+            ]);
 
-        let result = db.backfill_missing_timestamps(&mut events, &config).await;
-        assert!(result.is_ok());
+            let result = db.backfill_missing_timestamps(&mut events, &config).await;
+            assert!(result.is_ok());
 
-        mock1.assert();
-        mock2.assert();
+            mock1.assert();
+            mock2.assert();
 
-        let events_array = events.as_array().unwrap();
-        assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
-        assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
-    }
+            let events_array = events.as_array().unwrap();
+            assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
+            assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_backfill_missing_timestamps_invalid_events_format() {
-        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
-        let config = FetchConfig::default();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_backfill_missing_timestamps_invalid_events_format() {
+            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let config = FetchConfig::default();
 
-        let mut events = json!({
-            "not": "an array"
-        });
+            let mut events = json!({
+                "not": "an array"
+            });
 
-        let result = db.backfill_missing_timestamps(&mut events, &config).await;
-        assert!(matches!(
-            result.unwrap_err(),
-            SqliteWebError::InvalidEventsFormat
-        ));
-    }
+            let result = db.backfill_missing_timestamps(&mut events, &config).await;
+            assert!(matches!(
+                result.unwrap_err(),
+                SqliteWebError::InvalidEventsFormat
+            ));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_backfill_missing_timestamps_mixed_events() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_backfill_missing_timestamps_mixed_events() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x65",false]}));
@@ -829,87 +833,87 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
+            let config = FetchConfig::default();
 
-        let mut events = json!([
-            {
-                "blockNumber": "0x64",
-                "blockTimestamp": "0x64b8c123",
-                "data": "has timestamp"
-            },
-            {
-                "blockNumber": "0x65",
-                "data": "missing timestamp"
-            },
-            {
-                "blockNumber": "0x66",
-                "blockTimestamp": "0x64b8c125",
-                "data": "has timestamp"
-            }
-        ]);
+            let mut events = json!([
+                {
+                    "blockNumber": "0x64",
+                    "blockTimestamp": "0x64b8c123",
+                    "data": "has timestamp"
+                },
+                {
+                    "blockNumber": "0x65",
+                    "data": "missing timestamp"
+                },
+                {
+                    "blockNumber": "0x66",
+                    "blockTimestamp": "0x64b8c125",
+                    "data": "has timestamp"
+                }
+            ]);
 
-        let result = db.backfill_missing_timestamps(&mut events, &config).await;
-        assert!(result.is_ok());
+            let result = db.backfill_missing_timestamps(&mut events, &config).await;
+            assert!(result.is_ok());
 
-        mock.assert();
+            mock.assert();
 
-        let events_array = events.as_array().unwrap();
-        assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
-        assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
-        assert_eq!(events_array[2]["blockTimestamp"], "0x64b8c125");
-    }
+            let events_array = events.as_array().unwrap();
+            assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
+            assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
+            assert_eq!(events_array[2]["blockTimestamp"], "0x64b8c125");
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_backfill_missing_timestamps_block_number_extraction_failures() {
-        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
-        let config = FetchConfig::default();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_backfill_missing_timestamps_block_number_extraction_failures() {
+            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let config = FetchConfig::default();
 
-        let mut events = json!([
-            {
-                "blockNumber": "invalid_hex",
-                "data": "bad block number"
-            },
-            {
-                "missingBlockNumber": "0x65",
-                "data": "no block number field"
-            },
-            {
-                "blockNumber": 123,
-                "data": "non-string block number"
-            }
-        ]);
+            let mut events = json!([
+                {
+                    "blockNumber": "invalid_hex",
+                    "data": "bad block number"
+                },
+                {
+                    "missingBlockNumber": "0x65",
+                    "data": "no block number field"
+                },
+                {
+                    "blockNumber": 123,
+                    "data": "non-string block number"
+                }
+            ]);
 
-        let result = db.backfill_missing_timestamps(&mut events, &config).await;
-        assert!(result.is_ok());
+            let result = db.backfill_missing_timestamps(&mut events, &config).await;
+            assert!(result.is_ok());
 
-        let events_array = events.as_array().unwrap();
-        assert!(events_array[0].get("blockTimestamp").is_none());
-        assert!(events_array[1].get("blockTimestamp").is_none());
-        assert!(events_array[2].get("blockTimestamp").is_none());
-    }
+            let events_array = events.as_array().unwrap();
+            assert!(events_array[0].get("blockTimestamp").is_none());
+            assert!(events_array[1].get("blockTimestamp").is_none());
+            assert!(events_array[2].get("blockTimestamp").is_none());
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_backfill_missing_timestamps_empty_events_array() {
-        let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
-        let config = FetchConfig::default();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_backfill_missing_timestamps_empty_events_array() {
+            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let config = FetchConfig::default();
 
-        let mut events = json!([]);
+            let mut events = json!([]);
 
-        let result = db.backfill_missing_timestamps(&mut events, &config).await;
-        assert!(result.is_ok());
+            let result = db.backfill_missing_timestamps(&mut events, &config).await;
+            assert!(result.is_ok());
 
-        let events_array = events.as_array().unwrap();
-        assert!(events_array.is_empty());
-    }
+            let events_array = events.as_array().unwrap();
+            assert!(events_array.is_empty());
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_backfill_missing_timestamps_timestamp_fetch_failures() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_backfill_missing_timestamps_timestamp_fetch_failures() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x64",false]}));
@@ -918,31 +922,31 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error"},"id":1}"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            max_retry_attempts: 1,
-            ..FetchConfig::default()
-        };
+            let config = FetchConfig {
+                max_retry_attempts: 1,
+                ..FetchConfig::default()
+            };
 
-        let mut events = json!([
-            {
-                "blockNumber": "0x64",
-                "data": "missing timestamp"
-            }
-        ]);
+            let mut events = json!([
+                {
+                    "blockNumber": "0x64",
+                    "data": "missing timestamp"
+                }
+            ]);
 
-        let result = db.backfill_missing_timestamps(&mut events, &config).await;
-        assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
-        mock.assert();
-    }
+            let result = db.backfill_missing_timestamps(&mut events, &config).await;
+            assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
+            mock.assert();
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_backfill_missing_timestamps_event_mutation_verification() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_backfill_missing_timestamps_event_mutation_verification() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x64",false]}));
@@ -951,60 +955,60 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
+            let config = FetchConfig::default();
 
-        let mut events = json!([
-            {
-                "blockNumber": "0x64",
-                "data": "original data",
-                "transactionHash": "0xabc123",
-                "logIndex": "0x0"
-            }
-        ]);
+            let mut events = json!([
+                {
+                    "blockNumber": "0x64",
+                    "data": "original data",
+                    "transactionHash": "0xabc123",
+                    "logIndex": "0x0"
+                }
+            ]);
 
-        let original_data = events[0]["data"].clone();
-        let original_tx_hash = events[0]["transactionHash"].clone();
-        let original_log_index = events[0]["logIndex"].clone();
+            let original_data = events[0]["data"].clone();
+            let original_tx_hash = events[0]["transactionHash"].clone();
+            let original_log_index = events[0]["logIndex"].clone();
 
-        let result = db.backfill_missing_timestamps(&mut events, &config).await;
-        assert!(result.is_ok());
+            let result = db.backfill_missing_timestamps(&mut events, &config).await;
+            assert!(result.is_ok());
 
-        mock.assert();
+            mock.assert();
 
-        let events_array = events.as_array().unwrap();
-        let event = &events_array[0];
+            let events_array = events.as_array().unwrap();
+            let event = &events_array[0];
 
-        assert_eq!(event["blockTimestamp"], "0x64b8c123");
-        assert_eq!(event["data"], original_data);
-        assert_eq!(event["transactionHash"], original_tx_hash);
-        assert_eq!(event["logIndex"], original_log_index);
-        assert_eq!(event["blockNumber"], "0x64");
-    }
+            assert_eq!(event["blockTimestamp"], "0x64b8c123");
+            assert_eq!(event["data"], original_data);
+            assert_eq!(event["transactionHash"], original_tx_hash);
+            assert_eq!(event["logIndex"], original_log_index);
+            assert_eq!(event["blockNumber"], "0x64");
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_event_sorting_by_block_number() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_event_sorting_by_block_number() {
+            let server = MockServer::start();
 
-        let logs_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .header("content-type", "application/json")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getLogs""#)
-                    } else {
-                        false
-                    }
-                });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(
-                    r#"{"jsonrpc":"2.0","id":1,"result":[
+            let logs_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .header("content-type", "application/json")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getLogs""#)
+                        } else {
+                            false
+                        }
+                    });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(
+                        r#"{"jsonrpc":"2.0","id":1,"result":[
                     {
                         "blockNumber": "0x69",
                         "transactionHash": "0x789",
@@ -1024,69 +1028,69 @@ mod tests {
                         "data": "0xdata2"
                     }
                 ]}"#,
-                );
-        });
+                    );
+            });
 
-        server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .header("content-type", "application/json")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
-        });
-
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
-
-        let config = FetchConfig::default();
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                100,
-                105,
-                &config,
-            )
-            .await;
-
-        logs_mock.assert();
-        assert!(result.is_ok());
-
-        let events = result.unwrap();
-        let events_array = events.as_array().unwrap();
-
-        assert_eq!(events_array.len(), 3);
-        assert_eq!(events_array[0]["blockNumber"], "0x64");
-        assert_eq!(events_array[0]["transactionHash"], "0x123");
-        assert_eq!(events_array[1]["blockNumber"], "0x67");
-        assert_eq!(events_array[1]["transactionHash"], "0x456");
-        assert_eq!(events_array[2]["blockNumber"], "0x69");
-        assert_eq!(events_array[2]["transactionHash"], "0x789");
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_block_timestamps_concurrency_limit_enforcement() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-
-        static CONCURRENT_COUNTER: AtomicUsize = AtomicUsize::new(0);
-        static MAX_CONCURRENT_SEEN: AtomicUsize = AtomicUsize::new(0);
-
-        CONCURRENT_COUNTER.store(0, Ordering::Relaxed);
-        MAX_CONCURRENT_SEEN.store(0, Ordering::Relaxed);
-
-        let server = MockServer::start();
-
-        for i in 0..6 {
             server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .header("content-type", "application/json")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig::default();
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    100,
+                    105,
+                    &config,
+                )
+                .await;
+
+            logs_mock.assert();
+            assert!(result.is_ok());
+
+            let events = result.unwrap();
+            let events_array = events.as_array().unwrap();
+
+            assert_eq!(events_array.len(), 3);
+            assert_eq!(events_array[0]["blockNumber"], "0x64");
+            assert_eq!(events_array[0]["transactionHash"], "0x123");
+            assert_eq!(events_array[1]["blockNumber"], "0x67");
+            assert_eq!(events_array[1]["transactionHash"], "0x456");
+            assert_eq!(events_array[2]["blockNumber"], "0x69");
+            assert_eq!(events_array[2]["transactionHash"], "0x789");
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_concurrency_limit_enforcement() {
+            use std::sync::atomic::{AtomicUsize, Ordering};
+
+            static CONCURRENT_COUNTER: AtomicUsize = AtomicUsize::new(0);
+            static MAX_CONCURRENT_SEEN: AtomicUsize = AtomicUsize::new(0);
+
+            CONCURRENT_COUNTER.store(0, Ordering::Relaxed);
+            MAX_CONCURRENT_SEEN.store(0, Ordering::Relaxed);
+
+            let server = MockServer::start();
+
+            for i in 0..6 {
+                server.mock(|when, then| {
                 when.method(POST)
                     .path("/")
                     .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":[format!("0x{:x}", 100 + i),false]}));
@@ -1095,72 +1099,72 @@ mod tests {
                     .body(format!(r#"{{"jsonrpc":"2.0","id":1,"result":{{"timestamp":"0x64b8c{:03x}"}}}}"#, 123 + i))
                     .delay(std::time::Duration::from_millis(200));
             });
-        }
+            }
 
-        server.mock(|when, then| {
-            when.method(POST).path("/").matches(|_req| {
-                let current = CONCURRENT_COUNTER.fetch_add(1, Ordering::Relaxed) + 1;
+            server.mock(|when, then| {
+                when.method(POST).path("/").matches(|_req| {
+                    let current = CONCURRENT_COUNTER.fetch_add(1, Ordering::Relaxed) + 1;
 
-                let mut max_seen = MAX_CONCURRENT_SEEN.load(Ordering::Relaxed);
-                while current > max_seen {
-                    match MAX_CONCURRENT_SEEN.compare_exchange_weak(
-                        max_seen,
-                        current,
-                        Ordering::Relaxed,
-                        Ordering::Relaxed,
-                    ) {
-                        Ok(_) => break,
-                        Err(new_max) => max_seen = new_max,
+                    let mut max_seen = MAX_CONCURRENT_SEEN.load(Ordering::Relaxed);
+                    while current > max_seen {
+                        match MAX_CONCURRENT_SEEN.compare_exchange_weak(
+                            max_seen,
+                            current,
+                            Ordering::Relaxed,
+                            Ordering::Relaxed,
+                        ) {
+                            Ok(_) => break,
+                            Err(new_max) => max_seen = new_max,
+                        }
                     }
-                }
 
-                std::thread::sleep(std::time::Duration::from_millis(200));
-                CONCURRENT_COUNTER.fetch_sub(1, Ordering::Relaxed);
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                    CONCURRENT_COUNTER.fetch_sub(1, Ordering::Relaxed);
 
-                false
+                    false
+                });
+                then.status(200);
             });
-            then.status(200);
-        });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            max_concurrent_blocks: 2,
-            ..FetchConfig::default()
-        };
+            let config = FetchConfig {
+                max_concurrent_blocks: 2,
+                ..FetchConfig::default()
+            };
 
-        let start_time = std::time::Instant::now();
-        let result = db
-            .fetch_block_timestamps(vec![100, 101, 102, 103, 104, 105], &config)
-            .await;
-        let duration = start_time.elapsed();
+            let start_time = std::time::Instant::now();
+            let result = db
+                .fetch_block_timestamps(vec![100, 101, 102, 103, 104, 105], &config)
+                .await;
+            let duration = start_time.elapsed();
 
-        assert!(result.is_ok());
-        let timestamps = result.unwrap();
-        assert_eq!(timestamps.len(), 6);
+            assert!(result.is_ok());
+            let timestamps = result.unwrap();
+            assert_eq!(timestamps.len(), 6);
 
-        let max_concurrent = MAX_CONCURRENT_SEEN.load(Ordering::Relaxed);
-        assert!(
-            max_concurrent <= 2,
-            "Expected max concurrent requests <= 2, but saw {}",
-            max_concurrent
-        );
+            let max_concurrent = MAX_CONCURRENT_SEEN.load(Ordering::Relaxed);
+            assert!(
+                max_concurrent <= 2,
+                "Expected max concurrent requests <= 2, but saw {}",
+                max_concurrent
+            );
 
-        assert!(
+            assert!(
             duration >= std::time::Duration::from_millis(500),
             "Requests completed too quickly, suggesting concurrency limit not enforced. Duration: {:?}",
             duration
         );
-    }
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_fails_when_chunk_fails_after_retries() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_fails_when_chunk_fails_after_retries() {
+            let server = MockServer::start();
 
-        // All eth_getLogs calls return JSON-RPC error to simulate chunk failure
-        server.mock(|when, then| {
+            // All eth_getLogs calls return JSON-RPC error to simulate chunk failure
+            server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .matches(|req| {
@@ -1176,45 +1180,45 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Internal error"}}"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            chunk_size: 5000,
-            max_retry_attempts: 1,
-            ..FetchConfig::default()
-        };
+            let config = FetchConfig {
+                chunk_size: 5000,
+                max_retry_attempts: 1,
+                ..FetchConfig::default()
+            };
 
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                1000,
-                15000,
-                &config,
-            )
-            .await;
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    1000,
+                    15000,
+                    &config,
+                )
+                .await;
 
-        assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
-    }
+            assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events() {
+            let server = MockServer::start();
 
-        let logs_mock = server.mock(|when, then| {
-            when.method(POST).path("/").matches(|req| {
-                if let Some(ref body) = req.body {
-                    let body_str = String::from_utf8_lossy(body);
-                    body_str.contains(r#""method":"eth_getLogs""#)
-                } else {
-                    false
-                }
-            });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(
-                    r#"{"jsonrpc":"2.0","id":1,"result":[
+            let logs_mock = server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(
+                        r#"{"jsonrpc":"2.0","id":1,"result":[
                     {
                         "blockNumber": "0x64",
                         "transactionHash": "0x123",
@@ -1222,52 +1226,52 @@ mod tests {
                         "data": "0xdata"
                     }
                 ]}"#,
-                );
-        });
-
-        let block_mock = server.mock(|when, then| {
-            when.method(POST).path("/").matches(|req| {
-                if let Some(ref body) = req.body {
-                    let body_str = String::from_utf8_lossy(body);
-                    body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                } else {
-                    false
-                }
+                    );
             });
-            then.status(200)
+
+            let block_mock = server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
+                then.status(200)
                 .header("content-type", "application/json")
                 .body(
                     r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64","timestamp":"0x123456"}}"#,
                 );
-        });
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
+            let config = FetchConfig::default();
 
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                100,
-                100,
-                &config,
-            )
-            .await;
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    100,
+                    100,
+                    &config,
+                )
+                .await;
 
-        logs_mock.assert_hits(1);
-        block_mock.assert_hits(1);
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        assert_eq!(events.as_array().unwrap().len(), 1);
-    }
+            logs_mock.assert_hits(1);
+            block_mock.assert_hits(1);
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            assert_eq!(events.as_array().unwrap().len(), 1);
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_chunk_size_one() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_chunk_size_one() {
+            let server = MockServer::start();
 
-        let logs_mock = server.mock(|when, then| {
+            let logs_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .matches(|req| {
@@ -1287,51 +1291,56 @@ mod tests {
                 ]}"#);
         });
 
-        let block_mock = server.mock(|when, then| {
-            when.method(POST).path("/").matches(|req| {
-                if let Some(ref body) = req.body {
-                    let body_str = String::from_utf8_lossy(body);
-                    body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                } else {
-                    false
-                }
-            });
-            then.status(200)
+            let block_mock = server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
+                then.status(200)
                 .header("content-type", "application/json")
                 .body(
                     r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x5","timestamp":"0x123456"}}"#,
                 );
-        });
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            chunk_size: 1,
-            ..FetchConfig::default()
-        };
+            let config = FetchConfig {
+                chunk_size: 1,
+                ..FetchConfig::default()
+            };
 
-        let result = db
-            .fetch_events_with_config("0x742d35Cc6634C0532925a3b8c17600000000000", 5, 7, &config)
-            .await;
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    5,
+                    7,
+                    &config,
+                )
+                .await;
 
-        logs_mock.assert_hits(3);
-        block_mock.assert_hits(3);
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        let events_array = events.as_array().unwrap();
-        assert!(events_array.len() >= 3);
-        assert!(events_array.iter().any(|e| e["blockNumber"] == "0x5"));
-        assert!(events_array.iter().any(|e| e["blockNumber"] == "0x6"));
-        assert!(events_array.iter().any(|e| e["blockNumber"] == "0x7"));
-    }
+            logs_mock.assert_hits(3);
+            block_mock.assert_hits(3);
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            let events_array = events.as_array().unwrap();
+            assert!(events_array.len() >= 3);
+            assert!(events_array.iter().any(|e| e["blockNumber"] == "0x5"));
+            assert!(events_array.iter().any(|e| e["blockNumber"] == "0x6"));
+            assert!(events_array.iter().any(|e| e["blockNumber"] == "0x7"));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_exact_chunk_boundaries() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_exact_chunk_boundaries() {
+            let server = MockServer::start();
 
-        server.mock(|when, then| {
+            server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .matches(|req| {
@@ -1350,54 +1359,54 @@ mod tests {
                 ]}"#);
         });
 
-        server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .header("content-type", "application/json")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
-        });
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .header("content-type", "application/json")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            chunk_size: 5000,
-            ..FetchConfig::default()
-        };
+            let config = FetchConfig {
+                chunk_size: 5000,
+                ..FetchConfig::default()
+            };
 
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                1000,
-                10999,
-                &config,
-            )
-            .await;
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    1000,
+                    10999,
+                    &config,
+                )
+                .await;
 
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        let events_array = events.as_array().unwrap();
-        assert!(events_array.len() >= 2);
-        assert!(events_array.iter().any(|e| e["blockNumber"] == "0x3e8"));
-        assert!(events_array.iter().any(|e| e["blockNumber"] == "0x2af7"));
-    }
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            let events_array = events.as_array().unwrap();
+            assert!(events_array.len() >= 2);
+            assert!(events_array.iter().any(|e| e["blockNumber"] == "0x3e8"));
+            assert!(events_array.iter().any(|e| e["blockNumber"] == "0x2af7"));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_realistic_rpc_responses() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_realistic_rpc_responses() {
+            let server = MockServer::start();
 
-        let logs_mock = server.mock(|when, then| {
+            let logs_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .matches(|req| {
@@ -1445,7 +1454,7 @@ mod tests {
                 }"#);
         });
 
-        let _block_mock = server.mock(|when, then| {
+            let _block_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .matches(|req| {
@@ -1485,461 +1494,461 @@ mod tests {
                 }"#);
         });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c176000000000000",
-                19088743,
-                19088744,
-                &config,
-            )
-            .await;
+            let config = FetchConfig::default();
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c176000000000000",
+                    19088743,
+                    19088744,
+                    &config,
+                )
+                .await;
 
-        logs_mock.assert();
+            logs_mock.assert();
 
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        let events_array = events.as_array().unwrap();
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            let events_array = events.as_array().unwrap();
 
-        assert_eq!(events_array.len(), 2);
+            assert_eq!(events_array.len(), 2);
 
-        assert_eq!(
-            events_array[0]["address"],
-            "0x742d35cc6634c0532925a3b8c176000000000000"
-        );
-        assert_eq!(events_array[0]["logIndex"], "0x5");
-        assert_eq!(events_array[0]["transactionIndex"], "0x12");
-        assert_eq!(events_array[0]["removed"], false);
-        assert!(!events_array[0]["topics"].as_array().unwrap().is_empty());
-        assert!(events_array[0]["data"].as_str().unwrap().starts_with("0x"));
+            assert_eq!(
+                events_array[0]["address"],
+                "0x742d35cc6634c0532925a3b8c176000000000000"
+            );
+            assert_eq!(events_array[0]["logIndex"], "0x5");
+            assert_eq!(events_array[0]["transactionIndex"], "0x12");
+            assert_eq!(events_array[0]["removed"], false);
+            assert!(!events_array[0]["topics"].as_array().unwrap().is_empty());
+            assert!(events_array[0]["data"].as_str().unwrap().starts_with("0x"));
 
-        let block1 = extract_block_number(&events_array[0]).unwrap();
-        let block2 = extract_block_number(&events_array[1]).unwrap();
-        assert!(block1 <= block2, "Events should be sorted by block number");
-    }
+            let block1 = extract_block_number(&events_array[0]).unwrap();
+            let block2 = extract_block_number(&events_array[1]).unwrap();
+            assert!(block1 <= block2, "Events should be sorted by block number");
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_retry_with_real_network_failure_scenarios() {
-        let server = MockServer::start();
-        use std::sync::atomic::{AtomicUsize, Ordering};
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_retry_with_real_network_failure_scenarios() {
+            let server = MockServer::start();
+            use std::sync::atomic::{AtomicUsize, Ordering};
 
-        static ATTEMPT_COUNTER: AtomicUsize = AtomicUsize::new(0);
-        ATTEMPT_COUNTER.store(0, Ordering::Relaxed);
+            static ATTEMPT_COUNTER: AtomicUsize = AtomicUsize::new(0);
+            ATTEMPT_COUNTER.store(0, Ordering::Relaxed);
 
-        let error_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
+            let error_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    })
+                    .matches(|_req| {
+                        let count = ATTEMPT_COUNTER.fetch_add(1, Ordering::Relaxed);
+                        count == 0
+                    });
+                then.status(500)
+                    .header("content-type", "application/json")
+                    .body(r#"{"error":"Internal Server Error"}"#);
+            });
+
+            let success_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    })
+                    .matches(|_req| ATTEMPT_COUNTER.load(Ordering::Relaxed) > 0);
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig {
+                max_retry_attempts: 3,
+                ..FetchConfig::default()
+            };
+
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
+
+            error_mock.assert_hits(1);
+            success_mock.assert_hits(1);
+            assert!(result.is_ok());
+            let timestamps = result.unwrap();
+            assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_retry_with_actual_timeout_simulation() {
+            use std::sync::atomic::{AtomicUsize, Ordering};
+
+            static TIMEOUT_ATTEMPT_COUNTER: AtomicUsize = AtomicUsize::new(0);
+            TIMEOUT_ATTEMPT_COUNTER.store(0, Ordering::Relaxed);
+
+            let server = MockServer::start();
+
+            let timeout_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    })
+                    .matches(|_req| TIMEOUT_ATTEMPT_COUNTER.fetch_add(1, Ordering::Relaxed) == 0);
+                then.status(408) // Request Timeout
+                    .header("content-type", "application/json")
+                    .body(r#"{"error":"Request timeout"}"#);
+            });
+
+            let success_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    })
+                    .matches(|_req| TIMEOUT_ATTEMPT_COUNTER.load(Ordering::Relaxed) > 0);
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig {
+                max_retry_attempts: 3,
+                ..FetchConfig::default()
+            };
+
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
+
+            assert!(result.is_ok());
+            let timestamps = result.unwrap();
+            assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
+
+            timeout_mock.assert_hits(1);
+            success_mock.assert_hits(1);
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_retry_with_rate_limiting_simulation() {
+            let server = MockServer::start();
+            use std::sync::atomic::{AtomicUsize, Ordering};
+
+            static RATE_LIMIT_COUNTER: AtomicUsize = AtomicUsize::new(0);
+            RATE_LIMIT_COUNTER.store(0, Ordering::Relaxed);
+
+            let rate_limit_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    })
+                    .matches(|_req| {
+                        let count = RATE_LIMIT_COUNTER.fetch_add(1, Ordering::Relaxed);
+                        count == 0
+                    });
+                then.status(429)
+                    .header("content-type", "application/json")
+                    .header("retry-after", "1")
+                    .body(r#"{"error":"Too Many Requests"}"#);
+            });
+
+            let success_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    })
+                    .matches(|_req| RATE_LIMIT_COUNTER.load(Ordering::Relaxed) > 0);
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig {
+                max_retry_attempts: 3,
+                ..FetchConfig::default()
+            };
+
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
+
+            rate_limit_mock.assert_hits(1);
+            success_mock.assert_hits(1);
+            assert!(result.is_ok());
+            let timestamps = result.unwrap();
+            assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_empty_rpc_results() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
                     if let Some(ref body) = req.body {
                         let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        body_str.contains(r#""method":"eth_getLogs""#)
                     } else {
                         false
                     }
-                })
-                .matches(|_req| {
-                    let count = ATTEMPT_COUNTER.fetch_add(1, Ordering::Relaxed);
-                    count == 0
                 });
-            then.status(500)
-                .header("content-type", "application/json")
-                .body(r#"{"error":"Internal Server Error"}"#);
-        });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
+            });
 
-        let success_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig::default();
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    100,
+                    105,
+                    &config,
+                )
+                .await;
+
+            mock.assert();
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            assert_eq!(events.as_array().unwrap().len(), 0);
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_start_block_greater_than_end_block() {
+            let server = MockServer::start();
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig::default();
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    110,
+                    105,
+                    &config,
+                )
+                .await;
+
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            assert_eq!(events.as_array().unwrap().len(), 0);
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_malformed_json_response() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
                     if let Some(ref body) = req.body {
                         let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        body_str.contains(r#""method":"eth_getLogs""#)
                     } else {
                         false
                     }
-                })
-                .matches(|_req| ATTEMPT_COUNTER.load(Ordering::Relaxed) > 0);
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
-        });
-
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
-
-        let config = FetchConfig {
-            max_retry_attempts: 3,
-            ..FetchConfig::default()
-        };
-
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
-
-        error_mock.assert_hits(1);
-        success_mock.assert_hits(1);
-        assert!(result.is_ok());
-        let timestamps = result.unwrap();
-        assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_retry_with_actual_timeout_simulation() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-
-        static TIMEOUT_ATTEMPT_COUNTER: AtomicUsize = AtomicUsize::new(0);
-        TIMEOUT_ATTEMPT_COUNTER.store(0, Ordering::Relaxed);
-
-        let server = MockServer::start();
-
-        let timeout_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                })
-                .matches(|_req| TIMEOUT_ATTEMPT_COUNTER.fetch_add(1, Ordering::Relaxed) == 0);
-            then.status(408) // Request Timeout
-                .header("content-type", "application/json")
-                .body(r#"{"error":"Request timeout"}"#);
-        });
-
-        let success_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                })
-                .matches(|_req| TIMEOUT_ATTEMPT_COUNTER.load(Ordering::Relaxed) > 0);
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
-        });
-
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
-
-        let config = FetchConfig {
-            max_retry_attempts: 3,
-            ..FetchConfig::default()
-        };
-
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
-
-        assert!(result.is_ok());
-        let timestamps = result.unwrap();
-        assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
-
-        timeout_mock.assert_hits(1);
-        success_mock.assert_hits(1);
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_retry_with_rate_limiting_simulation() {
-        let server = MockServer::start();
-        use std::sync::atomic::{AtomicUsize, Ordering};
-
-        static RATE_LIMIT_COUNTER: AtomicUsize = AtomicUsize::new(0);
-        RATE_LIMIT_COUNTER.store(0, Ordering::Relaxed);
-
-        let rate_limit_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                })
-                .matches(|_req| {
-                    let count = RATE_LIMIT_COUNTER.fetch_add(1, Ordering::Relaxed);
-                    count == 0
                 });
-            then.status(429)
-                .header("content-type", "application/json")
-                .header("retry-after", "1")
-                .body(r#"{"error":"Too Many Requests"}"#);
-        });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body("invalid json");
+            });
 
-        let success_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig {
+                max_retry_attempts: 1,
+                ..FetchConfig::default()
+            };
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    100,
+                    105,
+                    &config,
+                )
+                .await;
+
+            mock.assert();
+            assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_missing_result_field() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
                     if let Some(ref body) = req.body {
                         let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        body_str.contains(r#""method":"eth_getLogs""#)
                     } else {
                         false
                     }
-                })
-                .matches(|_req| RATE_LIMIT_COUNTER.load(Ordering::Relaxed) > 0);
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
-        });
-
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
-
-        let config = FetchConfig {
-            max_retry_attempts: 3,
-            ..FetchConfig::default()
-        };
-
-        let result = db.fetch_block_timestamps(vec![100], &config).await;
-
-        rate_limit_mock.assert_hits(1);
-        success_mock.assert_hits(1);
-        assert!(result.is_ok());
-        let timestamps = result.unwrap();
-        assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_empty_rpc_results() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
-            when.method(POST).path("/").matches(|req| {
-                if let Some(ref body) = req.body {
-                    let body_str = String::from_utf8_lossy(body);
-                    body_str.contains(r#""method":"eth_getLogs""#)
-                } else {
-                    false
-                }
+                });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
             });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
-        });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig::default();
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                100,
-                105,
-                &config,
-            )
-            .await;
+            let config = FetchConfig {
+                max_retry_attempts: 1,
+                ..FetchConfig::default()
+            };
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    100,
+                    105,
+                    &config,
+                )
+                .await;
 
-        mock.assert();
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        assert_eq!(events.as_array().unwrap().len(), 0);
-    }
+            mock.assert();
+            assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_start_block_greater_than_end_block() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_max_concurrent_requests_limit() {
+            let server = MockServer::start();
+            use std::sync::atomic::{AtomicUsize, Ordering};
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            static CONCURRENT_COUNTER: AtomicUsize = AtomicUsize::new(0);
+            static MAX_CONCURRENT_SEEN: AtomicUsize = AtomicUsize::new(0);
 
-        let config = FetchConfig::default();
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                110,
-                105,
-                &config,
-            )
-            .await;
+            CONCURRENT_COUNTER.store(0, Ordering::Relaxed);
+            MAX_CONCURRENT_SEEN.store(0, Ordering::Relaxed);
 
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        assert_eq!(events.as_array().unwrap().len(), 0);
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_malformed_json_response() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
-            when.method(POST).path("/").matches(|req| {
-                if let Some(ref body) = req.body {
-                    let body_str = String::from_utf8_lossy(body);
-                    body_str.contains(r#""method":"eth_getLogs""#)
-                } else {
-                    false
-                }
-            });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body("invalid json");
-        });
-
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
-
-        let config = FetchConfig {
-            max_retry_attempts: 1,
-            ..FetchConfig::default()
-        };
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                100,
-                105,
-                &config,
-            )
-            .await;
-
-        mock.assert();
-        assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_missing_result_field() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
-            when.method(POST).path("/").matches(|req| {
-                if let Some(ref body) = req.body {
-                    let body_str = String::from_utf8_lossy(body);
-                    body_str.contains(r#""method":"eth_getLogs""#)
-                } else {
-                    false
-                }
-            });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
-        });
-
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
-
-        let config = FetchConfig {
-            max_retry_attempts: 1,
-            ..FetchConfig::default()
-        };
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                100,
-                105,
-                &config,
-            )
-            .await;
-
-        mock.assert();
-        assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_max_concurrent_requests_limit() {
-        let server = MockServer::start();
-        use std::sync::atomic::{AtomicUsize, Ordering};
-
-        static CONCURRENT_COUNTER: AtomicUsize = AtomicUsize::new(0);
-        static MAX_CONCURRENT_SEEN: AtomicUsize = AtomicUsize::new(0);
-
-        CONCURRENT_COUNTER.store(0, Ordering::Relaxed);
-        MAX_CONCURRENT_SEEN.store(0, Ordering::Relaxed);
-
-        server.mock(|when, then| {
-            when.method(POST).path("/").matches(|req| {
-                if let Some(ref body) = req.body {
-                    let body_str = String::from_utf8_lossy(body);
-                    body_str.contains(r#""method":"eth_getLogs""#)
-                } else {
-                    false
-                }
-            });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#)
-                .delay(std::time::Duration::from_millis(200));
-        });
-
-        server.mock(|when, then| {
-            when.method(POST).path("/").matches(|_req| {
-                let current = CONCURRENT_COUNTER.fetch_add(1, Ordering::Relaxed) + 1;
-
-                let mut max_seen = MAX_CONCURRENT_SEEN.load(Ordering::Relaxed);
-                while current > max_seen {
-                    match MAX_CONCURRENT_SEEN.compare_exchange_weak(
-                        max_seen,
-                        current,
-                        Ordering::Relaxed,
-                        Ordering::Relaxed,
-                    ) {
-                        Ok(_) => break,
-                        Err(new_max) => max_seen = new_max,
+            server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
                     }
-                }
-
-                std::thread::sleep(std::time::Duration::from_millis(200));
-                CONCURRENT_COUNTER.fetch_sub(1, Ordering::Relaxed);
-
-                false
+                });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#)
+                    .delay(std::time::Duration::from_millis(200));
             });
-            then.status(200);
-        });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            server.mock(|when, then| {
+                when.method(POST).path("/").matches(|_req| {
+                    let current = CONCURRENT_COUNTER.fetch_add(1, Ordering::Relaxed) + 1;
 
-        let config = FetchConfig {
-            chunk_size: 1000,
-            max_concurrent_requests: 2,
-            ..FetchConfig::default()
-        };
+                    let mut max_seen = MAX_CONCURRENT_SEEN.load(Ordering::Relaxed);
+                    while current > max_seen {
+                        match MAX_CONCURRENT_SEEN.compare_exchange_weak(
+                            max_seen,
+                            current,
+                            Ordering::Relaxed,
+                            Ordering::Relaxed,
+                        ) {
+                            Ok(_) => break,
+                            Err(new_max) => max_seen = new_max,
+                        }
+                    }
 
-        let start_time = std::time::Instant::now();
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                1000,
-                3999,
-                &config,
-            )
-            .await;
-        let duration = start_time.elapsed();
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                    CONCURRENT_COUNTER.fetch_sub(1, Ordering::Relaxed);
 
-        assert!(result.is_ok());
+                    false
+                });
+                then.status(200);
+            });
 
-        let max_concurrent = MAX_CONCURRENT_SEEN.load(Ordering::Relaxed);
-        assert!(
-            max_concurrent <= 2,
-            "Expected max concurrent requests <= 2, but saw {}",
-            max_concurrent
-        );
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        assert!(
+            let config = FetchConfig {
+                chunk_size: 1000,
+                max_concurrent_requests: 2,
+                ..FetchConfig::default()
+            };
+
+            let start_time = std::time::Instant::now();
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    1000,
+                    3999,
+                    &config,
+                )
+                .await;
+            let duration = start_time.elapsed();
+
+            assert!(result.is_ok());
+
+            let max_concurrent = MAX_CONCURRENT_SEEN.load(Ordering::Relaxed);
+            assert!(
+                max_concurrent <= 2,
+                "Expected max concurrent requests <= 2, but saw {}",
+                max_concurrent
+            );
+
+            assert!(
             duration >= std::time::Duration::from_millis(300),
             "Requests completed too quickly, suggesting concurrency limit not enforced. Duration: {:?}",
             duration
         );
-    }
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_different_chunk_sizes() {
-        let server = MockServer::start();
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_different_chunk_sizes() {
+            let server = MockServer::start();
 
-        server.mock(|when, then| {
+            server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .matches(|req| {
@@ -1957,92 +1966,92 @@ mod tests {
                 ]}"#);
         });
 
-        server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .header("content-type", "application/json")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
-        });
-
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
-
-        let config_small = FetchConfig {
-            chunk_size: 10,
-            ..FetchConfig::default()
-        };
-
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                100,
-                150,
-                &config_small,
-            )
-            .await;
-
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        assert!(!events.as_array().unwrap().is_empty());
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_very_large_range() {
-        let server = MockServer::start();
-
-        server.mock(|when, then| {
-            when.method(POST).path("/").matches(|req| {
-                if let Some(ref body) = req.body {
-                    let body_str = String::from_utf8_lossy(body);
-                    body_str.contains(r#""method":"eth_getLogs""#)
-                } else {
-                    false
-                }
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .header("content-type", "application/json")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
             });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
-        });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            chunk_size: 1000,
-            max_concurrent_requests: 5,
-            ..FetchConfig::default()
-        };
+            let config_small = FetchConfig {
+                chunk_size: 10,
+                ..FetchConfig::default()
+            };
 
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                1000000,
-                1050000,
-                &config,
-            )
-            .await;
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    100,
+                    150,
+                    &config_small,
+                )
+                .await;
 
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        assert_eq!(events.as_array().unwrap().len(), 0);
-    }
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            assert!(!events.as_array().unwrap().is_empty());
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_wrapper_uses_default_config() {
-        let server = MockServer::start();
-        let mock = server.mock(|when, then| {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_very_large_range() {
+            let server = MockServer::start();
+
+            server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig {
+                chunk_size: 1000,
+                max_concurrent_requests: 5,
+                ..FetchConfig::default()
+            };
+
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    1000000,
+                    1050000,
+                    &config,
+                )
+                .await;
+
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            assert_eq!(events.as_array().unwrap().len(), 0);
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_wrapper_uses_default_config() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .matches(|req| {
@@ -2060,41 +2069,41 @@ mod tests {
                 ]}"#);
         });
 
-        server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .header("content-type", "application/json")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
-        });
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .header("content-type", "application/json")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let result = db
-            .fetch_events("0x742d35Cc6634C0532925a3b8c17600000000000", 100, 105)
-            .await;
+            let result = db
+                .fetch_events("0x742d35Cc6634C0532925a3b8c17600000000000", 100, 105)
+                .await;
 
-        mock.assert();
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        assert!(!events.as_array().unwrap().is_empty());
-    }
+            mock.assert();
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            assert!(!events.as_array().unwrap().is_empty());
+        }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_chunk_size_zero() {
-        let server = MockServer::start();
-        server.mock(|when, then| {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_chunk_size_zero() {
+            let server = MockServer::start();
+            server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .matches(|req| {
@@ -2113,43 +2122,44 @@ mod tests {
                 ]}"#);
         });
 
-        server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .header("content-type", "application/json")
-                .matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
-        });
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .header("content-type", "application/json")
+                    .matches(|req| {
+                        if let Some(ref body) = req.body {
+                            let body_str = String::from_utf8_lossy(body);
+                            body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                        } else {
+                            false
+                        }
+                    });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+            });
 
-        let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        let mut db = SqliteWeb::new_with_client(client);
-        db.client_mut().update_rpc_url(server.base_url());
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
 
-        let config = FetchConfig {
-            chunk_size: 0,
-            ..FetchConfig::default()
-        };
+            let config = FetchConfig {
+                chunk_size: 0,
+                ..FetchConfig::default()
+            };
 
-        let result = db
-            .fetch_events_with_config(
-                "0x742d35Cc6634C0532925a3b8c17600000000000",
-                100,
-                101,
-                &config,
-            )
-            .await;
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    100,
+                    101,
+                    &config,
+                )
+                .await;
 
-        assert!(result.is_ok());
-        let events = result.unwrap();
-        assert_eq!(events.as_array().unwrap().len(), 4);
+            assert!(result.is_ok());
+            let events = result.unwrap();
+            assert_eq!(events.as_array().unwrap().len(), 4);
+        }
     }
 }

@@ -142,7 +142,7 @@ impl HyperRpcClient {
         Ok(text)
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_family = "wasm")))]
     pub(crate) fn update_rpc_url(&mut self, new_url: String) {
         self.rpc_url = new_url;
     }
@@ -166,7 +166,7 @@ pub enum HyperRpcError {
     HexParseError(#[from] std::num::ParseIntError),
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use httpmock::MockServer;
