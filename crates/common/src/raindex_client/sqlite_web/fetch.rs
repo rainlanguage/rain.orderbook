@@ -81,7 +81,7 @@ impl SqliteWeb {
         while current_block <= end_block {
             let to_block = std::cmp::min(
                 current_block.saturating_add(chunk_size).saturating_sub(1),
-                end_block
+                end_block,
             );
             chunks.push((current_block, to_block));
             current_block = to_block.saturating_add(1);
@@ -278,7 +278,10 @@ fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError
             field: "blockNumber".to_string(),
         })?;
 
-    let block_u256 = if let Some(hex_digits) = block_number_str.strip_prefix("0x").or_else(|| block_number_str.strip_prefix("0X")) {
+    let block_u256 = if let Some(hex_digits) = block_number_str
+        .strip_prefix("0x")
+        .or_else(|| block_number_str.strip_prefix("0X"))
+    {
         if hex_digits.is_empty() {
             return Err(SqliteWebError::invalid_block_number(
                 block_number_str,
