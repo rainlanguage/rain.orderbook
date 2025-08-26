@@ -76,8 +76,9 @@ impl SqliteWeb {
 
         let mut chunks = Vec::new();
         let mut current_block = start_block;
+        let chunk_size = config.chunk_size.max(1);
         while current_block <= end_block {
-            let to_block = std::cmp::min(current_block + config.chunk_size - 1, end_block);
+            let to_block = std::cmp::min(current_block + chunk_size - 1, end_block);
             chunks.push((current_block, to_block));
             current_block = to_block + 1;
         }
@@ -1784,5 +1785,43 @@ mod tests {
         assert!(result.is_ok());
         let events = result.unwrap();
         assert!(!events.as_array().unwrap().is_empty());
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_fetch_events_with_config_chunk_size_zero() {
+        let server = MockServer::start();
+        server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":[
+                    {"blockNumber": "0x64", "transactionHash": "0x123", "logIndex": "0x0", "data": "0x1"},
+                    {"blockNumber": "0x65", "transactionHash": "0x456", "logIndex": "0x0", "data": "0x2"}
+                ]}"#);
+        });
+
+        let client = HyperRpcClient::new(8453).unwrap();
+        let mut db = SqliteWeb::new_with_client(client);
+        db.client_mut().update_rpc_url(server.base_url());
+
+        let config = FetchConfig {
+            chunk_size: 0,
+            ..FetchConfig::default()
+        };
+
+        let result = db
+            .fetch_events_with_config(
+                "0x742d35Cc6634C0532925a3b8c17600000000000",
+                100,
+                101,
+                &config,
+            )
+            .await;
+
+        assert!(result.is_ok());
+        let events = result.unwrap();
+        assert_eq!(events.as_array().unwrap().len(), 4);
     }
 }
