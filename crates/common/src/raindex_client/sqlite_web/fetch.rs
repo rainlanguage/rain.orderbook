@@ -982,7 +982,14 @@ mod tests {
             when.method(POST)
                 .path("/")
                 .header("content-type", "application/json")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(
@@ -995,18 +1002,35 @@ mod tests {
                     },
                     {
                         "blockNumber": "0x64",
-                        "transactionHash": "0x123", 
+                        "transactionHash": "0x123",
                         "logIndex": "0x0",
                         "data": "0xdata1"
                     },
                     {
                         "blockNumber": "0x67",
                         "transactionHash": "0x456",
-                        "logIndex": "0x0", 
+                        "logIndex": "0x0",
                         "data": "0xdata2"
                     }
                 ]}"#,
                 );
+        });
+
+        server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .header("content-type", "application/json")
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
         let client = HyperRpcClient::new(8453).unwrap();
@@ -1128,7 +1152,14 @@ mod tests {
         server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Internal error"}}"#);
@@ -1163,7 +1194,14 @@ mod tests {
         let logs_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(
@@ -1181,10 +1219,19 @@ mod tests {
         let block_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64","timestamp":"0x123456"}}"#);
+                .body(
+                    r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64","timestamp":"0x123456"}}"#,
+                );
         });
 
         let client = HyperRpcClient::new(8453).unwrap();
@@ -1216,7 +1263,14 @@ mod tests {
         let logs_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[
@@ -1229,10 +1283,19 @@ mod tests {
         let block_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x5","timestamp":"0x123456"}}"#);
+                .body(
+                    r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x5","timestamp":"0x123456"}}"#,
+                );
         });
 
         let client = HyperRpcClient::new(8453).unwrap();
@@ -1266,13 +1329,37 @@ mod tests {
         server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[
                     {"blockNumber": "0x3e8", "transactionHash": "0x111", "logIndex": "0x0", "data": "0x1"},
                     {"blockNumber": "0x2af7", "transactionHash": "0x222", "logIndex": "0x0", "data": "0x2"}
                 ]}"#);
+        });
+
+        server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .header("content-type", "application/json")
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
         let client = HyperRpcClient::new(8453).unwrap();
@@ -1308,7 +1395,14 @@ mod tests {
         let logs_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{
@@ -1349,7 +1443,14 @@ mod tests {
         let _block_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{
@@ -1427,7 +1528,14 @@ mod tests {
         let error_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#)
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                })
                 .matches(|_req| {
                     let count = ATTEMPT_COUNTER.fetch_add(1, Ordering::Relaxed);
                     count == 0
@@ -1440,7 +1548,14 @@ mod tests {
         let success_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#)
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                })
                 .matches(|_req| ATTEMPT_COUNTER.load(Ordering::Relaxed) > 0);
             then.status(200)
                 .header("content-type", "application/json")
@@ -1466,17 +1581,43 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_retry_with_network_timeout_scenarios() {
-        let server = MockServer::start();
+    async fn test_retry_with_actual_timeout_simulation() {
         use std::sync::atomic::{AtomicUsize, Ordering};
 
-        static TIMEOUT_COUNTER: AtomicUsize = AtomicUsize::new(0);
-        TIMEOUT_COUNTER.store(0, Ordering::Relaxed);
+        static TIMEOUT_ATTEMPT_COUNTER: AtomicUsize = AtomicUsize::new(0);
+        TIMEOUT_ATTEMPT_COUNTER.store(0, Ordering::Relaxed);
 
-        server.mock(|when, then| {
+        let server = MockServer::start();
+
+        let timeout_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                })
+                .matches(|_req| TIMEOUT_ATTEMPT_COUNTER.fetch_add(1, Ordering::Relaxed) == 0);
+            then.status(408) // Request Timeout
+                .header("content-type", "application/json")
+                .body(r#"{"error":"Request timeout"}"#);
+        });
+
+        let success_mock = server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                })
+                .matches(|_req| TIMEOUT_ATTEMPT_COUNTER.load(Ordering::Relaxed) > 0);
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
@@ -1496,6 +1637,9 @@ mod tests {
         assert!(result.is_ok());
         let timestamps = result.unwrap();
         assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
+
+        timeout_mock.assert_hits(1);
+        success_mock.assert_hits(1);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1509,7 +1653,14 @@ mod tests {
         let rate_limit_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#)
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                })
                 .matches(|_req| {
                     let count = RATE_LIMIT_COUNTER.fetch_add(1, Ordering::Relaxed);
                     count == 0
@@ -1523,7 +1674,14 @@ mod tests {
         let success_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#)
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                })
                 .matches(|_req| RATE_LIMIT_COUNTER.load(Ordering::Relaxed) > 0);
             then.status(200)
                 .header("content-type", "application/json")
@@ -1554,7 +1712,14 @@ mod tests {
         let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
@@ -1609,7 +1774,14 @@ mod tests {
         let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body("invalid json");
@@ -1642,7 +1814,14 @@ mod tests {
         let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
@@ -1683,7 +1862,14 @@ mod tests {
         server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#)
@@ -1759,12 +1945,36 @@ mod tests {
         server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[
                     {"blockNumber": "0x64", "transactionHash": "0x123", "logIndex": "0x0", "data": "0x1"}
                 ]}"#);
+        });
+
+        server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .header("content-type", "application/json")
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
         let client = HyperRpcClient::new(8453).unwrap();
@@ -1797,7 +2007,14 @@ mod tests {
         server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
@@ -1833,12 +2050,36 @@ mod tests {
         let mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[
                     {"blockNumber": "0x64", "transactionHash": "0x123", "logIndex": "0x0", "data": "0x1"}
                 ]}"#);
+        });
+
+        server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .header("content-type", "application/json")
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
         let client = HyperRpcClient::new(8453).unwrap();
@@ -1861,13 +2102,37 @@ mod tests {
         server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .json_body_partial(r#"{"method":"eth_getLogs"}"#);
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getLogs""#)
+                    } else {
+                        false
+                    }
+                });
             then.status(200)
                 .header("content-type", "application/json")
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":[
                     {"blockNumber": "0x64", "transactionHash": "0x123", "logIndex": "0x0", "data": "0x1"},
                     {"blockNumber": "0x65", "transactionHash": "0x456", "logIndex": "0x0", "data": "0x2"}
                 ]}"#);
+        });
+
+        server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .header("content-type", "application/json")
+                .matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
+                    } else {
+                        false
+                    }
+                });
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
         });
 
         let client = HyperRpcClient::new(8453).unwrap();
