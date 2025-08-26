@@ -263,16 +263,27 @@ where
 }
 
 fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError> {
-    let block_number_hex = event
+    let block_number_str = event
         .get("blockNumber")
         .and_then(|v| v.as_str())
         .ok_or_else(|| SqliteWebError::MissingField {
             field: "blockNumber".to_string(),
         })?;
 
-    let block_u256 = block_number_hex
-        .parse::<U256>()
-        .map_err(|e| SqliteWebError::invalid_block_number(block_number_hex, e))?;
+    let block_u256 = if let Some(hex_digits) = block_number_str.strip_prefix("0x") {
+        if hex_digits.is_empty() {
+            return Err(SqliteWebError::invalid_block_number(
+                block_number_str,
+                alloy::primitives::ruint::ParseError::InvalidDigit('\0'),
+            ));
+        }
+        U256::from_str_radix(hex_digits, 16)
+            .map_err(|e| SqliteWebError::invalid_block_number(block_number_str, e))?
+    } else {
+        U256::from_str_radix(block_number_str, 10)
+            .map_err(|e| SqliteWebError::invalid_block_number(block_number_str, e))?
+    };
+
     Ok(block_u256.to::<u64>())
 }
 
@@ -302,12 +313,25 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_block_number_invalid_hex() {
+    fn test_extract_block_number_decimal() {
         let event = json!({
             "blockNumber": "123"
         });
         assert_eq!(extract_block_number(&event).unwrap(), 123);
 
+        let event = json!({
+            "blockNumber": "0"
+        });
+        assert_eq!(extract_block_number(&event).unwrap(), 0);
+
+        let event = json!({
+            "blockNumber": "999999"
+        });
+        assert_eq!(extract_block_number(&event).unwrap(), 999999);
+    }
+
+    #[test]
+    fn test_extract_block_number_invalid() {
         let event = json!({
             "blockNumber": "invalid"
         });
@@ -316,7 +340,7 @@ mod tests {
         let event = json!({
             "blockNumber": "0x"
         });
-        assert_eq!(extract_block_number(&event).unwrap(), 0);
+        assert!(extract_block_number(&event).is_err());
 
         let event = json!({
             "blockNumber": "hello0x123"
@@ -325,6 +349,21 @@ mod tests {
 
         let event = json!({
             "blockNumber": "not_a_number"
+        });
+        assert!(extract_block_number(&event).is_err());
+
+        let event = json!({
+            "blockNumber": "0xGHI"
+        });
+        assert!(extract_block_number(&event).is_err());
+
+        let event = json!({
+            "blockNumber": "12.5"
+        });
+        assert!(extract_block_number(&event).is_err());
+
+        let event = json!({
+            "blockNumber": "-123"
         });
         assert!(extract_block_number(&event).is_err());
     }
@@ -1118,10 +1157,10 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fetch_events_with_config_chunk_boundary_edge_cases() {
+    async fn test_fetch_events() {
         let server = MockServer::start();
 
-        let _single_block_mock = server.mock(|when, then| {
+        let logs_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .json_body_partial(r#"{"method":"eth_getLogs"}"#);
@@ -1139,6 +1178,15 @@ mod tests {
                 );
         });
 
+        let block_mock = server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64","timestamp":"0x123456"}}"#);
+        });
+
         let client = HyperRpcClient::new(8453).unwrap();
         let mut db = SqliteWeb::new_with_client(client);
         db.client_mut().update_rpc_url(server.base_url());
@@ -1154,6 +1202,8 @@ mod tests {
             )
             .await;
 
+        logs_mock.assert_hits(1);
+        block_mock.assert_hits(1);
         assert!(result.is_ok());
         let events = result.unwrap();
         assert_eq!(events.as_array().unwrap().len(), 1);
@@ -1163,7 +1213,7 @@ mod tests {
     async fn test_fetch_events_with_config_chunk_size_one() {
         let server = MockServer::start();
 
-        server.mock(|when, then| {
+        let logs_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/")
                 .json_body_partial(r#"{"method":"eth_getLogs"}"#);
@@ -1174,6 +1224,15 @@ mod tests {
                     {"blockNumber": "0x6", "transactionHash": "0x222", "logIndex": "0x0", "data": "0x2"},
                     {"blockNumber": "0x7", "transactionHash": "0x333", "logIndex": "0x0", "data": "0x3"}
                 ]}"#);
+        });
+
+        let block_mock = server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .json_body_partial(r#"{"method":"eth_getBlockByNumber"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x5","timestamp":"0x123456"}}"#);
         });
 
         let client = HyperRpcClient::new(8453).unwrap();
@@ -1189,6 +1248,8 @@ mod tests {
             .fetch_events_with_config("0x742d35Cc6634C0532925a3b8c17600000000000", 5, 7, &config)
             .await;
 
+        logs_mock.assert_hits(3);
+        block_mock.assert_hits(3);
         assert!(result.is_ok());
         let events = result.unwrap();
         let events_array = events.as_array().unwrap();
