@@ -31,8 +31,9 @@ impl Default for FetchConfig {
 }
 
 #[derive(Debug, Deserialize)]
-struct RpcResponse<T> {
+struct RpcEnvelope<T> {
     result: Option<T>,
+    error: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -108,9 +109,16 @@ impl SqliteWeb {
                     )
                     .await?;
 
-                    let rpc_response: RpcResponse<Vec<serde_json::Value>> =
+                    let rpc_envelope: RpcEnvelope<Vec<serde_json::Value>> =
                         serde_json::from_str(&response)?;
-                    Ok::<_, SqliteWebError>(rpc_response.result.unwrap_or_default())
+
+                    if let Some(error) = rpc_envelope.error {
+                        return Err(SqliteWebError::Rpc(HyperRpcError::RpcError {
+                            message: error.to_string(),
+                        }));
+                    }
+
+                    Ok::<_, SqliteWebError>(rpc_envelope.result.unwrap_or_default())
                 }
             })
             .buffer_unordered(config.max_concurrent_requests)
@@ -155,10 +163,17 @@ impl SqliteWeb {
                         )
                         .await?;
 
-                        let rpc_response: RpcResponse<BlockResponse> =
+                        let rpc_envelope: RpcEnvelope<BlockResponse> =
                             serde_json::from_str(&block_response)?;
+
+                        if let Some(error) = rpc_envelope.error {
+                            return Err(SqliteWebError::Rpc(HyperRpcError::RpcError {
+                                message: error.to_string(),
+                            }));
+                        }
+
                         let block_data =
-                            rpc_response
+                            rpc_envelope
                                 .result
                                 .ok_or_else(|| SqliteWebError::MissingField {
                                     field: "result".to_string(),
