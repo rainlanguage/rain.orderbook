@@ -32,7 +32,7 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'vercel-preview')
     runs-on: ubuntu-latest
     permissions:
-       contents: read
+      contents: read
     env:
       COMMIT_SHA: ${{ github.sha }}
     environment: vercel-preview
@@ -73,6 +73,7 @@ jobs:
           npm install --no-audit --no-fund --no-save --ignore-scripts --prefix "$VERCEL_DIR" vercel@33.4.1
           echo "VERCEL_BIN=$VERCEL_DIR/node_modules/.bin/vercel" >> "$GITHUB_ENV"
           test -x "$VERCEL_DIR/node_modules/.bin/vercel"
+      - name: Pull Vercel Environment Information
         shell: bash --noprofile --norc -euo pipefail {0}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID_PREVIEWS }}
