@@ -143,7 +143,7 @@ impl HyperRpcClient {
     }
 
     #[cfg(test)]
-    fn update_rpc_url(&mut self, new_url: String) {
+    pub(crate) fn update_rpc_url(&mut self, new_url: String) {
         self.rpc_url = new_url;
     }
 }
