@@ -176,9 +176,6 @@ pub enum HyperRpcError {
     #[error("RPC error: {message}")]
     RpcError { message: String },
 
-    #[error("JSON parsing failed: {0}")]
-    JsonError(#[from] serde_json::Error),
-
     #[error("Missing expected field: {field}")]
     MissingField { field: String },
 
