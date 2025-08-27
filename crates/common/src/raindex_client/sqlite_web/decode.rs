@@ -394,7 +394,7 @@ mod test_helpers {
         OrderBook::MetaV1_2,
     };
 
-    pub fn create_sample_order_v4() -> OrderV4 {
+    fn create_sample_order_v4() -> OrderV4 {
         OrderV4 {
             owner: Address::from([1u8; 20]),
             nonce: U256::from(1).into(),
@@ -420,7 +420,7 @@ mod test_helpers {
         }
     }
 
-    pub fn create_add_order_v3_event_data() -> serde_json::Value {
+    fn create_add_order_v3_event_data() -> serde_json::Value {
         let sender = Address::from([7u8; 20]);
         let order_hash = FixedBytes::<32>::from([8u8; 32]);
         let order = create_sample_order_v4();
@@ -443,7 +443,7 @@ mod test_helpers {
         })
     }
 
-    pub fn create_take_order_v3_event_data() -> serde_json::Value {
+    fn create_take_order_v3_event_data() -> serde_json::Value {
         let sender = Address::from([9u8; 20]);
         let config = TakeOrderConfigV4 {
             order: create_sample_order_v4(),
@@ -477,7 +477,7 @@ mod test_helpers {
         })
     }
 
-    pub fn create_withdraw_v2_event_data() -> serde_json::Value {
+    fn create_withdraw_v2_event_data() -> serde_json::Value {
         let sender = Address::from([11u8; 20]);
         let token = Address::from([12u8; 20]);
         let vault_id = U256::from(500);
@@ -506,7 +506,7 @@ mod test_helpers {
         })
     }
 
-    pub fn create_deposit_v2_event_data() -> serde_json::Value {
+    fn create_deposit_v2_event_data() -> serde_json::Value {
         let sender = Address::from([13u8; 20]);
         let token = Address::from([14u8; 20]);
         let vault_id = U256::from(600);
@@ -531,7 +531,7 @@ mod test_helpers {
         })
     }
 
-    pub fn create_remove_order_v3_event_data() -> serde_json::Value {
+    fn create_remove_order_v3_event_data() -> serde_json::Value {
         let sender = Address::from([15u8; 20]);
         let order_hash = FixedBytes::<32>::from([16u8; 32]);
         let order = create_sample_order_v4();
@@ -554,7 +554,7 @@ mod test_helpers {
         })
     }
 
-    pub fn create_clear_v3_event_data() -> serde_json::Value {
+    fn create_clear_v3_event_data() -> serde_json::Value {
         let sender = Address::from([17u8; 20]);
         let alice_order = create_sample_order_v4();
         let bob_order = OrderV4 {
@@ -602,7 +602,7 @@ mod test_helpers {
         })
     }
 
-    pub fn create_after_clear_v2_event_data() -> serde_json::Value {
+    fn create_after_clear_v2_event_data() -> serde_json::Value {
         let sender = Address::from([23u8; 20]);
         let clear_state_change = ClearStateChangeV2 {
             aliceInput: U256::from(5000).into(),
@@ -628,7 +628,7 @@ mod test_helpers {
         })
     }
 
-    pub fn create_meta_v1_2_event_data() -> serde_json::Value {
+    fn create_meta_v1_2_event_data() -> serde_json::Value {
         let sender = Address::from([24u8; 20]);
         let subject = Address::from([25u8; 20]);
         let meta = Bytes::from(vec![0x09, 0x0a, 0x0b, 0x0c, 0x0d]);
