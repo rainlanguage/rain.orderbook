@@ -124,17 +124,27 @@ CREATE TABLE meta_events (
     meta BLOB NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );
-CREATE INDEX idx_deposits_sender_token ON deposits(sender, token);
 CREATE INDEX idx_deposits_vault ON deposits(sender, token, vault_id);
 CREATE INDEX idx_deposits_block ON deposits(block_number);
+CREATE INDEX idx_deposits_token ON deposits(token);
 
-CREATE INDEX idx_withdrawals_sender_token ON withdrawals(sender, token);
+CREATE INDEX idx_withdrawals_vault ON withdrawals(sender, token, vault_id);
 CREATE INDEX idx_withdrawals_block ON withdrawals(block_number);
+CREATE INDEX idx_withdrawals_token ON withdrawals(token);
 
 CREATE INDEX idx_order_events_hash ON order_events(order_hash);
 CREATE INDEX idx_order_events_owner ON order_events(order_owner);
 CREATE INDEX idx_order_events_block ON order_events(block_number);
 
-CREATE INDEX idx_take_orders_sender ON take_orders(sender);
+CREATE INDEX idx_order_ios_token ON order_ios(token);
+
+CREATE INDEX idx_take_orders_owner ON take_orders(order_owner);
+CREATE INDEX idx_take_orders_block ON take_orders(block_number);
 
 CREATE INDEX idx_clear_events_alice_bob ON clear_v3_events(alice_order_hash, bob_order_hash);
+CREATE INDEX idx_clear_events_block ON clear_v3_events(block_number);
+
+CREATE INDEX idx_after_clear_block ON after_clear_v2_events(block_number);
+
+CREATE INDEX idx_meta_subject ON meta_events(subject);
+CREATE INDEX idx_meta_block ON meta_events(block_number);
