@@ -7,18 +7,18 @@
 	import { useGui } from '$lib/hooks/useGui';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import TokenSelectionModal from './TokenSelectionModal.svelte';
+	import TokenBalanceComponent from './TokenBalance.svelte';
+	import type { TokenBalance } from '$lib/types/tokenBalance';
 
 	export let token: GuiSelectTokensCfg;
-	export let onSelectTokenSelect: () => void;
-	export let availableTokens: TokenInfo[] = [];
-	export let loading: boolean = false;
+	export let onSelectTokenSelect: (key: string) => void;
+	export let tokenBalances: Map<string, TokenBalance> = new Map();
 
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
 	let selectionMode: 'dropdown' | 'custom' = 'dropdown';
-	let searchQuery: string = '';
 	let selectedToken: TokenInfo | null = null;
 
 	const gui = useGui();
@@ -30,27 +30,16 @@
 				throw new Error(result.error.msg);
 			}
 			tokenInfo = result.value;
-			if (result.value?.address) {
+			if (result.value.address) {
 				inputValue = result.value.address;
+				onSelectTokenSelect(token.key);
 			}
 		} catch {
 			// do nothing
 		}
 	});
 
-	$: if (tokenInfo?.address && availableTokens.length > 0) {
-		const foundToken = availableTokens.find(
-			(t) => t.address.toLowerCase() === tokenInfo?.address.toLowerCase()
-		);
-		selectedToken = foundToken || null;
-
-		if (inputValue === null) {
-			inputValue = tokenInfo.address;
-		}
-		if (!foundToken && selectionMode === 'dropdown') {
-			selectionMode = 'custom';
-		}
-	} else if (tokenInfo?.address && inputValue === null) {
+	$: if (tokenInfo?.address && inputValue === null) {
 		inputValue = tokenInfo.address;
 	}
 
@@ -58,26 +47,7 @@
 		selectionMode = mode;
 		error = '';
 
-		if (mode === 'dropdown') {
-			searchQuery = '';
-			if (inputValue && tokenInfo) {
-				const foundToken = availableTokens.find(
-					(t) => t.address.toLowerCase() === inputValue?.toLowerCase()
-				);
-				if (foundToken) {
-					selectedToken = foundToken;
-				} else {
-					inputValue = null;
-					tokenInfo = null;
-					selectedToken = null;
-					clearTokenSelection();
-				}
-			} else {
-				inputValue = null;
-				tokenInfo = null;
-				selectedToken = null;
-			}
-		} else if (mode === 'custom') {
+		if (mode === 'custom') {
 			selectedToken = null;
 			tokenInfo = null;
 			inputValue = '';
@@ -92,10 +62,6 @@
 		saveTokenSelection(token.address);
 	}
 
-	function handleSearch(query: string) {
-		searchQuery = query;
-	}
-
 	async function saveTokenSelection(address: string) {
 		checking = true;
 		error = '';
@@ -107,13 +73,13 @@
 			error = errorMessage;
 		} finally {
 			checking = false;
-			onSelectTokenSelect();
+			onSelectTokenSelect(token.key);
 		}
 	}
 
 	function clearTokenSelection() {
 		gui.unsetSelectToken(token.key);
-		onSelectTokenSelect();
+		onSelectTokenSelect(token.key);
 	}
 
 	async function getInfoForSelectedToken() {
@@ -170,34 +136,26 @@
 		{/if}
 	</div>
 
-	{#if availableTokens.length > 0 && !loading}
-		<div class="selection-mode flex gap-2">
-			<ButtonSelectOption
-				active={selectionMode === 'dropdown'}
-				buttonText="Select from list"
-				clickHandler={() => setMode('dropdown')}
-				dataTestId="dropdown-mode-button"
-			/>
-			<ButtonSelectOption
-				active={selectionMode === 'custom'}
-				buttonText="Custom address"
-				clickHandler={() => setMode('custom')}
-				dataTestId="custom-mode-button"
-			/>
-		</div>
-	{/if}
-
-	{#if selectionMode === 'dropdown' && availableTokens.length > 0 && !loading}
-		<TokenSelectionModal
-			tokens={availableTokens}
-			{selectedToken}
-			onSelect={handleTokenSelect}
-			searchValue={searchQuery}
-			onSearch={handleSearch}
+	<div class="selection-mode flex gap-2">
+		<ButtonSelectOption
+			active={selectionMode === 'dropdown'}
+			buttonText="Select from list"
+			clickHandler={() => setMode('dropdown')}
+			dataTestId="dropdown-mode-button"
 		/>
+		<ButtonSelectOption
+			active={selectionMode === 'custom'}
+			buttonText="Custom address"
+			clickHandler={() => setMode('custom')}
+			dataTestId="custom-mode-button"
+		/>
+	</div>
+
+	{#if selectionMode === 'dropdown'}
+		<TokenSelectionModal {selectedToken} onSelect={handleTokenSelect} />
 	{/if}
 
-	{#if selectionMode === 'custom' || availableTokens.length === 0}
+	{#if selectionMode === 'custom'}
 		<div class="custom-input">
 			<Input
 				type="text"
@@ -210,12 +168,7 @@
 	{/if}
 
 	<div class="token-status">
-		{#if loading}
-			<div class="flex h-5 flex-row items-center gap-2">
-				<Spinner class="h-5 w-5" />
-				<span>Loading tokens...</span>
-			</div>
-		{:else if checking}
+		{#if checking}
 			<div class="flex h-5 flex-row items-center gap-2">
 				<Spinner class="h-5 w-5" />
 				<span>Checking...</span>
@@ -227,6 +180,7 @@
 			>
 				<CheckCircleSolid class="h-5 w-5" color="green" />
 				<span>{tokenInfo.name}</span>
+				<TokenBalanceComponent tokenBalance={tokenBalances.get(token.key)} />
 			</div>
 		{:else if error}
 			<div class="flex h-5 flex-row items-center gap-2" data-testid="error">

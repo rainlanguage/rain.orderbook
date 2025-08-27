@@ -1,15 +1,22 @@
 use super::*;
 use alloy::{
-    primitives::private::rand,
-    primitives::{utils::parse_units, Bytes, U256},
+    primitives::{Bytes, B256, U256},
     sol_types::SolCall,
 };
-use rain_orderbook_app_settings::{order::OrderIOCfg, orderbook::OrderbookCfg};
-use rain_orderbook_bindings::OrderBook::multicallCall;
-use rain_orderbook_common::{
-    add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
+use rain_math_float::Float;
+use rain_orderbook_app_settings::{
+    order::{OrderIOCfg, VaultType},
+    orderbook::OrderbookCfg,
 };
+use rain_orderbook_bindings::{
+    IOrderBookV5::deposit3Call, OrderBook::multicallCall, IERC20::approveCall,
+};
+use rain_orderbook_common::{
+    add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
+};
+use std::ops::Sub;
 use std::{collections::HashMap, str::FromStr, sync::Arc};
+use url::Url;
 
 pub enum CalldataFunction {
     Allowance,
@@ -18,17 +25,15 @@ pub enum CalldataFunction {
     DepositAndAddOrder,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct TokenAllowance {
     #[tsify(type = "string")]
     token: Address,
     #[tsify(type = "string")]
     allowance: U256,
 }
-impl_wasm_traits!(TokenAllowance);
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct AllowancesResult(Vec<TokenAllowance>);
 impl_wasm_traits!(AllowancesResult);
 
@@ -42,26 +47,27 @@ impl_wasm_traits!(ApprovalCalldataResult);
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub enum DepositCalldataResult {
     NoDeposits,
-    Calldatas(#[tsify(type = "string[]")] Vec<Bytes>),
+    Calldatas(#[tsify(type = "Hex[]")] Vec<Bytes>),
 }
 impl_wasm_traits!(DepositCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct AddOrderCalldataResult(#[tsify(type = "string")] Bytes);
+pub struct AddOrderCalldataResult(#[tsify(type = "Hex")] Bytes);
 impl_wasm_traits!(AddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DepositAndAddOrderCalldataResult(#[tsify(type = "string")] Bytes);
+pub struct DepositAndAddOrderCalldataResult(#[tsify(type = "Hex")] Bytes);
 impl_wasm_traits!(DepositAndAddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct IOVaultIds(
-    #[tsify(type = "Map<string, (string | undefined)[]>")] pub HashMap<String, Vec<Option<U256>>>,
+    #[tsify(type = "Map<string, Map<string, string | undefined>>")]
+    pub  HashMap<String, HashMap<String, Option<U256>>>,
 );
 impl_wasm_traits!(IOVaultIds);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct WithdrawCalldataResult(#[tsify(type = "string[]")] Vec<Bytes>);
+pub struct WithdrawCalldataResult(#[tsify(type = "Hex[]")] Vec<Bytes>);
 impl_wasm_traits!(WithdrawCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -91,7 +97,7 @@ impl_wasm_traits!(DeploymentTransactionArgs);
 pub struct ApprovalCalldata {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub token: Address,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "Hex"))]
     pub calldata: Bytes,
 }
 #[cfg(target_family = "wasm")]
@@ -100,7 +106,7 @@ impl_wasm_traits!(ApprovalCalldata);
 #[derive(Debug)]
 pub struct VaultAndDeposit {
     pub order_io: OrderIOCfg,
-    pub deposit_amount: U256,
+    pub deposit_amount: Float,
     pub index: usize,
 }
 
@@ -134,11 +140,11 @@ impl DotrainOrderGui {
         })
     }
 
-    async fn get_deposits_as_map(&self) -> Result<HashMap<Address, U256>, GuiError> {
-        let mut map: HashMap<Address, U256> = HashMap::new();
+    async fn get_deposits_as_map(&self) -> Result<HashMap<Address, Float>, GuiError> {
+        let mut map: HashMap<Address, Float> = HashMap::new();
         for d in self.get_deposits()? {
             let token_info = self.get_token_info(d.token.clone()).await?;
-            let amount = parse_units(&d.amount, token_info.decimals)?.into();
+            let amount = Float::parse(d.amount)?;
             map.insert(token_info.address, amount);
         }
         Ok(map)
@@ -240,28 +246,32 @@ impl DotrainOrderGui {
 
         let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
 
+        let owner = Address::from_str(&owner)?;
+
         let mut results = Vec::new();
         for VaultAndDeposit {
             order_io,
-            deposit_amount,
+            deposit_amount: _,
             index: _,
         } in vaults_and_deposits
         {
-            let allowance = self
-                .check_allowance(
-                    &DepositArgs {
-                        token: order_io
-                            .token
-                            .as_ref()
-                            .ok_or(GuiError::SelectTokensNotSet)?
-                            .address,
-                        vault_id: rand::random(),
-                        amount: deposit_amount,
-                    },
-                    &owner,
-                )
-                .await?;
-            results.push(allowance);
+            let tx_args = self.get_transaction_args()?;
+            let rpcs = tx_args
+                .rpcs
+                .iter()
+                .map(|rpc| Url::parse(rpc))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let token = order_io
+                .token
+                .as_ref()
+                .ok_or(GuiError::SelectTokensNotSet)?
+                .address;
+
+            let erc20 = ERC20::new(rpcs, token);
+            let allowance = erc20.allowance(owner, tx_args.orderbook_address).await?;
+
+            results.push(TokenAllowance { token, allowance });
         }
 
         Ok(AllowancesResult(results))
@@ -308,24 +318,39 @@ impl DotrainOrderGui {
         let mut calldatas = Vec::new();
 
         for (token_address, deposit_amount) in &deposits_map {
+            let tx_args = self.get_transaction_args()?;
+            let rpcs = tx_args
+                .rpcs
+                .iter()
+                .map(|rpc| Url::parse(rpc))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let erc20 = ERC20::new(rpcs, *token_address);
+            let decimals = erc20.decimals().await?;
+
             let deposit_args = DepositArgs {
                 token: *token_address,
                 amount: *deposit_amount,
-                vault_id: U256::default(),
+                decimals,
+                vault_id: B256::ZERO,
             };
 
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
+            let allowance_float = Float::from_fixed_decimal(token_allowance.allowance, decimals)?;
 
-            if token_allowance.allowance < *deposit_amount {
-                let approve_call = deposit_args
-                    .get_approve_calldata(self.get_transaction_args()?)
-                    .await;
-                if let Ok(approve_call) = approve_call {
-                    calldatas.push(ApprovalCalldata {
-                        token: *token_address,
-                        calldata: Bytes::copy_from_slice(&approve_call),
-                    });
+            if allowance_float.lt(*deposit_amount)? {
+                let calldata = approveCall {
+                    spender: tx_args.orderbook_address,
+                    amount: deposit_amount
+                        .sub(allowance_float)?
+                        .to_fixed_decimal(decimals)?,
                 }
+                .abi_encode();
+
+                calldatas.push(ApprovalCalldata {
+                    token: *token_address,
+                    calldata: Bytes::copy_from_slice(&calldata),
+                });
             }
         }
 
@@ -394,6 +419,10 @@ impl DotrainOrderGui {
             index,
         } in vaults_and_deposits
         {
+            if deposit_amount.eq(Float::parse("0".to_string())?)? {
+                continue;
+            }
+
             let token = order_io
                 .token
                 .as_ref()
@@ -402,16 +431,28 @@ impl DotrainOrderGui {
                 .vault_id
                 .ok_or(GuiError::VaultIdNotFound(index.to_string()))?;
 
-            if deposit_amount == U256::ZERO {
-                continue;
-            }
+            let decimals = if let Some(decimals) = token.decimals {
+                decimals
+            } else {
+                let tx_args = self.get_transaction_args()?;
+                let rpcs = tx_args
+                    .rpcs
+                    .iter()
+                    .map(|rpc| Url::parse(rpc))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let erc20 = ERC20::new(rpcs, token.address);
+                erc20.decimals().await?
+            };
 
             let deposit_args = DepositArgs {
                 token: token.address,
                 amount: deposit_amount,
-                vault_id,
+                vault_id: vault_id.into(),
+                decimals,
             };
-            let calldata = deposit_args.get_deposit_calldata().await?;
+            let calldata = deposit3Call::try_from(deposit_args)
+                .map_err(rain_orderbook_common::deposit::DepositError::from)?
+                .abi_encode();
             calldatas.push(Bytes::copy_from_slice(&calldata));
         }
 
@@ -517,29 +558,31 @@ impl DotrainOrderGui {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result1 = gui.setVaultId(true, 0, "42");
+    /// const result1 = gui.setVaultId("input", "token1", "42");
     /// if (result1.error) {
     ///   console.error("Error:", result1.error.readableMsg);
     ///   return;
     /// }
-    /// const result2 = gui.setVaultId(false, 0, "43");
-    /// const result3 = gui.setVaultId(false, 0, undefined);
+    /// const result2 = gui.setVaultId("output", "token2", "43");
+    /// const result3 = gui.setVaultId("output", "token2", undefined);
     /// ```
     #[wasm_export(js_name = "setVaultId", unchecked_return_type = "void")]
     pub fn set_vault_id(
         &mut self,
-        #[wasm_export(param_description = "True for input vaults, false for output vaults")]
-        is_input: bool,
-        #[wasm_export(param_description = "Zero-based index in the inputs/outputs array")]
-        index: u8,
-        #[wasm_export(param_description = "Vault ID number as string, or None to clear")]
+        #[wasm_export(param_description = "Vault type: 'input' or 'output'")] r#type: VaultType,
+        #[wasm_export(param_description = "Token key to identify which token to set vault for")]
+        token: String,
+        #[wasm_export(
+            js_name = "vaultId",
+            param_description = "Vault ID number as string. Omit to clear vault ID"
+        )]
         vault_id: Option<String>,
     ) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
         self.dotrain_order
             .dotrain_yaml()
             .get_order(&deployment.deployment.order.key)?
-            .update_vault_id(is_input, index, vault_id)?;
+            .update_vault_id(r#type, token, vault_id)?;
 
         self.execute_state_update_callback()?;
         Ok(())
@@ -547,8 +590,8 @@ impl DotrainOrderGui {
 
     /// Gets all configured vault IDs for inputs and outputs.
     ///
-    /// Returns the current vault ID configuration showing which vaults are
-    /// assigned to each input and output token position.
+    /// Returns a map with 'input' and 'output' keys, where each value is a map
+    /// of token keys to their configured vault IDs (or undefined if not set).
     ///
     /// ## Examples
     ///
@@ -559,41 +602,47 @@ impl DotrainOrderGui {
     ///   return;
     /// }
     ///
-    /// // key is either 'input' or 'output'
-    /// // value is either undefined or the vault ID
-    /// for (const [key, value] of result.value) {
-    ///   console.log("Key:", key);
-    ///   console.log("Value:", value);
+    /// // Access input token vault IDs
+    /// for (const [tokenKey, vaultId] of result.value.get('input')) {
+    ///   console.log(`Input token ${tokenKey} uses vault ${vaultId || 'none'}`);
+    /// }
+    ///
+    /// // Access output token vault IDs
+    /// for (const [tokenKey, vaultId] of result.value.get('output')) {
+    ///   console.log(`Output token ${tokenKey} uses vault ${vaultId || 'none'}`);
     /// }
     /// ```
     #[wasm_export(
         js_name = "getVaultIds",
         unchecked_return_type = "IOVaultIds",
-        return_description = "Map with 'input' and 'output' arrays of vault IDs"
+        return_description = "Map with 'input' and 'output' keys containing token-to-vault-ID maps"
     )]
     pub fn get_vault_ids(&self) -> Result<IOVaultIds, GuiError> {
         let deployment = self.get_current_deployment()?;
+
+        let mut input_map = HashMap::new();
+        for input in deployment.deployment.order.inputs.iter() {
+            let token_key = input
+                .token
+                .as_ref()
+                .map(|t| t.key.clone())
+                .ok_or(GuiError::SelectTokensNotSet)?;
+            input_map.insert(token_key, input.vault_id);
+        }
+
+        let mut output_map = HashMap::new();
+        for output in deployment.deployment.order.outputs.iter() {
+            let token_key = output
+                .token
+                .as_ref()
+                .map(|t| t.key.clone())
+                .ok_or(GuiError::SelectTokensNotSet)?;
+            output_map.insert(token_key, output.vault_id);
+        }
+
         let map = HashMap::from([
-            (
-                "input".to_string(),
-                deployment
-                    .deployment
-                    .order
-                    .inputs
-                    .iter()
-                    .map(|input| input.vault_id)
-                    .collect(),
-            ),
-            (
-                "output".to_string(),
-                deployment
-                    .deployment
-                    .order
-                    .outputs
-                    .iter()
-                    .map(|output| output.vault_id)
-                    .collect(),
-            ),
+            ("input".to_string(), input_map),
+            ("output".to_string(), output_map),
         ]);
         Ok(IOVaultIds(map))
     }
@@ -622,7 +671,10 @@ impl DotrainOrderGui {
     )]
     pub fn has_any_vault_id(&self) -> Result<bool, GuiError> {
         let map = self.get_vault_ids()?;
-        Ok(map.0.values().any(|ids| ids.iter().any(|id| id.is_some())))
+        Ok(map
+            .0
+            .values()
+            .any(|token_map| token_map.values().any(|vault_id| vault_id.is_some())))
     }
 
     #[wasm_export(skip)]
@@ -740,6 +792,7 @@ mod tests {
         }
 
         gui.set_deposit("token1".to_string(), "1200".to_string())
+            .await
             .unwrap();
 
         let res = gui.generate_deposit_calldatas().await.unwrap();
@@ -754,6 +807,7 @@ mod tests {
         }
 
         gui.set_deposit("token1".to_string(), "0".to_string())
+            .await
             .unwrap();
 
         let res = gui.generate_deposit_calldatas().await.unwrap();
@@ -851,30 +905,45 @@ mod tests {
         let gui = initialize_gui(None).await;
         let res = gui.get_vault_ids().unwrap();
         assert_eq!(res.0.len(), 2);
-        assert_eq!(res.0["input"][0], Some(U256::from(1)));
-        assert_eq!(res.0["output"][0], Some(U256::from(1)));
+        assert_eq!(res.0["input"]["token1"], Some(U256::from(1)));
+        assert_eq!(res.0["output"]["token2"], Some(U256::from(1)));
 
         let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
 
         let res = gui.get_vault_ids().unwrap();
         assert_eq!(res.0.len(), 2);
-        assert_eq!(res.0["input"][0], None);
-        assert_eq!(res.0["output"][0], None);
+        assert_eq!(res.0["input"]["token1"], None);
+        assert_eq!(res.0["output"]["token1"], None);
 
-        gui.set_vault_id(true, 0, Some("999".to_string())).unwrap();
-        gui.set_vault_id(false, 0, Some("888".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("999".to_string()),
+        )
+        .unwrap();
+        gui.set_vault_id(
+            VaultType::Output,
+            "token1".to_string(),
+            Some("888".to_string()),
+        )
+        .unwrap();
 
         let res = gui.get_vault_ids().unwrap();
         assert_eq!(res.0.len(), 2);
-        assert_eq!(res.0["input"][0], Some(U256::from(999)));
-        assert_eq!(res.0["output"][0], Some(U256::from(888)));
+        assert_eq!(res.0["input"]["token1"], Some(U256::from(999)));
+        assert_eq!(res.0["output"]["token1"], Some(U256::from(888)));
     }
 
     #[wasm_bindgen_test]
     async fn test_has_any_vault_id() {
         let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
         assert!(!gui.has_any_vault_id().unwrap());
-        gui.set_vault_id(true, 0, Some("1".to_string())).unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("1".to_string()),
+        )
+        .unwrap();
         assert!(gui.has_any_vault_id().unwrap());
     }
 

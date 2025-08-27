@@ -2,29 +2,39 @@
 	import { Input, Button, Modal } from 'flowbite-svelte';
 	import { SearchOutline, CheckCircleSolid, ChevronDownSolid } from 'flowbite-svelte-icons';
 	import type { TokenInfo } from '@rainlanguage/orderbook';
+	import { useGui } from '$lib/hooks/useGui';
+	import { onMount, tick } from 'svelte';
 
-	export let tokens: TokenInfo[] = [];
 	export let selectedToken: TokenInfo | null = null;
 	export let onSelect: (token: TokenInfo) => void;
-	export let searchValue: string = '';
-	export let onSearch: (query: string) => void;
 
 	let modalOpen = false;
+	let searchQuery = '';
+	let tokens: TokenInfo[] = [];
+	let isSearching = false;
 
-	$: filteredTokens = tokens.filter((token) => {
-		if (!searchValue) return true;
-		const query = searchValue.toLowerCase();
-		return (
-			token.name.toLowerCase().includes(query) ||
-			token.symbol.toLowerCase().includes(query) ||
-			token.address.toLowerCase().includes(query)
-		);
-	});
+	const gui = useGui();
+
+	async function loadTokens(search?: string) {
+		isSearching = true;
+
+		const result = await gui.getAllTokens(search);
+		if (result.error) {
+			tokens = [];
+		} else {
+			tokens = result.value;
+		}
+
+		isSearching = false;
+	}
 
 	function handleSearch(event: Event) {
 		const target = event.target as HTMLInputElement;
-		onSearch(target.value);
+		searchQuery = target.value;
+		loadTokens(searchQuery || undefined);
 	}
+
+	onMount(() => loadTokens());
 
 	function formatAddress(address: string): string {
 		return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -38,6 +48,15 @@
 	$: displayText = selectedToken
 		? `${selectedToken.name} (${selectedToken.symbol})`
 		: 'Select a token...';
+
+	$: if (modalOpen) {
+		tick().then(() => {
+			const input = document.querySelector('.token-search-input') as HTMLInputElement;
+			if (input) {
+				input.focus();
+			}
+		});
+	}
 </script>
 
 <div class="token-dropdown">
@@ -65,50 +84,59 @@
 				<Input
 					type="text"
 					placeholder="Search tokens..."
-					bind:value={searchValue}
+					bind:value={searchQuery}
 					on:input={handleSearch}
-					class="pl-10"
+					class="token-search-input pl-10"
 				/>
 			</div>
 
 			<div class="token-list max-h-80 overflow-y-auto">
-				{#each filteredTokens as token (token.address)}
-					<div
-						class="token-item flex cursor-pointer items-center border-b border-gray-100 p-3 last:border-b-0 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
-						class:bg-blue-50={selectedToken?.address === token.address}
-						class:dark:bg-blue-900={selectedToken?.address === token.address}
-						class:border-l-4={selectedToken?.address === token.address}
-						class:border-l-blue-500={selectedToken?.address === token.address}
-						on:click={() => handleTokenSelect(token)}
-						on:keydown={(e) => e.key === 'Enter' && handleTokenSelect(token)}
-						role="button"
-						tabindex="0"
-					>
-						<div class="token-info flex-grow">
-							<div class="token-name font-medium text-gray-900 dark:text-white">
-								{token.name}
-							</div>
-							<div class="token-details flex gap-2 text-sm text-gray-500 dark:text-gray-400">
-								<span class="symbol font-medium">{token.symbol}</span>
-								<span class="address">{formatAddress(token.address)}</span>
-							</div>
-						</div>
-						{#if selectedToken?.address === token.address}
-							<CheckCircleSolid class="selected-icon h-5 w-5 text-green-500" />
-						{/if}
+				{#if isSearching}
+					<div class="p-4 text-center text-gray-500 dark:text-gray-400">
+						<p>Searching tokens...</p>
 					</div>
-				{/each}
-
-				{#if filteredTokens.length === 0}
-					<div class="no-results p-4 text-center text-gray-500 dark:text-gray-400">
-						<p>No tokens found matching your search.</p>
-						<button
-							class="mt-2 text-blue-600 underline hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-							on:click={() => onSearch('')}
+				{:else}
+					{#each tokens as token (token.address)}
+						<div
+							class="token-item flex cursor-pointer items-center border-b border-gray-100 p-3 last:border-b-0 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+							class:bg-blue-50={selectedToken?.address === token.address}
+							class:dark:bg-blue-900={selectedToken?.address === token.address}
+							class:border-l-4={selectedToken?.address === token.address}
+							class:border-l-blue-500={selectedToken?.address === token.address}
+							on:click={() => handleTokenSelect(token)}
+							on:keydown={(e) => e.key === 'Enter' && handleTokenSelect(token)}
+							role="button"
+							tabindex="0"
 						>
-							Clear search
-						</button>
-					</div>
+							<div class="token-info flex-grow">
+								<div class="token-name font-medium text-gray-900 dark:text-white">
+									{token.name}
+								</div>
+								<div class="token-details flex gap-2 text-sm text-gray-500 dark:text-gray-400">
+									<span class="symbol font-medium">{token.symbol}</span>
+									<span class="address">{formatAddress(token.address)}</span>
+								</div>
+							</div>
+							{#if selectedToken?.address === token.address}
+								<CheckCircleSolid class="selected-icon h-5 w-5 text-green-500" />
+							{/if}
+						</div>
+					{/each}
+
+					{#if tokens.length === 0}
+						<div class="no-results p-4 text-center text-gray-500 dark:text-gray-400">
+							<p>No tokens found matching your search.</p>
+							<button
+								class="mt-2 text-blue-600 underline hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+								on:click={() => {
+									searchQuery = '';
+									loadTokens();
+								}}
+							>
+								Clear search
+							</button>
+						</div>
+					{/if}
 				{/if}
 			</div>
 		</Modal>

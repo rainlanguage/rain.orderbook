@@ -1,8 +1,8 @@
 import type { Writable } from 'svelte/store';
-import type { NewConfig } from '@rainlanguage/orderbook';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
+import { checkSettingsErrors } from './config';
 
-export type ParseConfigSourceFn = (settingsContent: string) => Promise<NewConfig>;
+export type ParseConfigSourceFn = (settingsContent: string) => Promise<void>;
 
 export interface ApplySettingsResult {
   settingsStatus: 'checking' | 'success' | 'error';
@@ -11,14 +11,11 @@ export interface ApplySettingsResult {
 
 export async function applySettings(
   settingsContent: string,
-  settingsStore: Writable<NewConfig>,
   settingsTextStore: Writable<string>,
-  parseConfigSourceFn: ParseConfigSourceFn,
 ): Promise<ApplySettingsResult> {
   try {
-    const parsedConfig = await parseConfigSourceFn(settingsContent);
+    await checkSettingsErrors([settingsContent]);
     settingsTextStore.set(settingsContent);
-    settingsStore.set(parsedConfig);
     return { settingsStatus: 'success' };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

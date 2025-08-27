@@ -105,36 +105,6 @@ impl ParseDeployerConfigSourceError {
     }
 }
 
-impl DeployerConfigSource {
-    pub fn try_into_deployer(
-        self,
-        name: String,
-        networks: &HashMap<String, Arc<NetworkCfg>>,
-    ) -> Result<DeployerCfg, ParseDeployerConfigSourceError> {
-        let network_ref = match self.network {
-            Some(network_name) => networks
-                .get(&network_name)
-                .ok_or(ParseDeployerConfigSourceError::NetworkNotFoundError(
-                    network_name.clone(),
-                ))
-                .map(Arc::clone)?,
-            None => networks
-                .get(&name)
-                .ok_or(ParseDeployerConfigSourceError::NetworkNotFoundError(
-                    name.clone(),
-                ))
-                .map(Arc::clone)?,
-        };
-
-        Ok(DeployerCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: name,
-            address: self.address,
-            network: network_ref,
-        })
-    }
-}
-
 impl YamlParsableHash for DeployerCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
@@ -210,77 +180,7 @@ impl YamlParsableHash for DeployerCfg {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::*;
     use crate::yaml::tests::get_document;
-
-    #[test]
-    fn test_try_into_deployer_success() {
-        let address = Address::repeat_byte(0x01); // Generate a random address for testing
-        let network_name = "Local Testnet";
-        let networks = HashMap::from([(network_name.to_string(), mock_network())]);
-        let deployer_string = DeployerConfigSource {
-            address,
-            network: Some(network_name.to_string()),
-            label: Some("Test Deployer".to_string()),
-        };
-
-        let result = deployer_string.try_into_deployer(network_name.to_string(), &networks);
-        assert!(result.is_ok());
-        let deployer = result.unwrap();
-        assert_eq!(deployer.address, address);
-        assert_eq!(
-            deployer.network.as_ref().label,
-            Some(network_name.to_string())
-        );
-    }
-
-    #[test]
-    fn test_try_into_deployer_network_not_found_error() {
-        let address = Address::repeat_byte(0x01);
-        let invalid_network_name = "unknownnet";
-        let networks = HashMap::new(); // Empty networks map
-        let deployer_string = DeployerConfigSource {
-            address,
-            network: Some(invalid_network_name.to_string()),
-            label: None,
-        };
-
-        let result = deployer_string.try_into_deployer(invalid_network_name.to_string(), &networks);
-        assert!(matches!(
-            result,
-            Err(ParseDeployerConfigSourceError::NetworkNotFoundError(_))
-        ));
-        let error = result.unwrap_err();
-        assert_eq!(
-            error,
-            ParseDeployerConfigSourceError::NetworkNotFoundError(invalid_network_name.to_string())
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "The network 'unknownnet' specified for this deployer was not found in your YAML configuration. Please define this network or use an existing one."
-        );
-    }
-
-    #[test]
-    fn test_try_into_deployer_no_network_specified() {
-        let address = Address::repeat_byte(0x01);
-        let network_name = "Local Testnet";
-        let networks = HashMap::from([(network_name.to_string(), mock_network())]);
-        let deployer_string = DeployerConfigSource {
-            address,
-            network: None, // No network specified
-            label: None,
-        };
-
-        // Expecting to use the network name as provided in the name parameter of try_into_deployer
-        let result = deployer_string.try_into_deployer(network_name.to_string(), &networks);
-        assert!(result.is_ok());
-        let deployer = result.unwrap();
-        assert_eq!(
-            deployer.network.as_ref().label,
-            Some(network_name.to_string())
-        );
-    }
 
     #[test]
     fn test_parse_deployers_from_yaml_multiple_files() {

@@ -1,33 +1,58 @@
+##
+## SECURITY MODEL FOR VERCEL PREVIEW DEPLOYS FOR INTERNAL BRANCHES (READ BEFORE EDITING)
+##
+## This workflow runs on non-main branch pushes in this repository (not forks):
+##  - PR-target preview deploys (for forks) are isolated in a separate workflow
+##    file and use a different Vercel org and project.
+##  - Regardless, secrets are passed only to the Vercel CLI steps (not to build/test steps).
+##  - Shell runs with 'bash --noprofile --norc -euo pipefail'.
+##  - The Vercel CLI is invoked via an absolute path stored in $VERCEL_BIN to avoid PATH hijacking.
+##
+## WARNING: Changing any of the following may break the security model:
+##  - Triggers and environment usage.
+##  - Introducing PR-controlled inputs into steps that use secrets.
+##  - Relaxing the shell/ PATH hardening, or calling 'vercel' via PATH.
+##  - Moving secrets to top-level env or earlier steps.
+## If you modify this file, re-validate these invariants.
 name: GitHub Actions Vercel Preview Deployment
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 on:
   push:
     branches-ignore:
       - main
 concurrency:
-  group: ${{ github.ref }}-vercel-preview
+  group: ${{ format('{0}-vercel-preview', github.ref) }}
   cancel-in-progress: true
-
 jobs:
-  Deploy-Preview:
+  Deploy-Preview-Push:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
     env:
       COMMIT_SHA: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: nixbuild/nix-quick-install-action@v30
         with:
-          determinate: true
-      - uses: DeterminateSystems/flakehub-cache-action@main
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          # restore and save a cache using this key
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          # if there's no cache hit, restore a cache by this prefix
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          # collect garbage until the Nix store size (in bytes) is at most this number
+          # before trying to save a new cache
+          # 1G = 1073741824
+          gc-max-store-size-linux: 1G
 
       - run: ./prep-all.sh
         env:
@@ -38,9 +63,25 @@ jobs:
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@canary
+      - name: Install Vercel CLI (local, pinned)
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          VERCEL_DIR="$(mktemp -d)"
+          npm install --no-audit --no-fund --no-save --prefix "$VERCEL_DIR" vercel@33.4.1
+          echo "VERCEL_BIN=$VERCEL_DIR/node_modules/.bin/vercel" >> "$GITHUB_ENV"
       - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          "$VERCEL_BIN" pull --yes --environment=preview --token="$VERCEL_TOKEN"
       - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} packages/webapp
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          "$VERCEL_BIN" deploy --prebuilt --token="$VERCEL_TOKEN" packages/webapp

@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -21,14 +21,15 @@
 	} from 'flowbite-svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import { getAllContexts } from 'svelte';
+
+	const context = getAllContexts();
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export let handleOrderRemoveModal: any = undefined;
 	// End of optional props
 
-	export let settings: AppStoresInterface['settings'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
-	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -65,7 +66,6 @@
 		queryKey: [
 			QKEY_ORDERS,
 			$selectedChainIds,
-			$settings,
 			owners,
 			$showInactiveOrders,
 			$orderHash,
@@ -98,8 +98,6 @@
 
 <ListViewOrderbookFilters
 	{selectedChainIds}
-	{settings}
-	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
 	{showInactiveOrders}
@@ -165,10 +163,10 @@
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
-			{item.inputs.map((t) => t.token.symbol)}
+			{item.inputsList.items.map((t) => t.token.symbol)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
-			{item.outputs.map((t) => t.token.symbol)}
+			{item.outputsList.items.map((t) => t.token.symbol)}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
 			>{item.tradesCount > 99 ? '>99' : item.tradesCount}</TableBodyCell
@@ -196,7 +194,7 @@
 						<DropdownItem
 							on:click={(e) => {
 								e.stopPropagation();
-								handleOrderRemoveModal(item, $query.refetch);
+								handleOrderRemoveModal(item, $query.refetch, context);
 							}}>Remove</DropdownItem
 						>
 					</Dropdown>

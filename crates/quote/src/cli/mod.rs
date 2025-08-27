@@ -9,7 +9,7 @@ mod input;
 pub use input::*;
 
 /// Rain orderbook Quoter CLI app entrypoint sruct
-#[derive(Parser, Debug, Clone, PartialEq)]
+#[derive(Parser, Debug, Clone)]
 #[command(author, version, about = "Rain Orderbook Quote CLI", long_about = None)]
 pub struct Quoter {
     // input group, only one of which can be specified at a time
@@ -56,7 +56,7 @@ pub struct Quoter {
 /// A serializable/deserializable struct that bridges [QuoteResult] for cli
 /// output by implementing `From` trait for it.
 /// This is is needed since [crate::error::FailedQuote] does not impl ser/deser.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "status", content = "message")]
 pub enum QuoterResultInner {
@@ -74,8 +74,8 @@ impl From<QuoteResult> for QuoterResultInner {
     }
 }
 
-/// Wrapper struct for arrya of [QuoterResultInner]
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// Wrapper struct for array of [QuoterResultInner]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct QuoterResult(pub Vec<QuoterResultInner>);
 
@@ -148,12 +148,15 @@ mod tests {
     use super::*;
     use crate::{error::FailedQuote, BatchQuoteSpec, QuoteSpec};
     use alloy::primitives::{hex::encode_prefixed, keccak256, B256, U256};
+    use alloy::providers::bindings::IMulticall3::Result as MulticallResult;
     use alloy::sol_types::{SolCall, SolValue};
-    use alloy_ethers_typecast::{multicall::IMulticall3::Result as MulticallResult, rpc::Response};
     use clap::CommandFactory;
     use httpmock::{Method::POST, MockServer};
-    use rain_orderbook_bindings::IOrderBookV4::{quoteCall, OrderV3, IO};
+    use rain_math_float::Float;
+    use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return, OrderV4, IOV2};
+    use serde_json::json;
     use std::{fs::read_to_string, str::FromStr};
+    use tempfile::NamedTempFile;
 
     #[test]
     fn verify_cli() {
@@ -203,8 +206,8 @@ mod tests {
 
         let orderbook1 = encode_prefixed(Address::random().0);
         let orderbook2 = encode_prefixed(Address::random().0);
-        let order_bytes1 = encode_prefixed(OrderV3::default().abi_encode());
-        let order_bytes2 = encode_prefixed(OrderV3::default().abi_encode());
+        let order_bytes1 = encode_prefixed(OrderV4::default().abi_encode());
+        let order_bytes2 = encode_prefixed(OrderV4::default().abi_encode());
         let input_index = U256::from(8).to_string();
         let output_index = U256::from(9).to_string();
         let cmd = Quoter::command();
@@ -291,31 +294,39 @@ mod tests {
         let rpc_response_data = vec![
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(true, U256::ZERO, U256::ZERO)).into(),
+                returnData: quote2Call::abi_encode_returns(&quote2Return {
+                    exists: true,
+                    outputMax: Float::default().get_inner(),
+                    ioRatio: Float::default().get_inner(),
+                })
+                .into(),
             },
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)).into(),
+                returnData: quote2Call::abi_encode_returns(&quote2Return {
+                    exists: false,
+                    outputMax: Float::default().get_inner(),
+                    ioRatio: Float::default().get_inner(),
+                })
+                .into(),
             },
         ]
         .abi_encode();
+
         rpc_server.mock(|when, then| {
             when.method(POST).path("/rpc");
-            then.json_body_obj(
-                &serde_json::from_str::<serde_json::Value>(
-                    &Response::new_success(1, encode_prefixed(rpc_response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(rpc_response_data).as_str(),
+            }));
         });
 
         // mock subgraph
         let orderbook = Address::random();
-        let order = OrderV3 {
-            validInputs: vec![IO::default()],
-            validOutputs: vec![IO::default()],
+        let order = OrderV4 {
+            validInputs: vec![IOV2::default()],
+            validOutputs: vec![IOV2::default()],
             ..Default::default()
         };
         let order_hash_bytes = keccak256(order.abi_encode()).0;
@@ -340,7 +351,7 @@ mod tests {
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
                             "name": "T1",
                             "symbol": "T1",
-                            "decimals": order.validOutputs[0].decimals.to_string()
+                            "decimals": "6"
                         },
                         "balance": "0",
                         "vaultId": order.validOutputs[0].vaultId.to_string(),
@@ -357,7 +368,7 @@ mod tests {
                             "address": encode_prefixed(order.validInputs[0].token.0.0),
                             "name": "T2",
                             "symbol": "T2",
-                            "decimals": order.validInputs[0].decimals.to_string()
+                            "decimals": "6"
                         },
                         "balance": "0",
                         "vaultId": order.validInputs[0].vaultId.to_string(),
@@ -420,7 +431,10 @@ mod tests {
             QuoterResultInner::Ok(OrderQuoteValue::default()),
             QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
         ]);
-        assert_eq!(result, expected);
+        assert_eq!(
+            serde_json::to_value(&result).unwrap(),
+            serde_json::to_value(&expected).unwrap()
+        );
 
         // specs input
         let specs_str = vec![
@@ -454,14 +468,18 @@ mod tests {
             QuoterResultInner::Ok(OrderQuoteValue::default()),
             QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
         ]);
-        assert_eq!(result, expected);
+        assert_eq!(
+            serde_json::to_value(&result).unwrap(),
+            serde_json::to_value(&expected).unwrap()
+        );
     }
 
     #[tokio::test]
     async fn test_run_ok_target_args() {
         let rpc_server = MockServer::start_async().await;
         let rpc_url = rpc_server.url("/rpc");
-        let test_path = std::env::current_dir().unwrap().join("test-result.json");
+        let test_file = NamedTempFile::new().unwrap();
+        let test_path = test_file.path().to_path_buf();
 
         let orderbook = Address::random();
         let input_io_index = 0u8;
@@ -470,7 +488,7 @@ mod tests {
             encode_prefixed(orderbook.0),
             input_io_index.to_string(),
             output_io_index.to_string(),
-            encode_prefixed(OrderV3::default().abi_encode()),
+            encode_prefixed(OrderV4::default().abi_encode()),
         ];
 
         let cli = Quoter {
@@ -491,33 +509,56 @@ mod tests {
         let rpc_response_data = vec![
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(true, U256::ZERO, U256::ZERO)).into(),
+                returnData: quote2Call::abi_encode_returns(&quote2Return {
+                    exists: true,
+                    outputMax: Float::default().get_inner(),
+                    ioRatio: Float::default().get_inner(),
+                })
+                .into(),
             },
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)).into(),
+                returnData: quote2Call::abi_encode_returns(&quote2Return {
+                    exists: false,
+                    outputMax: Float::default().get_inner(),
+                    ioRatio: Float::default().get_inner(),
+                })
+                .into(),
             },
         ]
         .abi_encode();
         rpc_server.mock(|when, then| {
             when.method(POST).path("/rpc");
-            then.json_body_obj(
-                &serde_json::from_str::<serde_json::Value>(
-                    &Response::new_success(1, encode_prefixed(rpc_response_data).as_str())
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
-            );
+            then.json_body_obj(&json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": encode_prefixed(rpc_response_data).as_str(),
+            }));
         });
 
         // run
-        let result = cli.run().await.unwrap();
+        let QuoterResult(result) = cli.run().await.unwrap();
+        assert_eq!(result.len(), 2);
+
+        let quote = if let QuoterResultInner::Ok(v) = &result[0] {
+            v
+        } else {
+            panic!("expected ok quote result");
+        };
+        assert!(quote.max_output.eq(Float::default()).unwrap());
+        assert!(quote.ratio.eq(Float::default()).unwrap());
+
+        let err = if let QuoterResultInner::Error(v) = &result[1] {
+            v
+        } else {
+            panic!("expected error quote result");
+        };
+        assert_eq!(err, &FailedQuote::NonExistent.to_string());
+
         let expected = QuoterResult(vec![
             QuoterResultInner::Ok(OrderQuoteValue::default()),
             QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
         ]);
-        assert_eq!(result, expected);
 
         // output json format containing array of ok/err quote results:
         // [
@@ -527,8 +568,5 @@ mod tests {
         let result = read_to_string(test_path.clone()).unwrap();
         let expected = serde_json::to_string(&expected).unwrap();
         assert_eq!(result, expected);
-
-        // rmeove the output test file
-        std::fs::remove_file(test_path).unwrap();
     }
 }

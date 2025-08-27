@@ -165,7 +165,7 @@ test('renders table with correct data', async () => {
 
 	render(OrderTradesListTable, {
 		context: new Map([['$$_queryClient', queryClient]]),
-		props: { order: mockOrder, rpcUrls: ['https://example.com'] }
+		props: { order: mockOrder, rpcs: ['https://example.com'] }
 	});
 
 	await waitFor(async () => {
@@ -197,7 +197,7 @@ test('renders a debug button for each trade', async () => {
 		context: new Map([['$$_queryClient', queryClient]]),
 		props: {
 			order: mockOrder,
-			rpcUrls: ['example.com'],
+			rpcs: ['example.com'],
 			handleDebugTradeModal: () => {}
 		}
 	});

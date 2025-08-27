@@ -58,8 +58,14 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	lightweightChartsTheme: readable(darkChartTheme),
 	onRemove: vi.fn(),
 	onDeposit: vi.fn(),
-	onWithdraw: vi.fn()
+	onWithdraw: vi.fn(),
+	onWithdrawAll: vi.fn()
 };
+
+const mockVaultsList = () => ({
+	items: [],
+	getWithdrawableVaults: () => ({ value: [], error: null })
+});
 
 const mockOrder: RaindexOrder = {
 	chainId: 1,
@@ -72,46 +78,50 @@ const mockOrder: RaindexOrder = {
 	meta: undefined,
 	rainlang: undefined,
 	timestampAdded: BigInt(1234567890),
-	inputs: [],
-	outputs: [],
-	vaults: [
-		{
-			chainId: 1,
-			vaultType: 'input',
-			id: '0x0000000000000000000000000000000000000002',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'MockToken',
-				symbol: 'MCK',
-				decimals: '18'
-			},
-			balance: BigInt(0),
-			vaultId: BigInt(2),
-			owner: '0x1234567890123456789012345678901234567890',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			orderbook: orderbookAddress
-		} as unknown as RaindexVault,
-		{
-			chainId: 1,
-			vaultType: 'output',
-			id: '0x0000000000000000000000000000000000000001',
-			token: {
-				id: '0x0000000000000000000000000000000000000000',
-				address: '0x0000000000000000000000000000000000000000',
-				name: 'MockToken2',
-				symbol: 'MCK2',
-				decimals: '18'
-			},
-			balance: BigInt(0),
-			vaultId: BigInt(1),
-			owner: '0x1234567890123456789012345678901234567890',
-			ordersAsOutput: [],
-			ordersAsInput: [],
-			orderbook: orderbookAddress
-		} as unknown as RaindexVault
-	],
+	inputsList: mockVaultsList(),
+	outputsList: mockVaultsList(),
+	inputsOutputsList: mockVaultsList(),
+	vaultsList: {
+		...mockVaultsList(),
+		items: [
+			{
+				chainId: 1,
+				vaultType: 'input',
+				id: '0x0000000000000000000000000000000000000002',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'MockToken',
+					symbol: 'MCK',
+					decimals: '18'
+				},
+				balance: BigInt(0),
+				vaultId: BigInt(2),
+				owner: '0x1234567890123456789012345678901234567890',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				orderbook: orderbookAddress
+			} as unknown as RaindexVault,
+			{
+				chainId: 1,
+				vaultType: 'output',
+				id: '0x0000000000000000000000000000000000000001',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'MockToken2',
+					symbol: 'MCK2',
+					decimals: '18'
+				},
+				balance: BigInt(0),
+				vaultId: BigInt(1),
+				owner: '0x1234567890123456789012345678901234567890',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				orderbook: orderbookAddress
+			} as unknown as RaindexVault
+		]
+	},
 	transaction: {
 		blockNumber: BigInt(12345678),
 		timestamp: BigInt(1234567890),
@@ -297,7 +307,7 @@ describe('OrderDetail', () => {
 		const depositButton = screen.getAllByTestId('deposit-button');
 		await user.click(depositButton[0]);
 
-		expect(mockOnDeposit).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults[1]);
+		expect(mockOnDeposit).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaultsList.items[1]);
 	});
 
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
@@ -323,6 +333,6 @@ describe('OrderDetail', () => {
 		const withdrawButton = screen.getAllByTestId('withdraw-button');
 		await user.click(withdrawButton[0]);
 
-		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaults[1]);
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaultsList.items[1]);
 	});
 });

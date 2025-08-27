@@ -148,8 +148,10 @@ impl OrderbookSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{SgBigInt, SgBytes, SgOrder, SgOrderbook, SgOrdersListFilterArgs};
+    use crate::utils::float::*;
     use cynic::Id;
     use httpmock::prelude::*;
+    use rain_math_float::Float;
     use reqwest::Url;
     use serde_json::json;
 
@@ -168,8 +170,8 @@ mod tests {
                 SgVault {
                     id: SgBytes("0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf".to_string()),
                     owner: SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string()),
-                    vault_id: SgBigInt("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
-                    balance: SgBigInt("987000000000000000".to_string()),
+                    vault_id: SgBytes("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
+                    balance: SgBytes(Float::parse("0.987".to_string()).unwrap().get_inner().to_string()),
                     token: SgErc20 {
                         id: SgBytes("0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string()),
                         address: SgBytes("0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string()),
@@ -197,8 +199,8 @@ mod tests {
                         symbol: Some("T1".to_string()),
                         decimals: Some(SgBigInt("0".to_string())),
                     },
-                    balance: SgBigInt("0".to_string()),
-                    vault_id: SgBigInt("0".to_string()),
+                    balance: SgBytes(F0.as_hex()),
+                    vault_id: SgBytes("0".to_string()),
                     owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     orders_as_output: vec![],
                     orders_as_input: vec![],
@@ -212,8 +214,8 @@ mod tests {
                 SgVault {
                     id: SgBytes("0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac".to_string()),
                     owner: SgBytes("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string()),
-                    vault_id: SgBigInt("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
-                    balance: SgBigInt("797990000000000000".to_string()),
+                    vault_id: SgBytes("75486334982066122983501547829219246999490818941767825330875804445439814023987".to_string()),
+                    balance: SgBytes(Float::parse("0.79799".to_string()).unwrap().get_inner().to_string()),
                     token: SgErc20 {
                         id: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
                         address: SgBytes("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()),
@@ -241,8 +243,8 @@ mod tests {
                         symbol: Some("T1".to_string()),
                         decimals: Some(SgBigInt("0".to_string())),
                     },
-                    balance: SgBigInt("0".to_string()),
-                    vault_id: SgBigInt("0".to_string()),
+                    balance: SgBytes(F0.as_hex()),
+                    vault_id: SgBytes("0".to_string()),
                     owner: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     orders_as_output: vec![],
                     orders_as_input: vec![],

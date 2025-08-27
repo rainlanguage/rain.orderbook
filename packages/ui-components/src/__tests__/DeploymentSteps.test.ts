@@ -84,7 +84,7 @@ const mockDeployment = {
 const mockOnDeploy = vi.fn();
 
 const defaultProps: DeploymentStepsProps = {
-	strategyDetail: {
+	orderDetail: {
 		name: 'SFLR<>WFLR on Flare',
 		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
 		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
@@ -115,12 +115,14 @@ describe('DeploymentSteps', () => {
 			getAllTokens: vi.fn().mockResolvedValue({
 				value: [
 					{
+						key: 'token1',
 						address: '0x1234567890123456789012345678901234567890',
 						name: 'Test Token 1',
 						symbol: 'TEST1',
 						decimals: 18
 					},
 					{
+						key: 'token2',
 						address: '0x0987654321098765432109876543210987654321',
 						name: 'Another Token',
 						symbol: 'ANOTHER',
@@ -145,7 +147,10 @@ describe('DeploymentSteps', () => {
 			isSelectTokenSet: vi.fn().mockReturnValue({ value: false }),
 			setSelectToken: vi.fn(),
 			unsetSelectToken: vi.fn(),
-			getDeploymentTransactionArgs: vi.fn()
+			getDeploymentTransactionArgs: vi.fn(),
+			getAccountBalance: vi.fn().mockResolvedValue({
+				value: '1000000000000000000'
+			})
 		} as unknown as DotrainOrderGui;
 
 		mockGui = guiInstance;
@@ -279,7 +284,7 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Deploy Order')).toBeInTheDocument();
 		});
 	});
 	it('refreshes field descriptions when tokens change', async () => {
@@ -419,7 +424,7 @@ describe('DeploymentSteps', () => {
 		const user = userEvent.setup();
 		render(DeploymentSteps, { props: propsWithMockHandlers });
 
-		const deployButton = screen.getByText('Deploy Strategy');
+		const deployButton = screen.getByText('Deploy Order');
 		await user.click(deployButton);
 
 		await waitFor(() => {
@@ -432,168 +437,68 @@ describe('DeploymentSteps', () => {
 		});
 	});
 
-	// New tests for loadAvailableTokens functionality
-	describe('loadAvailableTokens functionality', () => {
-		it('loads available tokens on mount', async () => {
-			render(DeploymentSteps, { props: defaultProps });
+	it('calls getTokenInfoAndFetchBalance for each selected token on account change', async () => {
+		const mockSelectTokens = [
+			{ key: 'token1', name: 'Token 1', description: undefined },
+			{ key: 'token2', name: 'Token 2', description: undefined }
+		];
 
-			await waitFor(() => {
-				expect(mockGui.getAllTokens).toHaveBeenCalled();
-			});
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
 		});
 
-		it('passes available tokens to SelectToken components', async () => {
-			const mockSelectTokens = [
-				{ key: 'token1', name: 'Token 1', description: undefined },
-				{ key: 'token2', name: 'Token 2', description: undefined }
-			];
+		const accountStore = writable<`0x${string}` | null>('0x123');
 
-			(mockGui.getSelectTokens as Mock).mockReturnValue({
-				value: mockSelectTokens
-			});
+		const propsWithAccountStore = {
+			...defaultProps,
+			account: accountStore
+		};
 
-			render(DeploymentSteps, { props: defaultProps });
+		render(DeploymentSteps, { props: propsWithAccountStore });
 
-			await waitFor(() => {
-				// Should pass availableTokens and loading props to SelectToken
-				expect(screen.getByText('Select Tokens')).toBeInTheDocument();
-			});
+		await waitFor(() => {
+			expect(mockGui.getSelectTokens).toHaveBeenCalled();
+		});
+		vi.clearAllMocks();
 
-			// The SelectToken components should receive the available tokens
-			// This is tested indirectly through the component rendering
+		accountStore.set('0x456');
+
+		await waitFor(() => {
+			expect(mockGui.getTokenInfo).toHaveBeenCalledTimes(2);
+			expect(mockGui.getTokenInfo).toHaveBeenCalledWith('token1');
+			expect(mockGui.getTokenInfo).toHaveBeenCalledWith('token2');
+		});
+		await waitFor(() => {
+			expect(mockGui.getAccountBalance).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	it('clears token balances when account becomes null', async () => {
+		const mockSelectTokens = [{ key: 'token1', name: 'Token 1', description: undefined }];
+
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
 		});
 
-		it('handles error when loading available tokens fails', async () => {
-			(mockGui.getAllTokens as Mock).mockResolvedValue({
-				error: { msg: 'Failed to load tokens' }
-			});
+		const accountStore = writable<`0x${string}` | null>('0x123');
 
-			render(DeploymentSteps, { props: defaultProps });
+		const propsWithAccountStore = {
+			...defaultProps,
+			account: accountStore
+		};
 
-			await waitFor(() => {
-				expect(mockGui.getAllTokens).toHaveBeenCalled();
-			});
+		render(DeploymentSteps, { props: propsWithAccountStore });
 
-			// Should handle the error gracefully and continue rendering
-			expect(screen.queryByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(mockGui.getSelectTokens).toHaveBeenCalled();
 		});
 
-		it('shows loading state while tokens are being loaded', async () => {
-			const mockSelectTokens = [{ key: 'token1', name: 'Token 1', description: undefined }];
+		vi.clearAllMocks();
 
-			(mockGui.getSelectTokens as Mock).mockReturnValue({
-				value: mockSelectTokens
-			});
+		accountStore.set(null);
 
-			// Mock a slow getAllTokens response
-			let resolveTokens: (value: unknown) => void = () => {};
-			const tokenPromise = new Promise((resolve) => {
-				resolveTokens = resolve;
-			});
-			(mockGui.getAllTokens as Mock).mockReturnValue(tokenPromise);
-
-			render(DeploymentSteps, { props: defaultProps });
-
-			// Should show loading state initially
-			await waitFor(() => {
-				expect(screen.getByText('Loading tokens...')).toBeInTheDocument();
-			});
-
-			// Resolve the promise
-			resolveTokens({
-				value: [
-					{
-						address: '0x1234567890123456789012345678901234567890',
-						name: 'Test Token 1',
-						symbol: 'TEST1',
-						decimals: 18
-					}
-				]
-			});
-
-			// Loading state should disappear
-			await waitFor(() => {
-				expect(screen.queryByText('Loading tokens...')).not.toBeInTheDocument();
-			});
-		});
-
-		it('prevents multiple simultaneous token loading requests', async () => {
-			// Mock getAllTokens to return a promise that doesn't resolve immediately
-			const tokenPromise = new Promise((resolve) => {
-				setTimeout(
-					() =>
-						resolve({
-							value: [
-								{
-									address: '0x1234567890123456789012345678901234567890',
-									name: 'Test Token 1',
-									symbol: 'TEST1',
-									decimals: 18
-								}
-							]
-						}),
-					50
-				);
-			});
-			(mockGui.getAllTokens as Mock).mockReturnValue(tokenPromise);
-
-			render(DeploymentSteps, { props: defaultProps });
-
-			// Wait for the first call
-			await waitFor(() => {
-				expect(mockGui.getAllTokens).toHaveBeenCalledTimes(1);
-			});
-
-			// Even if component re-renders while loading, shouldn't call getAllTokens again
-			// This is handled by the loadingTokens guard in the component
-			await waitFor(
-				() => {
-					expect(mockGui.getAllTokens).toHaveBeenCalledTimes(1);
-				},
-				{ timeout: 100 }
-			);
-		});
-
-		it('sets availableTokens to empty array when loading fails', async () => {
-			const mockSelectTokens = [{ key: 'token1', name: 'Token 1', description: undefined }];
-
-			(mockGui.getSelectTokens as Mock).mockReturnValue({
-				value: mockSelectTokens
-			});
-
-			(mockGui.getAllTokens as Mock).mockRejectedValue(new Error('Network error'));
-
-			render(DeploymentSteps, { props: defaultProps });
-
-			await waitFor(() => {
-				expect(mockGui.getAllTokens).toHaveBeenCalled();
-			});
-
-			// Component should still render successfully
-			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
-			// SelectToken should receive empty availableTokens array
-			// This would result in custom input mode being shown
-		});
-
-		it('handles getAllTokens returning error in result', async () => {
-			const mockSelectTokens = [{ key: 'token1', name: 'Token 1', description: undefined }];
-
-			(mockGui.getSelectTokens as Mock).mockReturnValue({
-				value: mockSelectTokens
-			});
-
-			(mockGui.getAllTokens as Mock).mockResolvedValue({
-				error: { msg: 'API error' }
-			});
-
-			render(DeploymentSteps, { props: defaultProps });
-
-			await waitFor(() => {
-				expect(mockGui.getAllTokens).toHaveBeenCalled();
-			});
-
-			// Component should handle the error case gracefully
-			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
-		});
+		// await new Promise((resolve) => setTimeout(resolve, 100));
+		expect(mockGui.getTokenInfo).not.toHaveBeenCalled();
+		expect(mockGui.getAccountBalance).not.toHaveBeenCalled();
 	});
 });

@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';

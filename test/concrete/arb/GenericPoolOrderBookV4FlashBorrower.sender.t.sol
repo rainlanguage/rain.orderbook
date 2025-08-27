@@ -5,41 +5,48 @@ pragma solidity =0.8.25;
 import {ArbTest} from "test/util/abstract/ArbTest.sol";
 
 import {
-    GenericPoolOrderBookV4FlashBorrower,
-    OrderBookV4ArbConfigV2
-} from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
+    GenericPoolOrderBookV5FlashBorrower,
+    OrderBookV5ArbConfig
+} from "src/concrete/arb/GenericPoolOrderBookV5FlashBorrower.sol";
 import {
-    OrderV3,
-    TakeOrderConfigV3,
-    EvaluableV3,
-    TakeOrdersConfigV3,
-    IInterpreterV3,
-    IInterpreterStoreV2,
-    TaskV1,
+    OrderV4,
+    TakeOrderConfigV4,
+    EvaluableV4,
+    TakeOrdersConfigV4,
+    IInterpreterV4,
+    IInterpreterStoreV3,
+    TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
-    function buildArb(OrderBookV4ArbConfigV2 memory config) internal override returns (address) {
-        return address(new GenericPoolOrderBookV4FlashBorrower(config));
+contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
+    function buildArb(OrderBookV5ArbConfig memory config) internal override returns (address) {
+        return address(new GenericPoolOrderBookV5FlashBorrower(config));
     }
 
     constructor() ArbTest() {}
 
     /// forge-config: default.fuzz.runs = 10
-    function testGenericPoolOrderBookV4FlashBorrowerTakeOrdersSender(
-        OrderV3 memory order,
+    function testGenericPoolOrderBookV5FlashBorrowerTakeOrdersSender(
+        OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex
     ) public {
-        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        GenericPoolOrderBookV4FlashBorrower(iArb).arb3(
+        GenericPoolOrderBookV5FlashBorrower(iArb).arb3(
             iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
+            TakeOrdersConfigV4(
+                LibDecimalFloat.packLossless(0, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                orders,
+                ""
+            ),
             abi.encode(iRefundoor, iRefundoor, ""),
-            TaskV1({
-                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
+            TaskV2({
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
                 signedContext: new SignedContextV1[](0)
             })
         );

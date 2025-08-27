@@ -118,7 +118,7 @@ mod tests {
     fn default_sg_vault_balance_change_vault_ref() -> SgVaultBalanceChangeVault {
         SgVaultBalanceChangeVault {
             id: default_sg_bytes("0xVaultIdForBalanceChange"),
-            vault_id: default_sg_big_int("12345"),
+            vault_id: default_sg_bytes("12345"),
             token: default_sg_erc20(),
         }
     }
@@ -130,9 +130,9 @@ mod tests {
     ) -> SgVaultBalanceChangeUnwrapped {
         SgVaultBalanceChangeUnwrapped {
             __typename: typename.to_string(),
-            amount: default_sg_big_int("500000000000000000"),
-            new_vault_balance: default_sg_big_int("1500000000000000000"),
-            old_vault_balance: default_sg_big_int("1000000000000000000"),
+            amount: default_sg_bytes("500000000000000000"),
+            new_vault_balance: default_sg_bytes("1500000000000000000"),
+            old_vault_balance: default_sg_bytes("1000000000000000000"),
             vault: default_sg_vault_balance_change_vault_ref(),
             timestamp: default_sg_big_int(timestamp_str),
             transaction: SgTransaction {

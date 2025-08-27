@@ -1,37 +1,40 @@
 <script lang="ts">
-	import { InputAddon, Button, Alert } from 'flowbite-svelte';
-	import { InfoCircleSolid } from 'flowbite-svelte-icons';
-	import { parseUnits } from 'viem';
+	import { InputAddon, Button } from 'flowbite-svelte';
+	import { Float } from '@rainlanguage/orderbook';
 
 	export let symbol: string | undefined = undefined;
-	export let decimals: number = 0;
-	export let maxValue: bigint | undefined = undefined;
+	export let maxValue: Float | undefined = undefined;
+	export let value: Float = Float.parse('0').value as Float;
+
 	let inputValue: string = '';
-	export let value: bigint = 0n;
 
 	function handleInput(event: Event) {
 		const input = event.target as HTMLInputElement;
 		inputValue = input.value;
 
 		if (inputValue === '') {
-			value = 0n;
+			value = Float.parse('0').value as Float;
 		} else {
-			try {
-				value = parseUnits(inputValue, decimals);
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			} catch (_e) {
-				value = 0n;
+			let parsedValue = Float.parse(inputValue);
+			if (parsedValue.error) {
+				value = Float.parse('0').value as Float;
+				return;
 			}
+			value = parsedValue.value;
 		}
 	}
 
 	function fillMaxValue() {
 		if (!maxValue) return;
-
 		value = maxValue;
-		inputValue = maxValue.toString().padStart(decimals + 1, '0');
-		inputValue = inputValue.slice(0, -decimals) + '.' + inputValue.slice(-decimals);
-		inputValue = inputValue.replace(/\.?0+$/, '');
+
+		let formattedValue = value.format().value;
+		if (!formattedValue) {
+			inputValue = '';
+			return;
+		}
+
+		inputValue = formattedValue as string;
 	}
 </script>
 
@@ -60,11 +63,4 @@
 			</InputAddon>
 		{/if}
 	</div>
-	{#if decimals === 0}
-		<Alert color="yellow" border class="mt-2">
-			<InfoCircleSolid slot="icon" class="h-6 w-6" />
-			This token does not specify a number of decimals. <br />You are inputting the raw integer
-			amount with 0 decimal places.
-		</Alert>
-	{/if}
 </div>

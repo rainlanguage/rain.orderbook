@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
-  import type { RaindexVault } from '@rainlanguage/orderbook';
+  import { Float, type RaindexVault } from '@rainlanguage/orderbook';
   import { vaultWithdraw } from '$lib/services/vault';
-  import { InputTokenAmount } from '@rainlanguage/ui-components';
+  import { InputTokenAmount, useRaindexClient } from '@rainlanguage/ui-components';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
@@ -10,20 +10,23 @@
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { hexToBytes, toHex } from 'viem';
 
+  const raindexClient = useRaindexClient();
+
   export let open = false;
   export let vault: RaindexVault;
   export let onWithdraw: () => void;
-  let amount: bigint = 0n;
+
+  let amount: Float = Float.parse('0').value as Float;
   let amountGTBalance: boolean;
   let isSubmitting = false;
   let selectWallet = false;
 
-  $: amountGTBalance = vault !== undefined && amount > BigInt(vault.balance);
+  $: amountGTBalance = amount ? !!amount.gt(vault.balance).value : false;
 
   function reset() {
     open = false;
     if (!isSubmitting) {
-      amount = 0n;
+      amount = Float.parse('0').value as Float;
       selectWallet = false;
     }
   }
@@ -31,7 +34,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(vault.vaultId, vault.token.id, amount);
+      await vaultWithdraw(raindexClient, vault, amount);
       onWithdraw();
     } catch (e) {
       reportErrorToSentry(e);
@@ -43,7 +46,7 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const calldata = await vault.getWithdrawCalldata(amount.toString());
+      const calldata = await vault.getWithdrawCalldata(amount);
       if (calldata.error) {
         throw new Error(calldata.error.readableMsg);
       }
@@ -111,12 +114,7 @@
       >
         Target Amount
       </Label>
-      <InputTokenAmount
-        bind:value={amount}
-        symbol={vault.token.symbol}
-        decimals={Number(vault.token.decimals ?? 0)}
-        maxValue={BigInt(vault.balance)}
-      />
+      <InputTokenAmount bind:value={amount} symbol={vault.token.symbol} maxValue={vault.balance} />
 
       <Helper color="red" class="h-6 text-sm">
         {#if amountGTBalance}
@@ -132,7 +130,7 @@
           selectWallet = true;
           open = false;
         }}
-        disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
+        disabled={!amount || amount.isZero().value || amountGTBalance || isSubmitting}
       >
         Proceed
       </Button>

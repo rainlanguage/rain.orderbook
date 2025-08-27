@@ -12,9 +12,9 @@ import {
 	type RaindexOrder,
 	RaindexClient,
 	type Address,
-	type Hex
+	type Hex,
+	Float
 } from '@rainlanguage/orderbook';
-import { formatUnits } from 'viem';
 
 /**
  * Function type for adding toast notifications to the UI.
@@ -172,6 +172,70 @@ export class TransactionManager {
 	}
 
 	/**
+	 * Creates a multicall withdrawal transaction.
+	 *
+	 * Precondition: all provided vaults must share the same Raindex orderbook.
+	 * This is enforced upstream in handleVaultsWithdrawAll.ts:
+	 *   if (vaults.some(v => v.orderbook !== vaults[0].orderbook)) { … }
+	 *
+	 * @param args.chainId the target chain ID
+	 * @param args.vaults list of RaindexVault instances (must share an orderbook)
+	 * @param args.txHash the transaction hash to wrap
+	 * @param args.queryKey cache key for invalidation
+	 * @param args.raindexClient Raindex API client	 * @example
+	 * const tx = await manager.createVaultsWithdrawAllTransaction({
+	 *   txHash: '0x123...',
+	 *   chainId: 1,
+	 *   queryKey: 'QKEY_VAULTS',
+	 *   vaults: [vault1, vault2, vault3],
+	 *   raindexClient: clientInstance
+	 * });
+	 */
+	public async createVaultsWithdrawAllTransaction(
+		args: InternalTransactionArgs & { vaults: RaindexVault[]; raindexClient: RaindexClient }
+	): Promise<Transaction> {
+		const name = TransactionName.WITHDRAWAL_MULTIPLE;
+		const errorMessage = 'Withdrawal failed.';
+		const successMessage = 'Withdrawal successful.';
+		const { chainId, vaults, txHash, queryKey, raindexClient } = args;
+
+		if (vaults.length === 0) {
+			throw new Error('At least one vault is required for withdrawal');
+		}
+		// All vaults must share the same orderbook for multicall transactions
+		// It should be validated before calling this method
+		const orderbook = vaults[0].orderbook;
+		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: '/vaults/',
+				label: 'View all vaults'
+			},
+			{
+				link: explorerLink,
+				label: 'View on explorer'
+			}
+		];
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			toastLinks,
+			queryKey,
+			awaitSubgraphConfig: {
+				chainId,
+				orderbook,
+				txHash,
+				successMessage,
+				fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
+					raindexClient.getTransaction(orderbook, txHash),
+				isSuccess: (data) => !!data
+			}
+		});
+	}
+
+	/**
 	 * Creates and initializes a new transaction for approving token spend.
 	 * @param args - Configuration for the approval transaction.
 	 * @param args.txHash - Hash of the transaction to track.
@@ -245,14 +309,13 @@ export class TransactionManager {
 	 */
 	public async createDepositTransaction(
 		args: InternalTransactionArgs & {
-			amount: bigint;
+			amount: Float;
 			entity: RaindexVault;
 			raindexClient: RaindexClient;
 		}
 	): Promise<Transaction> {
 		const tokenSymbol = args.entity.token.symbol;
-		const readableAmount = formatUnits(args.amount, Number(args.entity.token.decimals));
-		const name = `Depositing ${readableAmount} ${tokenSymbol}`;
+		const name = `Depositing ${args.amount.format().value} ${tokenSymbol}`;
 		const errorMessage = 'Deposit failed.';
 		const successMessage = 'Deposit successful.';
 		const {
@@ -295,7 +358,7 @@ export class TransactionManager {
 	}
 
 	/**
-	 * Creates and initializes a new transaction for deploying a strategy.
+	 * Creates and initializes a new transaction for deploying an order.
 	 * @param args - Configuration for the deployment transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.

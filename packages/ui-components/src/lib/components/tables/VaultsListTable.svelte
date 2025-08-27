@@ -1,36 +1,61 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { toHex } from 'viem';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
+	import {
+		Button,
+		Checkbox,
+		Dropdown,
+		DropdownItem,
+		TableBodyCell,
+		TableHeadCell
+	} from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
-	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
+	import { ArrowUpFromBracketOutline, DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { RaindexVault } from '@rainlanguage/orderbook';
+	import { Float, RaindexClient, RaindexVault, RaindexVaultsList } from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
+	import { getAllContexts } from 'svelte';
+	import Tooltip from '../Tooltip.svelte';
+	import { useToasts } from '$lib/providers/toasts/useToasts';
 
-	export let accounts: AppStoresInterface['accounts'];
+	const context = getAllContexts();
+	const { errToast } = useToasts();
+
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
-	export let settings: AppStoresInterface['settings'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let handleDepositModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
-		undefined;
-	export let handleWithdrawModal: ((vault: RaindexVault, refetch: () => void) => void) | undefined =
-		undefined;
+	export let handleDepositModal:
+		| ((
+				vault: RaindexVault,
+				refetch: () => void,
+				context: ReturnType<typeof getAllContexts>
+		  ) => void)
+		| undefined = undefined;
+	export let handleWithdrawModal:
+		| ((
+				vault: RaindexVault,
+				refetch: () => void,
+				context: ReturnType<typeof getAllContexts>
+		  ) => void)
+		| undefined = undefined;
 
-	const { account, matchesAccount } = useAccount();
+	export let onWithdrawAll:
+		| ((raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void | Promise<void>)
+		| undefined = undefined;
+
+	const { account } = useAccount();
 	const raindexClient = useRaindexClient();
 
 	$: owners =
@@ -56,14 +81,7 @@
 		) ?? [];
 
 	$: query = createInfiniteQuery({
-		queryKey: [
-			QKEY_VAULTS,
-			$hideZeroBalanceVaults,
-			$selectedChainIds,
-			$settings,
-			owners,
-			selectedTokens
-		],
+		queryKey: [QKEY_VAULTS, $hideZeroBalanceVaults, $selectedChainIds, owners, selectedTokens],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getVaults(
 				$selectedChainIds,
@@ -79,20 +97,96 @@
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
-			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
+			return lastPage.items.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: true
 	});
 
-	const AppTable = TanstackAppTable<RaindexVault>;
+	$: if (selectedVaults.size > 0 && !$account) {
+		// If User disconnected — clear selected vaults
+		selectedVaults = new Set<string>();
+		selectedVaultsOnChainId = null;
+	}
+
+	let selectedVaults = new Set<string>();
+	let selectedVaultsOnChainId: number | null = null;
+	const getToggleSelectVaultHandler = (vaultId: string, chainId: number) => (e: Event) => {
+		e.stopPropagation();
+
+		if (selectedVaults.has(vaultId)) {
+			selectedVaults.delete(vaultId);
+			if (selectedVaults.size === 0) {
+				selectedVaultsOnChainId = null;
+			}
+		} else {
+			selectedVaults.add(vaultId);
+			if (selectedVaultsOnChainId === null) {
+				selectedVaultsOnChainId = chainId;
+			}
+		}
+		// To trigger Svelte update
+		selectedVaults = new Set(selectedVaults);
+	};
+	const stopPropagation = (e: Event) => e.stopPropagation();
+	const handleWithdrawAll = () => {
+		const pages = $query.data?.pages ?? [];
+		if (!onWithdrawAll || pages.length === 0) {
+			return;
+		}
+		// Combine across all loaded pages so selections beyond the first page are respected
+		const selectedIds = Array.from(selectedVaults);
+		try {
+			// We need to pick by ids from all vaults first to get filtered copies,
+			// otherwise it may break wasm reference
+			const filteredVaultListResults = pages.reduce(
+				(prev, cur) => {
+					const result = cur.pickByIds(selectedIds);
+					if (result.error) {
+						throw new Error(result.error.readableMsg);
+					}
+					return [...prev, result.value];
+				},
+				<RaindexVaultsList[]>[]
+			);
+			// Now we can combine filtered VaultLists into one
+			if (filteredVaultListResults.length === 0) {
+				errToast('No selected vaults found in the loaded pages. Please refresh and try again.');
+				return;
+			}
+			const [first, ...rest] = filteredVaultListResults;
+			const combinedVaultsList = rest.reduce((prev, cur) => {
+				const result = prev.concat(cur);
+				if (result.error) {
+					throw new Error(result.error.readableMsg);
+				}
+				return result.value;
+			}, first);
+			return onWithdrawAll(raindexClient, combinedVaultsList);
+		} catch (err) {
+			if (err instanceof Error) {
+				errToast(err.message);
+			}
+		}
+	};
+
+	const ZERO_FLOAT = Float.parse('0').value;
+	const isZeroBalance = (item: RaindexVault) => {
+		if (!ZERO_FLOAT) return true;
+		return item.balance.eq(ZERO_FLOAT).value;
+	};
+	const isSameChainId = (item: RaindexVault, chainId: number | null) => {
+		return chainId === null || chainId === item.chainId;
+	};
+	const isDisabled = (item: RaindexVault, chainId: number | null) => {
+		return !isSameChainId(item, chainId) || isZeroBalance(item);
+	};
+	const AppTable = TanstackAppTable<RaindexVault, RaindexVaultsList>;
 </script>
 
 {#if $query}
 	<ListViewOrderbookFilters
 		{selectedChainIds}
-		{settings}
-		{accounts}
 		{activeAccountsItems}
 		{showMyItemsOnly}
 		{showInactiveOrders}
@@ -104,6 +198,7 @@
 	/>
 	<AppTable
 		{query}
+		dataSelector={(page) => page.items}
 		queryKey={QKEY_VAULTS}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
@@ -114,10 +209,22 @@
 			<div class="mt-2 flex w-full justify-between">
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
+					<Button
+						size="xs"
+						on:click={handleWithdrawAll}
+						disabled={!onWithdrawAll || selectedVaults.size === 0}
+						data-testid="withdraw-all-button"
+					>
+						<ArrowUpFromBracketOutline size="xs" class="mr-2" />
+						{selectedVaults.size > 0
+							? `Withdraw selected (${selectedVaults.size})`
+							: 'Withdraw vaults'}
+					</Button>
 				</div>
 			</div>
 		</svelte:fragment>
 		<svelte:fragment slot="head">
+			<TableHeadCell padding="p-0"><span class="sr-only">Select</span></TableHeadCell>
 			<TableHeadCell padding="p-4">Network</TableHeadCell>
 			<TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
 			<TableHeadCell padding="px-4 py-4">Orderbook</TableHeadCell>
@@ -129,6 +236,25 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="bodyRow" let:item>
+			<TableBodyCell tdClass="px-0" on:click={stopPropagation}>
+				<Checkbox
+					data-testid="vault-checkbox"
+					class={`block px-2 py-4 ${$account?.toLowerCase() !== item.owner.toLowerCase() ? 'invisible' : ''}`}
+					checked={selectedVaults.has(item.id)}
+					disabled={isDisabled(item, selectedVaultsOnChainId)}
+					on:change={getToggleSelectVaultHandler(item.id, item.chainId)}
+					on:click={stopPropagation}
+					aria-label={`Select vault ${item.id}`}
+				/>
+				{#if $account?.toLowerCase() === item.owner.toLowerCase() && isDisabled(item, selectedVaultsOnChainId)}
+					<Tooltip>
+						{isZeroBalance(item)
+							? 'This vault has a zero balance'
+							: 'This vault is on a different network'}
+					</Tooltip>
+				{/if}
+			</TableBodyCell>
+
 			<TableBodyCell tdClass="px-4 py-2" data-testid="vault-network">
 				{getNetworkName(Number(item.chainId))}
 			</TableBodyCell>
@@ -178,7 +304,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.owner)}
+			{#if handleDepositModal && handleWithdrawModal && item.owner.toLowerCase() === $account?.toLowerCase()}
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"
@@ -203,7 +329,7 @@
 						data-testid="deposit-button"
 						on:click={(e) => {
 							e.stopPropagation();
-							handleDepositModal(item, $query.refetch);
+							handleDepositModal(item, $query.refetch, context);
 						}}
 						>Deposit
 					</DropdownItem>
@@ -211,7 +337,7 @@
 						data-testid="withdraw-button"
 						on:click={(e) => {
 							e.stopPropagation();
-							handleWithdrawModal(item, $query.refetch);
+							handleWithdrawModal(item, $query.refetch, context);
 						}}
 						>Withdraw
 					</DropdownItem>

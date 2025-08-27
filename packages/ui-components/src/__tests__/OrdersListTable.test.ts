@@ -21,27 +21,39 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
 
+const mockVaultsList = () => ({
+	items: [],
+	getWithdrawableVaults: () => ({ value: [], error: null })
+});
+
 const mockOrder = {
 	chainId: 1,
 	id: '0x1234567890abcdef1234567890abcdef12345678',
 	orderBytes: '',
 	orderHash: '0x4444444444444444444444444444444444444444',
 	owner: '0xabcdef1234567890abcdef1234567890abcdef12',
-	inputs: [
-		{
-			token: {
-				symbol: 'ETH'
+	inputsList: {
+		...mockVaultsList(),
+		items: [
+			{
+				token: {
+					symbol: 'ETH'
+				}
 			}
-		}
-	],
-	outputs: [
-		{
-			token: {
-				symbol: 'DAI'
+		]
+	},
+	outputsList: {
+		...mockVaultsList(),
+		items: [
+			{
+				token: {
+					symbol: 'DAI'
+				}
 			}
-		}
-	],
-	vaults: [],
+		]
+	},
+	inputsOutputsList: mockVaultsList(),
+	vaultsList: mockVaultsList(),
 	orderbook: '0x2222222222222222222222222222222222222222',
 	active: true,
 	timestampAdded: BigInt(1678901234),
@@ -58,20 +70,15 @@ const {
 	mockActiveOrderbookRefStore,
 	mockHideZeroBalanceVaultsStore,
 	mockOrderHashStore,
-	mockAccountsStore,
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockSettingsStore,
 	mockShowMyItemsOnlyStore,
 	mockSelectedChainIdsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type OrdersListTableProps = ComponentProps<OrdersListTable<any>>;
+type OrdersListTableProps = ComponentProps<OrdersListTable>;
 
 const defaultProps: OrdersListTableProps = {
-	settings: mockSettingsStore,
-	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	orderHash: mockOrderHashStore,
@@ -176,7 +183,7 @@ describe('OrdersListTable', () => {
 		const removeButton = screen.getByText('Remove');
 		await userEvent.click(removeButton);
 
-		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, mockRefetch);
+		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, mockRefetch, new Map());
 	});
 
 	it('shows inactive badge for inactive orders', async () => {

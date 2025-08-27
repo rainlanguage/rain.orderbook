@@ -22,8 +22,23 @@ use strict_yaml_rust::{
 use thiserror::Error;
 use url::ParseError as UrlParseError;
 
+pub trait ValidationConfig {
+    fn should_validate_networks(&self) -> bool;
+    fn should_validate_remote_networks(&self) -> bool;
+    fn should_validate_tokens(&self) -> bool;
+    fn should_validate_remote_tokens(&self) -> bool;
+    fn should_validate_subgraphs(&self) -> bool;
+    fn should_validate_orderbooks(&self) -> bool;
+    fn should_validate_metaboards(&self) -> bool;
+    fn should_validate_deployers(&self) -> bool;
+    fn should_validate_orders(&self) -> bool;
+    fn should_validate_scenarios(&self) -> bool;
+    fn should_validate_deployments(&self) -> bool;
+}
+
 pub trait YamlParsable: Sized {
-    fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
+    type ValidationConfig: ValidationConfig;
+    fn new(sources: Vec<String>, validate: Self::ValidationConfig) -> Result<Self, YamlError>;
 
     fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self;
     fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self;

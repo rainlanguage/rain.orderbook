@@ -1,15 +1,15 @@
 import { Bytes, ethereum, crypto } from "@graphprotocol/graph-ts";
-import { AddOrderV2, RemoveOrderV2 } from "../generated/OrderBook/OrderBook";
+import { AddOrderV3, RemoveOrderV3 } from "../generated/OrderBook/OrderBook";
 import { AddOrder, Order, RemoveOrder } from "../generated/schema";
 import { getVault } from "./vault";
 import { eventId } from "./interfaces/event";
 
-export function handleAddOrder(event: AddOrderV2): void {
+export function handleAddOrder(event: AddOrderV3): void {
   createOrderEntity(event);
   createAddOrderEntity(event);
 }
 
-export function handleRemoveOrder(event: RemoveOrderV2): void {
+export function handleRemoveOrder(event: RemoveOrderV3): void {
   let order = Order.load(makeOrderId(event.address, event.params.orderHash));
   if (order != null) {
     order.active = false;
@@ -23,7 +23,7 @@ export function makeOrderId(orderbook: Bytes, orderHash: Bytes): Bytes {
   return Bytes.fromByteArray(crypto.keccak256(bytes));
 }
 
-export function createOrderEntity(event: AddOrderV2): void {
+export function createOrderEntity(event: AddOrderV3): void {
   let order = new Order(makeOrderId(event.address, event.params.orderHash));
   order.orderbook = event.address;
   order.active = true;
@@ -60,7 +60,7 @@ export function createOrderEntity(event: AddOrderV2): void {
   order.save();
 }
 
-export function createAddOrderEntity(event: AddOrderV2): void {
+export function createAddOrderEntity(event: AddOrderV3): void {
   let addOrder = new AddOrder(eventId(event));
   addOrder.orderbook = event.address;
   addOrder.order = makeOrderId(event.address, event.params.orderHash);
@@ -69,7 +69,7 @@ export function createAddOrderEntity(event: AddOrderV2): void {
   addOrder.save();
 }
 
-export function createRemoveOrderEntity(event: RemoveOrderV2): void {
+export function createRemoveOrderEntity(event: RemoveOrderV3): void {
   let removeOrder = new RemoveOrder(eventId(event));
   removeOrder.orderbook = event.address;
   removeOrder.order = makeOrderId(event.address, event.params.orderHash);
