@@ -44,7 +44,8 @@ impl Execute for AddOrderCalldata {
             .get_deployment(&self.deployment)?;
 
         let add_order_args =
-            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await?;
+            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone(), None)
+                .await?;
 
         let rpcs = config_deployment
             .scenario

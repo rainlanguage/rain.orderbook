@@ -76,7 +76,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: orderDetailQuery = createQuery<RaindexOrder>({
-		queryKey: [orderHash, QKEY_ORDER + orderHash],
+		queryKey: [orderHash, QKEY_ORDER],
 		queryFn: async () => {
 			const result = await raindexClient.getOrderByHash(chainId, orderbookAddress, orderHash);
 			if (result.error) throw new Error(result.error.readableMsg);
@@ -84,8 +84,24 @@
 		}
 	});
 
+	// Helper to get DotrainGuiStateV1 from parsed_meta
+	$: dotrainGuiState = $orderDetailQuery.data?.parsed_meta?.find(
+		(meta) => 'DotrainGuiStateV1' in meta
+	)?.DotrainGuiStateV1;
+
+	$: dotrainSourceQuery = createQuery({
+		queryKey: [orderHash, QKEY_ORDER, dotrainGuiState?.dotrain_hash ?? 'unknown'],
+		queryFn: async () => {
+			if (!$orderDetailQuery.data) throw new Error('Order data not available');
+			const result = await $orderDetailQuery.data.fetchDotrainSource();
+			if (result.error) throw new Error(result.error.readableMsg);
+			return result.value ?? '';
+		},
+		enabled: $orderDetailQuery.isSuccess && dotrainGuiState?.dotrain_hash !== undefined
+	});
+
 	const interval = setInterval(async () => {
-		await invalidateTanstackQueries(queryClient, [orderHash]);
+		await invalidateTanstackQueries(queryClient, [orderHash, QKEY_ORDER]);
 	}, 10000);
 
 	onDestroy(() => {
@@ -94,7 +110,7 @@
 
 	const handleRefresh = async () => {
 		try {
-			await invalidateTanstackQueries(queryClient, [orderHash]);
+			await invalidateTanstackQueries(queryClient, [orderHash, QKEY_ORDER]);
 		} catch {
 			errToast('Failed to refresh');
 		}
@@ -275,6 +291,48 @@
 			<TabItem title="APY">
 				<div>TODO: Issue #1989</div>
 				<!-- <OrderApy order={data} /> -->
+			</TabItem>
+			{#if dotrainGuiState}
+				<TabItem title="State">
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">Dotrain GUI State</h3>
+						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+							<pre class="text-sm">{JSON.stringify(
+									Object.fromEntries(
+										Object.entries(dotrainGuiState).map(([key, value]) => [
+											key,
+											value instanceof Map ? Object.fromEntries(value.entries()) : value
+										])
+									),
+									null,
+									2
+								)}</pre>
+						</div>
+					</div>
+				</TabItem>
+			{/if}
+			<TabItem title="Dotrain">
+				{#if $dotrainSourceQuery.isLoading}
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">Loading Dotrain Source...</h3>
+					</div>
+				{:else if $dotrainSourceQuery.isError}
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">Failed to load Dotrain Source</h3>
+						<p class="text-red-500">{$dotrainSourceQuery.error?.message}</p>
+					</div>
+				{:else if $dotrainSourceQuery.isSuccess && $dotrainSourceQuery.data}
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">Dotrain Source</h3>
+						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+							<pre class="whitespace-pre-wrap text-sm">{$dotrainSourceQuery.data}</pre>
+						</div>
+					</div>
+				{:else}
+					<div class="mb-4">
+						<h3 class="mb-2 text-lg font-medium">No Dotrain Source Available</h3>
+					</div>
+				{/if}
 			</TabItem>
 		</Tabs>
 	</svelte:fragment>

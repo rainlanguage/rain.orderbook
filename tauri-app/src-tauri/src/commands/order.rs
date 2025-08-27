@@ -1,11 +1,17 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use alloy::primitives::Bytes;
+use rain_metadata::{types::dotrain::gui_state_v1::DotrainGuiStateV1, RainMetaDocumentV1Item};
 use rain_orderbook_app_settings::{deployment::DeploymentCfg, scenario::ScenarioCfg};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
-    remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
-    types::FlattenError, types::OrderFlattened,
+    add_order::{AddOrderArgs, AddOrderArgsError},
+    csv::TryIntoCsv,
+    dotrain_order::DotrainOrder,
+    remove_order::RemoveOrderArgs,
+    subgraph::SubgraphArgs,
+    transaction::TransactionArgs,
+    types::FlattenError,
+    types::OrderFlattened,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -30,16 +36,33 @@ pub async fn orders_list_write_csv(
     Ok(())
 }
 
+fn gui_state_to_meta(
+    gui_state: Option<DotrainGuiStateV1>,
+) -> Result<Option<Vec<RainMetaDocumentV1Item>>, AddOrderArgsError> {
+    gui_state
+        .map(|state| {
+            let doc = RainMetaDocumentV1Item::try_from(state).map_err(AddOrderArgsError::from)?;
+            Ok(vec![doc])
+        })
+        .transpose()
+}
+
 #[tauri::command]
 pub async fn order_add<R: Runtime>(
     app_handle: AppHandle<R>,
     dotrain: String,
     deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
+    gui_state: Option<DotrainGuiStateV1>,
 ) -> CommandResult<()> {
     let tx_status_notice =
         TransactionStatusNoticeRwLock::new("Add order".into(), deployment.order.network.chain_id);
-    let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
+
+    // Convert GUI state to additional meta if provided
+    let additional_meta = gui_state_to_meta(gui_state)?;
+
+    let add_order_args =
+        AddOrderArgs::new_from_deployment(dotrain, deployment, additional_meta).await?;
     add_order_args
         .execute(transaction_args, |status| {
             tx_status_notice.update_status_and_emit(&app_handle, status);
@@ -91,8 +114,13 @@ pub async fn order_add_calldata<R: Runtime>(
     dotrain: String,
     deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
+    gui_state: Option<DotrainGuiStateV1>,
 ) -> CommandResult<Bytes> {
-    let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
+    // Convert GUI state to additional meta if provided
+    let additional_meta = gui_state_to_meta(gui_state)?;
+
+    let add_order_args =
+        AddOrderArgs::new_from_deployment(dotrain, deployment, additional_meta).await?;
     let calldata = add_order_args
         .get_add_order_calldata(transaction_args)
         .await
@@ -288,7 +316,7 @@ _ _: 0 0;
         let deployment = DeploymentCfg::default();
         let transaction_args = TransactionArgs::default();
 
-        let err = order_add(app_handle, dotrain, deployment, transaction_args)
+        let err = order_add(app_handle, dotrain, deployment, transaction_args, None)
             .await
             .unwrap_err();
 
@@ -450,7 +478,7 @@ _ _: 16 52;
             ..Default::default()
         };
 
-        let calldata = order_add_calldata(app_handle, dotrain, deployment, transaction_args)
+        let calldata = order_add_calldata(app_handle, dotrain, deployment, transaction_args, None)
             .await
             .unwrap();
 
@@ -488,9 +516,15 @@ _ _: 16 52;
         let deployment = DeploymentCfg::default();
         let transaction_args = TransactionArgs::default();
 
-        let err = order_add_calldata(app_handle, dotrain, deployment.clone(), transaction_args)
-            .await
-            .unwrap_err();
+        let err = order_add_calldata(
+            app_handle,
+            dotrain,
+            deployment.clone(),
+            transaction_args,
+            None,
+        )
+        .await
+        .unwrap_err();
 
         assert!(matches!(
             err,

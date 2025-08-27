@@ -1,6 +1,14 @@
+use rain_metadata::{
+    types::{
+        dotrain::gui_state_v1::{DotrainGuiStateV1, ShortenedTokenCfg, ValueCfg},
+        dotrain::source_v1::DotrainSourceV1,
+    },
+    RainMetaDocumentV1Item,
+};
+
 use super::*;
 use alloy::{
-    primitives::{Bytes, B256, U256},
+    primitives::{Bytes, FixedBytes, B256, U256},
     sol_types::SolCall,
 };
 use rain_math_float::Float;
@@ -14,8 +22,12 @@ use rain_orderbook_bindings::{
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
-use std::ops::Sub;
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    ops::Sub,
+    str::FromStr,
+    sync::Arc,
+};
 use url::Url;
 
 pub enum CalldataFunction {
@@ -459,6 +471,104 @@ impl DotrainOrderGui {
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
+    fn generate_dotrain_instance_v1(&self) -> Result<DotrainGuiStateV1, GuiError> {
+        let dotrain_source: RainMetaDocumentV1Item =
+            DotrainSourceV1(self.dotrain_order.dotrain()?.clone()).into();
+        let dotrain_hash = dotrain_source.hash(false)?;
+
+        // Use normalized deposit amounts (resolve presets to actual values)
+        let deposits: BTreeMap<String, ValueCfg> = self
+            .get_deposits()?
+            .into_iter()
+            .map(|d| {
+                (
+                    d.token.clone(),
+                    ValueCfg {
+                        id: d.token,
+                        name: None,
+                        value: d.amount,
+                    },
+                )
+            })
+            .collect();
+
+        // Convert select_tokens to ShortenedTokenCfg format directly
+        let select_tokens: BTreeMap<String, ShortenedTokenCfg> = {
+            let mut result = BTreeMap::new();
+            let deployment_select_tokens = GuiCfg::parse_select_tokens(
+                self.dotrain_order.dotrain_yaml().documents,
+                &self.selected_deployment,
+            )?;
+
+            if let Some(st) = deployment_select_tokens {
+                for select_token in st {
+                    if let Ok(token) = self
+                        .dotrain_order
+                        .orderbook_yaml()
+                        .get_token(&select_token.key)
+                    {
+                        result.insert(
+                            select_token.key,
+                            ShortenedTokenCfg {
+                                network: token.network.key.clone(),
+                                address: token.address,
+                            },
+                        );
+                    }
+                }
+            }
+            result
+        };
+
+        // Convert vault_ids from IOVaultIds to BTreeMap<String, Option<String>>
+        let vault_ids_map = self.get_vault_ids()?;
+        let vault_ids: BTreeMap<String, Option<String>> = vault_ids_map
+            .0
+            .into_iter()
+            .flat_map(|(io_type, vault_list)| {
+                vault_list
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(index, (_token_key, vault_id))| {
+                        let key = format!("{}_{}", io_type, index);
+                        let value = vault_id.map(|v| format!("0x{:x}", v));
+                        (key, value)
+                    })
+            })
+            .collect();
+
+        // Convert field values to ValueCfg with normalized value and optional preset ID
+        let field_values: BTreeMap<String, ValueCfg> = self
+            .field_values
+            .iter()
+            .map(|(k, v)| {
+                let normalized = self.get_field_value(k.clone())?;
+                Ok((
+                    k.clone(),
+                    ValueCfg {
+                        // Preserve preset linkage if applicable; otherwise leave blank
+                        id: if v.is_preset {
+                            v.value.clone()
+                        } else {
+                            k.clone()
+                        },
+                        name: None,
+                        value: normalized.value,
+                    },
+                ))
+            })
+            .collect::<Result<_, GuiError>>()?;
+
+        Ok(DotrainGuiStateV1 {
+            dotrain_hash: FixedBytes(dotrain_hash),
+            field_values,
+            deposits,
+            select_tokens,
+            vault_ids,
+            selected_deployment: self.selected_deployment.clone(),
+        })
+    }
+
     /// Generates calldata for adding the order to the orderbook.
     ///
     /// Creates the addOrder calldata with all field values applied to the
@@ -485,10 +595,13 @@ impl DotrainOrderGui {
         &mut self,
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
+        let dotrain_instance_v1 = self.generate_dotrain_instance_v1()?;
+        let doc = RainMetaDocumentV1Item::try_from(dotrain_instance_v1)?;
 
         let calldata = AddOrderArgs::new_from_deployment(
             self.dotrain_order.dotrain()?,
             deployment.deployment.as_ref().clone(),
+            Some(vec![doc]),
         )
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)
