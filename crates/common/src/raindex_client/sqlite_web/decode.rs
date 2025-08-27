@@ -13,6 +13,26 @@ use rain_orderbook_bindings::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[derive(Debug, thiserror::Error)]
+pub enum DecodeError {
+    #[error("Hex decode error: {0}")]
+    HexDecode(#[from] hex::FromHexError),
+    #[error("ABI decode error: {0}")]
+    AbiDecode(String),
+    #[error("Alice input IO index {index} out of bounds (max: {max})")]
+    AliceInputIOIndexOutOfBounds { index: u64, max: usize },
+    #[error("Alice output IO index {index} out of bounds (max: {max})")]
+    AliceOutputIOIndexOutOfBounds { index: u64, max: usize },
+    #[error("Bob input IO index {index} out of bounds (max: {max})")]
+    BobInputIOIndexOutOfBounds { index: u64, max: usize },
+    #[error("Bob output IO index {index} out of bounds (max: {max})")]
+    BobOutputIOIndexOutOfBounds { index: u64, max: usize },
+    #[error("Order hash computation failed: {0}")]
+    OrderHashComputation(String),
+    #[error("Expected array of events")]
+    InvalidJsonStructure,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventData {
     pub event_type: String,
@@ -23,10 +43,10 @@ pub struct EventData {
     pub decoded_data: serde_json::Value,
 }
 
-pub fn decode_events(
-    json_data: serde_json::Value,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let events = json_data.as_array().ok_or("Expected array of events")?;
+pub fn decode_events(json_data: serde_json::Value) -> Result<serde_json::Value, DecodeError> {
+    let events = json_data
+        .as_array()
+        .ok_or(DecodeError::InvalidJsonStructure)?;
 
     let mut topic_map = HashMap::new();
     topic_map.insert(AddOrderV3::SIGNATURE_HASH.to_string(), "AddOrderV3");
@@ -117,13 +137,13 @@ pub fn decode_events(
     Ok(serde_json::json!(decoded_events))
 }
 
-fn compute_order_hash(order: &OrderV4) -> Result<String, Box<dyn std::error::Error>> {
+fn compute_order_hash(order: &OrderV4) -> Result<String, DecodeError> {
     let encoded = order.abi_encode();
     let hash = keccak256(&encoded);
     Ok(format!("0x{}", hex::encode(hash)))
 }
 
-fn decode_add_order_v3(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+fn decode_add_order_v3(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match AddOrderV3::abi_decode_data(&data_bytes) {
@@ -152,14 +172,11 @@ fn decode_add_order_v3(data_str: &str) -> Result<serde_json::Value, Box<dyn std:
                 }).collect::<Vec<_>>()
             }
         })),
-        Err(e) => Ok(serde_json::json!({
-            "raw_data": data_str,
-            "decode_error": e.to_string()
-        })),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_take_order_v3(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+fn decode_take_order_v3(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match TakeOrderV3::abi_decode_data(&data_bytes) {
@@ -200,14 +217,11 @@ fn decode_take_order_v3(data_str: &str) -> Result<serde_json::Value, Box<dyn std
             "input": format!("0x{:x}", decoded.2),
             "output": format!("0x{:x}", decoded.3)
         })),
-        Err(e) => Ok(serde_json::json!({
-            "raw_data": data_str,
-            "decode_error": e.to_string()
-        })),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_withdraw_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+fn decode_withdraw_v2(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match WithdrawV2::abi_decode_data(&data_bytes) {
@@ -219,14 +233,11 @@ fn decode_withdraw_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::
             "withdraw_amount": format!("0x{:x}", decoded.4),
             "withdraw_amount_uint256": format!("0x{:x}", decoded.5)
         })),
-        Err(e) => Ok(serde_json::json!({
-            "raw_data": data_str,
-            "decode_error": e.to_string()
-        })),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_deposit_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+fn decode_deposit_v2(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match DepositV2::abi_decode_data(&data_bytes) {
@@ -236,14 +247,11 @@ fn decode_deposit_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::e
             "vault_id": format!("0x{:x}", decoded.2),
             "deposit_amount_uint256": format!("0x{:x}", decoded.3)
         })),
-        Err(e) => Ok(serde_json::json!({
-            "raw_data": data_str,
-            "decode_error": e.to_string()
-        })),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_remove_order_v3(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+fn decode_remove_order_v3(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match RemoveOrderV3::abi_decode_data(&data_bytes) {
@@ -272,57 +280,58 @@ fn decode_remove_order_v3(data_str: &str) -> Result<serde_json::Value, Box<dyn s
                 }).collect::<Vec<_>>()
             }
         })),
-        Err(e) => Ok(serde_json::json!({
-            "raw_data": data_str,
-            "decode_error": e.to_string()
-        })),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_clear_v3(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+fn decode_clear_v3(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match ClearV3::abi_decode_data(&data_bytes) {
         Ok(decoded) => {
-            let alice_input_vault_id = if let Some(input) = decoded
-                .1
-                .validInputs
-                .get(decoded.3.aliceInputIOIndex.to::<u64>() as usize)
-            {
-                format!("0x{:x}", input.vaultId)
-            } else {
-                return Err("Alice input IO index out of bounds".into());
-            };
+            let alice_input_index = decoded.3.aliceInputIOIndex.to::<u64>();
+            let alice_input_vault_id =
+                if let Some(input) = decoded.1.validInputs.get(alice_input_index as usize) {
+                    format!("0x{:x}", input.vaultId)
+                } else {
+                    return Err(DecodeError::AliceInputIOIndexOutOfBounds {
+                        index: alice_input_index,
+                        max: decoded.1.validInputs.len(),
+                    });
+                };
 
-            let alice_output_vault_id = if let Some(output) = decoded
-                .1
-                .validOutputs
-                .get(decoded.3.aliceOutputIOIndex.to::<u64>() as usize)
-            {
-                format!("0x{:x}", output.vaultId)
-            } else {
-                return Err("Alice output IO index out of bounds".into());
-            };
+            let alice_output_index = decoded.3.aliceOutputIOIndex.to::<u64>();
+            let alice_output_vault_id =
+                if let Some(output) = decoded.1.validOutputs.get(alice_output_index as usize) {
+                    format!("0x{:x}", output.vaultId)
+                } else {
+                    return Err(DecodeError::AliceOutputIOIndexOutOfBounds {
+                        index: alice_output_index,
+                        max: decoded.1.validOutputs.len(),
+                    });
+                };
 
-            let bob_input_vault_id = if let Some(input) = decoded
-                .2
-                .validInputs
-                .get(decoded.3.bobInputIOIndex.to::<u64>() as usize)
-            {
-                format!("0x{:x}", input.vaultId)
-            } else {
-                return Err("Bob input IO index out of bounds".into());
-            };
+            let bob_input_index = decoded.3.bobInputIOIndex.to::<u64>();
+            let bob_input_vault_id =
+                if let Some(input) = decoded.2.validInputs.get(bob_input_index as usize) {
+                    format!("0x{:x}", input.vaultId)
+                } else {
+                    return Err(DecodeError::BobInputIOIndexOutOfBounds {
+                        index: bob_input_index,
+                        max: decoded.2.validInputs.len(),
+                    });
+                };
 
-            let bob_output_vault_id = if let Some(output) = decoded
-                .2
-                .validOutputs
-                .get(decoded.3.bobOutputIOIndex.to::<u64>() as usize)
-            {
-                format!("0x{:x}", output.vaultId)
-            } else {
-                return Err("Bob output IO index out of bounds".into());
-            };
+            let bob_output_index = decoded.3.bobOutputIOIndex.to::<u64>();
+            let bob_output_vault_id =
+                if let Some(output) = decoded.2.validOutputs.get(bob_output_index as usize) {
+                    format!("0x{:x}", output.vaultId)
+                } else {
+                    return Err(DecodeError::BobOutputIOIndexOutOfBounds {
+                        index: bob_output_index,
+                        max: decoded.2.validOutputs.len(),
+                    });
+                };
 
             let alice_order_hash = compute_order_hash(&decoded.1)?;
             let bob_order_hash = compute_order_hash(&decoded.2)?;
@@ -339,14 +348,11 @@ fn decode_clear_v3(data_str: &str) -> Result<serde_json::Value, Box<dyn std::err
                 "bob_output_vault_id": bob_output_vault_id
             }))
         }
-        Err(e) => Ok(serde_json::json!({
-            "raw_data": data_str,
-            "decode_error": e.to_string()
-        })),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_after_clear_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+fn decode_after_clear_v2(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match AfterClearV2::abi_decode_data(&data_bytes) {
@@ -357,14 +363,11 @@ fn decode_after_clear_v2(data_str: &str) -> Result<serde_json::Value, Box<dyn st
             "bob_input": format!("0x{:x}", decoded.1.bobInput),
             "bob_output": format!("0x{:x}", decoded.1.bobOutput)
         })),
-        Err(e) => Ok(serde_json::json!({
-            "raw_data": data_str,
-            "decode_error": e.to_string()
-        })),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_meta_v1_2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+fn decode_meta_v1_2(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match MetaV1_2::abi_decode_data(&data_bytes) {
@@ -373,10 +376,7 @@ fn decode_meta_v1_2(data_str: &str) -> Result<serde_json::Value, Box<dyn std::er
             "subject": format!("0x{:x}", decoded.1),
             "meta": format!("0x{}", hex::encode(&decoded.2))
         })),
-        Err(e) => Ok(serde_json::json!({
-            "raw_data": data_str,
-            "decode_error": e.to_string()
-        })),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
@@ -1002,11 +1002,407 @@ mod test_helpers {
             decoded_event["decoded_data"]["sender"],
             "0x1818181818181818181818181818181818181818"
         );
-        // Subject is Address padded to 32 bytes (12 zero bytes + 20 address bytes)
         assert_eq!(
             decoded_event["decoded_data"]["subject"],
             "0x0000000000000000000000001919191919191919191919191919191919191919"
         );
         assert_eq!(decoded_event["decoded_data"]["meta"], "0x090a0b0c0d");
+    }
+
+    #[test]
+    fn test_invalid_hex_data_decode() {
+        let invalid_event = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))],
+            "data": "0xinvalidhex",
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([invalid_event]);
+        let result = decode_events(events_array);
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(error, DecodeError::HexDecode(_)));
+    }
+
+    #[test]
+    fn test_malformed_abi_data_decode() {
+        let malformed_event = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))],
+            "data": "0x1234",
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([malformed_event]);
+        let result = decode_events(events_array);
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(error, DecodeError::AbiDecode(_)));
+    }
+
+    #[test]
+    fn test_unknown_event_type_decode() {
+        let unknown_topic = "0x".to_owned() + &"f".repeat(64);
+        let unknown_event = serde_json::json!({
+            "topics": [unknown_topic],
+            "data": "0x1234567890abcdef",
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([unknown_event]);
+        let decoded_result = decode_events(events_array).unwrap();
+
+        let decoded_events = decoded_result.as_array().unwrap();
+        assert_eq!(decoded_events.len(), 1);
+
+        let decoded_event = &decoded_events[0];
+        assert_eq!(decoded_event["event_type"], "Unknown");
+        assert_eq!(
+            decoded_event["decoded_data"]["raw_data"],
+            "0x1234567890abcdef"
+        );
+        assert_eq!(
+            decoded_event["decoded_data"]["note"],
+            "Unknown event type - could not decode"
+        );
+    }
+
+    #[test]
+    fn test_empty_events_array() {
+        let empty_array = serde_json::json!([]);
+        let decoded_result = decode_events(empty_array).unwrap();
+
+        let decoded_events = decoded_result.as_array().unwrap();
+        assert_eq!(decoded_events.len(), 0);
+    }
+
+    #[test]
+    fn test_invalid_json_structure() {
+        let not_array = serde_json::json!({"not": "an_array"});
+        let result = decode_events(not_array);
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(error, DecodeError::InvalidJsonStructure));
+    }
+
+    #[test]
+    fn test_event_missing_topics() {
+        let event_no_topics = serde_json::json!({
+            "data": "0x1234567890abcdef",
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([event_no_topics]);
+        let decoded_result = decode_events(events_array).unwrap();
+
+        let decoded_events = decoded_result.as_array().unwrap();
+        assert_eq!(decoded_events.len(), 0);
+    }
+
+    #[test]
+    fn test_event_empty_topics_array() {
+        let event_empty_topics = serde_json::json!({
+            "topics": [],
+            "data": "0x1234567890abcdef",
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([event_empty_topics]);
+        let decoded_result = decode_events(events_array).unwrap();
+
+        let decoded_events = decoded_result.as_array().unwrap();
+        assert_eq!(decoded_events.len(), 0);
+    }
+
+    #[test]
+    fn test_event_missing_data_field() {
+        let event_no_data = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))],
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([event_no_data]);
+        let decoded_result = decode_events(events_array).unwrap();
+
+        let decoded_events = decoded_result.as_array().unwrap();
+        assert_eq!(decoded_events.len(), 0);
+    }
+
+    #[test]
+    fn test_event_missing_metadata_fields() {
+        let event_minimal = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))],
+            "data": "0x1234"
+        });
+
+        let events_array = serde_json::json!([event_minimal]);
+        let result = decode_events(events_array);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_event_with_valid_data_missing_metadata() {
+        let event_data = create_add_order_v3_event_data();
+        let mut minimal_event = event_data.clone();
+        minimal_event.as_object_mut().unwrap().remove("blockNumber");
+        minimal_event
+            .as_object_mut()
+            .unwrap()
+            .remove("blockTimestamp");
+        minimal_event
+            .as_object_mut()
+            .unwrap()
+            .remove("transactionHash");
+        minimal_event.as_object_mut().unwrap().remove("logIndex");
+
+        let events_array = serde_json::json!([minimal_event]);
+        let decoded_result = decode_events(events_array).unwrap();
+
+        let decoded_events = decoded_result.as_array().unwrap();
+        assert_eq!(decoded_events.len(), 1);
+
+        let decoded_event = &decoded_events[0];
+        assert_eq!(decoded_event["event_type"], "AddOrderV3");
+        assert_eq!(decoded_event["block_number"], "0x0");
+        assert_eq!(decoded_event["block_timestamp"], "0x0");
+        assert_eq!(decoded_event["transaction_hash"], "");
+        assert_eq!(decoded_event["log_index"], "0x0");
+    }
+
+    #[test]
+    fn test_clear_v3_alice_input_io_index_out_of_bounds() {
+        let sender = Address::from([17u8; 20]);
+        let alice_order = create_sample_order_v4();
+        let bob_order = create_sample_order_v4();
+        let clear_config = ClearConfigV2 {
+            aliceInputIOIndex: U256::from(5),
+            aliceOutputIOIndex: U256::from(0),
+            bobInputIOIndex: U256::from(0),
+            bobOutputIOIndex: U256::from(0),
+            aliceBountyVaultId: U256::from(0).into(),
+            bobBountyVaultId: U256::from(0).into(),
+        };
+
+        let event_data = ClearV3 {
+            sender,
+            alice: alice_order,
+            bob: bob_order,
+            clearConfig: clear_config,
+        };
+
+        let encoded_data = event_data.encode_data();
+        let encoded_data_hex = hex::encode(&encoded_data);
+        let clear_event = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(ClearV3::SIGNATURE_HASH))],
+            "data": format!("0x{}", encoded_data_hex),
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([clear_event]);
+        let result = decode_events(events_array);
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(
+            error,
+            DecodeError::AliceInputIOIndexOutOfBounds { index: 5, max: 2 }
+        ));
+    }
+
+    #[test]
+    fn test_clear_v3_alice_output_io_index_out_of_bounds() {
+        let sender = Address::from([17u8; 20]);
+        let alice_order = create_sample_order_v4();
+        let bob_order = create_sample_order_v4();
+        let clear_config = ClearConfigV2 {
+            aliceInputIOIndex: U256::from(0),
+            aliceOutputIOIndex: U256::from(3),
+            bobInputIOIndex: U256::from(0),
+            bobOutputIOIndex: U256::from(0),
+            aliceBountyVaultId: U256::from(0).into(),
+            bobBountyVaultId: U256::from(0).into(),
+        };
+
+        let event_data = ClearV3 {
+            sender,
+            alice: alice_order,
+            bob: bob_order,
+            clearConfig: clear_config,
+        };
+
+        let encoded_data = event_data.encode_data();
+        let encoded_data_hex = hex::encode(&encoded_data);
+        let clear_event = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(ClearV3::SIGNATURE_HASH))],
+            "data": format!("0x{}", encoded_data_hex),
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([clear_event]);
+        let result = decode_events(events_array);
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(
+            error,
+            DecodeError::AliceOutputIOIndexOutOfBounds { index: 3, max: 1 }
+        ));
+    }
+
+    #[test]
+    fn test_clear_v3_bob_input_io_index_out_of_bounds() {
+        let sender = Address::from([17u8; 20]);
+        let alice_order = create_sample_order_v4();
+        let bob_order = create_sample_order_v4();
+        let clear_config = ClearConfigV2 {
+            aliceInputIOIndex: U256::from(0),
+            aliceOutputIOIndex: U256::from(0),
+            bobInputIOIndex: U256::from(10),
+            bobOutputIOIndex: U256::from(0),
+            aliceBountyVaultId: U256::from(0).into(),
+            bobBountyVaultId: U256::from(0).into(),
+        };
+
+        let event_data = ClearV3 {
+            sender,
+            alice: alice_order,
+            bob: bob_order,
+            clearConfig: clear_config,
+        };
+
+        let encoded_data = event_data.encode_data();
+        let encoded_data_hex = hex::encode(&encoded_data);
+        let clear_event = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(ClearV3::SIGNATURE_HASH))],
+            "data": format!("0x{}", encoded_data_hex),
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([clear_event]);
+        let result = decode_events(events_array);
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(
+            error,
+            DecodeError::BobInputIOIndexOutOfBounds { index: 10, max: 2 }
+        ));
+    }
+
+    #[test]
+    fn test_clear_v3_bob_output_io_index_out_of_bounds() {
+        let sender = Address::from([17u8; 20]);
+        let alice_order = create_sample_order_v4();
+        let bob_order = create_sample_order_v4();
+        let clear_config = ClearConfigV2 {
+            aliceInputIOIndex: U256::from(0),
+            aliceOutputIOIndex: U256::from(0),
+            bobInputIOIndex: U256::from(0),
+            bobOutputIOIndex: U256::from(7),
+            aliceBountyVaultId: U256::from(0).into(),
+            bobBountyVaultId: U256::from(0).into(),
+        };
+
+        let event_data = ClearV3 {
+            sender,
+            alice: alice_order,
+            bob: bob_order,
+            clearConfig: clear_config,
+        };
+
+        let encoded_data = event_data.encode_data();
+        let encoded_data_hex = hex::encode(&encoded_data);
+        let clear_event = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(ClearV3::SIGNATURE_HASH))],
+            "data": format!("0x{}", encoded_data_hex),
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([clear_event]);
+        let result = decode_events(events_array);
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(
+            error,
+            DecodeError::BobOutputIOIndexOutOfBounds { index: 7, max: 1 }
+        ));
+    }
+
+    #[test]
+    fn test_clear_v3_empty_valid_inputs_array() {
+        let sender = Address::from([17u8; 20]);
+        let mut alice_order = create_sample_order_v4();
+        alice_order.validInputs = vec![];
+        let bob_order = create_sample_order_v4();
+        let clear_config = ClearConfigV2 {
+            aliceInputIOIndex: U256::from(0),
+            aliceOutputIOIndex: U256::from(0),
+            bobInputIOIndex: U256::from(0),
+            bobOutputIOIndex: U256::from(0),
+            aliceBountyVaultId: U256::from(0).into(),
+            bobBountyVaultId: U256::from(0).into(),
+        };
+
+        let event_data = ClearV3 {
+            sender,
+            alice: alice_order,
+            bob: bob_order,
+            clearConfig: clear_config,
+        };
+
+        let encoded_data = event_data.encode_data();
+        let encoded_data_hex = hex::encode(&encoded_data);
+        let clear_event = serde_json::json!({
+            "topics": [format!("0x{}", hex::encode(ClearV3::SIGNATURE_HASH))],
+            "data": format!("0x{}", encoded_data_hex),
+            "blockNumber": "0x123456",
+            "blockTimestamp": "0x64b8c123",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "logIndex": "0x0"
+        });
+
+        let events_array = serde_json::json!([clear_event]);
+        let result = decode_events(events_array);
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(
+            error,
+            DecodeError::AliceInputIOIndexOutOfBounds { index: 0, max: 0 }
+        ));
     }
 }
