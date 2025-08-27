@@ -1,4 +1,6 @@
+pub mod decode;
 pub mod fetch;
+
 use crate::hyper_rpc::{HyperRpcClient, HyperRpcError};
 use alloy::primitives::ruint::ParseError;
 pub use fetch::FetchConfig;
