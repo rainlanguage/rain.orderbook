@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { RaindexVault, type RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
