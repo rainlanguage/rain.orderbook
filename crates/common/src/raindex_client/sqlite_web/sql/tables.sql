@@ -93,11 +93,15 @@ CREATE TABLE clear_v3_events (
     alice_input_io_index INTEGER NOT NULL,
     alice_output_io_index INTEGER NOT NULL,
     alice_bounty_vault_id TEXT NOT NULL,
+    alice_input_vault_id TEXT NOT NULL,
+    alice_output_vault_id TEXT NOT NULL,
     bob_order_hash TEXT NOT NULL,
     bob_order_owner TEXT NOT NULL,
     bob_input_io_index INTEGER NOT NULL,
     bob_output_io_index INTEGER NOT NULL,
     bob_bounty_vault_id TEXT NOT NULL,
+    bob_input_vault_id TEXT NOT NULL,
+    bob_output_vault_id TEXT NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );
 
@@ -143,6 +147,8 @@ CREATE INDEX idx_take_orders_block ON take_orders(block_number);
 
 CREATE INDEX idx_clear_events_alice_bob ON clear_v3_events(alice_order_hash, bob_order_hash);
 CREATE INDEX idx_clear_events_block ON clear_v3_events(block_number);
+CREATE INDEX idx_clear_alice_vaults ON clear_v3_events(alice_input_vault_id, alice_output_vault_id);
+CREATE INDEX idx_clear_bob_vaults ON clear_v3_events(bob_input_vault_id, bob_output_vault_id);
 
 CREATE INDEX idx_after_clear_block ON after_clear_v2_events(block_number);
 
