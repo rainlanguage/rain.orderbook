@@ -93,8 +93,7 @@ const {
 	mockSelectedChainIdsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type OrdersListTableProps = ComponentProps<OrdersListTable<any>>;
+type OrdersListTableProps = ComponentProps<OrdersListTable>;
 
 const defaultProps: OrdersListTableProps = {
 	activeAccountsItems: mockActiveAccountsItemsStore,
