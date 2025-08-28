@@ -137,7 +137,7 @@ describe('OrdersListTable', () => {
 
 		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('Ethereum');
 		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Active');
-		
+
 		// Check that vault cards are rendered with correct content
 		const vaultCards = screen.getAllByTestId('vault-card');
 		expect(vaultCards).toHaveLength(2); // One input, one output
@@ -145,7 +145,7 @@ describe('OrdersListTable', () => {
 		expect(screen.getByText('1.5')).toBeInTheDocument();
 		expect(screen.getByText('DAI')).toBeInTheDocument();
 		expect(screen.getByText('2500.0')).toBeInTheDocument();
-		
+
 		expect(screen.getByTestId('orderListRowTrades')).toHaveTextContent('2');
 	});
 
@@ -244,7 +244,7 @@ describe('OrdersListTable', () => {
 		// Verify all tokens are displayed in vault cards
 		const vaultCards = screen.getAllByTestId('vault-card');
 		expect(vaultCards).toHaveLength(4); // 2 inputs + 2 outputs
-		
+
 		// Verify all input tokens are displayed
 		expect(screen.getByText('ETH')).toBeInTheDocument();
 		expect(screen.getByText('1.5')).toBeInTheDocument();

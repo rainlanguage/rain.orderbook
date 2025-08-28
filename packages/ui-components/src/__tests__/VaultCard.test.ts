@@ -35,7 +35,7 @@ describe('VaultCard', () => {
 
 	it('navigates to vault details when clicked', async () => {
 		const { goto } = await import('$app/navigation');
-		
+
 		render(VaultCard, {
 			vault: mockVault,
 			chainId: 1
@@ -68,7 +68,7 @@ describe('VaultCard', () => {
 
 	it('navigates with correct chain ID', async () => {
 		const { goto } = await import('$app/navigation');
-		
+
 		render(VaultCard, {
 			vault: mockVault,
 			chainId: 137 // Polygon
