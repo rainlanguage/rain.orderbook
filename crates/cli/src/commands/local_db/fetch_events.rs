@@ -82,3 +82,187 @@ impl FetchEvents {
         self.execute_with_client(local_db).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+    use serde_json::json;
+
+    struct MockEventClient {
+        latest_block: Option<u64>,
+        latest_block_error: Option<String>,
+        events: Option<serde_json::Value>,
+        events_error: Option<String>,
+    }
+
+    impl MockEventClient {
+        fn new() -> Self {
+            Self {
+                latest_block: None,
+                latest_block_error: None,
+                events: None,
+                events_error: None,
+            }
+        }
+
+        fn with_latest_block(mut self, block: u64) -> Self {
+            self.latest_block = Some(block);
+            self
+        }
+
+        fn with_latest_block_error(mut self, error: String) -> Self {
+            self.latest_block_error = Some(error);
+            self
+        }
+
+        fn with_events(mut self, events: serde_json::Value) -> Self {
+            self.events = Some(events);
+            self
+        }
+
+        fn with_events_error(mut self, error: String) -> Self {
+            self.events_error = Some(error);
+            self
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl EventClient for MockEventClient {
+        async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
+            if let Some(error) = &self.latest_block_error {
+                Err(HyperRpcError::RpcError {
+                    message: error.clone(),
+                })
+            } else {
+                Ok(self.latest_block.unwrap_or(1000))
+            }
+        }
+
+        async fn fetch_events(
+            &self,
+            _address: &str,
+            _start_block: u64,
+            _end_block: u64,
+        ) -> Result<serde_json::Value, SqliteWebError> {
+            if let Some(error) = &self.events_error {
+                Err(SqliteWebError::Config {
+                    message: error.clone(),
+                })
+            } else {
+                Ok(self.events.clone().unwrap_or_else(|| json!([])))
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_client_success_with_explicit_end_block() {
+        let temp_file = NamedTempFile::new().unwrap();
+        let temp_path = temp_file.path().to_str().unwrap().to_string();
+
+        let fetch_events = FetchEvents {
+            api_token: "test_token".to_string(),
+            chain_id: 1,
+            start_block: 100,
+            end_block: Some(200),
+            orderbook_address: "0x123".to_string(),
+            output_file: Some(temp_path.clone()),
+        };
+
+        let mock_client = MockEventClient::new()
+            .with_events(json!([{"blockNumber": "0x64", "data": "test"}]));
+
+        let result = fetch_events.execute_with_client(mock_client).await;
+        assert!(result.is_ok());
+
+        let content = std::fs::read_to_string(&temp_path).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
+        assert_eq!(parsed[0]["blockNumber"], "0x64");
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_client_success_with_latest_block() {
+        let temp_file = NamedTempFile::new().unwrap();
+        let temp_path = temp_file.path().to_str().unwrap().to_string();
+
+        let fetch_events = FetchEvents {
+            api_token: "test_token".to_string(),
+            chain_id: 1,
+            start_block: 100,
+            end_block: None,
+            orderbook_address: "0x123".to_string(),
+            output_file: Some(temp_path.clone()),
+        };
+
+        let mock_client = MockEventClient::new()
+            .with_latest_block(500)
+            .with_events(json!([{"blockNumber": "0x1f4", "data": "test"}]));
+
+        let result = fetch_events.execute_with_client(mock_client).await;
+        assert!(result.is_ok());
+
+        let content = std::fs::read_to_string(&temp_path).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
+        assert_eq!(parsed[0]["blockNumber"], "0x1f4");
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_client_latest_block_error() {
+        let fetch_events = FetchEvents {
+            api_token: "test_token".to_string(),
+            chain_id: 1,
+            start_block: 100,
+            end_block: None,
+            orderbook_address: "0x123".to_string(),
+            output_file: Some("test_output.json".to_string()),
+        };
+
+        let mock_client = MockEventClient::new()
+            .with_latest_block_error("RPC connection failed".to_string());
+
+        let result = fetch_events.execute_with_client(mock_client).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to get latest block number"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_client_fetch_events_error() {
+        let fetch_events = FetchEvents {
+            api_token: "test_token".to_string(),
+            chain_id: 1,
+            start_block: 100,
+            end_block: Some(200),
+            orderbook_address: "0x123".to_string(),
+            output_file: Some("test_output.json".to_string()),
+        };
+
+        let mock_client = MockEventClient::new()
+            .with_events_error("Network connection failed".to_string());
+
+        let result = fetch_events.execute_with_client(mock_client).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to fetch events"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_client_default_output_filename() {
+        let fetch_events = FetchEvents {
+            api_token: "test_token".to_string(),
+            chain_id: 1,
+            start_block: 100,
+            end_block: Some(200),
+            orderbook_address: "0x123".to_string(),
+            output_file: None,
+        };
+
+        let mock_client = MockEventClient::new()
+            .with_events(json!([]));
+
+        let result = fetch_events.execute_with_client(mock_client).await;
+        assert!(result.is_ok());
+
+        let expected_filename = "src/commands/local_db/events_200.json";
+        assert!(std::path::Path::new(expected_filename).exists());
+        std::fs::remove_file(expected_filename).ok();
+    }
+}
