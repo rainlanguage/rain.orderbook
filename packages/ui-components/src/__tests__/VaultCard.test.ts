@@ -55,7 +55,7 @@ describe('VaultCard', () => {
 				symbol: 'DAI'
 			},
 			formattedBalance: '2500.0'
-		};
+		} as unknown as RaindexVault;
 
 		render(VaultCard, {
 			vault: daiVault,
@@ -95,7 +95,7 @@ describe('VaultCard', () => {
 		const vaultWithLongBalance = {
 			...mockVault,
 			formattedBalance: '1,234,567.89'
-		};
+		} as unknown as RaindexVault;
 
 		render(VaultCard, {
 			vault: vaultWithLongBalance,
