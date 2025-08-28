@@ -86,8 +86,8 @@ impl FetchEvents {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
     use serde_json::json;
+    use tempfile::NamedTempFile;
 
     struct MockEventClient {
         latest_block: Option<u64>,
@@ -169,8 +169,8 @@ mod tests {
             output_file: Some(temp_path.clone()),
         };
 
-        let mock_client = MockEventClient::new()
-            .with_events(json!([{"blockNumber": "0x64", "data": "test"}]));
+        let mock_client =
+            MockEventClient::new().with_events(json!([{"blockNumber": "0x64", "data": "test"}]));
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
@@ -217,12 +217,15 @@ mod tests {
             output_file: Some("test_output.json".to_string()),
         };
 
-        let mock_client = MockEventClient::new()
-            .with_latest_block_error("RPC connection failed".to_string());
+        let mock_client =
+            MockEventClient::new().with_latest_block_error("RPC connection failed".to_string());
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to get latest block number"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Failed to get latest block number"));
     }
 
     #[tokio::test]
@@ -236,12 +239,15 @@ mod tests {
             output_file: Some("test_output.json".to_string()),
         };
 
-        let mock_client = MockEventClient::new()
-            .with_events_error("Network connection failed".to_string());
+        let mock_client =
+            MockEventClient::new().with_events_error("Network connection failed".to_string());
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to fetch events"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Failed to fetch events"));
     }
 
     #[tokio::test]
@@ -255,8 +261,7 @@ mod tests {
             output_file: None,
         };
 
-        let mock_client = MockEventClient::new()
-            .with_events(json!([]));
+        let mock_client = MockEventClient::new().with_events(json!([]));
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
