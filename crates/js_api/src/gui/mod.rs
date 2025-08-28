@@ -12,6 +12,7 @@ use rain_orderbook_app_settings::{
     network::NetworkCfg,
     order::OrderCfg,
     yaml::{
+        context::ContextError,
         dotrain::{DotrainYaml, DotrainYamlValidation},
         YamlError, YamlParsable,
     },
@@ -30,6 +31,7 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
+use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 mod deposits;
@@ -58,6 +60,8 @@ pub struct DotrainOrderGui {
     deposits: BTreeMap<String, field_values::PairValue>,
     #[serde(skip)]
     state_update_callback: Option<js_sys::Function>,
+    #[serde(skip)]
+    price_callback: Option<js_sys::Function>,
 }
 impl Default for DotrainOrderGui {
     fn default() -> Self {
@@ -67,6 +71,7 @@ impl Default for DotrainOrderGui {
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             state_update_callback: None,
+            price_callback: None,
         }
     }
 }
@@ -124,6 +129,12 @@ impl DotrainOrderGui {
     /// The callback function receives a serialized state string on every change, enabling
     /// auto-save functionality or state synchronization across components.
     ///
+    /// ## Price Callback
+    ///
+    /// The price callback function is used to fetch external price data for io-ratio expressions
+    /// in YAML configurations. It should accept two parameters (input token address, output token address)
+    /// and return a promise that resolves to the price ratio as a string.
+    ///
     /// ## Examples
     ///
     /// ```javascript
@@ -135,13 +146,20 @@ impl DotrainOrderGui {
     /// }
     /// const gui = result.value;
     ///
-    /// // With state persistence
+    /// // With state persistence and price callback
+    /// const priceCallback = async (inputTokenAddress, outputTokenAddress) => {
+    ///   const response = await fetch(`/api/price/${inputTokenAddress}/${outputTokenAddress}`);
+    ///   const data = await response.json();
+    ///   return data.ratio.toString();
+    /// };
+    ///
     /// const result = await DotrainOrderGui.newWithDeployment(
     ///   dotrainYaml,
     ///   "mainnet-order",
     ///   (serializedState) => {
     ///     localStorage.setItem('orderState', serializedState);
-    ///   }
+    ///   },
+    ///   priceCallback
     /// );
     /// if (!result.error) {
     ///   const gui = result.value;
@@ -165,6 +183,64 @@ impl DotrainOrderGui {
             This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
+        Self::new_with_deployment_and_price_callback(
+            dotrain,
+            selected_deployment,
+            state_update_callback,
+            None,
+        )
+        .await
+    }
+
+    /// Creates a new GUI instance with price callback support for io-ratio expressions.
+    ///
+    /// This is an extended version of newWithDeployment that includes support for price callbacks
+    /// to resolve ${io-ratio(input, output)} expressions in YAML configurations.
+    ///
+    /// ## Price Callback
+    ///
+    /// The price callback function is used to fetch external price data for io-ratio expressions
+    /// in YAML configurations. It should accept two parameters (input token address, output token address)
+    /// and return a promise that resolves to the price ratio as a string.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const priceCallback = async (inputTokenAddress, outputTokenAddress) => {
+    ///   const response = await fetch(`/api/price/${inputTokenAddress}/${outputTokenAddress}`);
+    ///   const data = await response.json();
+    ///   return data.ratio.toString();
+    /// };
+    ///
+    /// const result = await DotrainOrderGui.newWithDeploymentAndPriceCallback(
+    ///   dotrainYaml,
+    ///   "mainnet-order",
+    ///   (serializedState) => {
+    ///     localStorage.setItem('orderState', serializedState);
+    ///   },
+    ///   priceCallback
+    /// );
+    /// ```
+    #[wasm_export(
+        js_name = "newWithDeploymentAndPriceCallback",
+        preserve_js_class,
+        return_description = "Initialized GUI instance with price callback support"
+    )]
+    pub async fn new_with_deployment_and_price_callback(
+        #[wasm_export(param_description = "Complete dotrain YAML content with all configurations")]
+        dotrain: String,
+        #[wasm_export(
+            param_description = "Key of the deployment to activate (must exist in YAML)"
+        )]
+        selected_deployment: String,
+        #[wasm_export(param_description = "Optional function called on state changes. \
+            After a state change (deposit, field value, vault id, select token, etc.), the callback is called with the new state. \
+            This is useful for auto-saving the state of the GUI across sessions.")]
+        state_update_callback: Option<js_sys::Function>,
+        #[wasm_export(param_description = "Optional function for fetching price ratios. \
+            Should accept (inputTokenAddress, outputTokenAddress) and return a Promise<string> with the price ratio.")]
+        price_callback: Option<js_sys::Function>,
+    ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
 
         let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
@@ -178,6 +254,7 @@ impl DotrainOrderGui {
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             state_update_callback,
+            price_callback,
         })
     }
 
@@ -604,6 +681,225 @@ impl DotrainOrderGui {
         let dotrain_yaml =
             DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
         Ok(dotrain_yaml.documents)
+    }
+
+    /// Resolves price ratio placeholders in a string by calling the JavaScript price callback.
+    ///
+    /// This method looks for PRICE_RATIO_PLACEHOLDER patterns and replaces them with actual
+    /// price data fetched via the JavaScript callback function.
+    pub async fn resolve_price_ratios(&self, input: &str) -> Result<String, GuiError> {
+        if let Some(price_callback) = &self.price_callback {
+            let mut result = input.to_string();
+
+            // Find all PRICE_RATIO_PLACEHOLDER patterns
+            while let Some(start) = result.find("PRICE_RATIO_PLACEHOLDER:") {
+                if let Some(end) = result[start..].find(' ') {
+                    let end = start + end;
+                    let placeholder = &result[start..end];
+
+                    // Extract input and output addresses from placeholder
+                    let parts: Vec<&str> = placeholder.split(':').collect();
+                    if parts.len() == 3 {
+                        let input_address = parts[1];
+                        let output_address = parts[2];
+
+                        // Validate addresses before calling callback
+                        if input_address.is_empty() || output_address.is_empty() {
+                            return Err(GuiError::JsError(
+                                "Invalid token addresses in price ratio expression".to_string(),
+                            ));
+                        }
+
+                        // Call the JavaScript price callback with error handling
+                        match self
+                            .call_price_callback(input_address, output_address)
+                            .await
+                        {
+                            Ok(price_ratio) => {
+                                // Validate the returned price ratio
+                                if price_ratio.is_empty() {
+                                    return Err(GuiError::JsError(
+                                        "Price callback returned empty value".to_string(),
+                                    ));
+                                }
+
+                                // Replace the placeholder with the actual price
+                                result.replace_range(start..end, &price_ratio);
+                            }
+                            Err(e) => {
+                                // Return the error instead of replacing with error text
+                                return Err(e);
+                            }
+                        }
+                    } else {
+                        return Err(GuiError::JsError(format!(
+                            "Invalid price ratio placeholder format: {}",
+                            placeholder
+                        )));
+                    }
+                } else {
+                    // No space found, placeholder might be at the end of string
+                    let placeholder = &result[start..];
+                    let parts: Vec<&str> = placeholder.split(':').collect();
+                    if parts.len() == 3 {
+                        let input_address = parts[1];
+                        let output_address = parts[2];
+
+                        // Validate addresses
+                        if input_address.is_empty() || output_address.is_empty() {
+                            return Err(GuiError::JsError(
+                                "Invalid token addresses in price ratio expression".to_string(),
+                            ));
+                        }
+
+                        match self
+                            .call_price_callback(input_address, output_address)
+                            .await
+                        {
+                            Ok(price_ratio) => {
+                                if price_ratio.is_empty() {
+                                    return Err(GuiError::JsError(
+                                        "Price callback returned empty value".to_string(),
+                                    ));
+                                }
+                                result.replace_range(start.., &price_ratio);
+                            }
+                            Err(e) => return Err(e),
+                        }
+                    } else {
+                        return Err(GuiError::JsError(format!(
+                            "Invalid price ratio placeholder format: {}",
+                            placeholder
+                        )));
+                    }
+                    break;
+                }
+            }
+
+            Ok(result)
+        } else {
+            // No price callback available, return input as-is
+            Ok(input.to_string())
+        }
+    }
+
+    /// Calls the JavaScript price callback function to fetch a price ratio.
+    ///
+    /// This method handles all the complexity of calling JavaScript from Rust, including:
+    /// - Parameter validation
+    /// - Promise handling
+    /// - Error conversion and user-friendly messages
+    /// - Timeout handling (if the promise never resolves)
+    async fn call_price_callback(
+        &self,
+        input_address: &str,
+        output_address: &str,
+    ) -> Result<String, GuiError> {
+        if let Some(callback) = &self.price_callback {
+            // Validate input parameters
+            if input_address.is_empty() {
+                return Err(GuiError::JsError(
+                    "Input token address cannot be empty".to_string(),
+                ));
+            }
+            if output_address.is_empty() {
+                return Err(GuiError::JsError(
+                    "Output token address cannot be empty".to_string(),
+                ));
+            }
+
+            let input_js = JsValue::from_str(input_address);
+            let output_js = JsValue::from_str(output_address);
+
+            // Call the JavaScript function with detailed error handling
+            let promise = callback
+                .call2(&JsValue::UNDEFINED, &input_js, &output_js)
+                .map_err(|e| {
+                    let error_msg = if let Some(js_error) = e.dyn_ref::<js_sys::Error>() {
+                        format!("Price callback function error: {}", js_error.message())
+                    } else {
+                        format!("Failed to call price callback function: {:?}", e)
+                    };
+                    GuiError::JsError(error_msg)
+                })?;
+
+            // Ensure the result is a Promise
+            if !promise.is_instance_of::<js_sys::Promise>() {
+                return Err(GuiError::JsError(
+                    "Price callback must return a Promise".to_string(),
+                ));
+            }
+
+            // Convert to Promise and await with error handling
+            let future = JsFuture::from(js_sys::Promise::from(promise));
+            let result = future.await.map_err(|e| {
+                let error_msg = if let Some(js_error) = e.dyn_ref::<js_sys::Error>() {
+                    format!("Price callback promise rejected: {}", js_error.message())
+                } else if let Some(error_str) = e.as_string() {
+                    format!("Price callback failed: {}", error_str)
+                } else {
+                    format!("Price callback promise failed with unknown error: {:?}", e)
+                };
+                GuiError::JsError(error_msg)
+            })?;
+
+            // Convert result to string with validation
+            let price_str = result.as_string().ok_or_else(|| {
+                GuiError::JsError(format!(
+                    "Price callback must return a string, got: {:?}",
+                    result
+                ))
+            })?;
+
+            // Validate the returned price string
+            if price_str.trim().is_empty() {
+                return Err(GuiError::JsError(
+                    "Price callback returned empty or whitespace-only string".to_string(),
+                ));
+            }
+
+            // Basic validation that the result looks like a number
+            if price_str.parse::<f64>().is_err() {
+                return Err(GuiError::JsError(format!(
+                    "Price callback returned invalid number format: '{}'",
+                    price_str
+                )));
+            }
+
+            Ok(price_str)
+        } else {
+            Err(GuiError::JsError(
+                "No price callback function provided. Please provide a price callback when creating the DotrainOrderGui instance.".to_string(),
+            ))
+        }
+    }
+
+    /// Gets the current deployment with price ratio resolution applied to field definitions.
+    ///
+    /// This method processes the deployment configuration and resolves any price ratio
+    /// placeholders in field names, descriptions, and default values.
+    pub async fn get_current_deployment_with_price_resolution(
+        &self,
+    ) -> Result<GuiDeploymentCfg, GuiError> {
+        let mut deployment = self.get_current_deployment()?;
+
+        // Process each field to resolve price ratios
+        for field in &mut deployment.fields {
+            // Resolve price ratios in field name
+            field.name = self.resolve_price_ratios(&field.name).await?;
+
+            // Resolve price ratios in field description
+            if let Some(description) = &field.description {
+                field.description = Some(self.resolve_price_ratios(description).await?);
+            }
+
+            // Resolve price ratios in default value
+            if let Some(default) = &field.default {
+                field.default = Some(self.resolve_price_ratios(default).await?);
+            }
+        }
+
+        Ok(deployment)
     }
 }
 
@@ -1228,6 +1524,7 @@ _ _: 0 0;
             get_yaml(),
             deployment_name.unwrap_or("some-deployment".to_string()),
             None,
+            None,
         )
         .await
         .unwrap()
@@ -1237,6 +1534,7 @@ _ _: 0 0;
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
             "select-token-deployment".to_string(),
+            None,
             None,
         )
         .await
@@ -1248,9 +1546,58 @@ _ _: 0 0;
             get_yaml_with_validation(),
             "validation-deployment".to_string(),
             None,
+            None,
         )
         .await
         .unwrap()
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_price_ratio_placeholder_resolution() {
+        // Test the resolve_price_ratios method with mock data
+        let gui = initialize_gui(None).await;
+
+        // Test input with no placeholders
+        let result = gui.resolve_price_ratios("No placeholders here").await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "No placeholders here");
+
+        // Test input with placeholder but no callback (should return as-is)
+        let input_with_placeholder = "Price: PRICE_RATIO_PLACEHOLDER:0x123:0x456";
+        let result = gui.resolve_price_ratios(input_with_placeholder).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), input_with_placeholder);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_gui_with_price_callback() {
+        // Test creating GUI with price callback
+        let result = DotrainOrderGui::new_with_deployment_and_price_callback(
+            get_yaml(),
+            "some-deployment".to_string(),
+            None,
+            None, // No actual callback for this test
+        )
+        .await;
+
+        assert!(result.is_ok());
+        let gui = result.unwrap();
+        assert!(gui.price_callback.is_none());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_price_ratio_error_handling() {
+        let gui = initialize_gui(None).await;
+
+        // Test invalid placeholder format
+        let invalid_placeholder = "Price: PRICE_RATIO_PLACEHOLDER:invalid";
+        let result = gui.resolve_price_ratios(invalid_placeholder).await;
+        assert!(result.is_err());
+
+        // Test empty addresses
+        let empty_address_placeholder = "Price: PRICE_RATIO_PLACEHOLDER::0x456";
+        let result = gui.resolve_price_ratios(empty_address_placeholder).await;
+        assert!(result.is_err());
     }
 
     #[wasm_bindgen_test]

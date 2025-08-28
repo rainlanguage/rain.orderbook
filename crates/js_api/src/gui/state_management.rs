@@ -224,6 +224,43 @@ impl DotrainOrderGui {
         #[wasm_export(param_description = "Optional callback for future state changes")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
+        Self::new_from_state_with_price_callback(dotrain, serialized, state_update_callback, None)
+            .await
+    }
+
+    /// Restores a GUI instance from previously serialized state with price callback support.
+    ///
+    /// Creates a new GUI instance with all configuration restored from a saved state and
+    /// includes support for price callbacks to resolve ${io-ratio(input, output)} expressions.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const priceCallback = async (inputTokenAddress, outputTokenAddress) => {
+    ///   return await fetchPriceRatio(inputTokenAddress, outputTokenAddress);
+    /// };
+    ///
+    /// const result = await DotrainOrderGui.newFromStateWithPriceCallback(
+    ///   dotrainYaml,
+    ///   savedState,
+    ///   stateCallback,
+    ///   priceCallback
+    /// );
+    /// ```
+    #[wasm_export(
+        js_name = "newFromStateWithPriceCallback",
+        preserve_js_class,
+        return_description = "Fully restored GUI instance with price callback support"
+    )]
+    pub async fn new_from_state_with_price_callback(
+        #[wasm_export(param_description = "Must match the original dotrain content exactly")]
+        dotrain: String,
+        #[wasm_export(param_description = "Previously serialized state string")] serialized: String,
+        #[wasm_export(param_description = "Optional callback for future state changes")]
+        state_update_callback: Option<js_sys::Function>,
+        #[wasm_export(param_description = "Optional function for fetching price ratios")]
+        price_callback: Option<js_sys::Function>,
+    ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
         let mut decoder = GzDecoder::new(&compressed[..]);
@@ -256,6 +293,7 @@ impl DotrainOrderGui {
             deposits,
             selected_deployment: state.selected_deployment.clone(),
             state_update_callback,
+            price_callback,
         };
 
         let deployment_select_tokens = GuiCfg::parse_select_tokens(
