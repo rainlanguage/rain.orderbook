@@ -12,7 +12,10 @@ use rain_orderbook_bindings::{
     IOrderBookV5::deposit3Call, OrderBook::multicallCall, IERC20::approveCall,
 };
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
+    add_order::AddOrderArgs,
+    deposit::{ApproveArgs, DepositArgs},
+    erc20::ERC20,
+    transaction::TransactionArgs,
 };
 use std::ops::Sub;
 use std::{collections::HashMap, str::FromStr, sync::Arc};
@@ -179,16 +182,16 @@ impl DotrainOrderGui {
 
     async fn check_allowance(
         &self,
-        deposit_args: &DepositArgs,
+        approve_args: &ApproveArgs,
         owner: &str,
     ) -> Result<TokenAllowance, GuiError> {
-        let allowance = deposit_args
+        let allowance = approve_args
             .read_allowance(Address::from_str(owner)?, self.get_transaction_args()?)
             .await?;
-        return Ok(TokenAllowance {
-            token: deposit_args.token,
+        Ok(TokenAllowance {
+            token: approve_args.token,
             allowance,
-        });
+        })
     }
 
     fn prepare_calldata_generation(
@@ -328,14 +331,13 @@ impl DotrainOrderGui {
             let erc20 = ERC20::new(rpcs, *token_address);
             let decimals = erc20.decimals().await?;
 
-            let deposit_args = DepositArgs {
+            let approve_args = ApproveArgs {
                 token: *token_address,
                 amount: *deposit_amount,
                 decimals,
-                vault_id: B256::ZERO,
             };
 
-            let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
+            let token_allowance = self.check_allowance(&approve_args, &owner).await?;
             let allowance_float = Float::from_fixed_decimal(token_allowance.allowance, decimals)?;
 
             if allowance_float.lt(*deposit_amount)? {
