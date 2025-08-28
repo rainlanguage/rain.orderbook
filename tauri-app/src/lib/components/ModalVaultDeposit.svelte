@@ -33,17 +33,6 @@
     }
   }
 
-  async function executeLedger() {
-    isSubmitting = true;
-    try {
-      await vaultDeposit(raindexClient, vault, amount);
-      onDeposit();
-    } catch (e) {
-      reportErrorToSentry(e);
-    }
-    isSubmitting = false;
-    reset();
-  }
 
   async function executeWalletconnect() {
     isSubmitting = true;
@@ -180,7 +169,6 @@
   onBack={() => (open = true)}
   title="Deposit to Vault"
   execButtonLabel="Deposit"
-  {executeLedger}
   {executeWalletconnect}
   bind:isSubmitting
 />

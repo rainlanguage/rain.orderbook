@@ -51,7 +51,6 @@ describe('ModalExecute', () => {
           open: true,
           title: 'Test',
           execButtonLabel: 'Execute',
-          executeLedger: vi.fn(),
           executeWalletconnect: vi.fn(),
           isSubmitting: false,
           overrideNetwork: {
@@ -76,7 +75,6 @@ describe('ModalExecute', () => {
           open: true,
           title: 'Test',
           execButtonLabel: 'Execute',
-          executeLedger: vi.fn(),
           executeWalletconnect: vi.fn(),
           isSubmitting: false,
           overrideNetwork: {
