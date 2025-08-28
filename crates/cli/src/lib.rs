@@ -21,7 +21,9 @@ impl LocalDb {
         match self {
             LocalDb::FetchEvents(fetch_events) => fetch_events.execute().await,
             LocalDb::DecodeEvents(decode_events) => decode_events.execute().await,
-            LocalDb::DecodedEventsToSql(decoded_events_to_sql) => decoded_events_to_sql.execute().await,
+            LocalDb::DecodedEventsToSql(decoded_events_to_sql) => {
+                decoded_events_to_sql.execute().await
+            }
         }
     }
 }
