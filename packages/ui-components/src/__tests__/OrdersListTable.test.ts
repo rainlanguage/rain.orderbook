@@ -55,7 +55,8 @@ const mockOrder = {
 			{
 				token: {
 					symbol: 'ETH'
-				}
+				},
+				formattedBalance: '1.5'
 			}
 		]
 	},
@@ -65,7 +66,8 @@ const mockOrder = {
 			{
 				token: {
 					symbol: 'DAI'
-				}
+				},
+				formattedBalance: '2500.0'
 			}
 		]
 	},
@@ -191,7 +193,33 @@ describe('OrdersListTable', () => {
 					token: { symbol: 'WBTC' },
 					formattedBalance: '0.05'
 				}
-			]
+			],
+			inputsList: {
+				...mockVaultsList(),
+				items: [
+					{
+						token: { symbol: 'ETH' },
+						formattedBalance: '1.5'
+					},
+					{
+						token: { symbol: 'USDC' },
+						formattedBalance: '100.0'
+					}
+				]
+			},
+			outputsList: {
+				...mockVaultsList(),
+				items: [
+					{
+						token: { symbol: 'DAI' },
+						formattedBalance: '2500.0'
+					},
+					{
+						token: { symbol: 'WBTC' },
+						formattedBalance: '0.05'
+					}
+				]
+			}
 		};
 
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
