@@ -8,6 +8,7 @@
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
+	import VaultCard from '../VaultCard.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { QKEY_ORDERS, QKEY_TOKENS } from '../../queries/keys';
 	import type { AppStoresInterface } from '../../types/appStores';
@@ -163,28 +164,18 @@
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
 
-		<TableBodyCell data-testid="orderListRowInputs" tdClass="p-2 whitespace-normal min-w-[320px]">
+		<TableBodyCell data-testid="orderListRowInputs" tdClass="p-2 whitespace-normal">
 			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-				{#each item.inputsList.items as t}
-					<div
-						class="flex w-full flex-col rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
-					>
-						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
-						<span class="truncate text-xs text-gray-500">{t.formattedBalance}</span>
-					</div>
+				{#each item.inputsList.items as vault}
+					<VaultCard {vault} chainId={item.chainId} />
 				{/each}
 			</div>
 		</TableBodyCell>
 
-		<TableBodyCell data-testid="orderListRowOutputs" tdClass="p-2 whitespace-normal min-w-[320px]">
+		<TableBodyCell data-testid="orderListRowOutputs" tdClass="p-2 whitespace-normal">
 			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-				{#each item.outputsList.items as t}
-					<div
-						class="flex w-full flex-col rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
-					>
-						<span class="font-semibold text-gray-800">{t.token.symbol}</span>
-						<span class="truncate text-xs text-gray-500">{t.formattedBalance}</span>
-					</div>
+				{#each item.outputsList.items as vault}
+					<VaultCard {vault} chainId={item.chainId} />
 				{/each}
 			</div>
 		</TableBodyCell>

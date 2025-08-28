@@ -137,10 +137,15 @@ describe('OrdersListTable', () => {
 
 		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('Ethereum');
 		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Active');
-		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('ETH');
-		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('1.5');
-		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
-		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('2500.0');
+		
+		// Check that vault cards are rendered with correct content
+		const vaultCards = screen.getAllByTestId('vault-card');
+		expect(vaultCards).toHaveLength(2); // One input, one output
+		expect(screen.getByText('ETH')).toBeInTheDocument();
+		expect(screen.getByText('1.5')).toBeInTheDocument();
+		expect(screen.getByText('DAI')).toBeInTheDocument();
+		expect(screen.getByText('2500.0')).toBeInTheDocument();
+		
 		expect(screen.getByTestId('orderListRowTrades')).toHaveTextContent('2');
 	});
 
@@ -160,15 +165,14 @@ describe('OrdersListTable', () => {
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 
-		// Verify token symbols and balances are displayed
-		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('ETH');
-		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('1.5');
-		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
-		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('2500.0');
+		// Verify token symbols and balances are displayed in vault cards
+		expect(screen.getByText('ETH')).toBeInTheDocument();
+		expect(screen.getByText('1.5')).toBeInTheDocument();
+		expect(screen.getByText('DAI')).toBeInTheDocument();
+		expect(screen.getByText('2500.0')).toBeInTheDocument();
 
-		// Verify "Strategy Balance:" label is not present
-		expect(screen.getByTestId('orderListRowInputs')).not.toHaveTextContent('Strategy Balance:');
-		expect(screen.getByTestId('orderListRowOutputs')).not.toHaveTextContent('Strategy Balance:');
+		// Verify "Strategy Balance:" label is not present (since we're using vault cards now)
+		expect(screen.queryByText('Strategy Balance:')).not.toBeInTheDocument();
 	});
 
 	it('displays multiple tokens correctly in grid layout', async () => {
@@ -237,17 +241,21 @@ describe('OrdersListTable', () => {
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 
+		// Verify all tokens are displayed in vault cards
+		const vaultCards = screen.getAllByTestId('vault-card');
+		expect(vaultCards).toHaveLength(4); // 2 inputs + 2 outputs
+		
 		// Verify all input tokens are displayed
-		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('ETH');
-		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('1.5');
-		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('USDC');
-		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('100.0');
+		expect(screen.getByText('ETH')).toBeInTheDocument();
+		expect(screen.getByText('1.5')).toBeInTheDocument();
+		expect(screen.getByText('USDC')).toBeInTheDocument();
+		expect(screen.getByText('100.0')).toBeInTheDocument();
 
 		// Verify all output tokens are displayed
-		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('DAI');
-		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('2500.0');
-		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('WBTC');
-		expect(screen.getByTestId('orderListRowOutputs')).toHaveTextContent('0.05');
+		expect(screen.getByText('DAI')).toBeInTheDocument();
+		expect(screen.getByText('2500.0')).toBeInTheDocument();
+		expect(screen.getByText('WBTC')).toBeInTheDocument();
+		expect(screen.getByText('0.05')).toBeInTheDocument();
 	});
 
 	it('shows remove button when order is active and user is owner', async () => {
