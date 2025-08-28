@@ -17,6 +17,7 @@ rain_orderbook_common = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
 rain_orderbook_quote = { workspace = true }
 anyhow = { workspace = true }
+async-trait = { workspace = true }
 clap = { workspace = true }
 reqwest = { workspace = true }
 rust-bigint = { workspace = true }
