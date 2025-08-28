@@ -1,0 +1,2 @@
+# Event output files
+src/commands/local_db/events_*.json

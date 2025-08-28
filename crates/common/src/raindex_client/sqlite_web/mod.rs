@@ -66,6 +66,10 @@ impl SqliteWeb {
         Ok(Self { client })
     }
 
+    pub fn hyper_rpc_client(&self) -> &HyperRpcClient {
+        &self.client
+    }
+
     #[cfg(test)]
     pub fn new_with_client(client: HyperRpcClient) -> Self {
         Self { client }
