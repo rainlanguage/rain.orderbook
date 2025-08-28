@@ -1,8 +1,24 @@
+use crate::commands::local_db::FetchEvents;
 use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
 use rain_orderbook_quote::cli::Quoter;
+
+#[derive(Subcommand)]
+#[command(about = "Local database operations")]
+pub enum LocalDb {
+    #[command(name = "fetch-events")]
+    FetchEvents(FetchEvents),
+}
+
+impl LocalDb {
+    pub async fn execute(self) -> Result<()> {
+        match self {
+            LocalDb::FetchEvents(fetch_events) => fetch_events.execute().await,
+        }
+    }
+}
 
 mod commands;
 mod execute;
@@ -30,6 +46,9 @@ pub enum Orderbook {
     Quote(Quoter),
 
     Words(Words),
+
+    #[command(name = "local-db", subcommand)]
+    LocalDb(LocalDb),
 }
 
 impl Orderbook {
@@ -42,6 +61,7 @@ impl Orderbook {
             Orderbook::Quote(quote) => quote.execute().await,
             Orderbook::Subgraph(subgraph) => subgraph.execute().await,
             Orderbook::Words(words) => words.execute().await,
+            Orderbook::LocalDb(local_db) => local_db.execute().await,
         }
     }
 }
