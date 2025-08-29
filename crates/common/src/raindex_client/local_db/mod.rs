@@ -3,6 +3,7 @@ pub mod fetch;
 pub mod insert;
 pub mod query;
 
+use super::*;
 use crate::hyper_rpc::{HyperRpcClient, HyperRpcError};
 use alloy::primitives::ruint::ParseError;
 pub use fetch::FetchConfig;

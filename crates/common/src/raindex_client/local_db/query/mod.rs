@@ -1,7 +1,5 @@
-use thiserror::Error;
-use wasm_bindgen_utils::prelude::{
-    js_sys, wasm_bindgen, wasm_bindgen_futures::JsFuture, JsCast, JsValue,
-};
+use super::*;
+use wasm_bindgen_utils::prelude::wasm_bindgen_futures::JsFuture;
 
 const TABLE_SCHEMA_SQL: &str = include_str!("../sql/tables.sql");
 
