@@ -3,13 +3,15 @@
 	import type { RaindexVault } from '@rainlanguage/orderbook';
 
 	export let vault: RaindexVault;
+	export let chainId: number;
+	export let orderbook: string;
 
 	const handleClick = (event: MouseEvent) => {
 		// Stop event propagation and prevent default to fully prevent parent table row click
 		event.stopPropagation();
 		event.preventDefault();
 		// Navigate to vault details page
-		goto(`/vaults/${vault.chainId}-${vault.orderbook}-${vault.id}`);
+		goto(`/vaults/${chainId}-${orderbook}-${vault.id}`);
 	};
 </script>
 
