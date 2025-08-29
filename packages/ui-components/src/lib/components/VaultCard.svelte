@@ -15,7 +15,7 @@
 
 <button
 	type="button"
-	class="flex w-full flex-col rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 shadow-sm transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600"
+	class="flex w-full flex-col rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left shadow-sm transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600"
 	on:click={handleClick}
 	data-testid="vault-card"
 >
