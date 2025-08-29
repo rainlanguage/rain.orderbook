@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import VaultCard from '../lib/components/VaultCard.svelte';
@@ -12,6 +11,8 @@ vi.mock('$app/navigation', () => ({
 
 const mockVault: RaindexVault = {
 	id: '0x1234567890abcdef1234567890abcdef12345678',
+	chainId: 1,
+	orderbook: '0x2222222222222222222222222222222222222222',
 	token: {
 		symbol: 'ETH',
 		name: 'Ethereum',
@@ -24,8 +25,7 @@ const mockVault: RaindexVault = {
 describe('VaultCard', () => {
 	it('renders vault information correctly', () => {
 		render(VaultCard, {
-			vault: mockVault,
-			chainId: 1
+			vault: mockVault
 		});
 
 		expect(screen.getByTestId('vault-card')).toBeInTheDocument();
@@ -37,19 +37,21 @@ describe('VaultCard', () => {
 		const { goto } = await import('$app/navigation');
 
 		render(VaultCard, {
-			vault: mockVault,
-			chainId: 1
+			vault: mockVault
 		});
 
 		const vaultCard = screen.getByTestId('vault-card');
 		await userEvent.click(vaultCard);
 
-		expect(goto).toHaveBeenCalledWith('/vaults/1-0x1234567890abcdef1234567890abcdef12345678');
+		expect(goto).toHaveBeenCalledWith(
+			'/vaults/1-0x2222222222222222222222222222222222222222-0x1234567890abcdef1234567890abcdef12345678'
+		);
 	});
 
 	it('displays different token symbols correctly', () => {
 		const daiVault = {
 			...mockVault,
+			chainId: 137,
 			token: {
 				...mockVault.token,
 				symbol: 'DAI'
@@ -58,8 +60,7 @@ describe('VaultCard', () => {
 		} as unknown as RaindexVault;
 
 		render(VaultCard, {
-			vault: daiVault,
-			chainId: 137
+			vault: daiVault
 		});
 
 		expect(screen.getByText('DAI')).toBeInTheDocument();
@@ -69,21 +70,26 @@ describe('VaultCard', () => {
 	it('navigates with correct chain ID', async () => {
 		const { goto } = await import('$app/navigation');
 
+		const polygonVault = {
+			...mockVault,
+			chainId: 137
+		} as unknown as RaindexVault;
+
 		render(VaultCard, {
-			vault: mockVault,
-			chainId: 137 // Polygon
+			vault: polygonVault
 		});
 
 		const vaultCard = screen.getByTestId('vault-card');
 		await userEvent.click(vaultCard);
 
-		expect(goto).toHaveBeenCalledWith('/vaults/137-0x1234567890abcdef1234567890abcdef12345678');
+		expect(goto).toHaveBeenCalledWith(
+			'/vaults/137-0x2222222222222222222222222222222222222222-0x1234567890abcdef1234567890abcdef12345678'
+		);
 	});
 
 	it('has proper accessibility attributes', () => {
 		render(VaultCard, {
-			vault: mockVault,
-			chainId: 1
+			vault: mockVault
 		});
 
 		const button = screen.getByTestId('vault-card');
@@ -98,8 +104,7 @@ describe('VaultCard', () => {
 		} as unknown as RaindexVault;
 
 		render(VaultCard, {
-			vault: vaultWithLongBalance,
-			chainId: 1
+			vault: vaultWithLongBalance
 		});
 
 		expect(screen.getByText('1,234,567.89')).toBeInTheDocument();

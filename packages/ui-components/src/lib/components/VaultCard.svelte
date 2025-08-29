@@ -3,11 +3,10 @@
 	import type { RaindexVault } from '@rainlanguage/orderbook';
 
 	export let vault: RaindexVault;
-	export let chainId: number;
 
 	const handleClick = () => {
 		// Navigate to vault details page
-		goto(`/vaults/${chainId}-${vault.id}`);
+		goto(`/vaults/${vault.chainId}-${vault.orderbook}-${vault.id}`);
 	};
 </script>
 
