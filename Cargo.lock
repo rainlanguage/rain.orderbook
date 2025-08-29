@@ -6790,6 +6790,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "eyre",
+ "flate2",
  "futures",
  "httpmock",
  "once_cell",
