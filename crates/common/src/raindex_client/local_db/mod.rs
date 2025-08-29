@@ -9,12 +9,12 @@ use alloy::primitives::ruint::ParseError;
 pub use fetch::FetchConfig;
 
 #[derive(Debug, Clone)]
-pub struct SqliteWeb {
+pub struct LocalDb {
     client: HyperRpcClient,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum SqliteWebError {
+pub enum LocalDbError {
     #[error("HTTP request failed")]
     Http(#[from] reqwest::Error),
 
@@ -53,17 +53,17 @@ pub enum SqliteWebError {
     HttpStatus { status: u16 },
 }
 
-impl SqliteWebError {
+impl LocalDbError {
     pub fn invalid_block_number(value: impl Into<String>, source: ParseError) -> Self {
-        SqliteWebError::InvalidBlockNumber {
+        LocalDbError::InvalidBlockNumber {
             value: value.into(),
             source,
         }
     }
 }
 
-impl SqliteWeb {
-    pub fn new(chain_id: u32, api_token: String) -> Result<Self, SqliteWebError> {
+impl LocalDb {
+    pub fn new(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
         let client = HyperRpcClient::new(chain_id, api_token)?;
         Ok(Self { client })
     }

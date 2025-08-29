@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use rain_orderbook_common::hyper_rpc::HyperRpcError;
-use rain_orderbook_common::raindex_client::local_db::{SqliteWeb, SqliteWebError};
+use rain_orderbook_common::raindex_client::local_db::{LocalDb, LocalDbError};
 use std::fs::File;
 use std::io::Write;
 
@@ -13,11 +13,11 @@ pub trait EventClient {
         address: &str,
         start_block: u64,
         end_block: u64,
-    ) -> Result<serde_json::Value, SqliteWebError>;
+    ) -> Result<serde_json::Value, LocalDbError>;
 }
 
 #[async_trait::async_trait]
-impl EventClient for SqliteWeb {
+impl EventClient for LocalDb {
     async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
         self.hyper_rpc_client().get_latest_block_number().await
     }
@@ -27,7 +27,7 @@ impl EventClient for SqliteWeb {
         address: &str,
         start_block: u64,
         end_block: u64,
-    ) -> Result<serde_json::Value, SqliteWebError> {
+    ) -> Result<serde_json::Value, LocalDbError> {
         self.fetch_events(address, start_block, end_block).await
     }
 }
@@ -78,7 +78,7 @@ impl FetchEvents {
     }
 
     pub async fn execute(self) -> Result<()> {
-        let local_db = SqliteWeb::new(self.chain_id, self.api_token.clone())?;
+        let local_db = LocalDb::new(self.chain_id, self.api_token.clone())?;
         self.execute_with_client(local_db).await
     }
 }
@@ -144,9 +144,9 @@ mod tests {
             _address: &str,
             _start_block: u64,
             _end_block: u64,
-        ) -> Result<serde_json::Value, SqliteWebError> {
+        ) -> Result<serde_json::Value, LocalDbError> {
             if let Some(error) = &self.events_error {
-                Err(SqliteWebError::Config {
+                Err(LocalDbError::Config {
                     message: error.clone(),
                 })
             } else {
