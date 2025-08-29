@@ -1,5 +1,5 @@
-# Event output files
 src/commands/local_db/events_*.json
 src/commands/local_db/decoded_events.json
 src/commands/local_db/decoded_events_*.json
 src/commands/local_db/events_*.sql
+src/commands/local_db/local_db_*
