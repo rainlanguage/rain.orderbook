@@ -5,8 +5,9 @@
 	export let vault: RaindexVault;
 
 	const handleClick = (event: MouseEvent) => {
-		// Stop event propagation to prevent parent table row click
+		// Stop event propagation and prevent default to fully prevent parent table row click
 		event.stopPropagation();
+		event.preventDefault();
 		// Navigate to vault details page
 		goto(`/vaults/${vault.chainId}-${vault.orderbook}-${vault.id}`);
 	};
