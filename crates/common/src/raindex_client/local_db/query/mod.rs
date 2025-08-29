@@ -1,6 +1,7 @@
 pub mod create_tables;
 pub mod fetch_last_synced_block;
 pub mod fetch_tables;
+pub mod update_last_synced_block;
 
 use super::*;
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::JsFuture;
