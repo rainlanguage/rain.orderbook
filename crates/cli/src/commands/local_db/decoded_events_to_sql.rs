@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Args;
-use rain_orderbook_common::raindex_client::sqlite_web::insert::decoded_events_to_sql;
+use rain_orderbook_common::raindex_client::local_db::insert::decoded_events_to_sql;
 use std::fs::{write, File};
 use std::io::BufReader;
 

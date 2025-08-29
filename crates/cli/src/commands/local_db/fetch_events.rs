@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use rain_orderbook_common::hyper_rpc::HyperRpcError;
-use rain_orderbook_common::raindex_client::sqlite_web::{SqliteWeb, SqliteWebError};
+use rain_orderbook_common::raindex_client::local_db::{SqliteWeb, SqliteWebError};
 use std::fs::File;
 use std::io::Write;
 

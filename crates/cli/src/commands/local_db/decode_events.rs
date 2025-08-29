@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::raindex_client::sqlite_web::decode::decode_events;
+use rain_orderbook_common::raindex_client::local_db::decode::decode_events;
 use std::fs::File;
 use std::io::{BufReader, Write};
 
