@@ -20,5 +20,5 @@
 	data-testid="vault-card"
 >
 	<span class="font-semibold text-gray-800 dark:text-gray-200">{vault.token.symbol}</span>
-	<span class="truncate text-xs text-gray-500 dark:text-gray-400">{vault.formattedBalance}</span>
+	<span class="text-xs text-gray-500 dark:text-gray-400">{vault.formattedBalance}</span>
 </button>
