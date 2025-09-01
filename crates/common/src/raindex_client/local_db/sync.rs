@@ -196,7 +196,8 @@ mod tests {
         use crate::raindex_client::local_db::query::{
             create_tables::REQUIRED_TABLES, 
             tests::create_success_callback,
-            fetch_tables::TableResponse
+            fetch_tables::TableResponse,
+            fetch_last_synced_block::SyncStatusResponse
         };
         use super::*;
         use wasm_bindgen_test::*;
@@ -284,6 +285,42 @@ mod tests {
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), true);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_last_synced_block_exists() {
+            let sync_data = vec![SyncStatusResponse {
+                id: 1,
+                last_synced_block: 12345,
+                updated_at: Some("2024-01-01T00:00:00Z".to_string()),
+            }];
+            let json_data = serde_json::to_string(&sync_data).unwrap();
+            let callback = create_success_callback(&json_data);
+
+            let result = get_last_synced_block(&callback).await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), 12345);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_last_synced_block_empty() {
+            let callback = create_success_callback("[]");
+
+            let result = get_last_synced_block(&callback).await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), 0);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_last_synced_block_query_fails() {
+            let callback = create_success_callback("invalid_json");
+
+            let result = get_last_synced_block(&callback).await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), 0);
         }
     }
 
