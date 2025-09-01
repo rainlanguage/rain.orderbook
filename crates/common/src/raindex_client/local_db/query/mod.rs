@@ -63,7 +63,7 @@ impl LocalDbQuery {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     #[cfg(target_family = "wasm")]
