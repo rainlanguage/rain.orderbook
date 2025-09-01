@@ -14,7 +14,7 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 };
 
 const MOCK_SETTINGS_CONTENT = `
-version: 2
+version: 3
 networks:
   flare:
     rpcs: 

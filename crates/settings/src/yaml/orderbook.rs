@@ -408,7 +408,7 @@ mod tests {
     use url::Url;
 
     const FULL_YAML: &str = r#"
-    version: 2
+    version: 3
     networks:
         mainnet:
             rpcs:
