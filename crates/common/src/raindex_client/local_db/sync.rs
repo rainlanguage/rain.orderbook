@@ -286,4 +286,215 @@ mod tests {
             assert_eq!(result.unwrap(), true);
         }
     }
+
+    #[cfg(not(target_family = "wasm"))]
+    mod non_wasm_tests {
+        use super::*;
+        use httpmock::prelude::*;
+        use flate2::write::GzEncoder;
+        use flate2::Compression;
+        use std::io::Write;
+
+        fn create_gzipped_sql() -> Vec<u8> {
+            let sql_content = "CREATE TABLE test (id INTEGER);";
+            let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+            encoder.write_all(sql_content.as_bytes()).unwrap();
+            encoder.finish().unwrap()
+        }
+
+        fn create_invalid_gzip() -> Vec<u8> {
+            b"invalid gzip content".to_vec()
+        }
+
+        #[tokio::test]
+        async fn test_download_and_decompress_success() {
+            let server = MockServer::start();
+            let gzipped_data = create_gzipped_sql();
+            
+            let mock = server.mock(|when, then| {
+                when.method(GET).path("/");
+                then.status(200)
+                    .header("content-type", "application/gzip")
+                    .body(gzipped_data);
+            });
+
+            let modified_fn = async {
+                let client = Client::new();
+                let response = client.get(&server.url("/")).send().await?;
+
+                if !response.status().is_success() {
+                    return Err(LocalDbError::CustomError(format!(
+                        "Failed to download dump, status: {}",
+                        response.status()
+                    )));
+                }
+                let response = response.bytes().await?.to_vec();
+
+                let mut decoder = GzDecoder::new(response.as_slice());
+                let mut decompressed = String::new();
+                decoder.read_to_string(&mut decompressed)?;
+
+                Ok(decompressed)
+            };
+
+            let result = modified_fn.await;
+            
+            mock.assert();
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), "CREATE TABLE test (id INTEGER);");
+        }
+
+        #[tokio::test]
+        async fn test_download_and_decompress_http_404() {
+            let server = MockServer::start();
+            
+            let mock = server.mock(|when, then| {
+                when.method(GET).path("/");
+                then.status(404);
+            });
+
+            let modified_fn = async {
+                let client = Client::new();
+                let response = client.get(&server.url("/")).send().await?;
+
+                if !response.status().is_success() {
+                    return Err(LocalDbError::CustomError(format!(
+                        "Failed to download dump, status: {}",
+                        response.status()
+                    )));
+                }
+                let response = response.bytes().await?.to_vec();
+
+                let mut decoder = GzDecoder::new(response.as_slice());
+                let mut decompressed = String::new();
+                decoder.read_to_string(&mut decompressed)?;
+
+                Ok(decompressed)
+            };
+
+            let result = modified_fn.await;
+            
+            mock.assert();
+            assert!(result.is_err());
+            match result {
+                Err(LocalDbError::CustomError(msg)) => {
+                    assert!(msg.contains("Failed to download dump, status: 404"));
+                }
+                _ => panic!("Expected CustomError with 404 status"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_download_and_decompress_http_500() {
+            let server = MockServer::start();
+            
+            let mock = server.mock(|when, then| {
+                when.method(GET).path("/");
+                then.status(500);
+            });
+
+            let modified_fn = async {
+                let client = Client::new();
+                let response = client.get(&server.url("/")).send().await?;
+
+                if !response.status().is_success() {
+                    return Err(LocalDbError::CustomError(format!(
+                        "Failed to download dump, status: {}",
+                        response.status()
+                    )));
+                }
+                let response = response.bytes().await?.to_vec();
+
+                let mut decoder = GzDecoder::new(response.as_slice());
+                let mut decompressed = String::new();
+                decoder.read_to_string(&mut decompressed)?;
+
+                Ok(decompressed)
+            };
+
+            let result = modified_fn.await;
+            
+            mock.assert();
+            assert!(result.is_err());
+            match result {
+                Err(LocalDbError::CustomError(msg)) => {
+                    assert!(msg.contains("Failed to download dump, status: 500"));
+                }
+                _ => panic!("Expected CustomError with 500 status"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_download_and_decompress_invalid_gzip() {
+            let server = MockServer::start();
+            let invalid_data = create_invalid_gzip();
+            
+            let mock = server.mock(|when, then| {
+                when.method(GET).path("/");
+                then.status(200)
+                    .header("content-type", "application/gzip")
+                    .body(invalid_data);
+            });
+
+            let modified_fn = async {
+                let client = Client::new();
+                let response = client.get(&server.url("/")).send().await?;
+
+                if !response.status().is_success() {
+                    return Err(LocalDbError::CustomError(format!(
+                        "Failed to download dump, status: {}",
+                        response.status()
+                    )));
+                }
+                let response = response.bytes().await?.to_vec();
+
+                let mut decoder = GzDecoder::new(response.as_slice());
+                let mut decompressed = String::new();
+                decoder.read_to_string(&mut decompressed)?;
+
+                Ok(decompressed)
+            };
+
+            let result = modified_fn.await;
+            
+            mock.assert();
+            assert!(result.is_err());
+            match result {
+                Err(LocalDbError::IoError(_)) => (),
+                _ => panic!("Expected IoError from invalid gzip decompression"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_download_and_decompress_network_timeout() {
+            let modified_fn = async {
+                let client = Client::builder()
+                    .timeout(std::time::Duration::from_millis(1))
+                    .build()?;
+                let response = client.get("https://httpbin.org/delay/10").send().await?;
+
+                if !response.status().is_success() {
+                    return Err(LocalDbError::CustomError(format!(
+                        "Failed to download dump, status: {}",
+                        response.status()
+                    )));
+                }
+                let response = response.bytes().await?.to_vec();
+
+                let mut decoder = GzDecoder::new(response.as_slice());
+                let mut decompressed = String::new();
+                decoder.read_to_string(&mut decompressed)?;
+
+                Ok(decompressed)
+            };
+
+            let result = modified_fn.await;
+            
+            assert!(result.is_err());
+            match result {
+                Err(LocalDbError::Http(_)) => (),
+                _ => panic!("Expected Http error from network timeout"),
+            }
+        }
+    }
 }
