@@ -322,6 +322,32 @@ mod tests {
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), 0);
         }
+
+        #[wasm_bindgen_test]
+        fn test_send_status_message_success() {
+            let callback = js_sys::Function::new_no_args("return true;");
+            let message = "Test status message".to_string();
+
+            let result = send_status_message(&callback, message);
+
+            assert!(result.is_ok());
+        }
+
+        #[wasm_bindgen_test] 
+        fn test_send_status_message_callback_error() {
+            let callback = js_sys::Function::new_no_args("throw new Error('Callback failed');");
+            let message = "Test status message".to_string();
+
+            let result = send_status_message(&callback, message);
+
+            assert!(result.is_err());
+            match result {
+                Err(LocalDbError::CustomError(msg)) => {
+                    assert!(msg.contains("JavaScript callback error"));
+                }
+                _ => panic!("Expected CustomError from JavaScript callback failure"),
+            }
+        }
     }
 
     #[cfg(not(target_family = "wasm"))]
