@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { Input, Button, Modal } from 'flowbite-svelte';
-	import { SearchOutline, CheckCircleSolid, ListSolid, ExclamationTriangleSolid } from 'flowbite-svelte-icons';
+	import {
+		SearchOutline,
+		CheckCircleSolid,
+		ListSolid,
+		ExclamationTriangleSolid
+	} from 'flowbite-svelte-icons';
 	import type { TokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
 	import { onMount, tick } from 'svelte';
@@ -48,19 +53,19 @@
 			// Create a temporary key for validation
 			const tempKey = `custom-${address}`;
 			await gui.setSelectToken(tempKey, address);
-			
+
 			const result = await gui.getTokenInfo(tempKey);
 			if (result.error) {
 				throw new Error(result.error.msg);
 			}
-			
+
 			if (result.value) {
 				customToken = {
 					...result.value,
 					key: tempKey
 				};
 			}
-			
+
 			// Clean up the temporary token selection
 			gui.unsetSelectToken(tempKey);
 		} catch (error) {
@@ -144,8 +149,10 @@
 					<!-- Show custom token if found -->
 					{#if customToken}
 						<div class="custom-token-section border-b border-gray-200 dark:border-gray-600">
-							<div class="p-3 bg-yellow-50 dark:bg-yellow-900/20">
-								<div class="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+							<div class="bg-yellow-50 p-3 dark:bg-yellow-900/20">
+								<div
+									class="mb-2 flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200"
+								>
 									<ExclamationTriangleSolid class="h-4 w-4" />
 									<span class="font-medium">Custom Token (Not in verified list)</span>
 								</div>
@@ -179,7 +186,9 @@
 
 					<!-- Show custom token error if any -->
 					{#if customTokenError}
-						<div class="p-4 bg-red-50 dark:bg-red-900/20 border-b border-gray-200 dark:border-gray-600">
+						<div
+							class="border-b border-gray-200 bg-red-50 p-4 dark:border-gray-600 dark:bg-red-900/20"
+						>
 							<div class="flex items-center gap-2 text-sm text-red-800 dark:text-red-200">
 								<ExclamationTriangleSolid class="h-4 w-4" />
 								<span>{customTokenError}</span>
@@ -219,7 +228,7 @@
 						<div class="no-results p-4 text-center text-gray-500 dark:text-gray-400">
 							<p>No tokens found matching your search.</p>
 							{#if !isAddress(searchQuery)}
-								<p class="text-xs mt-1">Try entering a token address (0x...)</p>
+								<p class="mt-1 text-xs">Try entering a token address (0x...)</p>
 							{/if}
 							<button
 								class="mt-2 text-blue-600 underline hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
