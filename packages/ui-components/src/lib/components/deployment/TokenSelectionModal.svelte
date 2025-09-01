@@ -4,7 +4,7 @@
 		SearchOutline,
 		CheckCircleSolid,
 		ListSolid,
-		ExclamationTriangleSolid
+		ExclamationCircleSolid
 	} from 'flowbite-svelte-icons';
 	import type { TokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
@@ -153,7 +153,7 @@
 								<div
 									class="mb-2 flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200"
 								>
-									<ExclamationTriangleSolid class="h-4 w-4" />
+									<ExclamationCircleSolid class="h-4 w-4" />
 									<span class="font-medium">Custom Token (Not in verified list)</span>
 								</div>
 							</div>
@@ -190,7 +190,7 @@
 							class="border-b border-gray-200 bg-red-50 p-4 dark:border-gray-600 dark:bg-red-900/20"
 						>
 							<div class="flex items-center gap-2 text-sm text-red-800 dark:text-red-200">
-								<ExclamationTriangleSolid class="h-4 w-4" />
+								<ExclamationCircleSolid class="h-4 w-4" />
 								<span>{customTokenError}</span>
 							</div>
 						</div>
