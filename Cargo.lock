@@ -6738,6 +6738,7 @@ name = "rain_orderbook_bindings"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "getrandom 0.2.16",
  "serde",
  "thiserror 1.0.69",
  "tower",
@@ -6792,6 +6793,7 @@ dependencies = [
  "eyre",
  "flate2",
  "futures",
+ "getrandom 0.2.16",
  "httpmock",
  "once_cell",
  "proptest",
@@ -6811,6 +6813,7 @@ dependencies = [
  "rain_orderbook_test_fixtures",
  "reqwest 0.12.20",
  "serde",
+ "serde-wasm-bindgen 0.4.5",
  "serde_bytes",
  "serde_json",
  "serde_yaml",
@@ -6848,6 +6851,7 @@ dependencies = [
  "cynic",
  "flate2",
  "futures",
+ "getrandom 0.2.16",
  "httpmock",
  "rain-math-float",
  "rain_orderbook_app_settings",
@@ -6884,6 +6888,7 @@ dependencies = [
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
  "anyhow",
  "clap",
+ "getrandom 0.2.16",
  "httpmock",
  "once_cell",
  "rain-error-decoding",
@@ -8122,6 +8127,17 @@ dependencies = [
 
 [[package]]
 name = "serde-wasm-bindgen"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3b143e2833c57ab9ad3ea280d21fd34e285a42837aeb0ee301f4f41890fa00e"
@@ -8543,7 +8559,7 @@ dependencies = [
  "solar-config",
  "solar-data-structures",
  "solar-macros",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "tracing",
  "unicode-width",
 ]
@@ -8889,7 +8905,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "url",
  "zip 2.4.2",
 ]
@@ -10064,7 +10080,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
