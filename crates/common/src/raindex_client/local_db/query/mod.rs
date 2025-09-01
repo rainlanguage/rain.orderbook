@@ -219,5 +219,47 @@ mod tests {
                 _ => panic!("Expected CallbackError"),
             }
         }
+
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn create_success_callback(json_data: &str) -> js_sys::Function {
+        let success_result = WasmEncodedResult::Success::<String> {
+            value: json_data.to_string(),
+            error: None,
+        };
+        let js_value = serde_wasm_bindgen::to_value(&success_result).unwrap();
+
+        js_sys::Function::new_no_args(&format!(
+            "return {}",
+            js_sys::JSON::stringify(&js_value)
+                .unwrap()
+                .as_string()
+                .unwrap()
+        ))
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn create_sql_capturing_callback(json_data: &str, captured_sql: std::rc::Rc<std::cell::RefCell<String>>) -> js_sys::Function {
+        use wasm_bindgen::prelude::*;
+        use wasm_bindgen::JsCast;
+        
+        let success_result = WasmEncodedResult::Success::<String> {
+            value: json_data.to_string(),
+            error: None,
+        };
+        let js_value = serde_wasm_bindgen::to_value(&success_result).unwrap();
+
+        let result_json = js_sys::JSON::stringify(&js_value)
+            .unwrap()
+            .as_string()
+            .unwrap();
+
+        let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
+            *captured_sql.borrow_mut() = sql;
+            js_sys::JSON::parse(&result_json).unwrap()
+        }) as Box<dyn Fn(String) -> JsValue>);
+
+        callback.into_js_value().dyn_into().unwrap()
     }
 }
