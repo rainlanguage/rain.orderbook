@@ -1,6 +1,5 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import { walletConnectNetwork } from '$lib/stores/walletconnect';
 import type { Float, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
 
@@ -24,7 +23,7 @@ export async function vaultDeposit(
     transactionArgs: {
       rpcs: network.value.rpcs,
       orderbook_address: vault.orderbook,
-      derivation_index: get(ledgerWalletDerivationIndex),
+      derivation_index: null,
       chain_id: chainId,
     },
   });
@@ -51,7 +50,7 @@ export async function vaultWithdraw(
     transactionArgs: {
       rpcs: network.value.rpcs,
       orderbook_address: vault.orderbook,
-      derivation_index: get(ledgerWalletDerivationIndex),
+      derivation_index: null,
       chain_id: chainId,
     },
   });

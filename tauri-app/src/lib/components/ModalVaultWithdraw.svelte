@@ -31,17 +31,6 @@
     }
   }
 
-  async function executeLedger() {
-    isSubmitting = true;
-    try {
-      await vaultWithdraw(raindexClient, vault, amount);
-      onWithdraw();
-    } catch (e) {
-      reportErrorToSentry(e);
-    }
-    isSubmitting = false;
-    reset();
-  }
 
   async function executeWalletconnect() {
     isSubmitting = true;
@@ -144,7 +133,6 @@
   onBack={() => (open = true)}
   title="Withdraw from Vault"
   execButtonLabel="Withdraw"
-  {executeLedger}
   {executeWalletconnect}
   bind:isSubmitting
 />
