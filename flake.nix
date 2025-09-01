@@ -217,8 +217,7 @@
             body = ''
               set -euxo pipefail
 
-              cd crates/quote && wasm-pack test --node
-              cd ../bindings && wasm-pack test --node
+              cd crates/bindings && wasm-pack test --node
               cd ../js_api && wasm-pack test --node
               cd ../common && wasm-pack test --node && wasm-pack test --headless --chrome
             '';
