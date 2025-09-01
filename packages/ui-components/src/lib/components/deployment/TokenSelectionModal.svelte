@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input, Button, Modal } from 'flowbite-svelte';
-	import { SearchOutline, CheckCircleSolid, ChevronDownSolid } from 'flowbite-svelte-icons';
+	import { SearchOutline, CheckCircleSolid, ListSolid } from 'flowbite-svelte-icons';
 	import type { TokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
 	import { onMount, tick } from 'svelte';
@@ -63,14 +63,17 @@
 	<div class="relative w-full">
 		<Button
 			color="alternative"
-			class="flex w-full justify-between overflow-hidden overflow-ellipsis pl-4 pr-2 text-left"
+			class="flex w-full justify-between overflow-hidden overflow-ellipsis pl-4 pr-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700"
 			size="lg"
 			on:click={() => (modalOpen = true)}
 		>
 			<div class="flex-grow overflow-hidden">
 				<span class="text-gray-900 dark:text-white">{displayText}</span>
 			</div>
-			<ChevronDownSolid class="ml-2 h-4 w-4 text-black dark:text-white" />
+			<div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+				<span>Browse</span>
+				<ListSolid class="h-4 w-4" />
+			</div>
 		</Button>
 
 		<Modal bind:open={modalOpen} size="md" class="w-full max-w-lg">

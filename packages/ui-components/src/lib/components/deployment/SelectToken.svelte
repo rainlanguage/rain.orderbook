@@ -136,19 +136,21 @@
 		{/if}
 	</div>
 
-	<div class="selection-mode flex gap-2">
-		<ButtonSelectOption
-			active={selectionMode === 'dropdown'}
-			buttonText="Select from list"
-			clickHandler={() => setMode('dropdown')}
-			dataTestId="dropdown-mode-button"
-		/>
-		<ButtonSelectOption
-			active={selectionMode === 'custom'}
-			buttonText="Custom address"
-			clickHandler={() => setMode('custom')}
-			dataTestId="custom-mode-button"
-		/>
+	<div class="selection-mode">
+		<div class="flex rounded-lg bg-gray-100 p-1 dark:bg-gray-700" role="tablist">
+			<ButtonSelectOption
+				active={selectionMode === 'dropdown'}
+				buttonText="Select from list"
+				clickHandler={() => setMode('dropdown')}
+				dataTestId="dropdown-mode-button"
+			/>
+			<ButtonSelectOption
+				active={selectionMode === 'custom'}
+				buttonText="Custom address"
+				clickHandler={() => setMode('custom')}
+				dataTestId="custom-mode-button"
+			/>
+		</div>
 	</div>
 
 	{#if selectionMode === 'dropdown'}
