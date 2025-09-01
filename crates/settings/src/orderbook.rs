@@ -143,14 +143,16 @@ impl YamlParsableHash for OrderbookCfg {
                         Some("deployment-block"),
                         Some(location.clone()),
                     )?;
-                    let deployment_block = OrderbookCfg::validate_deployment_block(&deployment_block_str)
-                        .map_err(|e| YamlError::Field {
-                            kind: FieldErrorKind::InvalidValue {
-                                field: "deployment-block".to_string(),
-                                reason: e.to_string(),
-                            },
-                            location: location.clone(),
-                        })?;
+                    let deployment_block = OrderbookCfg::validate_deployment_block(
+                        &deployment_block_str,
+                    )
+                    .map_err(|e| YamlError::Field {
+                        kind: FieldErrorKind::InvalidValue {
+                            field: "deployment-block".to_string(),
+                            reason: e.to_string(),
+                        },
+                        location: location.clone(),
+                    })?;
 
                     let orderbook = OrderbookCfg {
                         document: document.clone(),
@@ -623,9 +625,18 @@ orderbooks:
 "#;
         let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         assert_eq!(orderbooks.len(), 3);
-        assert_eq!(orderbooks.get("TestOrderbook1").unwrap().deployment_block, 0);
-        assert_eq!(orderbooks.get("TestOrderbook2").unwrap().deployment_block, 18446744073709551615);
-        assert_eq!(orderbooks.get("TestOrderbook3").unwrap().deployment_block, 12345678);
+        assert_eq!(
+            orderbooks.get("TestOrderbook1").unwrap().deployment_block,
+            0
+        );
+        assert_eq!(
+            orderbooks.get("TestOrderbook2").unwrap().deployment_block,
+            18446744073709551615
+        );
+        assert_eq!(
+            orderbooks.get("TestOrderbook3").unwrap().deployment_block,
+            12345678
+        );
     }
 
     #[test]
@@ -651,7 +662,8 @@ orderbooks:
             YamlError::Field {
                 kind: FieldErrorKind::InvalidValue {
                     field: "deployment-block".to_string(),
-                    reason: "Failed to parse deployment block: invalid digit found in string".to_string(),
+                    reason: "Failed to parse deployment block: invalid digit found in string"
+                        .to_string(),
                 },
                 location: "orderbook 'TestOrderbook'".to_string(),
             }
@@ -681,7 +693,9 @@ orderbooks:
             YamlError::Field {
                 kind: FieldErrorKind::InvalidValue {
                     field: "deployment-block".to_string(),
-                    reason: "Failed to parse deployment block: number too large to fit in target type".to_string(),
+                    reason:
+                        "Failed to parse deployment block: number too large to fit in target type"
+                            .to_string(),
                 },
                 location: "orderbook 'TestOrderbook'".to_string(),
             }
@@ -711,7 +725,8 @@ orderbooks:
             YamlError::Field {
                 kind: FieldErrorKind::InvalidValue {
                     field: "deployment-block".to_string(),
-                    reason: "Failed to parse deployment block: invalid digit found in string".to_string(),
+                    reason: "Failed to parse deployment block: invalid digit found in string"
+                        .to_string(),
                 },
                 location: "orderbook 'TestOrderbook'".to_string(),
             }
@@ -741,7 +756,8 @@ orderbooks:
             YamlError::Field {
                 kind: FieldErrorKind::InvalidValue {
                     field: "deployment-block".to_string(),
-                    reason: "Failed to parse deployment block: invalid digit found in string".to_string(),
+                    reason: "Failed to parse deployment block: invalid digit found in string"
+                        .to_string(),
                 },
                 location: "orderbook 'TestOrderbook'".to_string(),
             }
