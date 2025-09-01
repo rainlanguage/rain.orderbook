@@ -161,6 +161,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -239,6 +240,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -310,6 +312,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 scenarios:
     some-scenario:
@@ -394,10 +397,12 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: remote-network
         subgraph: some-sg
+        deployment-block: 12345
     other-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
+        deployment-block: 12345
 using-tokens-from:
   - http://localhost:8085/remote-tokens
 tokens:
@@ -963,7 +968,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QwUrEMBBtqiiIBxGvguDV2DS0Wpf1uLAqVoQgXrvduC3NJt00dVn9CI9e_YHFL_Dqze8Rb1KcuBZ3DnmTeW-SN4Ocn9gENLwyeJDLYS5HCGrE2fjL3iei5i5U1iyjCi59x8YqYEgOj1oS-itZAfQJQcseo-2bNVipMceSm6nShe3bBcyMKTueJ1SaiExVphORKPR0meJai8dGgZoT2a97rL8D6VP3c77_0Z2_PYevX7cuPXl_SdE2WgeaNR72KLJjM-o6i2gvAVlbPvo304I7gCTqqYer4iLHl0lwM7g-m-E4PjZ5oRPRrxWbBOd3Qcz4RE1Hp1vQo0zGNR7yUqjZmEvzDRNe8SnFAQAA';
+			'H4sIAAAAAAAA_21QzUrDQBDORlEQDyJeBcGrMZvFtLHUg6JF8B9SsF4kSZcmdLsTNpv69xAevfoCxSfw6s3nEW8SnLUGncN-s_N9s_vNEOs7FhE1L7QTZ7KfyQHBGrUWfrPjSJTcxsqcYWDIpWeZmEX06WajJmE_khlEj1Ly32OsfjMGCxhxR3J9A2po-lYRU63zlusKSCKRQqFbAQ18V-WJUyrxUClIdRLz9UF4uILpY_tjsv7enrw--S-flzbbfntOyDKZRzqsPKwxYsYOmW1No74EYmx55M9MU24Dk_3jo2BXn5_w8V4GzeY9dBpxtxvfsuR6q9c5U4PoqoTwtCeii50l7AGdcuX0eS7gbsSl_gK0d7hLxQEAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
