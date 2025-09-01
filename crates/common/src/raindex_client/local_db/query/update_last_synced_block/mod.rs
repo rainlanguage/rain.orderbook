@@ -21,10 +21,10 @@ mod tests {
 
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
-        use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
         use super::*;
-        use std::rc::Rc;
+        use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
         use std::cell::RefCell;
+        use std::rc::Rc;
         use wasm_bindgen_test::*;
 
         wasm_bindgen_test_configure!(run_in_browser);
@@ -38,18 +38,25 @@ mod tests {
             let result = LocalDbQuery::update_last_synced_block(&callback, test_block_number).await;
 
             assert!(result.is_ok());
-            
+
             let sql = captured_sql.borrow();
             assert!(sql.contains("UPDATE sync_status"));
             assert!(sql.contains("SET last_synced_block ="));
             assert!(sql.contains("WHERE id = 1"));
             assert!(sql.contains("updated_at = CURRENT_TIMESTAMP"));
-            
-            assert!(sql.contains(&test_block_number.to_string()), 
-                "SQL should contain the block number {}: {}", test_block_number, sql);
-            
-            assert!(!sql.contains("?block_number"), 
-                "SQL should not contain placeholder ?block_number: {}", sql);
+
+            assert!(
+                sql.contains(&test_block_number.to_string()),
+                "SQL should contain the block number {}: {}",
+                test_block_number,
+                sql
+            );
+
+            assert!(
+                !sql.contains("?block_number"),
+                "SQL should not contain placeholder ?block_number: {}",
+                sql
+            );
         }
     }
 }

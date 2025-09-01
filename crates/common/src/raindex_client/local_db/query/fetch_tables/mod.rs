@@ -21,8 +21,8 @@ mod tests {
 
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
-        use crate::raindex_client::local_db::query::tests::create_success_callback;
         use super::*;
+        use crate::raindex_client::local_db::query::tests::create_success_callback;
         use wasm_bindgen_test::*;
 
         wasm_bindgen_test_configure!(run_in_browser);

@@ -43,16 +43,6 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     Ok(decompressed)
 }
 
-async fn import_database_dump(db_callback: &js_sys::Function) -> Result<(), LocalDbError> {
-    let dump_sql = download_and_decompress_dump().await?;
-
-    LocalDbQuery::execute_query_with_callback::<()>(db_callback, &dump_sql).await?;
-    // TODO: Replace with actual block number from dump
-    LocalDbQuery::update_last_synced_block(db_callback, 1).await?;
-
-    Ok(())
-}
-
 pub async fn get_last_synced_block(db_callback: &js_sys::Function) -> Result<u64, LocalDbError> {
     match LocalDbQuery::fetch_last_synced_block(db_callback).await {
         Ok(results) => {
@@ -104,12 +94,11 @@ impl RaindexClient {
                 &status_callback,
                 "Initializing database tables and importing data...".to_string(),
             )?;
-            if let Err(e) = import_database_dump(&db_callback).await {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to import database dump: {}",
-                    e
-                )));
-            }
+            let dump_sql = download_and_decompress_dump().await?;
+
+            LocalDbQuery::execute_query_with_callback::<()>(&db_callback, &dump_sql).await?;
+            // TODO: Replace with actual block number from dump
+            LocalDbQuery::update_last_synced_block(&db_callback, 1).await?;
         }
 
         let last_synced_block = match get_last_synced_block(&db_callback).await {
@@ -193,13 +182,11 @@ mod tests {
 
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
-        use crate::raindex_client::local_db::query::{
-            create_tables::REQUIRED_TABLES, 
-            tests::create_success_callback,
-            fetch_tables::TableResponse,
-            fetch_last_synced_block::SyncStatusResponse
-        };
         use super::*;
+        use crate::raindex_client::local_db::query::{
+            create_tables::REQUIRED_TABLES, fetch_last_synced_block::SyncStatusResponse,
+            fetch_tables::TableResponse, tests::create_success_callback,
+        };
         use wasm_bindgen_test::*;
 
         wasm_bindgen_test_configure!(run_in_browser);
@@ -212,7 +199,7 @@ mod tests {
                     name: name.to_string(),
                 })
                 .collect();
-            
+
             let json_data = serde_json::to_string(&table_data).unwrap();
             let callback = create_success_callback(&json_data);
 
@@ -232,7 +219,7 @@ mod tests {
                     name: "deposits".to_string(),
                 },
             ];
-            
+
             let json_data = serde_json::to_string(&table_data).unwrap();
             let callback = create_success_callback(&json_data);
 
@@ -270,14 +257,14 @@ mod tests {
                     name: name.to_string(),
                 })
                 .collect();
-            
+
             table_data.push(TableResponse {
                 name: "extra_table_1".to_string(),
             });
             table_data.push(TableResponse {
                 name: "extra_table_2".to_string(),
             });
-            
+
             let json_data = serde_json::to_string(&table_data).unwrap();
             let callback = create_success_callback(&json_data);
 
@@ -333,7 +320,7 @@ mod tests {
             assert!(result.is_ok());
         }
 
-        #[wasm_bindgen_test] 
+        #[wasm_bindgen_test]
         fn test_send_status_message_callback_error() {
             let callback = js_sys::Function::new_no_args("throw new Error('Callback failed');");
             let message = "Test status message".to_string();
@@ -353,9 +340,9 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
         use super::*;
-        use httpmock::prelude::*;
         use flate2::write::GzEncoder;
         use flate2::Compression;
+        use httpmock::prelude::*;
         use std::io::Write;
 
         fn create_gzipped_sql() -> Vec<u8> {
@@ -373,7 +360,7 @@ mod tests {
         async fn test_download_and_decompress_success() {
             let server = MockServer::start();
             let gzipped_data = create_gzipped_sql();
-            
+
             let mock = server.mock(|when, then| {
                 when.method(GET).path("/");
                 then.status(200)
@@ -383,7 +370,7 @@ mod tests {
 
             let modified_fn = async {
                 let client = Client::new();
-                let response = client.get(&server.url("/")).send().await?;
+                let response = client.get(server.url("/")).send().await?;
 
                 if !response.status().is_success() {
                     return Err(LocalDbError::CustomError(format!(
@@ -401,7 +388,7 @@ mod tests {
             };
 
             let result = modified_fn.await;
-            
+
             mock.assert();
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), "CREATE TABLE test (id INTEGER);");
@@ -410,7 +397,7 @@ mod tests {
         #[tokio::test]
         async fn test_download_and_decompress_http_404() {
             let server = MockServer::start();
-            
+
             let mock = server.mock(|when, then| {
                 when.method(GET).path("/");
                 then.status(404);
@@ -418,7 +405,7 @@ mod tests {
 
             let modified_fn = async {
                 let client = Client::new();
-                let response = client.get(&server.url("/")).send().await?;
+                let response = client.get(server.url("/")).send().await?;
 
                 if !response.status().is_success() {
                     return Err(LocalDbError::CustomError(format!(
@@ -436,7 +423,7 @@ mod tests {
             };
 
             let result = modified_fn.await;
-            
+
             mock.assert();
             assert!(result.is_err());
             match result {
@@ -450,7 +437,7 @@ mod tests {
         #[tokio::test]
         async fn test_download_and_decompress_http_500() {
             let server = MockServer::start();
-            
+
             let mock = server.mock(|when, then| {
                 when.method(GET).path("/");
                 then.status(500);
@@ -458,7 +445,7 @@ mod tests {
 
             let modified_fn = async {
                 let client = Client::new();
-                let response = client.get(&server.url("/")).send().await?;
+                let response = client.get(server.url("/")).send().await?;
 
                 if !response.status().is_success() {
                     return Err(LocalDbError::CustomError(format!(
@@ -476,7 +463,7 @@ mod tests {
             };
 
             let result = modified_fn.await;
-            
+
             mock.assert();
             assert!(result.is_err());
             match result {
@@ -491,7 +478,7 @@ mod tests {
         async fn test_download_and_decompress_invalid_gzip() {
             let server = MockServer::start();
             let invalid_data = create_invalid_gzip();
-            
+
             let mock = server.mock(|when, then| {
                 when.method(GET).path("/");
                 then.status(200)
@@ -501,7 +488,7 @@ mod tests {
 
             let modified_fn = async {
                 let client = Client::new();
-                let response = client.get(&server.url("/")).send().await?;
+                let response = client.get(server.url("/")).send().await?;
 
                 if !response.status().is_success() {
                     return Err(LocalDbError::CustomError(format!(
@@ -519,7 +506,7 @@ mod tests {
             };
 
             let result = modified_fn.await;
-            
+
             mock.assert();
             assert!(result.is_err());
             match result {
@@ -552,7 +539,7 @@ mod tests {
             };
 
             let result = modified_fn.await;
-            
+
             assert!(result.is_err());
             match result {
                 Err(LocalDbError::Http(_)) => (),

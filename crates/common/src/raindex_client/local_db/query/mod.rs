@@ -219,7 +219,6 @@ pub mod tests {
                 _ => panic!("Expected CallbackError"),
             }
         }
-
     }
 
     #[cfg(target_family = "wasm")]
@@ -240,10 +239,13 @@ pub mod tests {
     }
 
     #[cfg(target_family = "wasm")]
-    pub fn create_sql_capturing_callback(json_data: &str, captured_sql: std::rc::Rc<std::cell::RefCell<String>>) -> js_sys::Function {
+    pub fn create_sql_capturing_callback(
+        json_data: &str,
+        captured_sql: std::rc::Rc<std::cell::RefCell<String>>,
+    ) -> js_sys::Function {
         use wasm_bindgen::prelude::*;
         use wasm_bindgen::JsCast;
-        
+
         let success_result = WasmEncodedResult::Success::<String> {
             value: json_data.to_string(),
             error: None,
