@@ -26,6 +26,7 @@ async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, L
 
 async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     let client = Client::new();
+    // TODO: Replace with actual database dump URL
     let response = client.get("").send().await?;
 
     if !response.status().is_success() {
