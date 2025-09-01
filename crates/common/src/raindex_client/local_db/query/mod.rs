@@ -44,47 +44,180 @@ impl LocalDbQuery {
         let promise = js_sys::Promise::resolve(&result);
         let future = JsFuture::from(promise);
 
-        let result = future
+        let js_result = future
             .await
             .map_err(|e| LocalDbQueryError::PromiseError(format!("{:?}", e)))?;
 
-        // Handle the result as an object with either error or value properties
-        if let Ok(obj) = result.clone().dyn_into::<js_sys::Object>() {
-            // Check for error property first
-            let error_prop = js_sys::Reflect::get(&obj, &JsValue::from_str("error"));
-            if let Ok(error_val) = error_prop {
-                if !error_val.is_undefined() {
-                    // Try to get the readableMsg from the error object
-                    if let Ok(error_obj) = error_val.dyn_into::<js_sys::Object>() {
-                        let readable_msg =
-                            js_sys::Reflect::get(&error_obj, &JsValue::from_str("readableMsg"));
-                        if let Ok(msg_val) = readable_msg {
-                            if let Some(msg_str) = msg_val.as_string() {
-                                return Err(LocalDbQueryError::DatabaseError { message: msg_str });
-                            }
-                        }
-                    }
+        let wasm_result: WasmEncodedResult<String> = serde_wasm_bindgen::from_value(js_result)
+            .map_err(|_| LocalDbQueryError::InvalidResponse)?;
 
-                    // Fallback to generic error message
-                    return Err(LocalDbQueryError::DatabaseError {
-                        message: "Database query failed".to_string(),
-                    });
-                }
+        match wasm_result {
+            WasmEncodedResult::Success { value, .. } => {
+                serde_json::from_str(&value).map_err(LocalDbQueryError::JsonError)
             }
+            WasmEncodedResult::Err { error, .. } => Err(LocalDbQueryError::DatabaseError {
+                message: error.readable_msg,
+            }),
+        }
+    }
+}
 
-            // Check for value property
-            let value_prop = js_sys::Reflect::get(&obj, &JsValue::from_str("value"));
-            if let Ok(value) = value_prop {
-                if let Some(json_string) = value.as_string() {
-                    return serde_json::from_str(&json_string)
-                        .map_err(LocalDbQueryError::JsonError);
-                }
-            }
-        } else if let Some(json_string) = result.as_string() {
-            // Fallback for direct JSON string responses
-            return serde_json::from_str(&json_string).map_err(LocalDbQueryError::JsonError);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(target_family = "wasm")]
+    mod wasm_tests {
+        use super::*;
+        use js_sys::Function;
+        use serde::{Deserialize, Serialize};
+        use wasm_bindgen_test::*;
+
+        wasm_bindgen_test_configure!(run_in_browser);
+
+        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+        struct TestData {
+            id: u32,
+            name: String,
         }
 
-        Err(LocalDbQueryError::InvalidResponse)
+        fn create_success_callback(json_data: &str) -> Function {
+            let success_result = WasmEncodedResult::Success::<String> {
+                value: json_data.to_string(),
+                error: None,
+            };
+            let js_value = serde_wasm_bindgen::to_value(&success_result).unwrap();
+
+            Function::new_no_args(&format!(
+                "return {}",
+                js_sys::JSON::stringify(&js_value)
+                    .unwrap()
+                    .as_string()
+                    .unwrap()
+            ))
+        }
+
+        fn create_error_callback(readable_msg: &str) -> Function {
+            let error_result = WasmEncodedResult::Err::<String> {
+                value: None,
+                error: WasmEncodedError {
+                    msg: "DatabaseError".to_string(),
+                    readable_msg: readable_msg.to_string(),
+                },
+            };
+            let js_value = serde_wasm_bindgen::to_value(&error_result).unwrap();
+
+            Function::new_no_args(&format!(
+                "return {}",
+                js_sys::JSON::stringify(&js_value)
+                    .unwrap()
+                    .as_string()
+                    .unwrap()
+            ))
+        }
+
+        fn create_invalid_callback() -> Function {
+            Function::new_no_args("return 42")
+        }
+
+        fn create_callback_that_throws() -> Function {
+            Function::new_no_args("throw new Error('Callback error')")
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_success_case() {
+            let test_data = vec![
+                TestData {
+                    id: 1,
+                    name: "Alice".to_string(),
+                },
+                TestData {
+                    id: 2,
+                    name: "Bob".to_string(),
+                },
+            ];
+            let json_data = serde_json::to_string(&test_data).unwrap();
+            let callback = create_success_callback(&json_data);
+
+            let result: Result<Vec<TestData>, LocalDbQueryError> =
+                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+
+            assert!(result.is_ok());
+            let data = result.unwrap();
+            assert_eq!(data.len(), 2);
+            assert_eq!(data[0].name, "Alice");
+            assert_eq!(data[1].name, "Bob");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_empty_success() {
+            let callback = create_success_callback("[]");
+
+            let result: Result<Vec<TestData>, LocalDbQueryError> =
+                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM empty_table")
+                    .await;
+
+            assert!(result.is_ok());
+            let data = result.unwrap();
+            assert_eq!(data.len(), 0);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_database_error() {
+            let callback = create_error_callback("no such table: users");
+
+            let result: Result<Vec<TestData>, LocalDbQueryError> =
+                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::DatabaseError { message } => {
+                    assert_eq!(message, "no such table: users");
+                }
+                _ => panic!("Expected DatabaseError"),
+            }
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_invalid_json() {
+            let callback = create_success_callback("{ invalid json }");
+
+            let result: Result<Vec<TestData>, LocalDbQueryError> =
+                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::JsonError(_) => {}
+                _ => panic!("Expected JsonError"),
+            }
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_invalid_response_format() {
+            let callback = create_invalid_callback();
+
+            let result: Result<Vec<TestData>, LocalDbQueryError> =
+                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::InvalidResponse => {}
+                _ => panic!("Expected InvalidResponse"),
+            }
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_callback_throws() {
+            let callback = create_callback_that_throws();
+
+            let result: Result<Vec<TestData>, LocalDbQueryError> =
+                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::CallbackError(_) => {}
+                _ => panic!("Expected CallbackError"),
+            }
+        }
     }
 }
