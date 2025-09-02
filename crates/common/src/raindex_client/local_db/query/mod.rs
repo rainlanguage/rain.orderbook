@@ -1,3 +1,4 @@
+pub mod clear_tables;
 pub mod create_tables;
 pub mod fetch_last_synced_block;
 pub mod fetch_tables;
@@ -27,7 +28,7 @@ pub enum LocalDbQueryError {
 }
 
 impl LocalDbQuery {
-    pub async fn execute_query_with_callback<T>(
+    pub async fn execute_query_json<T>(
         callback: &js_sys::Function,
         sql: &str,
     ) -> Result<T, LocalDbQueryError>
@@ -55,6 +56,34 @@ impl LocalDbQuery {
             WasmEncodedResult::Success { value, .. } => {
                 serde_json::from_str(&value).map_err(LocalDbQueryError::JsonError)
             }
+            WasmEncodedResult::Err { error, .. } => Err(LocalDbQueryError::DatabaseError {
+                message: error.readable_msg,
+            }),
+        }
+    }
+
+    // TODO: Write test for this function
+    pub async fn execute_query_text(
+        callback: &js_sys::Function,
+        sql: &str,
+    ) -> Result<String, LocalDbQueryError> {
+        let result = callback
+            .call1(
+                &wasm_bindgen::JsValue::NULL,
+                &wasm_bindgen::JsValue::from_str(sql),
+            )
+            .map_err(|e| LocalDbQueryError::CallbackError(format!("{:?}", e)))?;
+
+        let future = wasm_bindgen_futures::JsFuture::from(js_sys::Promise::resolve(&result));
+        let js_result = future
+            .await
+            .map_err(|e| LocalDbQueryError::PromiseError(format!("{:?}", e)))?;
+
+        let wasm_result: WasmEncodedResult<String> = serde_wasm_bindgen::from_value(js_result)
+            .map_err(|_| LocalDbQueryError::InvalidResponse)?;
+
+        match wasm_result {
+            WasmEncodedResult::Success { value, .. } => Ok(value),
             WasmEncodedResult::Err { error, .. } => Err(LocalDbQueryError::DatabaseError {
                 message: error.readable_msg,
             }),
@@ -140,7 +169,7 @@ pub mod tests {
             let callback = create_success_callback(&json_data);
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
 
             assert!(result.is_ok());
             let data = result.unwrap();
@@ -154,8 +183,7 @@ pub mod tests {
             let callback = create_success_callback("[]");
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM empty_table")
-                    .await;
+                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM empty_table").await;
 
             assert!(result.is_ok());
             let data = result.unwrap();
@@ -167,7 +195,7 @@ pub mod tests {
             let callback = create_error_callback("no such table: users");
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
@@ -183,7 +211,7 @@ pub mod tests {
             let callback = create_success_callback("{ invalid json }");
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
@@ -197,7 +225,7 @@ pub mod tests {
             let callback = create_invalid_callback();
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
@@ -211,7 +239,7 @@ pub mod tests {
             let callback = create_callback_that_throws();
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_with_callback(&callback, "SELECT * FROM users").await;
+                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
 
             assert!(result.is_err());
             match result.unwrap_err() {

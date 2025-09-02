@@ -4,7 +4,9 @@ const QUERY: &str = include_str!("query.sql");
 
 impl LocalDbQuery {
     pub async fn clear_tables(db_callback: &js_sys::Function) -> Result<(), LocalDbQueryError> {
-        LocalDbQuery::execute_query_with_callback::<()>(db_callback, QUERY).await
+        LocalDbQuery::execute_query_text(db_callback, QUERY)
+            .await
+            .map(|_| ())
     }
 }
 

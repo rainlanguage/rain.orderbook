@@ -7,11 +7,12 @@ impl LocalDbQuery {
         db_callback: &js_sys::Function,
         block_number: u64,
     ) -> Result<(), LocalDbQueryError> {
-        LocalDbQuery::execute_query_with_callback::<()>(
+        LocalDbQuery::execute_query_text(
             db_callback,
             &QUERY.replace("?block_number", &block_number.to_string()),
         )
         .await
+        .map(|_| ())
     }
 }
 
