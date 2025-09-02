@@ -21,15 +21,15 @@
 	let customToken: TokenInfo | null = null;
 	let customTokenError = '';
 	let isValidatingCustomToken = false;
-	let currentTempKey: string | null = null;
 
 	const gui = useGui();
 
 	async function loadTokens(search?: string) {
 		isSearching = true;
 
-		// Clean up any previous custom token state
-		cleanupCustomToken();
+		// Clear any previous custom token state
+		customToken = null;
+		customTokenError = '';
 
 		const result = await gui.getAllTokens(search);
 		if (result.error) {
@@ -46,28 +46,21 @@
 		}
 	}
 
-	function cleanupCustomToken() {
-		if (currentTempKey) {
-			gui.unsetSelectToken(currentTempKey);
-			currentTempKey = null;
-		}
-		customToken = null;
-		customTokenError = '';
-	}
-
 	async function validateCustomToken(address: string) {
 		isValidatingCustomToken = true;
-
-		// Clean up any previous custom token validation
-		cleanupCustomToken();
+		customTokenError = '';
 
 		try {
-			// Create a temporary key for validation
-			const tempKey = `custom-${address}`;
-			currentTempKey = tempKey;
+			// Use the GUI to temporarily validate the token
+			// We don't need to store this permanently, just check if it's valid
+			const tempKey = `temp-validation-${Date.now()}`;
 			await gui.setSelectToken(tempKey, address);
 
 			const result = await gui.getTokenInfo(tempKey);
+
+			// Clean up the temporary key immediately
+			gui.unsetSelectToken(tempKey);
+
 			if (result.error) {
 				throw new Error(result.error.msg);
 			}
@@ -75,17 +68,11 @@
 			if (result.value) {
 				customToken = {
 					...result.value,
-					address: address // Use the provided address directly instead of temporary key
+					address: address // Ensure we use the original address
 				};
 			}
-
-			// Don't clean up the temporary token selection yet - we'll clean it up when:
-			// 1. A new search/validation starts
-			// 2. The modal is closed
-			// 3. The token is successfully selected
 		} catch (error) {
-			customTokenError = (error as Error).message || 'Invalid token address';
-			cleanupCustomToken();
+			customTokenError = (error as Error).message || 'Unable to validate token address';
 		} finally {
 			isValidatingCustomToken = false;
 		}
@@ -104,8 +91,6 @@
 	}
 
 	function handleTokenSelect(token: TokenInfo) {
-		// Don't clean up custom token keys here - let the parent handle the selection first
-		// Cleanup will happen when modal closes or new validation starts
 		onSelect(token);
 		modalOpen = false;
 	}
@@ -121,11 +106,6 @@
 				input.focus();
 			}
 		});
-	} else {
-		// Clean up when modal closes, but with a small delay to let parent process selection
-		setTimeout(() => {
-			cleanupCustomToken();
-		}, 100);
 	}
 </script>
 
