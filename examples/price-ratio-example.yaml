@@ -1,0 +1,206 @@
+---
+# Example YAML configuration demonstrating price ratio functionality
+# This shows how to use ${io-ratio(input, output)} expressions in various contexts
+
+networks:
+  mainnet:
+    rpc: https://eth-mainnet.g.alchemy.com/v2/your-api-key
+    chain-id: 1
+
+tokens:
+  usdc:
+    network: mainnet
+    address: 0xA0b86a33E6441b8e776f89d2b5B977c737C5e5b5
+    symbol: USDC
+    decimals: 6
+    label: USD Coin
+
+  weth:
+    network: mainnet
+    address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+    symbol: WETH
+    decimals: 18
+    label: Wrapped Ether
+
+orders:
+  auction-order:
+    inputs:
+      - token: usdc
+        vault-id: 0x01
+    outputs:
+      - token: weth
+        vault-id: 0x02
+
+deployments:
+  # Example 1: Auction DCA Strategy with dynamic pricing
+  auction-dca:
+    name: Auction DCA Strategy
+    description: |
+      Dollar-cost averaging strategy using Dutch auctions.
+      Automatically starts auctions at current market prices.
+    order: auction-order
+    fields:
+      - binding: initial-io
+        name: Kickoff ${order.inputs.0.token.symbol} per ${order.outputs.0.token.symbol}
+        description: |
+          The initial ${order.inputs.0.token.symbol} per ${order.outputs.0.token.symbol} ratio to start the first auction.
+          
+          Current market price: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
+          
+          This should be set higher than the baseline ratio to ensure the auction starts 
+          at a favorable price and drops down to the baseline over time.
+          
+          Recommended: Set 2-5% above current market price.
+        default: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
+
+      - binding: baseline-io
+        name: Baseline ${order.inputs.0.token.symbol} per ${order.outputs.0.token.symbol}
+        description: |
+          The minimum acceptable ${order.inputs.0.token.symbol} per ${order.outputs.0.token.symbol} ratio.
+          
+          Current market price: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
+          
+          Auctions will drop from the initial ratio down to this baseline ratio.
+          Set this at or slightly below current market price.
+
+      - binding: auction-duration
+        name: Auction Duration (seconds)
+        description: How long each auction should run before reaching the baseline price.
+        default: "3600"
+
+  # Example 2: Limit Order with price reference
+  limit-order:
+    name: Limit Order
+    description: |
+      Simple limit order with current market price reference.
+      Set your desired exchange rate above or below market price.
+    order: auction-order
+    fields:
+      - binding: fixed-io
+        name: ${order.inputs.0.token.symbol} per ${order.outputs.0.token.symbol} Rate
+        description: |
+          Fixed exchange rate for this limit order.
+          
+          You will receive ${order.inputs.0.token.symbol} for every 1 ${order.outputs.0.token.symbol} you sell.
+          
+          📊 Current market price: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
+          
+          💡 Tip: Set above market price to sell at a premium, or below to buy at a discount.
+
+      - binding: amount
+        name: ${order.outputs.0.token.symbol} Amount to Sell
+        description: |
+          Amount of ${order.outputs.0.token.symbol} you want to sell.
+          
+          At current market price (${io-ratio(order.inputs.0.address, order.outputs.0.address)}), 
+          this would get you approximately [amount × current_price] ${order.inputs.0.token.symbol}.
+
+  # Example 3: Advanced Dutch Auction Strategy
+  dutch-auction-strategy:
+    name: Dutch Auction Strategy  
+    description: |
+      Advanced Dutch auction with multiple price points and dynamic pricing.
+      Perfect for large orders that need to be executed over time.
+    order: auction-order
+    fields:
+      - binding: start-premium
+        name: Starting Premium (%)
+        description: |
+          Percentage above current market price to start the auction.
+          
+          Current market price: ${io-ratio(order.inputs.0.address, order.outputs.0.address)} ${order.inputs.0.token.symbol}/${order.outputs.0.token.symbol}
+          
+          Example: 10% means auction starts at 110% of current market price.
+        default: "5"
+
+      - binding: end-discount
+        name: Ending Discount (%)
+        description: |
+          Percentage below current market price to end the auction.
+          
+          Current market price: ${io-ratio(order.inputs.0.address, order.outputs.0.address)} ${order.inputs.0.token.symbol}/${order.outputs.0.token.symbol}
+          
+          Example: 2% means auction ends at 98% of current market price.
+        default: "2"
+
+      - binding: auction-frequency
+        name: Auction Frequency (hours)
+        description: |
+          How often to start new auctions.
+          
+          With current market price at ${io-ratio(order.inputs.0.address, order.outputs.0.address)}, 
+          more frequent auctions may capture better price movements.
+        default: "24"
+
+  # Example 4: Cross-chain arbitrage strategy
+  arbitrage-strategy:
+    name: Cross-Chain Arbitrage
+    description: |
+      Automated arbitrage strategy that monitors price differences.
+      Uses current market prices to determine profitable opportunities.
+    order: auction-order
+    fields:
+      - binding: min-profit-threshold
+        name: Minimum Profit Threshold (%)
+        description: |
+          Minimum profit percentage required to execute arbitrage.
+          
+          Current ${order.inputs.0.token.symbol}/${order.outputs.0.token.symbol} rate: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
+          
+          Strategy will only execute when profit exceeds this threshold.
+        default: "0.5"
+
+      - binding: max-slippage
+        name: Maximum Slippage (%)
+        description: |
+          Maximum acceptable slippage during execution.
+          
+          Based on current liquidity and price ${io-ratio(order.inputs.0.address, order.outputs.0.address)}, 
+          consider market depth when setting this value.
+        default: "1.0"
+
+  # Example 5: DCA with price-based adjustments
+  smart-dca:
+    name: Smart DCA Strategy
+    description: |
+      Dollar-cost averaging with intelligent price-based position sizing.
+      Buys more when prices are low, less when prices are high.
+    order: auction-order
+    fields:
+      - binding: base-amount
+        name: Base ${order.outputs.0.token.symbol} Amount
+        description: |
+          Base amount of ${order.outputs.0.token.symbol} to sell in each DCA cycle.
+          
+          At current price ${io-ratio(order.inputs.0.address, order.outputs.0.address)}, 
+          this will acquire approximately [base_amount × current_price] ${order.inputs.0.token.symbol}.
+
+      - binding: price-multiplier
+        name: Price-Based Multiplier
+        description: |
+          Multiplier applied based on price deviation from moving average.
+          
+          Current price: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
+          
+          Values > 1.0 increase buying when price is below average.
+          Values < 1.0 decrease buying when price is above average.
+        default: "1.2"
+
+      - binding: dca-interval
+        name: DCA Interval (hours)
+        description: |
+          Time between DCA purchases.
+          
+          Consider market volatility and current price ${io-ratio(order.inputs.0.address, order.outputs.0.address)} 
+          when setting frequency.
+        default: "168"  # Weekly
+
+gui:
+  name: Dynamic Pricing Strategies
+  description: |
+    Advanced trading strategies with real-time price integration.
+    
+    All strategies automatically fetch current market prices to provide 
+    intelligent defaults and helpful context for your trading decisions.
+    
+    Current ${order.inputs.0.token.symbol}/${order.outputs.0.token.symbol} market rate: ${io-ratio(order.inputs.0.address, order.outputs.0.address)}
