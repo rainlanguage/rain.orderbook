@@ -1,12 +1,12 @@
 use super::{
-    decode::decode_events,
-    insert::decoded_events_to_sql,
     query::{create_tables::REQUIRED_TABLES, LocalDbQuery},
     *,
 };
 use flate2::read::GzDecoder;
 use reqwest::Client;
 use std::io::Read;
+
+const DUMP_URL: &str = ""; // TODO: Replace with actual database dump URL
 
 async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbError> {
     match LocalDbQuery::fetch_all_tables(db_callback).await {
@@ -26,8 +26,7 @@ async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, L
 
 async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     let client = Client::new();
-    // TODO: Replace with actual database dump URL
-    let response = client.get("").send().await?;
+    let response = client.get(DUMP_URL).send().await?;
 
     if !response.status().is_success() {
         return Err(LocalDbError::CustomError(format!(
@@ -71,6 +70,7 @@ fn send_status_message(
 impl RaindexClient {
     #[wasm_export(js_name = "syncLocalDatabase", unchecked_return_type = "void")]
     pub async fn sync_database(
+        &self,
         #[wasm_export(param_description = "JavaScript function to execute database queries")]
         db_callback: js_sys::Function,
         #[wasm_export(param_description = "JavaScript function called with status updates")]
@@ -78,6 +78,8 @@ impl RaindexClient {
         #[wasm_export(param_description = "The contract address to sync events for")]
         contract_address: String,
     ) -> Result<(), LocalDbError> {
+        let orderbook_address = Address::from_str(&contract_address)?;
+
         send_status_message(&status_callback, "Starting database sync...".to_string())?;
 
         let has_tables = match check_required_tables(&db_callback).await {
@@ -98,8 +100,6 @@ impl RaindexClient {
             let dump_sql = download_and_decompress_dump().await?;
 
             LocalDbQuery::execute_query_with_callback::<()>(&db_callback, &dump_sql).await?;
-            // TODO: Replace with actual block number from dump
-            LocalDbQuery::update_last_synced_block(&db_callback, 1).await?;
         }
 
         let last_synced_block = match get_last_synced_block(&db_callback).await {
@@ -112,8 +112,18 @@ impl RaindexClient {
             }
         };
 
+        let orderbook_cfg = match self.get_orderbook_by_address(orderbook_address) {
+            Ok(o) => o,
+            Err(e) => {
+                return Err(LocalDbError::CustomError(format!(
+                    "Failed to get orderbook configuration: {}",
+                    e
+                )));
+            }
+        };
+
         // TODO: Replace with actual client initialization
-        let local_db = LocalDb::new(1, "".to_string())?;
+        let local_db = LocalDb::new(orderbook_cfg.network.chain_id, "".to_string())?;
 
         let latest_block = match local_db.client.get_latest_block_number().await {
             Ok(block) => block,
@@ -126,8 +136,7 @@ impl RaindexClient {
         };
 
         let start_block = if last_synced_block == 0 {
-            // TODO: Fetch the contract deployment block
-            1
+            orderbook_cfg.deployment_block
         } else {
             last_synced_block + 1
         };
@@ -150,8 +159,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        // TODO: This needs to be implemented in LocalDb
-        let decoded_events = match decode_events(events) {
+        let decoded_events = match local_db.decode_events(events) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -162,8 +170,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        // TODO: This needs to be implemented in LocalDb
-        let sql_commands = match decoded_events_to_sql(decoded_events, latest_block) {
+        let sql_commands = match local_db.decoded_events_to_sql(decoded_events, latest_block) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(e.to_string()));
