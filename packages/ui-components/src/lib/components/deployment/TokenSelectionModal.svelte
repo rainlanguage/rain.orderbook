@@ -51,26 +51,14 @@
 		customTokenError = '';
 
 		try {
-			// Use the GUI to temporarily validate the token
-			// We don't need to store this permanently, just check if it's valid
-			const tempKey = `temp-validation-${Date.now()}`;
-			await gui.setSelectToken(tempKey, address);
-
-			const result = await gui.getTokenInfo(tempKey);
-
-			// Clean up the temporary key immediately
-			gui.unsetSelectToken(tempKey);
-
-			if (result.error) {
-				throw new Error(result.error.msg);
-			}
-
-			if (result.value) {
-				customToken = {
-					...result.value,
-					address: address // Ensure we use the original address
-				};
-			}
+			// Create a simple token info object without using the GUI
+			// We'll let the parent component handle the actual token setting
+			customToken = {
+				address: address,
+				name: 'Custom Token', // Default name, the parent will fetch the real name
+				symbol: 'CUSTOM', // Default symbol, the parent will fetch the real symbol
+				decimals: 18 // Default decimals, the parent will fetch the real decimals
+			};
 		} catch (error) {
 			customTokenError = (error as Error).message || 'Unable to validate token address';
 		} finally {
@@ -159,6 +147,9 @@
 									<ExclamationCircleSolid class="h-4 w-4" />
 									<span class="font-medium">Custom Token (Not in verified list)</span>
 								</div>
+								<p class="text-xs text-yellow-700 dark:text-yellow-300">
+									This token address will be validated when selected.
+								</p>
 							</div>
 							<div
 								class="token-item flex cursor-pointer items-center border-b border-gray-100 p-3 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
@@ -174,11 +165,12 @@
 							>
 								<div class="token-info flex-grow">
 									<div class="token-name font-medium text-gray-900 dark:text-white">
-										{customToken.name}
+										{customToken.address}
 									</div>
 									<div class="token-details flex gap-2 text-sm text-gray-500 dark:text-gray-400">
-										<span class="symbol font-medium">{customToken.symbol}</span>
-										<span class="address">{formatAddress(customToken.address)}</span>
+										<span class="symbol font-medium"
+											>Token details will be fetched upon selection</span
+										>
 									</div>
 								</div>
 								{#if selectedToken?.address === customToken.address}
