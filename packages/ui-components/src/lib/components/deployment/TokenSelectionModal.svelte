@@ -21,13 +21,15 @@
 	let customToken: TokenInfo | null = null;
 	let customTokenError = '';
 	let isValidatingCustomToken = false;
+	let currentTempKey: string | null = null;
 
 	const gui = useGui();
 
 	async function loadTokens(search?: string) {
 		isSearching = true;
-		customToken = null;
-		customTokenError = '';
+
+		// Clean up any previous custom token state
+		cleanupCustomToken();
 
 		const result = await gui.getAllTokens(search);
 		if (result.error) {
@@ -44,14 +46,25 @@
 		}
 	}
 
+	function cleanupCustomToken() {
+		if (currentTempKey) {
+			gui.unsetSelectToken(currentTempKey);
+			currentTempKey = null;
+		}
+		customToken = null;
+		customTokenError = '';
+	}
+
 	async function validateCustomToken(address: string) {
 		isValidatingCustomToken = true;
-		customTokenError = '';
-		customToken = null;
+
+		// Clean up any previous custom token validation
+		cleanupCustomToken();
 
 		try {
 			// Create a temporary key for validation
 			const tempKey = `custom-${address}`;
+			currentTempKey = tempKey;
 			await gui.setSelectToken(tempKey, address);
 
 			const result = await gui.getTokenInfo(tempKey);
@@ -66,10 +79,13 @@
 				};
 			}
 
-			// Clean up the temporary token selection since we don't need it persisted
-			gui.unsetSelectToken(tempKey);
+			// Don't clean up the temporary token selection yet - we'll clean it up when:
+			// 1. A new search/validation starts
+			// 2. The modal is closed
+			// 3. The token is successfully selected
 		} catch (error) {
 			customTokenError = (error as Error).message || 'Invalid token address';
+			cleanupCustomToken();
 		} finally {
 			isValidatingCustomToken = false;
 		}
@@ -88,6 +104,8 @@
 	}
 
 	function handleTokenSelect(token: TokenInfo) {
+		// Clean up any custom token temporary keys since we're selecting something
+		cleanupCustomToken();
 		onSelect(token);
 		modalOpen = false;
 	}
@@ -103,6 +121,9 @@
 				input.focus();
 			}
 		});
+	} else {
+		// Clean up when modal closes
+		cleanupCustomToken();
 	}
 </script>
 
