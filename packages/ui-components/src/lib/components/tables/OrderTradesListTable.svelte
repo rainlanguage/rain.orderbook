@@ -56,9 +56,11 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		}
 	});
+
+	const AppTable = TanstackAppTable<RaindexTrade>;
 </script>
 
-<TanstackAppTable
+<AppTable
 	query={orderTradesQuery}
 	emptyMessage="No trades found"
 	rowHoverable={false}
@@ -126,4 +128,4 @@
 			</TableBodyCell>
 		{/if}
 	</svelte:fragment>
-</TanstackAppTable>
+</AppTable>

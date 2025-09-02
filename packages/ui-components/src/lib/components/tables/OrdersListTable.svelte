@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -8,6 +8,7 @@
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
+	import VaultCard from '../VaultCard.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { QKEY_ORDERS, QKEY_TOKENS } from '../../queries/keys';
 	import type { AppStoresInterface } from '../../types/appStores';
@@ -162,15 +163,26 @@
 		<TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
-			{item.inputsList.items.map((t) => t.token.symbol)}
+
+		<TableBodyCell data-testid="orderListRowInputs" tdClass="p-2 whitespace-normal">
+			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+				{#each item.inputsList.items as vault}
+					<VaultCard {vault} />
+				{/each}
+			</div>
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
-			{item.outputsList.items.map((t) => t.token.symbol)}
+
+		<TableBodyCell data-testid="orderListRowOutputs" tdClass="p-2 whitespace-normal">
+			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+				{#each item.outputsList.items as vault}
+					<VaultCard {vault} />
+				{/each}
+			</div>
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
-			>{item.tradesCount > 99 ? '>99' : item.tradesCount}</TableBodyCell
-		>
+
+		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2">
+			{item.tradesCount > 99 ? '>99' : item.tradesCount}
+		</TableBodyCell>
 		{#if matchesAccount(item.owner) && handleOrderRemoveModal}
 			<div data-testid="wallet-actions">
 				<TableBodyCell tdClass="px-0 text-right">
@@ -189,6 +201,7 @@
 						</Button>
 					{/if}
 				</TableBodyCell>
+
 				{#if item.active}
 					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
 						<DropdownItem

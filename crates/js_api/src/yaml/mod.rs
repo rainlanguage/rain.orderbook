@@ -174,6 +174,7 @@ mod tests {
             network: mainnet
             subgraph: mainnet
             label: Primary Orderbook
+            deployment-block: 12345
     tokens:
         token1:
             network: mainnet
@@ -256,6 +257,7 @@ mod tests {
             network: nonexistent-network
             subgraph: nonexistent-subgraph
             label: Primary Orderbook
+            deployment-block: 12345
     "#,
             spec_version = SpecVersion::current()
         )
