@@ -49,8 +49,10 @@ orderbooks:
         address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS}
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
     other-orderbook:
         address: ${CHAIN_ID_2_ORDERBOOK_ADDRESS}
+        deployment-block: 12345
         network: other-network
         subgraph: other-sg
 tokens:
@@ -1509,7 +1511,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					},
 					1
 				)
-			);
+			).items;
 
 			assert.equal(result.length, 2);
 			assert.equal(result[0].vaultId, BigInt(vault1.vaultId));
