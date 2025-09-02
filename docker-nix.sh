@@ -24,5 +24,5 @@ docker run --rm \
   $ENV_VARS \
   nixos/nix sh -c "
     git config --global --add safe.directory /workspace
-    nix --extra-experimental-features 'nix-command flakes' $*
-  "
+    exec nix --extra-experimental-features 'nix-command flakes' \"\$@\"
+  " -- "$@"
