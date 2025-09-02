@@ -1,34 +1,48 @@
 import { getContext, setContext } from 'svelte';
-import type { RegistryManager } from './RegistryManager';
+import type { DotrainRegistry } from '@rainlanguage/orderbook';
+import type { Readable, Writable } from 'svelte/store';
 
 export const REGISTRY_KEY = 'registry_key';
 /**
- * Retrieves the registry manager directly from Svelte's context
+ * Context shape for the DotrainRegistry provider
  */
-export const getRegistryContext = (): RegistryManager => {
-	const registry = getContext<RegistryManager>(REGISTRY_KEY);
-	if (!registry) {
-		throw new Error(
-			'No registry manager was found in Svelte context. Did you forget to wrap your component with RegistryProvider?'
-		);
-	}
-	return registry;
+export type RegistryContext = {
+    registry: Writable<DotrainRegistry | null>;
+    loading: Writable<boolean>;
+    error: Writable<string | null>;
+    setRegistryUrl: (url: string) => void;
+    registryUrl: Writable<string>;
+    isCustomRegistry: Readable<boolean>;
+    appendRegistryToHref: (href: string) => string;
+};
+
+/**
+ * Retrieves the registry context directly from Svelte's context
+ */
+export const getRegistryContext = (): RegistryContext => {
+    const ctx = getContext<RegistryContext>(REGISTRY_KEY);
+    if (!ctx) {
+        throw new Error(
+            'No registry provider was found in Svelte context. Did you forget to wrap your component with RegistryProvider?'
+        );
+    }
+    return ctx;
 };
 
 /**
  * Sets the registry manager in Svelte's context
  */
-export const setRegistryContext = (registry: RegistryManager) => {
-	setContext(REGISTRY_KEY, registry);
+export const setRegistryContext = (context: RegistryContext) => {
+    setContext(REGISTRY_KEY, context);
 };
 
 if (import.meta.vitest) {
 	const { describe, it, expect, vi, beforeEach } = import.meta.vitest;
 
-	vi.mock('svelte', async (importOriginal) => ({
-		...((await importOriginal()) as object),
-		getContext: vi.fn()
-	}));
+    vi.mock('svelte', async (importOriginal) => ({
+        ...((await importOriginal()) as object),
+        getContext: vi.fn()
+    }));
 
 	describe('getRegistryContext', () => {
 		const mockGetContext = vi.mocked(getContext);
@@ -37,25 +51,33 @@ if (import.meta.vitest) {
 			mockGetContext.mockReset();
 		});
 
-		it('should return the registry from context when it exists', () => {
-			const mockRegistry = {} as RegistryManager;
+        it('should return the registry context when it exists', () => {
+            const mockRegistry = {
+                registry: null,
+                loading: false,
+                error: null,
+                setRegistryUrl: () => {},
+                registryUrl: { subscribe: () => () => {} },
+                isCustomRegistry: { subscribe: () => () => {} },
+                appendRegistryToHref: (href: string) => href
+            } as unknown as RegistryContext;
 
-			mockGetContext.mockImplementation((key) => {
-				if (key === REGISTRY_KEY) return mockRegistry;
-				return undefined;
-			});
+            mockGetContext.mockImplementation((key) => {
+                if (key === REGISTRY_KEY) return mockRegistry;
+                return undefined;
+            });
 
-			const result = getRegistryContext();
-			expect(mockGetContext).toHaveBeenCalledWith(REGISTRY_KEY);
-			expect(result).toEqual(mockRegistry);
-		});
+            const result = getRegistryContext();
+            expect(mockGetContext).toHaveBeenCalledWith(REGISTRY_KEY);
+            expect(result).toEqual(mockRegistry);
+        });
 
-		it('should throw an error when registry is not in context', () => {
-			mockGetContext.mockReturnValue(undefined);
+        it('should throw an error when registry context is not in context', () => {
+            mockGetContext.mockReturnValue(undefined);
 
-			expect(() => getRegistryContext()).toThrow(
-				'No registry manager was found in Svelte context. Did you forget to wrap your component with RegistryProvider?'
-			);
-		});
-	});
+            expect(() => getRegistryContext()).toThrow(
+                'No registry provider was found in Svelte context. Did you forget to wrap your component with RegistryProvider?'
+            );
+        });
+    });
 }

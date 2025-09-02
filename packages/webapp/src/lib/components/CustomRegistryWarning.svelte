@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { useRegistry } from '@rainlanguage/ui-components';
-	const registry = useRegistry();
+    import { useRegistry } from '@rainlanguage/ui-components';
+    const { setRegistryUrl } = useRegistry();
 </script>
 
 <div
@@ -22,9 +22,9 @@
 	<span>
 		You are using a <span class="font-medium">custom orders registry. </span>
 		<a
-			on:click={() => {
-				registry.resetToDefault();
-			}}
+        on:click={() => {
+                setRegistryUrl('');
+            }}
 			href="/deploy"
 			data-sveltekit-reload
 			class="font-semibold underline hover:text-blue-800 dark:hover:text-blue-900"

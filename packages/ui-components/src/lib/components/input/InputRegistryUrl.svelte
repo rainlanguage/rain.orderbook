@@ -1,26 +1,24 @@
 <script lang="ts">
-	import { Button, Input } from 'flowbite-svelte';
-	import { useRegistry } from '$lib/providers/registry/useRegistry';
-	import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
+  import { Button, Input } from 'flowbite-svelte';
+  import { useRegistry } from '$lib/providers/registry/useRegistry';
+  import { get } from 'svelte/store';
 
-	const registry = useRegistry();
-	let newRegistryUrl = registry.getCurrentRegistry();
-	let error: string | null = null;
-	let loading: boolean = false;
+  const { setRegistryUrl, registryUrl } = useRegistry();
+  let newRegistryUrl: string = get(registryUrl) ?? '';
+  let error: string | null = null;
+  let loading: boolean = false;
 
-	async function handleClick() {
-		loading = true;
-		error = null;
-		try {
-			if (!registry) {
-				throw new Error('Registry manager not yet available.');
-			}
-			await loadRegistryUrl(newRegistryUrl, registry);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Unknown error';
-		}
-		loading = false;
-	}
+  async function handleClick() {
+    loading = true;
+    error = null;
+    try {
+      if (!newRegistryUrl) throw new Error('Please enter a registry URL.');
+      await Promise.resolve(setRegistryUrl(newRegistryUrl));
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Unknown error';
+    }
+    loading = false;
+  }
 </script>
 
 <div class="flex w-full flex-col items-end gap-2">
@@ -35,9 +33,9 @@
 			{loading ? 'Loading registry...' : 'Load registry URL'}
 		</Button>
 	</div>
-	<div class="h-4">
-		{#if error}
-			<p data-testid="registry-error" class="text-red-500">{error}</p>
-		{/if}
-	</div>
+    <div class="h-4">
+        {#if error}
+            <p data-testid="registry-error" class="text-red-500">{error}</p>
+        {/if}
+    </div>
 </div>

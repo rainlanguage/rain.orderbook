@@ -11,8 +11,10 @@
 		ToastProvider,
 		WalletProvider,
 		FixedBottomTransaction,
-		RaindexClientProvider
+		RaindexClientProvider,
+		RegistryProvider
 	} from '@rainlanguage/ui-components';
+	import { REGISTRY_URL } from '$lib/constants';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
@@ -57,15 +59,17 @@
 						<ErrorPage />
 					{:else}
 						<RaindexClientProvider {raindexClient}>
-							<div
-								data-testid="layout-container"
-								class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-							>
-								<Sidebar {colorTheme} page={$page} />
-								<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-									<slot />
-								</main>
-							</div>
+							<RegistryProvider defaultUrl={REGISTRY_URL}>
+								<div
+									data-testid="layout-container"
+									class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+								>
+									<Sidebar {colorTheme} page={$page} />
+									<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
+										<slot />
+									</main>
+								</div>
+							</RegistryProvider>
 						</RaindexClientProvider>
 					{/if}
 					<FixedBottomTransaction />

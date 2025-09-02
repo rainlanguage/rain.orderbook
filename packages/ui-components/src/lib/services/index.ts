@@ -1,3 +1,1 @@
-export { fetchParseRegistry, fetchRegistryDotrains, validateOrders } from './registry';
-export { loadRegistryUrl } from './loadRegistryUrl';
-export type { RegistryDotrain, RegistryFile } from './registry';
+// Legacy registry services removed in favor of DotrainRegistry SDK integration.

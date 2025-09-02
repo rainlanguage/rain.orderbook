@@ -69,6 +69,7 @@
 			await gui.setSelectToken(token.key, address);
 			await getInfoForSelectedToken();
 		} catch (e) {
+			console.log(e);
 			const errorMessage = (e as Error).message || 'Invalid token address.';
 			error = errorMessage;
 		} finally {

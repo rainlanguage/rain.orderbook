@@ -62,8 +62,6 @@ export { default as InputHex } from './components/input/InputHex.svelte';
 export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
-export { default as InvalidOrdersSection } from './components/deployment/InvalidOrdersSection.svelte';
-export { default as ValidOrdersSection } from './components/deployment/ValidOrdersSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 export { default as TransactionList } from './components/transactions/TransactionList.svelte';
 export { default as FixedBottomTransaction } from './components/transactions/FixedBottomTransaction.svelte';
@@ -145,7 +143,6 @@ export { useToasts } from './providers/toasts/useToasts';
 export { useTransactions } from './providers/transactions/useTransactions';
 
 // Classes
-export { RegistryManager } from './providers/registry/RegistryManager';
 export { TransactionStore } from './models/Transaction';
 export { TransactionManager } from './providers/transactions/TransactionManager';
 

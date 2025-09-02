@@ -1,48 +1,51 @@
 <script lang="ts">
-	import { fade } from 'svelte/transition';
-	import { DotrainOrderGui } from '@rainlanguage/orderbook';
-	import DeploymentsSection from './DeploymentsSection.svelte';
-	import SvelteMarkdown from 'svelte-markdown';
+    import { fade } from 'svelte/transition';
+    import DeploymentsSection from './DeploymentsSection.svelte';
+    import SvelteMarkdown from 'svelte-markdown';
+    import { useRegistry } from '$lib/providers/registry/useRegistry';
+    import { type NameAndDescriptionCfg, type DotrainRegistry } from '@rainlanguage/orderbook';
 
-	export let orderName: string = '';
-	export let dotrain: string = '';
-	let markdownContent: string = '';
-	let error: string | undefined;
+    export let orderName: string = '';
+    let markdownContent: string = '';
+    let error: string | undefined;
 
-	const isMarkdownUrl = (url: string): boolean => {
-		return url.trim().toLowerCase().endsWith('.md');
-	};
+    const { registry, loading, error: providerError } = useRegistry();
 
-	const fetchMarkdownContent = async (url: string) => {
-		try {
-			const response = await fetch(url);
-			if (response.ok) {
-				markdownContent = await response.text();
-			}
-		} catch {
-			error = `Failed to fetch markdown`;
-		}
-	};
+    const isMarkdownUrl = (url: string): boolean => url.trim().toLowerCase().endsWith('.md');
 
-	const getOrderWithMarkdown = async () => {
-		try {
-			const result = await DotrainOrderGui.getOrderDetails(dotrain);
-			if (result.error) {
-				throw new Error(result.error.msg);
-			}
-			const orderDetails = result.value;
+    const fetchMarkdownContent = async (url: string) => {
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                markdownContent = await response.text();
+            }
+        } catch {
+            error = `Failed to fetch markdown`;
+        }
+    };
 
-			if (orderDetails.description && isMarkdownUrl(orderDetails.description)) {
-				await fetchMarkdownContent(orderDetails.description);
-			}
-			return orderDetails;
-		} catch {
-			throw new Error('Failed to get order details');
-		}
-	};
+    const getOrderFromRegistry = async (reg: DotrainRegistry): Promise<NameAndDescriptionCfg> => {
+        try {
+            const result = reg.getAllOrderDetails();
+            if (result.error || !result.value) throw new Error(result.error?.msg ?? 'No details');
+            const details = result.value.get(orderName);
+            if (!details) throw new Error('Order not found');
+            if (details.description && isMarkdownUrl(details.description)) {
+                await fetchMarkdownContent(details.description);
+            }
+            return details;
+        } catch (e) {
+            throw new Error('Failed to get order details');
+        }
+    };
 </script>
 
-{#await getOrderWithMarkdown() then orderDetails}
+{#if $loading}
+    <div>Loading order…</div>
+{:else if $providerError}
+    <div>Failed to initialize registry: {$providerError}</div>
+{:else if $registry}
+{#await getOrderFromRegistry($registry) then orderDetails}
 	<div>
 		<div in:fade class="flex flex-col gap-8">
 			<div class="flex max-w-2xl flex-col gap-3 text-start lg:gap-6">
@@ -67,14 +70,15 @@
 					</div>
 				{/if}
 			</div>
-			<div class="u flex flex-col gap-4">
-				<h2 class="text-3xl font-semibold text-gray-900 dark:text-white">Deployments</h2>
-				<DeploymentsSection {dotrain} {orderName} />
-			</div>
-		</div>
-	</div>
+            <div class="u flex flex-col gap-4">
+                <h2 class="text-3xl font-semibold text-gray-900 dark:text-white">Deployments</h2>
+				<DeploymentsSection {orderName} />
+            </div>
+        </div>
+    </div>
 {:catch error}
-	<div>
-		<p class="text-red-500">{error}</p>
-	</div>
+    <div>
+        <p class="text-red-500">{error}</p>
+    </div>
 {/await}
+{/if}
