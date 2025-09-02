@@ -1,3 +1,4 @@
+use super::LocalDb;
 use serde_json::Value;
 
 #[derive(Debug, thiserror::Error)]
@@ -16,56 +17,62 @@ pub enum InsertError {
     InvalidContextValue,
 }
 
-pub fn decoded_events_to_sql(data: Value, end_block: u64) -> Result<String, InsertError> {
-    let mut sql = String::new();
+impl LocalDb {
+    pub fn decoded_events_to_sql(
+        &self,
+        data: Value,
+        end_block: u64,
+    ) -> Result<String, InsertError> {
+        let mut sql = String::new();
 
-    sql.push_str("BEGIN TRANSACTION;\n\n");
+        sql.push_str("BEGIN TRANSACTION;\n\n");
 
-    let events = data.as_array().ok_or(InsertError::InvalidInputFormat)?;
+        let events = data.as_array().ok_or(InsertError::InvalidInputFormat)?;
 
-    for event in events {
-        match event.get("event_type").and_then(|v| v.as_str()) {
-            Some("DepositV2") => {
-                sql.push_str(&generate_deposit_sql(event)?);
-            }
-            Some("WithdrawV2") => {
-                sql.push_str(&generate_withdraw_sql(event)?);
-            }
-            Some("AddOrderV3") => {
-                sql.push_str(&generate_add_order_sql(event)?);
-            }
-            Some("RemoveOrderV3") => {
-                sql.push_str(&generate_remove_order_sql(event)?);
-            }
-            Some("TakeOrderV3") => {
-                sql.push_str(&generate_take_order_sql(event)?);
-            }
-            Some("ClearV3") => {
-                sql.push_str(&generate_clear_v3_sql(event)?);
-            }
-            Some("AfterClearV2") => {
-                sql.push_str(&generate_after_clear_sql(event)?);
-            }
-            Some("MetaV1_2") => {
-                sql.push_str(&generate_meta_sql(event)?);
-            }
-            Some(event_type) => {
-                eprintln!("Warning: Unknown event type: {}", event_type);
-            }
-            None => {
-                eprintln!("Warning: Event missing event_type field");
+        for event in events {
+            match event.get("event_type").and_then(|v| v.as_str()) {
+                Some("DepositV2") => {
+                    sql.push_str(&generate_deposit_sql(event)?);
+                }
+                Some("WithdrawV2") => {
+                    sql.push_str(&generate_withdraw_sql(event)?);
+                }
+                Some("AddOrderV3") => {
+                    sql.push_str(&generate_add_order_sql(event)?);
+                }
+                Some("RemoveOrderV3") => {
+                    sql.push_str(&generate_remove_order_sql(event)?);
+                }
+                Some("TakeOrderV3") => {
+                    sql.push_str(&generate_take_order_sql(event)?);
+                }
+                Some("ClearV3") => {
+                    sql.push_str(&generate_clear_v3_sql(event)?);
+                }
+                Some("AfterClearV2") => {
+                    sql.push_str(&generate_after_clear_sql(event)?);
+                }
+                Some("MetaV1_2") => {
+                    sql.push_str(&generate_meta_sql(event)?);
+                }
+                Some(event_type) => {
+                    eprintln!("Warning: Unknown event type: {}", event_type);
+                }
+                None => {
+                    eprintln!("Warning: Event missing event_type field");
+                }
             }
         }
+
+        sql.push_str(&format!(
+            "\nUPDATE sync_status SET last_synced_block = {}, updated_at = CURRENT_TIMESTAMP WHERE id = 1;\n",
+            end_block
+        ));
+
+        sql.push_str("\nCOMMIT;\n");
+
+        Ok(sql)
     }
-
-    sql.push_str(&format!(
-        "\nUPDATE sync_status SET last_synced_block = {}, updated_at = CURRENT_TIMESTAMP WHERE id = 1;\n",
-        end_block
-    ));
-
-    sql.push_str("\nCOMMIT;\n");
-
-    Ok(sql)
 }
 
 fn generate_deposit_sql(event: &Value) -> Result<String, InsertError> {
@@ -732,6 +739,10 @@ mod tests {
         assert!(sql.contains("0x090a0b0c0d"));
     }
 
+    fn get_local_db_instance() -> LocalDb {
+        LocalDb::new(1, "".to_string()).unwrap()
+    }
+
     #[test]
     fn test_decoded_events_to_sql_complete() {
         let events = json!([
@@ -744,7 +755,7 @@ mod tests {
             create_sample_meta_event()
         ]);
 
-        let result = decoded_events_to_sql(events, 5000000);
+        let result = get_local_db_instance().decoded_events_to_sql(events, 5000000);
 
         assert!(result.is_ok());
         let sql = result.unwrap();
@@ -834,7 +845,7 @@ mod tests {
     #[test]
     fn test_invalid_input_format_error() {
         let not_array = json!({"not": "an_array"});
-        let result = decoded_events_to_sql(not_array, 1000);
+        let result = get_local_db_instance().decoded_events_to_sql(not_array, 1000);
 
         assert!(result.is_err());
         assert!(matches!(
@@ -855,7 +866,7 @@ mod tests {
         });
 
         let events = json!([unknown_event]);
-        let result = decoded_events_to_sql(events, 1000);
+        let result = get_local_db_instance().decoded_events_to_sql(events, 1000);
 
         assert!(result.is_ok());
         let sql = result.unwrap();
@@ -867,7 +878,7 @@ mod tests {
     #[test]
     fn test_empty_events_array() {
         let empty_array = json!([]);
-        let result = decoded_events_to_sql(empty_array, 1000);
+        let result = get_local_db_instance().decoded_events_to_sql(empty_array, 1000);
 
         assert!(result.is_ok());
         let sql = result.unwrap();
@@ -1246,7 +1257,7 @@ mod tests {
             }
         ]);
 
-        let result = decoded_events_to_sql(events, 1000);
+        let result = get_local_db_instance().decoded_events_to_sql(events, 1000);
         assert!(result.is_ok());
 
         let sql = result.unwrap();
@@ -1284,7 +1295,7 @@ mod tests {
             }
         ]);
 
-        let result = decoded_events_to_sql(events_with_invalid_block, 1000);
+        let result = get_local_db_instance().decoded_events_to_sql(events_with_invalid_block, 1000);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -1309,7 +1320,8 @@ mod tests {
             }
         ]);
 
-        let result = decoded_events_to_sql(events_without_block_number, 1000);
+        let result =
+            get_local_db_instance().decoded_events_to_sql(events_without_block_number, 1000);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
