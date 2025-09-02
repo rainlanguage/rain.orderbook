@@ -423,10 +423,12 @@ orderbooks:
         network: mainnet
         subgraph: mainnet
         label: Primary Orderbook
+        deployment-block: 12345
     polygon-orderbook:
         address: 0x0987654321098765432109876543210987654321
         network: polygon
         subgraph: polygon
+        deployment-block: 12345
         label: Polygon Orderbook
 tokens:
     weth:
@@ -650,6 +652,7 @@ accounts:
             network: some-network
             subgraph: test
             label: Test Orderbook
+            deployment-block: 12345
     "#,
                 spec_version = SpecVersion::current()
             );
