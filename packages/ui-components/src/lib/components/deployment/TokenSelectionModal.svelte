@@ -163,8 +163,8 @@
 								class:dark:bg-blue-900={selectedToken?.address === customToken.address}
 								class:border-l-4={selectedToken?.address === customToken.address}
 								class:border-l-blue-500={selectedToken?.address === customToken.address}
-								on:click={() => handleTokenSelect(customToken)}
-								on:keydown={(e) => e.key === 'Enter' && handleTokenSelect(customToken)}
+								on:click={() => customToken && handleTokenSelect(customToken)}
+								on:keydown={(e) => e.key === 'Enter' && customToken && handleTokenSelect(customToken)}
 								role="button"
 								tabindex="0"
 							>
