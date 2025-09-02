@@ -1,3 +1,4 @@
+use super::LocalDb;
 use alloy::primitives::keccak256;
 use alloy::{
     hex,
@@ -43,98 +44,103 @@ pub struct EventData {
     pub decoded_data: serde_json::Value,
 }
 
-pub fn decode_events(json_data: serde_json::Value) -> Result<serde_json::Value, DecodeError> {
-    let events = json_data
-        .as_array()
-        .ok_or(DecodeError::InvalidJsonStructure)?;
+impl LocalDb {
+    pub fn decode_events(
+        &self,
+        json_data: serde_json::Value,
+    ) -> Result<serde_json::Value, DecodeError> {
+        let events = json_data
+            .as_array()
+            .ok_or(DecodeError::InvalidJsonStructure)?;
 
-    let mut topic_map = HashMap::new();
-    topic_map.insert(AddOrderV3::SIGNATURE_HASH.to_string(), "AddOrderV3");
-    topic_map.insert(TakeOrderV3::SIGNATURE_HASH.to_string(), "TakeOrderV3");
-    topic_map.insert(WithdrawV2::SIGNATURE_HASH.to_string(), "WithdrawV2");
-    topic_map.insert(DepositV2::SIGNATURE_HASH.to_string(), "DepositV2");
-    topic_map.insert(RemoveOrderV3::SIGNATURE_HASH.to_string(), "RemoveOrderV3");
-    topic_map.insert(ClearV3::SIGNATURE_HASH.to_string(), "ClearV3");
-    topic_map.insert(AfterClearV2::SIGNATURE_HASH.to_string(), "AfterClearV2");
-    topic_map.insert(MetaV1_2::SIGNATURE_HASH.to_string(), "MetaV1_2");
+        let mut topic_map = HashMap::new();
+        topic_map.insert(AddOrderV3::SIGNATURE_HASH.to_string(), "AddOrderV3");
+        topic_map.insert(TakeOrderV3::SIGNATURE_HASH.to_string(), "TakeOrderV3");
+        topic_map.insert(WithdrawV2::SIGNATURE_HASH.to_string(), "WithdrawV2");
+        topic_map.insert(DepositV2::SIGNATURE_HASH.to_string(), "DepositV2");
+        topic_map.insert(RemoveOrderV3::SIGNATURE_HASH.to_string(), "RemoveOrderV3");
+        topic_map.insert(ClearV3::SIGNATURE_HASH.to_string(), "ClearV3");
+        topic_map.insert(AfterClearV2::SIGNATURE_HASH.to_string(), "AfterClearV2");
+        topic_map.insert(MetaV1_2::SIGNATURE_HASH.to_string(), "MetaV1_2");
 
-    let mut decoded_events = Vec::new();
-    let mut decode_stats = HashMap::new();
+        let mut decoded_events = Vec::new();
+        let mut decode_stats = HashMap::new();
 
-    for event in events {
-        if let Some(topics) = event.get("topics").and_then(|t| t.as_array()) {
-            if let Some(topic0) = topics.first().and_then(|t| t.as_str()) {
-                let topic0_clean = if let Some(stripped) = topic0.strip_prefix("0x") {
-                    stripped
-                } else {
-                    topic0
-                };
+        for event in events {
+            if let Some(topics) = event.get("topics").and_then(|t| t.as_array()) {
+                if let Some(topic0) = topics.first().and_then(|t| t.as_str()) {
+                    let topic0_clean = if let Some(stripped) = topic0.strip_prefix("0x") {
+                        stripped
+                    } else {
+                        topic0
+                    };
 
-                let event_type = topic_map
-                    .iter()
-                    .find(|(hash, _)| {
-                        let hash_clean = if let Some(stripped) = hash.strip_prefix("0x") {
-                            stripped
-                        } else {
-                            hash.as_str()
+                    let event_type = topic_map
+                        .iter()
+                        .find(|(hash, _)| {
+                            let hash_clean = if let Some(stripped) = hash.strip_prefix("0x") {
+                                stripped
+                            } else {
+                                hash.as_str()
+                            };
+                            hash_clean.eq_ignore_ascii_case(topic0_clean)
+                        })
+                        .map(|(_, name)| *name)
+                        .unwrap_or("Unknown");
+
+                    *decode_stats.entry(event_type.to_string()).or_insert(0) += 1;
+
+                    if let Some(data_str) = event.get("data").and_then(|d| d.as_str()) {
+                        let decoded_data = match event_type {
+                            "AddOrderV3" => decode_add_order_v3(data_str)?,
+                            "TakeOrderV3" => decode_take_order_v3(data_str)?,
+                            "WithdrawV2" => decode_withdraw_v2(data_str)?,
+                            "DepositV2" => decode_deposit_v2(data_str)?,
+                            "RemoveOrderV3" => decode_remove_order_v3(data_str)?,
+                            "ClearV3" => decode_clear_v3(data_str)?,
+                            "AfterClearV2" => decode_after_clear_v2(data_str)?,
+                            "MetaV1_2" => decode_meta_v1_2(data_str)?,
+                            _ => {
+                                serde_json::json!({
+                                    "raw_data": data_str,
+                                    "note": "Unknown event type - could not decode"
+                                })
+                            }
                         };
-                        hash_clean.eq_ignore_ascii_case(topic0_clean)
-                    })
-                    .map(|(_, name)| *name)
-                    .unwrap_or("Unknown");
 
-                *decode_stats.entry(event_type.to_string()).or_insert(0) += 1;
+                        let event_data = EventData {
+                            event_type: event_type.to_string(),
+                            block_number: event
+                                .get("blockNumber")
+                                .and_then(|b| b.as_str())
+                                .unwrap_or("0x0")
+                                .to_string(),
+                            block_timestamp: event
+                                .get("blockTimestamp")
+                                .and_then(|t| t.as_str())
+                                .unwrap_or("0x0")
+                                .to_string(),
+                            transaction_hash: event
+                                .get("transactionHash")
+                                .and_then(|t| t.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                            log_index: event
+                                .get("logIndex")
+                                .and_then(|l| l.as_str())
+                                .unwrap_or("0x0")
+                                .to_string(),
+                            decoded_data,
+                        };
 
-                if let Some(data_str) = event.get("data").and_then(|d| d.as_str()) {
-                    let decoded_data = match event_type {
-                        "AddOrderV3" => decode_add_order_v3(data_str)?,
-                        "TakeOrderV3" => decode_take_order_v3(data_str)?,
-                        "WithdrawV2" => decode_withdraw_v2(data_str)?,
-                        "DepositV2" => decode_deposit_v2(data_str)?,
-                        "RemoveOrderV3" => decode_remove_order_v3(data_str)?,
-                        "ClearV3" => decode_clear_v3(data_str)?,
-                        "AfterClearV2" => decode_after_clear_v2(data_str)?,
-                        "MetaV1_2" => decode_meta_v1_2(data_str)?,
-                        _ => {
-                            serde_json::json!({
-                                "raw_data": data_str,
-                                "note": "Unknown event type - could not decode"
-                            })
-                        }
-                    };
-
-                    let event_data = EventData {
-                        event_type: event_type.to_string(),
-                        block_number: event
-                            .get("blockNumber")
-                            .and_then(|b| b.as_str())
-                            .unwrap_or("0x0")
-                            .to_string(),
-                        block_timestamp: event
-                            .get("blockTimestamp")
-                            .and_then(|t| t.as_str())
-                            .unwrap_or("0x0")
-                            .to_string(),
-                        transaction_hash: event
-                            .get("transactionHash")
-                            .and_then(|t| t.as_str())
-                            .unwrap_or("")
-                            .to_string(),
-                        log_index: event
-                            .get("logIndex")
-                            .and_then(|l| l.as_str())
-                            .unwrap_or("0x0")
-                            .to_string(),
-                        decoded_data,
-                    };
-
-                    decoded_events.push(event_data);
+                        decoded_events.push(event_data);
+                    }
                 }
             }
         }
-    }
 
-    Ok(serde_json::json!(decoded_events))
+        Ok(serde_json::json!(decoded_events))
+    }
 }
 
 fn compute_order_hash(order: &OrderV4) -> Result<String, DecodeError> {
@@ -661,11 +667,15 @@ mod test_helpers {
         })
     }
 
+    fn get_local_db_instance() -> LocalDb {
+        LocalDb::new(1, "".to_string()).unwrap()
+    }
+
     #[test]
     fn test_add_order_v3_decode() {
         let event_data = create_add_order_v3_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -740,7 +750,7 @@ mod test_helpers {
     fn test_take_order_v3_decode() {
         let event_data = create_take_order_v3_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -800,7 +810,7 @@ mod test_helpers {
     fn test_withdraw_v2_decode() {
         let event_data = create_withdraw_v2_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -837,7 +847,7 @@ mod test_helpers {
     fn test_deposit_v2_decode() {
         let event_data = create_deposit_v2_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -866,7 +876,7 @@ mod test_helpers {
     fn test_remove_order_v3_decode() {
         let event_data = create_remove_order_v3_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -909,7 +919,7 @@ mod test_helpers {
     fn test_clear_v3_decode() {
         let event_data = create_clear_v3_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -964,7 +974,7 @@ mod test_helpers {
     fn test_after_clear_v2_decode() {
         let event_data = create_after_clear_v2_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -997,7 +1007,7 @@ mod test_helpers {
     fn test_meta_v1_2_decode() {
         let event_data = create_meta_v1_2_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -1027,7 +1037,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([invalid_event]);
-        let result = decode_events(events_array);
+        let result = get_local_db_instance().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1046,7 +1056,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([malformed_event]);
-        let result = decode_events(events_array);
+        let result = get_local_db_instance().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1066,7 +1076,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([unknown_event]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -1086,7 +1096,7 @@ mod test_helpers {
     #[test]
     fn test_empty_events_array() {
         let empty_array = serde_json::json!([]);
-        let decoded_result = decode_events(empty_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(empty_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 0);
@@ -1095,7 +1105,7 @@ mod test_helpers {
     #[test]
     fn test_invalid_json_structure() {
         let not_array = serde_json::json!({"not": "an_array"});
-        let result = decode_events(not_array);
+        let result = get_local_db_instance().decode_events(not_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1113,7 +1123,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([event_no_topics]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 0);
@@ -1131,7 +1141,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([event_empty_topics]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 0);
@@ -1148,7 +1158,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([event_no_data]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 0);
@@ -1162,7 +1172,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([event_minimal]);
-        let result = decode_events(events_array);
+        let result = get_local_db_instance().decode_events(events_array);
 
         assert!(result.is_err());
     }
@@ -1183,7 +1193,7 @@ mod test_helpers {
         minimal_event.as_object_mut().unwrap().remove("logIndex");
 
         let events_array = serde_json::json!([minimal_event]);
-        let decoded_result = decode_events(events_array).unwrap();
+        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -1229,7 +1239,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = decode_events(events_array);
+        let result = get_local_db_instance().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1272,7 +1282,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = decode_events(events_array);
+        let result = get_local_db_instance().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1315,7 +1325,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = decode_events(events_array);
+        let result = get_local_db_instance().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1358,7 +1368,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = decode_events(events_array);
+        let result = get_local_db_instance().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1402,7 +1412,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = decode_events(events_array);
+        let result = get_local_db_instance().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
