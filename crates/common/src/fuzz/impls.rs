@@ -781,7 +781,7 @@ b: fuzzed;
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner_invalid_spec_version() {
         let dotrain = r#"
-version: 3
+version: 2
 deployers:
     some-key:
         address: 0x1111111111111111111111111111111111111111
@@ -808,7 +808,7 @@ b: fuzzed;
         assert!(matches!(
             err,
             FuzzRunnerError::SpecVersionMismatch(ref expected, ref actual)
-                if expected == "2" && actual == "3"
+                if expected == "3" && actual == "2"
         ));
     }
 
