@@ -40,9 +40,15 @@
 
 		isSearching = false;
 
-		// If the search query looks like an address and no tokens found, try to fetch custom token info
-		if (search && isAddress(search) && tokens.length === 0) {
-			await validateCustomToken(search);
+		// If the search query looks like an address, check if it's already in the results
+		// If not, show it as a custom token option
+		if (search && isAddress(search)) {
+			const addressExists = tokens.some(
+				(token) => token.address.toLowerCase() === search.toLowerCase()
+			);
+			if (!addressExists) {
+				await validateCustomToken(search);
+			}
 		}
 	}
 
@@ -168,7 +174,7 @@
 										{formatAddress(customToken.address)}
 									</div>
 									<div class="token-details flex gap-2 text-sm text-gray-500 dark:text-gray-400">
-										<span class="symbol font-medium">{customToken.address}</span>
+										<span class="symbol font-medium">Custom Token</span>
 									</div>
 								</div>
 								{#if selectedToken?.address === customToken.address}
