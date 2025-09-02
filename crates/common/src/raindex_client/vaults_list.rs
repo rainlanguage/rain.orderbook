@@ -24,6 +24,26 @@ impl RaindexVaultsList {
             .filter(|vault| vault.balance().gt(*ZERO_FLOAT).unwrap_or(false))
             .collect()
     }
+
+    pub fn pick_by_ids(&self, ids: Vec<String>) -> RaindexVaultsList {
+        use std::collections::HashSet;
+        let ids_set: HashSet<String> = ids.into_iter().collect();
+        let filtered_vaults = self
+            .0
+            .iter()
+            .filter(|vault| ids_set.contains(&vault.id().to_string()))
+            .cloned()
+            .collect();
+        RaindexVaultsList::new(filtered_vaults)
+    }
+
+    pub fn concat(&self, other: &RaindexVaultsList) -> RaindexVaultsList {
+        let mut combined_vaults = Vec::with_capacity(self.0.len() + other.0.len());
+        combined_vaults.extend_from_slice(&self.0);
+        combined_vaults.extend_from_slice(&other.0);
+        RaindexVaultsList::new(combined_vaults)
+    }
+
     pub async fn get_withdraw_calldata(&self) -> Result<Bytes, VaultsListError> {
         let mut calldatas: Vec<Bytes> = Vec::new();
         let vaults_to_withdraw = self.get_withdrawable_vaults();
@@ -131,6 +151,56 @@ impl RaindexVaultsList {
     pub async fn get_withdraw_calldata_wasm(&self) -> Result<Bytes, VaultsListError> {
         let calldata = self.get_withdraw_calldata().await?;
         Ok(calldata)
+    }
+
+    /// Filters vaults by a list of IDs and returns a new RaindexVaultsList
+    ///
+    /// Creates a new vault list containing only vaults whose IDs match
+    /// the provided list of IDs. The original list order is preserved;
+    /// the input `ids` order does not affect the result ordering.
+    ///
+    /// Notes:
+    /// - Duplicate IDs in `ids` are ignored (deduplicated).
+    /// - Unknown IDs are ignored (they do not cause errors).
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const filteredVaults = vaultsList.pickByIds(['0x123', '0x456']);
+    /// console.log(`Filtered to ${filteredVaults.items.length} vaults`);
+    /// ```
+    #[wasm_export(
+        js_name = "pickByIds",
+        return_description = "New RaindexVaultsList containing only vaults with matching IDs",
+        unchecked_return_type = "RaindexVaultsList",
+        preserve_js_class
+    )]
+    pub fn pick_by_ids_wasm(&self, ids: Vec<String>) -> Result<RaindexVaultsList, VaultsListError> {
+        Ok(self.pick_by_ids(ids))
+    }
+
+    /// Concatenates this vault list with another vault list and returns a new RaindexVaultsList
+    ///
+    /// Creates a new vault list containing all vaults from both lists.
+    /// The order is preserved: items from the current list first, then items from the other list.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const combinedVaults = vaultsList1.concat(vaultsList2);
+    /// console.log(`Combined ${combinedVaults.items.length} vaults`);
+    /// ```
+    #[wasm_export(
+        js_name = "concat",
+        return_description = "New RaindexVaultsList containing vaults from both lists",
+        unchecked_return_type = "RaindexVaultsList",
+        preserve_js_class
+    )]
+    pub fn concat_wasm(
+        &self,
+        other: &RaindexVaultsList,
+    ) -> Result<RaindexVaultsList, VaultsListError> {
+        Ok(self.concat(other))
     }
 }
 
@@ -259,7 +329,7 @@ mod tests {
             )
             .unwrap();
             let vaults = raindex_client.get_vaults(None, None, None).await.unwrap();
-            vaults
+            vaults.items()
         }
 
         #[tokio::test]
@@ -284,6 +354,72 @@ mod tests {
             let calldata = result.unwrap();
             assert!(!calldata.is_empty());
             assert!(calldata.len() > 2); // should contain vault2's ID
+        }
+
+        #[tokio::test]
+        async fn test_pick_by_ids() {
+            let vaults_list = RaindexVaultsList::new(get_vaults().await);
+
+            // Test filtering by existing IDs
+            let ids = vec!["0x0123".to_string(), "0x0234".to_string()];
+            let filtered = vaults_list.pick_by_ids(ids);
+            assert_eq!(filtered.items().len(), 2);
+
+            // Verify order preservation: original vault sequence must prevail
+            let ids_reversed = vec!["0x0234".to_string(), "0x0123".to_string()];
+            let filtered_rev = vaults_list.pick_by_ids(ids_reversed);
+            assert_eq!(filtered_rev.items().len(), 2);
+            assert_eq!(filtered_rev.items()[0].id().to_string(), "0x0123");
+            assert_eq!(filtered_rev.items()[1].id().to_string(), "0x0234");
+
+            // Test filtering by single ID
+            let ids = vec!["0x0234".to_string()];
+            let filtered = vaults_list.pick_by_ids(ids);
+            assert_eq!(filtered.items().len(), 1);
+            assert_eq!(filtered.items()[0].id().to_string(), "0x0234");
+
+            // Test filtering by non-existent ID
+            let ids = vec!["0x9999".to_string()];
+            let filtered = vaults_list.pick_by_ids(ids);
+            assert_eq!(filtered.items().len(), 0);
+
+            // Test empty IDs list
+            let ids = vec![];
+            let filtered = vaults_list.pick_by_ids(ids);
+            assert_eq!(filtered.items().len(), 0);
+
+            // Test duplicate IDs are deduped
+            let ids_duped = vec!["0x0123".to_string(), "0x0123".to_string()];
+            let filtered_duped = vaults_list.pick_by_ids(ids_duped);
+            assert_eq!(filtered_duped.items().len(), 1);
+            assert_eq!(filtered_duped.items()[0].id().to_string(), "0x0123");
+        }
+
+        #[tokio::test]
+        async fn test_concat() {
+            let vaults = get_vaults().await;
+            let first_vault = vec![vaults[0].clone()];
+            let second_vault = vec![vaults[1].clone()];
+
+            let vaults_list1 = RaindexVaultsList::new(first_vault);
+            let vaults_list2 = RaindexVaultsList::new(second_vault);
+
+            // Test concatenation
+            let combined = vaults_list1.concat(&vaults_list2);
+            assert_eq!(combined.items().len(), 2);
+            assert_eq!(combined.items()[0].id().to_string(), "0x0123");
+            assert_eq!(combined.items()[1].id().to_string(), "0x0234");
+
+            // Test concatenation with empty list
+            let empty_list = RaindexVaultsList::new(vec![]);
+            let combined_with_empty = vaults_list1.concat(&empty_list);
+            assert_eq!(combined_with_empty.items().len(), 1);
+            assert_eq!(combined_with_empty.items()[0].id().to_string(), "0x0123");
+
+            // Test empty list concatenation
+            let empty_combined = empty_list.concat(&vaults_list1);
+            assert_eq!(empty_combined.items().len(), 1);
+            assert_eq!(empty_combined.items()[0].id().to_string(), "0x0123");
         }
     }
 
@@ -312,6 +448,24 @@ mod tests {
             let vaults_list = RaindexVaultsList::new(vec![]);
             let result = vaults_list.get_withdraw_calldata_wasm().await;
             assert!(result.is_err());
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_wasm_pick_by_ids_empty() {
+            let vaults_list = RaindexVaultsList::new(vec![]);
+            let ids = vec!["0x123".to_string()];
+            let result = vaults_list.pick_by_ids_wasm(ids);
+            let filtered = result.unwrap();
+            assert_eq!(filtered.items().len(), 0);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_wasm_concat_empty() {
+            let vaults_list1 = RaindexVaultsList::new(vec![]);
+            let vaults_list2 = RaindexVaultsList::new(vec![]);
+            let result = vaults_list1.concat_wasm(&vaults_list2);
+            let combined = result.unwrap();
+            assert_eq!(combined.items().len(), 0);
         }
     }
 }
