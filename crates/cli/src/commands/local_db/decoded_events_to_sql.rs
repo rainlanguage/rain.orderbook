@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Args;
-use rain_orderbook_common::raindex_client::local_db::insert::decoded_events_to_sql;
+use rain_orderbook_common::raindex_client::local_db::LocalDb;
 use std::fs::{write, File};
 use std::io::BufReader;
 
@@ -27,7 +27,8 @@ impl DecodedEventsToSql {
         let data: serde_json::Value =
             serde_json::from_reader(reader).context("Failed to parse JSON")?;
 
-        let sql_statements = decoded_events_to_sql(data, self.end_block)
+        let sql_statements = LocalDb::default()
+            .decoded_events_to_sql(data, self.end_block)
             .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
 
         let output_path = self.output_file.unwrap_or_else(|| "events.sql".to_string());

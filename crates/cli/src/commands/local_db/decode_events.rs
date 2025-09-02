@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::raindex_client::local_db::decode::decode_events;
+use rain_orderbook_common::raindex_client::local_db::LocalDb;
 use std::fs::File;
 use std::io::{BufReader, Write};
 
@@ -25,7 +25,8 @@ impl DecodeEvents {
 
         let events_value = serde_json::Value::Array(events);
 
-        let decoded_result = decode_events(events_value)
+        let decoded_result = LocalDb::default()
+            .decode_events(events_value)
             .map_err(|e| anyhow::anyhow!("Failed to decode events: {}", e))?;
 
         let output_filename = self
