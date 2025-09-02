@@ -6,6 +6,7 @@ pub mod sync;
 
 use super::*;
 use crate::hyper_rpc::{HyperRpcClient, HyperRpcError};
+use alloy::primitives::hex::FromHexError;
 use alloy::primitives::ruint::ParseError;
 pub use fetch::FetchConfig;
 use query::LocalDbQueryError;
@@ -62,6 +63,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+
+    #[error(transparent)]
+    FromHexError(#[from] FromHexError),
 }
 
 impl LocalDbError {
@@ -89,6 +93,7 @@ impl LocalDbError {
             }
             LocalDbError::LocalDbQueryError(err) => format!("Database query error: {}", err),
             LocalDbError::IoError(err) => format!("I/O error: {}", err),
+            LocalDbError::FromHexError(err) => format!("Hex decoding error: {}", err),
         }
     }
 }
