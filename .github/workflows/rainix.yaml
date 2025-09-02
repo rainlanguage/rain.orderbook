@@ -1,5 +1,9 @@
 name: Rainix CI
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-rainix
@@ -44,16 +48,10 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
-      DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
-      DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
-      CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
-      CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
-      CI_DEPLOY_SEPOLIA_RPC_URL: ${{ secrets.CI_DEPLOY_SEPOLIA_RPC_URL || vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
-      CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
-      CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
-      RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
-      CI_DEPLOY_FLARE_RPC_URL: ${{ secrets.CI_DEPLOY_FLARE_RPC_URL }}
       COMMIT_SHA: ${{ github.sha }}
+      # This is the address of a metaboard on Sepolia. It's needed for the sol
+      # artifact deploy dry run.
+      DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS || '0x77991674ca8887D4ee1b583DB7324B41d5f894c4' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -96,10 +94,21 @@ jobs:
 
       - run: ./pointers.sh
 
+      - name: Generate ephemeral deployment key
+        run: |
+          # Generate wallet within nix develop environment
+          WALLET_OUTPUT=$(nix develop -c cast wallet new)
+
+          # Extract the private key
+          KEY=$(echo "$WALLET_OUTPUT" | grep "Private key:" | awk '{print $3}')
+
+          # Store in GitHub environment (overwrites the hardcoded test key)
+          echo "DEPLOYMENT_KEY=$KEY" >> "$GITHUB_ENV"
+
+          echo "Generated ephemeral deployment key for this run"
+
       - name: Run ${{ matrix.task }}
         env:
-          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_SEPOLIA_RPC_URL || vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
-          ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-          DEPLOY_VERIFIER: ""
+          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_SEPOLIA_RPC_URL || vars.CI_DEPLOY_SEPOLIA_RPC_URL || 'https://sepolia.gateway.tenderly.co' }}
 
         run: nix develop -c ${{ matrix.task }}
