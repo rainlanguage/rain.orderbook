@@ -104,8 +104,8 @@
 	}
 
 	function handleTokenSelect(token: TokenInfo) {
-		// Clean up any custom token temporary keys since we're selecting something
-		cleanupCustomToken();
+		// Don't clean up custom token keys here - let the parent handle the selection first
+		// Cleanup will happen when modal closes or new validation starts
 		onSelect(token);
 		modalOpen = false;
 	}
@@ -122,8 +122,10 @@
 			}
 		});
 	} else {
-		// Clean up when modal closes
-		cleanupCustomToken();
+		// Clean up when modal closes, but with a small delay to let parent process selection
+		setTimeout(() => {
+			cleanupCustomToken();
+		}, 100);
 	}
 </script>
 
