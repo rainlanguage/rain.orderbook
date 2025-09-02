@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts" generics="DataItem, InputData = DataItem[]">
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from './icon/Refresh.svelte';
 	import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
@@ -11,10 +11,20 @@
 	const dispatch = createEventDispatcher();
 
 	export let queryKey: string;
-	// eslint-disable-next-line no-undef
-	export let query: CreateInfiniteQueryResult<InfiniteData<T[], unknown>, Error>;
+	export let query: CreateInfiniteQueryResult<InfiniteData<InputData, unknown>, Error>;
 	export let emptyMessage: string = 'None found';
 	export let rowHoverable = true;
+	// Selector to extract DataItem[] from each page of type InputData
+	export let dataSelector: (pageData: InputData) => DataItem[] = (pageData) =>
+		Array.isArray(pageData) ? (pageData as unknown as DataItem[]) : [];
+
+	// Transform the query data by applying dataSelector to each page
+	$: data = $query.data
+		? {
+				...$query.data,
+				pages: $query.data.pages.map((page) => dataSelector(page))
+			}
+		: undefined;
 </script>
 
 <div data-testid="title" class="flex h-16 w-full items-center justify-end">
@@ -32,11 +42,11 @@
 		}}
 	/>
 </div>
-{#if $query.data?.pages[0].length === 0}
+{#if (data?.pages?.[0]?.length ?? 0) === 0}
 	<div data-testid="emptyMessage" class="text-center text-gray-900 dark:text-white">
 		{emptyMessage}
 	</div>
-{:else if $query.data}
+{:else if data}
 	<Table
 		divClass="cursor-pointer rounded-lg overflow-auto dark:border-none border"
 		hoverable={rowHoverable}
@@ -45,7 +55,7 @@
 			<slot name="head" />
 		</TableHead>
 		<TableBody>
-			{#each $query.data?.pages as page}
+			{#each data.pages as page}
 				{#each page as item}
 					<TableBodyRow
 						class="whitespace-nowrap"
