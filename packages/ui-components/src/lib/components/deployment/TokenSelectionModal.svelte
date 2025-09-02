@@ -51,13 +51,13 @@
 		customTokenError = '';
 
 		try {
-			// Create a simple token info object without using the GUI
-			// We'll let the parent component handle the actual token setting
+			// Create a minimal token object with just the address
+			// The parent component will handle validation and fetching real token info
 			customToken = {
 				address: address,
-				name: 'Custom Token', // Default name, the parent will fetch the real name
-				symbol: 'CUSTOM', // Default symbol, the parent will fetch the real symbol
-				decimals: 18 // Default decimals, the parent will fetch the real decimals
+				name: address, // Display the address as the name until real info is fetched
+				symbol: '', // Will be populated by parent after validation
+				decimals: 18 // Default value, will be updated by parent
 			};
 		} catch (error) {
 			customTokenError = (error as Error).message || 'Unable to validate token address';
@@ -148,7 +148,7 @@
 									<span class="font-medium">Custom Token (Not in verified list)</span>
 								</div>
 								<p class="text-xs text-yellow-700 dark:text-yellow-300">
-									This token address will be validated when selected.
+									Clicking will validate this address and fetch token information.
 								</p>
 							</div>
 							<div
@@ -165,12 +165,10 @@
 							>
 								<div class="token-info flex-grow">
 									<div class="token-name font-medium text-gray-900 dark:text-white">
-										{customToken.address}
+										{formatAddress(customToken.address)}
 									</div>
 									<div class="token-details flex gap-2 text-sm text-gray-500 dark:text-gray-400">
-										<span class="symbol font-medium"
-											>Token details will be fetched upon selection</span
-										>
+										<span class="symbol font-medium">{customToken.address}</span>
 									</div>
 								</div>
 								{#if selectedToken?.address === customToken.address}
