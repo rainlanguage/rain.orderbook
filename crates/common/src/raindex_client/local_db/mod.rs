@@ -11,7 +11,8 @@ use alloy::primitives::ruint::ParseError;
 pub use fetch::FetchConfig;
 use query::LocalDbQueryError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
+#[wasm_bindgen]
 pub struct LocalDb {
     client: HyperRpcClient,
 }
@@ -134,5 +135,17 @@ impl LocalDb {
     #[cfg(test)]
     pub fn client_mut(&mut self) -> &mut HyperRpcClient {
         &mut self.client
+    }
+}
+
+#[wasm_export]
+impl RaindexClient {
+    #[wasm_export(js_name = "getLocalDbClient", preserve_js_class)]
+    pub fn get_local_db_client(
+        &self,
+        chain_id: u32,
+        api_token: String,
+    ) -> Result<LocalDb, RaindexError> {
+        LocalDb::new(chain_id, api_token).map_err(|e| RaindexError::LocalDbError(e))
     }
 }

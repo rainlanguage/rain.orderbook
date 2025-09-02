@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct HyperRpcClient {
     chain_id: u32,
     rpc_url: String,
