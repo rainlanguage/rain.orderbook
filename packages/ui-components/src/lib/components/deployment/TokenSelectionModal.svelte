@@ -62,11 +62,11 @@
 			if (result.value) {
 				customToken = {
 					...result.value,
-					key: tempKey
+					address: address // Use the provided address directly instead of temporary key
 				};
 			}
 
-			// Clean up the temporary token selection
+			// Clean up the temporary token selection since we don't need it persisted
 			gui.unsetSelectToken(tempKey);
 		} catch (error) {
 			customTokenError = (error as Error).message || 'Invalid token address';
