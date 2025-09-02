@@ -3,25 +3,44 @@ use super::*;
 const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct SyncStatusResponse {
     pub id: u64,
+    #[serde(alias = "lastSyncedBlock")]
     pub last_synced_block: u64,
+    #[serde(alias = "updatedAt")]
     pub updated_at: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(SyncStatusResponse);
 
 impl LocalDbQuery {
     pub async fn fetch_last_synced_block(
         db_callback: &js_sys::Function,
     ) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
-        LocalDbQuery::execute_query_with_callback::<Vec<SyncStatusResponse>>(db_callback, QUERY)
+        LocalDbQuery::execute_query_json::<Vec<SyncStatusResponse>>(db_callback, QUERY).await
+    }
+}
+
+// TODO: This could be exposed from LocalDb
+#[wasm_export]
+impl RaindexClient {
+    #[wasm_export(
+        js_name = "getSyncStatus",
+        unchecked_return_type = "SyncStatusResponse[]"
+    )]
+    pub async fn get_sync_status(
+        &self,
+        db_callback: js_sys::Function,
+    ) -> Result<Vec<SyncStatusResponse>, RaindexError> {
+        LocalDbQuery::fetch_last_synced_block(&db_callback)
             .await
+            .map_err(|e| RaindexError::LocalDbError(LocalDbError::LocalDbQueryError(e)))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
