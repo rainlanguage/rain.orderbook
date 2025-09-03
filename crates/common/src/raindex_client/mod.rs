@@ -10,7 +10,7 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
-use local_db::LocalDbError;
+use local_db::{query::LocalDbQueryError, LocalDbError};
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
@@ -267,6 +267,8 @@ pub enum RaindexError {
     AmountFormatterError(#[from] AmountFormatterError),
     #[error(transparent)]
     LocalDbError(#[from] LocalDbError),
+    #[error(transparent)]
+    LocalDbQueryError(#[from] LocalDbQueryError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -379,6 +381,9 @@ impl RaindexError {
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
             RaindexError::LocalDbError(err) => {
                 format!("There was an error with the local database: {err}")
+            }
+            RaindexError::LocalDbQueryError(err) => {
+                format!("There was an error querying the local database: {err}")
             }
         }
     }
