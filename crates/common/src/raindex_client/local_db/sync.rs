@@ -430,8 +430,8 @@ mod tests {
         }
 
         #[wasm_bindgen_test]
-        async fn test_sync_invalid_address() {
-            // Any client config is fine; we bail before using it
+        async fn test_sync_invalid_chain_id() {
+            // Any client config is fine; we bail after initial steps
             let client = RaindexClient::new(
                 vec![crate::raindex_client::tests::get_test_yaml(
                     "http://localhost:3000/sg1",
@@ -443,21 +443,28 @@ mod tests {
             )
             .unwrap();
 
-            // Callbacks (won't be used due to early address parse error)
-            let db_callback = create_success_callback("[]");
+            // Callbacks
+            let db_callback = create_dispatching_db_callback(&make_tables_json(), "[]");
             let (status_callback, captured) = create_status_collector();
 
             let result = client
-                .sync_database(db_callback, status_callback, "invalid_address".to_string())
+                .sync_database(db_callback, status_callback, 999u32)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::FromHexError(_) => {}
-                other => panic!("Expected FromHexError, got {other:?}"),
+                LocalDbError::CustomError(msg) => {
+                    assert!(msg.contains("Failed to get orderbook configurations"));
+                }
+                other => panic!("Expected CustomError from missing chain ID, got {other:?}"),
             }
-            // No status messages should be emitted
-            assert!(captured.borrow().is_empty());
+
+            // Status messages should be emitted before the error occurs
+            let msgs = captured.borrow();
+            assert!(msgs.len() >= 3);
+            assert_eq!(msgs[0], "Starting database sync...");
+            assert!(msgs[1].starts_with("has tables:"));
+            assert!(msgs[2].starts_with("Last synced block:"));
         }
 
         #[wasm_bindgen_test]
@@ -479,10 +486,8 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
-            // Address from test YAML
-            let address = "0x1234567890123456789012345678901234567890".to_string();
             let result = client
-                .sync_database(db_callback, status_callback, address)
+                .sync_database(db_callback, status_callback, 1u32)
                 .await;
 
             assert!(result.is_err());
@@ -525,16 +530,14 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, &last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
-            // Valid-looking address not present in test YAML
-            let missing_address = "0x1111111111111111111111111111111111111111".to_string();
             let result = client
-                .sync_database(db_callback, status_callback, missing_address)
+                .sync_database(db_callback, status_callback, 999u32)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
                 LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get orderbook configuration"));
+                    assert!(msg.contains("Failed to get orderbook configurations"));
                 }
                 other => panic!("Expected CustomError from missing orderbook, got {other:?}"),
             }
