@@ -4,8 +4,10 @@
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from 'sqlite-web';
+	import type { LocalDb } from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
+	let localDbClient = raindexClient.getLocalDbClient(42161).value as LocalDb;
 
 	let db: WasmEncodedResult<SQLiteWasmDatabase> | null = null;
 	let sqlQuery = '';
@@ -13,17 +15,26 @@
 	let isLoading = false;
 	let error = '';
 
+	// Sync status message from raindexClient.syncLocalDatabase callback
+	let syncStatus: string = '';
+
 	// Auto-sync state variables
 	let autoSyncEnabled = false;
 	let lastSyncedBlock: string | null = null;
 	let lastSyncTime: Date | null = null;
 	let autoSyncInterval: ReturnType<typeof setInterval> | null = null;
 
+	// Whether a sync operation is actively running
+	let isSyncing = false;
+
 	let showCustomQuery = false;
 
 	onMount(async () => {
 		await init();
 		db = SQLiteWasmDatabase.new();
+
+		// Populate last sync info on load
+		await updateSyncStatus();
 
 		// Auto-start syncing after db is initialized
 		if (db && !db.error && db.value) {
@@ -115,7 +126,7 @@
 
 		try {
 			const queryFn = db.value.query.bind(db.value);
-			const statusResult = await raindexClient.getSyncStatus(queryFn);
+			const statusResult = await localDbClient.getSyncStatus(queryFn);
 
 			if (!statusResult.error && statusResult.value) {
 				const statusArray = statusResult.value;
@@ -142,13 +153,17 @@
 		if (!db?.value || isLoading) return;
 
 		try {
+			isSyncing = true;
 			const queryFn = db.value.query.bind(db.value);
 
-			// Sync database
+			// Sync database and capture status updates
 			const syncResult = await raindexClient.syncLocalDatabase(
 				queryFn,
-				() => {},
-				'0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' // contract address
+				(status: string) => {
+					// Update the UI with latest status message
+					syncStatus = status;
+				},
+				42161
 			);
 
 			if (syncResult.error) {
@@ -160,6 +175,8 @@
 			await updateSyncStatus();
 		} catch (err) {
 			console.error('Auto-sync failed:', err);
+		} finally {
+			isSyncing = false;
 		}
 	}
 
@@ -205,11 +222,18 @@
 											<span class="font-medium text-gray-500">Auto-Sync Stopped</span>
 										{/if}
 									</div>
-									<div class="text-xs text-blue-600 dark:text-blue-400">
-										Block: {lastSyncedBlock || 'Loading...'} | Last: {lastSyncTime
-											? lastSyncTime.toLocaleTimeString()
-											: 'Loading...'}
-									</div>
+									{#if isSyncing && syncStatus}
+										<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+											Status: {syncStatus}
+										</div>
+									{:else if lastSyncedBlock}
+										<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+											Last sync: block {lastSyncedBlock}
+											{#if lastSyncTime}
+												at {lastSyncTime.toLocaleString()}
+											{/if}
+										</div>
+									{/if}
 								</div>
 							{/if}
 							<button
@@ -251,7 +275,7 @@
 					</h4>
 					<div class="flex flex-wrap gap-2">
 						<Button
-							on:click={() => executeRaindexQuery(() => raindexClient.clearTables(queryFn))}
+							on:click={() => executeRaindexQuery(() => localDbClient.clearTables(queryFn))}
 							disabled={isLoading}
 							color="red"
 							size="sm"
