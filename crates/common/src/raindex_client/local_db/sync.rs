@@ -75,12 +75,9 @@ impl RaindexClient {
         db_callback: js_sys::Function,
         #[wasm_export(param_description = "JavaScript function called with status updates")]
         status_callback: js_sys::Function,
-        // TODO: This will be replaced with chainid. We are going to loop all the orderbooks for that chainid
-        #[wasm_export(param_description = "The contract address to sync events for")]
-        contract_address: String,
+        #[wasm_export(param_description = "The blockchain network ID to sync against")]
+        chain_id: u32,
     ) -> Result<(), LocalDbError> {
-        let orderbook_address = Address::from_str(&contract_address)?;
-
         send_status_message(&status_callback, "Starting database sync...".to_string())?;
 
         let has_tables = match check_required_tables(&db_callback).await {
@@ -119,12 +116,24 @@ impl RaindexClient {
             format!("Last synced block: {}", last_synced_block),
         )?;
 
-        let orderbook_cfg = match self.get_orderbook_by_address(orderbook_address) {
+        let orderbooks = match self.get_orderbooks_by_chain_id(chain_id) {
             Ok(o) => o,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
-                    "Failed to get orderbook configuration: {}",
+                    "Failed to get orderbook configurations: {}",
                     e
+                )));
+            }
+        };
+
+        // TODO: For simplicity, we only handle one orderbook per chain ID here.
+        // This will be changed in the future to support multiple orderbooks.
+        let orderbook_cfg = match orderbooks.first() {
+            Some(cfg) => cfg,
+            None => {
+                return Err(LocalDbError::CustomError(format!(
+                    "No orderbook configuration found for chain ID {}",
+                    chain_id
                 )));
             }
         };
@@ -156,7 +165,11 @@ impl RaindexClient {
             "Fetching latest onchain events...".to_string(),
         )?;
         let events = match local_db
-            .fetch_events(&contract_address, start_block, latest_block)
+            .fetch_events(
+                &orderbook_cfg.address.to_string(),
+                start_block,
+                latest_block,
+            )
             .await
         {
             Ok(result) => result,
