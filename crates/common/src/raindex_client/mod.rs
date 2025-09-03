@@ -12,9 +12,12 @@ use alloy::{
 };
 use local_db::LocalDbError;
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::yaml::{
-    orderbook::{OrderbookYaml, OrderbookYamlValidation},
-    YamlError, YamlParsable,
+use rain_orderbook_app_settings::{
+    orderbook::OrderbookCfg,
+    yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
@@ -188,6 +191,11 @@ impl RaindexClient {
     fn get_rpc_urls_for_chain(&self, chain_id: u32) -> Result<Vec<Url>, RaindexError> {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpcs.clone())
+    }
+
+    fn get_orderbooks_by_chain_id(&self, chain_id: u32) -> Result<Vec<OrderbookCfg>, RaindexError> {
+        let orderbooks = self.orderbook_yaml.get_orderbooks_by_chain_id(chain_id)?;
+        Ok(orderbooks)
     }
 }
 
