@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Input, Button, Modal } from 'flowbite-svelte';
-	import { SearchOutline, CheckCircleSolid, ChevronDownSolid } from 'flowbite-svelte-icons';
+	import { Input, Button, Modal, Alert } from 'flowbite-svelte';
+	import { SearchOutline, CheckCircleSolid, ChevronDownSolid, ExclamationTriangleOutline } from 'flowbite-svelte-icons';
 	import type { TokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
 	import { onMount, tick } from 'svelte';
+	import { isAddress } from 'viem';
 
 	export let selectedToken: TokenInfo | null = null;
 	export let onSelect: (token: TokenInfo) => void;
@@ -12,11 +13,16 @@
 	let searchQuery = '';
 	let tokens: TokenInfo[] = [];
 	let isSearching = false;
+	let customTokenCandidate: TokenInfo | null = null;
+	let customTokenError: string = '';
+	let isValidatingCustomToken = false;
 
 	const gui = useGui();
 
 	async function loadTokens(search?: string) {
 		isSearching = true;
+		customTokenCandidate = null;
+		customTokenError = '';
 
 		const result = await gui.getAllTokens(search);
 		if (result.error) {
@@ -25,7 +31,47 @@
 			tokens = result.value;
 		}
 
+		// Check if search looks like an address and no tokens found
+		if (search && isAddress(search) && tokens.length === 0) {
+			await validateCustomToken(search);
+		}
+
 		isSearching = false;
+	}
+
+	async function validateCustomToken(address: string) {
+		isValidatingCustomToken = true;
+		customTokenError = '';
+		customTokenCandidate = null;
+
+		try {
+			// Create a temporary token info to test validation
+			// We'll use a dummy key since we're just validating the address exists
+			const tempKey = 'temp-validation-key';
+			
+			// Try to validate by attempting to get token info
+			// This is a bit hacky - we're using the existing infrastructure
+			// In a better implementation, we'd have a dedicated validation method
+			await gui.setSelectToken(tempKey, address);
+			const result = await gui.getTokenInfo(tempKey);
+			
+			if (result.error) {
+				customTokenError = 'Invalid token address or network error.';
+			} else {
+				customTokenCandidate = {
+					...result.value,
+					key: 'custom-token', // Mark as custom
+					address: address
+				};
+			}
+			
+			// Clean up the temp token
+			gui.unsetSelectToken(tempKey);
+		} catch (error) {
+			customTokenError = 'Invalid token address or token does not exist.';
+		}
+
+		isValidatingCustomToken = false;
 	}
 
 	function handleSearch(event: Event) {
@@ -47,7 +93,7 @@
 
 	$: displayText = selectedToken
 		? `${selectedToken.name} (${selectedToken.symbol})`
-		: 'Select a token...';
+		: 'Select token...';
 
 	$: if (modalOpen) {
 		tick().then(() => {
@@ -56,6 +102,14 @@
 				input.focus();
 			}
 		});
+	}
+
+	// Reset state when modal closes
+	$: if (!modalOpen) {
+		searchQuery = '';
+		customTokenCandidate = null;
+		customTokenError = '';
+		loadTokens(); // Reload default tokens
 	}
 </script>
 
@@ -83,7 +137,7 @@
 				</div>
 				<Input
 					type="text"
-					placeholder="Search tokens..."
+					placeholder="Search tokens or enter address (0x...)"
 					bind:value={searchQuery}
 					on:input={handleSearch}
 					class="token-search-input pl-10"
@@ -91,11 +145,46 @@
 			</div>
 
 			<div class="token-list max-h-80 overflow-y-auto">
-				{#if isSearching}
+				{#if isSearching || isValidatingCustomToken}
 					<div class="p-4 text-center text-gray-500 dark:text-gray-400">
-						<p>Searching tokens...</p>
+						<p>{isValidatingCustomToken ? 'Validating token...' : 'Searching tokens...'}</p>
 					</div>
 				{:else}
+					<!-- Show custom token candidate first if exists -->
+					{#if customTokenCandidate}
+						<div class="custom-token-section border-b border-gray-200 dark:border-gray-600">
+							<div
+								class="token-item flex cursor-pointer items-center border-b border-gray-100 p-3 last:border-b-0 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+								class:bg-blue-50={selectedToken?.address === customTokenCandidate.address}
+								class:dark:bg-blue-900={selectedToken?.address === customTokenCandidate.address}
+								class:border-l-4={selectedToken?.address === customTokenCandidate.address}
+								class:border-l-blue-500={selectedToken?.address === customTokenCandidate.address}
+								on:click={() => handleTokenSelect(customTokenCandidate)}
+								on:keydown={(e) => e.key === 'Enter' && handleTokenSelect(customTokenCandidate)}
+								role="button"
+								tabindex="0"
+							>
+								<div class="token-info flex-grow">
+									<div class="token-name font-medium text-gray-900 dark:text-white">
+										{customTokenCandidate.name}
+									</div>
+									<div class="token-details flex gap-2 text-sm text-gray-500 dark:text-gray-400">
+										<span class="symbol font-medium">{customTokenCandidate.symbol}</span>
+										<span class="address">{formatAddress(customTokenCandidate.address)}</span>
+									</div>
+									<div class="mt-1 flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+										<ExclamationTriangleOutline class="h-3 w-3" />
+										<span>Custom token - not in default list</span>
+									</div>
+								</div>
+								{#if selectedToken?.address === customTokenCandidate.address}
+									<CheckCircleSolid class="selected-icon h-5 w-5 text-green-500" />
+								{/if}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Show regular tokens -->
 					{#each tokens as token (token.address)}
 						<div
 							class="token-item flex cursor-pointer items-center border-b border-gray-100 p-3 last:border-b-0 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
@@ -123,7 +212,16 @@
 						</div>
 					{/each}
 
-					{#if tokens.length === 0}
+					{#if customTokenError}
+						<div class="p-4 text-center">
+							<Alert color="red" class="text-sm">
+								<ExclamationTriangleOutline slot="icon" class="h-4 w-4" />
+								{customTokenError}
+							</Alert>
+						</div>
+					{/if}
+
+					{#if tokens.length === 0 && !customTokenCandidate && !customTokenError && searchQuery && !isAddress(searchQuery)}
 						<div class="no-results p-4 text-center text-gray-500 dark:text-gray-400">
 							<p>No tokens found matching your search.</p>
 							<button
