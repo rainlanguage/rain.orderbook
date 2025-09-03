@@ -24,7 +24,9 @@ docker run --rm \
   $ENV_VARS \
   nixos/nix sh -c "
     git config --global --add safe.directory /workspace
-    export GIT_SSL_NO_VERIFY=1
-    export NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-    exec nix --extra-experimental-features 'nix-command flakes' --option substitute false --option build-locally true \"\$@\"
+    nix-env -iA nixpkgs.cacert || true
+    export SSL_CERT_FILE=\$(find /nix/store -name ca-bundle.crt | head -1)
+    export NIX_SSL_CERT_FILE=\$SSL_CERT_FILE
+    export CURL_CA_BUNDLE=\$SSL_CERT_FILE
+    exec nix --extra-experimental-features 'nix-command flakes' \"\$@\"
   " -- "$@"
