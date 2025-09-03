@@ -1,8 +1,8 @@
 SELECT
 COALESCE(la.order_hash, l.order_hash) AS order_hash,
 l.order_owner AS owner,
-fa.creation_time AS creation_time,
-fa.creation_block AS creation_block,
+fa.block_timestamp AS block_timestamp,
+fa.block_number AS block_number,
 GROUP_CONCAT(CASE WHEN ios.io_type = 'input' THEN ios.vault_id || ':' || ios.token END) AS inputs,
 GROUP_CONCAT(CASE WHEN ios.io_type = 'output' THEN ios.vault_id || ':' || ios.token END) AS outputs,
 (
@@ -28,8 +28,8 @@ LEFT JOIN order_ios ios
 ON ios.transaction_hash = la.transaction_hash AND ios.log_index = la.log_index
 LEFT JOIN (
 SELECT e1.order_owner, e1.order_nonce,
-         e1.block_timestamp AS creation_time,
-         e1.block_number AS creation_block
+         e1.block_timestamp AS block_timestamp,
+         e1.block_number AS block_number
 FROM order_events e1
 WHERE e1.event_type = 'AddOrderV3'
     AND NOT EXISTS (
@@ -57,8 +57,8 @@ AND (
 GROUP BY
 COALESCE(la.order_hash, l.order_hash),
 l.order_owner,
-fa.creation_time,
-fa.creation_block,
+fa.block_timestamp,
+fa.block_number,
 l.order_nonce,
 l.event_type
-ORDER BY fa.creation_time DESC;
+ORDER BY fa.block_timestamp DESC;
