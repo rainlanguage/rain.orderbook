@@ -55,7 +55,7 @@ describe('TokenSelectionModal', () => {
 			onSelect: mockOnSelect
 		});
 
-		expect(screen.getByText('Select a token...')).toBeInTheDocument();
+		expect(screen.getByText('Select token...')).toBeInTheDocument();
 	});
 
 	it('renders modal button with selected token info when token is selected', () => {
@@ -92,7 +92,7 @@ describe('TokenSelectionModal', () => {
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		expect(screen.getByPlaceholderText('Search tokens...')).toBeInTheDocument();
+		expect(screen.getByPlaceholderText('Search tokens or enter address (0x...)')).toBeInTheDocument();
 	});
 
 	it('loads tokens on mount', async () => {
@@ -155,7 +155,7 @@ describe('TokenSelectionModal', () => {
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		const searchInput = screen.getByPlaceholderText('Search tokens...');
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
 		await user.type(searchInput, 'TEST');
 
 		await waitFor(() => {
@@ -183,7 +183,7 @@ describe('TokenSelectionModal', () => {
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		const searchInput = screen.getByPlaceholderText('Search tokens...');
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
 		await user.type(searchInput, 'TEST');
 
 		expect(screen.getByText('Searching tokens...')).toBeInTheDocument();
@@ -204,6 +204,9 @@ describe('TokenSelectionModal', () => {
 
 		const button = screen.getByRole('button');
 		await user.click(button);
+
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
+		await user.type(searchInput, 'nonexistent');
 
 		await waitFor(() => {
 			expect(screen.getByText('No tokens found matching your search.')).toBeInTheDocument();
@@ -229,6 +232,9 @@ describe('TokenSelectionModal', () => {
 		const button = screen.getByRole('button');
 		await user.click(button);
 
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
+		await user.type(searchInput, 'nonexistent');
+
 		await waitFor(() => {
 			expect(screen.getByText('No tokens found matching your search.')).toBeInTheDocument();
 		});
@@ -252,8 +258,68 @@ describe('TokenSelectionModal', () => {
 		await user.click(button);
 
 		await waitFor(() => {
-			const searchInput = screen.getByPlaceholderText('Search tokens...');
+			const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
 			expect(searchInput).toHaveFocus();
+		});
+	});
+
+	it('shows custom token when valid address is entered and no tokens found', async () => {
+		const mockGuiNoResults = {
+			getAllTokens: vi.fn().mockResolvedValue({ value: [] })
+		} as unknown as DotrainOrderGui;
+
+		(useGui as Mock).mockReturnValue(mockGuiNoResults);
+
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
+		await user.type(searchInput, '0x1234567890123456789012345678901234567890');
+
+		await waitFor(() => {
+			expect(screen.getByText('Custom Token')).toBeInTheDocument();
+			expect(screen.getByText('Custom token - will be validated when selected')).toBeInTheDocument();
+		});
+	});
+
+	it('calls onSelect with custom token when custom token is clicked', async () => {
+		const mockGuiNoResults = {
+			getAllTokens: vi.fn().mockResolvedValue({ value: [] })
+		} as unknown as DotrainOrderGui;
+
+		(useGui as Mock).mockReturnValue(mockGuiNoResults);
+
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
+		await user.type(searchInput, '0x1234567890123456789012345678901234567890');
+
+		await waitFor(() => {
+			expect(screen.getByText('Custom Token')).toBeInTheDocument();
+		});
+
+		const customTokenItem = screen.getByText('Custom Token');
+		await user.click(customTokenItem);
+
+		expect(mockOnSelect).toHaveBeenCalledWith({
+			key: 'custom-token',
+			address: '0x1234567890123456789012345678901234567890',
+			decimals: 18,
+			name: 'Unknown Token',
+			symbol: 'UNKNOWN'
 		});
 	});
 });
