@@ -28,7 +28,17 @@ const mockTokens: TokenInfo[] = [
 const mockGui: DotrainOrderGui = {
 	getAllTokens: vi.fn().mockResolvedValue({
 		value: mockTokens
-	})
+	}),
+	setSelectToken: vi.fn().mockResolvedValue(undefined),
+	getTokenInfo: vi.fn().mockResolvedValue({
+		value: {
+			name: 'Custom Token',
+			symbol: 'CUSTOM',
+			address: '0x1234567890123456789012345678901234567890',
+			decimals: 18
+		}
+	}),
+	unsetSelectToken: vi.fn()
 } as unknown as DotrainOrderGui;
 
 vi.mock('../lib/hooks/useGui', () => ({
@@ -82,7 +92,7 @@ describe('TokenSelectionModal', () => {
 		expect(screen.getByText('Select a token')).toBeInTheDocument();
 	});
 
-	it('shows search input in modal', async () => {
+	it('shows enhanced search placeholder text', async () => {
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
 			...defaultProps,
@@ -92,7 +102,7 @@ describe('TokenSelectionModal', () => {
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		expect(screen.getByPlaceholderText('Search tokens...')).toBeInTheDocument();
+		expect(screen.getByPlaceholderText('Search tokens or enter address (0x...)')).toBeInTheDocument();
 	});
 
 	it('loads tokens on mount', async () => {
@@ -155,7 +165,7 @@ describe('TokenSelectionModal', () => {
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		const searchInput = screen.getByPlaceholderText('Search tokens...');
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
 		await user.type(searchInput, 'TEST');
 
 		await waitFor(() => {
@@ -183,7 +193,7 @@ describe('TokenSelectionModal', () => {
 		const button = screen.getByRole('button');
 		await user.click(button);
 
-		const searchInput = screen.getByPlaceholderText('Search tokens...');
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
 		await user.type(searchInput, 'TEST');
 
 		expect(screen.getByText('Searching tokens...')).toBeInTheDocument();
@@ -252,8 +262,85 @@ describe('TokenSelectionModal', () => {
 		await user.click(button);
 
 		await waitFor(() => {
-			const searchInput = screen.getByPlaceholderText('Search tokens...');
+			const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
 			expect(searchInput).toHaveFocus();
+		});
+	});
+
+	describe('Custom Token Support', () => {
+		it('detects valid Ethereum addresses and attempts to fetch token info', async () => {
+			const mockGuiNoResults = {
+				...mockGui,
+				getAllTokens: vi.fn().mockResolvedValue({ value: [] })
+			} as unknown as DotrainOrderGui;
+
+			(useGui as Mock).mockReturnValue(mockGuiNoResults);
+
+			const user = userEvent.setup();
+			render(TokenSelectionModal, {
+				...defaultProps,
+				onSelect: mockOnSelect
+			});
+
+			const button = screen.getByRole('button');
+			await user.click(button);
+
+			const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
+			await user.type(searchInput, '0x1234567890123456789012345678901234567890');
+
+			await waitFor(() => {
+				expect(mockGuiNoResults.setSelectToken).toHaveBeenCalled();
+			});
+		});
+
+		it('shows custom token with warning when valid address is found', async () => {
+			const mockGuiNoResults = {
+				...mockGui,
+				getAllTokens: vi.fn().mockResolvedValue({ value: [] })
+			} as unknown as DotrainOrderGui;
+
+			(useGui as Mock).mockReturnValue(mockGuiNoResults);
+
+			const user = userEvent.setup();
+			render(TokenSelectionModal, {
+				...defaultProps,
+				onSelect: mockOnSelect
+			});
+
+			const button = screen.getByRole('button');
+			await user.click(button);
+
+			const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
+			await user.type(searchInput, '0x1234567890123456789012345678901234567890');
+
+			await waitFor(() => {
+				expect(screen.getByText('Custom Token')).toBeInTheDocument();
+				expect(screen.getByText(/This token is not in our curated list/)).toBeInTheDocument();
+			});
+		});
+
+		it('does not attempt to fetch token info for invalid addresses', async () => {
+			const mockGuiNoResults = {
+				...mockGui,
+				getAllTokens: vi.fn().mockResolvedValue({ value: [] })
+			} as unknown as DotrainOrderGui;
+
+			(useGui as Mock).mockReturnValue(mockGuiNoResults);
+
+			const user = userEvent.setup();
+			render(TokenSelectionModal, {
+				...defaultProps,
+				onSelect: mockOnSelect
+			});
+
+			const button = screen.getByRole('button');
+			await user.click(button);
+
+			const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
+			await user.type(searchInput, 'invalid-address');
+
+			// Should not attempt to fetch custom token
+			expect(mockGuiNoResults.setSelectToken).not.toHaveBeenCalled();
 		});
 	});
 });
