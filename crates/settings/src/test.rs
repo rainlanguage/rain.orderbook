@@ -40,6 +40,7 @@ pub fn mock_orderbook() -> Arc<OrderbookCfg> {
             url: "https://subgraph.com".parse().unwrap(),
         }),
         network: mock_network(),
+        deployment_block: 12345,
     })
 }
 

@@ -49,8 +49,10 @@ orderbooks:
         address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS}
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
     other-orderbook:
         address: ${CHAIN_ID_2_ORDERBOOK_ADDRESS}
+        deployment-block: 12345
         network: other-network
         subgraph: other-sg
 tokens:
