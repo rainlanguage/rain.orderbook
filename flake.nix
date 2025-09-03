@@ -219,7 +219,7 @@
 
               cd crates/bindings && wasm-pack test --node
               cd ../js_api && wasm-pack test --node
-              cd ../common && wasm-pack test --node && wasm-pack test --headless --chrome
+              cd ../common && wasm-pack test --node
             '';
           };
 

@@ -34,8 +34,6 @@ mod tests {
         use std::rc::Rc;
         use wasm_bindgen_test::*;
 
-        wasm_bindgen_test_configure!(run_in_browser);
-
         #[wasm_bindgen_test]
         async fn test_clear_tables_generates_expected_sql() {
             let captured_sql = Rc::new(RefCell::new(String::new()));

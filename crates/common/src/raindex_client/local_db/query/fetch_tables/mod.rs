@@ -25,8 +25,6 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::create_success_callback;
         use wasm_bindgen_test::*;
 
-        wasm_bindgen_test_configure!(run_in_browser);
-
         #[wasm_bindgen_test]
         async fn test_fetch_all_tables() {
             let table_data = vec![

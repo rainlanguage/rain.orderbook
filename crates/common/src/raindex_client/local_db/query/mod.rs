@@ -102,8 +102,6 @@ pub mod tests {
         use serde::{Deserialize, Serialize};
         use wasm_bindgen_test::*;
 
-        wasm_bindgen_test_configure!(run_in_browser);
-
         #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
         struct TestData {
             id: u32,
@@ -246,6 +244,100 @@ pub mod tests {
                 LocalDbQueryError::CallbackError(_) => {}
                 _ => panic!("Expected CallbackError"),
             }
+        }
+
+        fn create_rejecting_promise_callback() -> Function {
+            Function::new_no_args("return Promise.reject(new Error('Promise failed'))")
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_text_success() {
+            let callback = create_success_callback("hello world");
+
+            let result = LocalDbQuery::execute_query_text(&callback, "SELECT 'hello world'").await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), "hello world".to_string());
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_text_empty_success() {
+            let callback = create_success_callback("");
+
+            let result = LocalDbQuery::execute_query_text(&callback, "SELECT ''").await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), "");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_text_database_error() {
+            let callback = create_error_callback("no such table: users");
+
+            let result = LocalDbQuery::execute_query_text(&callback, "SELECT * FROM users").await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::DatabaseError { message } => {
+                    assert_eq!(message, "no such table: users");
+                }
+                _ => panic!("Expected DatabaseError"),
+            }
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_text_invalid_response_format() {
+            let callback = create_invalid_callback();
+
+            let result = LocalDbQuery::execute_query_text(&callback, "SELECT 1").await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::InvalidResponse => {}
+                _ => panic!("Expected InvalidResponse"),
+            }
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_text_callback_throws() {
+            let callback = create_callback_that_throws();
+
+            let result = LocalDbQuery::execute_query_text(&callback, "SELECT 1").await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::CallbackError(_) => {}
+                _ => panic!("Expected CallbackError"),
+            }
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_text_promise_rejection() {
+            let callback = create_rejecting_promise_callback();
+
+            let result = LocalDbQuery::execute_query_text(&callback, "SELECT 1").await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::PromiseError(_) => {}
+                _ => panic!("Expected PromiseError"),
+            }
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_execute_query_text_passes_sql_to_callback() {
+            use std::cell::RefCell;
+            use std::rc::Rc;
+
+            let captured_sql = Rc::new(RefCell::new(String::new()));
+            let callback = super::create_sql_capturing_callback("ok", captured_sql.clone());
+
+            let sql = "SELECT name FROM users WHERE id = 42";
+            let result = LocalDbQuery::execute_query_text(&callback, sql).await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), "ok".to_string());
+            assert_eq!(captured_sql.borrow().as_str(), sql);
         }
     }
 

@@ -28,8 +28,6 @@ mod tests {
         use std::rc::Rc;
         use wasm_bindgen_test::*;
 
-        wasm_bindgen_test_configure!(run_in_browser);
-
         #[wasm_bindgen_test]
         async fn test_update_last_synced_block() {
             let captured_sql = Rc::new(RefCell::new(String::new()));
