@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
-import type { AccountBalance, DotrainOrderGui } from '@rainlanguage/orderbook';
+import { Float, type AccountBalance, type DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 import type { TokenBalance } from '$lib/types/tokenBalance';
 
@@ -40,6 +40,12 @@ const mockGui: DotrainOrderGui = {
 		]
 	})
 } as unknown as DotrainOrderGui;
+
+vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+	return {
+		...(await importOriginal())
+	};
+});
 
 vi.mock('../lib/hooks/useGui', () => ({
 	useGui: vi.fn()
@@ -325,7 +331,7 @@ describe('SelectToken', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
 				value: {
-					balance: BigInt('1000000000000000000'),
+					balance: Float.parse('1').value,
 					formattedBalance: '1'
 				} as AccountBalance,
 				loading: false,
@@ -360,7 +366,7 @@ describe('SelectToken', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
 				value: {
-					balance: BigInt(0),
+					balance: Float.parse('0').value,
 					formattedBalance: '0'
 				} as AccountBalance,
 				loading: true,
@@ -395,7 +401,7 @@ describe('SelectToken', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
 				value: {
-					balance: BigInt(0),
+					balance: Float.parse('0').value,
 					formattedBalance: '0'
 				} as AccountBalance,
 				loading: false,
@@ -430,7 +436,7 @@ describe('SelectToken', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
 				value: {
-					balance: BigInt('1500000'),
+					balance: Float.parse('1.5').value,
 					formattedBalance: '1.5'
 				} as AccountBalance,
 				loading: false,
