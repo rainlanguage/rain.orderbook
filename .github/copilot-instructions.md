@@ -2,34 +2,63 @@
 
 Rain Orderbook (Raindex) is a complex multi-language project with Solidity smart contracts, Rust crates, TypeScript packages, and a Tauri desktop application. This project requires a Nix development environment for full functionality.
 
+## Rules and environment assumptions
+
+**NEVER CANCEL BUILDS OR LONG-RUNNING COMMANDS** - Many operations take 45+ minutes.
+
+- **Nix is preinstalled**: always run commands via `nix develop -c <command>`.
+- **Submodules are initialized**: the repo is checked out with `--recursive`.
+- **Timeouts**: Use 60+ minutes for builds and 30+ minutes for tests.
+
+## Development workflow (CI-prepared environment)
+
 **ALWAYS follow these instructions first and fallback to additional search or bash commands only when you encounter unexpected information that does not match the info here.**
 
 **All commands should be run within the Nix environment using `nix develop -c <command>` to match the CI workflows and ensure consistent dependency versions.**
 
-## Critical Prerequisites
+The environment already has Nix installed and the repository is checked out with submodules. Focus on running the right builds/tests rather than installing tools.
 
-**NEVER CANCEL BUILDS OR LONG-RUNNING COMMANDS** - Many operations take 45+ minutes. Always set timeouts of 60+ minutes for builds and 30+ minutes for tests.
+Your goal is to pass all CI checks under `.github/workflows`. Therefore you must follow these instructions exactly, including: 
+- Do not cancel long-running builds or tests. Full setup and validation can still take 45–90 minutes even with the prepared environment. Use timeouts of 60–90 minutes for builds and 30+ minutes for tests.
+- Always run targeted tests and linters for the components you modify after each change.
+- During development, run the tests for the part you are working on (see instructions below)
+- Before pushing any changes, ALWAYS perform a fresh full setup and run all checks to mirror CI
 
-### Required Tools and Environment
+### Development loop (every change)
+- Run targeted tests and linters for the components you changed.
+- Rebuild dependencies as needed:
+  - Rust powering `@rainlanguage/orderbook` → `nix develop -c npm run build:orderbook`
+  - `@rainlanguage/ui-components` → `nix develop -c npm run build -w @rainlanguage/ui-components`
 
-- **Nix package manager** - REQUIRED for full development workflow (provides Node.js, Rust, and all other dependencies)
-- **Git with submodules** - Critical: project has extensive git submodules that must be initialized
-
-### Environment Setup Commands
-
+### Before pushing (mirror CI)
 ```bash
-# 1. Initialize git submodules (CRITICAL - required for any build to work)
-git submodule update --init --recursive
-
-# 2. Set up environment files
-cp .env.example .env
-cp tauri-app/.env.example tauri-app/.env
-cp packages/webapp/.env.example packages/webapp/.env
-# Fill out VITE_WALLETCONNECT_PROJECT_ID and PUBLIC_WALLETCONNECT_PROJECT_ID with test project IDs from Reown
-
-# 3. Run complete project setup (handles all dependencies including Node.js, Rust, WASM target)
-chmod +x prep-all.sh
+./prep-all.sh
+nix develop -c npm run lint-format-check:all
+nix develop -c npm run build:orderbook   # if Rust/orderbook changed
+nix develop -c npm run build:ui
+nix develop -c cargo test --workspace
+nix develop -c npm run test
+nix develop -c forge test
 ```
+
+## Architecture Notes
+
+The project uses wasm-bindgen to create TypeScript bindings from Rust crates. This allows:
+- Shared logic between desktop (Tauri) and web applications
+- Publishing to npm for external developers
+- Type-safe interaction with blockchain components
+
+Therefore, you MUST respect the build dependency chain:
+  - If you change Rust code used by `@rainlanguage/orderbook`, you must rebuild it before it can be used by `@rainlanguage/ui-components` or `@rainlanguage/webapp`:
+    ```bash
+    nix develop -c npm run build:orderbook
+    ```
+  - If you change `@rainlanguage/ui-components`, rebuild it before using it in `@rainlanguage/webapp`:
+    ```bash
+    nix develop -c npm run build -w @rainlanguage/ui-components
+    ```
+
+The complex build process reflects the multi-target nature (native, WASM, different platforms) and extensive submodule dependencies.
 
 ## Build System Overview
 
@@ -39,20 +68,7 @@ The project uses multiple build systems:
 - **npm** - JavaScript/TypeScript package management and builds
 - **Forge** - Solidity contract compilation
 
-## Core Build Commands
-
-### Full Project Setup (RECOMMENDED)
-```bash
-# Complete project setup - takes 45+ minutes. NEVER CANCEL. Set timeout to 90+ minutes.
-./prep-all.sh
-```
-
-**Build time expectation:** 45-75 minutes. This script:
-- Installs Forge dependencies
-- Sets up all submodules (rain.interpreter, rain.metadata, etc.)
-- Builds Rust crates for multiple targets
-- Builds all npm packages
-- Sets up Tauri environment
+## Core build commands (reference)
 
 ### Individual Component Builds
 
@@ -60,9 +76,6 @@ The project uses multiple build systems:
 ```bash
 # Build all Rust crates - takes 30+ minutes. NEVER CANCEL. Set timeout to 60+ minutes.
 nix develop -c cargo build
-
-# Build for WASM target (required for orderbook package) - takes 20+ minutes
-nix develop -c cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests
 
 # Test Rust code - takes 15+ minutes. NEVER CANCEL. Set timeout to 30+ minutes.
 nix develop -c cargo test --workspace
@@ -74,7 +87,7 @@ nix develop -c cargo test --workspace
 nix develop -c npm install
 
 # Build specific packages
-nix develop -c npm run build:orderbook  # Builds @rainlanguage/orderbook package - takes 15-30 minutes
+nix develop -c npm run build:orderbook  # Builds @rainlanguage/orderbook package from the Rust code in the orderbook crate - takes 15-30 minutes
 nix develop -c npm run build:ui        # Builds UI components and webapp - takes 5-10 minutes
 
 # Build all packages - takes 20-45 minutes. NEVER CANCEL. Set timeout to 60+ minutes.
@@ -88,21 +101,17 @@ nix develop -c forge build  # Takes 5-15 minutes
 nix develop -c forge test   # Takes 10-20 minutes
 ```
 
-## Running Applications
+## Running applications (reference)
 
-### Web Application
+### Web application
 ```bash
-# Start development server
 cd packages/webapp && nix develop -c npm run dev
-# Accessible at http://localhost:5173
+# http://localhost:5173
 ```
 
-### Tauri Desktop Application
+### Tauri desktop application
 ```bash
-# Development mode
 nix develop .#tauri-shell --command cargo tauri dev
-
-# Build production version - takes 20-30 minutes
 nix develop .#tauri-shell --command cargo tauri build
 ```
 
@@ -133,51 +142,8 @@ nix develop -c npm run test -w @rainlanguage/webapp      # Takes 3-5 minutes
 nix develop -c npm run test -w @rainlanguage/ui-components  # Takes 2-4 minutes
 
 # Rust tests - REQUIRES network access for some dependencies
-nix develop -c cargo test --package rain_orderbook_common  # Takes 5-10 minutes
+nix develop -c cargo test --workspace # Takes 5-10 minutes
 ```
-
-## Validation Requirements
-
-### Before Committing Changes
-ALWAYS run these validation steps in order:
-
-1. **Lint and format:** `nix develop -c npm run lint-format-check:all` (5-15 minutes)
-2. **Build core packages:** `nix develop -c npm run build:orderbook` (15-30 minutes) 
-3. **Test changed components:** Run relevant test suites
-4. **Manual validation:** If changing UI, start webapp/tauri and test user flows
-
-### Complete Build Validation
-For major changes, run full validation:
-
-```bash
-# Full project rebuild - 60-90 minutes total. NEVER CANCEL.
-./prep-all.sh
-
-# Verify all tests pass - 20-30 minutes
-nix develop -c npm run test
-nix develop -c cargo test --workspace
-```
-
-## Common Issues and Solutions
-
-### Network Dependencies
-- Some Rust builds fail due to network requirements (Solidity compiler downloads)
-- If build fails with DNS errors, this is expected in restricted network environments
-- Document any consistently failing commands with specific error messages
-
-### Node.js Version
-- Nix provides the correct version of Node.js (22+) automatically when running commands
-- If commands are run outside Nix environment, expect engine warnings and build failures
-- Always use `nix develop -c <command>` to ensure correct Node.js version
-
-### Git Submodules
-- **CRITICAL:** Always run `git submodule update --init --recursive` after fresh clone
-- Missing submodules cause immediate build failures with "No such file or directory" errors
-
-### WASM Target
-- Nix environment includes Rust WASM target automatically
-- TypeScript bindings build correctly when using `nix develop -c` commands
-- Outside Nix environment, orderbook package build may fail due to missing WASM target
 
 ## Project Structure
 
@@ -207,12 +173,3 @@ nix develop -c cargo test --workspace
 | `nix develop -c npm run lint:all` | 2-5 minutes | 10+ minutes |
 
 **CRITICAL REMINDER:** Never cancel builds or tests. Build failures are often due to network connectivity issues or missing environment setup, not code problems.
-
-## Architecture Notes
-
-The project uses wasm-bindgen to create TypeScript bindings from Rust crates. This allows:
-- Shared logic between desktop (Tauri) and web applications
-- Publishing to npm for external developers
-- Type-safe interaction with blockchain components
-
-The complex build process reflects the multi-target nature (native, WASM, different platforms) and extensive submodule dependencies.
