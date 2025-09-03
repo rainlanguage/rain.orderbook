@@ -14,8 +14,6 @@ jobs:
       id-token: write
       contents: read
     runs-on: ubuntu-latest
-    env:
-      COMMIT_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,3 +37,4 @@ jobs:
         run: ./prep-all.sh
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+          COMMIT_SHA: ${{ github.sha }}
