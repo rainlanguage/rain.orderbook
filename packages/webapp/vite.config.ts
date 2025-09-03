@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => ({
 	build: {
 		target: 'es2023'
 	},
+	optimizeDeps: {
+		exclude: ['sqlite-web']
+	},
 
 	test: {
 		// Jest like globals

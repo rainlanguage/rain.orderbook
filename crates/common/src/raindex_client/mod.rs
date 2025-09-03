@@ -10,6 +10,7 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
+use local_db::LocalDbError;
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::yaml::{
     orderbook::{OrderbookYaml, OrderbookYamlValidation},
@@ -27,11 +28,11 @@ use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod local_db;
 pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
 pub mod remove_orders;
-pub mod sqlite_web;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
@@ -256,6 +257,8 @@ pub enum RaindexError {
     MissingErc20Decimals(String),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
+    #[error(transparent)]
+    LocalDbError(#[from] LocalDbError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -366,6 +369,9 @@ impl RaindexError {
                 format!("Missing decimal information for the token address: {token}")
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
+            RaindexError::LocalDbError(err) => {
+                format!("There was an error with the local database: {err}")
+            }
         }
     }
 }
