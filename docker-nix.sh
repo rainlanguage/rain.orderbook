@@ -16,17 +16,24 @@ for var in CI_DEPLOY_SEPOLIA_RPC_URL CI_FORK_SEPOLIA_DEPLOYER_ADDRESS CI_FORK_SE
     fi
 done
 
-# Configure git to trust the workspace directory and run nix with proper settings
+# Run nix in Docker with proper configuration
 docker run --rm \
   -v "$REPO_DIR:/workspace" \
   -w /workspace \
   --network host \
   $ENV_VARS \
   nixos/nix sh -c "
+    # Trust the workspace directory
     git config --global --add safe.directory /workspace
-    nix-env -iA nixpkgs.cacert || true
-    export SSL_CERT_FILE=\$(find /nix/store -name ca-bundle.crt | head -1)
-    export NIX_SSL_CERT_FILE=\$SSL_CERT_FILE
-    export CURL_CA_BUNDLE=\$SSL_CERT_FILE
+    
+    # Configure git to handle SSL issues
+    git config --global http.sslverify false
+    
+    # Configure SSL certificate handling
+    export NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+    export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+    export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+    
+    # Run nix command
     exec nix --extra-experimental-features 'nix-command flakes' \"\$@\"
   " -- "$@"
