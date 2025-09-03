@@ -668,7 +668,7 @@ mod test_helpers {
     }
 
     fn get_local_db_instance() -> LocalDb {
-        LocalDb::new(1, "".to_string()).unwrap()
+        LocalDb::new(0, "".to_string()).unwrap()
     }
 
     #[test]

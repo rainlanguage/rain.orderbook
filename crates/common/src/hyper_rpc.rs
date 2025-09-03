@@ -24,6 +24,8 @@ impl std::fmt::Debug for HyperRpcClient {
 impl HyperRpcClient {
     pub fn new(chain_id: u32, api_token: String) -> Result<Self, HyperRpcError> {
         let rpc_url = match chain_id {
+            // TODO: Think about this one
+            0 => "".to_string(),
             8453 => "https://base.rpc.hypersync.xyz".to_string(),
             42161 => "https://arbitrum.rpc.hypersync.xyz".to_string(),
             _ => return Err(HyperRpcError::UnsupportedChainId { chain_id }),

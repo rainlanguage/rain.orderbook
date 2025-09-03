@@ -146,6 +146,6 @@ impl RaindexClient {
         chain_id: u32,
         api_token: String,
     ) -> Result<LocalDb, RaindexError> {
-        LocalDb::new(chain_id, api_token).map_err(|e| RaindexError::LocalDbError(e))
+        LocalDb::new(chain_id, api_token).map_err(RaindexError::LocalDbError)
     }
 }
