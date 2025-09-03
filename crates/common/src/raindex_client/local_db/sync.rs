@@ -6,7 +6,7 @@ use flate2::read::GzDecoder;
 use reqwest::Client;
 use std::io::Read;
 
-const DUMP_URL: &str = ""; // TODO: Replace with actual database dump URL
+const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/46a8065a2ccbf49e9fc509cbc052cd497feb6bd5/local-db-dump.sql.gz";
 
 async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbError> {
     match LocalDbQuery::fetch_all_tables(db_callback).await {
@@ -52,7 +52,7 @@ pub async fn get_last_synced_block(db_callback: &js_sys::Function) -> Result<u64
                 Ok(0)
             }
         }
-        Err(_) => Ok(0),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -75,6 +75,7 @@ impl RaindexClient {
         db_callback: js_sys::Function,
         #[wasm_export(param_description = "JavaScript function called with status updates")]
         status_callback: js_sys::Function,
+        // TODO: This will be replaced with chainid. We are going to loop all the orderbooks for that chainid
         #[wasm_export(param_description = "The contract address to sync events for")]
         contract_address: String,
     ) -> Result<(), LocalDbError> {
@@ -92,6 +93,8 @@ impl RaindexClient {
             }
         };
 
+        send_status_message(&status_callback, format!("has tables: {}", has_tables))?;
+
         if !has_tables {
             send_status_message(
                 &status_callback,
@@ -99,7 +102,7 @@ impl RaindexClient {
             )?;
             let dump_sql = download_and_decompress_dump().await?;
 
-            LocalDbQuery::execute_query_with_callback::<()>(&db_callback, &dump_sql).await?;
+            LocalDbQuery::execute_query_text(&db_callback, &dump_sql).await?;
         }
 
         let last_synced_block = match get_last_synced_block(&db_callback).await {
@@ -111,6 +114,10 @@ impl RaindexClient {
                 )));
             }
         };
+        send_status_message(
+            &status_callback,
+            format!("Last synced block: {}", last_synced_block),
+        )?;
 
         let orderbook_cfg = match self.get_orderbook_by_address(orderbook_address) {
             Ok(o) => o,
@@ -122,8 +129,10 @@ impl RaindexClient {
             }
         };
 
-        // TODO: Replace with actual client initialization
-        let local_db = LocalDb::new(orderbook_cfg.network.chain_id, "".to_string())?;
+        let local_db = LocalDb::new(
+            orderbook_cfg.network.chain_id,
+            "41e50e69-6da4-4462-b70e-c7b5e7b70f05".to_string(),
+        )?;
 
         let latest_block = match local_db.client.get_latest_block_number().await {
             Ok(block) => block,
@@ -177,7 +186,7 @@ impl RaindexClient {
             }
         };
 
-        LocalDbQuery::execute_query_with_callback::<()>(&db_callback, &sql_commands).await?;
+        LocalDbQuery::execute_query_text(&db_callback, &sql_commands).await?;
 
         send_status_message(&status_callback, "Database sync complete.".to_string())?;
         Ok(())
@@ -193,11 +202,9 @@ mod tests {
         use super::*;
         use crate::raindex_client::local_db::query::{
             create_tables::REQUIRED_TABLES, fetch_last_synced_block::SyncStatusResponse,
-            fetch_tables::TableResponse, tests::create_success_callback,
+            fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
         };
         use wasm_bindgen_test::*;
-
-        wasm_bindgen_test_configure!(run_in_browser);
 
         #[wasm_bindgen_test]
         async fn test_check_required_tables_all_exist() {
@@ -314,8 +321,11 @@ mod tests {
 
             let result = get_last_synced_block(&callback).await;
 
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), 0);
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbError::LocalDbQueryError(LocalDbQueryError::JsonError(_)) => {}
+                other => panic!("Expected LocalDbQueryError::JsonError, got {other:?}"),
+            }
         }
 
         #[wasm_bindgen_test]
