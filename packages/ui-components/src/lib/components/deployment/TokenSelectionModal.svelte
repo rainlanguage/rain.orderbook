@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input, Button, Modal } from 'flowbite-svelte';
-	import { SearchOutline, CheckCircleSolid, ChevronDownSolid, ExclamationTriangleOutline } from 'flowbite-svelte-icons';
+	import { SearchOutline, CheckCircleSolid, ChevronDownSolid, ExclamationCircleOutline } from 'flowbite-svelte-icons';
 	import type { TokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
 	import { onMount, tick } from 'svelte';
@@ -140,7 +140,7 @@
 										<span class="address">{formatAddress(customTokenCandidate.address)}</span>
 									</div>
 									<div class="mt-1 flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-										<ExclamationTriangleOutline class="h-3 w-3" />
+										<ExclamationCircleOutline class="h-3 w-3" />
 										<span>Custom token - will be validated when selected</span>
 									</div>
 								</div>
