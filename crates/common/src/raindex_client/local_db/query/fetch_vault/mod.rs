@@ -41,8 +41,8 @@ mod tests {
     mod wasm_tests {
         use super::*;
         use crate::raindex_client::local_db::query::tests::create_success_callback;
-        use std::rc::Rc;
         use std::cell::RefCell;
+        use std::rc::Rc;
         use wasm_bindgen_test::*;
 
         #[wasm_bindgen_test]
@@ -75,7 +75,10 @@ mod tests {
             assert_eq!(data.output_order_hashes, vault.output_order_hashes);
         }
 
-        fn create_sql_capturing_callback(response_json: &str, captured: Rc<RefCell<String>>) -> js_sys::Function {
+        fn create_sql_capturing_callback(
+            response_json: &str,
+            captured: Rc<RefCell<String>>,
+        ) -> js_sys::Function {
             let success_result = WasmEncodedResult::Success::<String> {
                 value: response_json.to_string(),
                 error: None,
@@ -110,4 +113,3 @@ mod tests {
         }
     }
 }
-

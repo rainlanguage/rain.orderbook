@@ -2,6 +2,7 @@ SELECT
   d.vault_id,
   d.token,
   d.sender AS owner,
+  '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' AS orderbook_address,
   COALESCE(b.balance, '0') AS balance,
   GROUP_CONCAT(DISTINCT CASE WHEN oi2.io_type = 'input' THEN oe2.order_hash END) AS input_order_hashes,
   GROUP_CONCAT(DISTINCT CASE WHEN oi2.io_type = 'output' THEN oe2.order_hash END) AS output_order_hashes

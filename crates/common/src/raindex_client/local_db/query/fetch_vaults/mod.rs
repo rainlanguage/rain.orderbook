@@ -1,17 +1,7 @@
+use super::fetch_vault::LocalDbVault;
 use super::*;
 
 const QUERY: &str = include_str!("query.sql");
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalDbVault {
-    pub vault_id: String,
-    pub token: String,
-    pub owner: String,
-    pub balance: String,
-    pub input_order_hashes: Option<String>,
-    pub output_order_hashes: Option<String>,
-}
 
 impl LocalDbQuery {
     pub async fn fetch_vaults(
@@ -38,6 +28,7 @@ mod tests {
                     vault_id: "0x01".into(),
                     token: "0xaaa".into(),
                     owner: "0x1111111111111111111111111111111111111111".into(),
+                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
                     balance: "0x10".into(),
                     input_order_hashes: Some(
                         "0xabc0000000000000000000000000000000000000000000000000000000000001".into(),
@@ -50,6 +41,7 @@ mod tests {
                     vault_id: "0x02".into(),
                     token: "0xbbb".into(),
                     owner: "0x2222222222222222222222222222222222222222".into(),
+                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
                     balance: "0x0".into(),
                     input_order_hashes: None,
                     output_order_hashes: None,
@@ -65,6 +57,7 @@ mod tests {
             assert_eq!(data[0].vault_id, vaults[0].vault_id);
             assert_eq!(data[0].token, vaults[0].token);
             assert_eq!(data[0].owner, vaults[0].owner);
+            assert_eq!(data[0].orderbook_address, vaults[0].orderbook_address);
             assert_eq!(data[0].balance, vaults[0].balance);
             assert_eq!(data[0].input_order_hashes, vaults[0].input_order_hashes);
             assert_eq!(data[0].output_order_hashes, vaults[0].output_order_hashes);
