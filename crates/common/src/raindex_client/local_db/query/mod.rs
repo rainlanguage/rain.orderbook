@@ -3,6 +3,7 @@ pub mod create_tables;
 pub mod fetch_last_synced_block;
 pub mod fetch_orders;
 pub mod fetch_tables;
+pub mod fetch_vaults;
 pub mod update_last_synced_block;
 
 use super::*;
