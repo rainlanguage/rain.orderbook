@@ -20,7 +20,7 @@ pub trait EventClient {
 impl EventClient for LocalDb {
     async fn get_latest_block_number(&self) -> Result<u64, RpcClientError> {
         self.rpc_client()
-            .get_latest_block_number(self.rpc_url())
+            .get_latest_block_number(self.rpc_urls())
             .await
     }
 

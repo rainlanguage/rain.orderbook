@@ -15,14 +15,14 @@ use query::LocalDbQueryError;
 #[wasm_bindgen]
 pub struct LocalDb {
     rpc: RpcClient,
-    rpc_url: Url,
+    rpc_urls: Vec<Url>,
 }
 
 impl Default for LocalDb {
     fn default() -> Self {
         Self {
             rpc: RpcClient,
-            rpc_url: Url::parse("http://localhost:4444").unwrap(),
+            rpc_urls: vec![Url::parse("http://localhost:4444").unwrap()],
         }
     }
 }
@@ -131,7 +131,14 @@ impl LocalDb {
     pub fn new_with_regular_rpc(url: Url) -> Self {
         Self {
             rpc: RpcClient,
-            rpc_url: url,
+            rpc_urls: vec![url],
+        }
+    }
+
+    pub fn new_with_regular_rpcs(urls: Vec<Url>) -> Self {
+        Self {
+            rpc: RpcClient,
+            rpc_urls: urls,
         }
     }
 
@@ -139,7 +146,7 @@ impl LocalDb {
         let rpc_url = RpcClient::build_hyper_url(chain_id, &api_token)?;
         Ok(Self {
             rpc: RpcClient,
-            rpc_url,
+            rpc_urls: vec![rpc_url],
         })
     }
 
@@ -147,21 +154,21 @@ impl LocalDb {
         &self.rpc
     }
 
-    pub fn rpc_url(&self) -> &Url {
-        &self.rpc_url
+    pub fn rpc_urls(&self) -> &[Url] {
+        &self.rpc_urls
     }
 
     #[cfg(test)]
     pub fn new_with_url(url: Url) -> Self {
         Self {
             rpc: RpcClient,
-            rpc_url: url,
+            rpc_urls: vec![url],
         }
     }
 
     #[cfg(test)]
     pub fn set_rpc_url(&mut self, url: Url) {
-        self.rpc_url = url;
+        self.rpc_urls = vec![url];
     }
 }
 
@@ -170,7 +177,6 @@ impl RaindexClient {
     #[wasm_export(js_name = "getLocalDbClient", preserve_js_class)]
     pub fn get_local_db_client(&self, chain_id: u32) -> Result<LocalDb, RaindexError> {
         let rpcs = self.get_rpc_urls_for_chain(chain_id)?;
-        // TODO: support multiple RPC URLs
-        Ok(LocalDb::new_with_regular_rpc(rpcs[0].clone()))
+        Ok(LocalDb::new_with_regular_rpcs(rpcs))
     }
 }

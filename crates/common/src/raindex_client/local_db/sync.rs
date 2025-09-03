@@ -129,12 +129,11 @@ impl RaindexClient {
             }
         };
 
-        // TODO: support multiple rpcs
-        let local_db = LocalDb::new_with_regular_rpc(orderbook_cfg.network.rpcs[0].clone());
+        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone());
 
         let latest_block = match local_db
             .rpc_client()
-            .get_latest_block_number(local_db.rpc_url())
+            .get_latest_block_number(local_db.rpc_urls())
             .await
         {
             Ok(block) => block,

@@ -85,7 +85,7 @@ impl LocalDb {
                 let topics = topics.clone();
                 let contract_address = contract_address.clone();
                 let rpc = self.rpc.clone();
-                let url = self.rpc_url.clone();
+                let urls = self.rpc_urls.clone();
                 let max_attempts = config.max_retry_attempts;
 
                 async move {
@@ -95,7 +95,7 @@ impl LocalDb {
                     let response = retry_with_attempts(
                         || {
                             rpc.get_logs(
-                                &url,
+                                &urls,
                                 &from_block_hex,
                                 &to_block_hex,
                                 &contract_address,
@@ -151,11 +151,11 @@ impl LocalDb {
             futures::stream::iter(block_numbers)
                 .map(|block_number| {
                     let rpc = self.rpc.clone();
-                    let url = self.rpc_url.clone();
+                    let urls = self.rpc_urls.clone();
                     let max_attempts = config.max_retry_attempts;
                     async move {
                         let block_response = retry_with_attempts(
-                            || rpc.get_block_by_number(&url, block_number),
+                            || rpc.get_block_by_number(&urls, block_number),
                             max_attempts,
                         )
                         .await?;

@@ -29,116 +29,214 @@ impl RpcClient {
         Ok(Url::from_str(&format!("{}/{}", base, api_token))?)
     }
 
-    /// Fetch the latest block number from the given `rpc_url`.
-    pub async fn get_latest_block_number(&self, rpc_url: &Url) -> Result<u64, RpcClientError> {
+    /// Fetch the latest block number by trying each `rpc_urls` sequentially until one succeeds.
+    pub async fn get_latest_block_number(&self, rpc_urls: &[Url]) -> Result<u64, RpcClientError> {
         let client = reqwest::Client::new();
-        let response = client
-            .post(rpc_url.to_string())
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "eth_blockNumber",
-                "params": []
-            }))
-            .send()
-            .await?
-            .error_for_status()?;
+        let payload = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "eth_blockNumber",
+            "params": []
+        });
 
-        let json: serde_json::Value = response.json().await?;
+        let mut last_err: Option<RpcClientError> = None;
+        for rpc_url in rpc_urls {
+            let resp = client
+                .post(rpc_url.to_string())
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await;
 
-        if let Some(error) = json.get("error") {
-            return Err(RpcClientError::RpcError {
-                message: format!("Getting latest block: {}", error),
+            let resp = match resp {
+                Ok(r) => r,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
+
+            let resp = match resp.error_for_status() {
+                Ok(r) => r,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
+
+            let json: serde_json::Value = match resp.json().await {
+                Ok(j) => j,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
+
+            if let Some(error) = json.get("error") {
+                last_err = Some(RpcClientError::RpcError {
+                    message: format!("Getting latest block: {}", error),
+                });
+                continue;
+            }
+
+            if let Some(result) = json.get("result") {
+                if let Some(block_hex) = result.as_str() {
+                    let block_hex = block_hex.strip_prefix("0x").unwrap_or(block_hex);
+                    match u64::from_str_radix(block_hex, 16) {
+                        Ok(n) => return Ok(n),
+                        Err(e) => {
+                            last_err = Some(RpcClientError::HexParseError(e));
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            last_err = Some(RpcClientError::MissingField {
+                field: "result".to_string(),
             });
         }
 
-        if let Some(result) = json.get("result") {
-            if let Some(block_hex) = result.as_str() {
-                let block_hex = block_hex.strip_prefix("0x").unwrap_or(block_hex);
-                let block_number = u64::from_str_radix(block_hex, 16)?;
-                return Ok(block_number);
-            }
-        }
-
-        Err(RpcClientError::MissingField {
-            field: "result".to_string(),
-        })
+        Err(last_err.unwrap_or(RpcClientError::RpcError {
+            message: "All RPC URLs failed".to_string(),
+        }))
     }
 
     /// Fetch logs from the given `rpc_url`.
     pub async fn get_logs(
         &self,
-        rpc_url: &Url,
+        rpc_urls: &[Url],
         from_block: &str,
         to_block: &str,
         address: &str,
         topics: Option<Vec<Option<Vec<String>>>>,
     ) -> Result<String, RpcClientError> {
         let client = reqwest::Client::new();
-        let response = client
-            .post(rpc_url.to_string())
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "eth_getLogs",
-                "params": [{
-                    "fromBlock": from_block,
-                    "toBlock": to_block,
-                    "address": address,
-                    "topics": topics
-                }]
-            }))
-            .send()
-            .await?
-            .error_for_status()?;
-        let text = response.text().await?;
+        let payload = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "eth_getLogs",
+            "params": [{
+                "fromBlock": from_block,
+                "toBlock": to_block,
+                "address": address,
+                "topics": topics
+            }]
+        });
 
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
-            if let Some(error) = json.get("error") {
-                return Err(RpcClientError::RpcError {
-                    message: error.to_string(),
-                });
+        let mut last_err: Option<RpcClientError> = None;
+        for rpc_url in rpc_urls {
+            let resp = client
+                .post(rpc_url.to_string())
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await;
+
+            let resp = match resp {
+                Ok(r) => r,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
+
+            let resp = match resp.error_for_status() {
+                Ok(r) => r,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
+
+            let text = match resp.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
+
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
+                if let Some(error) = json.get("error") {
+                    last_err = Some(RpcClientError::RpcError {
+                        message: error.to_string(),
+                    });
+                    continue;
+                }
             }
+
+            return Ok(text);
         }
 
-        Ok(text)
+        Err(last_err.unwrap_or(RpcClientError::RpcError {
+            message: "All RPC URLs failed".to_string(),
+        }))
     }
 
     /// Fetch a block by number from the given `rpc_url`.
     pub async fn get_block_by_number(
         &self,
-        rpc_url: &Url,
+        rpc_urls: &[Url],
         block_number: u64,
     ) -> Result<String, RpcClientError> {
         let client = reqwest::Client::new();
         let block_hex = format!("0x{:x}", block_number);
+        let payload = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "eth_getBlockByNumber",
+            "params": [block_hex, false]
+        });
 
-        let response = client
-            .post(rpc_url.to_string())
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "eth_getBlockByNumber",
-                "params": [block_hex, false]
-            }))
-            .send()
-            .await?
-            .error_for_status()?;
+        let mut last_err: Option<RpcClientError> = None;
+        for rpc_url in rpc_urls {
+            let resp = client
+                .post(rpc_url.to_string())
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await;
 
-        let text = response.text().await?;
+            let resp = match resp {
+                Ok(r) => r,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
 
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
-            if let Some(error) = json.get("error") {
-                return Err(RpcClientError::RpcError {
-                    message: error.to_string(),
-                });
+            let resp = match resp.error_for_status() {
+                Ok(r) => r,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
+
+            let text = match resp.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    last_err = Some(RpcClientError::NetworkError(e));
+                    continue;
+                }
+            };
+
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
+                if let Some(error) = json.get("error") {
+                    last_err = Some(RpcClientError::RpcError {
+                        message: error.to_string(),
+                    });
+                    continue;
+                }
             }
+
+            return Ok(text);
         }
 
-        Ok(text)
+        Err(last_err.unwrap_or(RpcClientError::RpcError {
+            message: "All RPC URLs failed".to_string(),
+        }))
     }
 }
 
@@ -197,9 +295,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_latest_block_number(&urls).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 436);
 
@@ -217,9 +314,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_latest_block_number(&urls).await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -240,9 +336,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_latest_block_number(&urls).await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -277,15 +372,8 @@ mod tests {
 
         let client = RpcClient;
         let topics = Some(vec![Some(vec!["0xabc".to_string()])]);
-        let result = client
-            .get_logs(
-                &Url::from_str(&server.base_url()).unwrap(),
-                "0x1",
-                "0x2",
-                "0x123",
-                topics,
-            )
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_logs(&urls, "0x1", "0x2", "0x123", topics).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(response.contains("blockNumber"));
@@ -307,15 +395,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_logs(
-                &Url::from_str(&server.base_url()).unwrap(),
-                "0x1",
-                "0x2",
-                "0x123",
-                None,
-            )
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_logs(&urls, "0x1", "0x2", "0x123", None).await;
         assert!(result.is_ok());
 
         mock.assert();
@@ -332,15 +413,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_logs(
-                &Url::from_str(&server.base_url()).unwrap(),
-                "0x1",
-                "0x1000",
-                "0x123",
-                None,
-            )
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_logs(&urls, "0x1", "0x1000", "0x123", None).await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -364,9 +438,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), 436)
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_block_by_number(&urls, 436).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(response.contains("0x1b4"));
@@ -387,9 +460,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), 255)
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_block_by_number(&urls, 255).await;
         assert!(result.is_ok());
 
         mock.assert();
@@ -406,9 +478,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), 999999999)
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_block_by_number(&urls, 999999999).await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -431,9 +502,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_latest_block_number(&urls).await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -456,9 +526,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_latest_block_number(&urls).await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -482,9 +551,8 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), 0)
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_block_by_number(&urls, 0).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(response.contains("0x0"));
@@ -509,13 +577,130 @@ mod tests {
         });
 
         let client = RpcClient;
-        let result = client
-            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), large_block)
-            .await;
+        let urls = vec![Url::from_str(&server.base_url()).unwrap()];
+        let result = client.get_block_by_number(&urls, large_block).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(response.contains(expected_hex));
 
         mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_multi_url_latest_block_failover_http_status() {
+        let server1 = MockServer::start();
+        let server2 = MockServer::start();
+
+        let mock1 = server1.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_blockNumber"}"#);
+            then.status(429)
+                .header("content-type", "application/json")
+                .body(
+                    r#"{"jsonrpc":"2.0","id":1,"error":{"code":-32005,"message":"rate limited"}}"#,
+                );
+        });
+
+        let mock2 = server2.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_blockNumber"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": "0x1b4"}"#);
+        });
+
+        let client = RpcClient;
+        let urls = vec![
+            Url::from_str(&server1.base_url()).unwrap(),
+            Url::from_str(&server2.base_url()).unwrap(),
+        ];
+        let result = client.get_latest_block_number(&urls).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 436);
+
+        mock1.assert();
+        mock2.assert();
+    }
+
+    #[tokio::test]
+    async fn test_multi_url_get_logs_failover_json_error() {
+        let server1 = MockServer::start();
+        let server2 = MockServer::start();
+
+        let mock1 = server1.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getLogs"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"Internal error"}}"#);
+        });
+
+        let mock2 = server2.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getLogs"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
+        });
+
+        let client = RpcClient;
+        let urls = vec![
+            Url::from_str(&server1.base_url()).unwrap(),
+            Url::from_str(&server2.base_url()).unwrap(),
+        ];
+        let res = client
+            .get_logs(&urls, "0x1", "0x2", "0x123", None)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_str(&res).unwrap();
+        assert!(json.get("result").is_some());
+        assert!(json.get("error").is_none());
+
+        mock1.assert();
+        mock2.assert();
+    }
+
+    #[tokio::test]
+    async fn test_multi_url_block_by_number_all_fail() {
+        let server1 = MockServer::start();
+        let server2 = MockServer::start();
+
+        let _m1 = server1.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getBlockByNumber"}"#);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    r#"{"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"Invalid block"}}"#,
+                );
+        });
+        let _m2 = server2.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body_partial(r#"{"method": "eth_getBlockByNumber"}"#);
+            then.status(500)
+                .header("content-type", "application/json")
+                .body("server error");
+        });
+
+        let client = RpcClient;
+        let urls = vec![
+            Url::from_str(&server1.base_url()).unwrap(),
+            Url::from_str(&server2.base_url()).unwrap(),
+        ];
+        let err = client.get_block_by_number(&urls, 123).await.unwrap_err();
+        // Should surface some error after exhausting all URLs
+        match err {
+            RpcClientError::RpcError { .. }
+            | RpcClientError::NetworkError(_)
+            | RpcClientError::MissingField { .. }
+            | RpcClientError::HexParseError(_) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 }
