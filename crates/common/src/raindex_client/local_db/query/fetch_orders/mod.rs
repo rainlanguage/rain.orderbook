@@ -11,7 +11,7 @@ pub enum FetchOrdersFilter {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FetchOrdersResponse {
+pub struct LocalDbOrder {
     #[serde(alias = "orderHash")]
     pub order_hash: String,
     pub owner: String,
@@ -19,18 +19,23 @@ pub struct FetchOrdersResponse {
     pub block_timestamp: u64,
     #[serde(alias = "blockNumber")]
     pub block_number: u64,
+    #[serde(alias = "orderbookAddress")]
+    pub orderbook_address: String,
+    #[serde(alias = "transactionHash")]
+    pub transaction_hash: String,
     pub inputs: Option<String>,
     pub outputs: Option<String>,
     #[serde(alias = "tradeCount")]
     pub trade_count: u64,
-    pub status: String,
+    pub active: bool,
+    pub meta: Option<String>,
 }
 
 impl LocalDbQuery {
     pub async fn fetch_orders(
         db_callback: &js_sys::Function,
         filter: FetchOrdersFilter,
-    ) -> Result<Vec<FetchOrdersResponse>, LocalDbQueryError> {
+    ) -> Result<Vec<LocalDbOrder>, LocalDbQueryError> {
         let filter_str = match filter {
             FetchOrdersFilter::All => "all",
             FetchOrdersFilter::Active => "active",
@@ -39,7 +44,7 @@ impl LocalDbQuery {
 
         let sql = QUERY.replace("'?filter'", &format!("'{}'", filter_str));
 
-        LocalDbQuery::execute_query_json::<Vec<FetchOrdersResponse>>(db_callback, &sql).await
+        LocalDbQuery::execute_query_json::<Vec<LocalDbOrder>>(db_callback, &sql).await
     }
 }
 
@@ -60,27 +65,35 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_fetch_orders_parses_data() {
             let orders = vec![
-                FetchOrdersResponse {
+                LocalDbOrder {
                     order_hash:
                         "0xabc0000000000000000000000000000000000000000000000000000000000001".into(),
                     owner: "0x1111111111111111111111111111111111111111".into(),
                     block_timestamp: 1000,
                     block_number: 123,
+                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                    transaction_hash:
+                        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
                     inputs: Some("1:0xaaa,2:0xbbb".into()),
                     outputs: Some("3:0xccc".into()),
                     trade_count: 2,
-                    status: "active".into(),
+                    active: true,
+                    meta: Some("0x010203".into()),
                 },
-                FetchOrdersResponse {
+                LocalDbOrder {
                     order_hash:
                         "0xabc0000000000000000000000000000000000000000000000000000000000002".into(),
                     owner: "0x2222222222222222222222222222222222222222".into(),
                     block_timestamp: 2000,
                     block_number: 456,
+                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                    transaction_hash:
+                        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
                     inputs: None,
                     outputs: None,
                     trade_count: 0,
-                    status: "inactive".into(),
+                    active: false,
+                    meta: None,
                 },
             ];
             let json_data = serde_json::to_string(&orders).unwrap();
@@ -94,10 +107,13 @@ mod tests {
             assert_eq!(data[0].owner, orders[0].owner);
             assert_eq!(data[0].block_timestamp, orders[0].block_timestamp);
             assert_eq!(data[0].block_number, orders[0].block_number);
+            assert_eq!(data[0].orderbook_address, orders[0].orderbook_address);
+            assert_eq!(data[0].transaction_hash, orders[0].transaction_hash);
             assert_eq!(data[0].inputs, orders[0].inputs);
             assert_eq!(data[0].outputs, orders[0].outputs);
             assert_eq!(data[0].trade_count, orders[0].trade_count);
-            assert_eq!(data[0].status, orders[0].status);
+            assert_eq!(data[0].active, orders[0].active);
+            assert_eq!(data[0].meta, orders[0].meta);
         }
 
         #[wasm_bindgen_test]
