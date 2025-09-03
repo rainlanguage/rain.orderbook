@@ -204,7 +204,11 @@ mod tests {
             create_tables::REQUIRED_TABLES, fetch_last_synced_block::SyncStatusResponse,
             fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
         };
+        use std::cell::RefCell;
+        use std::rc::Rc;
+        use wasm_bindgen::{prelude::*, JsCast};
         use wasm_bindgen_test::*;
+        use wasm_bindgen_utils::prelude::*;
 
         #[wasm_bindgen_test]
         async fn test_check_required_tables_all_exist() {
@@ -352,6 +356,184 @@ mod tests {
                 }
                 _ => panic!("Expected CustomError from JavaScript callback failure"),
             }
+        }
+
+        fn create_status_collector() -> (js_sys::Function, Rc<RefCell<Vec<String>>>) {
+            let captured = Rc::new(RefCell::new(Vec::<String>::new()));
+            let captured_clone = captured.clone();
+
+            let callback = Closure::wrap(Box::new(move |msg: String| -> JsValue {
+                captured_clone.borrow_mut().push(msg);
+                JsValue::TRUE
+            }) as Box<dyn Fn(String) -> JsValue>);
+
+            (callback.into_js_value().dyn_into().unwrap(), captured)
+        }
+
+        fn create_dispatching_db_callback(
+            tables_json: &str,
+            last_synced_json: &str,
+        ) -> js_sys::Function {
+            // Build two success payloads and choose based on SQL string
+            let success_tables = WasmEncodedResult::Success::<String> {
+                value: tables_json.to_string(),
+                error: None,
+            };
+            let success_last = WasmEncodedResult::Success::<String> {
+                value: last_synced_json.to_string(),
+                error: None,
+            };
+
+            let tables_json_val = serde_wasm_bindgen::to_value(&success_tables).unwrap();
+            let last_json_val = serde_wasm_bindgen::to_value(&success_last).unwrap();
+
+            let tables_literal = js_sys::JSON::stringify(&tables_json_val)
+                .unwrap()
+                .as_string()
+                .unwrap();
+            let last_literal = js_sys::JSON::stringify(&last_json_val)
+                .unwrap()
+                .as_string()
+                .unwrap();
+
+            js_sys::Function::new_with_args(
+                "sql",
+                &format!(
+                    "if (sql.includes('sqlite_master')) return {};
+                     if (sql.includes('sync_status')) return {};
+                     return {};",
+                    tables_literal, last_literal, tables_literal
+                ),
+            )
+        }
+
+        fn make_tables_json() -> String {
+            let table_data: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            serde_json::to_string(&table_data).unwrap()
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_sync_invalid_address() {
+            // Any client config is fine; we bail before using it
+            let client = RaindexClient::new(
+                vec![crate::raindex_client::tests::get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            // Callbacks (won't be used due to early address parse error)
+            let db_callback = create_success_callback("[]");
+            let (status_callback, captured) = create_status_collector();
+
+            let result = client
+                .sync_database(db_callback, status_callback, "invalid_address".to_string())
+                .await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbError::FromHexError(_) => {}
+                other => panic!("Expected FromHexError, got {other:?}"),
+            }
+            // No status messages should be emitted
+            assert!(captured.borrow().is_empty());
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_sync_tables_exist_last_synced_zero() {
+            // Use test YAML; orderbook address must match the YAML
+            let client = RaindexClient::new(
+                vec![crate::raindex_client::tests::get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let tables_json = make_tables_json();
+            let last_synced_json = "[]"; // yields last_synced_block = 0
+            let db_callback = create_dispatching_db_callback(&tables_json, last_synced_json);
+            let (status_callback, captured) = create_status_collector();
+
+            // Address from test YAML
+            let address = "0x1234567890123456789012345678901234567890".to_string();
+            let result = client
+                .sync_database(db_callback, status_callback, address)
+                .await;
+
+            // Should eventually fail due to unsupported chain id in HyperRpcClient
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbError::Rpc(err) => {
+                    let msg = err.to_string();
+                    assert!(msg.contains("Unsupported chain ID"));
+                }
+                other => panic!("Expected Rpc UnsupportedChainId, got {other:?}"),
+            }
+
+            let msgs = captured.borrow();
+            // Check key status messages in order of occurrence
+            assert!(msgs.len() >= 3);
+            assert_eq!(msgs[0], "Starting database sync...");
+            assert_eq!(msgs[1], "has tables: true");
+            assert_eq!(msgs[2], "Last synced block: 0");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_sync_missing_orderbook_error() {
+            let client = RaindexClient::new(
+                vec![crate::raindex_client::tests::get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let tables_json = make_tables_json();
+            // Return a non-zero last synced for variety
+            let last_synced = vec![SyncStatusResponse {
+                id: 1,
+                last_synced_block: 123,
+                updated_at: Some("2024-01-01T00:00:00Z".to_string()),
+            }];
+            let last_synced_json = serde_json::to_string(&last_synced).unwrap();
+            let db_callback = create_dispatching_db_callback(&tables_json, &last_synced_json);
+            let (status_callback, captured) = create_status_collector();
+
+            // Valid-looking address not present in test YAML
+            let missing_address = "0x1111111111111111111111111111111111111111".to_string();
+            let result = client
+                .sync_database(db_callback, status_callback, missing_address)
+                .await;
+
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbError::CustomError(msg) => {
+                    assert!(msg.contains("Failed to get orderbook configuration"));
+                }
+                other => panic!("Expected CustomError from missing orderbook, got {other:?}"),
+            }
+
+            let msgs = captured.borrow();
+            assert!(msgs.len() >= 3);
+            assert_eq!(msgs[0], "Starting database sync...");
+            assert_eq!(msgs[1], "has tables: true");
+            assert_eq!(msgs[2], "Last synced block: 123");
         }
     }
 
