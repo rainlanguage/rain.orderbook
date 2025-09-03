@@ -5,16 +5,26 @@ pub mod query;
 pub mod sync;
 
 use super::*;
-use crate::hyper_rpc::{HyperRpcClient, HyperRpcError};
+use crate::rpc_client::{RpcClient, RpcClientError};
 use alloy::primitives::hex::FromHexError;
 use alloy::primitives::ruint::ParseError;
 pub use fetch::FetchConfig;
 use query::LocalDbQueryError;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct LocalDb {
-    client: HyperRpcClient,
+    rpc: RpcClient,
+    rpc_url: Url,
+}
+
+impl Default for LocalDb {
+    fn default() -> Self {
+        Self {
+            rpc: RpcClient,
+            rpc_url: Url::parse("http://localhost:4444").unwrap(),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -26,7 +36,7 @@ pub enum LocalDbError {
     Http(#[from] reqwest::Error),
 
     #[error("RPC error")]
-    Rpc(#[from] HyperRpcError),
+    Rpc(#[from] RpcClientError),
 
     #[error("JSON parsing failed")]
     JsonParse(#[from] serde_json::Error),
@@ -118,34 +128,49 @@ impl LocalDbError {
 }
 
 impl LocalDb {
-    pub fn new(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
-        let client = HyperRpcClient::new(chain_id, api_token)?;
-        Ok(Self { client })
+    pub fn new_with_regular_rpc(url: Url) -> Self {
+        Self {
+            rpc: RpcClient,
+            rpc_url: url,
+        }
     }
 
-    pub fn hyper_rpc_client(&self) -> &HyperRpcClient {
-        &self.client
+    pub fn new_with_hyper_rpc(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
+        let rpc_url = RpcClient::build_hyper_url(chain_id, &api_token)?;
+        Ok(Self {
+            rpc: RpcClient,
+            rpc_url,
+        })
+    }
+
+    pub fn rpc_client(&self) -> &RpcClient {
+        &self.rpc
+    }
+
+    pub fn rpc_url(&self) -> &Url {
+        &self.rpc_url
     }
 
     #[cfg(test)]
-    pub fn new_with_client(client: HyperRpcClient) -> Self {
-        Self { client }
+    pub fn new_with_url(url: Url) -> Self {
+        Self {
+            rpc: RpcClient,
+            rpc_url: url,
+        }
     }
 
     #[cfg(test)]
-    pub fn client_mut(&mut self) -> &mut HyperRpcClient {
-        &mut self.client
+    pub fn set_rpc_url(&mut self, url: Url) {
+        self.rpc_url = url;
     }
 }
 
 #[wasm_export]
 impl RaindexClient {
     #[wasm_export(js_name = "getLocalDbClient", preserve_js_class)]
-    pub fn get_local_db_client(
-        &self,
-        chain_id: u32,
-        api_token: String,
-    ) -> Result<LocalDb, RaindexError> {
-        LocalDb::new(chain_id, api_token).map_err(RaindexError::LocalDbError)
+    pub fn get_local_db_client(&self, chain_id: u32) -> Result<LocalDb, RaindexError> {
+        let rpcs = self.get_rpc_urls_for_chain(chain_id)?;
+        // TODO: support multiple RPC URLs
+        Ok(LocalDb::new_with_regular_rpc(rpcs[0].clone()))
     }
 }

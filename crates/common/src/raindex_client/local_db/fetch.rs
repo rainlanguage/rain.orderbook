@@ -1,5 +1,5 @@
 use super::{LocalDb, LocalDbError};
-use crate::hyper_rpc::HyperRpcError;
+use crate::rpc_client::{BlockResponse, RpcClientError, RpcEnvelope};
 use alloy::{primitives::U256, sol_types::SolEvent};
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::{
@@ -8,7 +8,6 @@ use rain_orderbook_bindings::{
     },
     OrderBook::MetaV1_2,
 };
-use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
@@ -28,17 +27,6 @@ impl Default for FetchConfig {
             max_retry_attempts: 3,
         }
     }
-}
-
-#[derive(Debug, Deserialize)]
-struct RpcEnvelope<T> {
-    result: Option<T>,
-    error: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Deserialize)]
-struct BlockResponse {
-    timestamp: Option<String>,
 }
 
 impl LocalDb {
@@ -96,7 +84,8 @@ impl LocalDb {
             .map(|(from_block, to_block)| {
                 let topics = topics.clone();
                 let contract_address = contract_address.clone();
-                let client = self.client.clone();
+                let rpc = self.rpc.clone();
+                let url = self.rpc_url.clone();
                 let max_attempts = config.max_retry_attempts;
 
                 async move {
@@ -105,7 +94,8 @@ impl LocalDb {
 
                     let response = retry_with_attempts(
                         || {
-                            client.get_logs(
+                            rpc.get_logs(
+                                &url,
                                 &from_block_hex,
                                 &to_block_hex,
                                 &contract_address,
@@ -120,7 +110,7 @@ impl LocalDb {
                         serde_json::from_str(&response)?;
 
                     if let Some(error) = rpc_envelope.error {
-                        return Err(LocalDbError::Rpc(HyperRpcError::RpcError {
+                        return Err(LocalDbError::Rpc(RpcClientError::RpcError {
                             message: error.to_string(),
                         }));
                     }
@@ -160,11 +150,12 @@ impl LocalDb {
         let results: Vec<Result<(u64, String), LocalDbError>> =
             futures::stream::iter(block_numbers)
                 .map(|block_number| {
-                    let client = self.client.clone();
+                    let rpc = self.rpc.clone();
+                    let url = self.rpc_url.clone();
                     let max_attempts = config.max_retry_attempts;
                     async move {
                         let block_response = retry_with_attempts(
-                            || client.get_block_by_number(block_number),
+                            || rpc.get_block_by_number(&url, block_number),
                             max_attempts,
                         )
                         .await?;
@@ -173,7 +164,7 @@ impl LocalDb {
                             serde_json::from_str(&block_response)?;
 
                         if let Some(error) = rpc_envelope.error {
-                            return Err(LocalDbError::Rpc(HyperRpcError::RpcError {
+                            return Err(LocalDbError::Rpc(RpcClientError::RpcError {
                                 message: error.to_string(),
                             }));
                         }
@@ -254,7 +245,7 @@ async fn retry_with_attempts<T, F, Fut>(
 ) -> Result<T, LocalDbError>
 where
     F: Fn() -> Fut,
-    Fut: std::future::Future<Output = Result<T, HyperRpcError>>,
+    Fut: std::future::Future<Output = Result<T, RpcClientError>>,
 {
     let mut last_error = LocalDbError::MissingField {
         field: "Not attempted".to_string(),
@@ -408,17 +399,19 @@ mod tests {
 
     #[cfg(not(target_family = "wasm"))]
     mod tokio_tests {
-        use super::*;
-        use crate::hyper_rpc::HyperRpcClient;
-        use httpmock::prelude::*;
+        use std::str::FromStr;
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        use super::*;
+        use httpmock::prelude::*;
+        use url::Url;
+
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_retry_with_attempts_success_first_try() {
-            let result = retry_with_attempts(|| async { Ok::<i32, HyperRpcError>(42) }, 3).await;
+            let result = retry_with_attempts(|| async { Ok::<i32, RpcClientError>(42) }, 3).await;
             assert!(result.is_ok());
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_retry_with_attempts_success_after_retry() {
             use std::sync::{Arc, Mutex};
             let attempt_count = Arc::new(Mutex::new(0));
@@ -433,11 +426,11 @@ mod tests {
                         drop(count);
 
                         if current_attempt < 3 {
-                            Err(HyperRpcError::RpcError {
+                            Err(RpcClientError::RpcError {
                                 message: "temporary error".to_string(),
                             })
                         } else {
-                            Ok::<i32, HyperRpcError>(42)
+                            Ok::<i32, RpcClientError>(42)
                         }
                     }
                 }
@@ -448,10 +441,10 @@ mod tests {
             assert_eq!(result.unwrap(), 42);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_retry_with_attempts_all_fail() {
             let operation = || async {
-                Err::<i32, HyperRpcError>(HyperRpcError::RpcError {
+                Err::<i32, RpcClientError>(RpcClientError::RpcError {
                     message: "always fails".to_string(),
                 })
             };
@@ -459,7 +452,7 @@ mod tests {
             let result = retry_with_attempts(operation, 3).await;
             assert!(matches!(
                 result,
-                Err(LocalDbError::Rpc(HyperRpcError::RpcError { ref message })) if message == "always fails"
+                Err(LocalDbError::Rpc(RpcClientError::RpcError { ref message })) if message == "always fails"
             ));
         }
 
@@ -472,22 +465,16 @@ mod tests {
             assert_eq!(config.max_retry_attempts, 3);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_empty_block_numbers() {
-            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::default();
             let config = FetchConfig::default();
             let result = db.fetch_block_timestamps(vec![], &config).await;
             assert!(result.is_ok());
             assert!(result.unwrap().is_empty());
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-        async fn test_fetch_block_timestamps_rpc_client_creation_failure() {
-            let result = LocalDb::new(999999, "test_token".to_string());
-            assert!(matches!(result, Err(LocalDbError::Rpc(_))));
-        }
-
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_single_block_success() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -500,9 +487,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_regular_rpc(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
             let result = db.fetch_block_timestamps(vec![100], &config).await;
@@ -514,7 +499,7 @@ mod tests {
             assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_multiple_blocks_success() {
             let server = MockServer::start();
             let mock1 = server.mock(|when, then| {
@@ -537,9 +522,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
             let result = db.fetch_block_timestamps(vec![100, 101], &config).await;
@@ -553,7 +536,7 @@ mod tests {
             assert_eq!(timestamps.get(&101), Some(&"0x64b8c124".to_string()));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_malformed_json_response() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -563,9 +546,7 @@ mod tests {
                     .body("invalid json");
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
             let result = db.fetch_block_timestamps(vec![100], &config).await;
@@ -574,7 +555,7 @@ mod tests {
             assert!(matches!(result.unwrap_err(), LocalDbError::JsonParse(_)));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_missing_result_field() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -584,9 +565,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 1,
@@ -598,7 +577,7 @@ mod tests {
             assert!(matches!(result.unwrap_err(), LocalDbError::Rpc(_)));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_missing_timestamp_field() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -608,9 +587,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
             let result = db.fetch_block_timestamps(vec![100], &config).await;
@@ -622,7 +599,7 @@ mod tests {
             );
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_concurrent_requests_limit() {
             let server = MockServer::start();
 
@@ -638,9 +615,7 @@ mod tests {
             });
             }
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_concurrent_blocks: 2,
@@ -655,7 +630,7 @@ mod tests {
             assert_eq!(timestamps.len(), 5);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_retry_exhaustion() {
             let server = MockServer::start();
 
@@ -668,9 +643,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error"},"id":1}"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 2,
@@ -681,7 +654,7 @@ mod tests {
             assert!(matches!(result.unwrap_err(), LocalDbError::Rpc(_)));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_retry_with_eventual_success() {
             use std::sync::atomic::{AtomicUsize, Ordering};
             static RETRY_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -712,9 +685,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 3,
@@ -730,9 +701,9 @@ mod tests {
             success_mock.assert_hits(1);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_backfill_missing_timestamps_events_with_existing_timestamps() {
-            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::default();
             let config = FetchConfig::default();
 
             let mut events = json!([
@@ -756,7 +727,7 @@ mod tests {
             assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_backfill_missing_timestamps_events_missing_timestamps() {
             let server = MockServer::start();
             let mock1 = server.mock(|when, then| {
@@ -777,9 +748,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
 
@@ -805,9 +774,9 @@ mod tests {
             assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_backfill_missing_timestamps_invalid_events_format() {
-            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::default();
             let config = FetchConfig::default();
 
             let mut events = json!({
@@ -821,7 +790,7 @@ mod tests {
             ));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_backfill_missing_timestamps_mixed_events() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -833,9 +802,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
 
@@ -867,9 +834,9 @@ mod tests {
             assert_eq!(events_array[2]["blockTimestamp"], "0x64b8c125");
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_backfill_missing_timestamps_block_number_extraction_failures() {
-            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::default();
             let config = FetchConfig::default();
 
             let mut events = json!([
@@ -896,9 +863,9 @@ mod tests {
             assert!(events_array[2].get("blockTimestamp").is_none());
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_backfill_missing_timestamps_empty_events_array() {
-            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::default();
             let config = FetchConfig::default();
 
             let mut events = json!([]);
@@ -910,7 +877,7 @@ mod tests {
             assert!(events_array.is_empty());
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_backfill_missing_timestamps_timestamp_fetch_failures() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -922,9 +889,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error"},"id":1}"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 1,
@@ -943,7 +908,7 @@ mod tests {
             mock.assert();
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_backfill_missing_timestamps_event_mutation_verification() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -955,9 +920,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
 
@@ -989,7 +952,7 @@ mod tests {
             assert_eq!(event["blockNumber"], "0x64");
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_event_sorting_by_block_number() {
             let server = MockServer::start();
 
@@ -1048,9 +1011,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
             let result = db
@@ -1077,7 +1038,7 @@ mod tests {
             assert_eq!(events_array[2]["transactionHash"], "0x789");
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_block_timestamps_concurrency_limit_enforcement() {
             use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -1126,9 +1087,7 @@ mod tests {
                 then.status(200);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_concurrent_blocks: 2,
@@ -1159,7 +1118,7 @@ mod tests {
         );
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_fails_when_chunk_fails_after_retries() {
             let server = MockServer::start();
 
@@ -1180,9 +1139,7 @@ mod tests {
                 .body(r#"{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"Internal error"}}"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 chunk_size: 5000,
@@ -1202,7 +1159,7 @@ mod tests {
             assert!(matches!(result, Err(LocalDbError::Rpc(_))));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events() {
             let server = MockServer::start();
 
@@ -1245,9 +1202,7 @@ mod tests {
                 );
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
 
@@ -1267,7 +1222,7 @@ mod tests {
             assert_eq!(events.as_array().unwrap().len(), 1);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_chunk_size_one() {
             let server = MockServer::start();
 
@@ -1307,9 +1262,7 @@ mod tests {
                 );
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 chunk_size: 1,
@@ -1336,7 +1289,7 @@ mod tests {
             assert!(events_array.iter().any(|e| e["blockNumber"] == "0x7"));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_exact_chunk_boundaries() {
             let server = MockServer::start();
 
@@ -1376,9 +1329,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 chunk_size: 5000,
@@ -1402,7 +1353,7 @@ mod tests {
             assert!(events_array.iter().any(|e| e["blockNumber"] == "0x2af7"));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_realistic_rpc_responses() {
             let server = MockServer::start();
 
@@ -1494,9 +1445,7 @@ mod tests {
                 }"#);
         });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
             let result = db
@@ -1531,7 +1480,7 @@ mod tests {
             assert!(block1 <= block2, "Events should be sorted by block number");
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_retry_with_real_network_failure_scenarios() {
             let server = MockServer::start();
             use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1576,9 +1525,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 3,
@@ -1594,7 +1541,7 @@ mod tests {
             assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_retry_with_actual_timeout_simulation() {
             use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -1637,9 +1584,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 3,
@@ -1656,7 +1601,7 @@ mod tests {
             success_mock.assert_hits(1);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_retry_with_rate_limiting_simulation() {
             let server = MockServer::start();
             use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1702,9 +1647,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 3,
@@ -1720,7 +1663,7 @@ mod tests {
             assert_eq!(timestamps.get(&100), Some(&"0x64b8c123".to_string()));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_empty_rpc_results() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -1737,9 +1680,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
             let result = db
@@ -1757,13 +1698,11 @@ mod tests {
             assert_eq!(events.as_array().unwrap().len(), 0);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_start_block_greater_than_end_block() {
             let server = MockServer::start();
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig::default();
             let result = db
@@ -1780,7 +1719,7 @@ mod tests {
             assert_eq!(events.as_array().unwrap().len(), 0);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_malformed_json_response() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -1797,9 +1736,7 @@ mod tests {
                     .body("invalid json");
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 1,
@@ -1818,7 +1755,7 @@ mod tests {
             assert!(matches!(result.unwrap_err(), LocalDbError::JsonParse(_)));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_missing_result_field() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -1835,9 +1772,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"error":"some error"}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 max_retry_attempts: 1,
@@ -1856,7 +1791,7 @@ mod tests {
             assert!(matches!(result.unwrap_err(), LocalDbError::Rpc(_)));
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_max_concurrent_requests_limit() {
             let server = MockServer::start();
             use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1907,9 +1842,7 @@ mod tests {
                 then.status(200);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 chunk_size: 1000,
@@ -1944,7 +1877,7 @@ mod tests {
         );
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_different_chunk_sizes() {
             let server = MockServer::start();
 
@@ -1983,9 +1916,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config_small = FetchConfig {
                 chunk_size: 10,
@@ -2006,7 +1937,7 @@ mod tests {
             assert!(!events.as_array().unwrap().is_empty());
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_very_large_range() {
             let server = MockServer::start();
 
@@ -2024,9 +1955,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 chunk_size: 1000,
@@ -2048,7 +1977,7 @@ mod tests {
             assert_eq!(events.as_array().unwrap().len(), 0);
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_wrapper_uses_default_config() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
@@ -2086,9 +2015,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let result = db
                 .fetch_events("0x742d35Cc6634C0532925a3b8c17600000000000", 100, 105)
@@ -2100,7 +2027,7 @@ mod tests {
             assert!(!events.as_array().unwrap().is_empty());
         }
 
-        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        #[tokio::test(flavor = "multi_thread")]
         async fn test_fetch_events_with_config_chunk_size_zero() {
             let server = MockServer::start();
             server.mock(|when, then| {
@@ -2139,9 +2066,7 @@ mod tests {
                     .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
             });
 
-            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = LocalDb::new_with_client(client);
-            db.client_mut().update_rpc_url(server.base_url());
+            let db = LocalDb::new_with_url(Url::from_str(&server.base_url()).unwrap());
 
             let config = FetchConfig {
                 chunk_size: 0,

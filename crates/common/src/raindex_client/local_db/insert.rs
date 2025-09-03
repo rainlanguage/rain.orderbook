@@ -739,10 +739,6 @@ mod tests {
         assert!(sql.contains("0x090a0b0c0d"));
     }
 
-    fn get_local_db_instance() -> LocalDb {
-        LocalDb::new(0, "".to_string()).unwrap()
-    }
-
     #[test]
     fn test_decoded_events_to_sql_complete() {
         let events = json!([
@@ -755,7 +751,7 @@ mod tests {
             create_sample_meta_event()
         ]);
 
-        let result = get_local_db_instance().decoded_events_to_sql(events, 5000000);
+        let result = LocalDb::default().decoded_events_to_sql(events, 5000000);
 
         assert!(result.is_ok());
         let sql = result.unwrap();
@@ -845,7 +841,7 @@ mod tests {
     #[test]
     fn test_invalid_input_format_error() {
         let not_array = json!({"not": "an_array"});
-        let result = get_local_db_instance().decoded_events_to_sql(not_array, 1000);
+        let result = LocalDb::default().decoded_events_to_sql(not_array, 1000);
 
         assert!(result.is_err());
         assert!(matches!(
@@ -866,7 +862,7 @@ mod tests {
         });
 
         let events = json!([unknown_event]);
-        let result = get_local_db_instance().decoded_events_to_sql(events, 1000);
+        let result = LocalDb::default().decoded_events_to_sql(events, 1000);
 
         assert!(result.is_ok());
         let sql = result.unwrap();
@@ -878,7 +874,7 @@ mod tests {
     #[test]
     fn test_empty_events_array() {
         let empty_array = json!([]);
-        let result = get_local_db_instance().decoded_events_to_sql(empty_array, 1000);
+        let result = LocalDb::default().decoded_events_to_sql(empty_array, 1000);
 
         assert!(result.is_ok());
         let sql = result.unwrap();
@@ -1257,7 +1253,7 @@ mod tests {
             }
         ]);
 
-        let result = get_local_db_instance().decoded_events_to_sql(events, 1000);
+        let result = LocalDb::default().decoded_events_to_sql(events, 1000);
         assert!(result.is_ok());
 
         let sql = result.unwrap();
@@ -1295,7 +1291,7 @@ mod tests {
             }
         ]);
 
-        let result = get_local_db_instance().decoded_events_to_sql(events_with_invalid_block, 1000);
+        let result = LocalDb::default().decoded_events_to_sql(events_with_invalid_block, 1000);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -1320,8 +1316,7 @@ mod tests {
             }
         ]);
 
-        let result =
-            get_local_db_instance().decoded_events_to_sql(events_without_block_number, 1000);
+        let result = LocalDb::default().decoded_events_to_sql(events_without_block_number, 1000);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
