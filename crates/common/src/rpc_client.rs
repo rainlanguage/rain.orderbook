@@ -1,49 +1,39 @@
+use std::str::FromStr;
 use thiserror::Error;
+use url::Url;
 
-#[derive(Clone, Default)]
-pub struct HyperRpcClient {
-    chain_id: u32,
-    rpc_url: String,
+#[derive(Clone, Default, Debug)]
+pub struct RpcClient;
+
+/// Shared RPC envelope used by JSON-RPC responses
+#[derive(Debug, serde::Deserialize)]
+pub struct RpcEnvelope<T> {
+    pub result: Option<T>,
+    pub error: Option<serde_json::Value>,
 }
 
-impl std::fmt::Debug for HyperRpcClient {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let redacted_url = if let Some(last_slash) = self.rpc_url.rfind('/') {
-            format!("{}/***", &self.rpc_url[..last_slash])
-        } else {
-            "***".to_string()
-        };
-
-        f.debug_struct("HyperRpcClient")
-            .field("chain_id", &self.chain_id)
-            .field("rpc_url", &redacted_url)
-            .finish()
-    }
+#[derive(Debug, serde::Deserialize)]
+pub struct BlockResponse {
+    pub timestamp: Option<String>,
 }
 
-impl HyperRpcClient {
-    pub fn new(chain_id: u32, api_token: String) -> Result<Self, HyperRpcError> {
-        let rpc_url = match chain_id {
-            // TODO: Think about this one
-            0 => "".to_string(),
+impl RpcClient {
+    /// Build a HyperRPC URL from chain id and API token.
+    pub fn build_hyper_url(chain_id: u32, api_token: &str) -> Result<Url, RpcClientError> {
+        let base = match chain_id {
             8453 => "https://base.rpc.hypersync.xyz".to_string(),
             42161 => "https://arbitrum.rpc.hypersync.xyz".to_string(),
-            _ => return Err(HyperRpcError::UnsupportedChainId { chain_id }),
+            _ => return Err(RpcClientError::UnsupportedChainId { chain_id }),
         };
-        Ok(Self {
-            chain_id,
-            rpc_url: format!("{}/{}", rpc_url, api_token),
-        })
+
+        Ok(Url::from_str(&format!("{}/{}", base, api_token))?)
     }
 
-    pub fn get_url(&self) -> &str {
-        &self.rpc_url
-    }
-
-    pub async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
+    /// Fetch the latest block number from the given `rpc_url`.
+    pub async fn get_latest_block_number(&self, rpc_url: &Url) -> Result<u64, RpcClientError> {
         let client = reqwest::Client::new();
         let response = client
-            .post(self.get_url())
+            .post(rpc_url.to_string())
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
                 "jsonrpc": "2.0",
@@ -57,9 +47,8 @@ impl HyperRpcClient {
 
         let json: serde_json::Value = response.json().await?;
 
-        // Check for RPC errors
         if let Some(error) = json.get("error") {
-            return Err(HyperRpcError::RpcError {
+            return Err(RpcClientError::RpcError {
                 message: format!("Getting latest block: {}", error),
             });
         }
@@ -72,21 +61,23 @@ impl HyperRpcClient {
             }
         }
 
-        Err(HyperRpcError::MissingField {
+        Err(RpcClientError::MissingField {
             field: "result".to_string(),
         })
     }
 
+    /// Fetch logs from the given `rpc_url`.
     pub async fn get_logs(
         &self,
+        rpc_url: &Url,
         from_block: &str,
         to_block: &str,
         address: &str,
         topics: Option<Vec<Option<Vec<String>>>>,
-    ) -> Result<String, HyperRpcError> {
+    ) -> Result<String, RpcClientError> {
         let client = reqwest::Client::new();
         let response = client
-            .post(self.get_url())
+            .post(rpc_url.to_string())
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
                 "jsonrpc": "2.0",
@@ -102,13 +93,11 @@ impl HyperRpcClient {
             .send()
             .await?
             .error_for_status()?;
-
         let text = response.text().await?;
 
-        // Check for RPC errors in the response
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
             if let Some(error) = json.get("error") {
-                return Err(HyperRpcError::RpcError {
+                return Err(RpcClientError::RpcError {
                     message: error.to_string(),
                 });
             }
@@ -117,12 +106,17 @@ impl HyperRpcClient {
         Ok(text)
     }
 
-    pub async fn get_block_by_number(&self, block_number: u64) -> Result<String, HyperRpcError> {
+    /// Fetch a block by number from the given `rpc_url`.
+    pub async fn get_block_by_number(
+        &self,
+        rpc_url: &Url,
+        block_number: u64,
+    ) -> Result<String, RpcClientError> {
         let client = reqwest::Client::new();
         let block_hex = format!("0x{:x}", block_number);
 
         let response = client
-            .post(self.get_url())
+            .post(rpc_url.to_string())
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
                 "jsonrpc": "2.0",
@@ -136,10 +130,9 @@ impl HyperRpcClient {
 
         let text = response.text().await?;
 
-        // Check for RPC errors in the response
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
             if let Some(error) = json.get("error") {
-                return Err(HyperRpcError::RpcError {
+                return Err(RpcClientError::RpcError {
                     message: error.to_string(),
                 });
             }
@@ -147,15 +140,10 @@ impl HyperRpcClient {
 
         Ok(text)
     }
-
-    #[cfg(all(test, not(target_family = "wasm")))]
-    pub(crate) fn update_rpc_url(&mut self, new_url: String) {
-        self.rpc_url = new_url;
-    }
 }
 
 #[derive(Debug, Error)]
-pub enum HyperRpcError {
+pub enum RpcClientError {
     #[error("Unsupported chain ID: {chain_id}")]
     UnsupportedChainId { chain_id: u32 },
 
@@ -170,6 +158,9 @@ pub enum HyperRpcError {
 
     #[error("Invalid hex format: {0}")]
     HexParseError(#[from] std::num::ParseIntError),
+
+    #[error("URL parse error: {0}")]
+    UrlParseError(#[from] url::ParseError),
 }
 
 #[cfg(all(test, not(target_family = "wasm")))]
@@ -178,20 +169,18 @@ mod tests {
     use httpmock::MockServer;
 
     #[test]
-    fn test_new_with_supported_chain_id() {
-        let client = HyperRpcClient::new(8453, "test_token".to_string());
-        assert!(client.is_ok());
-        let client = client.unwrap();
-        assert_eq!(client.chain_id, 8453);
+    fn test_build_hyper_url_supported_chain_id() {
+        let url = RpcClient::build_hyper_url(8453, "test_token");
+        assert!(url.is_ok());
+        assert!(url.unwrap().to_string().contains("test_token"));
     }
 
     #[test]
-    fn test_new_with_unsupported_chain_id() {
-        let client = HyperRpcClient::new(9999, "test_token".to_string());
-        assert!(client.is_err());
+    fn test_build_hyper_url_unsupported_chain_id() {
+        let url = RpcClient::build_hyper_url(9999, "test_token");
         assert!(matches!(
-            client.unwrap_err(),
-            HyperRpcError::UnsupportedChainId { chain_id: 9999 }
+            url.unwrap_err(),
+            RpcClientError::UnsupportedChainId { chain_id: 9999 }
         ));
     }
 
@@ -207,10 +196,10 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": "0x1b4"}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_latest_block_number().await;
+        let client = RpcClient;
+        let result = client
+            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 436);
 
@@ -227,14 +216,14 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Invalid params"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_latest_block_number().await;
+        let client = RpcClient;
+        let result = client
+            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
+            .await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            HyperRpcError::RpcError { .. }
+            RpcClientError::RpcError { .. }
         ));
 
         mock.assert();
@@ -250,14 +239,14 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_latest_block_number().await;
+        let client = RpcClient;
+        let result = client
+            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
+            .await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            HyperRpcError::MissingField { .. }
+            RpcClientError::MissingField { .. }
         ));
 
         mock.assert();
@@ -273,14 +262,30 @@ mod tests {
                 .json_body_partial(r#"{"params": [{"fromBlock": "0x1", "toBlock": "0x2", "address": "0x123", "topics": [["0xabc"]]}]}"#);
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": [{"blockNumber": "0x1", "logIndex": "0x0"}]}"#);
+                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": [{
+                    "address": "0x123",
+                    "topics": ["0xabc"],
+                    "data": "0x",
+                    "blockNumber": "0x1",
+                    "transactionHash": "0xdead",
+                    "transactionIndex": "0x0",
+                    "blockHash": "0xbeef",
+                    "logIndex": "0x0",
+                    "removed": false
+                }]}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
+        let client = RpcClient;
         let topics = Some(vec![Some(vec!["0xabc".to_string()])]);
-        let result = client.get_logs("0x1", "0x2", "0x123", topics).await;
+        let result = client
+            .get_logs(
+                &Url::from_str(&server.base_url()).unwrap(),
+                "0x1",
+                "0x2",
+                "0x123",
+                topics,
+            )
+            .await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(response.contains("blockNumber"));
@@ -301,10 +306,16 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": []}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_logs("0x1", "0x2", "0x123", None).await;
+        let client = RpcClient;
+        let result = client
+            .get_logs(
+                &Url::from_str(&server.base_url()).unwrap(),
+                "0x1",
+                "0x2",
+                "0x123",
+                None,
+            )
+            .await;
         assert!(result.is_ok());
 
         mock.assert();
@@ -320,14 +331,20 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "Query returned more than 10000 results"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_logs("0x1", "0x1000", "0x123", None).await;
+        let client = RpcClient;
+        let result = client
+            .get_logs(
+                &Url::from_str(&server.base_url()).unwrap(),
+                "0x1",
+                "0x1000",
+                "0x123",
+                None,
+            )
+            .await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            HyperRpcError::RpcError { .. }
+            RpcClientError::RpcError { .. }
         ));
 
         mock.assert();
@@ -346,10 +363,10 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0x1b4", "timestamp": "0x6234567"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_block_by_number(436).await;
+        let client = RpcClient;
+        let result = client
+            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), 436)
+            .await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(response.contains("0x1b4"));
@@ -369,10 +386,10 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0xff"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_block_by_number(255).await;
+        let client = RpcClient;
+        let result = client
+            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), 255)
+            .await;
         assert!(result.is_ok());
 
         mock.assert();
@@ -388,14 +405,14 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Invalid block number"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_block_by_number(999999999).await;
+        let client = RpcClient;
+        let result = client
+            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), 999999999)
+            .await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            HyperRpcError::RpcError { .. }
+            RpcClientError::RpcError { .. }
         ));
 
         mock.assert();
@@ -413,14 +430,14 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": "0xGGG"}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_latest_block_number().await;
+        let client = RpcClient;
+        let result = client
+            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
+            .await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            HyperRpcError::HexParseError(_)
+            RpcClientError::HexParseError(_)
         ));
 
         mock.assert();
@@ -438,14 +455,14 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": 436}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_latest_block_number().await;
+        let client = RpcClient;
+        let result = client
+            .get_latest_block_number(&Url::from_str(&server.base_url()).unwrap())
+            .await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            HyperRpcError::MissingField { .. }
+            RpcClientError::MissingField { .. }
         ));
 
         mock.assert();
@@ -464,10 +481,10 @@ mod tests {
                 .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0x0", "timestamp": "0x0"}}"#);
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_block_by_number(0).await;
+        let client = RpcClient;
+        let result = client
+            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), 0)
+            .await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(response.contains("0x0"));
@@ -491,10 +508,10 @@ mod tests {
                 .body(format!(r#"{{"jsonrpc": "2.0", "id": 1, "result": {{"number": "{}", "timestamp": "0x123456"}}}}"#, expected_hex));
         });
 
-        let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-        client.update_rpc_url(server.base_url());
-
-        let result = client.get_block_by_number(large_block).await;
+        let client = RpcClient;
+        let result = client
+            .get_block_by_number(&Url::from_str(&server.base_url()).unwrap(), large_block)
+            .await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(response.contains(expected_hex));
