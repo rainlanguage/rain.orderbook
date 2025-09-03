@@ -129,12 +129,13 @@ impl RaindexClient {
             }
         };
 
-        let local_db = LocalDb::new(
-            orderbook_cfg.network.chain_id,
-            "41e50e69-6da4-4462-b70e-c7b5e7b70f05".to_string(),
-        )?;
+        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone());
 
-        let latest_block = match local_db.client.get_latest_block_number().await {
+        let latest_block = match local_db
+            .rpc_client()
+            .get_latest_block_number(local_db.rpc_urls())
+            .await
+        {
             Ok(block) => block,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -206,9 +207,7 @@ mod tests {
         };
         use std::cell::RefCell;
         use std::rc::Rc;
-        use wasm_bindgen::{prelude::*, JsCast};
         use wasm_bindgen_test::*;
-        use wasm_bindgen_utils::prelude::*;
 
         #[wasm_bindgen_test]
         async fn test_check_required_tables_all_exist() {
@@ -473,14 +472,12 @@ mod tests {
                 .sync_database(db_callback, status_callback, address)
                 .await;
 
-            // Should eventually fail due to unsupported chain id in HyperRpcClient
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::Rpc(err) => {
-                    let msg = err.to_string();
-                    assert!(msg.contains("Unsupported chain ID"));
+                LocalDbError::CustomError(msg) => {
+                    assert!(msg.contains("Failed to get latest block"));
                 }
-                other => panic!("Expected Rpc UnsupportedChainId, got {other:?}"),
+                other => panic!("Expected CustomError from latest block fetch, got {other:?}"),
             }
 
             let msgs = captured.borrow();

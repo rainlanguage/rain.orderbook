@@ -667,15 +667,11 @@ mod test_helpers {
         })
     }
 
-    fn get_local_db_instance() -> LocalDb {
-        LocalDb::new(0, "".to_string()).unwrap()
-    }
-
     #[test]
     fn test_add_order_v3_decode() {
         let event_data = create_add_order_v3_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -750,7 +746,7 @@ mod test_helpers {
     fn test_take_order_v3_decode() {
         let event_data = create_take_order_v3_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -810,7 +806,7 @@ mod test_helpers {
     fn test_withdraw_v2_decode() {
         let event_data = create_withdraw_v2_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -847,7 +843,7 @@ mod test_helpers {
     fn test_deposit_v2_decode() {
         let event_data = create_deposit_v2_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -876,7 +872,7 @@ mod test_helpers {
     fn test_remove_order_v3_decode() {
         let event_data = create_remove_order_v3_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -919,7 +915,7 @@ mod test_helpers {
     fn test_clear_v3_decode() {
         let event_data = create_clear_v3_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -974,7 +970,7 @@ mod test_helpers {
     fn test_after_clear_v2_decode() {
         let event_data = create_after_clear_v2_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -1007,7 +1003,7 @@ mod test_helpers {
     fn test_meta_v1_2_decode() {
         let event_data = create_meta_v1_2_event_data();
         let events_array = serde_json::json!([event_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -1037,7 +1033,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([invalid_event]);
-        let result = get_local_db_instance().decode_events(events_array);
+        let result = LocalDb::default().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1056,7 +1052,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([malformed_event]);
-        let result = get_local_db_instance().decode_events(events_array);
+        let result = LocalDb::default().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1076,7 +1072,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([unknown_event]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -1096,7 +1092,7 @@ mod test_helpers {
     #[test]
     fn test_empty_events_array() {
         let empty_array = serde_json::json!([]);
-        let decoded_result = get_local_db_instance().decode_events(empty_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(empty_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 0);
@@ -1105,7 +1101,7 @@ mod test_helpers {
     #[test]
     fn test_invalid_json_structure() {
         let not_array = serde_json::json!({"not": "an_array"});
-        let result = get_local_db_instance().decode_events(not_array);
+        let result = LocalDb::default().decode_events(not_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1123,7 +1119,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([event_no_topics]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 0);
@@ -1141,7 +1137,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([event_empty_topics]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 0);
@@ -1158,7 +1154,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([event_no_data]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 0);
@@ -1172,7 +1168,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([event_minimal]);
-        let result = get_local_db_instance().decode_events(events_array);
+        let result = LocalDb::default().decode_events(events_array);
 
         assert!(result.is_err());
     }
@@ -1193,7 +1189,7 @@ mod test_helpers {
         minimal_event.as_object_mut().unwrap().remove("logIndex");
 
         let events_array = serde_json::json!([minimal_event]);
-        let decoded_result = get_local_db_instance().decode_events(events_array).unwrap();
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
 
         let decoded_events = decoded_result.as_array().unwrap();
         assert_eq!(decoded_events.len(), 1);
@@ -1239,7 +1235,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = get_local_db_instance().decode_events(events_array);
+        let result = LocalDb::default().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1282,7 +1278,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = get_local_db_instance().decode_events(events_array);
+        let result = LocalDb::default().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1325,7 +1321,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = get_local_db_instance().decode_events(events_array);
+        let result = LocalDb::default().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1368,7 +1364,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = get_local_db_instance().decode_events(events_array);
+        let result = LocalDb::default().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -1412,7 +1408,7 @@ mod test_helpers {
         });
 
         let events_array = serde_json::json!([clear_event]);
-        let result = get_local_db_instance().decode_events(events_array);
+        let result = LocalDb::default().decode_events(events_array);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
