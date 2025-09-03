@@ -75,10 +75,10 @@ describe('SelectToken', () => {
 
 	it('renders dropdown button when tokens are available', () => {
 		const { getByText } = render(SelectToken, mockProps);
-		expect(getByText('Select a token...')).toBeInTheDocument();
+		expect(getByText('Select token...')).toBeInTheDocument();
 	});
 
-	it('calls setSelectToken and updates token info when input changes', async () => {
+	it('calls setSelectToken when token is selected from modal', async () => {
 		const user = userEvent.setup();
 		const mockGuiWithNoToken = {
 			...mockGui,
@@ -87,25 +87,30 @@ describe('SelectToken', () => {
 
 		(useGui as Mock).mockReturnValue(mockGuiWithNoToken);
 
-		const { getByTestId, getByRole } = render(SelectToken, {
+		const { getByText } = render(SelectToken, {
 			...mockProps
 		});
 
-		const customButton = getByTestId('custom-mode-button');
-		await user.click(customButton);
+		// Click the select token button to open modal
+		const selectButton = getByText('Select token...');
+		await user.click(selectButton);
 
-		const input = getByRole('textbox');
+		// Wait for modal to open and tokens to load
+		await waitFor(() => {
+			expect(getByText('Test Token 1')).toBeInTheDocument();
+		});
 
-		await userEvent.clear(input);
-		await user.paste('0x456');
+		// Click on the first token
+		const firstToken = getByText('Test Token 1');
+		await user.click(firstToken);
 
 		await waitFor(() => {
-			expect(mockGuiWithNoToken.setSelectToken).toHaveBeenCalledWith('input', '0x456');
+			expect(mockGuiWithNoToken.setSelectToken).toHaveBeenCalledWith('input', '0x1234567890123456789012345678901234567890');
 		});
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
-	it('shows error message for invalid address, and removes the selectToken', async () => {
+	it('shows error message for invalid token selection', async () => {
 		const user = userEvent.setup();
 		const mockGuiWithError = {
 			...mockGui,
@@ -118,12 +123,29 @@ describe('SelectToken', () => {
 			...mockProps
 		});
 
-		const customButton = screen.getByTestId('custom-mode-button');
-		await user.click(customButton);
+		// Click the select token button to open modal
+		const selectButton = screen.getByText('Select token...');
+		await user.click(selectButton);
 
-		const input = screen.getByRole('textbox');
-		await userEvent.clear(input);
-		await user.paste('invalid');
+		// Wait for modal to open
+		await waitFor(() => {
+			expect(screen.getByText('Search tokens or enter address (0x...)')).toBeInTheDocument();
+		});
+
+		// Enter a custom address
+		const searchInput = screen.getByPlaceholderText('Search tokens or enter address (0x...)');
+		await user.type(searchInput, '0x1234567890123456789012345678901234567890');
+
+		// Wait for custom token to appear
+		await waitFor(() => {
+			expect(screen.getByText('Custom Token')).toBeInTheDocument();
+		});
+
+		// Click on the custom token
+		const customToken = screen.getByText('Custom Token');
+		await user.click(customToken);
+
+		// Should show error
 		await waitFor(() => {
 			expect(screen.getByTestId('error')).toBeInTheDocument();
 		});
@@ -139,89 +161,63 @@ describe('SelectToken', () => {
 
 		const user = userEvent.setup();
 
-		const { getByRole, getByTestId } = render(SelectToken, {
+		const { getByText } = render(SelectToken, {
 			...mockProps
 		});
 
-		const customButton = getByTestId('custom-mode-button');
-		await user.click(customButton);
+		// Click the select token button to open modal
+		const selectButton = getByText('Select token...');
+		await user.click(selectButton);
 
-		const input = getByRole('textbox');
-		await userEvent.clear(input);
-		await user.paste('invalid');
+		// Wait for modal to open and tokens to load
+		await waitFor(() => {
+			expect(getByText('Test Token 1')).toBeInTheDocument();
+		});
+
+		// Click on the first token
+		const firstToken = getByText('Test Token 1');
+		await user.click(firstToken);
+
 		await waitFor(() => {
 			expect(mockGuiWithTokenSet.setSelectToken).toHaveBeenCalled();
 			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 		});
 	});
 
-	it('calls onSelectTokenSelect after input changes', async () => {
+	it('calls onSelectTokenSelect after token selection', async () => {
 		const user = userEvent.setup();
-		const { getByRole, getByTestId } = render(SelectToken, mockProps);
+		const { getByText } = render(SelectToken, mockProps);
 
-		const customButton = getByTestId('custom-mode-button');
-		await user.click(customButton);
+		// Click the select token button to open modal
+		const selectButton = getByText('Select token...');
+		await user.click(selectButton);
 
-		const input = getByRole('textbox');
+		// Wait for modal to open and tokens to load
+		await waitFor(() => {
+			expect(getByText('Test Token 1')).toBeInTheDocument();
+		});
 
-		await userEvent.clear(input);
-		await user.paste('0x456');
+		// Click on the first token
+		const firstToken = getByText('Test Token 1');
+		await user.click(firstToken);
 
 		await waitFor(() => {
 			expect(mockProps.onSelectTokenSelect).toHaveBeenCalled();
 		});
 	});
 
-	describe('Dropdown Mode', () => {
+	describe('Token Selection', () => {
 		beforeEach(() => {
 			(useGui as Mock).mockReturnValue(mockGui);
 		});
 
-		it('shows dropdown and custom mode buttons when tokens are available', () => {
+		it('shows TokenSelectionModal component', () => {
 			render(SelectToken, mockProps);
 
-			expect(screen.getByTestId('dropdown-mode-button')).toBeInTheDocument();
-			expect(screen.getByTestId('custom-mode-button')).toBeInTheDocument();
+			expect(screen.getByText('Select token...')).toBeInTheDocument();
 		});
 
-		it('shows dropdown mode as active by default', () => {
-			render(SelectToken, mockProps);
-
-			const dropdownButton = screen.getByTestId('dropdown-mode-button');
-			const customButton = screen.getByTestId('custom-mode-button');
-
-			expect(dropdownButton).toHaveClass('border-blue-300');
-			expect(customButton).not.toHaveClass('border-blue-300');
-		});
-
-		it('switches to custom mode when custom button is clicked', async () => {
-			const user = userEvent.setup();
-			render(SelectToken, mockProps);
-
-			const customButton = screen.getByTestId('custom-mode-button');
-			await user.click(customButton);
-
-			expect(customButton).toHaveClass('border-blue-300');
-			expect(screen.getByTestId('dropdown-mode-button')).not.toHaveClass('border-blue-300');
-		});
-
-		it('shows TokenSelectionModal component in dropdown mode', () => {
-			render(SelectToken, mockProps);
-
-			expect(screen.getByText('Select a token...')).toBeInTheDocument();
-		});
-
-		it('shows custom input in custom mode', async () => {
-			const user = userEvent.setup();
-			render(SelectToken, mockProps);
-
-			const customButton = screen.getByTestId('custom-mode-button');
-			await user.click(customButton);
-
-			expect(screen.getByPlaceholderText('Enter token address (0x...)')).toBeInTheDocument();
-		});
-
-		it('clears state when switching from dropdown to custom mode', async () => {
+		it('handles token selection from modal', async () => {
 			const user = userEvent.setup();
 			const mockGuiNoToken = {
 				...mockGui,
@@ -234,52 +230,8 @@ describe('SelectToken', () => {
 				...mockProps
 			});
 
-			const dropdownButton = screen.getByText('Select a token...');
-			await user.click(dropdownButton);
-
-			const firstToken = screen.getByText('Test Token 1');
-			await user.click(firstToken);
-
-			const customButton = screen.getByTestId('custom-mode-button');
-			await user.click(customButton);
-
-			const customInput = screen.getByPlaceholderText('Enter token address (0x...)');
-			expect(customInput).toHaveValue('');
-
-			expect(mockGuiNoToken.unsetSelectToken).toHaveBeenCalledWith('input');
-		});
-
-		it('clears state when switching from custom to dropdown mode', async () => {
-			const user = userEvent.setup();
-			render(SelectToken, mockProps);
-
-			const customButton = screen.getByTestId('custom-mode-button');
-			await user.click(customButton);
-
-			const customInput = screen.getByPlaceholderText('Enter token address (0x...)');
-			await user.type(customInput, '0x1234567890123456789012345678901234567890');
-
-			const dropdownButton = screen.getByTestId('dropdown-mode-button');
-			await user.click(dropdownButton);
-
-			expect(mockGui.unsetSelectToken).toHaveBeenCalledWith('input');
-		});
-
-		it('handles token selection from dropdown', async () => {
-			const user = userEvent.setup();
-			const mockGuiNoToken = {
-				...mockGui,
-				getTokenInfo: vi.fn().mockResolvedValue({ value: null })
-			} as unknown as DotrainOrderGui;
-
-			(useGui as Mock).mockReturnValue(mockGuiNoToken);
-
-			render(SelectToken, {
-				...mockProps
-			});
-
-			const dropdownButton = screen.getByText('Select a token...');
-			await user.click(dropdownButton);
+			const selectButton = screen.getByText('Select token...');
+			await user.click(selectButton);
 
 			const secondToken = screen.getByText('Another Token');
 			await user.click(secondToken);
