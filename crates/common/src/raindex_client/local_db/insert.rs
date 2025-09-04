@@ -90,13 +90,14 @@ fn generate_deposit_sql(event: &Value) -> Result<String, InsertError> {
     let sender = get_string_field(decoded_data, "sender")?;
     let token = get_string_field(decoded_data, "token")?;
     let vault_id = get_string_field(decoded_data, "vault_id")?;
+    let deposit_amount = get_string_field(decoded_data, "deposit_amount")?;
     let deposit_amount_uint256 = get_string_field(decoded_data, "deposit_amount_uint256")?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256
+        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}');\n",
+        block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256
     ));
 
     Ok(sql)
@@ -437,6 +438,7 @@ mod tests {
                 "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
                 "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
                 "vault_id": "0x258",
+                "deposit_amount": "0x0",
                 "deposit_amount_uint256": "0xfa0"
             }
         })

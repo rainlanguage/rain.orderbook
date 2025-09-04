@@ -15,6 +15,7 @@ CREATE TABLE deposits (
     sender TEXT NOT NULL,
     token TEXT NOT NULL,
     vault_id TEXT NOT NULL,
+    deposit_amount TEXT NOT NULL,
     deposit_amount_uint256 TEXT NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );

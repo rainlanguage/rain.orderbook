@@ -4,6 +4,7 @@ use alloy::{
     hex,
     sol_types::{SolEvent, SolValue},
 };
+use rain_math_float::Float; // TODO: token-specific decimals in Float conversion
 use rain_orderbook_bindings::{
     IOrderBookV5::{
         AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3,
@@ -247,12 +248,18 @@ fn decode_deposit_v2(data_str: &str) -> Result<serde_json::Value, DecodeError> {
     let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
 
     match DepositV2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(serde_json::json!({
-            "sender": format!("0x{:x}", decoded.0),
-            "token": format!("0x{:x}", decoded.1),
-            "vault_id": format!("0x{:x}", decoded.2),
-            "deposit_amount_uint256": format!("0x{:x}", decoded.3)
-        })),
+        Ok(decoded) => {
+            // TODO: use actual token decimals instead of fixed 18.
+            let deposit_float = Float::from_fixed_decimal(decoded.3, 18)
+                .map_err(|e| DecodeError::AbiDecode(format!("Float conversion failed: {}", e)))?;
+            Ok(serde_json::json!({
+                "sender": format!("0x{:x}", decoded.0),
+                "token": format!("0x{:x}", decoded.1),
+                "vault_id": format!("0x{:x}", decoded.2),
+                "deposit_amount": deposit_float.as_hex(),
+                "deposit_amount_uint256": format!("0x{:x}", decoded.3)
+            }))
+        }
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
