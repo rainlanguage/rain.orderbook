@@ -231,13 +231,13 @@ fn generate_take_order_sql(event: &Value) -> Result<String, InsertError> {
 
     let input_io_index = hex_to_decimal(get_string_field(config, "input_io_index")?)?;
     let output_io_index = hex_to_decimal(get_string_field(config, "output_io_index")?)?;
-    let input_amount = get_string_field(decoded_data, "input")?;
-    let output_amount = get_string_field(decoded_data, "output")?;
+    let input_amount = get_string_field(decoded_data, "taker_input")?;
+    let output_amount = get_string_field(decoded_data, "taker_output")?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, input, output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
+        "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, taker_input, taker_output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
         block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, input_amount, output_amount
     ));
 
