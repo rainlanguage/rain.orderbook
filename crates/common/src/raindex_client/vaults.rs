@@ -9,8 +9,11 @@ use crate::{
     utils::amount_formatter::format_amount_u256,
     withdraw::WithdrawArgs,
 };
-use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
+use alloy::{
+    hex::encode_prefixed,
+    primitives::{Address, Bytes, B256, U256},
+};
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
@@ -1254,22 +1257,29 @@ impl RaindexVault {
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
         let balance = Float::from_hex(&vault.balance)?;
-        let formatted_balance = balance.format18()?;
+        let formatted_balance = balance.format()?;
 
         Ok(Self {
             raindex_client,
             chain_id,
             vault_type,
-            id: Bytes::from_str("vault.id")?,
+            // TODO: Needs updating
+            id: Bytes::from_str(&encode_prefixed(format!(
+                "{}-{}",
+                vault.vault_id, vault.token
+            )))?,
             owner: Address::from_str(&vault.owner)?,
             vault_id: U256::from_str(&vault.vault_id)?,
             balance,
             formatted_balance,
             token: RaindexVaultToken {
                 chain_id,
-                id: "vault.token".to_string(),
+                // TODO: Needs updating
+                id: "0x01".to_string(),
                 address: Address::from_str(&vault.token)?,
+                // TODO: Needs updating
                 name: Some("vault.token_name".to_string()),
+                // TODO: Needs updating
                 symbol: Some("vault.token_symbol".to_string()),
                 decimals: 18,
             },

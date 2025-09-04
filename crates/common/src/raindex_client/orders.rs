@@ -1,3 +1,4 @@
+use super::local_db::query::fetch_orders::LocalDbOrder;
 use super::local_db::query::fetch_vault::LocalDbVault;
 use super::local_db::query::LocalDbQuery;
 use super::*;
@@ -507,6 +508,8 @@ impl RaindexClient {
         #[wasm_export(param_description = "JavaScript function to execute database queries")]
         db_callback: js_sys::Function,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let raindex_client = Arc::new(RwLock::new(self.clone()));
+
         let local_db_orders = LocalDbQuery::fetch_orders(
             &db_callback,
             local_db::query::fetch_orders::FetchOrdersFilter::All,
@@ -522,14 +525,15 @@ impl RaindexClient {
             let output_vaults =
                 LocalDbQuery::fetch_vaults_for_io_string(&db_callback, &local_db_order.outputs)
                     .await?;
+
             let order = RaindexOrder::try_from_local_db(
-                Arc::new(RwLock::new(self.clone())),
+                raindex_client.clone(),
                 chain_id,
                 local_db_order.clone(),
                 input_vaults,
                 output_vaults,
             )?;
-            orders.push(order);
+            orders.push(order.clone());
         }
 
         Ok(orders)
@@ -741,7 +745,7 @@ impl RaindexOrder {
     pub fn try_from_local_db(
         raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
-        order: local_db::query::fetch_orders::LocalDbOrder,
+        order: LocalDbOrder,
         inputs: Vec<LocalDbVault>,
         outputs: Vec<LocalDbVault>,
     ) -> Result<Self, RaindexError> {
@@ -753,36 +757,34 @@ impl RaindexOrder {
         Ok(Self {
             raindex_client: raindex_client.clone(),
             chain_id,
+            // TODO: Needs updating
             id: Bytes::from_str("0x01")?,
-            order_bytes: Bytes::from_str("order.order_bytes")?,
+            // TODO: Needs updating
+            order_bytes: Bytes::from_str("0x01")?,
             order_hash: Bytes::from_str(&order.order_hash)?,
             owner: Address::from_str(&order.owner)?,
-            inputs: {
-                inputs
-                    .iter()
-                    .map(|v| {
-                        RaindexVault::try_from_local_db(
-                            raindex_client.clone(),
-                            chain_id,
-                            v.clone(),
-                            Some(RaindexVaultType::Input),
-                        )
-                    })
-                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
-            },
-            outputs: {
-                outputs
-                    .iter()
-                    .map(|v| {
-                        RaindexVault::try_from_local_db(
-                            raindex_client.clone(),
-                            chain_id,
-                            v.clone(),
-                            Some(RaindexVaultType::Output),
-                        )
-                    })
-                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
-            },
+            inputs: inputs
+                .iter()
+                .map(|v| {
+                    RaindexVault::try_from_local_db(
+                        raindex_client.clone(),
+                        chain_id,
+                        v.clone(),
+                        Some(RaindexVaultType::Input),
+                    )
+                })
+                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
+            outputs: outputs
+                .iter()
+                .map(|v| {
+                    RaindexVault::try_from_local_db(
+                        raindex_client.clone(),
+                        chain_id,
+                        v.clone(),
+                        Some(RaindexVaultType::Output),
+                    )
+                })
+                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
             orderbook: Address::from_str(&order.orderbook_address)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
