@@ -1,10 +1,10 @@
 use super::*;
+use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
 use rain_orderbook_app_settings::{
     gui::GuiDepositCfg,
     order::{OrderIOCfg, VaultType},
     token::TokenCfg,
 };
-use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 use wasm_bindgen::JsValue;
@@ -32,9 +32,10 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
-        let dotrain_bytes = bincode::serialize(&dotrain)?;
-        let hash = Sha256::digest(dotrain_bytes);
+    #[wasm_export(skip)]
+    pub fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
+        let dotrain_source = DotrainSourceV1(dotrain);
+        let hash = dotrain_source.hash();
         Ok(URL_SAFE.encode(hash))
     }
 
@@ -413,8 +414,6 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTWvCQBDN2tJS6EkKPRX6A7okm9XqCj14CE0RKgUpXnWzGsm6G5P1-0_4kyU6GzE4h3lv9r2dGabmnOMJcDxT0UxNMXFs3AESz6uafAQPnlMySx4AjU6Eore63XZeV89Q5XousBJmrbPE_nsDjI1JO64rNR_JWOem0_baTTdLOV5mcl84UJGRHR0Mwheg9cb_5lBJqI4eQR4UO7xTdG_r3i-tOZe42pWUAwhjqKr6peoz9gGUJnLXa03CYcvwUNM-_v5ZRIu80dzGAc8-Axb2ycrviuSv-_VqLyGk4AafmuJIpFJv50KZI9yAnizIAQAA";
-
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
         let mut gui = initialize_gui_with_select_tokens().await;
@@ -449,19 +448,67 @@ mod tests {
 
         let state = gui.serialize_state().unwrap();
         assert!(!state.is_empty());
-        assert_eq!(state, SERIALIZED_STATE);
+
+        // Check that we can restore the state
+        let restored_gui = DotrainOrderGui::new_from_state(get_yaml(), state, None)
+            .await
+            .unwrap();
+
+        // Check that the restored GUI has the expected values
+        assert!(restored_gui
+            .is_select_token_set("token3".to_string())
+            .unwrap());
+        assert_eq!(restored_gui.get_deposits().unwrap()[0].amount, "100");
     }
 
     #[wasm_bindgen_test]
     async fn test_new_from_state() {
-        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
+        // Creating state
+        let mut gui = initialize_gui_with_select_tokens().await;
+
+        gui.add_record_to_yaml(
+            "token3".to_string(),
+            "some-network".to_string(),
+            "0x1234567890123456789012345678901234567890".to_string(),
+            "18".to_string(),
+            "Token 3".to_string(),
+            "TKN3".to_string(),
+        );
+        gui.set_deposit("token3".to_string(), "100".to_string())
+            .await
+            .unwrap();
+        gui.set_field_value("binding-1".to_string(), "100".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("199".to_string()),
+        )
+        .unwrap();
+        gui.set_vault_id(
+            VaultType::Output,
+            "token2".to_string(),
+            Some("299".to_string()),
+        )
+        .unwrap();
+
+        let serialized_state = gui.serialize_state().unwrap();
+
+        // Restoring state
+        let restored_gui = DotrainOrderGui::new_from_state(get_yaml(), serialized_state, None)
             .await
             .unwrap();
 
-        assert!(gui.is_select_token_set("token3".to_string()).unwrap());
-        assert_eq!(gui.get_deposits().unwrap()[0].amount, "100");
+        assert!(restored_gui
+            .is_select_token_set("token3".to_string())
+            .unwrap());
+        assert_eq!(restored_gui.get_deposits().unwrap()[0].amount, "100");
         assert_eq!(
-            gui.get_field_value("binding-1".to_string()).unwrap(),
+            restored_gui
+                .get_field_value("binding-1".to_string())
+                .unwrap(),
             FieldValue {
                 field: "binding-1".to_string(),
                 value: "100".to_string(),
@@ -469,21 +516,23 @@ mod tests {
             }
         );
         assert_eq!(
-            gui.get_field_value("binding-2".to_string()).unwrap(),
+            restored_gui
+                .get_field_value("binding-2".to_string())
+                .unwrap(),
             FieldValue {
                 field: "binding-2".to_string(),
                 value: "0".to_string(),
                 is_preset: true,
             }
         );
-        let vault_ids = gui.get_vault_ids().unwrap().0;
+        let vault_ids = restored_gui.get_vault_ids().unwrap().0;
         assert_eq!(
-            vault_ids.get("input").unwrap()["token1"],
-            Some(U256::from(199))
+            vault_ids.get("input").unwrap().get("token1").unwrap(),
+            &Some(U256::from(199))
         );
         assert_eq!(
-            vault_ids.get("output").unwrap()["token2"],
-            Some(U256::from(299))
+            vault_ids.get("output").unwrap().get("token2").unwrap(),
+            &Some(U256::from(299))
         );
     }
 
@@ -495,13 +544,14 @@ mod tests {
             description: Test
         "#;
 
-        let err = DotrainOrderGui::new_from_state(
-            dotrain.to_string(),
-            SERIALIZED_STATE.to_string(),
-            None,
-        )
-        .await
-        .unwrap_err();
+        // Creating state with one dotrain
+        let gui = initialize_gui_with_select_tokens().await;
+        let serialized_state = gui.serialize_state().unwrap();
+
+        // Restoring state with another dotrain
+        let err = DotrainOrderGui::new_from_state(dotrain.to_string(), serialized_state, None)
+            .await
+            .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),
