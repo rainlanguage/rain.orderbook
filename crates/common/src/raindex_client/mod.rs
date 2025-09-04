@@ -181,6 +181,8 @@ impl RaindexClient {
                         name: label,
                     }],
                 );
+            } else {
+                return Err(RaindexError::MetaboardNotConfigured(net.chain_id));
             }
         }
         if result.is_empty() {
@@ -910,6 +912,115 @@ deployers:
 
             let err = client.get_metaboards_by_chain_id(None).unwrap_err();
             assert!(matches!(err, RaindexError::NoMetaboardsConfigured));
+        }
+
+        // Helper function to create YAML with partial metaboard coverage
+        fn get_test_yaml_partial_metaboards() -> String {
+            format!(
+                r#"
+version: {spec_version}
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+        label: Ethereum Mainnet
+        network-id: 1
+        currency: ETH
+    polygon:
+        rpcs:
+            - https://polygon.rpc
+        chain-id: 137
+        label: Polygon Mainnet
+        network-id: 137
+        currency: MATIC
+    arbitrum:
+        rpcs:
+            - https://arbitrum.rpc
+        chain-id: 42161
+        label: Arbitrum One
+        network-id: 42161
+        currency: ETH
+subgraphs:
+    mainnet: https://api.thegraph.com/subgraphs/name/mainnet
+    polygon: https://api.thegraph.com/subgraphs/name/polygon
+    arbitrum: https://api.thegraph.com/subgraphs/name/arbitrum
+metaboards:
+    mainnet: https://api.thegraph.com/subgraphs/name/mainnet-meta
+    # Note: polygon and arbitrum don't have metaboards configured
+orderbooks:
+    mainnet-orderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+        subgraph: mainnet
+        label: Primary Orderbook
+    polygon-orderbook:
+        address: 0x0987654321098765432109876543210987654321
+        network: polygon
+        subgraph: polygon
+        label: Polygon Orderbook
+    arbitrum-orderbook:
+        address: 0x1111111111111111111111111111111111111111
+        network: arbitrum
+        subgraph: arbitrum
+        label: Arbitrum Orderbook
+tokens:
+    weth:
+        network: mainnet
+        address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+        decimals: 18
+        label: Wrapped Ether
+        symbol: WETH
+deployers:
+    mainnet-deployer:
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+        network: mainnet
+"#,
+                spec_version = SpecVersion::current()
+            )
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_metaboards_by_chain_id_missing_single_chain() {
+            let client =
+                RaindexClient::new(vec![get_test_yaml_partial_metaboards()], None).unwrap();
+
+            // Request metaboard for chain 137 (polygon), which has no metaboard configured
+            let err = client
+                .get_metaboards_by_chain_id(Some(vec![137]))
+                .unwrap_err();
+            assert!(matches!(err, RaindexError::MetaboardNotConfigured(137)));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_metaboards_by_chain_id_mixed_existing_and_missing() {
+            let client =
+                RaindexClient::new(vec![get_test_yaml_partial_metaboards()], None).unwrap();
+
+            // Request metaboards for chain 1 (mainnet - exists) and 137 (polygon - missing)
+            let err = client
+                .get_metaboards_by_chain_id(Some(vec![1, 137]))
+                .unwrap_err();
+            assert!(matches!(err, RaindexError::MetaboardNotConfigured(137)));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_metaboards_by_chain_id_partial_coverage_success() {
+            let client =
+                RaindexClient::new(vec![get_test_yaml_partial_metaboards()], None).unwrap();
+
+            // Request metaboard for chain 1 (mainnet), which has metaboard configured
+            let result = client.get_metaboards_by_chain_id(Some(vec![1])).unwrap();
+
+            assert_eq!(result.len(), 1);
+            assert!(result.contains_key(&1));
+
+            let metaboard = &result[&1][0];
+            assert_eq!(
+                metaboard.url,
+                Url::parse("https://api.thegraph.com/subgraphs/name/mainnet-meta").unwrap()
+            );
+            assert_eq!(metaboard.name, "Ethereum Mainnet");
         }
     }
 }
