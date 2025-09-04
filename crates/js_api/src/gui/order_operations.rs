@@ -492,26 +492,38 @@ impl DotrainOrderGui {
             })
             .collect();
 
-        // Convert select_tokens to ShortenedTokenCfg format directly
+        // Prefer the resolved tokens from the current deployment (captures user selections)
         let select_tokens: BTreeMap<String, ShortenedTokenCfg> = {
             let mut result = BTreeMap::new();
-            let deployment_select_tokens = GuiCfg::parse_select_tokens(
+            let deployment = self.get_current_deployment()?;
+            let network_key = deployment.deployment.order.network.key.clone();
+
+            // Build a key->address map from inputs/outputs that reflects current state
+            let mut resolved: HashMap<String, Address> = HashMap::new();
+            for io in deployment
+                .deployment
+                .order
+                .inputs
+                .iter()
+                .chain(deployment.deployment.order.outputs.iter())
+            {
+                if let Some(tok) = &io.token {
+                    resolved.insert(tok.key.clone(), tok.address);
+                }
+            }
+
+            // Emit only the tokens configured for selection in this deployment
+            if let Some(st) = GuiCfg::parse_select_tokens(
                 self.dotrain_order.dotrain_yaml().documents,
                 &self.selected_deployment,
-            )?;
-
-            if let Some(st) = deployment_select_tokens {
-                for select_token in st {
-                    if let Ok(token) = self
-                        .dotrain_order
-                        .orderbook_yaml()
-                        .get_token(&select_token.key)
-                    {
+            )? {
+                for s in st {
+                    if let Some(addr) = resolved.get(&s.key) {
                         result.insert(
-                            select_token.key,
+                            s.key,
                             ShortenedTokenCfg {
-                                network: token.network.key.clone(),
-                                address: token.address,
+                                network: network_key.clone(),
+                                address: *addr,
                             },
                         );
                     }
@@ -520,22 +532,20 @@ impl DotrainOrderGui {
             result
         };
 
-        // Convert vault_ids from IOVaultIds to BTreeMap<String, Option<String>>
-        let vault_ids_map = self.get_vault_ids()?;
-        let vault_ids: BTreeMap<String, Option<String>> = vault_ids_map
-            .0
-            .into_iter()
-            .flat_map(|(io_type, vault_list)| {
-                vault_list
-                    .into_iter()
-                    .enumerate()
-                    .map(move |(index, (_token_key, vault_id))| {
-                        let key = format!("{}_{}", io_type, index);
-                        let value = vault_id.map(|v| format!("0x{:x}", v));
-                        (key, value)
-                    })
-            })
-            .collect();
+        // Convert vault_ids to "{io_type}_{index}" keys where index matches IO position
+        // in the order's inputs/outputs arrays for deterministic reconstruction.
+        let deployment = self.get_current_deployment()?;
+        let mut vault_ids: BTreeMap<String, Option<String>> = BTreeMap::new();
+        for (i, input) in deployment.deployment.order.inputs.iter().enumerate() {
+            let key = format!("input_{}", i);
+            let value = input.vault_id.map(|v| format!("0x{:x}", v));
+            vault_ids.insert(key, value);
+        }
+        for (i, output) in deployment.deployment.order.outputs.iter().enumerate() {
+            let key = format!("output_{}", i);
+            let value = output.vault_id.map(|v| format!("0x{:x}", v));
+            vault_ids.insert(key, value);
+        }
 
         // Convert field values to ValueCfg with normalized value and optional preset ID
         let field_values: BTreeMap<String, ValueCfg> = self
