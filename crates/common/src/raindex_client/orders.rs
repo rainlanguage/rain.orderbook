@@ -1,3 +1,5 @@
+use super::local_db::query::fetch_vault::LocalDbVault;
+use super::local_db::query::LocalDbQuery;
 use super::*;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
@@ -490,6 +492,49 @@ impl RaindexClient {
         Ok(orders)
     }
 
+    #[wasm_export(
+        js_name = "getOrdersLocalDb",
+        unchecked_return_type = "RaindexOrder[]",
+        preserve_js_class
+    )]
+    pub async fn get_orders_local_db(
+        &self,
+        #[wasm_export(
+            js_name = "chainId",
+            param_description = "The blockchain network ID to query orders from"
+        )]
+        chain_id: u32,
+        #[wasm_export(param_description = "JavaScript function to execute database queries")]
+        db_callback: js_sys::Function,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let local_db_orders = LocalDbQuery::fetch_orders(
+            &db_callback,
+            local_db::query::fetch_orders::FetchOrdersFilter::All,
+        )
+        .await?;
+
+        let mut orders: Vec<RaindexOrder> = Vec::new();
+
+        for local_db_order in &local_db_orders {
+            let input_vaults =
+                LocalDbQuery::fetch_vaults_for_io_string(&db_callback, &local_db_order.inputs)
+                    .await?;
+            let output_vaults =
+                LocalDbQuery::fetch_vaults_for_io_string(&db_callback, &local_db_order.outputs)
+                    .await?;
+            let order = RaindexOrder::try_from_local_db(
+                Arc::new(RwLock::new(self.clone())),
+                chain_id,
+                local_db_order.clone(),
+                input_vaults,
+                output_vaults,
+            )?;
+            orders.push(order);
+        }
+
+        Ok(orders)
+    }
+
     /// Retrieves a specific order by its hash from a particular blockchain network
     ///
     /// Fetches complete order details including all vault information, metadata, and
@@ -690,6 +735,61 @@ impl RaindexOrder {
             add_events: vec![],
             remove_events: vec![],
             trades: vec![],
+        })
+    }
+
+    pub fn try_from_local_db(
+        raindex_client: Arc<RwLock<RaindexClient>>,
+        chain_id: u32,
+        order: local_db::query::fetch_orders::LocalDbOrder,
+        inputs: Vec<LocalDbVault>,
+        outputs: Vec<LocalDbVault>,
+    ) -> Result<Self, RaindexError> {
+        let rainlang = order
+            .meta
+            .as_ref()
+            .and_then(|meta| meta.try_decode_rainlangsource().ok());
+
+        Ok(Self {
+            raindex_client: raindex_client.clone(),
+            chain_id,
+            id: Bytes::from_str("0x01")?,
+            order_bytes: Bytes::from_str("order.order_bytes")?,
+            order_hash: Bytes::from_str(&order.order_hash)?,
+            owner: Address::from_str(&order.owner)?,
+            inputs: {
+                inputs
+                    .iter()
+                    .map(|v| {
+                        RaindexVault::try_from_local_db(
+                            raindex_client.clone(),
+                            chain_id,
+                            v.clone(),
+                            Some(RaindexVaultType::Input),
+                        )
+                    })
+                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
+            },
+            outputs: {
+                outputs
+                    .iter()
+                    .map(|v| {
+                        RaindexVault::try_from_local_db(
+                            raindex_client.clone(),
+                            chain_id,
+                            v.clone(),
+                            Some(RaindexVaultType::Output),
+                        )
+                    })
+                    .collect::<Result<Vec<RaindexVault>, RaindexError>>()?
+            },
+            orderbook: Address::from_str(&order.orderbook_address)?,
+            active: order.active,
+            timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
+            meta: order.meta.map(|meta| Bytes::from_str(&meta)).transpose()?,
+            rainlang,
+            transaction: None,
+            trades_count: order.trade_count as u16,
         })
     }
 }

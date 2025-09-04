@@ -1246,6 +1246,51 @@ impl RaindexVault {
             balance_changes: vec![],
         })
     }
+
+    pub fn try_from_local_db(
+        raindex_client: Arc<RwLock<RaindexClient>>,
+        chain_id: u32,
+        vault: local_db::query::fetch_vault::LocalDbVault,
+        vault_type: Option<RaindexVaultType>,
+    ) -> Result<Self, RaindexError> {
+        let balance = Float::from_hex(&vault.balance)?;
+        let formatted_balance = balance.format18()?;
+
+        Ok(Self {
+            raindex_client,
+            chain_id,
+            vault_type,
+            id: Bytes::from_str("vault.id")?,
+            owner: Address::from_str(&vault.owner)?,
+            vault_id: U256::from_str(&vault.vault_id)?,
+            balance,
+            formatted_balance,
+            token: RaindexVaultToken {
+                chain_id,
+                id: "vault.token".to_string(),
+                address: Address::from_str(&vault.token)?,
+                name: Some("vault.token_name".to_string()),
+                symbol: Some("vault.token_symbol".to_string()),
+                decimals: 18,
+            },
+            orderbook: Address::from_str(&vault.orderbook_address)?,
+            orders_as_inputs: vec![],
+            orders_as_outputs: vec![],
+            // orders_as_inputs: vault.input_order_hashes.map(|hashes| {
+            //     hashes
+            //         .into_iter()
+            //         .map(|hash| RaindexOrderAsIO {
+            //             order_hash: Bytes::from_str(&hash).unwrap_or_default(),
+            //         })
+            //         .collect()
+            // }),
+            // orders_as_outputs: vault
+            //     .orders_as_output
+            //     .iter()
+            //     .map(|order| RaindexOrderAsIO::try_from(order.clone()))
+            //     .collect::<Result<Vec<RaindexOrderAsIO>, RaindexError>>()?,
+        })
+    }
 }
 
 impl RaindexVaultToken {
