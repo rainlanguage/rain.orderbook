@@ -124,13 +124,15 @@ impl RaindexClient {
         Ok(RaindexClient { orderbook_yaml })
     }
 
+    /// Resolve networks from optional chain_ids.
+    /// Treats `Some([])` the same as `None` (i.e. returns all networks).
     fn resolve_networks(
         &self,
         chain_ids: Option<Vec<u32>>,
     ) -> Result<Vec<NetworkCfg>, RaindexError> {
         match chain_ids {
             Some(ids) if !ids.is_empty() => {
-                let mut networks = Vec::new();
+                let mut networks = Vec::with_capacity(ids.len());
                 for id in ids {
                     networks.push(self.orderbook_yaml.get_network_by_chain_id(id)?);
                 }
@@ -138,7 +140,7 @@ impl RaindexClient {
             }
             Some(_) | None => {
                 let all_nets = self.orderbook_yaml.get_networks()?;
-                let mut networks = Vec::new();
+                let mut networks = Vec::with_capacity(all_nets.len());
                 for network in all_nets.values() {
                     networks.push(network.clone());
                 }
@@ -732,6 +734,37 @@ accounts:
             assert!(err
                 .to_readable_msg()
                 .contains("orderbook with network key: isolated not found"));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_multi_subgraph_args_empty_chain_list() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            // Some([]) should be treated the same as None (return all chains)
+            let args_empty = client.get_multi_subgraph_args(Some(vec![])).unwrap();
+            let args_none = client.get_multi_subgraph_args(None).unwrap();
+
+            assert_eq!(args_empty.len(), 2);
+            assert_eq!(args_none.len(), 2);
+
+            let args_empty_urls: Vec<&str> = args_empty
+                .iter()
+                .map(|(_, arg)| arg[0].url.as_str())
+                .collect();
+            let args_none_urls: Vec<&str> = args_none
+                .iter()
+                .map(|(_, arg)| arg[0].url.as_str())
+                .collect();
+            assert_eq!(args_empty_urls, args_none_urls);
         }
 
         #[wasm_bindgen_test]
