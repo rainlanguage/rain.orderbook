@@ -3,18 +3,18 @@ use super::*;
 const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+
 pub struct LocalDbVault {
-    #[serde(alias = "vault_id")]
+    #[serde(alias = "vaultId")]
     pub vault_id: String,
     pub token: String,
     pub owner: String,
     #[serde(alias = "orderbookAddress")]
     pub orderbook_address: String,
     pub balance: String,
-    #[serde(alias = "input_order_hashes")]
+    #[serde(alias = "inputOrderHashes")]
     pub input_order_hashes: Option<String>,
-    #[serde(alias = "output_order_hashes")]
+    #[serde(alias = "outputOrderHashes")]
     pub output_order_hashes: Option<String>,
 }
 
@@ -28,7 +28,7 @@ impl LocalDbQuery {
             .replace("'?vault_id'", &format!("'{}'", vault_id))
             .replace("'?token'", &format!("'{}'", token));
 
-        let rows: Vec<LocalDbVault> = LocalDbQuery::execute_query_json(db_callback, &sql).await?;
+        let rows = LocalDbQuery::execute_query_json::<Vec<LocalDbVault>>(db_callback, &sql).await?;
         Ok(rows.into_iter().next())
     }
 
