@@ -179,7 +179,7 @@ pub async fn validate_spec_version(dotrain: String, settings: Vec<String>) -> Co
 #[cfg(test)]
 mod tests {
     use alloy::hex::ToHexExt;
-    use alloy::primitives::{B256, U256};
+    use alloy::primitives::{FixedBytes, B256, U256};
     use alloy::sol_types::SolCall;
     use dotrain::error::ComposeError;
     use httpmock::MockServer;
@@ -827,5 +827,34 @@ _ _: 0 0;
             CommandError::DotrainOrderError(DotrainOrderError::SpecVersionMismatch(ref expected, ref actual))
             if expected == "3" && actual == "4"
         ));
+    }
+
+    #[tokio::test]
+    async fn test_gui_state_to_meta_minimal_success() {
+        use std::collections::BTreeMap;
+
+        // Create a minimal DotrainGuiStateV1
+        let minimal_gui_state = DotrainGuiStateV1 {
+            selected_deployment: "test-deployment".to_string(),
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            vault_ids: BTreeMap::new(),
+            dotrain_hash: FixedBytes::ZERO,
+            select_tokens: BTreeMap::new(),
+        };
+
+        let result = gui_state_to_meta(Some(minimal_gui_state)).unwrap();
+
+        // Assert that meta is Some and contains a single RainMetaDocumentV1Item
+        assert!(result.is_some());
+        let meta_vec = result.unwrap();
+        assert_eq!(meta_vec.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_gui_state_to_meta_none() {
+        let result = gui_state_to_meta(None).unwrap();
+        // Assert that meta is None when no gui_state is provided
+        assert!(result.is_none());
     }
 }
