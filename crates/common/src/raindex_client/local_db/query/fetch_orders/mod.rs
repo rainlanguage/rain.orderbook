@@ -1,4 +1,5 @@
 use super::*;
+use crate::raindex_client::local_db::bool_from_int_or_bool;
 
 const QUERY: &str = include_str!("query.sql");
 
@@ -27,6 +28,7 @@ pub struct LocalDbOrder {
     pub outputs: Option<String>,
     #[serde(alias = "tradeCount")]
     pub trade_count: u64,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub active: bool,
     pub meta: Option<String>,
 }

@@ -38,7 +38,9 @@ impl LocalDbQuery {
         if let Some(s) = io {
             for part in s.split(',') {
                 let mut segs = part.split(':');
-                if let (Some(idx), Some(vault_id), Some(token)) = (segs.next(), segs.next(), segs.next()) {
+                if let (Some(idx), Some(vault_id), Some(token)) =
+                    (segs.next(), segs.next(), segs.next())
+                {
                     if let Ok(index) = idx.parse::<usize>() {
                         items.push((index, vault_id.to_string(), token.to_string()));
                     }
@@ -169,7 +171,8 @@ mod tests {
                 output_order_hashes: None,
             };
             let json_data = serde_json::to_string(&vec![sample.clone()]).unwrap();
-            let callback = crate::raindex_client::local_db::query::tests::create_success_callback(&json_data);
+            let callback =
+                crate::raindex_client::local_db::query::tests::create_success_callback(&json_data);
 
             let io = Some("1:0x01:0xaaa,0:0x02:0xbbb".into());
             let result = LocalDbQuery::fetch_vaults_for_io_string(&callback, &io).await;
