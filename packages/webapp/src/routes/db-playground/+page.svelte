@@ -180,6 +180,37 @@
 		}
 	}
 
+	// Fetch all orders using local DB via raindexClient
+	async function fetchAllOrders() {
+		if (!db?.value) {
+			error = 'Database not initialized';
+			return;
+		}
+
+		isLoading = true;
+		error = '';
+		queryResults = null;
+
+		try {
+			const queryFn = db.value.query.bind(db.value);
+			// raindexClient.getOrdersLocalDb(chainId, dbCallback)
+			const result: any = await raindexClient.getOrdersLocalDb(42161, queryFn);
+			if (result && typeof result === 'object' && 'error' in result) {
+				// Handle WasmEncodedResult-like shape
+				// @ts-ignore - optional chaining for msg if present
+				error = result.error?.msg ?? 'Error fetching orders';
+			} else if (result && typeof result === 'object' && 'value' in result) {
+				queryResults = (result as any).value;
+			} else {
+				queryResults = result;
+			}
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		} finally {
+			isLoading = false;
+		}
+	}
+
 	onDestroy(() => {
 		stopAutoSync();
 	});
@@ -281,6 +312,23 @@
 							size="sm"
 						>
 							Clear All Tables
+						</Button>
+					</div>
+				</div>
+
+				<!-- Order Management Section -->
+				<div class="mb-6">
+					<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+						Order Management
+					</h4>
+					<div class="flex flex-wrap gap-2">
+						<Button
+							on:click={fetchAllOrders}
+							disabled={isLoading}
+							color="blue"
+							size="sm"
+						>
+							Fetch All Orders
 						</Button>
 					</div>
 				</div>
