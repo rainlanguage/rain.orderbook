@@ -4,6 +4,7 @@ use alloy::primitives::hex::FromHexError;
 use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::num::ParseIntError;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
@@ -29,6 +30,7 @@ pub struct OrderbookCfg {
     pub subgraph: Arc<SubgraphCfg>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub label: Option<String>,
+    pub deployment_block: u64,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderbookCfg);
@@ -36,6 +38,12 @@ impl_wasm_traits!(OrderbookCfg);
 impl OrderbookCfg {
     pub fn validate_address(address: &str) -> Result<Address, ParseOrderbookConfigSourceError> {
         Address::from_str(address).map_err(ParseOrderbookConfigSourceError::AddressParseError)
+    }
+
+    pub fn validate_deployment_block(value: &str) -> Result<u64, ParseOrderbookConfigSourceError> {
+        value
+            .parse::<u64>()
+            .map_err(ParseOrderbookConfigSourceError::DeploymentBlockParseError)
     }
 
     pub fn parse_network_key(
@@ -130,6 +138,22 @@ impl YamlParsableHash for OrderbookCfg {
 
                     let label = optional_string(orderbook_yaml, "label");
 
+                    let deployment_block_str = require_string(
+                        orderbook_yaml,
+                        Some("deployment-block"),
+                        Some(location.clone()),
+                    )?;
+                    let deployment_block = OrderbookCfg::validate_deployment_block(
+                        &deployment_block_str,
+                    )
+                    .map_err(|e| YamlError::Field {
+                        kind: FieldErrorKind::InvalidValue {
+                            field: "deployment-block".to_string(),
+                            reason: e.to_string(),
+                        },
+                        location: location.clone(),
+                    })?;
+
                     let orderbook = OrderbookCfg {
                         document: document.clone(),
                         key: orderbook_key.clone(),
@@ -137,6 +161,7 @@ impl YamlParsableHash for OrderbookCfg {
                         network: Arc::new(network.clone()),
                         subgraph: Arc::new(subgraph.clone()),
                         label,
+                        deployment_block,
                     };
 
                     if orderbooks.contains_key(&orderbook_key) {
@@ -170,6 +195,7 @@ impl Default for OrderbookCfg {
             network: Arc::new(NetworkCfg::default()),
             subgraph: Arc::new(SubgraphCfg::default()),
             label: None,
+            deployment_block: 0,
         }
     }
 }
@@ -180,6 +206,7 @@ impl PartialEq for OrderbookCfg {
             && self.network == other.network
             && self.subgraph == other.subgraph
             && self.label == other.label
+            && self.deployment_block == other.deployment_block
     }
 }
 
@@ -191,6 +218,8 @@ pub enum ParseOrderbookConfigSourceError {
     NetworkNotFoundError(String),
     #[error("Subgraph not found: {0}")]
     SubgraphNotFoundError(String),
+    #[error("Failed to parse deployment block: {0}")]
+    DeploymentBlockParseError(ParseIntError),
 }
 
 impl ParseOrderbookConfigSourceError {
@@ -202,6 +231,8 @@ impl ParseOrderbookConfigSourceError {
                 format!("The network '{}' specified for this orderbook was not found in your YAML configuration. Please define this network or use an existing one.", network),
             ParseOrderbookConfigSourceError::SubgraphNotFoundError(subgraph) =>
                 format!("The subgraph '{}' specified for this orderbook was not found in your YAML configuration. Please define this subgraph or use an existing one.", subgraph),
+            ParseOrderbookConfigSourceError::DeploymentBlockParseError(err) =>
+                format!("The deployment block in your orderbook configuration must be a valid number: {}", err),
         }
     }
 }
@@ -336,6 +367,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        deployment-block: 12345
 "#;
         let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
@@ -366,6 +398,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        deployment-block: 12345
 "#;
         let yaml_two = r#"
 orderbooks:
@@ -373,6 +406,7 @@ orderbooks:
         address: 0x0987654321098765432109876543210987654321
         network: TestNetwork
         subgraph: TestSubgraph
+        deployment-block: 67890
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
@@ -407,6 +441,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        deployment-block: 12345
 "#;
         let yaml_two = r#"
 orderbooks:
@@ -414,6 +449,7 @@ orderbooks:
         address: 0x0987654321098765432109876543210987654321
         network: TestNetwork
         subgraph: TestSubgraph
+        deployment-block: 67890
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
@@ -434,10 +470,13 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
+subgraphs:
+    mainnet: https://subgraph.com
 orderbooks:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
+        deployment-block: 12345
 "#;
 
         let documents = vec![get_document(yaml)];
@@ -450,9 +489,12 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
+subgraphs:
+    mainnet: https://subgraph.com
 orderbooks:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
+        deployment-block: 12345
 "#;
         let documents = vec![get_document(yaml)];
         let network_key = OrderbookCfg::parse_network_key(documents, "mainnet").unwrap();
@@ -521,6 +563,204 @@ orderbooks:
         assert_eq!(
             error.to_readable_msg(),
             "Field 'orderbooks' in root must be a map"
+        );
+    }
+
+    #[test]
+    fn test_deployment_block_missing() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("deployment-block".to_string()),
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'deployment-block' in orderbook 'TestOrderbook'"
+        );
+    }
+
+    #[test]
+    fn test_deployment_block_valid_values() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook1:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: 0
+    TestOrderbook2:
+        address: 0x0987654321098765432109876543210987654321
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: 18446744073709551615
+    TestOrderbook3:
+        address: 0x1111111111111111111111111111111111111111
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: 12345678
+"#;
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        assert_eq!(orderbooks.len(), 3);
+        assert_eq!(
+            orderbooks.get("TestOrderbook1").unwrap().deployment_block,
+            0
+        );
+        assert_eq!(
+            orderbooks.get("TestOrderbook2").unwrap().deployment_block,
+            18446744073709551615
+        );
+        assert_eq!(
+            orderbooks.get("TestOrderbook3").unwrap().deployment_block,
+            12345678
+        );
+    }
+
+    #[test]
+    fn test_deployment_block_negative_number() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: -1
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "deployment-block".to_string(),
+                    reason: "Failed to parse deployment block: invalid digit found in string"
+                        .to_string(),
+                },
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_deployment_block_too_large() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: 18446744073709551616
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "deployment-block".to_string(),
+                    reason:
+                        "Failed to parse deployment block: number too large to fit in target type"
+                            .to_string(),
+                },
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_deployment_block_non_numeric() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: abc123
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "deployment-block".to_string(),
+                    reason: "Failed to parse deployment block: invalid digit found in string"
+                        .to_string(),
+                },
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_deployment_block_decimal() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: 123.45
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "deployment-block".to_string(),
+                    reason: "Failed to parse deployment block: invalid digit found in string"
+                        .to_string(),
+                },
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
         );
     }
 }

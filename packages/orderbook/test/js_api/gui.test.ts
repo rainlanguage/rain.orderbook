@@ -136,7 +136,7 @@ gui:
 `;
 
 const dotrain = `
-version: 2
+version: 3
 networks:
     some-network:
         rpcs:
@@ -160,6 +160,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -214,7 +215,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 2
+version: 3
 networks:
     some-network:
         rpcs:
@@ -238,6 +239,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -285,7 +287,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 2
+version: 3
 networks:
     some-network:
         rpcs:
@@ -309,6 +311,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 scenarios:
     some-scenario:
@@ -341,7 +344,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
-version: 2
+version: 3
 gui:
   name: Test
   description: Fixed limit order
@@ -393,10 +396,12 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: remote-network
         subgraph: some-sg
+        deployment-block: 12345
     other-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
+        deployment-block: 12345
 using-tokens-from:
   - http://localhost:8085/remote-tokens
 tokens:
