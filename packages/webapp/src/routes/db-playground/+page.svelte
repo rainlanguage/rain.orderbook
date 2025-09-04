@@ -4,7 +4,7 @@
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from 'sqlite-web';
-	import type { LocalDb } from '@rainlanguage/orderbook';
+	import { Float, type LocalDb } from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
 	let localDbClient = raindexClient.getLocalDbClient(42161).value as LocalDb;
@@ -193,16 +193,33 @@
 
 		try {
 			const queryFn = db.value.query.bind(db.value);
-			// raindexClient.getOrdersLocalDb(chainId, dbCallback)
-			const result: any = await raindexClient.getOrdersLocalDb(42161, queryFn);
-			if (result && typeof result === 'object' && 'error' in result) {
-				// Handle WasmEncodedResult-like shape
-				// @ts-ignore - optional chaining for msg if present
-				error = result.error?.msg ?? 'Error fetching orders';
-			} else if (result && typeof result === 'object' && 'value' in result) {
-				queryResults = (result as any).value;
-			} else {
-				queryResults = result;
+			const result = await raindexClient.getOrdersLocalDb(42161, queryFn);
+			if (result.error) {
+				console.error('Error fetching orders:', result.error);
+				// @ts-ignore
+				error = error.readableMsg;
+				return;
+			}
+			for (let order of result.value) {
+				console.log('Order active:', order.active);
+				console.log('Order hash:', order.orderHash);
+
+				for (let input of order.inputsList.items) {
+					console.log('Input vault id: ', input.vaultId);
+					console.log('Input token: ', input.token.address);
+					console.log('Balance: ', input.balance.format().value);
+					console.log('\n');
+				}
+
+				for (let output of order.outputsList.items) {
+					console.log('Output vault id: ', output.vaultId);
+					console.log('Output token: ', output.token.address);
+					console.log('Balance: ', output.balance.format().value);
+					console.log('\n');
+				}
+
+				console.log('Order trade count:', order.tradesCount);
+				console.log('\n\n');
 			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
@@ -322,12 +339,7 @@
 						Order Management
 					</h4>
 					<div class="flex flex-wrap gap-2">
-						<Button
-							on:click={fetchAllOrders}
-							disabled={isLoading}
-							color="blue"
-							size="sm"
-						>
+						<Button on:click={fetchAllOrders} disabled={isLoading} color="blue" size="sm">
 							Fetch All Orders
 						</Button>
 					</div>
