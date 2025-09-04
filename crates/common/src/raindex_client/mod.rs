@@ -196,7 +196,7 @@ impl RaindexClient {
         chain_ids: Option<Vec<u32>>,
     ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
         let networks = self.resolve_networks(chain_ids)?;
-        let mut result = BTreeMap::new();
+        let mut result: BTreeMap<u32, Vec<MultiSubgraphArgs>> = BTreeMap::new();
         for network in networks {
             let orderbooks = self
                 .orderbook_yaml
@@ -204,7 +204,7 @@ impl RaindexClient {
             for orderbook in orderbooks {
                 result
                     .entry(network.chain_id)
-                    .or_insert(Vec::new())
+                    .or_default()
                     .push(MultiSubgraphArgs {
                         url: orderbook.subgraph.url.clone(),
                         name: network.label.clone().unwrap_or(network.key.clone()),
