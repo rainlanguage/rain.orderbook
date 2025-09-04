@@ -4,7 +4,7 @@
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from 'sqlite-web';
-	import { Float, type LocalDb } from '@rainlanguage/orderbook';
+	import { type LocalDb } from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
 	let localDbClient = raindexClient.getLocalDbClient(42161).value as LocalDb;
@@ -196,7 +196,7 @@
 			const result = await raindexClient.getOrdersLocalDb(42161, queryFn);
 			if (result.error) {
 				console.error('Error fetching orders:', result.error);
-				// @ts-ignore
+				// @ts-expect-error get message
 				error = error.readableMsg;
 				return;
 			}
