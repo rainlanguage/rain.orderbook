@@ -1,5 +1,5 @@
 const REMOTE_SETTINGS_URL =
-  'https://raw.githubusercontent.com/rainlanguage/rain.strategies/929a06c00fe482d39c094ba0359a09cf10a6844d/settings.yaml';
+  'https://raw.githubusercontent.com/rainlanguage/rain.strategies/2d586e523fbe2bdf130e548881dff7f39da4a835/settings.yaml';
 
 export async function loadRemoteSettings() {
   const response = await fetch(REMOTE_SETTINGS_URL);
