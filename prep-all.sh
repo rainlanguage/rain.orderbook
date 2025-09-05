@@ -49,14 +49,14 @@ nix develop -i ${keep[@]} -c rainix-sol-prelude
 nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
 
-# echo "Setting up UI components..."
-# nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
-# nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
+echo "Setting up UI components..."
+nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
+nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
 
 echo "Building packages..."
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
-# nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
-# nix develop -i ${keep[@]} -c bash -c '(npm run build -w tauri-app)'
+nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
+nix develop -i ${keep[@]} -c bash -c '(npm run build -w tauri-app)'
 
 # Temporarily disable command echoing
 set +x
