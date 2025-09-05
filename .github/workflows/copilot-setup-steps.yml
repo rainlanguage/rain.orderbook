@@ -33,6 +33,13 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1G
 
+      - name: Prepare environment files
+        run: |
+          set -euxo pipefail
+          cp -f .env.example .env
+          cp -f packages/webapp/.env.example packages/webapp/.env
+          cp -f .env.example crates/common/.env
+
       - name: Prepare repository dependencies
         run: ./prep-all.sh
         env:
