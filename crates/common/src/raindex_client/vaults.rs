@@ -398,7 +398,7 @@ impl RaindexVault {
             &WithdrawArgs {
                 token: self.token.address,
                 vault_id: B256::from(self.vault_id),
-                target_amount: amount.clone(),
+                target_amount: *amount,
             }
             .get_withdraw_calldata()
             .await?,
@@ -420,7 +420,7 @@ impl RaindexVault {
         let deposit_args = DepositArgs {
             token: self.token.address,
             vault_id: B256::from(self.vault_id),
-            amount: amount.clone(),
+            amount: *amount,
             decimals: self.token.decimals,
         };
 
