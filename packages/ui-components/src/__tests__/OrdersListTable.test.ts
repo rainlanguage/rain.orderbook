@@ -202,25 +202,28 @@ describe('OrdersListTable', () => {
 				...mockVaultsList(),
 				items: [
 					{
-						token: { symbol: 'ETH', address: '0xeth' },
+						id: '0xeth',
+						token: { symbol: 'ETH' },
 						formattedBalance: '1.5'
-					},
+					}
 				]
 			},
 			outputsList: {
 				...mockVaultsList(),
 				items: [
 					{
-						token: { symbol: 'DAI', address: '0xdai' },
+						id: '0xdai',
+						token: { symbol: 'DAI' },
 						formattedBalance: '2500.0'
-					},
+					}
 				]
 			},
 			inputsOutputsList: {
 				...mockVaultsList(),
 				items: [
 					{
-						token: { symbol: 'USDC', address: '0xusdc' },
+						id: '0xusdc',
+						token: { symbol: 'USDC' },
 						formattedBalance: '100.0'
 					}
 				]
