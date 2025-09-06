@@ -169,7 +169,7 @@
 				{#each item.inputsList.items as vault}
 					<VaultCard {vault} />
 				{/each}
-				{#each item.vaultsList.items as vault}
+				{#each item.inputsOutputsList.items as vault}
 					{#if !item.inputsList.items.find((v) => v.token.address === vault.token.address)}
 						<VaultCard {vault} />
 					{/if}
@@ -182,7 +182,7 @@
 				{#each item.outputsList.items as vault}
 					<VaultCard {vault} />
 				{/each}
-				{#each item.vaultsList.items as vault}
+				{#each item.inputsOutputsList.items as vault}
 					{#if !item.outputsList.items.find((v) => v.token.address === vault.token.address)}
 						<VaultCard {vault} />
 					{/if}
