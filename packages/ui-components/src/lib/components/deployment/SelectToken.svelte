@@ -1,11 +1,9 @@
 <script lang="ts">
-	import { Input } from 'flowbite-svelte';
 	import type { GuiSelectTokensCfg, TokenInfo } from '@rainlanguage/orderbook';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import TokenSelectionModal from './TokenSelectionModal.svelte';
 	import TokenBalanceComponent from './TokenBalance.svelte';
 	import type { TokenBalance } from '$lib/types/tokenBalance';
@@ -14,11 +12,9 @@
 	export let onSelectTokenSelect: (key: string) => void;
 	export let tokenBalances: Map<string, TokenBalance> = new Map();
 
-	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
-	let selectionMode: 'dropdown' | 'custom' = 'dropdown';
 	let selectedToken: TokenInfo | null = null;
 
 	const gui = useGui();
@@ -31,7 +27,7 @@
 			}
 			tokenInfo = result.value;
 			if (result.value.address) {
-				inputValue = result.value.address;
+				selectedToken = result.value;
 				onSelectTokenSelect(token.key);
 			}
 		} catch {
@@ -39,26 +35,8 @@
 		}
 	});
 
-	$: if (tokenInfo?.address && inputValue === null) {
-		inputValue = tokenInfo.address;
-	}
-
-	function setMode(mode: 'dropdown' | 'custom') {
-		selectionMode = mode;
-		error = '';
-
-		if (mode === 'custom') {
-			selectedToken = null;
-			tokenInfo = null;
-			inputValue = '';
-			error = '';
-			clearTokenSelection();
-		}
-	}
-
 	function handleTokenSelect(token: TokenInfo) {
 		selectedToken = token;
-		inputValue = token.address;
 		saveTokenSelection(token.address);
 	}
 
@@ -77,11 +55,6 @@
 		}
 	}
 
-	function clearTokenSelection() {
-		gui.unsetSelectToken(token.key);
-		onSelectTokenSelect(token.key);
-	}
-
 	async function getInfoForSelectedToken() {
 		error = '';
 		try {
@@ -90,30 +63,10 @@
 				throw new Error(result.error.msg);
 			}
 			tokenInfo = result.value;
+			selectedToken = result.value;
 			error = '';
 		} catch {
 			return (error = 'No token exists at this address.');
-		}
-	}
-
-	async function handleInput(event: Event) {
-		const currentTarget = event.currentTarget;
-		if (currentTarget instanceof HTMLInputElement) {
-			inputValue = currentTarget.value;
-
-			if (tokenInfo && tokenInfo.address.toLowerCase() !== inputValue.toLowerCase()) {
-				tokenInfo = null;
-				selectedToken = null;
-			}
-
-			if (!inputValue) {
-				error = '';
-				tokenInfo = null;
-				selectedToken = null;
-				return;
-			}
-
-			saveTokenSelection(inputValue);
 		}
 	}
 </script>
@@ -136,36 +89,7 @@
 		{/if}
 	</div>
 
-	<div class="selection-mode flex gap-2">
-		<ButtonSelectOption
-			active={selectionMode === 'dropdown'}
-			buttonText="Select from list"
-			clickHandler={() => setMode('dropdown')}
-			dataTestId="dropdown-mode-button"
-		/>
-		<ButtonSelectOption
-			active={selectionMode === 'custom'}
-			buttonText="Custom address"
-			clickHandler={() => setMode('custom')}
-			dataTestId="custom-mode-button"
-		/>
-	</div>
-
-	{#if selectionMode === 'dropdown'}
-		<TokenSelectionModal {selectedToken} onSelect={handleTokenSelect} />
-	{/if}
-
-	{#if selectionMode === 'custom'}
-		<div class="custom-input">
-			<Input
-				type="text"
-				size="lg"
-				placeholder="Enter token address (0x...)"
-				bind:value={inputValue}
-				on:input={handleInput}
-			/>
-		</div>
-	{/if}
+	<TokenSelectionModal {selectedToken} onSelect={handleTokenSelect} />
 
 	<div class="token-status">
 		{#if checking}
