@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input, Button, Modal } from 'flowbite-svelte';
-	import { SearchOutline, CheckCircleSolid, ChevronDownSolid, ExclamationTriangleSolid } from 'flowbite-svelte-icons';
+	import { SearchOutline, CheckCircleSolid, ChevronDownSolid, ExclamationCircleSolid } from 'flowbite-svelte-icons';
 	import type { TokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
 	import { onMount, tick } from 'svelte';
@@ -169,8 +169,8 @@
 					{#if customToken}
 						<div
 							class="token-item flex cursor-pointer items-center border-b border-gray-100 p-3 bg-yellow-50 border-l-4 border-l-yellow-500 dark:bg-yellow-900/20 dark:border-gray-600"
-							on:click={() => handleTokenSelect(customToken)}
-							on:keydown={(e) => e.key === 'Enter' && handleTokenSelect(customToken)}
+							on:click={() => customToken && handleTokenSelect(customToken)}
+							on:keydown={(e) => e.key === 'Enter' && customToken && handleTokenSelect(customToken)}
 							role="button"
 							tabindex="0"
 						>
@@ -183,7 +183,7 @@
 									<span class="address">{formatAddress(customToken.address)}</span>
 								</div>
 								<div class="flex items-center gap-1 mt-1">
-									<ExclamationTriangleSolid class="h-3 w-3 text-yellow-600" />
+									<ExclamationCircleSolid class="h-3 w-3 text-yellow-600" />
 									<span class="text-xs text-yellow-700 dark:text-yellow-400">Custom token (not in list)</span>
 								</div>
 							</div>
@@ -197,7 +197,7 @@
 					{#if customTokenError}
 						<div class="p-3 bg-red-50 border-l-4 border-l-red-500 dark:bg-red-900/20">
 							<div class="flex items-center gap-2 text-red-700 dark:text-red-400">
-								<ExclamationTriangleSolid class="h-4 w-4" />
+								<ExclamationCircleSolid class="h-4 w-4" />
 								<span class="text-sm">{customTokenError}</span>
 							</div>
 						</div>
