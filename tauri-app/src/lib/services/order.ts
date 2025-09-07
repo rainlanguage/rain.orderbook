@@ -6,9 +6,14 @@ import type {
   RaindexClient,
   RaindexOrder,
   ScenarioCfg,
+  DotrainGuiStateV1,
 } from '@rainlanguage/orderbook';
 
-export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
+export async function orderAdd(
+  dotrain: string,
+  deployment: DeploymentCfg,
+  guiState?: DotrainGuiStateV1,
+) {
   await invoke('order_add', {
     dotrain,
     deployment,
@@ -18,6 +23,7 @@ export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: deployment.order.network.chainId,
     },
+    gui_state: guiState,
   });
 }
 
@@ -41,7 +47,11 @@ export async function orderRemove(raindexClient: RaindexClient, order: RaindexOr
   });
 }
 
-export async function orderAddCalldata(dotrain: string, deployment: DeploymentCfg) {
+export async function orderAddCalldata(
+  dotrain: string,
+  deployment: DeploymentCfg,
+  guiState?: DotrainGuiStateV1,
+) {
   return await invoke('order_add_calldata', {
     dotrain,
     deployment,
@@ -51,6 +61,7 @@ export async function orderAddCalldata(dotrain: string, deployment: DeploymentCf
       derivation_index: undefined,
       chain_id: deployment.order.network.chainId,
     },
+    gui_state: guiState,
   });
 }
 

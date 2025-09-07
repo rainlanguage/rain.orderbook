@@ -3,6 +3,7 @@ use alloy_ethers_typecast::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_math_float::FloatError;
+use rain_metadata;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
     gui::{
@@ -697,6 +698,8 @@ pub enum GuiError {
     AmountFormatterError(#[from] AmountFormatterError),
     #[error(transparent)]
     FloatError(#[from] FloatError),
+    #[error(transparent)]
+    RainMetadataError(#[from] rain_metadata::Error),
 }
 
 impl GuiError {
@@ -784,6 +787,7 @@ impl GuiError {
             GuiError::FloatError(err) => {
                 format!("There was a problem with the float value: {err}")
             }
+            GuiError::RainMetadataError(err) => format!("Rain metadata error: {err}"),
         }
     }
 }

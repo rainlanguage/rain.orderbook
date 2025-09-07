@@ -43,7 +43,7 @@ impl CliOrderAddArgs {
         )?;
         let config_deployment = dotrain_yaml.get_deployment(&self.deployment)?;
 
-        Ok(AddOrderArgs::new_from_deployment(text.clone(), config_deployment.clone()).await?)
+        Ok(AddOrderArgs::new_from_deployment(text, config_deployment, None).await?)
     }
 }
 
@@ -116,6 +116,7 @@ mod tests {
             }],
             deployer: Address::from_str("0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba").unwrap(),
             bindings: HashMap::new(),
+            meta: None,
         };
         assert_eq!(result, expected);
     }
