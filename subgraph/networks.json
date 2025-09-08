@@ -1,8 +1,8 @@
 {
     "arbitrum-one": {
         "OrderBook": {
-            "address": "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
-            "startBlock": 352866209
+            "address": "0x93E7298a2c7d05C151ba4572140b8b52e06792bD",
+            "startBlock": 376964692
         }
     }
 }
