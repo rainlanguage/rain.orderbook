@@ -18,7 +18,7 @@ evm_version = "paris"
 optimizer = true
 # this is a bit low, was set to 1000000 previously but this caused deployment
 # code size cap to be hit.
-optimizer_runs = 9000
+optimizer_runs = 2000
 
 bytecode_hash = "none"
 cbor_metadata = false
