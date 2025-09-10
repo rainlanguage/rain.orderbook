@@ -1,5 +1,8 @@
 name: NPM Packages Release
-on: push
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   release:
