@@ -1180,7 +1180,7 @@ impl RaindexVault {
         let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?;
 
         let balance = Float::from_hex(&vault.balance.0)?;
-        let formatted_balance = balance.format()?,
+        let formatted_balance = balance.format()?;
 
         Ok(Self {
             raindex_client,
