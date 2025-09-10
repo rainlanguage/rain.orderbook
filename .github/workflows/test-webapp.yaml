@@ -51,3 +51,19 @@ jobs:
       - run: nix develop -c npm run test -w @rainlanguage/webapp
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+
+      # check for npm package blacklists pkgs across all packages
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/orderbook
+
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/ui-components
+      
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/webapp
+      
