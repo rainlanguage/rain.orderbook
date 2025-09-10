@@ -1,8 +1,5 @@
 name: NPM Packages Release
-on:
-  push:
-    branches:
-      - main
+on: push
 
 jobs:
   release:
@@ -27,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
 
       - uses: nixbuild/nix-quick-install-action@v30
@@ -61,6 +59,10 @@ jobs:
       - run: nix develop -c rainix-rs-prelude
         working-directory: lib/rain.interpreter/lib/rain.metadata
       - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float
+      - run: nix develop -c rainix-sol-prelude
       - run: nix develop -c rainix-rs-prelude
       - run: nix develop -c raindex-prelude
 
@@ -74,6 +76,8 @@ jobs:
         run: nix develop -c npm run build -w @rainlanguage/ui-components
       - name: Test UI Components
         run: nix develop -c npm run test -w @rainlanguage/ui-components
+
+      - run: exit 1
 
       - name: Git Config
         run: |
