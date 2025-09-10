@@ -75,6 +75,17 @@ jobs:
       - name: Test UI Components
         run: nix develop -c npm run test -w @rainlanguage/ui-components
 
+      # check for npm package blacklists pkgs across all orderbook related packages
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/orderbook
+
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/ui-components
+
       - name: Git Config
         run: |
           git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"

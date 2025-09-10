@@ -98,3 +98,18 @@ jobs:
       - run: rm -rf tauri-app/src-tauri/target/debug tauri-app/src-tauri/target/release
 
       - run: nix develop .#tauri-shell --command tauri-rs-test
+
+      # check for npm package blacklists pkgs across all tauri related packages
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/orderbook
+
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/ui-components
+      
+      - uses: rainlanguage/github-chore/•github/actions/npm-blacklist@main
+        with:
+          working-directory: tauri-app
