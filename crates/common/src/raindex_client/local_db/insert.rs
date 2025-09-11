@@ -525,8 +525,8 @@ mod tests {
                         }
                     ]
                 },
-                "input": "0x3e8",
-                "output": "0x7d0"
+                "taker_input": "0x3e8",
+                "taker_output": "0x7d0"
             }
         })
     }
@@ -966,8 +966,8 @@ mod tests {
                     "output_io_index": "0x0",
                     "signed_context": []
                 },
-                "input": "0x3e8",
-                "output": "0x7d0"
+                "taker_input": "0x3e8",
+                "taker_output": "0x7d0"
             }
         });
 
@@ -1005,8 +1005,8 @@ mod tests {
                         }
                     ]
                 },
-                "input": "0x3e8",
-                "output": "0x7d0"
+                "taker_input": "0x3e8",
+                "taker_output": "0x7d0"
             }
         });
 
@@ -1050,8 +1050,8 @@ mod tests {
             "log_index": "0x4",
             "decoded_data": {
                 "sender": "0x0909090909090909090909090909090909090909",
-                "input": "0x3e8",
-                "output": "0x7d0"
+                "taker_input": "0x3e8",
+                "taker_output": "0x7d0"
             }
         });
 
@@ -1237,6 +1237,7 @@ mod tests {
                     "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
                     "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
                     "vault_id": "0x258",
+                    "deposit_amount": "0x0",
                     "deposit_amount_uint256": "0xfa0"
                 }
             },
@@ -1250,6 +1251,7 @@ mod tests {
                     "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
                     "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
                     "vault_id": "0x258",
+                    "deposit_amount": "0x0",
                     "deposit_amount_uint256": "0xfa0"
                 }
             }

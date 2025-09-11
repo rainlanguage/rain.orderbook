@@ -74,7 +74,9 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::raindex_client::local_db::query::tests::create_success_callback;
+        use crate::raindex_client::local_db::query::tests::{
+            create_sql_capturing_callback, create_success_callback,
+        };
         use std::cell::RefCell;
         use std::rc::Rc;
         use wasm_bindgen_test::*;
@@ -107,28 +109,6 @@ mod tests {
             assert_eq!(data.balance, vault.balance);
             assert_eq!(data.input_order_hashes, vault.input_order_hashes);
             assert_eq!(data.output_order_hashes, vault.output_order_hashes);
-        }
-
-        fn create_sql_capturing_callback(
-            response_json: &str,
-            captured: Rc<RefCell<String>>,
-        ) -> js_sys::Function {
-            let success_result = WasmEncodedResult::Success::<String> {
-                value: response_json.to_string(),
-                error: None,
-            };
-            let js_value = serde_wasm_bindgen::to_value(&success_result).unwrap();
-
-            js_sys::Function::new_with_args(
-                "sql",
-                &format!(
-                    "captured = sql; return {};",
-                    js_sys::JSON::stringify(&js_value)
-                        .unwrap()
-                        .as_string()
-                        .unwrap()
-                ),
-            )
         }
 
         #[wasm_bindgen_test]
