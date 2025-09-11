@@ -1,4 +1,6 @@
 use super::LocalDb;
+use crate::erc20::TokenInfo;
+use alloy::primitives::Address;
 use serde_json::Value;
 
 #[derive(Debug, thiserror::Error)]
@@ -73,6 +75,66 @@ impl LocalDb {
 
         Ok(sql)
     }
+
+    /// Build a SQL transaction that optionally injects `prefix_sql` immediately after BEGIN TRANSACTION.
+    pub fn decoded_events_to_sql_with_prefix(
+        &self,
+        data: Value,
+        end_block: u64,
+        prefix_sql: &str,
+    ) -> Result<String, InsertError> {
+        let base = self.decoded_events_to_sql(data, end_block)?;
+        if prefix_sql.is_empty() {
+            return Ok(base);
+        }
+
+        let marker = "BEGIN TRANSACTION;\n\n";
+        if let Some(pos) = base.find(marker) {
+            let mut out = String::with_capacity(base.len() + prefix_sql.len() + 1);
+            out.push_str(&base[..pos]);
+            out.push_str(marker);
+            out.push_str(prefix_sql);
+            if !prefix_sql.ends_with('\n') {
+                out.push('\n');
+            }
+            out.push_str(&base[pos + marker.len()..]);
+            Ok(out)
+        } else {
+            // Fallback: prepend prefix at the beginning
+            Ok(format!("{}{}", prefix_sql, base))
+        }
+    }
+}
+
+/// Build upsert SQL for erc20_tokens. Only include successfully fetched tokens.
+pub(crate) fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)]) -> String {
+    if tokens.is_empty() {
+        return String::new();
+    }
+
+    let mut sql = String::new();
+    sql.push_str("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES ");
+
+    let mut first = true;
+    for (addr, info) in tokens.iter() {
+        let address_str = format!("0x{:x}", addr);
+        let name = info.name.replace('\'', "''");
+        let symbol = info.symbol.replace('\'', "''");
+        let decimals = info.decimals as u32; // store as INTEGER
+        if !first {
+            sql.push_str(", ");
+        }
+        first = false;
+        sql.push_str(&format!(
+            "({}, '{}', '{}', '{}', {})",
+            chain_id, address_str, name, symbol, decimals
+        ));
+    }
+
+    sql.push_str(
+        " ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;\n",
+    );
+    sql
 }
 
 fn generate_deposit_sql(event: &Value) -> Result<String, InsertError> {
@@ -1326,5 +1388,53 @@ mod tests {
             result.unwrap_err(),
             InsertError::MissingField { .. }
         ));
+    }
+
+    #[test]
+    fn test_generate_erc20_tokens_sql_builder() {
+        let addr1 = Address::from([1u8; 20]);
+        let addr2 = Address::from([2u8; 20]);
+        let tokens = vec![
+            (
+                addr1,
+                TokenInfo {
+                    decimals: 18,
+                    name: "Foo Token".to_string(),
+                    symbol: "FOO".to_string(),
+                },
+            ),
+            (
+                addr2,
+                TokenInfo {
+                    decimals: 6,
+                    name: "Bar's Token".to_string(),
+                    symbol: "B'AR".to_string(),
+                },
+            ),
+        ];
+
+        let sql = generate_erc20_tokens_sql(1, &tokens);
+        assert!(sql.starts_with("INSERT INTO erc20_tokens"));
+        assert!(sql.contains("ON CONFLICT(chain_id, address) DO UPDATE"));
+        assert!(sql.contains("0x0101010101010101010101010101010101010101"));
+        assert!(sql.contains("0x0202020202020202020202020202020202020202"));
+        // Apostrophes should be doubled
+        assert!(sql.contains("Bar''s Token"));
+        assert!(sql.contains("B''AR"));
+    }
+
+    #[test]
+    fn test_decoded_events_to_sql_with_prefix_injection() {
+        let events = serde_json::json!([]);
+        let base = LocalDb::default()
+            .decoded_events_to_sql(events.clone(), 0)
+            .unwrap();
+        assert!(base.starts_with("BEGIN TRANSACTION;\n\n"));
+
+        let prefixed = LocalDb::default()
+            .decoded_events_to_sql_with_prefix(events, 0, "-- prefix sql\n")
+            .unwrap();
+        let expected = "BEGIN TRANSACTION;\n\n-- prefix sql\n";
+        assert!(prefixed.starts_with(expected));
     }
 }
