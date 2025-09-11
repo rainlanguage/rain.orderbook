@@ -90,13 +90,14 @@ fn generate_deposit_sql(event: &Value) -> Result<String, InsertError> {
     let sender = get_string_field(decoded_data, "sender")?;
     let token = get_string_field(decoded_data, "token")?;
     let vault_id = get_string_field(decoded_data, "vault_id")?;
+    let deposit_amount = get_string_field(decoded_data, "deposit_amount")?;
     let deposit_amount_uint256 = get_string_field(decoded_data, "deposit_amount_uint256")?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256
+        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}');\n",
+        block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256
     ));
 
     Ok(sql)
@@ -230,13 +231,13 @@ fn generate_take_order_sql(event: &Value) -> Result<String, InsertError> {
 
     let input_io_index = hex_to_decimal(get_string_field(config, "input_io_index")?)?;
     let output_io_index = hex_to_decimal(get_string_field(config, "output_io_index")?)?;
-    let input_amount = get_string_field(decoded_data, "input")?;
-    let output_amount = get_string_field(decoded_data, "output")?;
+    let input_amount = get_string_field(decoded_data, "taker_input")?;
+    let output_amount = get_string_field(decoded_data, "taker_output")?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, input, output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
+        "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, taker_input, taker_output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
         block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, input_amount, output_amount
     ));
 
@@ -437,6 +438,7 @@ mod tests {
                 "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
                 "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
                 "vault_id": "0x258",
+                "deposit_amount": "0x0",
                 "deposit_amount_uint256": "0xfa0"
             }
         })
@@ -523,8 +525,8 @@ mod tests {
                         }
                     ]
                 },
-                "input": "0x3e8",
-                "output": "0x7d0"
+                "taker_input": "0x3e8",
+                "taker_output": "0x7d0"
             }
         })
     }
@@ -964,8 +966,8 @@ mod tests {
                     "output_io_index": "0x0",
                     "signed_context": []
                 },
-                "input": "0x3e8",
-                "output": "0x7d0"
+                "taker_input": "0x3e8",
+                "taker_output": "0x7d0"
             }
         });
 
@@ -1003,8 +1005,8 @@ mod tests {
                         }
                     ]
                 },
-                "input": "0x3e8",
-                "output": "0x7d0"
+                "taker_input": "0x3e8",
+                "taker_output": "0x7d0"
             }
         });
 
@@ -1048,8 +1050,8 @@ mod tests {
             "log_index": "0x4",
             "decoded_data": {
                 "sender": "0x0909090909090909090909090909090909090909",
-                "input": "0x3e8",
-                "output": "0x7d0"
+                "taker_input": "0x3e8",
+                "taker_output": "0x7d0"
             }
         });
 
@@ -1235,6 +1237,7 @@ mod tests {
                     "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
                     "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
                     "vault_id": "0x258",
+                    "deposit_amount": "0x0",
                     "deposit_amount_uint256": "0xfa0"
                 }
             },
@@ -1248,6 +1251,7 @@ mod tests {
                     "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
                     "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
                     "vault_id": "0x258",
+                    "deposit_amount": "0x0",
                     "deposit_amount_uint256": "0xfa0"
                 }
             }

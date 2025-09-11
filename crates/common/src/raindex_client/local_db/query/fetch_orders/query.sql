@@ -3,13 +3,26 @@ COALESCE(la.order_hash, l.order_hash) AS order_hash,
 l.order_owner AS owner,
 fa.block_timestamp AS block_timestamp,
 fa.block_number AS block_number,
-GROUP_CONCAT(CASE WHEN ios.io_type = 'input' THEN ios.vault_id || ':' || ios.token END) AS inputs,
-GROUP_CONCAT(CASE WHEN ios.io_type = 'output' THEN ios.vault_id || ':' || ios.token END) AS outputs,
+'0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' AS orderbook_address,
+GROUP_CONCAT(CASE WHEN ios.io_type = 'input' THEN ios.io_index || ':' || ios.vault_id || ':' || ios.token END) AS inputs,
+GROUP_CONCAT(CASE WHEN ios.io_type = 'output' THEN ios.io_index || ':' || ios.vault_id || ':' || ios.token END) AS outputs,
 (
     SELECT COUNT(*) FROM take_orders t
     WHERE t.order_owner = l.order_owner AND t.order_nonce = l.order_nonce
-) AS trade_count,
-CASE WHEN l.event_type = 'AddOrderV3' THEN 'active' ELSE 'inactive' END AS status
+)
+    + (
+        SELECT COUNT(*) FROM clear_v3_events c
+        WHERE lower(c.alice_order_hash) = lower(COALESCE(la.order_hash, l.order_hash))
+           OR lower(c.bob_order_hash) = lower(COALESCE(la.order_hash, l.order_hash))
+    ) AS trade_count,
+(l.event_type = 'AddOrderV3') AS active,
+la.transaction_hash AS transaction_hash,
+(
+    SELECT m.meta FROM meta_events m
+    WHERE lower(m.subject) = lower(COALESCE(la.order_hash, l.order_hash))
+    ORDER BY m.block_number DESC, m.log_index DESC
+    LIMIT 1
+) AS meta
 FROM order_events l
 LEFT JOIN (
 SELECT e1.order_owner, e1.order_nonce, e1.transaction_hash, e1.log_index, e1.order_hash
@@ -60,5 +73,6 @@ l.order_owner,
 fa.block_timestamp,
 fa.block_number,
 l.order_nonce,
-l.event_type
+l.event_type,
+la.transaction_hash
 ORDER BY fa.block_timestamp DESC;
