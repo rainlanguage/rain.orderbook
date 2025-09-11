@@ -1,10 +1,20 @@
 use super::{
-    query::{create_tables::REQUIRED_TABLES, LocalDbQuery},
+    insert::generate_erc20_tokens_sql,
+    query::{
+        create_tables::REQUIRED_TABLES, fetch_erc20_tokens_by_addresses::Erc20TokenRow,
+        LocalDbQuery,
+    },
+    tokens::collect_token_addresses,
     *,
 };
+use crate::erc20::{TokenInfo, ERC20};
+use alloy::primitives::Address;
 use flate2::read::GzDecoder;
+use futures::stream::StreamExt;
 use reqwest::Client;
 use std::io::Read;
+use std::str::FromStr;
+use std::time::Duration;
 
 const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/46a8065a2ccbf49e9fc509cbc052cd497feb6bd5/local-db-dump.sql.gz";
 
@@ -192,8 +202,20 @@ impl RaindexClient {
             }
         };
 
+        send_status_message(
+            &status_callback,
+            "Populating token information...".to_string(),
+        )?;
+        let tokens_prefix_sql =
+            prepare_erc20_tokens_prefix_sql(&db_callback, &local_db, chain_id, &decoded_events)
+                .await?;
+
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        let sql_commands = match local_db.decoded_events_to_sql(decoded_events, latest_block) {
+        let sql_commands = match local_db.decoded_events_to_sql_with_prefix(
+            decoded_events,
+            latest_block,
+            &tokens_prefix_sql,
+        ) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(e.to_string()));
@@ -205,6 +227,101 @@ impl RaindexClient {
         send_status_message(&status_callback, "Database sync complete.".to_string())?;
         Ok(())
     }
+}
+
+async fn prepare_erc20_tokens_prefix_sql(
+    db_callback: &js_sys::Function,
+    local_db: &LocalDb,
+    chain_id: u32,
+    decoded_events: &serde_json::Value,
+) -> Result<String, LocalDbError> {
+    let address_set = collect_token_addresses(decoded_events);
+    let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
+    all_token_addrs.sort();
+
+    let mut tokens_prefix_sql = String::new();
+    if !all_token_addrs.is_empty() {
+        let addr_strings: Vec<String> = all_token_addrs
+            .iter()
+            .map(|a| format!("0x{:x}", a))
+            .collect();
+
+        let existing: Vec<Erc20TokenRow> =
+            LocalDbQuery::fetch_erc20_tokens_by_addresses(db_callback, chain_id, &addr_strings)
+                .await?;
+        let existing_set: std::collections::HashSet<String> = existing
+            .into_iter()
+            .map(|r| r.address.to_ascii_lowercase())
+            .collect();
+        let missing_strings: Vec<String> = addr_strings
+            .into_iter()
+            .filter(|s| !existing_set.contains(s))
+            .collect();
+
+        if !missing_strings.is_empty() {
+            let rpcs = local_db.rpc_urls().to_vec();
+            let missing_addrs: Vec<Address> = missing_strings
+                .iter()
+                .filter_map(|s| Address::from_str(s).ok())
+                .collect();
+
+            let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs).await?;
+
+            tokens_prefix_sql = generate_erc20_tokens_sql(chain_id, &successes);
+        }
+    }
+
+    Ok(tokens_prefix_sql)
+}
+
+async fn fetch_erc20_metadata_concurrent(
+    rpcs: Vec<url::Url>,
+    missing_addrs: Vec<Address>,
+) -> Result<Vec<(Address, TokenInfo)>, LocalDbError> {
+    const MAX_TOKEN_RETRY_ATTEMPTS: u32 = 3;
+    const TOKEN_RETRY_DELAY_MS: u64 = 500;
+    const TOKEN_CONCURRENCY: usize = 16;
+
+    async fn fetch_with_retries(
+        rpcs: Vec<url::Url>,
+        addr: Address,
+    ) -> Result<(Address, TokenInfo), LocalDbError> {
+        let erc20 = ERC20::new(rpcs.clone(), addr);
+        let mut attempt: u32 = 0;
+        loop {
+            match erc20.token_info(None).await {
+                Ok(info) => return Ok((addr, info)),
+                Err(e) => {
+                    attempt += 1;
+                    if attempt >= MAX_TOKEN_RETRY_ATTEMPTS {
+                        return Err(LocalDbError::CustomError(format!(
+                            "Failed to fetch token info for 0x{:x} after {} attempts: {}",
+                            addr, MAX_TOKEN_RETRY_ATTEMPTS, e
+                        )));
+                    }
+                    tokio::time::sleep(Duration::from_millis(TOKEN_RETRY_DELAY_MS)).await;
+                }
+            }
+        }
+    }
+
+    let results: Vec<Result<(Address, TokenInfo), LocalDbError>> =
+        futures::stream::iter(missing_addrs.into_iter().map(|addr| {
+            let rpcs = rpcs.clone();
+            async move { fetch_with_retries(rpcs, addr).await }
+        }))
+        .buffer_unordered(TOKEN_CONCURRENCY)
+        .collect()
+        .await;
+
+    let mut successes: Vec<(Address, TokenInfo)> = Vec::new();
+    for r in results {
+        match r {
+            Ok(pair) => successes.push(pair),
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(successes)
 }
 
 #[cfg(test)]
@@ -382,6 +499,82 @@ mod tests {
             (callback.into_js_value().dyn_into().unwrap(), captured)
         }
 
+        #[wasm_bindgen_test]
+        async fn test_prepare_erc20_tokens_prefix_sql_no_tokens() {
+            let db_cb = create_success_callback("[]");
+
+            let local_db = LocalDb::default();
+            let decoded = serde_json::json!([]);
+
+            let res = prepare_erc20_tokens_prefix_sql(&db_cb, &local_db, 1, &decoded)
+                .await
+                .unwrap();
+            assert!(res.is_empty());
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_prepare_erc20_tokens_prefix_sql_all_known() {
+            // decoded events with two tokens
+            let decoded = serde_json::json!([
+                {"event_type":"DepositV2","decoded_data": {"token": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+                {"event_type":"WithdrawV2","decoded_data": {"token": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
+            ]);
+
+            // Callback returns both rows from erc20_tokens query
+            let rows = vec![
+                Erc20TokenRow {
+                    chain_id: 1,
+                    address: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                    name: "A".into(),
+                    symbol: "AA".into(),
+                    decimals: 18,
+                },
+                Erc20TokenRow {
+                    chain_id: 1,
+                    address: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                    name: "B".into(),
+                    symbol: "BB".into(),
+                    decimals: 6,
+                },
+            ];
+            let rows_json = serde_json::to_string(&rows).unwrap();
+
+            let cb = js_sys::Function::new_with_args(
+                "sql",
+                &format!(
+                    "if (sql.includes('FROM erc20_tokens')) return {};
+                     return {};",
+                    js_sys::JSON::stringify(
+                        &serde_wasm_bindgen::to_value(&WasmEncodedResult::Success::<String> {
+                            value: rows_json,
+                            error: None
+                        })
+                        .unwrap()
+                    )
+                    .unwrap()
+                    .as_string()
+                    .unwrap(),
+                    js_sys::JSON::stringify(
+                        &serde_wasm_bindgen::to_value(&WasmEncodedResult::Success::<String> {
+                            value: "[]".into(),
+                            error: None
+                        })
+                        .unwrap()
+                    )
+                    .unwrap()
+                    .as_string()
+                    .unwrap(),
+                ),
+            );
+
+            let local_db = LocalDb::default();
+
+            let res = prepare_erc20_tokens_prefix_sql(&cb, &local_db, 1, &decoded)
+                .await
+                .unwrap();
+            assert!(res.is_empty());
+        }
+
         fn create_dispatching_db_callback(
             tables_json: &str,
             last_synced_json: &str,
@@ -556,7 +749,9 @@ mod tests {
         use flate2::write::GzEncoder;
         use flate2::Compression;
         use httpmock::prelude::*;
+        use rain_orderbook_test_fixtures::LocalEvm;
         use std::io::Write;
+        use url::Url;
 
         fn create_gzipped_sql() -> Vec<u8> {
             let sql_content = "CREATE TABLE test (id INTEGER);";
@@ -758,6 +953,73 @@ mod tests {
                 Err(LocalDbError::Http(_)) => (),
                 _ => panic!("Expected Http error from network timeout"),
             }
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn test_fetch_erc20_metadata_concurrent_success() {
+            let local_evm = LocalEvm::new_with_tokens(1).await;
+            let rpcs = vec![Url::parse(&local_evm.url()).unwrap()];
+            let token = local_evm.tokens[0].clone();
+            let addrs = vec![*token.address()];
+
+            let out = fetch_erc20_metadata_concurrent(rpcs, addrs).await.unwrap();
+            assert_eq!(out.len(), 1);
+            assert_eq!(out[0].1.decimals, 18);
+            assert_eq!(out[0].1.name, "Token1");
+            assert_eq!(out[0].1.symbol, "TOKEN1");
+        }
+
+        #[tokio::test]
+        async fn test_fetch_erc20_metadata_concurrent_failure_retries() {
+            let server = MockServer::start_async().await;
+            server.mock(|when, then| {
+                when.method("POST").path("/rpc").body_contains("0x82ad56cb");
+                then.json_body(serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x1",
+                }));
+            });
+
+            let rpcs = vec![Url::parse(&server.url("/rpc")).unwrap()];
+            let addrs = vec![Address::ZERO];
+
+            let res = fetch_erc20_metadata_concurrent(rpcs, addrs).await;
+            assert!(res.is_err());
+            match res.err().unwrap() {
+                LocalDbError::CustomError(msg) => {
+                    assert!(msg.contains("Failed to fetch token info"));
+                }
+                other => panic!("Expected CustomError, got {other:?}"),
+            }
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn test_generate_tokens_sql_after_fetch_success() {
+            let local_evm = LocalEvm::new_with_tokens(1).await;
+            let rpcs = vec![Url::parse(&local_evm.url()).unwrap()];
+            let addr = *local_evm.tokens[0].address();
+
+            let fetched = fetch_erc20_metadata_concurrent(rpcs, vec![addr])
+                .await
+                .unwrap();
+            let sql = generate_erc20_tokens_sql(1, &fetched);
+            assert!(sql.contains("INSERT INTO erc20_tokens"));
+            assert!(sql.contains("0x"));
+            assert!(sql.contains("Token1"));
+            assert!(sql.contains("TOKEN1"));
+            assert!(sql.contains("decimals"));
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn test_fetch_erc20_metadata_concurrent_mixed_results_hard_fail() {
+            let local_evm = LocalEvm::new_with_tokens(1).await;
+            let rpcs = vec![Url::parse(&local_evm.url()).unwrap()];
+            let valid = *local_evm.tokens[0].address();
+            let bogus = Address::repeat_byte(0x11);
+
+            let res = fetch_erc20_metadata_concurrent(rpcs, vec![valid, bogus]).await;
+            assert!(res.is_err());
         }
     }
 }
