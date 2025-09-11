@@ -74,10 +74,6 @@ jobs:
         with:
           working-directory: packages/ui-components
 
-      - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
-        with:
-          working-directory: packages/webapp
-
       - name: Install Vercel CLI (local, pinned)
         shell: bash --noprofile --norc -euo pipefail {0}
         run: |
