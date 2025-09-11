@@ -107,7 +107,7 @@ impl LocalDb {
 }
 
 /// Build upsert SQL for erc20_tokens. Only include successfully fetched tokens.
-pub(crate) fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)]) -> String {
+pub fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)]) -> String {
     if tokens.is_empty() {
         return String::new();
     }

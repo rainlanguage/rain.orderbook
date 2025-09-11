@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::collections::BTreeSet;
 use std::str::FromStr;
 
-pub(crate) fn collect_token_addresses(decoded_events: &Value) -> BTreeSet<Address> {
+pub fn collect_token_addresses(decoded_events: &Value) -> BTreeSet<Address> {
     let mut out = BTreeSet::new();
 
     let events = match decoded_events.as_array() {
