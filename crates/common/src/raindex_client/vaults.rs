@@ -709,9 +709,9 @@ impl RaindexVaultBalanceChange {
         let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
         let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
 
-        let formatted_amount = amount.format18()?;
-        let formatted_new_balance = new_balance.format18()?;
-        let formatted_old_balance = old_balance.format18()?;
+        let formatted_amount = amount.format()?;
+        let formatted_new_balance = new_balance.format()?;
+        let formatted_old_balance = old_balance.format()?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
@@ -741,9 +741,9 @@ impl RaindexVaultBalanceChange {
         let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
         let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
 
-        let formatted_amount = amount.format18()?;
-        let formatted_new_balance = new_balance.format18()?;
-        let formatted_old_balance = old_balance.format18()?;
+        let formatted_amount = amount.format()?;
+        let formatted_new_balance = new_balance.format()?;
+        let formatted_old_balance = old_balance.format()?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
@@ -1180,7 +1180,7 @@ impl RaindexVault {
         let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?;
 
         let balance = Float::from_hex(&vault.balance.0)?;
-        let formatted_balance = balance.format18()?;
+        let formatted_balance = balance.format()?;
 
         Ok(Self {
             raindex_client,
