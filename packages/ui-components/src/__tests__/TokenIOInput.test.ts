@@ -2,13 +2,16 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
-import { AccountBalance, DotrainOrderGui } from '@rainlanguage/orderbook';
+import { AccountBalance, DotrainOrderGui, Float } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 import type { TokenBalance } from '$lib/types/tokenBalance';
 
-vi.mock('@rainlanguage/orderbook', () => ({
-	DotrainOrderGui: vi.fn()
-}));
+vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+	return {
+		...(await importOriginal()),
+		DotrainOrderGui: vi.fn()
+	};
+});
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
@@ -125,7 +128,7 @@ describe('TokenInput', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
 				value: {
-					balance: BigInt('1000000000000000000'),
+					balance: Float.parse('1').value,
 					formattedBalance: '1'
 				} as AccountBalance,
 				loading: false,
@@ -147,7 +150,7 @@ describe('TokenInput', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
 				value: {
-					balance: BigInt(0),
+					balance: Float.parse('0').value,
 					formattedBalance: '0'
 				} as AccountBalance,
 				loading: true,
@@ -169,7 +172,7 @@ describe('TokenInput', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
 				value: {
-					balance: BigInt(0),
+					balance: Float.parse('0').value,
 					formattedBalance: '0'
 				} as AccountBalance,
 				loading: false,

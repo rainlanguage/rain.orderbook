@@ -3,13 +3,19 @@ import { describe, it, expect } from 'vitest';
 import TokenBalance from '../lib/components/deployment/TokenBalance.svelte';
 import type { ComponentProps } from 'svelte';
 import type { TokenBalance as TokenBalanceType } from '$lib/types/tokenBalance';
-import type { AccountBalance } from '@rainlanguage/orderbook';
+import { Float, type AccountBalance } from '@rainlanguage/orderbook';
 
 type TokenBalanceComponentProps = ComponentProps<TokenBalance>;
 
+vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+	return {
+		...(await importOriginal())
+	};
+});
+
 describe('TokenBalance', () => {
 	const createMockTokenBalance = (
-		balance: bigint = BigInt(0),
+		balance = Float.parse('0').value,
 		formattedBalance: string = '0',
 		loading: boolean = false,
 		error: string = ''
@@ -26,7 +32,7 @@ describe('TokenBalance', () => {
 	it('renders loading state correctly', () => {
 		const props: TokenBalanceComponentProps = {
 			...defaultProps,
-			tokenBalance: createMockTokenBalance(BigInt(0), '0', true, '')
+			tokenBalance: createMockTokenBalance(Float.parse('0').value, '0', true, '')
 		};
 
 		render(TokenBalance, { props });
@@ -37,7 +43,7 @@ describe('TokenBalance', () => {
 	it('renders balance when balance is non-zero', () => {
 		const props: TokenBalanceComponentProps = {
 			...defaultProps,
-			tokenBalance: createMockTokenBalance(BigInt(1000), '1000', false, '')
+			tokenBalance: createMockTokenBalance(Float.parse('1000').value, '1000', false, '')
 		};
 
 		render(TokenBalance, { props });
@@ -48,7 +54,12 @@ describe('TokenBalance', () => {
 	it('renders error state correctly', () => {
 		const props: TokenBalanceComponentProps = {
 			...defaultProps,
-			tokenBalance: createMockTokenBalance(BigInt(0), '0', false, 'Failed to fetch balance')
+			tokenBalance: createMockTokenBalance(
+				Float.parse('0').value,
+				'0',
+				false,
+				'Failed to fetch balance'
+			)
 		};
 
 		render(TokenBalance, { props });
@@ -60,7 +71,7 @@ describe('TokenBalance', () => {
 		const { container } = render(TokenBalance, {
 			props: {
 				...defaultProps,
-				tokenBalance: createMockTokenBalance(BigInt(1000), '1,000.00', false, '')
+				tokenBalance: createMockTokenBalance(Float.parse('1000').value, '1,000.00', false, '')
 			}
 		});
 
@@ -71,7 +82,7 @@ describe('TokenBalance', () => {
 		const { container } = render(TokenBalance, {
 			props: {
 				...defaultProps,
-				tokenBalance: createMockTokenBalance(BigInt(0), '0', false, 'Error message')
+				tokenBalance: createMockTokenBalance(Float.parse('0').value, '0', false, 'Error message')
 			}
 		});
 
@@ -81,7 +92,12 @@ describe('TokenBalance', () => {
 	it('prioritizes error display over balance when both exist', () => {
 		const props: TokenBalanceComponentProps = {
 			...defaultProps,
-			tokenBalance: createMockTokenBalance(BigInt(1000), '1000', false, 'Network error')
+			tokenBalance: createMockTokenBalance(
+				Float.parse('1000').value,
+				'1000',
+				false,
+				'Network error'
+			)
 		};
 
 		render(TokenBalance, { props });

@@ -2,9 +2,15 @@ import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import type { ComponentProps } from 'svelte';
 import VaultIdInformation from '$lib/components/deployment/VaultIdInformation.svelte';
-import type { AccountBalance } from '@rainlanguage/orderbook';
+import { Float, type AccountBalance } from '@rainlanguage/orderbook';
 
 export type VaultIdInformationComponentProps = ComponentProps<VaultIdInformation>;
+
+vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+	return {
+		...(await importOriginal())
+	};
+});
 
 describe('VaultIdInformation', () => {
 	const defaultProps: VaultIdInformationComponentProps = {
@@ -12,7 +18,7 @@ describe('VaultIdInformation', () => {
 		description: 'Test Description',
 		tokenBalance: {
 			value: {
-				balance: 1000n,
+				balance: Float.parse('100').value,
 				formattedBalance: '100'
 			} as AccountBalance,
 			loading: false,
@@ -33,7 +39,7 @@ describe('VaultIdInformation', () => {
 			...defaultProps,
 			tokenBalance: {
 				value: {
-					balance: 0n,
+					balance: Float.parse('0').value,
 					formattedBalance: '0'
 				} as AccountBalance,
 				loading: true,
@@ -51,7 +57,7 @@ describe('VaultIdInformation', () => {
 			...defaultProps,
 			tokenBalance: {
 				value: {
-					balance: 0n,
+					balance: Float.parse('0').value,
 					formattedBalance: '0'
 				} as AccountBalance,
 				loading: false,
