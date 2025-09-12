@@ -2,13 +2,13 @@ use alloy::primitives::{Address, U256};
 use anyhow::{anyhow, Context, Result};
 use clap::Args;
 use rain_math_float::Float;
-use rain_orderbook_common::raindex_client::local_db::token_fetch::fetch_erc20_metadata_concurrent;
 use rain_orderbook_common::raindex_client::local_db::{
-    insert::generate_erc20_tokens_sql, tokens::collect_token_addresses, LocalDb, LocalDbError,
+    tokens::collect_token_addresses, LocalDb, LocalDbError,
 };
+use serde::Deserialize;
 use std::fs::{write, File};
 use std::io::BufReader;
-use url::Url;
+use std::str::FromStr;
 
 #[derive(Args)]
 pub struct DecodedEventsToSql {
@@ -24,8 +24,11 @@ pub struct DecodedEventsToSql {
     #[arg(long, help = "Chain ID for erc20_tokens upserts")]
     pub chain_id: u32,
 
-    #[arg(long, help = "Direct RPC URL(s) to fetch token metadata; repeat to add multiple", action = clap::ArgAction::Append, value_name = "URL")]
-    pub rpc: Vec<String>,
+    #[arg(
+        long,
+        help = "Path to tokens.json providing metadata (decimals) for deposits when tokens are present"
+    )]
+    pub tokens_file: Option<String>,
 }
 
 impl DecodedEventsToSql {
@@ -39,32 +42,24 @@ impl DecodedEventsToSql {
         let mut data: serde_json::Value =
             serde_json::from_reader(reader).context("Failed to parse JSON")?;
         let address_set = collect_token_addresses(&data);
-        let mut tokens_prefix_sql = String::new();
         if !address_set.is_empty() {
-            if self.rpc.is_empty() {
-                return Err(anyhow!(
-                    "--rpc is required to fetch token metadata for computing deposit_amounts"
-                ));
-            }
-            let rpcs: Vec<Url> = self
-                .rpc
-                .iter()
-                .map(|s| Url::parse(s))
-                .collect::<Result<_, _>>()
-                .map_err(|e| anyhow!("Invalid --rpc URL: {}", e))?;
-
-            let mut addrs: Vec<Address> = address_set.into_iter().collect();
-            addrs.sort();
-            // Defaults aligned with app sync
-            let fetched = fetch_erc20_metadata_concurrent(rpcs, addrs)
-                .await
-                .map_err(|e| anyhow!("Failed to fetch token info: {}", e))?;
-
-            tokens_prefix_sql = generate_erc20_tokens_sql(self.chain_id, &fetched);
-
             let mut decimals_by_addr = std::collections::HashMap::<String, u8>::new();
-            for (addr, info) in fetched.into_iter() {
-                decimals_by_addr.insert(format!("0x{:x}", addr), info.decimals);
+
+            // Require tokens.json when tokens are present
+            let tokens_path = self.tokens_file.as_ref().ok_or_else(|| {
+                anyhow!("--tokens-file is required to compute deposit_amounts for deposits")
+            })?;
+            let content = std::fs::read_to_string(tokens_path)?;
+            let tokens_in: Vec<TokensFileEntry> = serde_json::from_str(&content)?;
+            for t in tokens_in.iter() {
+                let addr = Address::from_str(&t.address).map_err(|e| {
+                    anyhow!(
+                        "Invalid token address '{}' in tokens.json: {}",
+                        t.address,
+                        e
+                    )
+                })?;
+                decimals_by_addr.insert(format!("0x{:x}", addr), t.decimals);
             }
 
             data = patch_deposit_amounts_with_decimals(data, &decimals_by_addr)
@@ -72,7 +67,7 @@ impl DecodedEventsToSql {
         }
 
         let sql_statements = LocalDb::default()
-            .decoded_events_to_sql_with_prefix(data, self.end_block, &tokens_prefix_sql)
+            .decoded_events_to_sql(data, self.end_block)
             .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
 
         let output_path = self.output_file.unwrap_or_else(|| "events.sql".to_string());
@@ -83,6 +78,12 @@ impl DecodedEventsToSql {
         println!("SQL statements written to {:?}", output_path);
         Ok(())
     }
+}
+
+#[derive(Deserialize)]
+struct TokensFileEntry {
+    address: String,
+    decimals: u8,
 }
 
 fn patch_deposit_amounts_with_decimals(
@@ -181,7 +182,7 @@ mod tests {
             output_file: Some(output_file.to_string_lossy().to_string()),
             end_block: 1000,
             chain_id: 1,
-            rpc: vec![],
+            tokens_file: None,
         };
 
         cmd.execute().await?;
@@ -210,7 +211,7 @@ mod tests {
             output_file: None,
             end_block: 2000,
             chain_id: 1,
-            rpc: vec![],
+            tokens_file: None,
         };
 
         let original_dir = std::env::current_dir()?;
@@ -236,7 +237,7 @@ mod tests {
             output_file: None,
             end_block: 1000,
             chain_id: 1,
-            rpc: vec![],
+            tokens_file: None,
         };
 
         let result = cmd.execute().await;
@@ -255,7 +256,7 @@ mod tests {
             output_file: None,
             end_block: 1000,
             chain_id: 1,
-            rpc: vec![],
+            tokens_file: None,
         };
 
         let result = cmd.execute().await;
@@ -265,7 +266,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_execute_computes_deposit_amount_and_injects_token_upsert() -> Result<()> {
+    async fn test_execute_computes_deposit_amount_without_token_upsert() -> Result<()> {
         let temp_dir = TempDir::new()?;
         let input_file = temp_dir.path().join("decoded.json");
         let output_file = temp_dir.path().join("events.sql");
@@ -293,18 +294,25 @@ mod tests {
         ]);
         std::fs::write(&input_file, serde_json::to_string(&decoded)?)?;
 
+        // Build tokens.json with decimals for the token used in decoded events
+        let tokens_path = temp_dir.path().join("tokens.json");
+        let tokens_json = format!(
+            "[{{\"address\":\"0x{:x}\",\"name\":\"\",\"symbol\":\"\",\"decimals\":18}}]",
+            token_addr
+        );
+        std::fs::write(&tokens_path, tokens_json)?;
+
         let cmd = DecodedEventsToSql {
             input_file: input_file.to_string_lossy().to_string(),
             output_file: Some(output_file.to_string_lossy().to_string()),
             end_block: 1000,
             chain_id: 1,
-            rpc: vec![local_evm.url()],
+            tokens_file: Some(tokens_path.to_string_lossy().to_string()),
         };
 
         cmd.execute().await?;
 
         let sql = std::fs::read_to_string(&output_file)?;
-        assert!(sql.contains("INSERT INTO erc20_tokens"));
         assert!(sql.contains("INSERT INTO deposits"));
         // Expect deposit_amount to be Float for 1e18 with 18 decimals => 1
         let expected =

@@ -1,4 +1,6 @@
-use crate::commands::local_db::{DbDump, DecodeEvents, DecodedEventsToSql, FetchEvents, TokenSql};
+use crate::commands::local_db::{
+    DbDump, DecodeEvents, DecodedEventsToSql, FetchEvents, TokensFetch, TokensToSql,
+};
 use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
@@ -17,7 +19,10 @@ pub enum LocalDb {
     #[command(name = "dump")]
     Dump(DbDump),
     #[command(name = "token-sql")]
-    TokenSql(TokenSql),
+    #[command(name = "tokens-fetch")]
+    TokensFetch(TokensFetch),
+    #[command(name = "tokens-to-sql")]
+    TokensToSql(TokensToSql),
 }
 
 impl LocalDb {
@@ -29,7 +34,8 @@ impl LocalDb {
                 decoded_events_to_sql.execute().await
             }
             LocalDb::Dump(dump) => dump.execute().await,
-            LocalDb::TokenSql(cmd) => cmd.execute().await,
+            LocalDb::TokensFetch(cmd) => cmd.execute().await,
+            LocalDb::TokensToSql(cmd) => cmd.execute().await,
         }
     }
 }
