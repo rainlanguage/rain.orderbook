@@ -3,6 +3,7 @@ pub mod fetch;
 pub mod insert;
 pub mod query;
 pub mod sync;
+pub mod token_fetch;
 pub mod tokens;
 
 use super::*;

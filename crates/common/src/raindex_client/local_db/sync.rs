@@ -1,3 +1,4 @@
+use super::token_fetch::fetch_erc20_metadata_concurrent;
 use super::{
     insert::generate_erc20_tokens_sql,
     query::{
@@ -7,14 +8,16 @@ use super::{
     tokens::collect_token_addresses,
     *,
 };
-use crate::erc20::{TokenInfo, ERC20};
 use alloy::primitives::Address;
+use alloy::primitives::U256;
 use flate2::read::GzDecoder;
-use futures::stream::StreamExt;
+use rain_math_float::Float;
 use reqwest::Client;
-use std::io::Read;
-use std::str::FromStr;
-use std::time::Duration;
+use std::{
+    collections::{HashMap, HashSet},
+    io::Read,
+    str::FromStr,
+};
 
 const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/46a8065a2ccbf49e9fc509cbc052cd497feb6bd5/local-db-dump.sql.gz";
 
@@ -206,15 +209,17 @@ impl RaindexClient {
             &status_callback,
             "Populating token information...".to_string(),
         )?;
-        let tokens_prefix_sql =
-            prepare_erc20_tokens_prefix_sql(&db_callback, &local_db, chain_id, &decoded_events)
-                .await?;
+        let prep =
+            prepare_erc20_tokens_prefix(&db_callback, &local_db, chain_id, &decoded_events).await?;
+
+        let decoded_events =
+            patch_deposit_amounts_with_decimals(decoded_events, &prep.decimals_by_addr)?;
 
         send_status_message(&status_callback, "Populating database...".to_string())?;
         let sql_commands = match local_db.decoded_events_to_sql_with_prefix(
             decoded_events,
             latest_block,
-            &tokens_prefix_sql,
+            &prep.tokens_prefix_sql,
         ) {
             Ok(result) => result,
             Err(e) => {
@@ -229,17 +234,24 @@ impl RaindexClient {
     }
 }
 
-async fn prepare_erc20_tokens_prefix_sql(
+struct TokenPrepResult {
+    tokens_prefix_sql: String,
+    decimals_by_addr: HashMap<String, u8>,
+}
+
+async fn prepare_erc20_tokens_prefix(
     db_callback: &js_sys::Function,
     local_db: &LocalDb,
     chain_id: u32,
     decoded_events: &serde_json::Value,
-) -> Result<String, LocalDbError> {
+) -> Result<TokenPrepResult, LocalDbError> {
     let address_set = collect_token_addresses(decoded_events);
     let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
     all_token_addrs.sort();
 
     let mut tokens_prefix_sql = String::new();
+    let mut decimals_by_addr: HashMap<String, u8> = HashMap::new();
+
     if !all_token_addrs.is_empty() {
         let addr_strings: Vec<String> = all_token_addrs
             .iter()
@@ -249,7 +261,12 @@ async fn prepare_erc20_tokens_prefix_sql(
         let existing: Vec<Erc20TokenRow> =
             LocalDbQuery::fetch_erc20_tokens_by_addresses(db_callback, chain_id, &addr_strings)
                 .await?;
-        let existing_set: std::collections::HashSet<String> = existing
+        // Populate decimals map from existing DB rows
+        for row in existing.iter() {
+            decimals_by_addr.insert(row.address.to_ascii_lowercase(), row.decimals);
+        }
+
+        let existing_set: HashSet<String> = existing
             .into_iter()
             .map(|r| r.address.to_ascii_lowercase())
             .collect();
@@ -268,60 +285,88 @@ async fn prepare_erc20_tokens_prefix_sql(
             let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs).await?;
 
             tokens_prefix_sql = generate_erc20_tokens_sql(chain_id, &successes);
-        }
-    }
 
-    Ok(tokens_prefix_sql)
-}
-
-async fn fetch_erc20_metadata_concurrent(
-    rpcs: Vec<url::Url>,
-    missing_addrs: Vec<Address>,
-) -> Result<Vec<(Address, TokenInfo)>, LocalDbError> {
-    const MAX_TOKEN_RETRY_ATTEMPTS: u32 = 3;
-    const TOKEN_RETRY_DELAY_MS: u64 = 500;
-    const TOKEN_CONCURRENCY: usize = 16;
-
-    async fn fetch_with_retries(
-        rpcs: Vec<url::Url>,
-        addr: Address,
-    ) -> Result<(Address, TokenInfo), LocalDbError> {
-        let erc20 = ERC20::new(rpcs.clone(), addr);
-        let mut attempt: u32 = 0;
-        loop {
-            match erc20.token_info(None).await {
-                Ok(info) => return Ok((addr, info)),
-                Err(e) => {
-                    attempt += 1;
-                    if attempt >= MAX_TOKEN_RETRY_ATTEMPTS {
-                        return Err(LocalDbError::CustomError(format!(
-                            "Failed to fetch token info for 0x{:x} after {} attempts: {}",
-                            addr, MAX_TOKEN_RETRY_ATTEMPTS, e
-                        )));
-                    }
-                    tokio::time::sleep(Duration::from_millis(TOKEN_RETRY_DELAY_MS)).await;
-                }
+            // Populate decimals map from fetched metadata
+            for (addr, info) in successes.into_iter() {
+                let key = format!("0x{:x}", addr);
+                decimals_by_addr.insert(key, info.decimals);
             }
         }
     }
 
-    let results: Vec<Result<(Address, TokenInfo), LocalDbError>> =
-        futures::stream::iter(missing_addrs.into_iter().map(|addr| {
-            let rpcs = rpcs.clone();
-            async move { fetch_with_retries(rpcs, addr).await }
-        }))
-        .buffer_unordered(TOKEN_CONCURRENCY)
-        .collect()
-        .await;
+    Ok(TokenPrepResult {
+        tokens_prefix_sql,
+        decimals_by_addr,
+    })
+}
 
-    let mut successes: Vec<(Address, TokenInfo)> = Vec::new();
-    for r in results {
-        match r {
-            Ok(pair) => successes.push(pair),
-            Err(e) => return Err(e),
+fn patch_deposit_amounts_with_decimals(
+    decoded_events: serde_json::Value,
+    decimals_by_addr: &HashMap<String, u8>,
+) -> Result<serde_json::Value, LocalDbError> {
+    let events = decoded_events.as_array().ok_or_else(|| {
+        LocalDbError::CustomError("Decoded events should be an array".to_string())
+    })?;
+
+    let mut patched = Vec::with_capacity(events.len());
+    for ev in events.iter() {
+        let mut ev_clone = ev.clone();
+        let event_type = ev.get("event_type").and_then(|v| v.as_str()).unwrap_or("");
+        if event_type == "DepositV2" {
+            let obj = ev_clone.as_object_mut().ok_or_else(|| {
+                LocalDbError::CustomError("Event should be an object".to_string())
+            })?;
+            let dd = obj
+                .get_mut("decoded_data")
+                .and_then(|v| v.as_object_mut())
+                .ok_or_else(|| {
+                    LocalDbError::CustomError("Missing decoded_data in DepositV2".to_string())
+                })?;
+
+            let token = dd.get("token").and_then(|v| v.as_str()).ok_or_else(|| {
+                LocalDbError::CustomError("Missing token in DepositV2".to_string())
+            })?;
+            let token_key = token.to_ascii_lowercase();
+            let decimals = decimals_by_addr.get(&token_key).ok_or_else(|| {
+                LocalDbError::CustomError(format!(
+                    "Missing decimals for token {} required to compute deposit_amount",
+                    token
+                ))
+            })?;
+
+            let amt_hex = dd
+                .get("deposit_amount_uint256")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| {
+                    LocalDbError::CustomError(
+                        "Missing deposit_amount_uint256 in DepositV2".to_string(),
+                    )
+                })?;
+            let digits = amt_hex.strip_prefix("0x").unwrap_or(amt_hex);
+            let amount = U256::from_str_radix(digits, 16).map_err(|e| {
+                LocalDbError::CustomError(format!(
+                    "Invalid deposit_amount_uint256 '{}': {}",
+                    amt_hex, e
+                ))
+            })?;
+
+            let amount_float = Float::from_fixed_decimal(amount, *decimals).map_err(|e| {
+                LocalDbError::CustomError(format!(
+                    "Float conversion failed for deposit_amount (token {}, decimals {}): {}",
+                    token, decimals, e
+                ))
+            })?;
+
+            dd.insert(
+                "deposit_amount".to_string(),
+                serde_json::Value::String(amount_float.as_hex()),
+            );
         }
+
+        patched.push(ev_clone);
     }
-    Ok(successes)
+
+    Ok(serde_json::Value::Array(patched))
 }
 
 #[cfg(test)]
@@ -506,10 +551,11 @@ mod tests {
             let local_db = LocalDb::default();
             let decoded = serde_json::json!([]);
 
-            let res = prepare_erc20_tokens_prefix_sql(&db_cb, &local_db, 1, &decoded)
+            let res = prepare_erc20_tokens_prefix(&db_cb, &local_db, 1, &decoded)
                 .await
                 .unwrap();
-            assert!(res.is_empty());
+            assert!(res.tokens_prefix_sql.is_empty());
+            assert!(res.decimals_by_addr.is_empty());
         }
 
         #[wasm_bindgen_test]
@@ -569,10 +615,78 @@ mod tests {
 
             let local_db = LocalDb::default();
 
-            let res = prepare_erc20_tokens_prefix_sql(&cb, &local_db, 1, &decoded)
+            let res = prepare_erc20_tokens_prefix(&cb, &local_db, 1, &decoded)
                 .await
                 .unwrap();
-            assert!(res.is_empty());
+            assert!(res.tokens_prefix_sql.is_empty());
+            assert_eq!(res.decimals_by_addr.len(), 2);
+            assert_eq!(
+                res.decimals_by_addr
+                    .get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+                Some(&18)
+            );
+            assert_eq!(
+                res.decimals_by_addr
+                    .get("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+                Some(&6)
+            );
+        }
+
+        #[wasm_bindgen_test]
+        fn test_patch_deposit_amounts_with_decimals_success() {
+            let token = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
+            let decoded = serde_json::json!([
+                {
+                    "event_type": "DepositV2",
+                    "decoded_data": {
+                        "sender": "0x0000000000000000000000000000000000000001",
+                        "token": token,
+                        "vault_id": "0x01",
+                        "deposit_amount_uint256": "0xfa0"
+                    }
+                }
+            ]);
+
+            let mut map = HashMap::new();
+            map.insert(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                6u8,
+            );
+
+            let patched = patch_deposit_amounts_with_decimals(decoded, &map).unwrap();
+            let arr = patched.as_array().unwrap();
+            let dd = &arr[0]["decoded_data"];
+
+            let expected = Float::from_fixed_decimal(U256::from(4000u64), 6)
+                .unwrap()
+                .as_hex();
+            assert_eq!(dd["deposit_amount"], expected);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_patch_deposit_amounts_with_decimals_missing_decimals_errors() {
+            let decoded = serde_json::json!([
+                {
+                    "event_type": "DepositV2",
+                    "decoded_data": {
+                        "sender": "0x0000000000000000000000000000000000000001",
+                        "token": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "vault_id": "0x01",
+                        "deposit_amount_uint256": "0xfa0"
+                    }
+                }
+            ]);
+
+            let map: HashMap<String, u8> = HashMap::new();
+
+            let res = patch_deposit_amounts_with_decimals(decoded, &map);
+            assert!(res.is_err());
+            match res.unwrap_err() {
+                LocalDbError::CustomError(msg) => {
+                    assert!(msg.contains("Missing decimals for token"));
+                }
+                other => panic!("Expected CustomError for missing decimals, got {other:?}"),
+            }
         }
 
         fn create_dispatching_db_callback(
@@ -956,45 +1070,6 @@ mod tests {
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-        async fn test_fetch_erc20_metadata_concurrent_success() {
-            let local_evm = LocalEvm::new_with_tokens(1).await;
-            let rpcs = vec![Url::parse(&local_evm.url()).unwrap()];
-            let token = local_evm.tokens[0].clone();
-            let addrs = vec![*token.address()];
-
-            let out = fetch_erc20_metadata_concurrent(rpcs, addrs).await.unwrap();
-            assert_eq!(out.len(), 1);
-            assert_eq!(out[0].1.decimals, 18);
-            assert_eq!(out[0].1.name, "Token1");
-            assert_eq!(out[0].1.symbol, "TOKEN1");
-        }
-
-        #[tokio::test]
-        async fn test_fetch_erc20_metadata_concurrent_failure_retries() {
-            let server = MockServer::start_async().await;
-            server.mock(|when, then| {
-                when.method("POST").path("/rpc").body_contains("0x82ad56cb");
-                then.json_body(serde_json::json!({
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "result": "0x1",
-                }));
-            });
-
-            let rpcs = vec![Url::parse(&server.url("/rpc")).unwrap()];
-            let addrs = vec![Address::ZERO];
-
-            let res = fetch_erc20_metadata_concurrent(rpcs, addrs).await;
-            assert!(res.is_err());
-            match res.err().unwrap() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to fetch token info"));
-                }
-                other => panic!("Expected CustomError, got {other:?}"),
-            }
-        }
-
-        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
         async fn test_generate_tokens_sql_after_fetch_success() {
             let local_evm = LocalEvm::new_with_tokens(1).await;
             let rpcs = vec![Url::parse(&local_evm.url()).unwrap()];
@@ -1009,17 +1084,6 @@ mod tests {
             assert!(sql.contains("Token1"));
             assert!(sql.contains("TOKEN1"));
             assert!(sql.contains("decimals"));
-        }
-
-        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-        async fn test_fetch_erc20_metadata_concurrent_mixed_results_hard_fail() {
-            let local_evm = LocalEvm::new_with_tokens(1).await;
-            let rpcs = vec![Url::parse(&local_evm.url()).unwrap()];
-            let valid = *local_evm.tokens[0].address();
-            let bogus = Address::repeat_byte(0x11);
-
-            let res = fetch_erc20_metadata_concurrent(rpcs, vec![valid, bogus]).await;
-            assert!(res.is_err());
         }
     }
 }

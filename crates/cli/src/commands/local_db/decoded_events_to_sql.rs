@@ -1,8 +1,14 @@
-use anyhow::{Context, Result};
+use alloy::primitives::{Address, U256};
+use anyhow::{anyhow, Context, Result};
 use clap::Args;
-use rain_orderbook_common::raindex_client::local_db::LocalDb;
+use rain_math_float::Float;
+use rain_orderbook_common::raindex_client::local_db::token_fetch::fetch_erc20_metadata_concurrent;
+use rain_orderbook_common::raindex_client::local_db::{
+    insert::generate_erc20_tokens_sql, tokens::collect_token_addresses, LocalDb, LocalDbError,
+};
 use std::fs::{write, File};
 use std::io::BufReader;
+use url::Url;
 
 #[derive(Args)]
 pub struct DecodedEventsToSql {
@@ -14,6 +20,12 @@ pub struct DecodedEventsToSql {
 
     #[arg(long)]
     pub end_block: u64,
+
+    #[arg(long, help = "Chain ID for erc20_tokens upserts")]
+    pub chain_id: u32,
+
+    #[arg(long, help = "Direct RPC URL(s) to fetch token metadata; repeat to add multiple", action = clap::ArgAction::Append, value_name = "URL")]
+    pub rpc: Vec<String>,
 }
 
 impl DecodedEventsToSql {
@@ -24,11 +36,43 @@ impl DecodedEventsToSql {
             .with_context(|| format!("Failed to open input file: {:?}", self.input_file))?;
         let reader = BufReader::new(file);
 
-        let data: serde_json::Value =
+        let mut data: serde_json::Value =
             serde_json::from_reader(reader).context("Failed to parse JSON")?;
+        let address_set = collect_token_addresses(&data);
+        let mut tokens_prefix_sql = String::new();
+        if !address_set.is_empty() {
+            if self.rpc.is_empty() {
+                return Err(anyhow!(
+                    "--rpc is required to fetch token metadata for computing deposit_amounts"
+                ));
+            }
+            let rpcs: Vec<Url> = self
+                .rpc
+                .iter()
+                .map(|s| Url::parse(s))
+                .collect::<Result<_, _>>()
+                .map_err(|e| anyhow!("Invalid --rpc URL: {}", e))?;
+
+            let mut addrs: Vec<Address> = address_set.into_iter().collect();
+            addrs.sort();
+            // Defaults aligned with app sync
+            let fetched = fetch_erc20_metadata_concurrent(rpcs, addrs)
+                .await
+                .map_err(|e| anyhow!("Failed to fetch token info: {}", e))?;
+
+            tokens_prefix_sql = generate_erc20_tokens_sql(self.chain_id, &fetched);
+
+            let mut decimals_by_addr = std::collections::HashMap::<String, u8>::new();
+            for (addr, info) in fetched.into_iter() {
+                decimals_by_addr.insert(format!("0x{:x}", addr), info.decimals);
+            }
+
+            data = patch_deposit_amounts_with_decimals(data, &decimals_by_addr)
+                .map_err(|e| anyhow!("{}", e))?;
+        }
 
         let sql_statements = LocalDb::default()
-            .decoded_events_to_sql(data, self.end_block)
+            .decoded_events_to_sql_with_prefix(data, self.end_block, &tokens_prefix_sql)
             .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
 
         let output_path = self.output_file.unwrap_or_else(|| "events.sql".to_string());
@@ -41,11 +85,83 @@ impl DecodedEventsToSql {
     }
 }
 
+fn patch_deposit_amounts_with_decimals(
+    decoded_events: serde_json::Value,
+    decimals_by_addr: &std::collections::HashMap<String, u8>,
+) -> Result<serde_json::Value, LocalDbError> {
+    let events = decoded_events.as_array().ok_or_else(|| {
+        LocalDbError::CustomError("Decoded events should be an array".to_string())
+    })?;
+
+    let mut patched = Vec::with_capacity(events.len());
+    for ev in events.iter() {
+        let mut ev_clone = ev.clone();
+        let event_type = ev.get("event_type").and_then(|v| v.as_str()).unwrap_or("");
+        if event_type == "DepositV2" {
+            let obj = ev_clone.as_object_mut().ok_or_else(|| {
+                LocalDbError::CustomError("Event should be an object".to_string())
+            })?;
+            let dd = obj
+                .get_mut("decoded_data")
+                .and_then(|v| v.as_object_mut())
+                .ok_or_else(|| {
+                    LocalDbError::CustomError("Missing decoded_data in DepositV2".to_string())
+                })?;
+
+            let token = dd.get("token").and_then(|v| v.as_str()).ok_or_else(|| {
+                LocalDbError::CustomError("Missing token in DepositV2".to_string())
+            })?;
+            let token_key = token.to_ascii_lowercase();
+            let decimals = decimals_by_addr.get(&token_key).ok_or_else(|| {
+                LocalDbError::CustomError(format!(
+                    "Missing decimals for token {} required to compute deposit_amount",
+                    token
+                ))
+            })?;
+
+            let amt_hex = dd
+                .get("deposit_amount_uint256")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| {
+                    LocalDbError::CustomError(
+                        "Missing deposit_amount_uint256 in DepositV2".to_string(),
+                    )
+                })?;
+            let digits = amt_hex.strip_prefix("0x").unwrap_or(amt_hex);
+            let amount = U256::from_str_radix(digits, 16).map_err(|e| {
+                LocalDbError::CustomError(format!(
+                    "Invalid deposit_amount_uint256 '{}': {}",
+                    amt_hex, e
+                ))
+            })?;
+
+            let amount_float = Float::from_fixed_decimal(amount, *decimals).map_err(|e| {
+                LocalDbError::CustomError(format!(
+                    "Float conversion failed for deposit_amount (token {}, decimals {}): {}",
+                    token, decimals, e
+                ))
+            })?;
+
+            dd.insert(
+                "deposit_amount".to_string(),
+                serde_json::Value::String(amount_float.as_hex()),
+            );
+        }
+
+        patched.push(ev_clone);
+    }
+
+    Ok(serde_json::Value::Array(patched))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::Address as AlloyAddress;
+    use rain_orderbook_test_fixtures::LocalEvm;
     use serde_json::json;
     use std::fs;
+    use std::str::FromStr;
     use tempfile::TempDir;
 
     #[tokio::test]
@@ -64,6 +180,8 @@ mod tests {
             input_file: input_file.to_string_lossy().to_string(),
             output_file: Some(output_file.to_string_lossy().to_string()),
             end_block: 1000,
+            chain_id: 1,
+            rpc: vec![],
         };
 
         cmd.execute().await?;
@@ -91,6 +209,8 @@ mod tests {
             input_file: input_file.to_string_lossy().to_string(),
             output_file: None,
             end_block: 2000,
+            chain_id: 1,
+            rpc: vec![],
         };
 
         let original_dir = std::env::current_dir()?;
@@ -115,6 +235,8 @@ mod tests {
             input_file: "nonexistent_file.json".to_string(),
             output_file: None,
             end_block: 1000,
+            chain_id: 1,
+            rpc: vec![],
         };
 
         let result = cmd.execute().await;
@@ -132,10 +254,64 @@ mod tests {
             input_file: input_file.to_string_lossy().to_string(),
             output_file: None,
             end_block: 1000,
+            chain_id: 1,
+            rpc: vec![],
         };
 
         let result = cmd.execute().await;
         assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_execute_computes_deposit_amount_and_injects_token_upsert() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let input_file = temp_dir.path().join("decoded.json");
+        let output_file = temp_dir.path().join("events.sql");
+
+        // Start local EVM with a token
+        let local_evm = LocalEvm::new_with_tokens(1).await;
+        let token = local_evm.tokens[0].clone();
+        let token_addr: AlloyAddress = *token.address();
+
+        // Build a decoded DepositV2 event requiring decimals
+        let decoded = json!([
+            {
+                "event_type": "DepositV2",
+                "block_number": "0x3e8",
+                "block_timestamp": "0x64b8c123",
+                "transaction_hash": "0x111",
+                "log_index": "0x0",
+                "decoded_data": {
+                    "sender": "0x0000000000000000000000000000000000000001",
+                    "token": format!("0x{:x}", token_addr),
+                    "vault_id": "0x1",
+                    "deposit_amount_uint256": "0x0de0b6b3a7640000" // 1e18
+                }
+            }
+        ]);
+        std::fs::write(&input_file, serde_json::to_string(&decoded)?)?;
+
+        let cmd = DecodedEventsToSql {
+            input_file: input_file.to_string_lossy().to_string(),
+            output_file: Some(output_file.to_string_lossy().to_string()),
+            end_block: 1000,
+            chain_id: 1,
+            rpc: vec![local_evm.url()],
+        };
+
+        cmd.execute().await?;
+
+        let sql = std::fs::read_to_string(&output_file)?;
+        assert!(sql.contains("INSERT INTO erc20_tokens"));
+        assert!(sql.contains("INSERT INTO deposits"));
+        // Expect deposit_amount to be Float for 1e18 with 18 decimals => 1
+        let expected =
+            Float::from_fixed_decimal(U256::from_str("1000000000000000000").unwrap(), 18)
+                .unwrap()
+                .as_hex();
+        assert!(sql.contains(&expected));
 
         Ok(())
     }
