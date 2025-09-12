@@ -1,8 +1,11 @@
 pub mod decode;
 pub mod fetch;
+pub mod helpers;
 pub mod insert;
 pub mod query;
 pub mod sync;
+pub mod token_fetch;
+pub mod tokens;
 
 use super::*;
 use crate::rpc_client::{RpcClient, RpcClientError};

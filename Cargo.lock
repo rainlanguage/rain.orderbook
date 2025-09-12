@@ -6759,6 +6759,7 @@ dependencies = [
  "clap",
  "comfy-table",
  "csv",
+ "futures",
  "httpmock",
  "rain-math-float",
  "rain-metadata 0.0.2-alpha.6",

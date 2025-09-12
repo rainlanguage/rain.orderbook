@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS deposits;
 DROP TABLE IF EXISTS clear_v3_events;
 DROP TABLE IF EXISTS after_clear_v2_events;
 DROP TABLE IF EXISTS meta_events;
+DROP TABLE IF EXISTS erc20_tokens;
 DROP TABLE IF EXISTS sync_status;
 
 COMMIT;

@@ -165,4 +165,13 @@ CREATE INDEX idx_after_clear_block ON after_clear_v2_events(block_number);
 CREATE INDEX idx_meta_subject ON meta_events(subject);
 CREATE INDEX idx_meta_block ON meta_events(block_number);
 
+CREATE TABLE erc20_tokens (
+    chain_id INTEGER NOT NULL,
+    address  TEXT    NOT NULL,
+    name     TEXT    NOT NULL,
+    symbol   TEXT    NOT NULL,
+    decimals INTEGER NOT NULL,
+    PRIMARY KEY (chain_id, address)
+);
+
 COMMIT;

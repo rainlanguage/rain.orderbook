@@ -1,10 +1,22 @@
+use super::helpers::patch_deposit_amounts_with_decimals;
+use super::token_fetch::fetch_erc20_metadata_concurrent;
 use super::{
-    query::{create_tables::REQUIRED_TABLES, LocalDbQuery},
+    insert::generate_erc20_tokens_sql,
+    query::{
+        create_tables::REQUIRED_TABLES, fetch_erc20_tokens_by_addresses::Erc20TokenRow,
+        LocalDbQuery,
+    },
+    tokens::collect_token_addresses,
     *,
 };
+use alloy::primitives::Address;
 use flate2::read::GzDecoder;
 use reqwest::Client;
-use std::io::Read;
+use std::{
+    collections::{HashMap, HashSet},
+    io::Read,
+    str::FromStr,
+};
 
 const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/46a8065a2ccbf49e9fc509cbc052cd497feb6bd5/local-db-dump.sql.gz";
 
@@ -192,8 +204,22 @@ impl RaindexClient {
             }
         };
 
+        send_status_message(
+            &status_callback,
+            "Populating token information...".to_string(),
+        )?;
+        let prep =
+            prepare_erc20_tokens_prefix(&db_callback, &local_db, chain_id, &decoded_events).await?;
+
+        let decoded_events =
+            patch_deposit_amounts_with_decimals(decoded_events, &prep.decimals_by_addr)?;
+
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        let sql_commands = match local_db.decoded_events_to_sql(decoded_events, latest_block) {
+        let sql_commands = match local_db.decoded_events_to_sql_with_prefix(
+            decoded_events,
+            latest_block,
+            &prep.tokens_prefix_sql,
+        ) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(e.to_string()));
@@ -207,6 +233,72 @@ impl RaindexClient {
     }
 }
 
+struct TokenPrepResult {
+    tokens_prefix_sql: String,
+    decimals_by_addr: HashMap<String, u8>,
+}
+
+async fn prepare_erc20_tokens_prefix(
+    db_callback: &js_sys::Function,
+    local_db: &LocalDb,
+    chain_id: u32,
+    decoded_events: &serde_json::Value,
+) -> Result<TokenPrepResult, LocalDbError> {
+    let address_set = collect_token_addresses(decoded_events);
+    let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
+    all_token_addrs.sort();
+
+    let mut tokens_prefix_sql = String::new();
+    let mut decimals_by_addr: HashMap<String, u8> = HashMap::new();
+
+    if !all_token_addrs.is_empty() {
+        let addr_strings: Vec<String> = all_token_addrs
+            .iter()
+            .map(|a| format!("0x{:x}", a))
+            .collect();
+
+        let existing: Vec<Erc20TokenRow> =
+            LocalDbQuery::fetch_erc20_tokens_by_addresses(db_callback, chain_id, &addr_strings)
+                .await?;
+        // Populate decimals map from existing DB rows
+        for row in existing.iter() {
+            decimals_by_addr.insert(row.address.to_ascii_lowercase(), row.decimals);
+        }
+
+        let existing_set: HashSet<String> = existing
+            .into_iter()
+            .map(|r| r.address.to_ascii_lowercase())
+            .collect();
+        let missing_strings: Vec<String> = addr_strings
+            .into_iter()
+            .filter(|s| !existing_set.contains(s))
+            .collect();
+
+        if !missing_strings.is_empty() {
+            let rpcs = local_db.rpc_urls().to_vec();
+            let missing_addrs: Vec<Address> = missing_strings
+                .iter()
+                .filter_map(|s| Address::from_str(s).ok())
+                .collect();
+
+            let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs).await?;
+
+            tokens_prefix_sql = generate_erc20_tokens_sql(chain_id, &successes);
+
+            // Populate decimals map from fetched metadata
+            for (addr, info) in successes.into_iter() {
+                let key = format!("0x{:x}", addr);
+                decimals_by_addr.insert(key, info.decimals);
+            }
+        }
+    }
+
+    Ok(TokenPrepResult {
+        tokens_prefix_sql,
+        decimals_by_addr,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,6 +310,8 @@ mod tests {
             create_tables::REQUIRED_TABLES, fetch_last_synced_block::SyncStatusResponse,
             fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
         };
+        use alloy::primitives::U256;
+        use rain_math_float::Float;
         use std::cell::RefCell;
         use std::rc::Rc;
         use wasm_bindgen_test::*;
@@ -380,6 +474,151 @@ mod tests {
             }) as Box<dyn Fn(String) -> JsValue>);
 
             (callback.into_js_value().dyn_into().unwrap(), captured)
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_prepare_erc20_tokens_prefix_sql_no_tokens() {
+            let db_cb = create_success_callback("[]");
+
+            let local_db = LocalDb::default();
+            let decoded = serde_json::json!([]);
+
+            let res = prepare_erc20_tokens_prefix(&db_cb, &local_db, 1, &decoded)
+                .await
+                .unwrap();
+            assert!(res.tokens_prefix_sql.is_empty());
+            assert!(res.decimals_by_addr.is_empty());
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_prepare_erc20_tokens_prefix_sql_all_known() {
+            // decoded events with two tokens
+            let decoded = serde_json::json!([
+                {"event_type":"DepositV2","decoded_data": {"token": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+                {"event_type":"WithdrawV2","decoded_data": {"token": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
+            ]);
+
+            // Callback returns both rows from erc20_tokens query
+            let rows = vec![
+                Erc20TokenRow {
+                    chain_id: 1,
+                    address: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                    name: "A".into(),
+                    symbol: "AA".into(),
+                    decimals: 18,
+                },
+                Erc20TokenRow {
+                    chain_id: 1,
+                    address: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                    name: "B".into(),
+                    symbol: "BB".into(),
+                    decimals: 6,
+                },
+            ];
+            let rows_json = serde_json::to_string(&rows).unwrap();
+
+            let cb = js_sys::Function::new_with_args(
+                "sql",
+                &format!(
+                    "if (sql.includes('FROM erc20_tokens')) return {};
+                     return {};",
+                    js_sys::JSON::stringify(
+                        &serde_wasm_bindgen::to_value(&WasmEncodedResult::Success::<String> {
+                            value: rows_json,
+                            error: None
+                        })
+                        .unwrap()
+                    )
+                    .unwrap()
+                    .as_string()
+                    .unwrap(),
+                    js_sys::JSON::stringify(
+                        &serde_wasm_bindgen::to_value(&WasmEncodedResult::Success::<String> {
+                            value: "[]".into(),
+                            error: None
+                        })
+                        .unwrap()
+                    )
+                    .unwrap()
+                    .as_string()
+                    .unwrap(),
+                ),
+            );
+
+            let local_db = LocalDb::default();
+
+            let res = prepare_erc20_tokens_prefix(&cb, &local_db, 1, &decoded)
+                .await
+                .unwrap();
+            assert!(res.tokens_prefix_sql.is_empty());
+            assert_eq!(res.decimals_by_addr.len(), 2);
+            assert_eq!(
+                res.decimals_by_addr
+                    .get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+                Some(&18)
+            );
+            assert_eq!(
+                res.decimals_by_addr
+                    .get("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+                Some(&6)
+            );
+        }
+
+        #[wasm_bindgen_test]
+        fn test_patch_deposit_amounts_with_decimals_success() {
+            let token = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
+            let decoded = serde_json::json!([
+                {
+                    "event_type": "DepositV2",
+                    "decoded_data": {
+                        "sender": "0x0000000000000000000000000000000000000001",
+                        "token": token,
+                        "vault_id": "0x01",
+                        "deposit_amount_uint256": "0xfa0"
+                    }
+                }
+            ]);
+
+            let mut map = HashMap::new();
+            map.insert(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                6u8,
+            );
+
+            let patched = patch_deposit_amounts_with_decimals(decoded, &map).unwrap();
+            let arr = patched.as_array().unwrap();
+            let dd = &arr[0]["decoded_data"];
+
+            let expected = Float::from_fixed_decimal(U256::from(4000u64), 6)
+                .unwrap()
+                .as_hex();
+            assert_eq!(dd["deposit_amount"], expected);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_patch_deposit_amounts_with_decimals_missing_decimals_errors() {
+            let decoded = serde_json::json!([
+                {
+                    "event_type": "DepositV2",
+                    "decoded_data": {
+                        "sender": "0x0000000000000000000000000000000000000001",
+                        "token": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "vault_id": "0x01",
+                        "deposit_amount_uint256": "0xfa0"
+                    }
+                }
+            ]);
+
+            let map: HashMap<String, u8> = HashMap::new();
+
+            let res = patch_deposit_amounts_with_decimals(decoded, &map);
+            assert!(res.is_err());
+            match res.unwrap_err() {
+                LocalDbError::CustomError(msg) => {
+                    assert!(msg.contains("Missing decimals for token"));
+                }
+                other => panic!("Expected CustomError for missing decimals, got {other:?}"),
+            }
         }
 
         fn create_dispatching_db_callback(
@@ -556,7 +795,9 @@ mod tests {
         use flate2::write::GzEncoder;
         use flate2::Compression;
         use httpmock::prelude::*;
+        use rain_orderbook_test_fixtures::LocalEvm;
         use std::io::Write;
+        use url::Url;
 
         fn create_gzipped_sql() -> Vec<u8> {
             let sql_content = "CREATE TABLE test (id INTEGER);";
@@ -758,6 +999,23 @@ mod tests {
                 Err(LocalDbError::Http(_)) => (),
                 _ => panic!("Expected Http error from network timeout"),
             }
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn test_generate_tokens_sql_after_fetch_success() {
+            let local_evm = LocalEvm::new_with_tokens(1).await;
+            let rpcs = vec![Url::parse(&local_evm.url()).unwrap()];
+            let addr = *local_evm.tokens[0].address();
+
+            let fetched = fetch_erc20_metadata_concurrent(rpcs, vec![addr])
+                .await
+                .unwrap();
+            let sql = generate_erc20_tokens_sql(1, &fetched);
+            assert!(sql.contains("INSERT INTO erc20_tokens"));
+            assert!(sql.contains("0x"));
+            assert!(sql.contains("Token1"));
+            assert!(sql.contains("TOKEN1"));
+            assert!(sql.contains("decimals"));
         }
     }
 }
