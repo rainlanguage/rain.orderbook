@@ -1,5 +1,6 @@
 pub mod decode;
 pub mod fetch;
+pub mod helpers;
 pub mod insert;
 pub mod query;
 pub mod sync;

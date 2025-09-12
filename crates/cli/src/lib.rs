@@ -18,7 +18,6 @@ pub enum LocalDb {
     DecodedEventsToSql(DecodedEventsToSql),
     #[command(name = "dump")]
     Dump(DbDump),
-    #[command(name = "token-sql")]
     #[command(name = "tokens-fetch")]
     TokensFetch(TokensFetch),
     #[command(name = "tokens-to-sql")]
