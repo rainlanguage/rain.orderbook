@@ -3,6 +3,9 @@ SELECT
   o.token,
   o.owner,
   '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' AS orderbook_address,
+  et.name   AS token_name,
+  et.symbol AS token_symbol,
+  et.decimals AS token_decimals,
   (
     SELECT GROUP_CONCAT(order_hash)
     FROM (
@@ -43,4 +46,7 @@ FROM (
   SELECT DISTINCT owner, token, vault_id
   FROM vault_deltas
 ) AS o
+JOIN erc20_tokens et
+  ON et.chain_id = '?chain_id'
+ AND lower(et.address) = lower(o.token)
 ORDER BY o.owner, o.token, o.vault_id;
