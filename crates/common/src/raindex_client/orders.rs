@@ -519,12 +519,18 @@ impl RaindexClient {
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
         for local_db_order in &local_db_orders {
-            let input_vaults =
-                LocalDbQuery::fetch_vaults_for_io_string(&db_callback, &local_db_order.inputs)
-                    .await?;
-            let output_vaults =
-                LocalDbQuery::fetch_vaults_for_io_string(&db_callback, &local_db_order.outputs)
-                    .await?;
+            let input_vaults = LocalDbQuery::fetch_vaults_for_io_string(
+                &db_callback,
+                chain_id,
+                &local_db_order.inputs,
+            )
+            .await?;
+            let output_vaults = LocalDbQuery::fetch_vaults_for_io_string(
+                &db_callback,
+                chain_id,
+                &local_db_order.outputs,
+            )
+            .await?;
 
             let order = RaindexOrder::try_from_local_db(
                 raindex_client.clone(),

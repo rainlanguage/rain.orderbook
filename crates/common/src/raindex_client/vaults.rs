@@ -1277,11 +1277,9 @@ impl RaindexVault {
                 // TODO: Needs updating
                 id: "0x01".to_string(),
                 address: Address::from_str(&vault.token)?,
-                // TODO: Needs updating
-                name: Some("vault.token_name".to_string()),
-                // TODO: Needs updating
-                symbol: Some("vault.token_symbol".to_string()),
-                decimals: 18,
+                name: Some(vault.token_name),
+                symbol: Some(vault.token_symbol),
+                decimals: vault.token_decimals,
             },
             orderbook: Address::from_str(&vault.orderbook_address)?,
             orders_as_inputs: vec![],
@@ -1342,6 +1340,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
+        use crate::raindex_client::local_db::query::fetch_vault::LocalDbVault;
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
         use alloy::hex::encode_prefixed;
@@ -1354,6 +1353,46 @@ mod tests {
         };
         use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
+
+        #[tokio::test]
+        async fn test_try_from_local_db_maps_token_metadata() {
+            // Build a minimal client; it won't be used in mapping
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://sg1",
+                    "http://sg2",
+                    "http://rpc1",
+                    "http://rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let local_vault = LocalDbVault {
+                vault_id: "0x01".to_string(),
+                token: "0x0000000000000000000000000000000000000000".to_string(),
+                owner: "0x0000000000000000000000000000000000000000".to_string(),
+                orderbook_address: CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                token_name: "Test Token".to_string(),
+                token_symbol: "TST".to_string(),
+                token_decimals: 6,
+                balance: Float::parse("0".to_string()).unwrap().as_hex(),
+                input_order_hashes: None,
+                output_order_hashes: None,
+            };
+
+            let rv = RaindexVault::try_from_local_db(
+                Arc::new(RwLock::new(raindex_client)),
+                1,
+                local_vault,
+                Some(RaindexVaultType::Input),
+            )
+            .unwrap();
+
+            assert_eq!(rv.token.name(), Some("Test Token".to_string()));
+            assert_eq!(rv.token.symbol(), Some("TST".to_string()));
+            assert_eq!(rv.token.decimals(), 6);
+        }
 
         fn get_vault1_json() -> Value {
             json!({

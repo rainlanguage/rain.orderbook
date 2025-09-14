@@ -18,7 +18,7 @@ use std::{
     str::FromStr,
 };
 
-const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/46a8065a2ccbf49e9fc509cbc052cd497feb6bd5/local-db-dump.sql.gz";
+const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/e981fd2d59455ce49113600a2c6baa36378a20a6/local-db-dump.sql.gz";
 
 async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbError> {
     match LocalDbQuery::fetch_all_tables(db_callback).await {
