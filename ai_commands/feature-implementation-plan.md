@@ -19,6 +19,11 @@ Interactive Start
 - Ask for prior art or patterns in the repo to mimic, and any explicit anti-patterns to avoid.
 - Ask for preferred rollout: single PR vs phased PRs, target branch, and rough priority/timeline.
 
+Pre‑Plan Summary (non‑blocking)
+- Echo back a concise summary of the inputs captured and list intended analysis steps (what code areas you will inspect and which ast-grep scans you will run).
+- Call out any missing information with 2–5 focused questions and proposed assumptions.
+- Proceed immediately to generate the plan using these assumptions; no explicit approval is required.
+
 Inputs
 - Short feature summary, acceptance criteria, and out-of-scope list.
 - Probable areas of the repo to touch (from checklist above).
@@ -26,7 +31,13 @@ Inputs
 - Pointers to related issues/PRs or specific files.
 
 Constraints & Repo Conventions
-- Use Nix shells for commands: prefix with `nix develop -c <cmd>` or use shell attributes (e.g., `nix develop .#tauri-shell`). Do not fetch network resources.
+- Planning-only, non-destructive policy: do NOT implement code or change repository state. Your role is to gather context and produce a plan.
+  - Do not modify source code, configs, tests, or assets.
+  - Do not scaffold/generate files except the final plan markdown under `ai_implementation_plans/` per Persistence.
+  - Do not run build/test/format/lint commands; include them in the plan as guidance only.
+  - Perform read-only analysis only (open files, ast-grep searches, summarize docs).
+  - No network access.
+- When listing commands in the plan, use Nix shells: prefix with `nix develop -c <cmd>` or use shell attrs (e.g., `nix develop .#tauri-shell`). Do not execute these commands.
 - Prefer syntax-aware search with ast-grep for structured matching:
   - Rust: `sg --lang rust -p '<pattern>'`
   - TypeScript: `sg --lang ts -p '<pattern>'`
@@ -50,6 +61,11 @@ High‑Level Goal
 5) Outline risks, alternatives, and a rollout/validation strategy.
 
 Procedure
+0) Pre‑plan summary & assumptions
+   - Summarize captured inputs (feature, acceptance criteria, in-scope areas, constraints, rollout preferences).
+   - Outline analysis scope: directories to inspect and exact searches to run (ast-grep patterns per area).
+   - List missing info and explicit assumptions; proceed to generate the plan without waiting.
+
 1) Requirements and scope
    - Capture the short summary, acceptance criteria, and out-of-scope.
    - Record explicit constraints: perf/security/gas, compatibility, rollout strategy.
@@ -92,7 +108,7 @@ Procedure
    - Define fixtures, snapshots, and test data sources.
 
 6) Validation, build, and CI
-   - List correct local commands to build, lint, and test each area using Nix shells.
+   - Include correct local commands to build, lint, and test each area using Nix shells (reference only; do not execute).
    - Add preflight and formatting/linting commands per language.
    - Note any CI considerations and artifacts.
 
@@ -107,7 +123,7 @@ Procedure
    - Include rough estimates and dependencies between tasks.
 
 Output Format
-Return a structured plan with the following sections:
+Return a structured plan with the following sections and persist it to disk:
 1) Summary
 2) Assumptions & Open Questions
 3) Impacted Areas
@@ -121,6 +137,24 @@ Return a structured plan with the following sections:
 11) PR Breakdown & Estimates
 12) Validation Commands
 
+Persistence
+- After generating the plan, write the full plan to a markdown file under `ai_implementation_plans/` at the repo root.
+- Filename convention: `<YYYY-MM-DD>-<short-feature-slug>.md` (use lowercase, hyphens; max ~60 chars). If a conflict exists, append `-v2`, `-v3`, etc.
+- File header (top of the file):
+  - Title: `<feature name> — Implementation Plan`
+  - Date: `YYYY-MM-DD`
+  - Status: `Draft`
+  - Areas: comma-separated list from “Impacted Areas”
+  - Inputs: one-paragraph recap of key requirements/constraints
+- Return the saved path in your response, e.g., `ai_implementation_plans/2025-09-14-new-matcher-api.md`.
+
+- Updates and revisions:
+  - When users request changes, update the same plan file in place when the feature slug matches; do not create duplicates.
+  - Track `Revision: vN` near the header and bump it on each update; append a “Last Updated: YYYY-MM-DD — Summary of changes” line.
+  - Only create a new `-v2`/`-v3` file when the user explicitly asks for a separate variant.
+
+Always include an “Assumptions & Open Questions” section when inputs are incomplete; proceed without gating on approval.
+
 Practical ast-grep patterns (examples)
 - Rust public items: `sg --lang rust -p 'pub (struct|enum|trait|fn) $NAME'`
 - Rust clap CLI: `sg --lang rust -p '#[derive(Parser)] struct $S'`
@@ -129,7 +163,7 @@ Practical ast-grep patterns (examples)
 - Find existing error types: `sg --lang rust -p 'enum $E(Error|Err)' crates`
 - Find config handling: `sg --lang rust -p 'struct $S { .. }' crates/settings`
 
-Build/Test Commands Reference (use where relevant)
+Build/Test Commands Reference (use where relevant; reference only — do not execute)
 - Bootstrap: `./prep-all.sh`
 - Rust: `nix develop -c cargo build --workspace` / `nix develop -c cargo test`
 - Solidity: `nix develop -c forge build` / `nix develop -c forge test`
@@ -140,15 +174,17 @@ Build/Test Commands Reference (use where relevant)
 
 Acceptance Criteria
 - Starts by asking concise, high-value clarifying questions and records assumptions.
+- Proceeds without requiring explicit approval; records assumptions and generates the plan.
 - Identifies impacted directories and proposes code-level changes consistent with local patterns and naming conventions.
 - Specifies public API changes (Rust/TS/Solidity) with indicative signatures/types where relevant.
 - Provides a concrete testing plan aligned with repo guidelines, including where tests live and what they validate.
 - Includes migration/feature flag/env var considerations when behavior surfaces change.
 - Lists validation commands using Nix shells and preflight checks.
 - Produces a plan that is implementable without guesswork and suitable for review/approval.
+- Persists the final plan to `ai_implementation_plans/<date>-<slug>.md` and returns its path.
+ - Performs read-only analysis only; makes no code changes or side effects beyond writing the plan file.
 
 What to return
 - The complete implementation plan in the structure above.
-- If key inputs are missing, include a short “Missing Info” section at the top with specific questions; proceed with a reasonable draft based on explicit assumptions.
+- If key inputs are missing, include a short “Missing Info” note and proceed with a reasonable draft based on explicit assumptions; highlight these in the plan’s “Assumptions & Open Questions”.
 - Optional: offer 1–2 design variants with trade-offs when appropriate.
-
