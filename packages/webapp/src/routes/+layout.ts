@@ -3,6 +3,7 @@ import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
 import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
+import init, { SQLiteWasmDatabase } from 'sqlite-web';
 
 export interface LayoutData {
 	errorMessage?: string;
@@ -27,6 +28,27 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		errorMessage = 'Failed to get site config settings. ' + (error as Error).message;
 		return {
 			errorMessage,
+			stores: null,
+			raindexClient: null
+		};
+	}
+
+	let localDb: SQLiteWasmDatabase | null = null;
+	try {
+		await init();
+		const localDbRes = SQLiteWasmDatabase.new();
+		if (localDbRes.error) {
+			return {
+				errorMessage: 'Error initializing local database: ' + localDbRes.error.readableMsg,
+				stores: null,
+				raindexClient: null
+			};
+		} else {
+			localDb = localDbRes.value;
+		}
+	} catch (error: unknown) {
+		return {
+			errorMessage: 'Error initializing local database: ' + (error as Error).message,
 			stores: null,
 			raindexClient: null
 		};
@@ -65,6 +87,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			showMyItemsOnly: writable<boolean>(false),
 			activeTokens: writable<Address[]>([])
 		},
+		localDb,
 		raindexClient
 	};
 };
