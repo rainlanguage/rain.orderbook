@@ -200,21 +200,35 @@
 				error = error.readableMsg;
 				return;
 			}
+
 			for (let order of result.value) {
 				console.log('Order active:', order.active);
 				console.log('Order hash:', order.orderHash);
 
 				for (let input of order.inputsList.items) {
 					console.log('Input vault id: ', input.vaultId);
-					console.log('Input token: ', input.token.address);
+					console.log(
+						`Token: ${input.token.symbol} (${input.token.address}) - ${input.token.decimals}`
+					);
 					console.log('Balance: ', input.balance.format().value);
 					console.log('\n');
 				}
 
 				for (let output of order.outputsList.items) {
 					console.log('Output vault id: ', output.vaultId);
-					console.log('Output token: ', output.token.address);
+					console.log(
+						`Token: ${output.token.symbol} (${output.token.address}) - ${output.token.decimals}`
+					);
 					console.log('Balance: ', output.balance.format().value);
+					console.log('\n');
+				}
+
+				for (let vault of order.vaultsList.items) {
+					console.log('Input/Output vault id: ', vault.vaultId);
+					console.log(
+						`Token: ${vault.token.symbol} (${vault.token.address}) - ${vault.token.decimals}`
+					);
+					console.log('Balance: ', vault.balance.format().value);
 					console.log('\n');
 				}
 
