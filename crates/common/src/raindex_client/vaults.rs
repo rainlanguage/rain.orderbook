@@ -1285,22 +1285,14 @@ impl RaindexVault {
                 decimals: vault.token_decimals,
             },
             orderbook: Address::from_str(&vault.orderbook_address)?,
-            orders_as_inputs: vec![],
-            orders_as_outputs: vec![],
-            // TODO: Needs updating
-            // orders_as_inputs: vault.input_order_hashes.map(|hashes| {
-            //     hashes
-            //         .into_iter()
-            //         .map(|hash| RaindexOrderAsIO {
-            //             order_hash: Bytes::from_str(&hash).unwrap_or_default(),
-            //         })
-            //         .collect()
-            // }),
-            // orders_as_outputs: vault
-            //     .orders_as_output
-            //     .iter()
-            //     .map(|order| RaindexOrderAsIO::try_from(order.clone()))
-            //     .collect::<Result<Vec<RaindexOrderAsIO>, RaindexError>>()?,
+            orders_as_inputs: RaindexOrderAsIO::try_from_local_db_orders_csv(
+                "inputOrders",
+                &vault.input_orders,
+            )?,
+            orders_as_outputs: RaindexOrderAsIO::try_from_local_db_orders_csv(
+                "outputOrders",
+                &vault.output_orders,
+            )?,
         })
     }
 }
@@ -1381,8 +1373,8 @@ mod tests {
                 token_symbol: "TST".to_string(),
                 token_decimals: 6,
                 balance: Float::parse("0".to_string()).unwrap().as_hex(),
-                input_order_hashes: None,
-                output_order_hashes: None,
+                input_orders: None,
+                output_orders: None,
             };
 
             let rv = RaindexVault::try_from_local_db(

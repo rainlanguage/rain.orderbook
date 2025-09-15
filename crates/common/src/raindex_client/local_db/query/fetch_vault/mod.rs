@@ -18,10 +18,10 @@ pub struct LocalDbVault {
     #[serde(alias = "tokenDecimals")]
     pub token_decimals: u8,
     pub balance: String,
-    #[serde(alias = "inputOrderHashes")]
-    pub input_order_hashes: Option<String>,
-    #[serde(alias = "outputOrderHashes")]
-    pub output_order_hashes: Option<String>,
+    #[serde(alias = "inputOrders")]
+    pub input_orders: Option<String>,
+    #[serde(alias = "outputOrders")]
+    pub output_orders: Option<String>,
 }
 
 impl LocalDbQuery {
@@ -101,10 +101,11 @@ mod tests {
                 token_symbol: "TA".into(),
                 token_decimals: 6,
                 balance: "0x10".into(),
-                input_order_hashes: Some(
-                    "0xabc0000000000000000000000000000000000000000000000000000000000001".into(),
+                input_orders: Some(
+                    "0x01:0xabc0000000000000000000000000000000000000000000000000000000000001:1"
+                        .into(),
                 ),
-                output_order_hashes: None,
+                output_orders: None,
             };
             let json_data = serde_json::to_string(&vec![vault.clone()]).unwrap();
             let callback = create_success_callback(&json_data);
@@ -122,8 +123,8 @@ mod tests {
             assert_eq!(data.token_symbol, vault.token_symbol);
             assert_eq!(data.token_decimals, vault.token_decimals);
             assert_eq!(data.balance, vault.balance);
-            assert_eq!(data.input_order_hashes, vault.input_order_hashes);
-            assert_eq!(data.output_order_hashes, vault.output_order_hashes);
+            assert_eq!(data.input_orders, vault.input_orders);
+            assert_eq!(data.output_orders, vault.output_orders);
         }
 
         #[wasm_bindgen_test]
@@ -167,8 +168,8 @@ mod tests {
                 token_symbol: "TX".into(),
                 token_decimals: 18,
                 balance: "0x10".into(),
-                input_order_hashes: Some("0xabc".into()),
-                output_order_hashes: None,
+                input_orders: Some("0x01:0xabc:1".into()),
+                output_orders: None,
             };
             let json_data = serde_json::to_string(&vec![sample.clone()]).unwrap();
             let callback =

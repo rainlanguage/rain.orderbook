@@ -399,6 +399,64 @@ impl TryFrom<RaindexOrderAsIO> for SgOrderAsIO {
     }
 }
 
+impl RaindexOrderAsIO {
+    pub fn try_from_local_db_orders_csv(
+        field_name: &str,
+        csv: &Option<String>,
+    ) -> Result<Vec<RaindexOrderAsIO>, RaindexError> {
+        let mut result = Vec::new();
+        if let Some(s) = csv {
+            if s.is_empty() {
+                return Ok(result);
+            }
+            for part in s.split(',') {
+                let mut segs = part.split(':');
+                let _id_str = segs
+                    .next()
+                    .ok_or(RaindexError::JsError(format!(
+                        "Invalid {} entry: missing id",
+                        field_name
+                    )))?;
+                let hash_str = segs
+                    .next()
+                    .ok_or(RaindexError::JsError(format!(
+                        "Invalid {} entry: missing order hash",
+                        field_name
+                    )))?;
+                let active_str = segs
+                    .next()
+                    .ok_or(RaindexError::JsError(format!(
+                        "Invalid {} entry: missing active flag",
+                        field_name
+                    )))?;
+                if segs.next().is_some() {
+                    return Err(RaindexError::JsError(format!(
+                        "Invalid {} entry: too many fields",
+                        field_name
+                    )));
+                }
+                let order_hash = Bytes::from_str(hash_str)?;
+                let active = match active_str {
+                    "1" => true,
+                    "0" => false,
+                    _ => {
+                        return Err(RaindexError::JsError(format!(
+                            "Invalid active flag in {}: {}",
+                            field_name, active_str
+                        )))
+                    }
+                };
+                result.push(RaindexOrderAsIO {
+                    id: Bytes::from_str("0x01")?,
+                    order_hash,
+                    active,
+                });
+            }
+        }
+        Ok(result)
+    }
+}
+
 #[wasm_export]
 impl RaindexClient {
     /// Queries orders with filtering and pagination across configured networks

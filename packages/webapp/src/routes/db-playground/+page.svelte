@@ -212,6 +212,9 @@
 						`Token: ${input.token.symbol} (${input.token.address}) - ${input.token.decimals}`
 					);
 					console.log('Balance: ', input.balance.format().value);
+
+					console.log('', input.ordersAsInput);
+
 					console.log('\n');
 				}
 

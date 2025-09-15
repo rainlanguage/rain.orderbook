@@ -35,11 +35,13 @@ mod tests {
                     token_symbol: "TA".into(),
                     token_decimals: 18,
                     balance: "0x10".into(),
-                    input_order_hashes: Some(
-                        "0xabc0000000000000000000000000000000000000000000000000000000000001".into(),
+                    input_orders: Some(
+                        "0x01:0xabc0000000000000000000000000000000000000000000000000000000000001:1"
+                            .into(),
                     ),
-                    output_order_hashes: Some(
-                        "0xdef0000000000000000000000000000000000000000000000000000000000002".into(),
+                    output_orders: Some(
+                        "0x01:0xdef0000000000000000000000000000000000000000000000000000000000002:0"
+                            .into(),
                     ),
                 },
                 LocalDbVault {
@@ -51,8 +53,8 @@ mod tests {
                     token_symbol: "TB".into(),
                     token_decimals: 6,
                     balance: "0x0".into(),
-                    input_order_hashes: None,
-                    output_order_hashes: None,
+                    input_orders: None,
+                    output_orders: None,
                 },
             ];
             let json_data = serde_json::to_string(&vaults).unwrap();
@@ -70,8 +72,8 @@ mod tests {
             assert_eq!(data[0].token_symbol, vaults[0].token_symbol);
             assert_eq!(data[0].token_decimals, vaults[0].token_decimals);
             assert_eq!(data[0].balance, vaults[0].balance);
-            assert_eq!(data[0].input_order_hashes, vaults[0].input_order_hashes);
-            assert_eq!(data[0].output_order_hashes, vaults[0].output_order_hashes);
+            assert_eq!(data[0].input_orders, vaults[0].input_orders);
+            assert_eq!(data[0].output_orders, vaults[0].output_orders);
         }
 
         #[wasm_bindgen_test]
