@@ -156,6 +156,7 @@ fn decode_add_order_v3(data_str: &str) -> Result<serde_json::Value, DecodeError>
         Ok(decoded) => Ok(serde_json::json!({
             "sender": format!("0x{:x}", decoded.0),
             "order_hash": format!("0x{}", hex::encode(decoded.1)),
+            "order_bytes": format!("0x{}", hex::encode(decoded.2.abi_encode())),
             "order": {
                 "owner": format!("0x{:x}", decoded.2.owner),
                 "nonce": format!("0x{:x}", decoded.2.nonce),
@@ -264,6 +265,7 @@ fn decode_remove_order_v3(data_str: &str) -> Result<serde_json::Value, DecodeErr
         Ok(decoded) => Ok(serde_json::json!({
             "sender": format!("0x{:x}", decoded.0),
             "order_hash": format!("0x{}", hex::encode(decoded.1)),
+            "order_bytes": format!("0x{}", hex::encode(decoded.2.abi_encode())),
             "order": {
                 "owner": format!("0x{:x}", decoded.2.owner),
                 "nonce": format!("0x{:x}", decoded.2.nonce),

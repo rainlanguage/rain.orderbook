@@ -22,6 +22,8 @@ pub struct LocalDbOrder {
     pub block_number: u64,
     #[serde(alias = "orderbookAddress")]
     pub orderbook_address: String,
+    #[serde(alias = "orderBytes")]
+    pub order_bytes: String,
     #[serde(alias = "transactionHash")]
     pub transaction_hash: String,
     pub inputs: Option<String>,
@@ -74,6 +76,7 @@ mod tests {
                     block_timestamp: 1000,
                     block_number: 123,
                     orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                    order_bytes: "0xdeadbeef".into(),
                     transaction_hash:
                         "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
                     inputs: Some("1:0xaaa,2:0xbbb".into()),
@@ -89,6 +92,7 @@ mod tests {
                     block_timestamp: 2000,
                     block_number: 456,
                     orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                    order_bytes: "0x00".into(),
                     transaction_hash:
                         "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
                     inputs: None,
@@ -110,6 +114,7 @@ mod tests {
             assert_eq!(data[0].block_timestamp, orders[0].block_timestamp);
             assert_eq!(data[0].block_number, orders[0].block_number);
             assert_eq!(data[0].orderbook_address, orders[0].orderbook_address);
+            assert_eq!(data[0].order_bytes, orders[0].order_bytes);
             assert_eq!(data[0].transaction_hash, orders[0].transaction_hash);
             assert_eq!(data[0].inputs, orders[0].inputs);
             assert_eq!(data[0].outputs, orders[0].outputs);

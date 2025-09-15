@@ -109,7 +109,7 @@ mod tests {
             let json_data = serde_json::to_string(&vec![vault.clone()]).unwrap();
             let callback = create_success_callback(&json_data);
 
-            let result = LocalDbQuery::fetch_vault(&callback, "0x01", "0xaaa", 1).await;
+            let result = LocalDbQuery::fetch_vault(&callback, 1, "0x01", "0xaaa").await;
             assert!(result.is_ok());
             let data = result.unwrap();
             assert!(data.is_some());
@@ -132,7 +132,7 @@ mod tests {
             // Provide empty result array
             let callback = create_sql_capturing_callback("[]", captured.clone());
 
-            let _ = LocalDbQuery::fetch_vault(&callback, "0xdead", "0xbeef", 137).await;
+            let _ = LocalDbQuery::fetch_vault(&callback, 137, "0xdead", "0xbeef").await;
 
             let sql = captured.borrow();
             assert!(sql.contains("'0xdead'"));
@@ -175,7 +175,7 @@ mod tests {
                 crate::raindex_client::local_db::query::tests::create_success_callback(&json_data);
 
             let io = Some("1:0x01:0xaaa,0:0x02:0xbbb".into());
-            let result = LocalDbQuery::fetch_vaults_for_io_string(&callback, &io, 1).await;
+            let result = LocalDbQuery::fetch_vaults_for_io_string(&callback, 1, &io).await;
             assert!(result.is_ok());
             let list = result.unwrap();
             assert_eq!(list.len(), 2);

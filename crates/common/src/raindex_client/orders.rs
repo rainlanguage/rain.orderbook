@@ -765,8 +765,7 @@ impl RaindexOrder {
             chain_id,
             // TODO: Needs updating
             id: Bytes::from_str("0x01")?,
-            // TODO: Needs updating
-            order_bytes: Bytes::from_str("0x01")?,
+            order_bytes: Bytes::from_str(&order.order_bytes)?,
             order_hash: Bytes::from_str(&order.order_hash)?,
             owner: Address::from_str(&order.owner)?,
             inputs: inputs

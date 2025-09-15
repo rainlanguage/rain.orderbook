@@ -204,6 +204,7 @@
 			for (let order of result.value) {
 				console.log('Order active:', order.active);
 				console.log('Order hash:', order.orderHash);
+				console.log('Order bytes: ', order.orderBytes);
 
 				for (let input of order.inputsList.items) {
 					console.log('Input vault id: ', input.vaultId);
