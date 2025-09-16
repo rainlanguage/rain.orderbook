@@ -65,6 +65,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			};
 		} else {
 			raindexClient = raindexClientRes.value;
+			raindexClient.setDbCallback(localDb.query.bind(localDb));
 		}
 	} catch (error: unknown) {
 		return {

@@ -27,10 +27,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClient,
     SgPaginationArgs,
 };
-use std::{
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
+use std::{rc::Rc, str::FromStr};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
@@ -57,7 +54,7 @@ impl_wasm_traits!(RaindexVaultType);
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVault {
-    raindex_client: Arc<RwLock<RaindexClient>>,
+    raindex_client: Rc<RaindexClient>,
     chain_id: u32,
     vault_type: Option<RaindexVaultType>,
     id: Bytes,
@@ -273,11 +270,7 @@ impl RaindexVaultToken {
 impl RaindexVault {
     #[wasm_export(skip)]
     pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
-        let raindex_client = self
-            .raindex_client
-            .read()
-            .map_err(|_| YamlError::ReadLockError)?;
-        raindex_client.get_orderbook_client(self.orderbook)
+        self.raindex_client.get_orderbook_client(self.orderbook)
     }
 
     /// Fetches balance change history for a vault
@@ -409,13 +402,7 @@ impl RaindexVault {
         &self,
         amount: Float,
     ) -> Result<(DepositArgs, TransactionArgs), RaindexError> {
-        let rpcs = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
-        };
+        let rpcs = self.raindex_client.get_rpc_urls_for_chain(self.chain_id)?;
 
         let deposit_args = DepositArgs {
             token: self.token.address,
@@ -547,13 +534,7 @@ impl RaindexVault {
 }
 impl RaindexVault {
     pub async fn get_owner_balance(&self, owner: Address) -> Result<U256, RaindexError> {
-        let rpcs = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
-        };
+        let rpcs = self.raindex_client.get_rpc_urls_for_chain(self.chain_id)?;
         let erc20 = ERC20::new(rpcs, self.token.address);
         Ok(erc20.get_account_balance(owner).await?)
     }
@@ -970,7 +951,7 @@ impl RaindexClient {
             u16,
         >,
     ) -> Result<RaindexVaultsList, RaindexError> {
-        let raindex_client = Arc::new(RwLock::new(self.clone()));
+        let raindex_client = Rc::new(self.clone());
         let multi_subgraph_args =
             self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
         let client = MultiOrderbookSubgraphClient::new(
@@ -1127,7 +1108,7 @@ impl RaindexClient {
     ) -> Result<RaindexVault, RaindexError> {
         let client = self.get_orderbook_client(orderbook_address)?;
         let vault = RaindexVault::try_from_sg_vault(
-            Arc::new(RwLock::new(self.clone())),
+            Rc::new(self.clone()),
             chain_id,
             client.vault_detail(Id::new(vault_id.to_string())).await?,
             None,
@@ -1172,7 +1153,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
 
 impl RaindexVault {
     pub fn try_from_sg_vault(
-        raindex_client: Arc<RwLock<RaindexClient>>,
+        raindex_client: Rc<RaindexClient>,
         chain_id: u32,
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
@@ -1208,7 +1189,7 @@ impl RaindexVault {
 
     pub fn with_vault_type(&self, vault_type: RaindexVaultType) -> Self {
         Self {
-            raindex_client: self.raindex_client.clone(),
+            raindex_client: Rc::clone(&self.raindex_client),
             chain_id: self.chain_id,
             vault_type: Some(vault_type),
             id: self.id.clone(),
@@ -1248,7 +1229,7 @@ impl RaindexVault {
     }
 
     pub fn try_from_local_db(
-        raindex_client: Arc<RwLock<RaindexClient>>,
+        raindex_client: Rc<RaindexClient>,
         chain_id: u32,
         vault: local_db::query::fetch_vault::LocalDbVault,
         vault_type: Option<RaindexVaultType>,
@@ -1378,7 +1359,7 @@ mod tests {
             };
 
             let rv = RaindexVault::try_from_local_db(
-                Arc::new(RwLock::new(raindex_client)),
+                Rc::new(raindex_client),
                 1,
                 local_vault,
                 Some(RaindexVaultType::Input),

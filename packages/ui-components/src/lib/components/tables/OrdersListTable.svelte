@@ -74,13 +74,17 @@
 			$orderHash,
 			selectedTokens
 		],
-		queryFn: async () => {
-			const result = await raindexClient.getOrdersLocalDb(localDb.query.bind(localDb), 42161, {
-				owners,
-				active: $showInactiveOrders ? undefined : true,
-				orderHash: $orderHash || undefined,
-				tokens: selectedTokens
-			});
+		queryFn: async ({ pageParam }) => {
+			const result = await raindexClient.getOrders(
+				$selectedChainIds,
+				{
+					owners,
+					active: $showInactiveOrders ? undefined : true,
+					orderHash: $orderHash || undefined,
+					tokens: selectedTokens
+				},
+				pageParam + 1
+			);
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},

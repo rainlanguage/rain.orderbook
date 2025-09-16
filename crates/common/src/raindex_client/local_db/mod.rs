@@ -14,6 +14,8 @@ use alloy::primitives::ruint::ParseError;
 pub use fetch::FetchConfig;
 use query::LocalDbQueryError;
 
+const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
+
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct LocalDb {
@@ -159,6 +161,10 @@ impl LocalDb {
 
     pub fn rpc_urls(&self) -> &[Url] {
         &self.rpc_urls
+    }
+
+    pub fn check_support(chain_id: u32) -> bool {
+        SUPPORTED_LOCAL_DB_CHAINS.contains(&chain_id)
     }
 
     #[cfg(test)]

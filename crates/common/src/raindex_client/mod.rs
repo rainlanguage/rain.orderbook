@@ -81,6 +81,8 @@ impl_wasm_traits!(ChainIds);
 #[wasm_bindgen]
 pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
+    #[serde(skip_serializing, skip_deserializing)]
+    local_db_callback: Option<js_sys::Function>,
 }
 
 #[wasm_export]
@@ -123,7 +125,23 @@ impl RaindexClient {
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
-        Ok(RaindexClient { orderbook_yaml })
+        Ok(RaindexClient {
+            orderbook_yaml,
+            local_db_callback: None,
+        })
+    }
+
+    #[wasm_export(js_name = "setDbCallback", unchecked_return_type = "void")]
+    pub fn set_local_db_callback(
+        &mut self,
+        #[wasm_export(
+            js_name = "callback",
+            param_description = "JavaScript function to execute local database queries"
+        )]
+        callback: js_sys::Function,
+    ) -> Result<(), RaindexError> {
+        self.local_db_callback = Some(callback);
+        Ok(())
     }
 
     fn get_multi_subgraph_args(
@@ -197,6 +215,10 @@ impl RaindexClient {
         let orderbooks = self.orderbook_yaml.get_orderbooks_by_chain_id(chain_id)?;
         Ok(orderbooks)
     }
+
+    fn local_db_callback(&self) -> Option<js_sys::Function> {
+        self.local_db_callback.clone()
+    }
 }
 
 #[derive(Error, Debug)]
@@ -269,6 +291,8 @@ pub enum RaindexError {
     LocalDbError(#[from] LocalDbError),
     #[error(transparent)]
     LocalDbQueryError(#[from] LocalDbQueryError),
+    #[error("Chain id: {0} is not supported for local database")]
+    LocalDbUnsupportedNetwork(u32),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -384,6 +408,9 @@ impl RaindexError {
             }
             RaindexError::LocalDbQueryError(err) => {
                 format!("There was an error querying the local database: {err}")
+            }
+            RaindexError::LocalDbUnsupportedNetwork(chain_id) => {
+                format!("The chain ID: {chain_id} is not supported for local database operations.")
             }
         }
     }
