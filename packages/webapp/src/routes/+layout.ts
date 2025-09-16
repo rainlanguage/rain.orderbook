@@ -33,6 +33,26 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		};
 	}
 
+	let raindexClient: RaindexClient | null = null;
+	try {
+		const raindexClientRes = RaindexClient.new([settingsYamlText]);
+		if (raindexClientRes.error) {
+			return {
+				errorMessage: raindexClientRes.error.readableMsg,
+				stores: null,
+				raindexClient: null
+			};
+		} else {
+			raindexClient = raindexClientRes.value;
+		}
+	} catch (error: unknown) {
+		return {
+			errorMessage: 'Error initializing RaindexClient: ' + (error as Error).message,
+			stores: null,
+			raindexClient: null
+		};
+	}
+
 	let localDb: SQLiteWasmDatabase | null = null;
 	try {
 		await init();
@@ -54,25 +74,8 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		};
 	}
 
-	let raindexClient: RaindexClient | null = null;
-	try {
-		const raindexClientRes = RaindexClient.new([settingsYamlText]);
-		if (raindexClientRes.error) {
-			return {
-				errorMessage: raindexClientRes.error.readableMsg,
-				stores: null,
-				raindexClient: null
-			};
-		} else {
-			raindexClient = raindexClientRes.value;
-			raindexClient.setDbCallback(localDb.query.bind(localDb));
-		}
-	} catch (error: unknown) {
-		return {
-			errorMessage: 'Error initializing RaindexClient: ' + (error as Error).message,
-			stores: null,
-			raindexClient: null
-		};
+	if (localDb && raindexClient) {
+		raindexClient.setDbCallback(localDb.query.bind(localDb));
 	}
 
 	return {
