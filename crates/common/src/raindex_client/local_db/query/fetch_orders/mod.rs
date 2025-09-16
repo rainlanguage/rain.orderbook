@@ -1,9 +1,10 @@
 use super::*;
 use crate::raindex_client::local_db::bool_from_int_or_bool;
+use crate::raindex_client::orders::GetOrdersFilters;
 
 const QUERY: &str = include_str!("query.sql");
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum FetchOrdersActiveFilter {
     All,
@@ -26,6 +27,38 @@ impl Default for FetchOrdersArgs {
             owners: Vec::new(),
             order_hash: None,
             tokens: Vec::new(),
+        }
+    }
+}
+
+impl From<GetOrdersFilters> for FetchOrdersArgs {
+    fn from(filters: GetOrdersFilters) -> Self {
+        let filter = match filters.active {
+            Some(true) => FetchOrdersActiveFilter::Active,
+            Some(false) => FetchOrdersActiveFilter::Inactive,
+            None => FetchOrdersActiveFilter::All,
+        };
+
+        let owners = filters
+            .owners
+            .into_iter()
+            .map(|owner| owner.to_string().to_lowercase())
+            .collect();
+
+        let order_hash = filters.order_hash.map(|hash| hash.to_string());
+
+        let tokens = filters
+            .tokens
+            .unwrap_or_default()
+            .into_iter()
+            .map(|token| token.to_string().to_lowercase())
+            .collect();
+
+        FetchOrdersArgs {
+            filter,
+            owners,
+            order_hash,
+            tokens,
         }
     }
 }
@@ -141,6 +174,66 @@ impl LocalDbQuery {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(not(target_family = "wasm"))]
+    mod host_tests {
+        use super::*;
+        use alloy::primitives::{Address, Bytes};
+        use std::str::FromStr;
+
+        #[test]
+        fn test_fetch_orders_args_from_filters_active_true() {
+            let filters = GetOrdersFilters {
+                owners: vec![
+                    Address::from_str("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap(),
+                ],
+                active: Some(true),
+                order_hash: Some(
+                    Bytes::from_str(
+                        "0xabc0000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                ),
+                tokens: Some(vec![Address::from_str(
+                    "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+                )
+                .unwrap()]),
+            };
+
+            let args = FetchOrdersArgs::from(filters);
+
+            assert!(matches!(args.filter, FetchOrdersActiveFilter::Active));
+            assert_eq!(
+                args.owners,
+                vec!["0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()]
+            );
+            assert_eq!(
+                args.order_hash.as_deref(),
+                Some("0xabc0000000000000000000000000000000000000000000000000000000000001")
+            );
+            assert_eq!(
+                args.tokens,
+                vec!["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string()]
+            );
+        }
+
+        #[test]
+        fn test_fetch_orders_args_from_filters_defaults() {
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+            };
+
+            let args = FetchOrdersArgs::from(filters);
+
+            assert!(matches!(args.filter, FetchOrdersActiveFilter::All));
+            assert!(args.owners.is_empty());
+            assert!(args.order_hash.is_none());
+            assert!(args.tokens.is_empty());
+        }
+    }
 
     #[cfg(target_family = "wasm")]
     mod wasm_tests {

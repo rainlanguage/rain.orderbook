@@ -1,4 +1,4 @@
-use super::local_db::query::fetch_orders::LocalDbOrder;
+use super::local_db::query::fetch_orders::{FetchOrdersArgs, LocalDbOrder};
 use super::local_db::query::fetch_vault::LocalDbVault;
 use super::local_db::query::LocalDbQuery;
 use super::*;
@@ -411,24 +411,18 @@ impl RaindexOrderAsIO {
             }
             for part in s.split(',') {
                 let mut segs = part.split(':');
-                let _id_str = segs
-                    .next()
-                    .ok_or(RaindexError::JsError(format!(
-                        "Invalid {} entry: missing id",
-                        field_name
-                    )))?;
-                let hash_str = segs
-                    .next()
-                    .ok_or(RaindexError::JsError(format!(
-                        "Invalid {} entry: missing order hash",
-                        field_name
-                    )))?;
-                let active_str = segs
-                    .next()
-                    .ok_or(RaindexError::JsError(format!(
-                        "Invalid {} entry: missing active flag",
-                        field_name
-                    )))?;
+                let _id_str = segs.next().ok_or(RaindexError::JsError(format!(
+                    "Invalid {} entry: missing id",
+                    field_name
+                )))?;
+                let hash_str = segs.next().ok_or(RaindexError::JsError(format!(
+                    "Invalid {} entry: missing order hash",
+                    field_name
+                )))?;
+                let active_str = segs.next().ok_or(RaindexError::JsError(format!(
+                    "Invalid {} entry: missing active flag",
+                    field_name
+                )))?;
                 if segs.next().is_some() {
                     return Err(RaindexError::JsError(format!(
                         "Invalid {} entry: too many fields",
@@ -558,21 +552,23 @@ impl RaindexClient {
     )]
     pub async fn get_orders_local_db(
         &self,
+        #[wasm_export(param_description = "JavaScript function to execute database queries")]
+        db_callback: js_sys::Function,
         #[wasm_export(
             js_name = "chainId",
             param_description = "The blockchain network ID to query orders from"
         )]
         chain_id: u32,
-        #[wasm_export(param_description = "JavaScript function to execute database queries")]
-        db_callback: js_sys::Function,
+        #[wasm_export(
+            param_description = "Filtering criteria including owners, active status, and order hash (optional)"
+        )]
+        filters: Option<GetOrdersFilters>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Arc::new(RwLock::new(self.clone()));
 
-        let local_db_orders = LocalDbQuery::fetch_orders(
-            &db_callback,
-            local_db::query::fetch_orders::FetchOrdersFilter::All,
-        )
-        .await?;
+        let fetch_args = filters.map(FetchOrdersArgs::from).unwrap_or_default();
+
+        let local_db_orders = LocalDbQuery::fetch_orders(&db_callback, fetch_args).await?;
 
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
