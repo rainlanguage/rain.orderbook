@@ -34,8 +34,9 @@ contract RouteProcessorOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
         IERC20(inputToken).safeApprove(address(iRouteProcessor), 0);
         IERC20(inputToken).safeApprove(address(iRouteProcessor), type(uint256).max);
         bytes memory route = abi.decode(takeOrdersData, (bytes));
-        (uint256 inputTokenAmount,) =
+        (uint256 inputTokenAmount, bool losslessInputAmount) =
             LibDecimalFloat.toFixedDecimalLossy(inputAmountSent, IERC20Metadata(inputToken).decimals());
+        (losslessInputAmount);
         (uint256 outputTokenAmount, bool lossless) =
             LibDecimalFloat.toFixedDecimalLossy(totalOutputAmount, IERC20Metadata(outputToken).decimals());
         if (!lossless) {
