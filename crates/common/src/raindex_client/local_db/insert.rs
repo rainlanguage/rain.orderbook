@@ -214,14 +214,15 @@ fn generate_add_order_sql(event: &Value) -> Result<String, InsertError> {
 
     let sender = get_string_field(decoded_data, "sender")?;
     let order_hash = get_string_field(decoded_data, "order_hash")?;
+    let order_bytes = get_string_field(decoded_data, "order_bytes")?;
     let owner = get_string_field(order, "owner")?;
     let nonce = get_string_field(order, "nonce")?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, order_hash, order_owner, order_nonce) VALUES ({}, {}, '{}', {}, 'AddOrderV3', '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, order_hash, owner, nonce
+        "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, order_hash, order_owner, order_nonce, order_bytes) VALUES ({}, {}, '{}', {}, 'AddOrderV3', '{}', '{}', '{}', '{}', '{}');\n",
+        block_number, block_timestamp, transaction_hash, log_index, sender, order_hash, owner, nonce, order_bytes
     ));
 
     sql.push_str(&generate_order_ios_sql(order, transaction_hash, log_index)?);
@@ -249,14 +250,15 @@ fn generate_remove_order_sql(event: &Value) -> Result<String, InsertError> {
 
     let sender = get_string_field(decoded_data, "sender")?;
     let order_hash = get_string_field(decoded_data, "order_hash")?;
+    let order_bytes = get_string_field(decoded_data, "order_bytes")?;
     let owner = get_string_field(order, "owner")?;
     let nonce = get_string_field(order, "nonce")?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, order_hash, order_owner, order_nonce) VALUES ({}, {}, '{}', {}, 'RemoveOrderV3', '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, order_hash, owner, nonce
+        "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, order_hash, order_owner, order_nonce, order_bytes) VALUES ({}, {}, '{}', {}, 'RemoveOrderV3', '{}', '{}', '{}', '{}', '{}');\n",
+        block_number, block_timestamp, transaction_hash, log_index, sender, order_hash, owner, nonce, order_bytes
     ));
 
     sql.push_str(&generate_order_ios_sql(order, transaction_hash, log_index)?);
@@ -534,6 +536,7 @@ mod tests {
             "decoded_data": {
                 "sender": "0x0707070707070707070707070707070707070707",
                 "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808",
+                "order_bytes": "0x112233",
                 "order": {
                     "owner": "0x0101010101010101010101010101010101010101",
                     "nonce": "0x1",
@@ -1135,6 +1138,7 @@ mod tests {
             "decoded_data": {
                 "sender": "0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
                 "order_hash": "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+                "order_bytes": "0xaabbcc",
                 "order": {
                     "owner": "0x0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
                     "nonce": "0x2",
@@ -1203,6 +1207,7 @@ mod tests {
             "decoded_data": {
                 "sender": "0x0707070707070707070707070707070707070707",
                 "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808",
+                "order_bytes": "0x112233",
                 "order": {
                     "owner": "0x0101010101010101010101010101010101010101",
                     "nonce": "0x1",
@@ -1237,6 +1242,7 @@ mod tests {
             "decoded_data": {
                 "sender": "0x0707070707070707070707070707070707070707",
                 "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808",
+                "order_bytes": "0xaabbcc",
                 "order": {
                     "owner": "0x0101010101010101010101010101010101010101",
                     "nonce": "0x1",
@@ -1271,6 +1277,7 @@ mod tests {
             "decoded_data": {
                 "sender": "0x0707070707070707070707070707070707070707",
                 "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808",
+                "order_bytes": "0x445566",
                 "order": {
                     "owner": "0x0101010101010101010101010101010101010101",
                     "nonce": "0x1"

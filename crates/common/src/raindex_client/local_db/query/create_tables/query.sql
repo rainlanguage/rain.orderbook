@@ -44,6 +44,7 @@ CREATE TABLE order_events (
     event_type TEXT NOT NULL,
     order_owner TEXT NOT NULL,
     order_nonce TEXT NOT NULL,
+    order_bytes TEXT NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );
 

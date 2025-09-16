@@ -3,6 +3,7 @@ import { writable } from 'svelte/store';
 export enum DeploymentStepsErrorCode {
 	NO_GUI_PROVIDER = 'No GUI provider found.',
 	NO_GUI = 'Error loading GUI.',
+	NO_LOCAL_DB_PROVIDER = 'No Local DB provider found.',
 	NO_STRATEGY = 'No valid order exists at this URL',
 	NO_SELECT_TOKENS = 'Error loading tokens',
 	NO_TOKEN_INFO = 'Error loading token information',

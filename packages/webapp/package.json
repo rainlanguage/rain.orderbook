@@ -22,7 +22,6 @@
 		"@rainlanguage/float": "^0.0.0-alpha.3",
 		"flowbite-svelte": "0.44.24",
 		"lodash": "4.17.21",
-		"sqlite-web": "file:sqlite-web-0.1.0.tgz",
 		"viem": "2.24.3"
 	},
 	"devDependencies": {

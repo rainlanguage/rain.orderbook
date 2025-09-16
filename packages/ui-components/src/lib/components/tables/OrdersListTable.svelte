@@ -169,12 +169,18 @@
 				{#each item.inputsList.items as vault}
 					<VaultCard {vault} />
 				{/each}
+				{#each item.inputsOutputsList.items as vault}
+					<VaultCard {vault} />
+				{/each}
 			</div>
 		</TableBodyCell>
 
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="p-2 whitespace-normal">
 			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
 				{#each item.outputsList.items as vault}
+					<VaultCard {vault} />
+				{/each}
+				{#each item.inputsOutputsList.items as vault}
 					<VaultCard {vault} />
 				{/each}
 			</div>
