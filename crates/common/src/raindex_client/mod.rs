@@ -504,6 +504,65 @@ accounts:
     }
 
     #[cfg(target_family = "wasm")]
+    pub fn new_test_client_with_db_callback(
+        yamls: Vec<String>,
+        callback: js_sys::Function,
+    ) -> RaindexClient {
+        let mut client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
+        client
+            .set_local_db_callback(callback)
+            .expect("setting db callback should succeed");
+        client
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn get_local_db_test_yaml() -> String {
+        format!(
+            r#"
+version: {spec_version}
+networks:
+    arbitrum:
+        rpcs:
+            - https://arb1.example
+        chain-id: 42161
+        label: Arbitrum
+        network-id: 42161
+        currency: ETH
+subgraphs:
+    arbitrum: https://arb.subgraph
+metaboards:
+    arbitrum: https://arb.metaboard
+orderbooks:
+    arbitrum-orderbook:
+        address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
+        network: arbitrum
+        subgraph: arbitrum
+        deployment-block: 1
+tokens:
+    tokena:
+        network: arbitrum
+        address: 0x00000000000000000000000000000000000000aa
+        decimals: 18
+        label: Token A
+        symbol: TKNA
+    tokenb:
+        network: arbitrum
+        address: 0x00000000000000000000000000000000000000bb
+        decimals: 6
+        label: Token B
+        symbol: TKNB
+deployers:
+    arb-deployer:
+        address: 0x1111111111111111111111111111111111111111
+        network: arbitrum
+accounts:
+    test: 0x2222222222222222222222222222222222222222
+"#,
+            spec_version = SpecVersion::current()
+        )
+    }
+
+    #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
         use rain_orderbook_app_settings::yaml::YamlError;
