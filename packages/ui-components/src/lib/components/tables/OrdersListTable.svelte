@@ -23,7 +23,6 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import { getAllContexts } from 'svelte';
-	import { useLocalDb } from '$lib/hooks/useLocalDb';
 
 	const context = getAllContexts();
 
@@ -41,7 +40,6 @@
 
 	const { matchesAccount, account } = useAccount();
 	const raindexClient = useRaindexClient();
-	const localDb = useLocalDb();
 
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0

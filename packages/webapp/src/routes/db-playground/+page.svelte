@@ -31,6 +31,8 @@
 	let showCustomQuery = false;
 
 	onMount(async () => {
+		raindexClient.setDbCallback(db.query.bind(db));
+
 		// Populate last sync info on load once DB is available
 		await updateSyncStatus();
 	});
@@ -173,8 +175,7 @@
 		queryResults = null;
 
 		try {
-			const queryFn = db.query.bind(db);
-			const result = await raindexClient.getOrdersLocalDb(queryFn, 42161);
+			const result = await raindexClient.getOrders([42161], null, 1);
 			if (result.error) {
 				console.error('Error fetching orders:', result.error);
 				// @ts-expect-error get message
