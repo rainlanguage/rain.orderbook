@@ -23,6 +23,7 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import { getAllContexts } from 'svelte';
+	import { useLocalDb } from '$lib/hooks/useLocalDb';
 
 	const context = getAllContexts();
 
@@ -40,6 +41,7 @@
 
 	const { matchesAccount, account } = useAccount();
 	const raindexClient = useRaindexClient();
+	const localDb = useLocalDb();
 
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
@@ -72,17 +74,13 @@
 			$orderHash,
 			selectedTokens
 		],
-		queryFn: async ({ pageParam }) => {
-			const result = await raindexClient.getOrders(
-				$selectedChainIds,
-				{
-					owners,
-					active: $showInactiveOrders ? undefined : true,
-					orderHash: $orderHash || undefined,
-					tokens: selectedTokens
-				},
-				pageParam + 1
-			);
+		queryFn: async () => {
+			const result = await raindexClient.getOrdersLocalDb(localDb.query.bind(localDb), 42161, {
+				owners,
+				active: $showInactiveOrders ? undefined : true,
+				orderHash: $orderHash || undefined,
+				tokens: selectedTokens
+			});
 			if (result.error) throw new Error(result.error.readableMsg);
 			return result.value;
 		},
@@ -169,12 +167,18 @@
 				{#each item.inputsList.items as vault}
 					<VaultCard {vault} />
 				{/each}
+				{#each item.inputsOutputsList.items as vault}
+					<VaultCard {vault} />
+				{/each}
 			</div>
 		</TableBodyCell>
 
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="p-2 whitespace-normal">
 			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
 				{#each item.outputsList.items as vault}
+					<VaultCard {vault} />
+				{/each}
+				{#each item.inputsOutputsList.items as vault}
 					<VaultCard {vault} />
 				{/each}
 			</div>

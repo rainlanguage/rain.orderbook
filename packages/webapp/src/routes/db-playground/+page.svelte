@@ -174,7 +174,7 @@
 
 		try {
 			const queryFn = db.query.bind(db);
-			const result = await raindexClient.getOrdersLocalDb(42161, queryFn);
+			const result = await raindexClient.getOrdersLocalDb(queryFn, 42161);
 			if (result.error) {
 				console.error('Error fetching orders:', result.error);
 				// @ts-expect-error get message
