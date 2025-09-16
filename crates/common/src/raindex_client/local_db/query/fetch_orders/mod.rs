@@ -5,10 +5,29 @@ const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum FetchOrdersFilter {
+pub enum FetchOrdersActiveFilter {
     All,
     Active,
     Inactive,
+}
+
+#[derive(Debug, Clone)]
+pub struct FetchOrdersArgs {
+    pub filter: FetchOrdersActiveFilter,
+    pub owners: Vec<String>,
+    pub order_hash: Option<String>,
+    pub tokens: Vec<String>,
+}
+
+impl Default for FetchOrdersArgs {
+    fn default() -> Self {
+        Self {
+            filter: FetchOrdersActiveFilter::All,
+            owners: Vec::new(),
+            order_hash: None,
+            tokens: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,15 +57,82 @@ pub struct LocalDbOrder {
 impl LocalDbQuery {
     pub async fn fetch_orders(
         db_callback: &js_sys::Function,
-        filter: FetchOrdersFilter,
+        args: FetchOrdersArgs,
     ) -> Result<Vec<LocalDbOrder>, LocalDbQueryError> {
+        let FetchOrdersArgs {
+            filter,
+            owners,
+            order_hash,
+            tokens,
+        } = args;
+
         let filter_str = match filter {
-            FetchOrdersFilter::All => "all",
-            FetchOrdersFilter::Active => "active",
-            FetchOrdersFilter::Inactive => "inactive",
+            FetchOrdersActiveFilter::All => "all",
+            FetchOrdersActiveFilter::Active => "active",
+            FetchOrdersActiveFilter::Inactive => "inactive",
         };
 
-        let sql = QUERY.replace("'?filter'", &format!("'{}'", filter_str));
+        let sanitize_literal = |value: &str| value.replace('\'', "''");
+
+        let owner_values: Vec<String> = owners
+            .into_iter()
+            .filter_map(|owner| {
+                let trimmed = owner.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(format!("'{}'", sanitize_literal(&trimmed.to_lowercase())))
+                }
+            })
+            .collect();
+        let filter_owners = if owner_values.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\nAND lower(l.order_owner) IN ({})\n",
+                owner_values.join(", ")
+            )
+        };
+
+        let filter_order_hash = order_hash
+            .and_then(|hash| {
+                let trimmed = hash.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(format!(
+                        "\nAND lower(COALESCE(la.order_hash, l.order_hash)) = lower('{}')\n",
+                        sanitize_literal(trimmed)
+                    ))
+                }
+            })
+            .unwrap_or_default();
+
+        let token_values: Vec<String> = tokens
+            .into_iter()
+            .filter_map(|token| {
+                let trimmed = token.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(format!("'{}'", sanitize_literal(&trimmed.to_lowercase())))
+                }
+            })
+            .collect();
+        let filter_tokens = if token_values.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\nAND EXISTS (\n    SELECT 1 FROM order_ios io2\n    WHERE io2.transaction_hash = la.transaction_hash\n      AND io2.log_index = la.log_index\n      AND lower(io2.token) IN ({})\n)\n",
+                token_values.join(", ")
+            )
+        };
+
+        let sql = QUERY
+            .replace("'?filter_active'", &format!("'{}'", filter_str))
+            .replace("?filter_owners", &filter_owners)
+            .replace("?filter_order_hash", &filter_order_hash)
+            .replace("?filter_tokens", &filter_tokens);
 
         LocalDbQuery::execute_query_json::<Vec<LocalDbOrder>>(db_callback, &sql).await
     }
@@ -105,7 +191,7 @@ mod tests {
             let json_data = serde_json::to_string(&orders).unwrap();
             let callback = create_success_callback(&json_data);
 
-            let result = LocalDbQuery::fetch_orders(&callback, FetchOrdersFilter::All).await;
+            let result = LocalDbQuery::fetch_orders(&callback, FetchOrdersArgs::default()).await;
             assert!(result.is_ok());
             let data = result.unwrap();
             assert_eq!(data.len(), 2);
@@ -126,7 +212,7 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_fetch_orders_empty() {
             let callback = create_success_callback("[]");
-            let result = LocalDbQuery::fetch_orders(&callback, FetchOrdersFilter::All).await;
+            let result = LocalDbQuery::fetch_orders(&callback, FetchOrdersArgs::default()).await;
             assert!(result.is_ok());
             assert_eq!(result.unwrap().len(), 0);
         }
@@ -136,13 +222,28 @@ mod tests {
             let captured_sql = Rc::new(RefCell::new(String::new()));
             let callback = create_sql_capturing_callback("[]", captured_sql.clone());
 
-            let _ = LocalDbQuery::fetch_orders(&callback, FetchOrdersFilter::All).await;
+            let _ = LocalDbQuery::fetch_orders(&callback, FetchOrdersArgs::default()).await;
 
             let sql = captured_sql.borrow();
             assert!(sql.contains("'all'"), "SQL should contain 'all': {}", *sql);
             assert!(
-                !sql.contains("?filter"),
-                "SQL should not contain placeholder ?filter: {}",
+                !sql.contains("?filter_active"),
+                "SQL should not contain placeholder ?filter_active: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_owners"),
+                "SQL should not contain placeholder ?filter_owners: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_order_hash"),
+                "SQL should not contain placeholder ?filter_order_hash: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_tokens"),
+                "SQL should not contain placeholder ?filter_tokens: {}",
                 *sql
             );
         }
@@ -152,7 +253,14 @@ mod tests {
             let captured_sql = Rc::new(RefCell::new(String::new()));
             let callback = create_sql_capturing_callback("[]", captured_sql.clone());
 
-            let _ = LocalDbQuery::fetch_orders(&callback, FetchOrdersFilter::Active).await;
+            let _ = LocalDbQuery::fetch_orders(
+                &callback,
+                FetchOrdersArgs {
+                    filter: FetchOrdersActiveFilter::Active,
+                    ..Default::default()
+                },
+            )
+            .await;
 
             let sql = captured_sql.borrow();
             assert!(
@@ -161,8 +269,23 @@ mod tests {
                 *sql
             );
             assert!(
-                !sql.contains("?filter"),
-                "SQL should not contain placeholder ?filter: {}",
+                !sql.contains("?filter_active"),
+                "SQL should not contain placeholder ?filter_active: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_owners"),
+                "SQL should not contain placeholder ?filter_owners: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_order_hash"),
+                "SQL should not contain placeholder ?filter_order_hash: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_tokens"),
+                "SQL should not contain placeholder ?filter_tokens: {}",
                 *sql
             );
         }
@@ -172,7 +295,14 @@ mod tests {
             let captured_sql = Rc::new(RefCell::new(String::new()));
             let callback = create_sql_capturing_callback("[]", captured_sql.clone());
 
-            let _ = LocalDbQuery::fetch_orders(&callback, FetchOrdersFilter::Inactive).await;
+            let _ = LocalDbQuery::fetch_orders(
+                &callback,
+                FetchOrdersArgs {
+                    filter: FetchOrdersActiveFilter::Inactive,
+                    ..Default::default()
+                },
+            )
+            .await;
 
             let sql = captured_sql.borrow();
             assert!(
@@ -181,8 +311,99 @@ mod tests {
                 *sql
             );
             assert!(
-                !sql.contains("?filter"),
-                "SQL should not contain placeholder ?filter: {}",
+                !sql.contains("?filter_active"),
+                "SQL should not contain placeholder ?filter_active: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_owners"),
+                "SQL should not contain placeholder ?filter_owners: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_order_hash"),
+                "SQL should not contain placeholder ?filter_order_hash: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_tokens"),
+                "SQL should not contain placeholder ?filter_tokens: {}",
+                *sql
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_fetch_orders_with_filters_injects_owner_clause() {
+            let captured_sql = Rc::new(RefCell::new(String::new()));
+            let callback = create_sql_capturing_callback("[]", captured_sql.clone());
+
+            let args = FetchOrdersArgs {
+                filter: FetchOrdersActiveFilter::All,
+                owners: vec![
+                    "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".into(),
+                    "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB".into(),
+                ],
+                order_hash: None,
+                tokens: vec![],
+            };
+
+            let _ = LocalDbQuery::fetch_orders(&callback, args).await;
+
+            let sql = captured_sql.borrow();
+            assert!(
+                sql.contains("AND lower(l.order_owner) IN ('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')"),
+                "SQL should contain owners filter: {}",
+                *sql
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_fetch_orders_with_filters_injects_order_hash_clause() {
+            let captured_sql = Rc::new(RefCell::new(String::new()));
+            let callback = create_sql_capturing_callback("[]", captured_sql.clone());
+
+            let args = FetchOrdersArgs {
+                filter: FetchOrdersActiveFilter::All,
+                owners: vec![],
+                order_hash: Some("0xabc123".into()),
+                tokens: vec![],
+            };
+
+            let _ = LocalDbQuery::fetch_orders(&callback, args).await;
+
+            let sql = captured_sql.borrow();
+            assert!(
+                sql.contains(
+                    "AND lower(COALESCE(la.order_hash, l.order_hash)) = lower('0xabc123')"
+                ),
+                "SQL should contain order hash filter: {}",
+                *sql
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_fetch_orders_with_filters_injects_token_clause() {
+            let captured_sql = Rc::new(RefCell::new(String::new()));
+            let callback = create_sql_capturing_callback("[]", captured_sql.clone());
+
+            let args = FetchOrdersArgs {
+                filter: FetchOrdersActiveFilter::All,
+                owners: vec![],
+                order_hash: None,
+                tokens: vec![
+                    "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".into(),
+                    "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB".into(),
+                ],
+            };
+
+            let _ = LocalDbQuery::fetch_orders(&callback, args).await;
+
+            let sql = captured_sql.borrow();
+            assert!(
+                sql.contains(
+                    "AND EXISTS (\n    SELECT 1 FROM order_ios io2\n    WHERE io2.transaction_hash = la.transaction_hash\n      AND io2.log_index = la.log_index\n      AND lower(io2.token) IN ('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')\n)"
+                ),
+                "SQL should contain tokens filter: {}",
                 *sql
             );
         }
