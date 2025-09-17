@@ -26,13 +26,15 @@ impl YamlParsableString for SpecVersion {
         let mut parsed_version: Option<String> = None;
 
         for (index, document) in documents.iter().enumerate() {
+            let location = if index == 0 {
+                "root".to_string()
+            } else {
+                format!("document {}", index + 1)
+            };
+
             let version = {
                 let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-                require_string(
-                    &document_read,
-                    Some("version"),
-                    Some(format!("document {}", index + 1)),
-                )?
+                require_string(&document_read, Some("version"), Some(location.clone()))?
             };
 
             if let Some(existing_version) = &parsed_version {
@@ -45,7 +47,7 @@ impl YamlParsableString for SpecVersion {
                                 existing_version, version
                             ),
                         },
-                        location: format!("document {}", index + 1),
+                        location,
                     });
                 }
             } else {
@@ -55,7 +57,7 @@ impl YamlParsableString for SpecVersion {
 
         parsed_version.ok_or_else(|| YamlError::Field {
             kind: FieldErrorKind::Missing("version".to_string()),
-            location: "document 1".to_string(),
+            location: "root".to_string(),
         })
     }
 
@@ -91,7 +93,7 @@ test: test
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("version".to_string()),
-                location: "document 1".to_string()
+                location: "root".to_string()
             }
         )
     }
