@@ -6,7 +6,6 @@ use crate::{
         orders::RaindexOrderAsIO, transactions::RaindexTransaction, vaults_list::RaindexVaultsList,
     },
     transaction::TransactionArgs,
-    utils::amount_formatter::format_amount_u256,
     withdraw::WithdrawArgs,
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
@@ -162,15 +161,15 @@ impl RaindexVault {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct AccountBalance {
-    balance: U256,
+    balance: Float,
     formatted_balance: String,
 }
 impl AccountBalance {
-    pub fn new(balance: U256, formatted_balance: String) -> Self {
+    pub fn new(balance: Float, formatted_balance: String) -> Self {
         Self {
             balance,
             formatted_balance,
@@ -181,9 +180,8 @@ impl AccountBalance {
 #[wasm_bindgen]
 impl AccountBalance {
     #[wasm_bindgen(getter)]
-    pub fn balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.balance.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn balance(&self) -> Float {
+        self.balance
     }
     #[wasm_bindgen(getter = formattedBalance)]
     pub fn formatted_balance(&self) -> String {
@@ -192,7 +190,7 @@ impl AccountBalance {
 }
 #[cfg(not(target_family = "wasm"))]
 impl AccountBalance {
-    pub fn balance(&self) -> U256 {
+    pub fn balance(&self) -> Float {
         self.balance
     }
     pub fn formatted_balance(&self) -> String {
@@ -538,9 +536,10 @@ impl RaindexVault {
     pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
         let balance = self.get_owner_balance(self.owner).await?;
         let decimals = self.token.decimals;
+        let float_balance = Float::from_fixed_decimal(balance, decimals)?;
         let account_balance = AccountBalance {
-            balance,
-            formatted_balance: format_amount_u256(balance, decimals)?,
+            balance: float_balance,
+            formatted_balance: float_balance.format()?,
         };
         Ok(account_balance)
     }

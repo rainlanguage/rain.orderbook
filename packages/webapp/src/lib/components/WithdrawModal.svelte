@@ -23,7 +23,7 @@
 
 	let amount: Float = Float.parse('0').value as Float;
 	let userBalance: AccountBalance = {
-		balance: 0n,
+		balance: Float.parse('0').value,
 		formattedBalance: '0'
 	} as unknown as AccountBalance;
 	let errorMessage = '';

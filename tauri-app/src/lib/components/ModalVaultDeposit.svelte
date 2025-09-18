@@ -21,7 +21,7 @@
   let isSubmitting = false;
   let selectWallet = false;
   let userBalance: AccountBalance = {
-    balance: BigInt(0),
+    balance: Float.parse('0').value,
     formattedBalance: '0',
   } as unknown as AccountBalance;
 
@@ -155,7 +155,7 @@
         <InputTokenAmount
           bind:value={amount}
           symbol={vault.token.symbol}
-          maxValue={Float.fromFixedDecimal(userBalance.balance, vault.token.decimals).value}
+          maxValue={userBalance.balance}
         />
       </ButtonGroup>
     </div>
