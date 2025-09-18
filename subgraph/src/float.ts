@@ -20,7 +20,7 @@ export function getDecimalFloatAddress(): Address {
   } else if (network == "bsc") {
     return Address.fromString("0xDbcb964760d021e18A31C9A731d8589c361E0E20");
   } else if (network == "arbitrum-one") {
-    return Address.fromString("0x3ae05C7A18e003299D3db30fB3b2caA67a35a4dE");
+    return Address.fromString("0x2265980d35d97F5f65C73e954D2022380bcA4A77");
   } else if (network == "matic") {
     return Address.fromString("0x83e4c7732e715b5E7310796A4A2a21d89f3FB59A");
   } else if (network == "linea") {
