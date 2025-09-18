@@ -823,6 +823,58 @@ impl RaindexVaultBalanceChange {
             orderbook: vault.orderbook,
         })
     }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn try_from_local_trade_side(
+        chain_id: u32,
+        orderbook: Address,
+        transaction: &RaindexTransaction,
+        vault_id: &str,
+        token_address: &str,
+        token_name: Option<String>,
+        token_symbol: Option<String>,
+        token_decimals: Option<u8>,
+        delta: &str,
+        running_balance: Option<String>,
+        block_timestamp: u64,
+    ) -> Result<Self, RaindexError> {
+        let amount = Float::from_hex(delta)?;
+        let new_balance = if let Some(balance) = running_balance {
+            Float::from_hex(&balance)?
+        } else {
+            amount
+        };
+        let old_balance = (new_balance - amount)?;
+
+        let formatted_amount = amount.format18()?;
+        let formatted_new_balance = new_balance.format18()?;
+        let formatted_old_balance = old_balance.format18()?;
+
+        let decimals = token_decimals.unwrap_or(18);
+        let token = RaindexVaultToken {
+            chain_id,
+            id: token_address.to_lowercase(),
+            address: Address::from_str(token_address)?,
+            name: token_name,
+            symbol: token_symbol,
+            decimals,
+        };
+
+        Ok(Self {
+            r#type: RaindexVaultBalanceChangeType::TradeVaultBalanceChange,
+            vault_id: U256::from_str(vault_id)?,
+            token,
+            amount,
+            formatted_amount,
+            new_balance,
+            formatted_new_balance,
+            old_balance,
+            formatted_old_balance,
+            timestamp: U256::from(block_timestamp),
+            transaction: transaction.clone(),
+            orderbook,
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
