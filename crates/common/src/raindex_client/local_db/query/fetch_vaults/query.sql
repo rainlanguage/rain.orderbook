@@ -66,7 +66,7 @@ SELECT
     WHERE vd.owner    = o.owner
       AND vd.token    = o.token
       AND vd.vault_id = o.vault_id
-  ), FLOAT_ZERO()) AS balance
+  ), FLOAT_ZERO_HEX()) AS balance
 FROM (
   /* all distinct (owner, token, vault_id) that ever had a delta */
   SELECT DISTINCT owner, token, vault_id

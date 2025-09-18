@@ -11,7 +11,7 @@ SELECT
   /* cumulative balance up to this row (inclusive) */
   (
     SELECT COALESCE(FLOAT_SUM(vd2.delta),
-      FLOAT_ZERO())
+      FLOAT_ZERO_HEX())
     FROM vault_deltas vd2
     WHERE vd2.owner    = vd.owner
       AND vd2.token    = vd.token

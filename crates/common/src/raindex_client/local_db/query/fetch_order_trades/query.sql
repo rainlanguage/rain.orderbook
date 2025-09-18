@@ -51,7 +51,7 @@ FROM (
       WHEN vd_in.transaction_hash IS NOT NULL THEN (
         SELECT COALESCE(
           FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO()
+          FLOAT_ZERO_HEX()
         )
         FROM vault_deltas vd2
         WHERE lower(vd2.owner) = lower(vd_in.owner)
@@ -69,7 +69,7 @@ FROM (
       WHEN vd_out.transaction_hash IS NOT NULL THEN (
         SELECT COALESCE(
           FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO()
+          FLOAT_ZERO_HEX()
         )
         FROM vault_deltas vd2
         WHERE lower(vd2.owner) = lower(vd_out.owner)
@@ -165,7 +165,7 @@ FROM (
       WHEN vd_in.transaction_hash IS NOT NULL THEN (
         SELECT COALESCE(
           FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO()
+          FLOAT_ZERO_HEX()
         )
         FROM vault_deltas vd2
         WHERE lower(vd2.owner) = lower(vd_in.owner)
@@ -183,7 +183,7 @@ FROM (
       WHEN vd_out.transaction_hash IS NOT NULL THEN (
         SELECT COALESCE(
           FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO()
+          FLOAT_ZERO_HEX()
         )
         FROM vault_deltas vd2
         WHERE lower(vd2.owner) = lower(vd_out.owner)
@@ -279,7 +279,7 @@ FROM (
       WHEN vd_in.transaction_hash IS NOT NULL THEN (
         SELECT COALESCE(
           FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO()
+          FLOAT_ZERO_HEX()
         )
         FROM vault_deltas vd2
         WHERE lower(vd2.owner) = lower(vd_in.owner)
@@ -297,7 +297,7 @@ FROM (
       WHEN vd_out.transaction_hash IS NOT NULL THEN (
         SELECT COALESCE(
           FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO()
+          FLOAT_ZERO_HEX()
         )
         FROM vault_deltas vd2
         WHERE lower(vd2.owner) = lower(vd_out.owner)

@@ -66,7 +66,7 @@ SELECT
     WHERE vd.token    = o.token
       AND vd.vault_id = o.vault_id
       AND vd.owner    = o.owner
-  ), FLOAT_ZERO()) AS balance
+  ), FLOAT_ZERO_HEX()) AS balance
 
 FROM (
   SELECT
