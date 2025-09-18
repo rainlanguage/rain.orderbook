@@ -328,8 +328,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_spec_version(&self) -> Result<String, YamlError> {
-        let value = SpecVersion::parse_from_yaml(self.documents[0].clone())?;
-        Ok(value)
+        SpecVersion::parse_from_yaml(self.documents.clone())
     }
 
     pub fn get_account_keys(&self) -> Result<Vec<String>, YamlError> {

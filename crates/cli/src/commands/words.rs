@@ -315,6 +315,7 @@ metaboards:
         );
         let settings_content = format!(
             "
+version: {spec_version}
 networks:
     some-network:
         rpcs:
@@ -327,7 +328,8 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba",
-            server.url("/rpc")
+            server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
 
         let settings_file = NamedTempFile::new().unwrap();
@@ -437,6 +439,7 @@ metaboards:
         );
         let settings_content = format!(
             "
+version: {spec_version}
 networks:
     some-network:
         rpcs:
@@ -469,6 +472,7 @@ orders:
             - token: token1
 ",
             server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
 
         let settings_file = NamedTempFile::new().unwrap();

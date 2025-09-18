@@ -83,7 +83,7 @@ pub trait YamlParsableVector: Sized {
 }
 
 pub trait YamlParsableString {
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError>;
+    fn parse_from_yaml(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Result<String, YamlError>;
 
     fn parse_from_yaml_optional(
         document: Arc<RwLock<StrictYaml>>,

@@ -6,7 +6,7 @@ use strict_yaml_rust::StrictYaml;
 pub struct Sentry;
 
 impl YamlParsableString for Sentry {
-    fn parse_from_yaml(_: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
+    fn parse_from_yaml(_: Vec<Arc<RwLock<StrictYaml>>>) -> Result<String, YamlError> {
         Err(YamlError::InvalidTraitFunction)
     }
 

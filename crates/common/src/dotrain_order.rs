@@ -811,6 +811,7 @@ _ _: 00;
 
         let settings = format!(
             r#"
+version: {spec_version}
 networks:
     mainnet:
         rpcs:
@@ -819,6 +820,7 @@ networks:
         network-id: 1
         currency: ETH"#,
             rpc_url = server.url("/rpc-mainnet"),
+            spec_version = SpecVersion::current(),
         );
 
         let dotrain_order =
