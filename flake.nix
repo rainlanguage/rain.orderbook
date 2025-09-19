@@ -89,6 +89,30 @@
             '';
           };
 
+          rainix-ob-cli-artifact = rainix.mkTask.${system} {
+            name = "rainix-ob-cli-artifact";
+            body = ''
+              set -euxo pipefail
+
+              OUTPUT_DIR=crates/cli/bin
+              ARCHIVE_NAME=rain-orderbook-cli.tar.gz
+              BINARY_NAME=rain-orderbook-cli
+
+              cargo build --release -p rain_orderbook_cli
+
+              mkdir -p "$OUTPUT_DIR"
+              rm -f "$OUTPUT_DIR/$ARCHIVE_NAME"
+
+              cp target/release/rain_orderbook_cli "$OUTPUT_DIR/$BINARY_NAME"
+              chmod 755 "$OUTPUT_DIR/$BINARY_NAME"
+              strip "$OUTPUT_DIR/$BINARY_NAME" || true
+
+              tar -C "$OUTPUT_DIR" -czf "$OUTPUT_DIR/$ARCHIVE_NAME" "$BINARY_NAME"
+
+              rm -f "$OUTPUT_DIR/$BINARY_NAME"
+            '';
+          };
+
           ob-tauri-before-release = rainix.mkTask.${system} {
             name = "ob-tauri-before-release";
             body = ''
@@ -265,6 +289,7 @@
             packages.test-js-bindings
             rain.defaultPackage.${system}
             packages.ob-ui-components-prelude
+            packages.rainix-ob-cli-artifact
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
