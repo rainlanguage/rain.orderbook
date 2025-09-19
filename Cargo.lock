@@ -6759,6 +6759,7 @@ dependencies = [
  "clap",
  "comfy-table",
  "csv",
+ "flate2",
  "futures",
  "httpmock",
  "rain-math-float",
