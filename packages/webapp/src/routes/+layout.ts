@@ -4,15 +4,13 @@ import type { LayoutLoad } from './$types';
 import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
 import init, { SQLiteWasmDatabase } from 'sqlite-web';
+import { REMOTE_SETTINGS_URL } from '$lib/constants';
 
 export interface LayoutData {
 	errorMessage?: string;
 	stores: AppStoresInterface | null;
 	raindexClient: RaindexClient | null;
 }
-
-const REMOTE_SETTINGS_URL =
-	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/4a91fbafccac4e791ec3fedec0b92eff7a3d4f7e/settings.yaml';
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let errorMessage: string | undefined;
