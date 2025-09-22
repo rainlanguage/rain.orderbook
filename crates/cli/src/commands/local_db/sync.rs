@@ -803,4 +803,24 @@ COMMIT;
             sqlite_query_json(&db_path_str, SYNC_STATUS_QUERY).unwrap();
         assert_eq!(sync_rows[0].last_synced_block, 120);
     }
+
+    #[test]
+    fn build_local_db_with_token_and_rpcs_uses_hyper_for_events() {
+        let rpc_inputs = vec![
+            "https://arb1.example-rpc.com".to_string(),
+            "https://arb2.example-rpc.com".to_string(),
+        ];
+
+        let (local_db, metadata_rpcs) =
+            build_local_db(42161, Some("test-token".to_string()), rpc_inputs).unwrap();
+
+        let event_urls = local_db.rpc_urls();
+        assert_eq!(event_urls.len(), 1);
+        let first = event_urls.first().unwrap().as_str();
+        assert!(first.starts_with("https://arbitrum.rpc.hypersync.xyz/test-token"));
+
+        assert_eq!(metadata_rpcs.len(), 2);
+        assert_eq!(metadata_rpcs[0].as_str(), "https://arb1.example-rpc.com/");
+        assert_eq!(metadata_rpcs[1].as_str(), "https://arb2.example-rpc.com/");
+    }
 }
