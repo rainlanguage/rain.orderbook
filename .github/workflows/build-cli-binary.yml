@@ -1,0 +1,61 @@
+name: Build CLI Binary
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_message:
+        description: "Commit message when tarball changes"
+        required: false
+        default: "chore(cli): refresh bundled binary"
+
+concurrency:
+  group: build-cli-binary-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
+
+      - uses: nixbuild/nix-quick-install-action@v30
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 1G
+
+      - name: Build CLI tarball
+        run: nix develop -c rainix-ob-cli-artifact
+
+      - name: Configure git
+        run: |
+          git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"
+          git config --global user.name "${{ secrets.CI_GIT_USER }}"
+
+      - name: Commit and push updated tarball
+        env:
+          COMMIT_MESSAGE: ${{ inputs.commit_message || 'chore(cli): refresh bundled binary' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git add crates/cli/bin/rain-orderbook-cli.tar.gz
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "$COMMIT_MESSAGE"
+          git push origin HEAD:${{ github.ref_name }}

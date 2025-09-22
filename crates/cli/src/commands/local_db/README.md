@@ -13,6 +13,30 @@ Notes
 - Run commands from the repo root. If your default `cargo run` package is not the CLI, add `-p rain_orderbook_cli`.
 - Paths below reference this folder. Adjust to your local paths as needed.
 
+## Incremental Sync (fetch, decode, insert)
+
+`local-db sync` is a single-shot command that mirrors the browser sync logic. It checks your SQLite file for the last indexed block and existing token metadata, fetches only the new on-chain events, decodes them, generates SQL (including missing token upserts), and applies everything to the DB.
+
+Example:
+
+```bash
+cargo run local-db sync \
+  --db-path "./data/orderbook.db" \
+  --chain-id 42161 \
+  --orderbook-address "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB" \
+  --deployment-block 352866209 \
+  --api-token "hyper-token" \
+  --rpc "https://arb1.example-rpc.com" \
+  --rpc "https://arb2.example-rpc.com"
+```
+
+- Always supply both a HyperRPC API token _and_ at least one regular RPC URL. HyperRPC handles
+  the high-volume log fetching while the regular RPC endpoints are used for ERC-20 metadata
+  (`eth_call`) requests, which HyperRPC does not support.
+- When the DB is empty the command initializes the schema automatically.
+- The schema's `sync_status` table is updated to the block that was fetched, so subsequent runs only pull new ranges.
+- Token metadata that already exists in `erc20_tokens` is reused; only missing addresses trigger live metadata fetches.
+
 ## Fetch Events
 
 Fetch OrderBook events from a chain and write them to a JSON file.
