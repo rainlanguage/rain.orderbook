@@ -50,34 +50,6 @@ cd packages/webapp && nix develop -c npm run dev
 nix develop .#tauri-shell --command cargo tauri dev
 ```
 
-## Local DB Sync CLI
-
-The `rain-orderbook-cli` crate includes a `local-db sync` command for incrementally
-populating a SQLite database with on-chain events. To ensure the command works across
-the full sync pipeline, provide **both** of the following:
-
-- `--api-token <token>`: HyperRPC token leveraged for high-throughput log fetching over
-  large block ranges.
-- One or more `--rpc <https://...>` values: standard JSON-RPC endpoints used for
-  `eth_call` style requests such as ERC-20 metadata lookups.
-
-HyperRPC handles event downloads efficiently but disallows the contract calls required
-for token metadata. Supplying companion RPC URLs lets the CLI perform those lookups
-while keeping HyperRPC for log retrieval.
-
-Example:
-
-```
-rain-orderbook-cli local-db sync \
-  --db-path ./orderbook.db \
-  --chain-id 42161 \
-  --orderbook-address 0xYourOrderbook \
-  --deployment-block 12345678 \
-  --api-token your-hyper-token \
-  --rpc https://arb1.example-rpc.com \
-  --rpc https://arb2.example-rpc.com
-```
-
 ## Legal stuff
 
 Everything is under DecentraLicense 1.0 (DCL-1.0) which can be found in `LICENSES/`.

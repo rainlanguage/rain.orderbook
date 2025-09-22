@@ -25,10 +25,14 @@ cargo run local-db sync \
   --chain-id 42161 \
   --orderbook-address "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB" \
   --deployment-block 352866209 \
-  --api-token "some-token"
+  --api-token "hyper-token" \
+  --rpc "https://arb1.example-rpc.com" \
+  --rpc "https://arb2.example-rpc.com"
 ```
 
-- Use `--rpc <URL>` (repeatable) if you want to provide direct RPC URLs instead of a Hyperlane API token.
+- Always supply both a HyperRPC API token _and_ at least one regular RPC URL. HyperRPC handles
+  the high-volume log fetching while the regular RPC endpoints are used for ERC-20 metadata
+  (`eth_call`) requests, which HyperRPC does not support.
 - When the DB is empty the command initializes the schema automatically.
 - The schema's `sync_status` table is updated to the block that was fetched, so subsequent runs only pull new ranges.
 - Token metadata that already exists in `erc20_tokens` is reused; only missing addresses trigger live metadata fetches.
