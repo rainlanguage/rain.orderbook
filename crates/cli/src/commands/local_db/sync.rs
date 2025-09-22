@@ -160,9 +160,9 @@ impl SyncLocalDb {
             rpc,
         } = self;
 
-        let local_db = build_local_db(chain_id, api_token, rpc)?;
+        let (local_db, metadata_rpc_urls) = build_local_db(chain_id, api_token, rpc)?;
         let token_fetcher = DefaultTokenFetcher;
-        let runner = SyncRunner::new(&db_path, &local_db, &token_fetcher);
+        let runner = SyncRunner::new(&db_path, &local_db, metadata_rpc_urls, &token_fetcher);
         let params = SyncParams {
             chain_id,
             orderbook_address: &orderbook_address,
@@ -178,6 +178,7 @@ impl SyncLocalDb {
 pub struct SyncRunner<'a, D, T> {
     db_path: &'a str,
     data_source: &'a D,
+    metadata_rpc_urls: Vec<Url>,
     token_fetcher: &'a T,
 }
 
@@ -186,10 +187,16 @@ where
     D: SyncDataSource + Send + Sync,
     T: TokenMetadataFetcher + Send + Sync,
 {
-    pub fn new(db_path: &'a str, data_source: &'a D, token_fetcher: &'a T) -> Self {
+    pub fn new(
+        db_path: &'a str,
+        data_source: &'a D,
+        metadata_rpc_urls: Vec<Url>,
+        token_fetcher: &'a T,
+    ) -> Self {
         Self {
             db_path,
             data_source,
+            metadata_rpc_urls,
             token_fetcher,
         }
     }
@@ -262,9 +269,14 @@ where
         println!("Decoded {} events", decoded_count);
 
         println!("Preparing token metadata");
+        let metadata_rpc_slice: &[Url] = if self.metadata_rpc_urls.is_empty() {
+            self.data_source.rpc_urls()
+        } else {
+            &self.metadata_rpc_urls
+        };
         let token_prep = prepare_token_metadata(
             self.db_path,
-            self.data_source.rpc_urls(),
+            metadata_rpc_slice,
             params.chain_id,
             &decoded_events,
             self.token_fetcher,
@@ -324,17 +336,27 @@ fn build_local_db(
     chain_id: u32,
     api_token: Option<String>,
     rpc_urls: Vec<String>,
-) -> Result<LocalDb> {
-    if !rpc_urls.is_empty() {
-        let urls: Vec<Url> = rpc_urls
-            .iter()
-            .map(|raw| Url::parse(raw).with_context(|| format!("Invalid RPC URL: {}", raw)))
-            .collect::<Result<_, _>>()?;
-        return Ok(LocalDb::new_with_regular_rpcs(urls));
+) -> Result<(LocalDb, Vec<Url>)> {
+    let parsed_rpcs: Vec<Url> = rpc_urls
+        .iter()
+        .map(|raw| Url::parse(raw).with_context(|| format!("Invalid RPC URL: {}", raw)))
+        .collect::<Result<_, _>>()?;
+
+    if !parsed_rpcs.is_empty() {
+        if let Some(token) = api_token {
+            let local_db = LocalDb::new_with_hyper_rpc(chain_id, token).map_err(|e| anyhow!(e))?;
+            return Ok((local_db, parsed_rpcs));
+        }
+
+        let metadata_rpcs = parsed_rpcs.clone();
+        let local_db = LocalDb::new_with_regular_rpcs(parsed_rpcs);
+        return Ok((local_db, metadata_rpcs));
     }
 
-    let api_token = api_token.ok_or_else(|| anyhow!("Provide either --rpc or --api-token"))?;
-    LocalDb::new_with_hyper_rpc(chain_id, api_token).map_err(|e| anyhow!(e))
+    let token = api_token.ok_or_else(|| anyhow!("Provide either --rpc or --api-token"))?;
+    let local_db = LocalDb::new_with_hyper_rpc(chain_id, token).map_err(|e| anyhow!(e))?;
+    let metadata_rpcs = local_db.rpc_urls().to_vec();
+    Ok((local_db, metadata_rpcs))
 }
 
 struct TokenPrepResult {
@@ -641,7 +663,12 @@ COMMIT;
             patched_events: Mutex::new(Vec::new()),
         };
 
-        let runner = SyncRunner::new(&db_path_str, &data_source, &PanicFetcher);
+        let runner = SyncRunner::new(
+            &db_path_str,
+            &data_source,
+            data_source.rpc_urls.clone(),
+            &PanicFetcher,
+        );
         let params = SyncParams {
             chain_id: 1,
             orderbook_address: "0xfeed",
@@ -731,7 +758,12 @@ COMMIT;
             calls: Mutex::new(Vec::new()),
         };
 
-        let runner = SyncRunner::new(&db_path_str, &data_source, &token_fetcher);
+        let runner = SyncRunner::new(
+            &db_path_str,
+            &data_source,
+            data_source.rpc_urls.clone(),
+            &token_fetcher,
+        );
         let params = SyncParams {
             chain_id: 1,
             orderbook_address: "0xfeed",
