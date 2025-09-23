@@ -31,9 +31,10 @@ impl Default for FetchConfig {
 }
 
 #[derive(Debug, Deserialize)]
-struct RpcEnvelope<T> {
-    result: Option<T>,
-    error: Option<serde_json::Value>,
+#[serde(untagged)]
+enum RpcEnvelope<T> {
+    Result { result: Option<T> },
+    Error { error: serde_json::Value },
 }
 
 #[derive(Debug, Deserialize)]
@@ -119,13 +120,16 @@ impl SqliteWeb {
                     let rpc_envelope: RpcEnvelope<Vec<serde_json::Value>> =
                         serde_json::from_str(&response)?;
 
-                    if let Some(error) = rpc_envelope.error {
-                        return Err(SqliteWebError::Rpc(HyperRpcError::RpcError {
-                            message: error.to_string(),
-                        }));
-                    }
+                    let logs = match rpc_envelope {
+                        RpcEnvelope::Result { result } => result.unwrap_or_default(),
+                        RpcEnvelope::Error { error } => {
+                            return Err(SqliteWebError::Rpc(HyperRpcError::RpcError {
+                                message: error.to_string(),
+                            }));
+                        }
+                    };
 
-                    Ok::<_, SqliteWebError>(rpc_envelope.result.unwrap_or_default())
+                    Ok::<_, SqliteWebError>(logs)
                 }
             })
             .buffer_unordered(concurrency)
@@ -172,18 +176,18 @@ impl SqliteWeb {
                         let rpc_envelope: RpcEnvelope<BlockResponse> =
                             serde_json::from_str(&block_response)?;
 
-                        if let Some(error) = rpc_envelope.error {
-                            return Err(SqliteWebError::Rpc(HyperRpcError::RpcError {
-                                message: error.to_string(),
-                            }));
-                        }
-
-                        let block_data =
-                            rpc_envelope
-                                .result
-                                .ok_or_else(|| SqliteWebError::MissingField {
+                        let block_data = match rpc_envelope {
+                            RpcEnvelope::Result { result } => {
+                                result.ok_or_else(|| SqliteWebError::MissingField {
                                     field: "result".to_string(),
-                                })?;
+                                })?
+                            }
+                            RpcEnvelope::Error { error } => {
+                                return Err(SqliteWebError::Rpc(HyperRpcError::RpcError {
+                                    message: error.to_string(),
+                                }));
+                            }
+                        };
 
                         let timestamp =
                             block_data
