@@ -14,6 +14,7 @@ use rain_orderbook_bindings::{
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
+use rain_metadata::RainMetaDocumentV1Item;
 use std::ops::Sub;
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use url::Url;
@@ -486,10 +487,13 @@ impl DotrainOrderGui {
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
 
+        let dotrain_instance_v1 = self.generate_dotrain_instance_v1()?;
+        let meta = RainMetaDocumentV1Item::try_from(dotrain_instance_v1)?;
+
         let calldata = AddOrderArgs::new_from_deployment(
             self.dotrain_order.dotrain()?,
             deployment.deployment.as_ref().clone(),
-            None,
+            Some(vec![meta]),
         )
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)

@@ -1,11 +1,19 @@
 use super::*;
-use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
+use alloy::primitives::FixedBytes;
+use rain_metadata::types::dotrain::{
+    gui_state_v1::{DotrainGuiStateV1, ShortenedTokenCfg, ValueCfg},
+    source_v1::DotrainSourceV1,
+};
+use rain_metadata::RainMetaDocumentV1Item;
 use rain_orderbook_app_settings::{
     gui::GuiDepositCfg,
     order::{OrderIOCfg, VaultType},
     token::TokenCfg,
 };
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 use strict_yaml_rust::StrictYaml;
 use wasm_bindgen::JsValue;
 
@@ -84,6 +92,115 @@ impl DotrainOrderGui {
             vault_ids.insert((r#type, token), vault_id.as_ref().map(|v| v.to_string()));
         }
         Ok(vault_ids)
+    }
+
+    #[wasm_export(skip)]
+    pub fn generate_dotrain_instance_v1(&self) -> Result<DotrainGuiStateV1, GuiError> {
+        let dotrain_source: RainMetaDocumentV1Item =
+            DotrainSourceV1(self.dotrain_order.dotrain()?.clone()).into();
+        let dotrain_hash = dotrain_source.hash(false)?;
+
+        // Use normalized deposit amounts (resolve presets to actual values)
+        let deposits = self
+            .get_deposits()?
+            .into_iter()
+            .map(|d| {
+                (
+                    d.token.clone(),
+                    ValueCfg {
+                        id: d.token,
+                        name: None,
+                        value: d.amount,
+                    },
+                )
+            })
+            .collect();
+
+        // Prefer the resolved tokens from the current deployment (captures user selections)
+        let select_tokens = {
+            let mut result = BTreeMap::new();
+            let deployment = self.get_current_deployment()?;
+            let network_key = deployment.deployment.order.network.key.clone();
+
+            // Build a key->address map from inputs/outputs that reflects current state
+            let mut resolved = HashMap::new();
+            for io in deployment
+                .deployment
+                .order
+                .inputs
+                .iter()
+                .chain(deployment.deployment.order.outputs.iter())
+            {
+                if let Some(tok) = &io.token {
+                    resolved.insert(tok.key.clone(), tok.address);
+                }
+            }
+
+            // Emit only the tokens configured for selection in this deployment
+            if let Some(st) = GuiCfg::parse_select_tokens(
+                self.dotrain_order.dotrain_yaml().documents,
+                &self.selected_deployment,
+            )? {
+                for s in st {
+                    if let Some(addr) = resolved.get(&s.key) {
+                        result.insert(
+                            s.key,
+                            ShortenedTokenCfg {
+                                network: network_key.clone(),
+                                address: *addr,
+                            },
+                        );
+                    }
+                }
+            }
+            result
+        };
+
+        // Convert vault_ids to "{io_type}_{index}" keys where index matches IO position
+        // in the order's inputs/outputs arrays for deterministic reconstruction.
+        let deployment = self.get_current_deployment()?;
+        let mut vault_ids = BTreeMap::new();
+        for (i, input) in deployment.deployment.order.inputs.iter().enumerate() {
+            let key = format!("input_{}", i);
+            let value = input.vault_id.map(|v| format!("0x{:x}", v));
+            vault_ids.insert(key, value);
+        }
+        for (i, output) in deployment.deployment.order.outputs.iter().enumerate() {
+            let key = format!("output_{}", i);
+            let value = output.vault_id.map(|v| format!("0x{:x}", v));
+            vault_ids.insert(key, value);
+        }
+
+        // Convert field values to ValueCfg with normalized value and optional preset ID
+        let field_values = self
+            .field_values
+            .iter()
+            .map(|(k, v)| {
+                let normalized = self.get_field_value(k.clone())?;
+                Ok((
+                    k.clone(),
+                    ValueCfg {
+                        // Preserve preset linkage if applicable; otherwise leave blank
+                        id: if v.is_preset {
+                            v.value.clone()
+                        } else {
+                            k.clone()
+                        },
+                        name: None,
+                        value: normalized.value,
+                    },
+                ))
+            })
+            .collect::<Result<_, GuiError>>()?;
+
+        Ok(DotrainGuiStateV1 {
+            dotrain_hash: FixedBytes(dotrain_hash),
+            field_values,
+            deposits,
+            select_tokens,
+            vault_ids,
+            selected_deployment: self.selected_deployment.clone(),
+        })
     }
 
     /// Exports the complete GUI state as a compressed, encoded string.
