@@ -11,9 +11,12 @@ use alloy::{
     },
 };
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::yaml::{
-    orderbook::{OrderbookYaml, OrderbookYamlValidation},
-    YamlError, YamlParsable,
+use rain_orderbook_app_settings::{
+    network::NetworkCfg,
+    yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
@@ -121,53 +124,89 @@ impl RaindexClient {
         Ok(RaindexClient { orderbook_yaml })
     }
 
+    fn resolve_networks(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<Vec<NetworkCfg>, RaindexError> {
+        match chain_ids {
+            Some(ids) if !ids.is_empty() => {
+                let mut networks = Vec::with_capacity(ids.len());
+                for id in ids {
+                    networks.push(self.orderbook_yaml.get_network_by_chain_id(id)?);
+                }
+                Ok(networks)
+            }
+            Some(_) | None => {
+                let all_nets = self.orderbook_yaml.get_networks()?;
+                let mut networks = Vec::with_capacity(all_nets.len());
+                for network in all_nets.values() {
+                    networks.push(network.clone());
+                }
+                Ok(networks)
+            }
+        }
+    }
+
     fn get_multi_subgraph_args(
         &self,
         chain_ids: Option<Vec<u32>>,
     ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
-        let result = match chain_ids {
-            Some(ids) if !ids.is_empty() => {
-                let mut multi_subgraph_args = BTreeMap::new();
-                for id in ids {
-                    let network = self.orderbook_yaml.get_network_by_chain_id(id)?;
-                    let orderbooks = self
-                        .orderbook_yaml
-                        .get_orderbooks_by_network_key(&network.key)?;
-                    for orderbook in orderbooks {
-                        multi_subgraph_args.entry(id).or_insert(Vec::new()).push(
-                            MultiSubgraphArgs {
-                                url: orderbook.subgraph.url.clone(),
-                                name: network.label.clone().unwrap_or(network.key.clone()),
-                            },
-                        );
-                    }
-                }
-                multi_subgraph_args
+        let networks = self.resolve_networks(chain_ids)?;
+        let mut result: BTreeMap<u32, Vec<MultiSubgraphArgs>> = BTreeMap::new();
+        for network in networks {
+            let orderbooks = self
+                .orderbook_yaml
+                .get_orderbooks_by_network_key(&network.key)?;
+            for orderbook in orderbooks {
+                result
+                    .entry(network.chain_id)
+                    .or_default()
+                    .push(MultiSubgraphArgs {
+                        url: orderbook.subgraph.url.clone(),
+                        name: network.label.clone().unwrap_or(network.key.clone()),
+                    });
             }
-            Some(_) | None => {
-                let mut multi_subgraph_args = BTreeMap::new();
-                let networks = self.orderbook_yaml.get_networks()?;
-
-                for network in networks.values() {
-                    let orderbooks = self
-                        .orderbook_yaml
-                        .get_orderbooks_by_network_key(&network.key)?;
-                    for orderbook in orderbooks {
-                        multi_subgraph_args
-                            .entry(network.chain_id)
-                            .or_insert(Vec::new())
-                            .push(MultiSubgraphArgs {
-                                url: orderbook.subgraph.url.clone(),
-                                name: network.label.clone().unwrap_or(network.key.clone()),
-                            });
-                    }
-                }
-                multi_subgraph_args
-            }
-        };
-
+        }
         if result.is_empty() {
             return Err(RaindexError::NoNetworksConfigured);
+        }
+        Ok(result)
+    }
+
+    fn get_metaboards_by_chain_id(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
+        let networks = self.resolve_networks(chain_ids)?;
+        let mut result = BTreeMap::new();
+
+        let metaboards = match self.orderbook_yaml.get_metaboards() {
+            Ok(metaboards) => metaboards,
+            Err(_) => {
+                return Err(RaindexError::NoMetaboardsConfigured);
+            }
+        };
+        if metaboards.is_empty() {
+            return Err(RaindexError::NoMetaboardsConfigured);
+        }
+
+        for network in &networks {
+            if let Some(metaboard) = metaboards.get(&network.key) {
+                let label = network.label.clone().unwrap_or(network.key.clone());
+                result.insert(
+                    network.chain_id,
+                    vec![MultiSubgraphArgs {
+                        url: metaboard.url.clone(),
+                        name: label,
+                    }],
+                );
+            } else {
+                return Err(RaindexError::MetaboardNotConfigured(network.chain_id));
+            }
+        }
+
+        if result.is_empty() {
+            return Err(RaindexError::NoMetaboardsConfigured);
         }
         Ok(result)
     }
@@ -255,6 +294,16 @@ pub enum RaindexError {
     MissingErc20Decimals(String),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
+    #[error("Cannot parse metadata: {0}")]
+    ParseMetaError(#[from] rain_metadata::Error),
+    #[error("No metaboards configured for any chain")]
+    NoMetaboardsConfigured,
+    #[error("Metaboard not configured for chain ID: {0}")]
+    MetaboardNotConfigured(u32),
+    #[error("Metaboard subgraph error: {0}")]
+    MetaboardSubgraphError(String),
+    #[error("Invalid dotrain source metadata found")]
+    InvalidDotrainSourceMetadata,
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -365,6 +414,20 @@ impl RaindexError {
                 format!("Missing decimal information for the token address: {token}")
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
+            RaindexError::ParseMetaError(err) => format!("Cannot parse metadata: {err}"),
+            RaindexError::NoMetaboardsConfigured => {
+                "No metaboards configured for any chain. Please check your configuration."
+                    .to_string()
+            }
+            RaindexError::MetaboardNotConfigured(chain_id) => {
+                format!("Metaboard is not configured for chain ID: {chain_id}")
+            }
+            RaindexError::MetaboardSubgraphError(err) => {
+                format!("Failed to query metaboard subgraph: {err}")
+            }
+            RaindexError::InvalidDotrainSourceMetadata => {
+                "Found metadata but it could not be parsed as valid dotrain source".to_string()
+            }
         }
     }
 }
