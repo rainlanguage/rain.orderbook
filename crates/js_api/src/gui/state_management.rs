@@ -1,10 +1,10 @@
 use super::*;
+use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
 use rain_orderbook_app_settings::{
     gui::GuiDepositCfg,
     order::{OrderIOCfg, VaultType},
     token::TokenCfg,
 };
-use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 use wasm_bindgen::JsValue;
@@ -32,9 +32,10 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
-        let dotrain_bytes = bincode::serialize(&dotrain)?;
-        let hash = Sha256::digest(dotrain_bytes);
+    #[wasm_export(skip)]
+    pub fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
+        let dotrain_source = DotrainSourceV1(dotrain);
+        let hash = dotrain_source.hash();
         Ok(URL_SAFE.encode(hash))
     }
 
@@ -413,7 +414,7 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTWvCQBDN2tJS6EkKPRX6A7okm9XqCj14CE0RKgUpXnWzGsm6G5P1-0_4kyU6GzE4h3lv9r2dGabmnOMJcDxT0UxNMXFs3AESz6uafAQPnlMySx4AjU6Eore63XZeV89Q5XousBJmrbPE_nsDjI1JO64rNR_JWOem0_baTTdLOV5mcl84UJGRHR0Mwheg9cb_5lBJqI4eQR4UO7xTdG_r3i-tOZe42pWUAwhjqKr6peoz9gGUJnLXa03CYcvwUNM-_v5ZRIu80dzGAc8-Axb2ycrviuSv-_VqLyGk4AafmuJIpFJv50KZI9yAnizIAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QUWvCMBBu3NgY7EkGexrsByw0abdhhL2MlU4GZUpRX2MNtjRNSo2o-Cf8yVK9VCzew33f5ftyd1zHOcUD4CxT80wtMHVs3ABSQtomD8EDcRpmyR2g0blQ_rVu152X1SNUS10IrIRZ6yq3_14AU2PKvutKnXCZ6qXp90jvw63KBK8quasdqM7Ijg7i3yeg3ffxZt9KqIvuQY7rHV59dGvrv8jvOOe42JU2AyhjqK16jeox9gZUsozM1PdnkYRBxIMyntAwX_PpYMzDMP7hm2iUelLo_-Hg69leQkiRGHxsiueilHpbCGUOk23JqcgBAAA=";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
