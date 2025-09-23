@@ -22,7 +22,7 @@ export function getDecimalFloatAddress(): Address {
   } else if (network == "arbitrum-one") {
     return Address.fromString("0x2265980d35d97F5f65C73e954D2022380bcA4A77");
   } else if (network == "matic") {
-    return Address.fromString("0x83e4c7732e715b5E7310796A4A2a21d89f3FB59A");
+    return Address.fromString("0xb92aD1A33930aB64e0A7DC1AcD9EDDf9d4F8bc91");
   } else if (network == "linea") {
     return Address.fromString("0x83e4c7732e715b5E7310796A4A2a21d89f3FB59A");
   } else if (network == "mainnet") {
