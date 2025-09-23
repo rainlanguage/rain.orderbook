@@ -489,6 +489,7 @@ impl DotrainOrderGui {
         let calldata = AddOrderArgs::new_from_deployment(
             self.dotrain_order.dotrain()?,
             deployment.deployment.as_ref().clone(),
+            None,
         )
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)
