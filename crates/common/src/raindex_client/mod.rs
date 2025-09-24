@@ -173,44 +173,6 @@ impl RaindexClient {
         Ok(result)
     }
 
-    fn get_metaboards_by_chain_id(
-        &self,
-        chain_ids: Option<Vec<u32>>,
-    ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
-        let networks = self.resolve_networks(chain_ids)?;
-        let mut result = BTreeMap::new();
-
-        let metaboards = match self.orderbook_yaml.get_metaboards() {
-            Ok(metaboards) => metaboards,
-            Err(_) => {
-                return Err(RaindexError::NoMetaboardsConfigured);
-            }
-        };
-        if metaboards.is_empty() {
-            return Err(RaindexError::NoMetaboardsConfigured);
-        }
-
-        for network in &networks {
-            if let Some(metaboard) = metaboards.get(&network.key) {
-                let label = network.label.clone().unwrap_or(network.key.clone());
-                result.insert(
-                    network.chain_id,
-                    vec![MultiSubgraphArgs {
-                        url: metaboard.url.clone(),
-                        name: label,
-                    }],
-                );
-            } else {
-                return Err(RaindexError::MetaboardNotConfigured(network.chain_id));
-            }
-        }
-
-        if result.is_empty() {
-            return Err(RaindexError::NoMetaboardsConfigured);
-        }
-        Ok(result)
-    }
-
     #[wasm_export(skip)]
     pub fn get_orderbook_client(
         &self,
