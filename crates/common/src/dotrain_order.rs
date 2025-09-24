@@ -619,6 +619,11 @@ impl DotrainOrder {
             StrictYaml::String("deployments".to_string()),
             StrictYaml::Hash(deployments_hash),
         );
+
+        if let Some(gui_yaml) = Self::clone_gui_for_deployment(&documents, deployment_key.as_str())?
+        {
+            root_hash.insert(StrictYaml::String("gui".to_string()), gui_yaml);
+        }
         let scenario_yaml = Self::scenario_to_yaml(&scenario_cfg)?;
         let mut scenarios_hash = StrictYamlHash::new();
         scenarios_hash.insert(StrictYaml::String(scenario_cfg.key.clone()), scenario_yaml);
@@ -639,6 +644,65 @@ impl DotrainOrder {
         );
 
         Ok(dotrain)
+    }
+
+    fn clone_gui_for_deployment(
+        documents: &[Arc<RwLock<StrictYaml>>],
+        deployment_key: &str,
+    ) -> Result<Option<StrictYaml>, DotrainOrderError> {
+        let mut gui_value: Option<StrictYaml> = None;
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| {
+                DotrainOrderError::CleanUnusedFrontmatterError(
+                    "Failed to read YAML document while cloning gui section".to_string(),
+                )
+            })?;
+
+            if let StrictYaml::Hash(root_hash) = &*document_read {
+                if let Some(gui) = root_hash.get(&StrictYaml::String("gui".to_string())) {
+                    gui_value = Some(gui.clone());
+                    break;
+                }
+            }
+        }
+
+        let Some(StrictYaml::Hash(mut gui_hash)) = gui_value else {
+            return Ok(None);
+        };
+
+        let Some(deployments_yaml) = gui_hash
+            .get(&StrictYaml::String("deployments".to_string()))
+            .cloned()
+        else {
+            return Ok(None);
+        };
+
+        let StrictYaml::Hash(deployments_hash) = deployments_yaml else {
+            return Err(DotrainOrderError::CleanUnusedFrontmatterError(
+                "Gui deployments section is not a map".to_string(),
+            ));
+        };
+
+        let Some(deployment_yaml) = deployments_hash
+            .get(&StrictYaml::String(deployment_key.to_string()))
+            .cloned()
+        else {
+            return Ok(None);
+        };
+
+        let mut filtered_deployments = StrictYamlHash::new();
+        filtered_deployments.insert(
+            StrictYaml::String(deployment_key.to_string()),
+            deployment_yaml,
+        );
+
+        gui_hash.insert(
+            StrictYaml::String("deployments".to_string()),
+            StrictYaml::Hash(filtered_deployments),
+        );
+
+        Ok(Some(StrictYaml::Hash(gui_hash)))
     }
 
     fn scenario_to_yaml(scenario: &ScenarioCfg) -> Result<StrictYaml, DotrainOrderError> {
@@ -1537,6 +1601,26 @@ deployments:
     description: "Goerli deployment"
     order: goerli-order
     scenario: goerli
+gui:
+  name: "Order GUI"
+  description: "Order GUI description"
+  deployments:
+    polygon-deployment:
+      name: "Polygon GUI"
+      description: "Polygon GUI deployment"
+      deposits:
+        - token: t1
+      fields:
+        - binding: "key"
+          name: "Key Field"
+    goerli-deployment:
+      name: "Goerli GUI"
+      description: "Goerli GUI deployment"
+      deposits:
+        - token: extra
+      fields:
+        - binding: "other"
+          name: "Other Field"
 ---
 #body
 "#,
@@ -1555,7 +1639,39 @@ deployments:
         let yaml_value: Value = serde_yaml::from_str(frontmatter).unwrap();
 
         let root = yaml_value.as_mapping().unwrap();
-        assert!(root.get(Value::String("gui".to_string())).is_none());
+        let gui = root
+            .get(Value::String("gui".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(
+            gui.get(Value::String("name".to_string()))
+                .and_then(|v| v.as_str())
+                .unwrap(),
+            "Order GUI"
+        );
+        let gui_deployments = gui
+            .get(Value::String("deployments".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(gui_deployments.len(), 1);
+        assert!(gui_deployments.contains_key(Value::String("polygon-deployment".to_string())));
+        assert!(!gui_deployments.contains_key(Value::String("goerli-deployment".to_string())));
+        let polygon_gui = gui_deployments
+            .get(Value::String("polygon-deployment".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        let polygon_deposits = polygon_gui
+            .get(Value::String("deposits".to_string()))
+            .and_then(|v| v.as_sequence())
+            .unwrap();
+        assert_eq!(polygon_deposits.len(), 1);
+        let deposit_token = polygon_deposits[0]
+            .as_mapping()
+            .unwrap()
+            .get(Value::String("token".to_string()))
+            .and_then(|v| v.as_str())
+            .unwrap();
+        assert_eq!(deposit_token, "t1");
 
         let version = root
             .get(Value::String("version".to_string()))
