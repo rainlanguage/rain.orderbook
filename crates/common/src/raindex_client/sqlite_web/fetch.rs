@@ -1,6 +1,7 @@
 use super::{SqliteWeb, SqliteWebError};
 use crate::hyper_rpc::HyperRpcError;
 use alloy::{primitives::U256, sol_types::SolEvent};
+use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::{
     IOrderBookV5::{
@@ -9,7 +10,10 @@ use rain_orderbook_bindings::{
     OrderBook::MetaV1_2,
 };
 use serde::Deserialize;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 #[derive(Debug, Clone)]
 pub struct FetchConfig {
@@ -252,6 +256,8 @@ impl SqliteWeb {
     }
 }
 
+const RETRY_DELAY_MILLIS: u64 = 100;
+
 async fn retry_with_attempts<T, F, Fut>(
     operation: F,
     max_attempts: usize,
@@ -260,21 +266,28 @@ where
     F: Fn() -> Fut,
     Fut: std::future::Future<Output = Result<T, HyperRpcError>>,
 {
-    let mut last_error = SqliteWebError::MissingField {
-        field: "Not attempted".to_string(),
-    };
-
-    for _attempt in 1..=max_attempts {
-        match operation().await {
-            Ok(result) => return Ok(result),
-            Err(HyperRpcError::JsonSerialization(err)) => {
-                return Err(SqliteWebError::JsonParse(err));
-            }
-            Err(e) => last_error = SqliteWebError::Rpc(e),
-        }
+    if max_attempts == 0 {
+        return Err(SqliteWebError::MissingField {
+            field: "Not attempted".to_string(),
+        });
     }
 
-    Err(last_error)
+    let backoff = ConstantBuilder::default()
+        .with_delay(Duration::from_millis(RETRY_DELAY_MILLIS))
+        .with_max_times(max_attempts.saturating_sub(1));
+
+    let retryable = || async {
+        match operation().await {
+            Ok(result) => Ok(result),
+            Err(HyperRpcError::JsonSerialization(err)) => Err(SqliteWebError::JsonParse(err)),
+            Err(err) => Err(SqliteWebError::Rpc(err)),
+        }
+    };
+
+    retryable
+        .retry(&backoff)
+        .when(|error: &SqliteWebError| matches!(error, SqliteWebError::Rpc(_)))
+        .await
 }
 
 fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError> {
