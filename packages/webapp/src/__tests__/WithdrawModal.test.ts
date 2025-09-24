@@ -28,7 +28,7 @@ describe('WithdrawModal', () => {
 		},
 		getOwnerBalance: vi.fn().mockResolvedValue({
 			value: {
-				balance: BigInt('1000000000000000000'), // 1 token
+				balance: Float.parse('1').value, // 1 token
 				formattedBalance: '1'
 			}
 		}),
