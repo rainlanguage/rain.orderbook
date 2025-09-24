@@ -362,10 +362,8 @@ describe('OrderDetail', () => {
 
 	it('shows Gui State tab when parsed meta includes Dotrain gui state', async () => {
 		const guiState = {
-		  test: 'value',
-			nested: new Map([
-				['key', 'value']
-			])
+			test: 'value',
+			nested: new Map([['key', 'value']])
 		};
 		const user = userEvent.setup();
 

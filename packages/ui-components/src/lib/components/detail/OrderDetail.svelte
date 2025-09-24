@@ -84,30 +84,28 @@
 		}
 	});
 
-const interval = setInterval(async () => {
-	await invalidateTanstackQueries(queryClient, [orderHash]);
-}, 10000);
+	const interval = setInterval(async () => {
+		await invalidateTanstackQueries(queryClient, [orderHash]);
+	}, 10000);
 
 	onDestroy(() => {
 		clearInterval(interval);
 	});
 
-const handleRefresh = async () => {
-	try {
-		await invalidateTanstackQueries(queryClient, [orderHash]);
-	} catch {
-		errToast('Failed to refresh');
-	}
-};
+	const handleRefresh = async () => {
+		try {
+			await invalidateTanstackQueries(queryClient, [orderHash]);
+		} catch {
+			errToast('Failed to refresh');
+		}
+	};
 
-$: dotrainSource = $orderDetailQuery.data?.parsedMeta?.find(
-	(meta) => 'DotrainSourceV1' in meta
-)
-	?.DotrainSourceV1;
-$: dotrainGuiState = $orderDetailQuery.data?.parsedMeta?.find(
-	(meta) => 'DotrainGuiStateV1' in meta
-)
-	?.DotrainGuiStateV1;
+	$: dotrainSource = $orderDetailQuery.data?.parsedMeta?.find(
+		(meta) => 'DotrainSourceV1' in meta
+	)?.DotrainSourceV1;
+	$: dotrainGuiState = $orderDetailQuery.data?.parsedMeta?.find(
+		(meta) => 'DotrainGuiStateV1' in meta
+	)?.DotrainGuiStateV1;
 
 	const vaultTypesMap = [
 		{ key: 'Output vaults', type: 'output', getter: 'outputsList' },
@@ -284,13 +282,13 @@ $: dotrainGuiState = $orderDetailQuery.data?.parsedMeta?.find(
 						{codeMirrorDisabled}
 						{codeMirrorStyles}
 					></CodeMirrorRainlang>
-					</div>
-				</TabItem>
+				</div>
+			</TabItem>
 			{#if dotrainGuiState}
 				<TabItem title="Gui State">
 					<div class="mb-4">
 						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
-								<pre class="text-sm" data-testid="gui-state-json">{JSON.stringify(
+							<pre class="text-sm" data-testid="gui-state-json">{JSON.stringify(
 									Object.fromEntries(
 										Object.entries(dotrainGuiState).map(([key, value]) => [
 											key,
