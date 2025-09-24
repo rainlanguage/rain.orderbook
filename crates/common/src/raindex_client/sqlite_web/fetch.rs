@@ -83,16 +83,14 @@ impl SqliteWeb {
         let mut chunks = Vec::new();
         let mut current_block = start_block;
         let chunk_size = config.chunk_size.max(1);
+        let chunk_span = chunk_size.saturating_sub(1);
         while current_block <= end_block {
-            let to_block = std::cmp::min(
-                current_block.saturating_add(chunk_size).saturating_sub(1),
-                end_block,
-            );
+            let to_block = current_block.saturating_add(chunk_span).min(end_block);
             chunks.push((current_block, to_block));
-            current_block = to_block.saturating_add(1);
             if to_block == u64::MAX {
                 break;
             }
+            current_block = to_block.saturating_add(1);
         }
 
         let contract_address = contract_address.to_string();
@@ -2180,6 +2178,55 @@ mod tests {
             assert!(result.is_ok());
             let events = result.unwrap();
             assert_eq!(events.as_array().unwrap().len(), 4);
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_end_block_u64_max() {
+            let server = MockServer::start();
+
+            let logs_mock = server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        if body_str.contains(r#""method":"eth_getLogs""#) {
+                            assert!(
+                                body_str.contains(r#""toBlock":"0xffffffffffffffff""#),
+                                "expected toBlock to be 0xffffffffffffffff, got {}",
+                                body_str
+                            );
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig {
+                chunk_size: 5000,
+                ..FetchConfig::default()
+            };
+
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    u64::MAX,
+                    u64::MAX,
+                    &config,
+                )
+                .await;
+
+            assert!(result.is_ok());
+            logs_mock.assert_hits(1);
         }
     }
 }
