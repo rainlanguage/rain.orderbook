@@ -4,16 +4,18 @@ use crate::{
 };
 use alloy::primitives::Address;
 use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
-use dotrain::{error::ComposeError, RainDocument};
+use dotrain::{error::ComposeError, types::patterns::FRONTMATTER_SEPARATOR, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::{
-    dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
+    clone_section_entries, clone_section_entry, dotrain::DotrainYaml, orderbook::OrderbookYaml,
+    YamlError, YamlParsable,
 };
 use rain_orderbook_app_settings::{
     remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
+    scenario::ScenarioCfg,
     yaml::dotrain::DotrainYamlValidation,
 };
 use rain_orderbook_app_settings::{
@@ -21,6 +23,12 @@ use rain_orderbook_app_settings::{
     yaml::orderbook::OrderbookYamlValidation,
 };
 use serde::{Deserialize, Serialize};
+use serde_yaml;
+use std::{
+    collections::BTreeSet,
+    sync::{Arc, RwLock},
+};
+use strict_yaml_rust::{strict_yaml::Hash as StrictYamlHash, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
 
@@ -485,6 +493,201 @@ impl DotrainOrder {
         OrderbookYaml::from_dotrain_yaml(self.dotrain_yaml.clone())
     }
 
+    pub fn generate_dotrain_for_deployment(
+        &self,
+        deployment_key: &str,
+    ) -> Result<String, DotrainOrderError> {
+        let dotrain_yaml = self.dotrain_yaml();
+        let orderbook_yaml = self.orderbook_yaml();
+        let deployment = dotrain_yaml.get_deployment(deployment_key)?;
+        let order_cfg = deployment.order.clone();
+        let scenario_cfg = deployment.scenario.clone();
+        let deployer_cfg = scenario_cfg.deployer.clone();
+
+        let network_key = order_cfg.network.key.clone();
+        let deployer_key = deployer_cfg.key.clone();
+        let orderbook_key = order_cfg.orderbook.as_ref().map(|ob| ob.key.clone());
+        let subgraph_key = order_cfg
+            .orderbook
+            .as_ref()
+            .map(|ob| ob.subgraph.key.clone());
+
+        let token_keys = order_cfg
+            .inputs
+            .iter()
+            .chain(order_cfg.outputs.iter())
+            .filter_map(|io| io.token.as_ref())
+            .map(|token| token.key.clone())
+            .collect::<BTreeSet<_>>();
+
+        let order_key = order_cfg.key.clone();
+        let deployment_key = deployment.key.clone();
+
+        let metaboard_key = orderbook_yaml
+            .get_metaboard(&network_key)
+            .ok()
+            .map(|cfg| cfg.key.clone());
+
+        let documents = dotrain_yaml.documents.clone();
+
+        let spec_version = orderbook_yaml.get_spec_version()?;
+
+        let mut root_hash = StrictYamlHash::new();
+        root_hash.insert(
+            StrictYaml::String("version".to_string()),
+            StrictYaml::String(spec_version.to_string()),
+        );
+
+        let network_value = clone_section_entry(&documents, "networks", &network_key)
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        let mut networks_hash = StrictYamlHash::new();
+        networks_hash.insert(StrictYaml::String(network_key.clone()), network_value);
+        root_hash.insert(
+            StrictYaml::String("networks".to_string()),
+            StrictYaml::Hash(networks_hash),
+        );
+
+        if !token_keys.is_empty() {
+            let tokens_hash = clone_section_entries(
+                &documents,
+                "tokens",
+                token_keys.iter().map(|key| key.as_str()),
+            )
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+            root_hash.insert(
+                StrictYaml::String("tokens".to_string()),
+                StrictYaml::Hash(tokens_hash),
+            );
+        }
+
+        let deployer_value = clone_section_entry(&documents, "deployers", &deployer_key)
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        let mut deployers_hash = StrictYamlHash::new();
+        deployers_hash.insert(StrictYaml::String(deployer_key.clone()), deployer_value);
+        root_hash.insert(
+            StrictYaml::String("deployers".to_string()),
+            StrictYaml::Hash(deployers_hash),
+        );
+
+        if let Some(orderbook_key) = orderbook_key {
+            let orderbook_value = clone_section_entry(&documents, "orderbooks", &orderbook_key)
+                .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+            let mut orderbooks_hash = StrictYamlHash::new();
+            orderbooks_hash.insert(StrictYaml::String(orderbook_key.clone()), orderbook_value);
+            root_hash.insert(
+                StrictYaml::String("orderbooks".to_string()),
+                StrictYaml::Hash(orderbooks_hash),
+            );
+        }
+
+        if let Some(subgraph_key) = subgraph_key {
+            let subgraph_value = clone_section_entry(&documents, "subgraphs", &subgraph_key)
+                .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+            let mut subgraphs_hash = StrictYamlHash::new();
+            subgraphs_hash.insert(StrictYaml::String(subgraph_key.clone()), subgraph_value);
+            root_hash.insert(
+                StrictYaml::String("subgraphs".to_string()),
+                StrictYaml::Hash(subgraphs_hash),
+            );
+        }
+
+        if let Some(metaboard_key) = metaboard_key {
+            let metaboard_value = clone_section_entry(&documents, "metaboards", &metaboard_key)
+                .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+            let mut metaboards_hash = StrictYamlHash::new();
+            metaboards_hash.insert(StrictYaml::String(metaboard_key.clone()), metaboard_value);
+            root_hash.insert(
+                StrictYaml::String("metaboards".to_string()),
+                StrictYaml::Hash(metaboards_hash),
+            );
+        }
+
+        let order_value = clone_section_entry(&documents, "orders", &order_key)
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        let mut orders_hash = StrictYamlHash::new();
+        orders_hash.insert(StrictYaml::String(order_key.clone()), order_value);
+        root_hash.insert(
+            StrictYaml::String("orders".to_string()),
+            StrictYaml::Hash(orders_hash),
+        );
+
+        let deployment_value = clone_section_entry(&documents, "deployments", &deployment_key)
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        let mut deployments_hash = StrictYamlHash::new();
+        deployments_hash.insert(StrictYaml::String(deployment_key.clone()), deployment_value);
+        root_hash.insert(
+            StrictYaml::String("deployments".to_string()),
+            StrictYaml::Hash(deployments_hash),
+        );
+        let scenario_yaml = Self::scenario_to_yaml(&scenario_cfg)?;
+        let mut scenarios_hash = StrictYamlHash::new();
+        scenarios_hash.insert(StrictYaml::String(scenario_cfg.key.clone()), scenario_yaml);
+        root_hash.insert(
+            StrictYaml::String("scenarios".to_string()),
+            StrictYaml::Hash(scenarios_hash),
+        );
+
+        let pruned_doc = Arc::new(RwLock::new(StrictYaml::Hash(root_hash)));
+        let yaml_frontmatter = DotrainYaml::get_yaml_string(pruned_doc.clone())?;
+
+        let rain_document = RainDocument::create(self.dotrain.clone(), None, None, None);
+        let dotrain = format!(
+            "{}\n{}\n{}",
+            yaml_frontmatter,
+            FRONTMATTER_SEPARATOR,
+            rain_document.body()
+        );
+
+        Ok(dotrain)
+    }
+
+    fn scenario_to_yaml(scenario: &ScenarioCfg) -> Result<StrictYaml, DotrainOrderError> {
+        let mut scenario_hash = StrictYamlHash::new();
+        scenario_hash.insert(
+            StrictYaml::String("deployer".to_string()),
+            StrictYaml::String(scenario.deployer.key.clone()),
+        );
+
+        if !scenario.bindings.is_empty() {
+            let mut bindings_hash = StrictYamlHash::new();
+            for (key, value) in &scenario.bindings {
+                bindings_hash.insert(
+                    StrictYaml::String(key.clone()),
+                    StrictYaml::String(value.clone()),
+                );
+            }
+            scenario_hash.insert(
+                StrictYaml::String("bindings".to_string()),
+                StrictYaml::Hash(bindings_hash),
+            );
+        }
+
+        if let Some(runs) = scenario.runs {
+            scenario_hash.insert(
+                StrictYaml::String("runs".to_string()),
+                StrictYaml::String(runs.to_string()),
+            );
+        }
+
+        if let Some(blocks) = &scenario.blocks {
+            let blocks_yaml = serde_yaml::to_string(blocks).map_err(|err| {
+                DotrainOrderError::CleanUnusedFrontmatterError(format!(
+                    "Failed to serialise blocks: {err}"
+                ))
+            })?;
+            let blocks_docs = StrictYamlLoader::load_from_str(&blocks_yaml).map_err(|err| {
+                DotrainOrderError::CleanUnusedFrontmatterError(format!(
+                    "Failed to parse blocks YAML: {err}"
+                ))
+            })?;
+            if let Some(blocks_doc) = blocks_docs.into_iter().next() {
+                scenario_hash.insert(StrictYaml::String("blocks".to_string()), blocks_doc);
+            }
+        }
+
+        Ok(StrictYaml::Hash(scenario_hash))
+    }
+
     pub async fn get_pragmas_for_scenario(
         &self,
         scenario: &str,
@@ -624,6 +827,7 @@ mod tests {
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use serde_bytes::ByteBuf;
     use serde_json::json;
+    use serde_yaml::Value;
 
     sol!(
         struct AuthoringMetaV2Sol {
@@ -728,10 +932,10 @@ _ _: 0 0;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. calculate-io */ 
+            r#"/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;"#
         );
     }
@@ -781,7 +985,7 @@ _ _: 1 2;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. handle-add-order */ 
+            r#"/* 0. handle-add-order */
 _ _: 1 2;"#
         );
     }
@@ -1238,6 +1442,201 @@ _ _: 0 0;
         }
     }
 
+    #[tokio::test]
+    async fn test_generate_dotrain_for_deployment_trims_sections() {
+        let dotrain = format!(
+            r#"version: {spec_version}
+networks:
+  polygon:
+    rpcs:
+      - https://polygon.rpc
+    chain-id: 137
+    network-id: 137
+    currency: MATIC
+  goerli:
+    rpcs:
+      - https://goerli.rpc
+    chain-id: 5
+    network-id: 5
+    currency: ETH
+tokens:
+  t1:
+    network: polygon
+    address: 0x1111111111111111111111111111111111111111
+    decimals: 18
+    label: Token1
+    symbol: TKN1
+  t2:
+    network: polygon
+    address: 0x2222222222222222222222222222222222222222
+    decimals: 18
+    label: Token2
+    symbol: TKN2
+  extra:
+    network: goerli
+    address: 0x3333333333333333333333333333333333333333
+    decimals: 18
+    label: Extra
+    symbol: EX
+deployers:
+  polygon:
+    address: 0x4444444444444444444444444444444444444444
+    network: polygon
+  goerli:
+    address: 0x5555555555555555555555555555555555555555
+    network: goerli
+orderbooks:
+  polygon-ob:
+    address: 0x6666666666666666666666666666666666666666
+    network: polygon
+    subgraph: polygon-subgraph
+    deployment-block: 123
+  goerli-ob:
+    address: 0x7777777777777777777777777777777777777777
+    network: goerli
+    subgraph: goerli-subgraph
+    deployment-block: 456
+subgraphs:
+  polygon-subgraph: https://polygon.subgraph
+  goerli-subgraph: https://goerli.subgraph
+metaboards:
+  polygon: https://polygon.metaboard
+  goerli: https://goerli.metaboard
+orders:
+  polygon-order:
+    network: polygon
+    deployer: polygon
+    orderbook: polygon-ob
+    inputs:
+      - token: t1
+    outputs:
+      - token: t2
+  goerli-order:
+    network: goerli
+    deployer: goerli
+    orderbook: goerli-ob
+    inputs:
+      - token: extra
+    outputs:
+      - token: extra
+scenarios:
+  polygon:
+    deployer: polygon
+    bindings:
+      key: value
+  goerli:
+    deployer: goerli
+deployments:
+  polygon-deployment:
+    name: "Polygon"
+    description: "Polygon deployment"
+    order: polygon-order
+    scenario: polygon
+  goerli-deployment:
+    name: "Goerli"
+    description: "Goerli deployment"
+    order: goerli-order
+    scenario: goerli
+---
+#body
+"#,
+            spec_version = SpecVersion::current()
+        );
+
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
+            .await
+            .unwrap();
+
+        let trimmed = dotrain_order
+            .generate_dotrain_for_deployment("polygon-deployment")
+            .unwrap();
+
+        let frontmatter = RainDocument::get_front_matter(&trimmed).unwrap();
+        let yaml_value: Value = serde_yaml::from_str(frontmatter).unwrap();
+
+        let root = yaml_value.as_mapping().unwrap();
+        assert!(root.get(Value::String("gui".to_string())).is_none());
+
+        let version = root
+            .get(Value::String("version".to_string()))
+            .and_then(|v| v.as_str())
+            .unwrap();
+        assert_eq!(version, SpecVersion::current());
+
+        let networks = root
+            .get(Value::String("networks".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(networks.len(), 1);
+        assert!(networks.contains_key(Value::String("polygon".to_string())));
+        assert!(!networks.contains_key(Value::String("goerli".to_string())));
+
+        let tokens = root
+            .get(Value::String("tokens".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(tokens.len(), 2);
+        assert!(tokens.contains_key(Value::String("t1".to_string())));
+        assert!(tokens.contains_key(Value::String("t2".to_string())));
+
+        let deployers = root
+            .get(Value::String("deployers".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(deployers.len(), 1);
+        assert!(deployers.contains_key(Value::String("polygon".to_string())));
+
+        let orderbooks = root
+            .get(Value::String("orderbooks".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(orderbooks.len(), 1);
+        assert!(orderbooks.contains_key(Value::String("polygon-ob".to_string())));
+
+        let subgraphs = root
+            .get(Value::String("subgraphs".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(subgraphs.len(), 1);
+        assert!(subgraphs.contains_key(Value::String("polygon-subgraph".to_string())));
+
+        let metaboards = root
+            .get(Value::String("metaboards".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(metaboards.len(), 1);
+        assert!(metaboards.contains_key(Value::String("polygon".to_string())));
+
+        let orders = root
+            .get(Value::String("orders".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(orders.len(), 1);
+        assert!(orders.contains_key(Value::String("polygon-order".to_string())));
+
+        let deployments = root
+            .get(Value::String("deployments".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(deployments.len(), 1);
+        assert!(deployments.contains_key(Value::String("polygon-deployment".to_string())));
+
+        let scenarios = root
+            .get(Value::String("scenarios".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert_eq!(scenarios.len(), 1);
+        let scenario_entry = scenarios
+            .get(Value::String("polygon".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        assert!(scenario_entry
+            .get(Value::String("scenarios".to_string()))
+            .is_none());
+
+        assert!(!frontmatter.contains("goerli"));
+    }
+
     // helper function to mock rpc and sg response
     fn mock_server(with_pragma_addresses: Vec<Address>) -> MockServer {
         let server = MockServer::start();
@@ -1475,10 +1874,10 @@ _ _: 0 0;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. calculate-io */ 
+            r#"/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;"#
         );
     }
