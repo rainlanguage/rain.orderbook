@@ -488,13 +488,14 @@ pub fn clone_section_entry(
     section: &str,
     key: &str,
 ) -> Result<StrictYaml, YamlError> {
+    let section_key = StrictYaml::String(section.to_string());
+    let entry_key = StrictYaml::String(key.to_string());
+
     for document in documents {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         if let StrictYaml::Hash(root_hash) = &*document_read {
-            if let Some(StrictYaml::Hash(section_hash)) =
-                root_hash.get(&StrictYaml::String(section.to_string()))
-            {
-                if let Some(value) = section_hash.get(&StrictYaml::String(key.to_string())) {
+            if let Some(StrictYaml::Hash(section_hash)) = root_hash.get(&section_key) {
+                if let Some(value) = section_hash.get(&entry_key) {
                     return Ok(value.clone());
                 }
             }

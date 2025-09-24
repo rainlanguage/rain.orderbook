@@ -107,6 +107,34 @@
 		(meta) => 'DotrainGuiStateV1' in meta
 	)?.DotrainGuiStateV1;
 
+	const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+		if (value === null || typeof value !== 'object') return false;
+		const proto = Object.getPrototypeOf(value);
+		return proto === Object.prototype || proto === null;
+	};
+
+	const convertMaps = (value: unknown): unknown => {
+		if (value instanceof Map) {
+			return Object.fromEntries(
+				Array.from(value.entries(), ([mapKey, mapValue]) => [mapKey, convertMaps(mapValue)])
+			);
+		}
+
+		if (Array.isArray(value)) {
+			return value.map((item) => convertMaps(item));
+		}
+
+		if (isPlainObject(value)) {
+			return Object.fromEntries(
+				Object.entries(value).map(([entryKey, entryValue]) => [entryKey, convertMaps(entryValue)])
+			);
+		}
+
+		return value;
+	};
+
+	const mapAwareJsonReplacer = (_key: string, value: unknown) => convertMaps(value);
+
 	const vaultTypesMap = [
 		{ key: 'Output vaults', type: 'output', getter: 'outputsList' },
 		{ key: 'Input vaults', type: 'input', getter: 'inputsList' },
@@ -289,13 +317,8 @@
 					<div class="mb-4">
 						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
 							<pre class="text-sm" data-testid="gui-state-json">{JSON.stringify(
-									Object.fromEntries(
-										Object.entries(dotrainGuiState).map(([key, value]) => [
-											key,
-											value instanceof Map ? Object.fromEntries(value.entries()) : value
-										])
-									),
-									null,
+									dotrainGuiState,
+									mapAwareJsonReplacer,
 									2
 								)}</pre>
 						</div>

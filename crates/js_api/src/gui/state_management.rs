@@ -97,7 +97,7 @@ impl DotrainOrderGui {
     #[wasm_export(skip)]
     pub fn generate_dotrain_instance_v1(&self) -> Result<DotrainGuiStateV1, GuiError> {
         let dotrain_source: RainMetaDocumentV1Item =
-            DotrainSourceV1(self.dotrain_order.dotrain()?.clone()).into();
+            DotrainSourceV1(self.dotrain_order.dotrain()?.to_string()).into();
         let dotrain_hash = dotrain_source.hash(false)?;
 
         // Use normalized deposit amounts (resolve presets to actual values)

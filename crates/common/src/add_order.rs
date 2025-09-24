@@ -130,7 +130,7 @@ impl AddOrderArgs {
         }
 
         Ok(AddOrderArgs {
-            dotrain: dotrain.to_string(),
+            dotrain,
             inputs,
             outputs,
             deployer: deployment.scenario.deployer.address,
@@ -184,12 +184,10 @@ impl AddOrderArgs {
 
         if let Some(existing_meta) = &self.meta {
             if !existing_meta.is_empty() {
-                meta_docs.extend(
-                    existing_meta
-                        .iter()
-                        .filter(|i| i.magic != KnownMagic::RainlangSourceV1)
-                        .cloned(),
-                );
+                meta_docs.extend(existing_meta.iter().filter_map(|i| match i.magic {
+                    KnownMagic::RainlangSourceV1 | KnownMagic::DotrainSourceV1 => None,
+                    _ => Some(i.clone()),
+                }));
             }
         }
 
