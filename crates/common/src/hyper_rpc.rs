@@ -1,9 +1,17 @@
+use alloy::providers::Provider;
+use alloy::rpc::json_rpc::{Id, RequestMeta};
+use alloy::transports::TransportError;
+use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider, ReadProviderError};
+use serde_json::Value;
+use std::sync::Arc;
 use thiserror::Error;
+use url::Url;
 
 #[derive(Clone)]
 pub struct HyperRpcClient {
     chain_id: u32,
     rpc_url: String,
+    provider: Arc<ReadProvider>,
 }
 
 impl std::fmt::Debug for HyperRpcClient {
@@ -27,7 +35,12 @@ impl HyperRpcClient {
             8453 => format!("https://base.rpc.hypersync.xyz/{}", api_token),
             _ => return Err(HyperRpcError::UnsupportedChainId { chain_id }),
         };
-        Ok(Self { chain_id, rpc_url })
+        let provider = Arc::new(Self::build_provider(&rpc_url)?);
+        Ok(Self {
+            chain_id,
+            rpc_url,
+            provider,
+        })
     }
 
     pub fn get_url(&self) -> &str {
@@ -35,35 +48,29 @@ impl HyperRpcClient {
     }
 
     pub async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
-        let client = reqwest::Client::new();
-        let response = client
-            .post(self.get_url())
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "eth_blockNumber",
-                "params": []
-            }))
-            .send()
-            .await?
-            .error_for_status()?;
-
-        let json: serde_json::Value = response.json().await?;
-
-        // Check for RPC errors
-        if let Some(error) = json.get("error") {
-            return Err(HyperRpcError::RpcError {
-                message: format!("Getting latest block: {}", error),
-            });
-        }
-
-        if let Some(result) = json.get("result") {
-            if let Some(block_hex) = result.as_str() {
-                let block_hex = block_hex.strip_prefix("0x").unwrap_or(block_hex);
-                let block_number = u64::from_str_radix(block_hex, 16)?;
-                return Ok(block_number);
+        let response = match self
+            .provider
+            .client()
+            .request_noparams::<Value>("eth_blockNumber")
+            .map_meta(set_request_id)
+            .await
+        {
+            Ok(value) => value,
+            Err(err) => {
+                let err = HyperRpcClient::map_transport_error(err, Some("Getting latest block"));
+                return Err(match err {
+                    HyperRpcError::JsonSerialization(_) => HyperRpcError::MissingField {
+                        field: "result".to_string(),
+                    },
+                    other => other,
+                });
             }
+        };
+
+        if let Value::String(block_hex) = response {
+            let block_hex = block_hex.strip_prefix("0x").unwrap_or(&block_hex);
+            let block_number = u64::from_str_radix(block_hex, 16)?;
+            return Ok(block_number);
         }
 
         Err(HyperRpcError::MissingField {
@@ -78,74 +85,94 @@ impl HyperRpcClient {
         address: &str,
         topics: Option<Vec<Option<Vec<String>>>>,
     ) -> Result<String, HyperRpcError> {
-        let client = reqwest::Client::new();
-        let response = client
-            .post(self.get_url())
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "eth_getLogs",
-                "params": [{
-                    "fromBlock": from_block,
-                    "toBlock": to_block,
-                    "address": address,
-                    "topics": topics
-                }]
-            }))
-            .send()
-            .await?
-            .error_for_status()?;
+        let params = serde_json::json!([{
+            "fromBlock": from_block,
+            "toBlock": to_block,
+            "address": address,
+            "topics": topics,
+        }]);
 
-        let text = response.text().await?;
+        let result = self
+            .provider
+            .client()
+            .request::<_, Value>("eth_getLogs", params)
+            .map_meta(set_request_id)
+            .await
+            .map_err(|err| HyperRpcClient::map_transport_error(err, None))?;
 
-        // Check for RPC errors in the response
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
-            if let Some(error) = json.get("error") {
-                return Err(HyperRpcError::RpcError {
-                    message: error.to_string(),
-                });
-            }
-        }
+        let envelope = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": result,
+        });
 
-        Ok(text)
+        Ok(serde_json::to_string(&envelope)?)
     }
 
     pub async fn get_block_by_number(&self, block_number: u64) -> Result<String, HyperRpcError> {
-        let client = reqwest::Client::new();
         let block_hex = format!("0x{:x}", block_number);
+        let params = serde_json::json!([block_hex, false]);
 
-        let response = client
-            .post(self.get_url())
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "eth_getBlockByNumber",
-                "params": [block_hex, false]
-            }))
-            .send()
-            .await?
-            .error_for_status()?;
+        let result = self
+            .provider
+            .client()
+            .request::<_, Value>("eth_getBlockByNumber", params)
+            .map_meta(set_request_id)
+            .await
+            .map_err(|err| HyperRpcClient::map_transport_error(err, None))?;
 
-        let text = response.text().await?;
+        let envelope = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": result,
+        });
 
-        // Check for RPC errors in the response
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
-            if let Some(error) = json.get("error") {
-                return Err(HyperRpcError::RpcError {
-                    message: error.to_string(),
-                });
-            }
-        }
-
-        Ok(text)
+        Ok(serde_json::to_string(&envelope)?)
     }
 
     #[cfg(all(test, not(target_family = "wasm")))]
     pub(crate) fn update_rpc_url(&mut self, new_url: String) {
         self.rpc_url = new_url;
+        let provider = Self::build_provider(&self.rpc_url).expect("failed to update provider");
+        self.provider = Arc::new(provider);
     }
+
+    fn build_provider(rpc_url: &str) -> Result<ReadProvider, HyperRpcError> {
+        let parsed = Url::parse(rpc_url)?;
+        Ok(mk_read_provider(&[parsed])?)
+    }
+
+    fn map_transport_error(err: TransportError, context: Option<&str>) -> HyperRpcError {
+        match err {
+            TransportError::ErrorResp(resp) => {
+                let message = if let Some(ctx) = context {
+                    format!("{}: {}", ctx, resp)
+                } else {
+                    resp.to_string()
+                };
+                HyperRpcError::RpcError { message }
+            }
+            TransportError::NullResp => HyperRpcError::MissingField {
+                field: "result".to_string(),
+            },
+            TransportError::DeserError { err, text } => {
+                if let Ok(value) = serde_json::from_str::<Value>(&text) {
+                    if let Some(error_value) = value.get("error") {
+                        return HyperRpcError::RpcError {
+                            message: error_value.to_string(),
+                        };
+                    }
+                }
+                HyperRpcError::JsonSerialization(err)
+            }
+            other => HyperRpcError::Transport(other),
+        }
+    }
+}
+
+fn set_request_id(mut meta: RequestMeta) -> RequestMeta {
+    meta.id = Id::from(1_u64);
+    meta
 }
 
 #[derive(Debug, Error)]
@@ -153,8 +180,14 @@ pub enum HyperRpcError {
     #[error("Unsupported chain ID: {chain_id}")]
     UnsupportedChainId { chain_id: u32 },
 
-    #[error("Network request failed: {0}")]
-    NetworkError(#[from] reqwest::Error),
+    #[error("URL parse error: {0}")]
+    UrlParse(#[from] url::ParseError),
+
+    #[error("Provider construction failed: {0}")]
+    ProviderConstruction(#[from] ReadProviderError),
+
+    #[error("Transport error: {0}")]
+    Transport(TransportError),
 
     #[error("RPC error: {message}")]
     RpcError { message: String },
@@ -164,6 +197,15 @@ pub enum HyperRpcError {
 
     #[error("Invalid hex format: {0}")]
     HexParseError(#[from] std::num::ParseIntError),
+
+    #[error("JSON serialization error: {0}")]
+    JsonSerialization(#[from] serde_json::Error),
+}
+
+impl From<TransportError> for HyperRpcError {
+    fn from(err: TransportError) -> Self {
+        HyperRpcClient::map_transport_error(err, None)
+    }
 }
 
 #[cfg(all(test, not(target_family = "wasm")))]

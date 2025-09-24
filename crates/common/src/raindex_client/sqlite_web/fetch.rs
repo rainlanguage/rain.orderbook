@@ -267,6 +267,9 @@ where
     for _attempt in 1..=max_attempts {
         match operation().await {
             Ok(result) => return Ok(result),
+            Err(HyperRpcError::JsonSerialization(err)) => {
+                return Err(SqliteWebError::JsonParse(err));
+            }
             Err(e) => last_error = SqliteWebError::Rpc(e),
         }
     }
