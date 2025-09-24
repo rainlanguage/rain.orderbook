@@ -631,4 +631,52 @@ mod tests {
 
         mock.assert();
     }
+
+    #[test]
+    fn test_map_transport_error_deser_error_with_rpc_payload() {
+        let text = r#"{"error":{"code":-32000,"message":"boom"}}"#.to_string();
+        let deser_err = serde_json::from_str::<Value>("invalid json").unwrap_err();
+        let mapped = HyperRpcClient::map_transport_error(
+            TransportError::DeserError {
+                err: deser_err,
+                text,
+            },
+            None,
+        );
+
+        match mapped {
+            HyperRpcError::RpcError { message } => {
+                assert!(message.contains("boom"), "unexpected message: {message}")
+            }
+            other => panic!("expected RpcError, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_map_transport_error_deser_error_without_rpc_payload() {
+        let text = r#"{"unexpected":"value"}"#.to_string();
+        let deser_err = serde_json::from_str::<Value>("invalid json").unwrap_err();
+        let mapped = HyperRpcClient::map_transport_error(
+            TransportError::DeserError {
+                err: deser_err,
+                text,
+            },
+            None,
+        );
+
+        match mapped {
+            HyperRpcError::JsonSerialization(_) => {}
+            other => panic!("expected JsonSerialization error, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_map_transport_error_null_response() {
+        let mapped = HyperRpcClient::map_transport_error(TransportError::NullResp, None);
+
+        match mapped {
+            HyperRpcError::MissingField { ref field } if field == "result" => {}
+            other => panic!("expected MissingField for 'result', got {:?}", other),
+        }
+    }
 }

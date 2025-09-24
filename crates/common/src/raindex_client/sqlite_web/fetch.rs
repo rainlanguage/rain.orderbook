@@ -676,6 +676,30 @@ mod tests {
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_null_result() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":null}"#);
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig::default();
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
+
+            mock.assert();
+            assert!(matches!(
+                result.unwrap_err(),
+                SqliteWebError::MissingField { ref field } if field == "result"
+            ));
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_fetch_block_timestamps_missing_timestamp_field() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
