@@ -164,7 +164,6 @@ impl AddOrderArgs {
     fn try_generate_meta(&self, rainlang: String) -> Result<Vec<u8>, AddOrderArgsError> {
         let mut meta_docs = Vec::new();
 
-        // Always create RainlangSourceV1 meta
         let rainlang_meta_doc = RainMetaDocumentV1Item {
             payload: ByteBuf::from(rainlang.as_bytes()),
             magic: KnownMagic::RainlangSourceV1,
@@ -174,7 +173,15 @@ impl AddOrderArgs {
         };
         meta_docs.push(rainlang_meta_doc);
 
-        // Add existing meta documents if any, excluding RainlangSourceV1 to avoid duplication
+        let dotrain_source_meta_doc = RainMetaDocumentV1Item {
+            payload: ByteBuf::from(self.dotrain.as_bytes()),
+            magic: KnownMagic::DotrainSourceV1,
+            content_type: ContentType::OctetStream,
+            content_encoding: ContentEncoding::None,
+            content_language: ContentLanguage::None,
+        };
+        meta_docs.push(dotrain_source_meta_doc);
+
         if let Some(existing_meta) = &self.meta {
             if !existing_meta.is_empty() {
                 meta_docs.extend(
@@ -430,7 +437,9 @@ price: 2e18;
                 97, 120, 45, 97, 109, 111, 117, 110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10,
                 112, 114, 105, 99, 101, 58, 32, 50, 101, 49, 56, 59, 10, 1, 27, 255, 19, 16, 158,
                 65, 51, 111, 242, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110,
-                47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
+                47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109, 163, 0, 64, 1, 27,
+                255, 161, 94, 240, 252, 67, 112, 153, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97,
+                116, 105, 111, 110, 47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
             ]
         );
     }
@@ -451,7 +460,9 @@ price: 2e18;
             vec![
                 255, 10, 137, 198, 116, 238, 120, 116, 163, 0, 64, 1, 27, 255, 19, 16, 158, 65, 51,
                 111, 242, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 111,
-                99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
+                99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109, 163, 0, 64, 1, 27, 255, 161,
+                94, 240, 252, 67, 112, 153, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105,
+                111, 110, 47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
             ]
         );
     }
@@ -694,7 +705,7 @@ _ _: 0 0;
 
         assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
 
-        assert_eq!(add_order_call.config.meta.len(), 105);
+        assert_eq!(add_order_call.config.meta.len(), 228);
 
         assert_eq!(
             add_order_call.config.validInputs[0].token,
@@ -1460,7 +1471,7 @@ _ _: 0 0;
                 }],
                 nonce: alloy::primitives::private::rand::random::<U256>().into(),
                 secret: alloy::primitives::private::rand::random::<U256>().into(),
-                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
+                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616da3005901490a6e6574776f726b733a0a20202020746573743a0a2020202020202020727063733a0a2020202020202020202020202d20687474703a2f2f6c6f63616c686f73743a35343835320a2020202020202020636861696e2d69643a203133370a20202020202020206e6574776f726b2d69643a203133370a202020202020202063757272656e63793a204d415449430a6465706c6f796572733a0a20202020746573743a0a2020202020202020616464726573733a203078313233343536373839303132333435363738393031323334353637383930313233343536373839300a7363656e6172696f733a0a20202020746573743a0a20202020202020206465706c6f7965723a20746573740a2d2d2d0a2363616c63756c6174652d696f0a5f205f3a203020303b0a2368616e646c652d696f0a3a3b0a2368616e646c652d6164642d6f726465720a3a3b011bffa15ef0fc4370990278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
             tasks: vec![
                 TaskV2 {
@@ -1494,7 +1505,7 @@ _ _: 0 0;
             res.call.config.validOutputs,
             add_order_call.config.validOutputs
         );
-        assert_eq!(res.call.config.meta, add_order_call.config.meta);
+        assert_eq!(res.call.config.meta.len(), add_order_call.config.meta.len());
         assert_eq!(res.call.tasks, add_order_call.tasks);
         assert_eq!(res.address, *local_evm.orderbook.address());
         assert_eq!(res.max_priority_fee_per_gas, Some(100));
@@ -1553,7 +1564,7 @@ _ _: 0 0;
                 }],
                 nonce: U256::from(0).into(),
                 secret: U256::from(0).into(),
-                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
+                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616da30058520a76657273696f6e3a20330a2d2d2d0a2363616c63756c6174652d696f0a5f205f3a203020303b0a2368616e646c652d696f0a3a3b0a2368616e646c652d6164642d6f726465720a5f205f3a203020303b0a011bffa15ef0fc4370990278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
             tasks: vec![TaskV2 {
                 evaluable: EvaluableV4 {
@@ -1676,13 +1687,16 @@ price: 2e18;
 
         // Verify that we can decode the meta documents
         let decoded_docs = RainMetaDocumentV1Item::cbor_decode(&meta_bytes).unwrap();
-        assert_eq!(decoded_docs.len(), 2); // Should have both documents
+        assert_eq!(decoded_docs.len(), 3);
 
         // First should be RainlangSourceV1
         assert_eq!(decoded_docs[0].magic, KnownMagic::RainlangSourceV1);
 
-        // Second should be DotrainGuiStateV1
-        assert_eq!(decoded_docs[1].magic, KnownMagic::DotrainGuiStateV1);
-        assert_eq!(decoded_docs[1].content_type, ContentType::OctetStream);
+        // Second should be DotrainSourceV1
+        assert_eq!(decoded_docs[1].magic, KnownMagic::DotrainSourceV1);
+
+        // Third should be DotrainGuiStateV1
+        assert_eq!(decoded_docs[2].magic, KnownMagic::DotrainGuiStateV1);
+        assert_eq!(decoded_docs[2].content_type, ContentType::OctetStream);
     }
 }

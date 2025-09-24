@@ -725,13 +725,9 @@ mod tests {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::hex::encode_prefixed;
-        use alloy::primitives::{FixedBytes, U256};
+        use alloy::primitives::U256;
         use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_metadata::types::dotrain::gui_state_v1::DotrainGuiStateV1;
-        use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
-        use rain_metadata::RainMetaDocumentV1Item;
         use rain_orderbook_subgraph_client::utils::float::*;
         use rain_orderbook_subgraph_client::{
             // performance::{
