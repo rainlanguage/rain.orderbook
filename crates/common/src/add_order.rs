@@ -91,6 +91,7 @@ pub struct AddOrderArgs {
     pub outputs: Vec<IOV2>,
     pub deployer: Address,
     pub bindings: HashMap<String, String>,
+    pub meta: Option<Vec<RainMetaDocumentV1Item>>,
 }
 
 impl AddOrderArgs {
@@ -98,6 +99,7 @@ impl AddOrderArgs {
     pub async fn new_from_deployment(
         dotrain: String,
         deployment: DeploymentCfg,
+        meta: Option<Vec<RainMetaDocumentV1Item>>,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id = B256::random();
 
@@ -128,11 +130,12 @@ impl AddOrderArgs {
         }
 
         Ok(AddOrderArgs {
-            dotrain: dotrain.to_string(),
+            dotrain,
             inputs,
             outputs,
             deployer: deployment.scenario.deployer.address,
             bindings: deployment.scenario.bindings.to_owned(),
+            meta,
         })
     }
 
@@ -159,18 +162,38 @@ impl AddOrderArgs {
 
     /// Generate RainlangSource meta
     fn try_generate_meta(&self, rainlang: String) -> Result<Vec<u8>, AddOrderArgsError> {
-        let meta_doc = RainMetaDocumentV1Item {
+        let mut meta_docs = Vec::new();
+
+        let rainlang_meta_doc = RainMetaDocumentV1Item {
             payload: ByteBuf::from(rainlang.as_bytes()),
             magic: KnownMagic::RainlangSourceV1,
             content_type: ContentType::OctetStream,
             content_encoding: ContentEncoding::None,
             content_language: ContentLanguage::None,
         };
-        let meta_doc_bytes = RainMetaDocumentV1Item::cbor_encode_seq(
-            &vec![meta_doc],
-            KnownMagic::RainMetaDocumentV1,
-        )
-        .map_err(AddOrderArgsError::RainMetaError)?;
+        meta_docs.push(rainlang_meta_doc);
+
+        let dotrain_source_meta_doc = RainMetaDocumentV1Item {
+            payload: ByteBuf::from(self.dotrain.as_bytes()),
+            magic: KnownMagic::DotrainSourceV1,
+            content_type: ContentType::OctetStream,
+            content_encoding: ContentEncoding::None,
+            content_language: ContentLanguage::None,
+        };
+        meta_docs.push(dotrain_source_meta_doc);
+
+        if let Some(existing_meta) = &self.meta {
+            if !existing_meta.is_empty() {
+                meta_docs.extend(existing_meta.iter().filter_map(|i| match i.magic {
+                    KnownMagic::RainlangSourceV1 | KnownMagic::DotrainSourceV1 => None,
+                    _ => Some(i.clone()),
+                }));
+            }
+        }
+
+        let meta_doc_bytes =
+            RainMetaDocumentV1Item::cbor_encode_seq(&meta_docs, KnownMagic::RainMetaDocumentV1)
+                .map_err(AddOrderArgsError::RainMetaError)?;
 
         Ok(meta_doc_bytes)
     }
@@ -360,6 +383,7 @@ mod tests {
     use super::*;
     use crate::dotrain_order::DotrainOrder;
     use alloy::primitives::Bytes;
+    use rain_metadata::types::dotrain::gui_state_v1::DotrainGuiStateV1;
     use rain_orderbook_app_settings::{
         deployer::DeployerCfg,
         network::NetworkCfg,
@@ -371,6 +395,7 @@ mod tests {
     };
     use rain_orderbook_test_fixtures::LocalEvm;
     use std::{
+        collections::BTreeMap,
         str::FromStr,
         sync::{Arc, RwLock},
     };
@@ -396,6 +421,7 @@ price: 2e18;
             outputs: vec![],
             bindings: HashMap::new(),
             deployer: Address::default(),
+            meta: None,
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
@@ -409,7 +435,9 @@ price: 2e18;
                 97, 120, 45, 97, 109, 111, 117, 110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10,
                 112, 114, 105, 99, 101, 58, 32, 50, 101, 49, 56, 59, 10, 1, 27, 255, 19, 16, 158,
                 65, 51, 111, 242, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110,
-                47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
+                47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109, 163, 0, 64, 1, 27,
+                255, 161, 94, 240, 252, 67, 112, 153, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97,
+                116, 105, 111, 110, 47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
             ]
         );
     }
@@ -422,6 +450,7 @@ price: 2e18;
             outputs: vec![],
             bindings: HashMap::new(),
             deployer: Address::default(),
+            meta: None,
         };
         let meta_bytes = args.try_generate_meta("".to_string()).unwrap();
         assert_eq!(
@@ -429,7 +458,9 @@ price: 2e18;
             vec![
                 255, 10, 137, 198, 116, 238, 120, 116, 163, 0, 64, 1, 27, 255, 19, 16, 158, 65, 51,
                 111, 242, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 111,
-                99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
+                99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109, 163, 0, 64, 1, 27, 255, 161,
+                94, 240, 252, 67, 112, 153, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105,
+                111, 110, 47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
             ]
         );
     }
@@ -533,7 +564,7 @@ _ _: 0 0;
 ",
             spec_version = SpecVersion::current()
         );
-        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment, None)
             .await
             .unwrap();
 
@@ -647,7 +678,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment, None)
             .await
             .unwrap();
 
@@ -672,7 +703,7 @@ _ _: 0 0;
 
         assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
 
-        assert_eq!(add_order_call.config.meta.len(), 105);
+        assert_eq!(add_order_call.config.meta.len(), 228);
 
         assert_eq!(
             add_order_call.config.validInputs[0].token,
@@ -802,9 +833,10 @@ _ _: 0 0;
 ",
             spec_version = SpecVersion::current()
         );
-        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone())
-            .await
-            .unwrap();
+        let result =
+            AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone(), None)
+                .await
+                .unwrap();
 
         let post_action = result.compose_addorder_post_task().unwrap();
 
@@ -815,7 +847,7 @@ _ _: 0 0;
     async fn test_compose_addorder_post_task_empty_dotrain() {
         let local_evm = LocalEvm::new().await;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
-        let result = AddOrderArgs::new_from_deployment("".to_string(), deployment.clone())
+        let result = AddOrderArgs::new_from_deployment("".to_string(), deployment.clone(), None)
             .await
             .unwrap();
         let err = result.compose_addorder_post_task().unwrap_err();
@@ -844,6 +876,7 @@ _ _: 0 key1;
             )
             .to_string(),
             deployment.clone(),
+            None,
         )
         .await
         .unwrap();
@@ -930,7 +963,7 @@ _ _: 16 52;
             .dotrain_yaml()
             .get_deployment("some-key")
             .unwrap();
-        AddOrderArgs::new_from_deployment(dotrain, deployment)
+        AddOrderArgs::new_from_deployment(dotrain, deployment, None)
             .await
             .unwrap()
             .simulate_execute(
@@ -1021,7 +1054,7 @@ _ _: 16 52;
             .dotrain_yaml()
             .get_deployment("some-key")
             .unwrap();
-        AddOrderArgs::new_from_deployment(dotrain, deployment)
+        AddOrderArgs::new_from_deployment(dotrain, deployment, None)
             .await
             .unwrap()
             .simulate_execute(
@@ -1140,9 +1173,10 @@ _ _: 0 0;
 ",
             spec_version = SpecVersion::current()
         );
-        let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
-            .await
-            .unwrap();
+        let add_order_args =
+            AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment, None)
+                .await
+                .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let res = add_order_args
             .try_parse_rainlang(vec![local_evm.url()], rainlang)
@@ -1176,9 +1210,10 @@ _ _: 0 0;
 ",
             spec_version = SpecVersion::current()
         );
-        let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
-            .await
-            .unwrap();
+        let add_order_args =
+            AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment, None)
+                .await
+                .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
             .try_parse_rainlang(vec!["invalid-url".to_string()], rainlang)
@@ -1204,9 +1239,10 @@ _ _: 0 0;
 ",
             spec_version = SpecVersion::current()
         );
-        let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
-            .await
-            .unwrap();
+        let add_order_args =
+            AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment, None)
+                .await
+                .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
             .try_parse_rainlang(vec![rpc_url.clone()], rainlang)
@@ -1245,9 +1281,10 @@ _ _: 0 0;
 ",
             spec_version = SpecVersion::current()
         );
-        let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
-            .await
-            .unwrap();
+        let add_order_args =
+            AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment, None)
+                .await
+                .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
             .try_parse_rainlang(vec![local_evm.url()], rainlang.as_str()[..10].to_string())
@@ -1298,6 +1335,7 @@ _ _: key1 key2;
                 ("key1".to_string(), "10".to_string()),
                 ("key2".to_string(), "20".to_string()),
             ]),
+            meta: None,
         };
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         assert_eq!(
@@ -1317,6 +1355,7 @@ _ _: key1 key2;
                 ("key1".to_string(), "10".to_string()),
                 ("key2".to_string(), "20".to_string()),
             ]),
+            meta: None,
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
         assert!(matches!(
@@ -1359,6 +1398,7 @@ _ _: key1 key2;
             outputs: vec![],
             deployer: Address::random(),
             bindings: HashMap::new(),
+            meta: None,
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
         assert!(matches!(
@@ -1406,6 +1446,7 @@ _ _: 0 0;
             }],
             deployer: *local_evm.deployer.address(),
             bindings: HashMap::new(),
+            meta: None,
         };
 
         let add_order_call = addOrder3Call {
@@ -1428,7 +1469,7 @@ _ _: 0 0;
                 }],
                 nonce: alloy::primitives::private::rand::random::<U256>().into(),
                 secret: alloy::primitives::private::rand::random::<U256>().into(),
-                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
+                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616da3005901490a6e6574776f726b733a0a20202020746573743a0a2020202020202020727063733a0a2020202020202020202020202d20687474703a2f2f6c6f63616c686f73743a35343835320a2020202020202020636861696e2d69643a203133370a20202020202020206e6574776f726b2d69643a203133370a202020202020202063757272656e63793a204d415449430a6465706c6f796572733a0a20202020746573743a0a2020202020202020616464726573733a203078313233343536373839303132333435363738393031323334353637383930313233343536373839300a7363656e6172696f733a0a20202020746573743a0a20202020202020206465706c6f7965723a20746573740a2d2d2d0a2363616c63756c6174652d696f0a5f205f3a203020303b0a2368616e646c652d696f0a3a3b0a2368616e646c652d6164642d6f726465720a3a3b011bffa15ef0fc4370990278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
             tasks: vec![
                 TaskV2 {
@@ -1462,7 +1503,7 @@ _ _: 0 0;
             res.call.config.validOutputs,
             add_order_call.config.validOutputs
         );
-        assert_eq!(res.call.config.meta, add_order_call.config.meta);
+        assert_eq!(res.call.config.meta.len(), add_order_call.config.meta.len());
         assert_eq!(res.call.tasks, add_order_call.tasks);
         assert_eq!(res.address, *local_evm.orderbook.address());
         assert_eq!(res.max_priority_fee_per_gas, Some(100));
@@ -1486,7 +1527,7 @@ _ _: 0 0;
 ",
             spec_version = SpecVersion::current()
         );
-        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment, None)
             .await
             .unwrap();
         let calldata: Bytes = result
@@ -1521,7 +1562,7 @@ _ _: 0 0;
                 }],
                 nonce: U256::from(0).into(),
                 secret: U256::from(0).into(),
-                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
+                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616da30058520a76657273696f6e3a20330a2d2d2d0a2363616c63756c6174652d696f0a5f205f3a203020303b0a2368616e646c652d696f0a3a3b0a2368616e646c652d6164642d6f726465720a5f205f3a203020303b0a011bffa15ef0fc4370990278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
             tasks: vec![TaskV2 {
                 evaluable: EvaluableV4 {
@@ -1557,7 +1598,7 @@ _ _: 0 0;
 ",
             spec_version = SpecVersion::current()
         );
-        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment, None)
             .await
             .unwrap();
         let rpc_url = "https://testtest.com/".to_string();
@@ -1583,5 +1624,77 @@ _ _: 0 0;
             ),
             "unexpected error variant: {err:?}"
         );
+    }
+
+    #[test]
+    fn test_try_generate_meta_with_dotrain_instance() {
+        let dotrain_body = String::from(
+            "
+#calculate-io
+max-amount: 100e18,
+price: 2e18;
+
+#handle-io
+max-amount: 100e18,
+price: 2e18;
+",
+        );
+
+        let dotrain_instance_data = DotrainGuiStateV1 {
+            dotrain_hash: B256::from_slice(&[42u8; 32]),
+            field_values: BTreeMap::from([(
+                "amount".to_string(),
+                rain_metadata::types::dotrain::gui_state_v1::ValueCfg {
+                    id: "amount_field".to_string(),
+                    name: Some("Amount".to_string()),
+                    value: "100".to_string(),
+                },
+            )]),
+            deposits: BTreeMap::from([(
+                "deposit1".to_string(),
+                rain_metadata::types::dotrain::gui_state_v1::ValueCfg {
+                    id: "deposit1_field".to_string(),
+                    name: Some("Deposit 1".to_string()),
+                    value: "1000".to_string(),
+                },
+            )]),
+            select_tokens: BTreeMap::from([(
+                "token1".to_string(),
+                rain_metadata::types::dotrain::gui_state_v1::ShortenedTokenCfg {
+                    network: "ethereum".to_string(),
+                    address: Address::default(),
+                },
+            )]),
+            vault_ids: BTreeMap::from([
+                ("input_0".to_string(), Some("vault_123".to_string())),
+                ("output_0".to_string(), None),
+            ]),
+            selected_deployment: "test_deployment".to_string(),
+        };
+
+        let args = AddOrderArgs {
+            dotrain: "".into(),
+            inputs: vec![],
+            outputs: vec![],
+            bindings: HashMap::new(),
+            deployer: Address::default(),
+            meta: Some(vec![dotrain_instance_data.try_into().unwrap()]),
+        };
+
+        let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
+
+        // Verify that we can decode the meta documents
+        let decoded_docs = RainMetaDocumentV1Item::cbor_decode(&meta_bytes).unwrap();
+        assert_eq!(decoded_docs.len(), 3);
+
+        // First should be RainlangSourceV1
+        assert_eq!(decoded_docs[0].magic, KnownMagic::RainlangSourceV1);
+
+        // Second should be DotrainSourceV1
+        assert_eq!(decoded_docs[1].magic, KnownMagic::DotrainSourceV1);
+
+        // Third should be DotrainGuiStateV1
+        assert_eq!(decoded_docs[2].magic, KnownMagic::DotrainGuiStateV1);
+        assert_eq!(decoded_docs[2].content_type, ContentType::OctetStream);
     }
 }

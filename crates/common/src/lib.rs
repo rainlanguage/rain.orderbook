@@ -20,6 +20,7 @@ pub mod utils;
 pub mod withdraw;
 pub use dotrain;
 pub use dotrain_lsp;
+pub mod parsed_meta;
 #[cfg(test)]
 pub mod test_helpers;
 

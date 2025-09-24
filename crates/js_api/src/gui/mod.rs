@@ -388,7 +388,7 @@ impl DotrainOrderGui {
     ///
     /// The YAML must contain:
     /// - `gui.name` - Order display name
-    /// - `gui.description` - Full order description  
+    /// - `gui.description` - Full order description
     /// - `gui.short-description` - Brief summary (optional but recommended)
     ///
     /// ## Examples
@@ -697,6 +697,8 @@ pub enum GuiError {
     AmountFormatterError(#[from] AmountFormatterError),
     #[error(transparent)]
     FloatError(#[from] FloatError),
+    #[error(transparent)]
+    RainMetadataError(#[from] rain_metadata::Error),
 }
 
 impl GuiError {
@@ -784,6 +786,8 @@ impl GuiError {
             GuiError::FloatError(err) => {
                 format!("There was a problem with the float value: {err}")
             }
+            GuiError::RainMetadataError(err) =>
+                format!("There was a problem with the rain metadata: {err}")
         }
     }
 }
@@ -1012,7 +1016,7 @@ gui:
             decimals: 18
             minimum: 10
             maximum: 1000
-        
+
         - binding: quantity-field
           name: Quantity Field
           description: Field with exclusive bounds
@@ -1021,7 +1025,7 @@ gui:
             decimals: 18
             exclusive-minimum: 0
             exclusive-maximum: 100000
-        
+
         - binding: percentage-field
           name: Percentage Field
           description: Field with all number constraints
@@ -1031,14 +1035,14 @@ gui:
             minimum: 0
             maximum: 100
             exclusive-maximum: 101
-        
+
         - binding: simple-number
           name: Simple Number
           description: Number field with no constraints
           validation:
             type: number
             decimals: 18
-        
+
         # String validation tests
         - binding: username-field
           name: Username
@@ -1047,34 +1051,34 @@ gui:
             type: string
             min-length: 3
             max-length: 20
-        
+
         - binding: description-field
           name: Description
           description: Field with only max length
           validation:
             type: string
             max-length: 500
-        
+
         - binding: code-field
           name: Code
           description: Field with only min length
           validation:
             type: string
             min-length: 5
-        
+
         - binding: any-string
           name: Any String
           description: String field with no constraints
           validation:
             type: string
-        
+
         # Boolean validation test
         - binding: enabled-field
           name: Enabled
           description: Boolean field
           validation:
             type: boolean
-        
+
         # Fields with presets and validation
         - binding: preset-number-field
           name: Preset Number
@@ -1091,7 +1095,7 @@ gui:
             decimals: 18
             minimum: 10
             maximum: 200
-        
+
         - binding: preset-string-field
           name: Preset String
           description: String field with presets and validation
@@ -1106,12 +1110,12 @@ gui:
             type: string
             min-length: 4
             max-length: 10
-        
+
         # Field without validation
         - binding: no-validation-field
           name: No Validation
           description: Field without any validation
-          
+
       deposits:
         # Deposit with minimum amount validation
         - token: token1
@@ -1122,7 +1126,7 @@ gui:
         - token: token2
           validation:
             maximum: 10000
-        
+
         # Deposit with exclusive bounds
         - token: token3
           validation:
@@ -1134,7 +1138,7 @@ gui:
           validation:
             minimum: 10
             maximum: 1000
-        
+
         # Deposit without validation
         - token: token6
 networks:

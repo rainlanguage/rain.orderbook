@@ -39,7 +39,8 @@ pub async fn order_add<R: Runtime>(
 ) -> CommandResult<()> {
     let tx_status_notice =
         TransactionStatusNoticeRwLock::new("Add order".into(), deployment.order.network.chain_id);
-    let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
+    let add_order_args =
+        AddOrderArgs::new_from_deployment(dotrain, deployment, None).await?;
     add_order_args
         .execute(transaction_args, |status| {
             tx_status_notice.update_status_and_emit(&app_handle, status);
@@ -92,7 +93,8 @@ pub async fn order_add_calldata<R: Runtime>(
     deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
 ) -> CommandResult<Bytes> {
-    let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
+    let add_order_args =
+        AddOrderArgs::new_from_deployment(dotrain, deployment, None).await?;
     let calldata = add_order_args
         .get_add_order_calldata(transaction_args)
         .await

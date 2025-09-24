@@ -76,7 +76,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: orderDetailQuery = createQuery<RaindexOrder>({
-		queryKey: [orderHash, QKEY_ORDER + orderHash],
+		queryKey: [orderHash, QKEY_ORDER],
 		queryFn: async () => {
 			const result = await raindexClient.getOrderByHash(chainId, orderbookAddress, orderHash);
 			if (result.error) throw new Error(result.error.readableMsg);
@@ -99,6 +99,41 @@
 			errToast('Failed to refresh');
 		}
 	};
+
+	$: dotrainSource = $orderDetailQuery.data?.parsedMeta?.find(
+		(meta) => 'DotrainSourceV1' in meta
+	)?.DotrainSourceV1;
+	$: dotrainGuiState = $orderDetailQuery.data?.parsedMeta?.find(
+		(meta) => 'DotrainGuiStateV1' in meta
+	)?.DotrainGuiStateV1;
+
+	const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+		if (value === null || typeof value !== 'object') return false;
+		const proto = Object.getPrototypeOf(value);
+		return proto === Object.prototype || proto === null;
+	};
+
+	const convertMaps = (value: unknown): unknown => {
+		if (value instanceof Map) {
+			return Object.fromEntries(
+				Array.from(value.entries(), ([mapKey, mapValue]) => [mapKey, convertMaps(mapValue)])
+			);
+		}
+
+		if (Array.isArray(value)) {
+			return value.map((item) => convertMaps(item));
+		}
+
+		if (isPlainObject(value)) {
+			return Object.fromEntries(
+				Object.entries(value).map(([entryKey, entryValue]) => [entryKey, convertMaps(entryValue)])
+			);
+		}
+
+		return value;
+	};
+
+	const mapAwareJsonReplacer = (_key: string, value: unknown) => convertMaps(value);
 
 	const vaultTypesMap = [
 		{ key: 'Output vaults', type: 'output', getter: 'outputsList' },
@@ -255,16 +290,41 @@
 			contentClass="mt-4"
 			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4 list-none"
 		>
-			<TabItem title="Rainlang source">
+			{#if dotrainSource}
+				<TabItem title="Dotrain">
+					<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
+						<CodeMirrorRainlang
+							rainlangText={dotrainSource}
+							codeMirrorTheme={$codeMirrorTheme}
+							{codeMirrorDisabled}
+							{codeMirrorStyles}
+						></CodeMirrorRainlang>
+					</div>
+				</TabItem>
+			{/if}
+			<TabItem title="On-chain Rainlang">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
 					<CodeMirrorRainlang
-						order={data}
+						rainlangText={data.rainlang}
 						codeMirrorTheme={$codeMirrorTheme}
 						{codeMirrorDisabled}
 						{codeMirrorStyles}
 					></CodeMirrorRainlang>
 				</div>
 			</TabItem>
+			{#if dotrainGuiState}
+				<TabItem title="Gui State">
+					<div class="mb-4">
+						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+							<pre class="text-sm" data-testid="gui-state-json">{JSON.stringify(
+									dotrainGuiState,
+									mapAwareJsonReplacer,
+									2
+								)}</pre>
+						</div>
+					</div>
+				</TabItem>
+			{/if}
 			<TabItem open title="Trades">
 				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcs} />
 			</TabItem>
