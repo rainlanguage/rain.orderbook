@@ -76,7 +76,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: orderDetailQuery = createQuery<RaindexOrder>({
-		queryKey: [orderHash, QKEY_ORDER + orderHash],
+		queryKey: [orderHash, QKEY_ORDER],
 		queryFn: async () => {
 			const result = await raindexClient.getOrderByHash(chainId, orderbookAddress, orderHash);
 			if (result.error) throw new Error(result.error.readableMsg);
@@ -84,21 +84,30 @@
 		}
 	});
 
-	const interval = setInterval(async () => {
-		await invalidateTanstackQueries(queryClient, [orderHash]);
-	}, 10000);
+const interval = setInterval(async () => {
+	await invalidateTanstackQueries(queryClient, [orderHash]);
+}, 10000);
 
 	onDestroy(() => {
 		clearInterval(interval);
 	});
 
-	const handleRefresh = async () => {
-		try {
-			await invalidateTanstackQueries(queryClient, [orderHash]);
-		} catch {
-			errToast('Failed to refresh');
-		}
-	};
+const handleRefresh = async () => {
+	try {
+		await invalidateTanstackQueries(queryClient, [orderHash]);
+	} catch {
+		errToast('Failed to refresh');
+	}
+};
+
+$: dotrainSource = $orderDetailQuery.data?.parsedMeta?.find(
+	(meta) => 'DotrainSourceV1' in meta
+)
+	?.DotrainSourceV1;
+$: dotrainGuiState = $orderDetailQuery.data?.parsedMeta?.find(
+	(meta) => 'DotrainGuiStateV1' in meta
+)
+	?.DotrainGuiStateV1;
 
 	const vaultTypesMap = [
 		{ key: 'Output vaults', type: 'output', getter: 'outputsList' },
@@ -255,16 +264,46 @@
 			contentClass="mt-4"
 			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4 list-none"
 		>
-			<TabItem title="Rainlang source">
+			{#if dotrainSource}
+				<TabItem title="Dotrain">
+					<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
+						<CodeMirrorRainlang
+							rainlangText={dotrainSource}
+							codeMirrorTheme={$codeMirrorTheme}
+							{codeMirrorDisabled}
+							{codeMirrorStyles}
+						></CodeMirrorRainlang>
+					</div>
+				</TabItem>
+			{/if}
+			<TabItem title="On-chain Rainlang">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
 					<CodeMirrorRainlang
-						order={data}
+						rainlangText={data.rainlang}
 						codeMirrorTheme={$codeMirrorTheme}
 						{codeMirrorDisabled}
 						{codeMirrorStyles}
 					></CodeMirrorRainlang>
-				</div>
-			</TabItem>
+					</div>
+				</TabItem>
+			{#if dotrainGuiState}
+				<TabItem title="Gui State">
+					<div class="mb-4">
+						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+								<pre class="text-sm" data-testid="gui-state-json">{JSON.stringify(
+									Object.fromEntries(
+										Object.entries(dotrainGuiState).map(([key, value]) => [
+											key,
+											value instanceof Map ? Object.fromEntries(value.entries()) : value
+										])
+									),
+									null,
+									2
+								)}</pre>
+						</div>
+					</div>
+				</TabItem>
+			{/if}
 			<TabItem open title="Trades">
 				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcs} />
 			</TabItem>
