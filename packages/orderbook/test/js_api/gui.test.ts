@@ -968,7 +968,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QsU7DMBDNBQQSYkCIFQmJFRPHUqpSlYUKEamMiUjHNjWkqmsbxy2lfAQjKz9Q8QWsbHwPYkMRZ0oEN_id772z3x1437GNaHlpyWAkhyN5A1ij3tZvdtYXU-5jZcMxasxl6LlYR4zocaMmYT-SNcSQUvjvMVa_OYOlmnAiub1TZuz69hELa3UrCITK-6JQpW01aTMKjM7J1IiHSgHVCe7r8yTew_Sx_bE8fG8vX5-il8_MZydvzznswibSSeXhgIEbO2G-t4r6EsDZCuHPTCvuCBNCzUUcLrpJNu-Fl0pfDW67nc4s42zRI6WaX8eFznXjLE3T0x3sUbbghgy5Fup-wqX9AlyGsB3FAQAA';
+			'H4sIAAAAAAAA_21QsU7DMBCNAwIJMSDEioTESojj4KqtysBQCRAMoAysbWpqq65txTa04iMYWfmBii9gZeN7EBuKOFMiuMHvfO-d_e5Q9B2bgI5ZlwyFGgk1RlDD0cZv9m4gPYuhshYYPWEqi0KsAlJ82GpIyI9kBTDDGP33GGnegkGrpyxRzN3rahL6dgG5c6abplKXA8m1dd02btO0MmXiK_lQK1B9ovB1vzjdgfSx97HYf-8tXp_oy-dNTDpvzyXaRutAF7WHPYLC2AWJo2U0l4CCrQz9mWnJHUAiy5Nzz2fciPyS2v48uTqzWT68MPiW-k4xbuXWzqwX1-LoeAt6tOOsSkbMSD2fMuW-AIPIgQ7FAQAA';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1147,7 +1147,7 @@ ${dotrain}`;
 
 			let dotrain2 = `
       ${guiConfig2}
-      
+
       ${dotrain}
       `;
 			const result = await DotrainOrderGui.newWithDeployment(dotrain2, 'other-deployment');
@@ -1304,7 +1304,7 @@ ${dotrain}`;
 			gui.setFieldValue('test-binding', '10');
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert.equal(addOrderCalldata.length, 2186);
+			assert.equal(addOrderCalldata.length, 5322);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1339,7 +1339,7 @@ ${dotrain}`;
 				);
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert.equal(addOrderCalldata.length, 2186);
+			assert.equal(addOrderCalldata.length, 5322);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1381,7 +1381,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 6282);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1424,7 +1424,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 6346);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1484,7 +1484,7 @@ ${dotrainWithoutVaultIds}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 6730);
 
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1615,7 +1615,7 @@ ${dotrainWithoutVaultIds}`;
 
 			let testDotrain = `
           ${guiConfig2}
-          
+
           ${dotrainWithoutVaultIds}
           `;
 			let guiResult = await DotrainOrderGui.newWithDeployment(
@@ -1772,7 +1772,7 @@ ${dotrainWithoutVaultIds}`;
 				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
-			assert.equal(result.deploymentCalldata.length, 3018);
+			assert.equal(result.deploymentCalldata.length, 6218);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 
@@ -1782,7 +1782,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(result.approvals.length, 0);
-			assert.equal(result.deploymentCalldata.length, 2506);
+			assert.equal(result.deploymentCalldata.length, 5642);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 		});
