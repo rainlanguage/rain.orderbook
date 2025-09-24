@@ -2,7 +2,8 @@ use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
 use alloy::transports::TransportError;
 use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider, ReadProviderError};
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use std::sync::Arc;
 use thiserror::Error;
 use url::Url;
@@ -12,6 +13,52 @@ pub struct HyperRpcClient {
     chain_id: u32,
     rpc_url: String,
     provider: Arc<ReadProvider>,
+}
+
+/// Typed view of the block payload returned by HyperSync's `eth_getBlockByNumber`.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockResponse {
+    pub mix_hash: Option<String>,
+    pub difficulty: String,
+    pub extra_data: String,
+    pub gas_limit: String,
+    pub gas_used: String,
+    pub hash: String,
+    pub logs_bloom: String,
+    pub miner: String,
+    pub nonce: String,
+    pub number: String,
+    pub parent_hash: String,
+    pub receipts_root: String,
+    pub sha3_uncles: String,
+    pub size: String,
+    pub state_root: String,
+    pub timestamp: String,
+    pub total_difficulty: String,
+    pub transactions_root: String,
+    #[serde(default)]
+    pub uncles: Vec<String>,
+    #[serde(default)]
+    pub transactions: Vec<String>,
+    #[serde(default, flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Typed view of a single log returned by HyperSync's `eth_getLogs`.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LogEntryResponse {
+    pub address: String,
+    pub topics: Vec<String>,
+    pub data: String,
+    pub block_number: String,
+    pub block_timestamp: Option<String>,
+    pub transaction_hash: String,
+    pub transaction_index: String,
+    pub block_hash: String,
+    pub log_index: String,
+    pub removed: bool,
 }
 
 impl std::fmt::Debug for HyperRpcClient {
@@ -84,7 +131,7 @@ impl HyperRpcClient {
         to_block: &str,
         address: &str,
         topics: Option<Vec<Option<Vec<String>>>>,
-    ) -> Result<String, HyperRpcError> {
+    ) -> Result<Vec<LogEntryResponse>, HyperRpcError> {
         let params = serde_json::json!([{
             "fromBlock": from_block,
             "toBlock": to_block,
@@ -92,42 +139,27 @@ impl HyperRpcClient {
             "topics": topics,
         }]);
 
-        let result = self
-            .provider
+        self.provider
             .client()
-            .request::<_, Value>("eth_getLogs", params)
+            .request::<_, Vec<LogEntryResponse>>("eth_getLogs", params)
             .map_meta(set_request_id)
             .await
-            .map_err(|err| HyperRpcClient::map_transport_error(err, None))?;
-
-        let envelope = serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": 1,
-            "result": result,
-        });
-
-        Ok(serde_json::to_string(&envelope)?)
+            .map_err(|err| HyperRpcClient::map_transport_error(err, None))
     }
 
-    pub async fn get_block_by_number(&self, block_number: u64) -> Result<String, HyperRpcError> {
+    pub async fn get_block_by_number(
+        &self,
+        block_number: u64,
+    ) -> Result<Option<BlockResponse>, HyperRpcError> {
         let block_hex = format!("0x{:x}", block_number);
         let params = serde_json::json!([block_hex, false]);
 
-        let result = self
-            .provider
+        self.provider
             .client()
-            .request::<_, Value>("eth_getBlockByNumber", params)
+            .request::<_, Option<BlockResponse>>("eth_getBlockByNumber", params)
             .map_meta(set_request_id)
             .await
-            .map_err(|err| HyperRpcClient::map_transport_error(err, None))?;
-
-        let envelope = serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": 1,
-            "result": result,
-        });
-
-        Ok(serde_json::to_string(&envelope)?)
+            .map_err(|err| HyperRpcClient::map_transport_error(err, None))
     }
 
     #[cfg(all(test, not(target_family = "wasm")))]
@@ -212,6 +244,61 @@ impl From<TransportError> for HyperRpcError {
 mod tests {
     use super::*;
     use httpmock::MockServer;
+    use serde_json::json;
+
+    fn sample_block_response(number: &str, timestamp: &str) -> String {
+        json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "mixHash": "0xmix",
+                "difficulty": "0x1",
+                "extraData": "0xextra",
+                "gasLimit": "0xffff",
+                "gasUsed": "0xff",
+                "hash": "0xhash",
+                "logsBloom": "0x0",
+                "miner": "0xminer",
+                "nonce": "0xnonce",
+                "number": number,
+                "parentHash": "0xparent",
+                "receiptsRoot": "0xreceipts",
+                "sha3Uncles": "0xsha3",
+                "size": "0x1",
+                "stateRoot": "0xstate",
+                "timestamp": timestamp,
+                "totalDifficulty": "0x2",
+                "transactionsRoot": "0xtransactions",
+                "uncles": [],
+                "transactions": [],
+            }
+        })
+        .to_string()
+    }
+
+    fn logs_response_body(logs: serde_json::Value) -> String {
+        json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": logs,
+        })
+        .to_string()
+    }
+
+    fn sample_log_entry(block_number: &str) -> serde_json::Value {
+        json!({
+            "address": "0x123",
+            "topics": ["0xabc"],
+            "data": "0xdeadbeef",
+            "blockNumber": block_number,
+            "blockTimestamp": "0x5",
+            "transactionHash": "0xtransaction",
+            "transactionIndex": "0x0",
+            "blockHash": "0xblock",
+            "logIndex": "0x0",
+            "removed": false
+        })
+    }
 
     #[test]
     fn test_new_with_supported_chain_id() {
@@ -309,7 +396,7 @@ mod tests {
                 .json_body_partial(r#"{"params": [{"fromBlock": "0x1", "toBlock": "0x2", "address": "0x123", "topics": [["0xabc"]]}]}"#);
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": [{"blockNumber": "0x1", "logIndex": "0x0"}]}"#);
+                .body(logs_response_body(json!([sample_log_entry("0x1")])));
         });
 
         let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -319,7 +406,9 @@ mod tests {
         let result = client.get_logs("0x1", "0x2", "0x123", topics).await;
         assert!(result.is_ok());
         let response = result.unwrap();
-        assert!(response.contains("blockNumber"));
+        assert_eq!(response.len(), 1);
+        assert_eq!(response[0].block_number, "0x1");
+        assert_eq!(response[0].transaction_hash, "0xtransaction");
 
         mock.assert();
     }
@@ -334,7 +423,7 @@ mod tests {
                 .json_body_partial(r#"{"params": [{"fromBlock": "0x1", "toBlock": "0x2", "address": "0x123", "topics": null}]}"#);
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": []}"#);
+                .body(logs_response_body(json!([])));
         });
 
         let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -342,6 +431,7 @@ mod tests {
 
         let result = client.get_logs("0x1", "0x2", "0x123", None).await;
         assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
 
         mock.assert();
     }
@@ -379,7 +469,7 @@ mod tests {
                 .json_body_partial(r#"{"params": ["0x1b4", false]}"#);
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0x1b4", "timestamp": "0x6234567"}}"#);
+                .body(sample_block_response("0x1b4", "0x6234567"));
         });
 
         let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -388,8 +478,9 @@ mod tests {
         let result = client.get_block_by_number(436).await;
         assert!(result.is_ok());
         let response = result.unwrap();
-        assert!(response.contains("0x1b4"));
-        assert!(response.contains("timestamp"));
+        let block = response.expect("missing block data");
+        assert_eq!(block.number, "0x1b4");
+        assert_eq!(block.timestamp, "0x6234567");
 
         mock.assert();
     }
@@ -402,7 +493,7 @@ mod tests {
                 .json_body_partial(r#"{"params": ["0xff", false]}"#);
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0xff"}}"#);
+                .body(sample_block_response("0xff", "0x1"));
         });
 
         let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -410,6 +501,8 @@ mod tests {
 
         let result = client.get_block_by_number(255).await;
         assert!(result.is_ok());
+        let block = result.unwrap().expect("expected block");
+        assert_eq!(block.number, "0xff");
 
         mock.assert();
     }
@@ -497,7 +590,7 @@ mod tests {
                 .json_body_partial(r#"{"params": ["0x0", false]}"#);
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc": "2.0", "id": 1, "result": {"number": "0x0", "timestamp": "0x0"}}"#);
+                .body(sample_block_response("0x0", "0x0"));
         });
 
         let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -505,8 +598,9 @@ mod tests {
 
         let result = client.get_block_by_number(0).await;
         assert!(result.is_ok());
-        let response = result.unwrap();
-        assert!(response.contains("0x0"));
+        let block = result.unwrap().expect("expected block");
+        assert_eq!(block.number, "0x0");
+        assert_eq!(block.timestamp, "0x0");
 
         mock.assert();
     }
@@ -524,7 +618,7 @@ mod tests {
                 .json_body_partial(format!(r#"{{"params": ["{}", false]}}"#, expected_hex));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(format!(r#"{{"jsonrpc": "2.0", "id": 1, "result": {{"number": "{}", "timestamp": "0x123456"}}}}"#, expected_hex));
+                .body(sample_block_response(expected_hex, "0x123456"));
         });
 
         let mut client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -532,8 +626,8 @@ mod tests {
 
         let result = client.get_block_by_number(large_block).await;
         assert!(result.is_ok());
-        let response = result.unwrap();
-        assert!(response.contains(expected_hex));
+        let block = result.unwrap().expect("expected block");
+        assert_eq!(block.number, expected_hex);
 
         mock.assert();
     }
