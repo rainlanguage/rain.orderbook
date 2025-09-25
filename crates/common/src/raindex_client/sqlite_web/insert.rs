@@ -1,7 +1,7 @@
 use super::decode::{
     AddOrderV3Decoded, AfterClearV2Decoded, ClearV3Decoded, DecodedEvent, DecodedEventData,
-    DepositV2Decoded, EventType, MetaV1_2Decoded, OrderDecoded, RemoveOrderV3Decoded,
-    TakeOrderV3Decoded, UnknownEventDecoded, WithdrawV2Decoded,
+    DepositV2Decoded, MetaV1_2Decoded, OrderDecoded, RemoveOrderV3Decoded, TakeOrderV3Decoded,
+    WithdrawV2Decoded,
 };
 use thiserror::Error;
 
@@ -337,6 +337,7 @@ mod tests {
         OrderEvaluableDecoded, OrderIoDecoded, SignedContextDecoded, TakeOrderConfigDecoded,
     };
     use super::*;
+    use crate::raindex_client::sqlite_web::decode::{EventType, UnknownEventDecoded};
 
     fn build_event(
         event_type: EventType,
