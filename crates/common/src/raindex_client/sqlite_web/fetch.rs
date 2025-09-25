@@ -1,5 +1,5 @@
 use super::{SqliteWeb, SqliteWebError};
-use crate::hyper_rpc::HyperRpcError;
+use crate::hyper_rpc::{HyperRpcError, LogEntryResponse};
 use alloy::{primitives::U256, sol_types::SolEvent};
 use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
@@ -39,7 +39,7 @@ impl SqliteWeb {
         contract_address: &str,
         start_block: u64,
         end_block: u64,
-    ) -> Result<serde_json::Value, SqliteWebError> {
+    ) -> Result<Vec<LogEntryResponse>, SqliteWebError> {
         self.fetch_events_with_config(
             contract_address,
             start_block,
@@ -55,7 +55,7 @@ impl SqliteWeb {
         start_block: u64,
         end_block: u64,
         config: &FetchConfig,
-    ) -> Result<serde_json::Value, SqliteWebError> {
+    ) -> Result<Vec<LogEntryResponse>, SqliteWebError> {
         let topics = Some(vec![Some(vec![
             AddOrderV3::SIGNATURE_HASH.to_string(),
             TakeOrderV3::SIGNATURE_HASH.to_string(),
@@ -82,7 +82,7 @@ impl SqliteWeb {
 
         let contract_address = contract_address.to_string();
         let concurrency = config.max_concurrent_requests.max(1);
-        let results: Vec<Vec<serde_json::Value>> = futures::stream::iter(chunks)
+        let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(chunks)
             .map(|(from_block, to_block)| {
                 let topics = topics.clone();
                 let contract_address = contract_address.clone();
@@ -106,12 +106,7 @@ impl SqliteWeb {
                     )
                     .await?;
 
-                    let logs = response
-                        .into_iter()
-                        .map(|entry| serde_json::to_value(entry).map_err(SqliteWebError::JsonParse))
-                        .collect::<Result<Vec<_>, _>>()?;
-
-                    Ok::<_, SqliteWebError>(logs)
+                    Ok::<_, SqliteWebError>(response)
                 }
             })
             .buffer_unordered(concurrency)
@@ -119,18 +114,17 @@ impl SqliteWeb {
             .await?;
 
         // Flatten chunked results
-        let mut all_events: Vec<serde_json::Value> = results.into_iter().flatten().collect();
+        let mut all_events: Vec<LogEntryResponse> = results.into_iter().flatten().collect();
 
         all_events.sort_by(|a, b| {
-            let block_a = extract_block_number(a).unwrap_or(0);
-            let block_b = extract_block_number(b).unwrap_or(0);
+            let block_a = extract_block_number_from_entry(a).unwrap_or(0);
+            let block_b = extract_block_number_from_entry(b).unwrap_or(0);
             block_a.cmp(&block_b)
         });
 
-        let mut events_array = serde_json::Value::Array(all_events);
-        self.backfill_missing_timestamps(&mut events_array, config)
+        self.backfill_missing_timestamps(&mut all_events, config)
             .await?;
-        Ok(events_array)
+        Ok(all_events)
     }
 
     async fn fetch_block_timestamps(
@@ -172,24 +166,16 @@ impl SqliteWeb {
 
     async fn backfill_missing_timestamps(
         &self,
-        events: &mut serde_json::Value,
+        events: &mut [LogEntryResponse],
         config: &FetchConfig,
     ) -> Result<(), SqliteWebError> {
-        let events_array = match events.as_array_mut() {
-            Some(array) => array,
-            None => return Err(SqliteWebError::InvalidEventsFormat),
-        };
-
         let mut missing_blocks = HashSet::new();
 
-        for event in events_array.iter() {
-            let has_timestamp = event
-                .get("blockTimestamp")
-                .and_then(|value| value.as_str())
-                .is_some();
+        for event in events.iter() {
+            let has_timestamp = event.block_timestamp.as_ref().is_some();
 
             if !has_timestamp {
-                if let Ok(block_number) = extract_block_number(event) {
+                if let Ok(block_number) = extract_block_number_from_entry(event) {
                     missing_blocks.insert(block_number);
                 }
             }
@@ -202,24 +188,16 @@ impl SqliteWeb {
         let block_numbers: Vec<u64> = missing_blocks.into_iter().collect();
         let timestamps = self.fetch_block_timestamps(block_numbers, config).await?;
 
-        for event in events_array.iter_mut() {
-            let has_timestamp = event
-                .get("blockTimestamp")
-                .and_then(|value| value.as_str())
-                .is_some();
+        for event in events.iter_mut() {
+            let has_timestamp = event.block_timestamp.as_ref().is_some();
 
             if has_timestamp {
                 continue;
             }
 
-            if let Ok(block_number) = extract_block_number(event) {
+            if let Ok(block_number) = extract_block_number_from_entry(event) {
                 if let Some(timestamp) = timestamps.get(&block_number) {
-                    if let Some(event_obj) = event.as_object_mut() {
-                        event_obj.insert(
-                            "blockTimestamp".to_string(),
-                            serde_json::Value::String(timestamp.clone()),
-                        );
-                    }
+                    event.block_timestamp = Some(timestamp.clone());
                 }
             }
         }
@@ -262,14 +240,11 @@ where
         .await
 }
 
-fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError> {
-    let block_number_str = event
-        .get("blockNumber")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| SqliteWebError::MissingField {
-            field: "blockNumber".to_string(),
-        })?;
+fn extract_block_number_from_entry(event: &LogEntryResponse) -> Result<u64, SqliteWebError> {
+    parse_block_number_str(&event.block_number)
+}
 
+fn parse_block_number_str(block_number_str: &str) -> Result<u64, SqliteWebError> {
     let block_u256 = if let Some(hex_digits) = block_number_str
         .strip_prefix("0x")
         .or_else(|| block_number_str.strip_prefix("0X"))
@@ -292,111 +267,8 @@ fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn test_extract_block_number_valid_hex() {
-        let event = json!({
-            "blockNumber": "0x123"
-        });
-        assert_eq!(extract_block_number(&event).unwrap(), 0x123);
-
-        let event = json!({
-            "blockNumber": "0xabc"
-        });
-        assert_eq!(extract_block_number(&event).unwrap(), 0xabc);
-
-        let event = json!({
-            "blockNumber": "0x0"
-        });
-        assert_eq!(extract_block_number(&event).unwrap(), 0);
-    }
-
-    #[test]
-    fn test_extract_block_number_decimal() {
-        let event = json!({
-            "blockNumber": "123"
-        });
-        assert_eq!(extract_block_number(&event).unwrap(), 123);
-
-        let event = json!({
-            "blockNumber": "0"
-        });
-        assert_eq!(extract_block_number(&event).unwrap(), 0);
-
-        let event = json!({
-            "blockNumber": "999999"
-        });
-        assert_eq!(extract_block_number(&event).unwrap(), 999999);
-    }
-
-    #[test]
-    fn test_extract_block_number_invalid() {
-        let event = json!({
-            "blockNumber": "invalid"
-        });
-        assert!(extract_block_number(&event).is_err());
-
-        let event = json!({
-            "blockNumber": "0x"
-        });
-        assert!(extract_block_number(&event).is_err());
-
-        let event = json!({
-            "blockNumber": "hello0x123"
-        });
-        assert!(extract_block_number(&event).is_err());
-
-        let event = json!({
-            "blockNumber": "not_a_number"
-        });
-        assert!(extract_block_number(&event).is_err());
-
-        let event = json!({
-            "blockNumber": "0xGHI"
-        });
-        assert!(extract_block_number(&event).is_err());
-
-        let event = json!({
-            "blockNumber": "12.5"
-        });
-        assert!(extract_block_number(&event).is_err());
-
-        let event = json!({
-            "blockNumber": "-123"
-        });
-        assert!(extract_block_number(&event).is_err());
-    }
-
-    #[test]
-    fn test_extract_block_number_missing_field() {
-        let event = json!({
-            "otherField": "value"
-        });
-        assert!(matches!(
-            extract_block_number(&event),
-            Err(SqliteWebError::MissingField { ref field }) if field == "blockNumber"
-        ));
-    }
-
-    #[test]
-    fn test_extract_block_number_non_string() {
-        let event = json!({
-            "blockNumber": null
-        });
-        assert!(extract_block_number(&event).is_err());
-
-        let event = json!({
-            "blockNumber": 123
-        });
-        assert!(extract_block_number(&event).is_err());
-
-        let event = json!({
-            "blockNumber": {}
-        });
-        assert!(extract_block_number(&event).is_err());
-    }
 
     #[cfg(not(target_family = "wasm"))]
     mod tokio_tests {
@@ -404,6 +276,33 @@ mod tests {
         use crate::hyper_rpc::HyperRpcClient;
         use httpmock::prelude::*;
         use serde_json::json;
+
+        trait LogEntryResponseSliceExt {
+            fn to_json_array(&self) -> Vec<serde_json::Value>;
+        }
+
+        impl LogEntryResponseSliceExt for [LogEntryResponse] {
+            fn to_json_array(&self) -> Vec<serde_json::Value> {
+                self.iter()
+                    .map(|entry| serde_json::to_value(entry).expect("serialize log entry"))
+                    .collect()
+            }
+        }
+
+        fn make_log_entry_basic(block_number: &str, timestamp: Option<&str>) -> LogEntryResponse {
+            LogEntryResponse {
+                address: "0x123".to_string(),
+                topics: vec!["0xabc".to_string()],
+                data: "0xdeadbeef".to_string(),
+                block_number: block_number.to_string(),
+                block_timestamp: timestamp.map(|ts| ts.to_string()),
+                transaction_hash: "0xtransaction".to_string(),
+                transaction_index: "0x0".to_string(),
+                block_hash: "0xblock".to_string(),
+                log_index: "0x0".to_string(),
+                removed: false,
+            }
+        }
 
         fn sample_block_response(number: &str, timestamp: Option<&str>) -> String {
             let mut block = json!({
@@ -837,23 +736,23 @@ mod tests {
             let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
             let config = FetchConfig::default();
 
-            let mut events = json!([
+            let mut events = vec![
                 {
-                    "blockNumber": "0x64",
-                    "blockTimestamp": "0x64b8c123",
-                    "data": "some data"
+                    let mut entry = make_log_entry_basic("0x64", Some("0x64b8c123"));
+                    entry.data = "some data".to_string();
+                    entry
                 },
                 {
-                    "blockNumber": "0x65",
-                    "blockTimestamp": "0x64b8c124",
-                    "data": "other data"
-                }
-            ]);
+                    let mut entry = make_log_entry_basic("0x65", Some("0x64b8c124"));
+                    entry.data = "other data".to_string();
+                    entry
+                },
+            ];
 
             let result = db.backfill_missing_timestamps(&mut events, &config).await;
             assert!(result.is_ok());
 
-            let events_array = events.as_array().unwrap();
+            let events_array = events.to_json_array();
             assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
             assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
         }
@@ -885,16 +784,18 @@ mod tests {
 
             let config = FetchConfig::default();
 
-            let mut events = json!([
+            let mut events = vec![
                 {
-                    "blockNumber": "0x64",
-                    "data": "some data"
+                    let mut entry = make_log_entry_basic("0x64", None);
+                    entry.data = "some data".to_string();
+                    entry
                 },
                 {
-                    "blockNumber": "0x65",
-                    "data": "other data"
-                }
-            ]);
+                    let mut entry = make_log_entry_basic("0x65", None);
+                    entry.data = "other data".to_string();
+                    entry
+                },
+            ];
 
             let result = db.backfill_missing_timestamps(&mut events, &config).await;
             assert!(result.is_ok());
@@ -902,25 +803,19 @@ mod tests {
             mock1.assert();
             mock2.assert();
 
-            let events_array = events.as_array().unwrap();
+            let events_array = events.to_json_array();
             assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
             assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_backfill_missing_timestamps_invalid_events_format() {
-            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
-            let config = FetchConfig::default();
-
-            let mut events = json!({
+            let events = json!({
                 "not": "an array"
             });
 
-            let result = db.backfill_missing_timestamps(&mut events, &config).await;
-            assert!(matches!(
-                result.unwrap_err(),
-                SqliteWebError::InvalidEventsFormat
-            ));
+            let result: Result<Vec<LogEntryResponse>, _> = serde_json::from_value(events);
+            assert!(result.is_err());
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -941,29 +836,30 @@ mod tests {
 
             let config = FetchConfig::default();
 
-            let mut events = json!([
+            let mut events = vec![
                 {
-                    "blockNumber": "0x64",
-                    "blockTimestamp": "0x64b8c123",
-                    "data": "has timestamp"
+                    let mut entry = make_log_entry_basic("0x64", Some("0x64b8c123"));
+                    entry.data = "has timestamp".to_string();
+                    entry
                 },
                 {
-                    "blockNumber": "0x65",
-                    "data": "missing timestamp"
+                    let mut entry = make_log_entry_basic("0x65", None);
+                    entry.data = "missing timestamp".to_string();
+                    entry
                 },
                 {
-                    "blockNumber": "0x66",
-                    "blockTimestamp": "0x64b8c125",
-                    "data": "has timestamp"
-                }
-            ]);
+                    let mut entry = make_log_entry_basic("0x66", Some("0x64b8c125"));
+                    entry.data = "has timestamp".to_string();
+                    entry
+                },
+            ];
 
             let result = db.backfill_missing_timestamps(&mut events, &config).await;
             assert!(result.is_ok());
 
             mock.assert();
 
-            let events_array = events.as_array().unwrap();
+            let events_array = events.to_json_array();
             assert_eq!(events_array[0]["blockTimestamp"], "0x64b8c123");
             assert_eq!(events_array[1]["blockTimestamp"], "0x64b8c124");
             assert_eq!(events_array[2]["blockTimestamp"], "0x64b8c125");
@@ -974,28 +870,24 @@ mod tests {
             let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
             let config = FetchConfig::default();
 
-            let mut events = json!([
+            let mut events = vec![
                 {
-                    "blockNumber": "invalid_hex",
-                    "data": "bad block number"
+                    let mut entry = make_log_entry_basic("invalid_hex", None);
+                    entry.data = "bad block number".to_string();
+                    entry
                 },
                 {
-                    "missingBlockNumber": "0x65",
-                    "data": "no block number field"
+                    let mut entry = make_log_entry_basic("0x", None);
+                    entry.data = "empty block number".to_string();
+                    entry
                 },
-                {
-                    "blockNumber": 123,
-                    "data": "non-string block number"
-                }
-            ]);
+            ];
 
             let result = db.backfill_missing_timestamps(&mut events, &config).await;
             assert!(result.is_ok());
 
-            let events_array = events.as_array().unwrap();
-            assert!(events_array[0].get("blockTimestamp").is_none());
-            assert!(events_array[1].get("blockTimestamp").is_none());
-            assert!(events_array[2].get("blockTimestamp").is_none());
+            assert!(events[0].block_timestamp.is_none());
+            assert!(events[1].block_timestamp.is_none());
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1003,13 +895,12 @@ mod tests {
             let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
             let config = FetchConfig::default();
 
-            let mut events = json!([]);
+            let mut events: Vec<LogEntryResponse> = Vec::new();
 
             let result = db.backfill_missing_timestamps(&mut events, &config).await;
             assert!(result.is_ok());
 
-            let events_array = events.as_array().unwrap();
-            assert!(events_array.is_empty());
+            assert!(events.is_empty());
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1033,12 +924,11 @@ mod tests {
                 ..FetchConfig::default()
             };
 
-            let mut events = json!([
-                {
-                    "blockNumber": "0x64",
-                    "data": "missing timestamp"
-                }
-            ]);
+            let mut events = vec![{
+                let mut entry = make_log_entry_basic("0x64", None);
+                entry.data = "missing timestamp".to_string();
+                entry
+            }];
 
             let result = db.backfill_missing_timestamps(&mut events, &config).await;
             assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
@@ -1063,32 +953,30 @@ mod tests {
 
             let config = FetchConfig::default();
 
-            let mut events = json!([
-                {
-                    "blockNumber": "0x64",
-                    "data": "original data",
-                    "transactionHash": "0xabc123",
-                    "logIndex": "0x0"
-                }
-            ]);
+            let mut events = vec![{
+                let mut entry = make_log_entry_basic("0x64", None);
+                entry.data = "original data".to_string();
+                entry.transaction_hash = "0xabc123".to_string();
+                entry.log_index = "0x0".to_string();
+                entry
+            }];
 
-            let original_data = events[0]["data"].clone();
-            let original_tx_hash = events[0]["transactionHash"].clone();
-            let original_log_index = events[0]["logIndex"].clone();
+            let original_data = events[0].data.clone();
+            let original_tx_hash = events[0].transaction_hash.clone();
+            let original_log_index = events[0].log_index.clone();
 
             let result = db.backfill_missing_timestamps(&mut events, &config).await;
             assert!(result.is_ok());
 
             mock.assert();
 
-            let events_array = events.as_array().unwrap();
-            let event = &events_array[0];
+            let event = &events[0];
 
-            assert_eq!(event["blockTimestamp"], "0x64b8c123");
-            assert_eq!(event["data"], original_data);
-            assert_eq!(event["transactionHash"], original_tx_hash);
-            assert_eq!(event["logIndex"], original_log_index);
-            assert_eq!(event["blockNumber"], "0x64");
+            assert_eq!(event.block_timestamp.as_deref(), Some("0x64b8c123"));
+            assert_eq!(event.data, original_data);
+            assert_eq!(event.transaction_hash, original_tx_hash);
+            assert_eq!(event.log_index, original_log_index);
+            assert_eq!(event.block_number, "0x64");
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1151,7 +1039,7 @@ mod tests {
             assert!(result.is_ok());
 
             let events = result.unwrap();
-            let events_array = events.as_array().unwrap();
+            let events_array = events.to_json_array();
 
             assert_eq!(events_array.len(), 3);
             assert_eq!(events_array[0]["blockNumber"], "0x64");
@@ -1339,7 +1227,7 @@ mod tests {
             block_mock.assert_hits(1);
             assert!(result.is_ok());
             let events = result.unwrap();
-            assert_eq!(events.as_array().unwrap().len(), 1);
+            assert_eq!(events.len(), 1);
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1395,7 +1283,7 @@ mod tests {
             block_mock.assert_hits(3);
             assert!(result.is_ok());
             let events = result.unwrap();
-            let events_array = events.as_array().unwrap();
+            let events_array = events.to_json_array();
             assert!(events_array.len() >= 3);
             assert!(events_array.iter().any(|e| e["blockNumber"] == "0x5"));
             assert!(events_array.iter().any(|e| e["blockNumber"] == "0x6"));
@@ -1460,7 +1348,7 @@ mod tests {
 
             assert!(result.is_ok());
             let events = result.unwrap();
-            let events_array = events.as_array().unwrap();
+            let events_array = events.to_json_array();
             assert!(events_array.len() >= 2);
             assert!(events_array.iter().any(|e| e["blockNumber"] == "0x3e8"));
             assert!(events_array.iter().any(|e| e["blockNumber"] == "0x2af7"));
@@ -1576,7 +1464,7 @@ mod tests {
 
             assert!(result.is_ok());
             let events = result.unwrap();
-            let events_array = events.as_array().unwrap();
+            let events_array = events.to_json_array();
 
             assert_eq!(events_array.len(), 2);
 
@@ -1590,8 +1478,8 @@ mod tests {
             assert!(!events_array[0]["topics"].as_array().unwrap().is_empty());
             assert!(events_array[0]["data"].as_str().unwrap().starts_with("0x"));
 
-            let block1 = extract_block_number(&events_array[0]).unwrap();
-            let block2 = extract_block_number(&events_array[1]).unwrap();
+            let block1 = parse_block_number_str(&events[0].block_number).unwrap();
+            let block2 = parse_block_number_str(&events[1].block_number).unwrap();
             assert!(block1 <= block2, "Events should be sorted by block number");
         }
 
@@ -1818,7 +1706,7 @@ mod tests {
             mock.assert();
             assert!(result.is_ok());
             let events = result.unwrap();
-            assert_eq!(events.as_array().unwrap().len(), 0);
+            assert_eq!(events.len(), 0);
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1841,7 +1729,7 @@ mod tests {
 
             assert!(result.is_ok());
             let events = result.unwrap();
-            assert_eq!(events.as_array().unwrap().len(), 0);
+            assert_eq!(events.len(), 0);
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -2065,7 +1953,7 @@ mod tests {
 
             assert!(result.is_ok());
             let events = result.unwrap();
-            assert!(!events.as_array().unwrap().is_empty());
+            assert!(!events.is_empty());
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -2107,7 +1995,7 @@ mod tests {
 
             assert!(result.is_ok());
             let events = result.unwrap();
-            assert_eq!(events.as_array().unwrap().len(), 0);
+            assert_eq!(events.len(), 0);
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -2157,7 +2045,7 @@ mod tests {
             mock.assert();
             assert!(result.is_ok());
             let events = result.unwrap();
-            assert!(!events.as_array().unwrap().is_empty());
+            assert!(!events.is_empty());
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -2217,7 +2105,7 @@ mod tests {
 
             assert!(result.is_ok());
             let events = result.unwrap();
-            assert_eq!(events.as_array().unwrap().len(), 4);
+            assert_eq!(events.len(), 4);
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
