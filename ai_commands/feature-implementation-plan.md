@@ -12,12 +12,11 @@ Interactive Start
   - Webapp UI (`packages/webapp`) or UI components (`packages/ui-components`)
   - Desktop app (`tauri-app`)
   - Subgraph/indexing (`subgraph/*`)
-  - Tooling/scripts (`script/*`, repo root scripts)
-  - Documentation (README, `ARCHITECTURE.md` in target dirs)
+  - Tooling/scripts (`script/*`, `.github/*`, `nix.flake`, repo root scripts)
+  - Documentation (`README.md`, `ARCHITECTURE.md` in target dirs)
 - Ask for any known entry points, files, or APIs to extend vs. create new ones.
 - Ask for constraints and NFRs (choose/apply as relevant): performance targets, latency budget, throughput, gas bounds, security/trust model, backwards-compat requirements, migration needs, feature flags/env vars, telemetry/observability, offline/edge concerns, platform targets (native/WASM/browser/tauri), network or provider assumptions.
-- Ask for prior art or patterns in the repo to mimic, and any explicit anti-patterns to avoid.
-- Ask for preferred rollout: single PR vs phased PRs, target branch, and rough priority/timeline.
+- Ask for existing examples or patterns in the repo to mimic, and any explicit anti-patterns to avoid.
 
 Pre‑Plan Summary (non‑blocking)
 - Echo back a concise summary of the inputs captured and list intended analysis steps (what code areas you will inspect and which ast-grep scans you will run).
@@ -42,7 +41,7 @@ Constraints & Repo Conventions
   - Rust: `sg --lang rust -p '<pattern>'`
   - TypeScript: `sg --lang ts -p '<pattern>'`
   - Use simple reads for languages without ast-grep support when structural matching is unnecessary.
-- Follow AGENTS.md for tone and repo norms:
+- Follow `AGENTS.md` for tone and repo norms:
   - Rust: format `cargo fmt --all`, lint `cargo clippy --all-targets -- -D warnings`.
   - TS/Svelte: `npm run format`, `npm run lint`, `npm run check`.
   - Solidity: `forge fmt`; compiler `solc 0.8.25`.
