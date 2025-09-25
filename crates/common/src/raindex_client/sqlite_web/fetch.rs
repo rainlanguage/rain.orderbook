@@ -1,6 +1,7 @@
 use super::{SqliteWeb, SqliteWebError};
 use crate::hyper_rpc::HyperRpcError;
 use alloy::{primitives::U256, sol_types::SolEvent};
+use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::{
     IOrderBookV5::{
@@ -8,8 +9,10 @@ use rain_orderbook_bindings::{
     },
     OrderBook::MetaV1_2,
 };
-use serde::Deserialize;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 #[derive(Debug, Clone)]
 pub struct FetchConfig {
@@ -28,17 +31,6 @@ impl Default for FetchConfig {
             max_retry_attempts: 3,
         }
     }
-}
-
-#[derive(Debug, Deserialize)]
-struct RpcEnvelope<T> {
-    result: Option<T>,
-    error: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Deserialize)]
-struct BlockResponse {
-    timestamp: Option<String>,
 }
 
 impl SqliteWeb {
@@ -78,16 +70,14 @@ impl SqliteWeb {
         let mut chunks = Vec::new();
         let mut current_block = start_block;
         let chunk_size = config.chunk_size.max(1);
+        let chunk_span = chunk_size.saturating_sub(1);
         while current_block <= end_block {
-            let to_block = std::cmp::min(
-                current_block.saturating_add(chunk_size).saturating_sub(1),
-                end_block,
-            );
+            let to_block = current_block.saturating_add(chunk_span).min(end_block);
             chunks.push((current_block, to_block));
-            current_block = to_block.saturating_add(1);
             if to_block == u64::MAX {
                 break;
             }
+            current_block = to_block.saturating_add(1);
         }
 
         let contract_address = contract_address.to_string();
@@ -116,16 +106,12 @@ impl SqliteWeb {
                     )
                     .await?;
 
-                    let rpc_envelope: RpcEnvelope<Vec<serde_json::Value>> =
-                        serde_json::from_str(&response)?;
+                    let logs = response
+                        .into_iter()
+                        .map(|entry| serde_json::to_value(entry).map_err(SqliteWebError::JsonParse))
+                        .collect::<Result<Vec<_>, _>>()?;
 
-                    if let Some(error) = rpc_envelope.error {
-                        return Err(SqliteWebError::Rpc(HyperRpcError::RpcError {
-                            message: error.to_string(),
-                        }));
-                    }
-
-                    Ok::<_, SqliteWebError>(rpc_envelope.result.unwrap_or_default())
+                    Ok::<_, SqliteWebError>(logs)
                 }
             })
             .buffer_unordered(concurrency)
@@ -169,30 +155,12 @@ impl SqliteWeb {
                         )
                         .await?;
 
-                        let rpc_envelope: RpcEnvelope<BlockResponse> =
-                            serde_json::from_str(&block_response)?;
-
-                        if let Some(error) = rpc_envelope.error {
-                            return Err(SqliteWebError::Rpc(HyperRpcError::RpcError {
-                                message: error.to_string(),
-                            }));
-                        }
-
                         let block_data =
-                            rpc_envelope
-                                .result
-                                .ok_or_else(|| SqliteWebError::MissingField {
-                                    field: "result".to_string(),
-                                })?;
+                            block_response.ok_or_else(|| SqliteWebError::MissingField {
+                                field: "result".to_string(),
+                            })?;
 
-                        let timestamp =
-                            block_data
-                                .timestamp
-                                .ok_or_else(|| SqliteWebError::MissingField {
-                                    field: "timestamp".to_string(),
-                                })?;
-
-                        Ok((block_number, timestamp))
+                        Ok((block_number, block_data.timestamp))
                     }
                 })
                 .buffer_unordered(concurrency)
@@ -215,7 +183,12 @@ impl SqliteWeb {
         let mut missing_blocks = HashSet::new();
 
         for event in events_array.iter() {
-            if event.get("blockTimestamp").is_none() {
+            let has_timestamp = event
+                .get("blockTimestamp")
+                .and_then(|value| value.as_str())
+                .is_some();
+
+            if !has_timestamp {
                 if let Ok(block_number) = extract_block_number(event) {
                     missing_blocks.insert(block_number);
                 }
@@ -230,15 +203,22 @@ impl SqliteWeb {
         let timestamps = self.fetch_block_timestamps(block_numbers, config).await?;
 
         for event in events_array.iter_mut() {
-            if event.get("blockTimestamp").is_none() {
-                if let Ok(block_number) = extract_block_number(event) {
-                    if let Some(timestamp) = timestamps.get(&block_number) {
-                        if let Some(event_obj) = event.as_object_mut() {
-                            event_obj.insert(
-                                "blockTimestamp".to_string(),
-                                serde_json::Value::String(timestamp.clone()),
-                            );
-                        }
+            let has_timestamp = event
+                .get("blockTimestamp")
+                .and_then(|value| value.as_str())
+                .is_some();
+
+            if has_timestamp {
+                continue;
+            }
+
+            if let Ok(block_number) = extract_block_number(event) {
+                if let Some(timestamp) = timestamps.get(&block_number) {
+                    if let Some(event_obj) = event.as_object_mut() {
+                        event_obj.insert(
+                            "blockTimestamp".to_string(),
+                            serde_json::Value::String(timestamp.clone()),
+                        );
                     }
                 }
             }
@@ -248,6 +228,8 @@ impl SqliteWeb {
     }
 }
 
+const RETRY_DELAY_MILLIS: u64 = 100;
+
 async fn retry_with_attempts<T, F, Fut>(
     operation: F,
     max_attempts: usize,
@@ -256,18 +238,28 @@ where
     F: Fn() -> Fut,
     Fut: std::future::Future<Output = Result<T, HyperRpcError>>,
 {
-    let mut last_error = SqliteWebError::MissingField {
-        field: "Not attempted".to_string(),
-    };
-
-    for _attempt in 1..=max_attempts {
-        match operation().await {
-            Ok(result) => return Ok(result),
-            Err(e) => last_error = SqliteWebError::Rpc(e),
-        }
+    if max_attempts == 0 {
+        return Err(SqliteWebError::MissingField {
+            field: "Not attempted".to_string(),
+        });
     }
 
-    Err(last_error)
+    let backoff = ConstantBuilder::default()
+        .with_delay(Duration::from_millis(RETRY_DELAY_MILLIS))
+        .with_max_times(max_attempts.saturating_sub(1));
+
+    let retryable = || async {
+        match operation().await {
+            Ok(result) => Ok(result),
+            Err(HyperRpcError::JsonSerialization(err)) => Err(SqliteWebError::JsonParse(err)),
+            Err(err) => Err(SqliteWebError::Rpc(err)),
+        }
+    };
+
+    retryable
+        .retry(&backoff)
+        .when(|error: &SqliteWebError| matches!(error, SqliteWebError::Rpc(_)))
+        .await
 }
 
 fn extract_block_number(event: &serde_json::Value) -> Result<u64, SqliteWebError> {
@@ -411,6 +403,91 @@ mod tests {
         use super::*;
         use crate::hyper_rpc::HyperRpcClient;
         use httpmock::prelude::*;
+        use serde_json::json;
+
+        fn sample_block_response(number: &str, timestamp: Option<&str>) -> String {
+            let mut block = json!({
+                "mixHash": "0xmix",
+                "difficulty": "0x1",
+                "extraData": "0xextra",
+                "gasLimit": "0xffff",
+                "gasUsed": "0xff",
+                "hash": "0xhash",
+                "logsBloom": "0x0",
+                "miner": "0xminer",
+                "nonce": "0xnonce",
+                "number": number,
+                "parentHash": "0xparent",
+                "receiptsRoot": "0xreceipts",
+                "sha3Uncles": "0xsha3",
+                "size": "0x1",
+                "stateRoot": "0xstate",
+                "timestamp": timestamp.unwrap_or("0x0"),
+                "totalDifficulty": "0x2",
+                "transactionsRoot": "0xtransactions",
+                "uncles": [],
+                "transactions": [],
+            });
+
+            if timestamp.is_none() {
+                if let serde_json::Value::Object(ref mut obj) = block {
+                    obj.remove("timestamp");
+                }
+            }
+
+            json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": block,
+            })
+            .to_string()
+        }
+
+        fn logs_response(entries: Vec<serde_json::Value>) -> String {
+            json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": entries,
+            })
+            .to_string()
+        }
+
+        fn sample_log_entry(block_number: &str, timestamp: Option<&str>) -> serde_json::Value {
+            let mut entry = json!({
+                "address": "0x123",
+                "topics": ["0xabc"],
+                "data": "0xdeadbeef",
+                "blockNumber": block_number,
+                "blockTimestamp": timestamp.unwrap_or("0x5"),
+                "transactionHash": "0xtransaction",
+                "transactionIndex": "0x0",
+                "blockHash": "0xblock",
+                "logIndex": "0x0",
+                "removed": false
+            });
+
+            if timestamp.is_none() {
+                if let serde_json::Value::Object(ref mut obj) = entry {
+                    obj.remove("blockTimestamp");
+                }
+            }
+
+            entry
+        }
+
+        fn log_entry_with(
+            block_number: &str,
+            transaction_hash: &str,
+            data: &str,
+            block_timestamp: Option<&str>,
+        ) -> serde_json::Value {
+            let mut entry = sample_log_entry(block_number, block_timestamp);
+            if let serde_json::Value::Object(ref mut obj) = entry {
+                obj.insert("transactionHash".to_string(), json!(transaction_hash));
+                obj.insert("data".to_string(), json!(data));
+            }
+            entry
+        }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_retry_with_attempts_success_first_try() {
@@ -497,7 +574,7 @@ mod tests {
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x64",false]}));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+                .body(sample_block_response("0x64", Some("0x64b8c123")));
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -524,7 +601,7 @@ mod tests {
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x64",false]}));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+                .body(sample_block_response("0x64", Some("0x64b8c123")));
         });
 
             let mock2 = server.mock(|when, then| {
@@ -534,7 +611,7 @@ mod tests {
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x65",false]}));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
+                .body(sample_block_response("0x65", Some("0x64b8c124")));
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -599,13 +676,13 @@ mod tests {
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-        async fn test_fetch_block_timestamps_missing_timestamp_field() {
+        async fn test_fetch_block_timestamps_null_result() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
                 when.method(POST).path("/");
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64"}}"#);
+                    .body(r#"{"jsonrpc":"2.0","id":1,"result":null}"#);
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -616,10 +693,31 @@ mod tests {
             let result = db.fetch_block_timestamps(vec![100], &config).await;
 
             mock.assert();
-            assert!(result.is_err());
-            assert!(
-                matches!(result.unwrap_err(), SqliteWebError::MissingField { ref field } if field == "timestamp")
-            );
+            assert!(matches!(
+                result.unwrap_err(),
+                SqliteWebError::MissingField { ref field } if field == "result"
+            ));
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_block_timestamps_missing_timestamp_field() {
+            let server = MockServer::start();
+            let mock = server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(sample_block_response("0x64", None));
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig::default();
+            let result = db.fetch_block_timestamps(vec![100], &config).await;
+
+            mock.assert();
+            assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -633,7 +731,11 @@ mod tests {
                     .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":[format!("0x{:x}", 100 + i),false]}));
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(format!(r#"{{"jsonrpc":"2.0","id":1,"result":{{"timestamp":"0x64b8c{:03x}"}}}}"#, 123 + i))
+                    .body({
+                        let number_hex = format!("0x{:x}", 100 + i);
+                        let timestamp_hex = format!("0x64b8c{:03x}", 123 + i);
+                        sample_block_response(number_hex.as_str(), Some(timestamp_hex.as_str()))
+                    })
                     .delay(std::time::Duration::from_millis(100));
             });
             }
@@ -709,7 +811,7 @@ mod tests {
                     .matches(|_req| RETRY_COUNTER.load(Ordering::Relaxed) > 0);
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+                    .body(sample_block_response("0x64", Some("0x64b8c123")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -765,7 +867,7 @@ mod tests {
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x64",false]}));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+                .body(sample_block_response("0x64", Some("0x64b8c123")));
         });
 
             let mock2 = server.mock(|when, then| {
@@ -774,7 +876,7 @@ mod tests {
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x65",false]}));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
+                .body(sample_block_response("0x65", Some("0x64b8c124")));
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -830,7 +932,7 @@ mod tests {
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x65",false]}));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c124"}}"#);
+                .body(sample_block_response("0x65", Some("0x64b8c124")));
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -952,7 +1054,7 @@ mod tests {
                 .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x64",false]}));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+                .body(sample_block_response("0x64", Some("0x64b8c123")));
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1007,28 +1109,11 @@ mod tests {
                     });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(
-                        r#"{"jsonrpc":"2.0","id":1,"result":[
-                    {
-                        "blockNumber": "0x69",
-                        "transactionHash": "0x789",
-                        "logIndex": "0x0",
-                        "data": "0xdata3"
-                    },
-                    {
-                        "blockNumber": "0x64",
-                        "transactionHash": "0x123",
-                        "logIndex": "0x0",
-                        "data": "0xdata1"
-                    },
-                    {
-                        "blockNumber": "0x67",
-                        "transactionHash": "0x456",
-                        "logIndex": "0x0",
-                        "data": "0xdata2"
-                    }
-                ]}"#,
-                    );
+                    .body(logs_response(vec![
+                        log_entry_with("0x69", "0x789", "0xdata3", None),
+                        log_entry_with("0x64", "0x123", "0xdata1", None),
+                        log_entry_with("0x67", "0x456", "0xdata2", None),
+                    ]));
             });
 
             server.mock(|when, then| {
@@ -1045,7 +1130,7 @@ mod tests {
                     });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+                    .body(sample_block_response("0x64", Some("0x123456")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1096,7 +1181,11 @@ mod tests {
                     .json_body(json!({"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":[format!("0x{:x}", 100 + i),false]}));
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(format!(r#"{{"jsonrpc":"2.0","id":1,"result":{{"timestamp":"0x64b8c{:03x}"}}}}"#, 123 + i))
+                    .body({
+                        let number_hex = format!("0x{:x}", 100 + i);
+                        let timestamp_hex = format!("0x64b8c{:03x}", 123 + i);
+                        sample_block_response(number_hex.as_str(), Some(timestamp_hex.as_str()))
+                    })
                     .delay(std::time::Duration::from_millis(200));
             });
             }
@@ -1217,32 +1306,18 @@ mod tests {
                 });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(
-                        r#"{"jsonrpc":"2.0","id":1,"result":[
-                    {
-                        "blockNumber": "0x64",
-                        "transactionHash": "0x123",
-                        "logIndex": "0x0",
-                        "data": "0xdata"
-                    }
-                ]}"#,
-                    );
+                    .body(logs_response(vec![log_entry_with(
+                        "0x64", "0x123", "0xdata", None,
+                    )]));
             });
 
             let block_mock = server.mock(|when, then| {
-                when.method(POST).path("/").matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                });
+                when.method(POST)
+                    .path("/")
+                    .json_body_partial(json!({"method": "eth_getBlockByNumber"}).to_string());
                 then.status(200)
-                .header("content-type", "application/json")
-                .body(
-                    r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x64","timestamp":"0x123456"}}"#,
-                );
+                    .header("content-type", "application/json")
+                    .body(sample_block_response("0x64", Some("0x123456")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1272,9 +1347,7 @@ mod tests {
             let server = MockServer::start();
 
             let logs_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
+                when.method(POST).path("/").matches(|req| {
                     if let Some(ref body) = req.body {
                         let body_str = String::from_utf8_lossy(body);
                         body_str.contains(r#""method":"eth_getLogs""#)
@@ -1282,29 +1355,22 @@ mod tests {
                         false
                     }
                 });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":[
-                    {"blockNumber": "0x5", "transactionHash": "0x111", "logIndex": "0x0", "data": "0x1"},
-                    {"blockNumber": "0x6", "transactionHash": "0x222", "logIndex": "0x0", "data": "0x2"},
-                    {"blockNumber": "0x7", "transactionHash": "0x333", "logIndex": "0x0", "data": "0x3"}
-                ]}"#);
-        });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(logs_response(vec![
+                        log_entry_with("0x5", "0x111", "0x1", None),
+                        log_entry_with("0x6", "0x222", "0x2", None),
+                        log_entry_with("0x7", "0x333", "0x3", None),
+                    ]));
+            });
 
             let block_mock = server.mock(|when, then| {
-                when.method(POST).path("/").matches(|req| {
-                    if let Some(ref body) = req.body {
-                        let body_str = String::from_utf8_lossy(body);
-                        body_str.contains(r#""method":"eth_getBlockByNumber""#)
-                    } else {
-                        false
-                    }
-                });
+                when.method(POST)
+                    .path("/")
+                    .json_body_partial(json!({"method": "eth_getBlockByNumber"}).to_string());
                 then.status(200)
-                .header("content-type", "application/json")
-                .body(
-                    r#"{"jsonrpc":"2.0","id":1,"result":{"number":"0x5","timestamp":"0x123456"}}"#,
-                );
+                    .header("content-type", "application/json")
+                    .body(sample_block_response("0x5", Some("0x123456")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1341,9 +1407,7 @@ mod tests {
             let server = MockServer::start();
 
             server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
+                when.method(POST).path("/").matches(|req| {
                     if let Some(ref body) = req.body {
                         let body_str = String::from_utf8_lossy(body);
                         body_str.contains(r#""method":"eth_getLogs""#)
@@ -1351,13 +1415,13 @@ mod tests {
                         false
                     }
                 });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":[
-                    {"blockNumber": "0x3e8", "transactionHash": "0x111", "logIndex": "0x0", "data": "0x1"},
-                    {"blockNumber": "0x2af7", "transactionHash": "0x222", "logIndex": "0x0", "data": "0x2"}
-                ]}"#);
-        });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(logs_response(vec![
+                        log_entry_with("0x3e8", "0x111", "0x1", None),
+                        log_entry_with("0x2af7", "0x222", "0x2", None),
+                    ]));
+            });
 
             server.mock(|when, then| {
                 when.method(POST)
@@ -1373,7 +1437,7 @@ mod tests {
                     });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+                    .body(sample_block_response("0x3e8", Some("0x123456")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1573,7 +1637,7 @@ mod tests {
                     .matches(|_req| ATTEMPT_COUNTER.load(Ordering::Relaxed) > 0);
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+                    .body(sample_block_response("0x64", Some("0x64b8c123")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1634,7 +1698,7 @@ mod tests {
                     .matches(|_req| TIMEOUT_ATTEMPT_COUNTER.load(Ordering::Relaxed) > 0);
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+                    .body(sample_block_response("0x64", Some("0x64b8c123")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1699,7 +1763,7 @@ mod tests {
                     .matches(|_req| RATE_LIMIT_COUNTER.load(Ordering::Relaxed) > 0);
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x64b8c123"}}"#);
+                    .body(sample_block_response("0x64", Some("0x64b8c123")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1734,7 +1798,7 @@ mod tests {
                 });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
+                    .body(logs_response(vec![]));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -1878,7 +1942,7 @@ mod tests {
                 });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#)
+                    .body(logs_response(vec![]))
                     .delay(std::time::Duration::from_millis(200));
             });
 
@@ -1949,9 +2013,7 @@ mod tests {
             let server = MockServer::start();
 
             server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
+                when.method(POST).path("/").matches(|req| {
                     if let Some(ref body) = req.body {
                         let body_str = String::from_utf8_lossy(body);
                         body_str.contains(r#""method":"eth_getLogs""#)
@@ -1959,12 +2021,12 @@ mod tests {
                         false
                     }
                 });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":[
-                    {"blockNumber": "0x64", "transactionHash": "0x123", "logIndex": "0x0", "data": "0x1"}
-                ]}"#);
-        });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(logs_response(vec![log_entry_with(
+                        "0x64", "0x123", "0x1", None,
+                    )]));
+            });
 
             server.mock(|when, then| {
                 when.method(POST)
@@ -1980,7 +2042,7 @@ mod tests {
                     });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+                    .body(sample_block_response("0x64", Some("0x123456")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -2021,7 +2083,7 @@ mod tests {
                 });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":[]}"#);
+                    .body(logs_response(vec![]));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -2052,9 +2114,7 @@ mod tests {
         async fn test_fetch_events_wrapper_uses_default_config() {
             let server = MockServer::start();
             let mock = server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
+                when.method(POST).path("/").matches(|req| {
                     if let Some(ref body) = req.body {
                         let body_str = String::from_utf8_lossy(body);
                         body_str.contains(r#""method":"eth_getLogs""#)
@@ -2062,12 +2122,12 @@ mod tests {
                         false
                     }
                 });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":[
-                    {"blockNumber": "0x64", "transactionHash": "0x123", "logIndex": "0x0", "data": "0x1"}
-                ]}"#);
-        });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(logs_response(vec![log_entry_with(
+                        "0x64", "0x123", "0x1", None,
+                    )]));
+            });
 
             server.mock(|when, then| {
                 when.method(POST)
@@ -2083,7 +2143,7 @@ mod tests {
                     });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+                    .body(sample_block_response("0x64", Some("0x123456")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -2104,9 +2164,7 @@ mod tests {
         async fn test_fetch_events_with_config_chunk_size_zero() {
             let server = MockServer::start();
             server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .matches(|req| {
+                when.method(POST).path("/").matches(|req| {
                     if let Some(ref body) = req.body {
                         let body_str = String::from_utf8_lossy(body);
                         body_str.contains(r#""method":"eth_getLogs""#)
@@ -2114,13 +2172,13 @@ mod tests {
                         false
                     }
                 });
-            then.status(200)
-                .header("content-type", "application/json")
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":[
-                    {"blockNumber": "0x64", "transactionHash": "0x123", "logIndex": "0x0", "data": "0x1"},
-                    {"blockNumber": "0x65", "transactionHash": "0x456", "logIndex": "0x0", "data": "0x2"}
-                ]}"#);
-        });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(logs_response(vec![
+                        log_entry_with("0x64", "0x123", "0x1", None),
+                        log_entry_with("0x65", "0x456", "0x2", None),
+                    ]));
+            });
 
             server.mock(|when, then| {
                 when.method(POST)
@@ -2136,7 +2194,7 @@ mod tests {
                     });
                 then.status(200)
                     .header("content-type", "application/json")
-                    .body(r#"{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x123456"}}"#);
+                    .body(sample_block_response("0x64", Some("0x123456")));
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
@@ -2160,6 +2218,55 @@ mod tests {
             assert!(result.is_ok());
             let events = result.unwrap();
             assert_eq!(events.as_array().unwrap().len(), 4);
+        }
+
+        #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+        async fn test_fetch_events_with_config_end_block_u64_max() {
+            let server = MockServer::start();
+
+            let logs_mock = server.mock(|when, then| {
+                when.method(POST).path("/").matches(|req| {
+                    if let Some(ref body) = req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        if body_str.contains(r#""method":"eth_getLogs""#) {
+                            assert!(
+                                body_str.contains(r#""toBlock":"0xffffffffffffffff""#),
+                                "expected toBlock to be 0xffffffffffffffff, got {}",
+                                body_str
+                            );
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                });
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(logs_response(vec![]));
+            });
+
+            let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
+            let mut db = SqliteWeb::new_with_client(client);
+            db.client_mut().update_rpc_url(server.base_url());
+
+            let config = FetchConfig {
+                chunk_size: 5000,
+                ..FetchConfig::default()
+            };
+
+            let result = db
+                .fetch_events_with_config(
+                    "0x742d35Cc6634C0532925a3b8c17600000000000",
+                    u64::MAX,
+                    u64::MAX,
+                    &config,
+                )
+                .await;
+
+            assert!(result.is_ok());
+            logs_mock.assert_hits(1);
         }
     }
 }
