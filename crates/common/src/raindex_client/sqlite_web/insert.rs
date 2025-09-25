@@ -1,59 +1,89 @@
-use serde_json::Value;
+use super::decode::{
+    AfterClearV2Decoded,
+    AddOrderV3Decoded,
+    ClearV3Decoded,
+    DecodedEvent,
+    DecodedEventData,
+    DepositV2Decoded,
+    EventType,
+    MetaV1_2Decoded,
+    OrderDecoded,
+    RemoveOrderV3Decoded,
+    TakeOrderV3Decoded,
+    UnknownEventDecoded,
+    WithdrawV2Decoded,
+};
+use thiserror::Error;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Error)]
 pub enum InsertError {
-    #[error("Input data is not a JSON array")]
-    InvalidInputFormat,
-    #[error("Missing or invalid {field} field")]
-    MissingField { field: String },
     #[error("Failed to parse hex string: {hex_str}")]
     HexParseError { hex_str: String },
-    #[error("Missing decoded_data in {event_type} event")]
-    MissingDecodedData { event_type: String },
-    #[error("Missing {field} in {event_type} event")]
-    MissingEventField { field: String, event_type: String },
-    #[error("Context value must be string")]
-    InvalidContextValue,
 }
 
-pub fn decoded_events_to_sql(data: Value, end_block: u64) -> Result<String, InsertError> {
-    let mut sql = String::new();
+struct EventContext<'a> {
+    block_number: u64,
+    block_timestamp: u64,
+    transaction_hash: &'a str,
+    log_index: u64,
+}
 
+fn event_context<'a>(event: &'a DecodedEventData<DecodedEvent>) -> Result<EventContext<'a>, InsertError> {
+    Ok(EventContext {
+        block_number: hex_to_decimal(&event.block_number)?,
+        block_timestamp: hex_to_decimal(&event.block_timestamp)?,
+        transaction_hash: &event.transaction_hash,
+        log_index: hex_to_decimal(&event.log_index)?,
+    })
+}
+
+pub fn decoded_events_to_sql(
+    events: &[DecodedEventData<DecodedEvent>],
+    end_block: u64,
+) -> Result<String, InsertError> {
+    let mut sql = String::new();
     sql.push_str("BEGIN TRANSACTION;\n\n");
 
-    let events = data.as_array().ok_or(InsertError::InvalidInputFormat)?;
-
     for event in events {
-        match event.get("event_type").and_then(|v| v.as_str()) {
-            Some("DepositV2") => {
-                sql.push_str(&generate_deposit_sql(event)?);
+        match &event.decoded_data {
+            DecodedEvent::DepositV2(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_deposit_sql(&context, decoded)?);
             }
-            Some("WithdrawV2") => {
-                sql.push_str(&generate_withdraw_sql(event)?);
+            DecodedEvent::WithdrawV2(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_withdraw_sql(&context, decoded)?);
             }
-            Some("AddOrderV3") => {
-                sql.push_str(&generate_add_order_sql(event)?);
+            DecodedEvent::AddOrderV3(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_add_order_sql(&context, decoded)?);
             }
-            Some("RemoveOrderV3") => {
-                sql.push_str(&generate_remove_order_sql(event)?);
+            DecodedEvent::RemoveOrderV3(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_remove_order_sql(&context, decoded)?);
             }
-            Some("TakeOrderV3") => {
-                sql.push_str(&generate_take_order_sql(event)?);
+            DecodedEvent::TakeOrderV3(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_take_order_sql(&context, decoded)?);
             }
-            Some("ClearV3") => {
-                sql.push_str(&generate_clear_v3_sql(event)?);
+            DecodedEvent::ClearV3(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_clear_v3_sql(&context, decoded)?);
             }
-            Some("AfterClearV2") => {
-                sql.push_str(&generate_after_clear_sql(event)?);
+            DecodedEvent::AfterClearV2(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_after_clear_sql(&context, decoded)?);
             }
-            Some("MetaV1_2") => {
-                sql.push_str(&generate_meta_sql(event)?);
+            DecodedEvent::MetaV1_2(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_meta_sql(&context, decoded)?);
             }
-            Some(event_type) => {
-                eprintln!("Warning: Unknown event type: {}", event_type);
-            }
-            None => {
-                eprintln!("Warning: Event missing event_type field");
+            DecodedEvent::Unknown(decoded) => {
+                eprintln!(
+                    "Warning: Unknown event type for transaction {}: {}",
+                    event.transaction_hash,
+                    decoded.note
+                );
             }
         }
     }
@@ -68,343 +98,247 @@ pub fn decoded_events_to_sql(data: Value, end_block: u64) -> Result<String, Inse
     Ok(sql)
 }
 
-fn generate_deposit_sql(event: &Value) -> Result<String, InsertError> {
-    let decoded_data = event
-        .get("decoded_data")
-        .ok_or(InsertError::MissingDecodedData {
-            event_type: "DepositV2".to_string(),
-        })?;
-
-    let transaction_hash = get_string_field(event, "transaction_hash")?;
-    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
-    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
-    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
-
-    let sender = get_string_field(decoded_data, "sender")?;
-    let token = get_string_field(decoded_data, "token")?;
-    let vault_id = get_string_field(decoded_data, "vault_id")?;
-    let deposit_amount_uint256 = get_string_field(decoded_data, "deposit_amount_uint256")?;
-
-    let mut sql = String::new();
-
-    sql.push_str(&format!(
+fn generate_deposit_sql(
+    context: &EventContext<'_>,
+    decoded: &DepositV2Decoded,
+) -> Result<String, InsertError> {
+    Ok(format!(
         "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256
-    ));
-
-    Ok(sql)
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        decoded.sender,
+        decoded.token,
+        decoded.vault_id,
+        decoded.deposit_amount_uint256
+    ))
 }
 
-fn generate_withdraw_sql(event: &Value) -> Result<String, InsertError> {
-    let decoded_data = event
-        .get("decoded_data")
-        .ok_or(InsertError::MissingDecodedData {
-            event_type: "WithdrawV2".to_string(),
-        })?;
-
-    let transaction_hash = get_string_field(event, "transaction_hash")?;
-    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
-    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
-    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
-
-    let sender = get_string_field(decoded_data, "sender")?;
-    let token = get_string_field(decoded_data, "token")?;
-    let vault_id = get_string_field(decoded_data, "vault_id")?;
-    let target_amount = get_string_field(decoded_data, "target_amount")?;
-    let withdraw_amount = get_string_field(decoded_data, "withdraw_amount")?;
-    let withdraw_amount_uint256 = get_string_field(decoded_data, "withdraw_amount_uint256")?;
-
-    let mut sql = String::new();
-
-    sql.push_str(&format!(
+fn generate_withdraw_sql(
+    context: &EventContext<'_>,
+    decoded: &WithdrawV2Decoded,
+) -> Result<String, InsertError> {
+    Ok(format!(
         "INSERT INTO withdrawals (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, target_amount, withdraw_amount, withdraw_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, target_amount, withdraw_amount, withdraw_amount_uint256
-    ));
-
-    Ok(sql)
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        decoded.sender,
+        decoded.token,
+        decoded.vault_id,
+        decoded.target_amount,
+        decoded.withdraw_amount,
+        decoded.withdraw_amount_uint256
+    ))
 }
 
-fn generate_add_order_sql(event: &Value) -> Result<String, InsertError> {
-    let decoded_data = event
-        .get("decoded_data")
-        .ok_or(InsertError::MissingDecodedData {
-            event_type: "AddOrderV3".to_string(),
-        })?;
-    let order = decoded_data
-        .get("order")
-        .ok_or(InsertError::MissingEventField {
-            field: "order".to_string(),
-            event_type: "AddOrderV3".to_string(),
-        })?;
-
-    let transaction_hash = get_string_field(event, "transaction_hash")?;
-    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
-    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
-    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
-
-    let sender = get_string_field(decoded_data, "sender")?;
-    let order_hash = get_string_field(decoded_data, "order_hash")?;
-    let owner = get_string_field(order, "owner")?;
-    let nonce = get_string_field(order, "nonce")?;
-
+fn generate_add_order_sql(
+    context: &EventContext<'_>,
+    decoded: &AddOrderV3Decoded,
+) -> Result<String, InsertError> {
     let mut sql = String::new();
 
     sql.push_str(&format!(
         "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, order_hash, order_owner, order_nonce) VALUES ({}, {}, '{}', {}, 'AddOrderV3', '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, order_hash, owner, nonce
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        decoded.sender,
+        decoded.order_hash,
+        decoded.order.owner,
+        decoded.order.nonce
     ));
 
-    sql.push_str(&generate_order_ios_sql(order, transaction_hash, log_index)?);
+    let ios_sql = generate_order_ios_sql(context, &decoded.order);
+    if !ios_sql.is_empty() {
+        sql.push_str(&ios_sql);
+    }
 
     Ok(sql)
 }
 
-fn generate_remove_order_sql(event: &Value) -> Result<String, InsertError> {
-    let decoded_data = event
-        .get("decoded_data")
-        .ok_or(InsertError::MissingDecodedData {
-            event_type: "RemoveOrderV3".to_string(),
-        })?;
-    let order = decoded_data
-        .get("order")
-        .ok_or(InsertError::MissingEventField {
-            field: "order".to_string(),
-            event_type: "RemoveOrderV3".to_string(),
-        })?;
-
-    let transaction_hash = get_string_field(event, "transaction_hash")?;
-    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
-    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
-    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
-
-    let sender = get_string_field(decoded_data, "sender")?;
-    let order_hash = get_string_field(decoded_data, "order_hash")?;
-    let owner = get_string_field(order, "owner")?;
-    let nonce = get_string_field(order, "nonce")?;
-
+fn generate_remove_order_sql(
+    context: &EventContext<'_>,
+    decoded: &RemoveOrderV3Decoded,
+) -> Result<String, InsertError> {
     let mut sql = String::new();
 
     sql.push_str(&format!(
         "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, order_hash, order_owner, order_nonce) VALUES ({}, {}, '{}', {}, 'RemoveOrderV3', '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, order_hash, owner, nonce
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        decoded.sender,
+        decoded.order_hash,
+        decoded.order.owner,
+        decoded.order.nonce
     ));
 
-    sql.push_str(&generate_order_ios_sql(order, transaction_hash, log_index)?);
+    let ios_sql = generate_order_ios_sql(context, &decoded.order);
+    if !ios_sql.is_empty() {
+        sql.push_str(&ios_sql);
+    }
 
     Ok(sql)
 }
 
-fn generate_take_order_sql(event: &Value) -> Result<String, InsertError> {
-    let decoded_data = event
-        .get("decoded_data")
-        .ok_or(InsertError::MissingDecodedData {
-            event_type: "TakeOrderV3".to_string(),
-        })?;
-    let config = decoded_data
-        .get("config")
-        .ok_or(InsertError::MissingEventField {
-            field: "config".to_string(),
-            event_type: "TakeOrderV3".to_string(),
-        })?;
-    let order = config.get("order").ok_or(InsertError::MissingEventField {
-        field: "order".to_string(),
-        event_type: "TakeOrderV3 config".to_string(),
-    })?;
-
-    let transaction_hash = get_string_field(event, "transaction_hash")?;
-    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
-    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
-    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
-
-    let sender = get_string_field(decoded_data, "sender")?;
-
-    let order_owner = get_string_field(order, "owner")?;
-    let order_nonce = get_string_field(order, "nonce")?;
-
-    let input_io_index = hex_to_decimal(get_string_field(config, "input_io_index")?)?;
-    let output_io_index = hex_to_decimal(get_string_field(config, "output_io_index")?)?;
-    let input_amount = get_string_field(decoded_data, "input")?;
-    let output_amount = get_string_field(decoded_data, "output")?;
+fn generate_take_order_sql(
+    context: &EventContext<'_>,
+    decoded: &TakeOrderV3Decoded,
+) -> Result<String, InsertError> {
+    let input_io_index = hex_to_decimal(&decoded.config.input_io_index)?;
+    let output_io_index = hex_to_decimal(&decoded.config.output_io_index)?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
         "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, input, output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, input_amount, output_amount
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        decoded.sender,
+        decoded.config.order.owner,
+        decoded.config.order.nonce,
+        input_io_index,
+        output_io_index,
+        decoded.input,
+        decoded.output
     ));
 
-    if let Some(signed_contexts) = config.get("signed_context").and_then(|v| v.as_array()) {
-        for (context_index, context) in signed_contexts.iter().enumerate() {
-            let signer = get_string_field(context, "signer")?;
-            let signature = get_string_field(context, "signature")?;
+    for (context_index, signed_context) in decoded.config.signed_context.iter().enumerate() {
+        let context_value = format!(
+            "signer:{},signature:{}",
+            signed_context.signer, signed_context.signature
+        );
 
-            let context_value = format!("signer:{},signature:{}", signer, signature);
+        sql.push_str(&format!(
+            "INSERT INTO take_order_contexts (transaction_hash, log_index, context_index, context_value) VALUES ('{}', {}, {}, '{}');\n",
+            context.transaction_hash,
+            context.log_index,
+            context_index,
+            context_value
+        ));
+
+        for (value_index, value) in signed_context.context.iter().enumerate() {
             sql.push_str(&format!(
-                "INSERT INTO take_order_contexts (transaction_hash, log_index, context_index, context_value) VALUES ('{}', {}, {}, '{}');\n",
-                transaction_hash, log_index, context_index, context_value
+                "INSERT INTO context_values (transaction_hash, log_index, context_index, value_index, value) VALUES ('{}', {}, {}, {}, '{}');\n",
+                context.transaction_hash,
+                context.log_index,
+                context_index,
+                value_index,
+                value
             ));
-
-            if let Some(context_values) = context.get("context").and_then(|v| v.as_array()) {
-                for (value_index, value) in context_values.iter().enumerate() {
-                    let context_value = value.as_str().ok_or(InsertError::InvalidContextValue)?;
-                    sql.push_str(&format!(
-                        "INSERT INTO context_values (transaction_hash, log_index, context_index, value_index, value) VALUES ('{}', {}, {}, {}, '{}');\n",
-                        transaction_hash, log_index, context_index, value_index, context_value
-                    ));
-                }
-            }
         }
     }
 
     Ok(sql)
 }
 
-fn generate_clear_v3_sql(event: &Value) -> Result<String, InsertError> {
-    let decoded_data = event
-        .get("decoded_data")
-        .ok_or(InsertError::MissingDecodedData {
-            event_type: "ClearV3".to_string(),
-        })?;
-
-    let transaction_hash = get_string_field(event, "transaction_hash")?;
-    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
-    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
-    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
-
-    let sender = get_string_field(decoded_data, "sender")?;
-    let alice_owner = get_string_field(decoded_data, "alice_owner")?;
-    let bob_owner = get_string_field(decoded_data, "bob_owner")?;
-    let alice_order_hash = get_string_field(decoded_data, "alice_order_hash")?;
-    let bob_order_hash = get_string_field(decoded_data, "bob_order_hash")?;
-    let alice_input_io_index = get_string_field(decoded_data, "alice_input_io_index")?;
-    let alice_output_io_index = get_string_field(decoded_data, "alice_output_io_index")?;
-    let alice_bounty_vault_id = get_string_field(decoded_data, "alice_bounty_vault_id")?;
-    let alice_input_vault_id = get_string_field(decoded_data, "alice_input_vault_id")?;
-    let alice_output_vault_id = get_string_field(decoded_data, "alice_output_vault_id")?;
-    let bob_input_io_index = get_string_field(decoded_data, "bob_input_io_index")?;
-    let bob_output_io_index = get_string_field(decoded_data, "bob_output_io_index")?;
-    let bob_bounty_vault_id = get_string_field(decoded_data, "bob_bounty_vault_id")?;
-    let bob_input_vault_id = get_string_field(decoded_data, "bob_input_vault_id")?;
-    let bob_output_vault_id = get_string_field(decoded_data, "bob_output_vault_id")?;
-
-    let mut sql = String::new();
-
-    let alice_input_io_index_num = hex_to_decimal(alice_input_io_index)?;
-    let alice_output_io_index_num = hex_to_decimal(alice_output_io_index)?;
-    let bob_input_io_index_num = hex_to_decimal(bob_input_io_index)?;
-    let bob_output_io_index_num = hex_to_decimal(bob_output_io_index)?;
-
-    sql.push_str(&format!(
-        "INSERT INTO clear_v3_events (block_number, block_timestamp, transaction_hash, log_index, sender, alice_order_hash, alice_order_owner, alice_input_io_index, alice_output_io_index, alice_bounty_vault_id, alice_input_vault_id, alice_output_vault_id, bob_order_hash, bob_order_owner, bob_input_io_index, bob_output_io_index, bob_bounty_vault_id, bob_input_vault_id, bob_output_vault_id) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}', '{}', '{}', '{}', {}, {}, '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, alice_order_hash, alice_owner, alice_input_io_index_num, alice_output_io_index_num, alice_bounty_vault_id, alice_input_vault_id, alice_output_vault_id, bob_order_hash, bob_owner, bob_input_io_index_num, bob_output_io_index_num, bob_bounty_vault_id, bob_input_vault_id, bob_output_vault_id
-    ));
-
-    Ok(sql)
-}
-
-fn generate_after_clear_sql(event: &Value) -> Result<String, InsertError> {
-    let decoded_data = event
-        .get("decoded_data")
-        .ok_or(InsertError::MissingDecodedData {
-            event_type: "AfterClearV2".to_string(),
-        })?;
-
-    let transaction_hash = get_string_field(event, "transaction_hash")?;
-    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
-    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
-    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
-
-    let sender = get_string_field(decoded_data, "sender")?;
-    let alice_input = get_string_field(decoded_data, "alice_input")?;
-    let alice_output = get_string_field(decoded_data, "alice_output")?;
-    let bob_input = get_string_field(decoded_data, "bob_input")?;
-    let bob_output = get_string_field(decoded_data, "bob_output")?;
-
-    let mut sql = String::new();
-
-    sql.push_str(&format!(
-        "INSERT INTO after_clear_v2_events (block_number, block_timestamp, transaction_hash, log_index, sender, alice_input, alice_output, bob_input, bob_output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, alice_input, alice_output, bob_input, bob_output
-    ));
-
-    Ok(sql)
-}
-
-fn generate_meta_sql(event: &Value) -> Result<String, InsertError> {
-    let decoded_data = event
-        .get("decoded_data")
-        .ok_or(InsertError::MissingDecodedData {
-            event_type: "MetaV1_2".to_string(),
-        })?;
-
-    let transaction_hash = get_string_field(event, "transaction_hash")?;
-    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
-    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
-    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
-
-    let sender = get_string_field(decoded_data, "sender")?;
-    let subject = get_string_field(decoded_data, "subject")?;
-    let meta = get_string_field(decoded_data, "meta")?;
-
-    let mut sql = String::new();
-
-    sql.push_str(&format!(
-        "INSERT INTO meta_events (block_number, block_timestamp, transaction_hash, log_index, sender, subject, meta) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, subject, meta
-    ));
-
-    Ok(sql)
-}
-
-fn generate_order_ios_sql(
-    order: &Value,
-    transaction_hash: &str,
-    log_index: u64,
+fn generate_clear_v3_sql(
+    context: &EventContext<'_>,
+    decoded: &ClearV3Decoded,
 ) -> Result<String, InsertError> {
-    let mut sql = String::new();
+    let alice_input_io_index = hex_to_decimal(&decoded.alice_input_io_index)?;
+    let alice_output_io_index = hex_to_decimal(&decoded.alice_output_io_index)?;
+    let bob_input_io_index = hex_to_decimal(&decoded.bob_input_io_index)?;
+    let bob_output_io_index = hex_to_decimal(&decoded.bob_output_io_index)?;
 
-    let mut all_ios = Vec::new();
-
-    if let Some(inputs) = order.get("valid_inputs").and_then(|v| v.as_array()) {
-        for (index, input) in inputs.iter().enumerate() {
-            let token = get_string_field(input, "token")?;
-            let vault_id = get_string_field(input, "vault_id")?;
-
-            all_ios.push(format!(
-                "('{}', {}, {}, 'input', '{}', '{}')",
-                transaction_hash, log_index, index, token, vault_id
-            ));
-        }
-    }
-
-    if let Some(outputs) = order.get("valid_outputs").and_then(|v| v.as_array()) {
-        for (index, output) in outputs.iter().enumerate() {
-            let token = get_string_field(output, "token")?;
-            let vault_id = get_string_field(output, "vault_id")?;
-
-            all_ios.push(format!(
-                "('{}', {}, {}, 'output', '{}', '{}')",
-                transaction_hash, log_index, index, token, vault_id
-            ));
-        }
-    }
-
-    if !all_ios.is_empty() {
-        sql.push_str("INSERT INTO order_ios (transaction_hash, log_index, io_index, io_type, token, vault_id) VALUES ");
-        sql.push_str(&all_ios.join(", "));
-        sql.push_str(";\n");
-    }
-
-    Ok(sql)
+    Ok(format!(
+        "INSERT INTO clear_v3_events (block_number, block_timestamp, transaction_hash, log_index, sender, alice_order_hash, alice_order_owner, alice_input_io_index, alice_output_io_index, alice_bounty_vault_id, alice_input_vault_id, alice_output_vault_id, bob_order_hash, bob_order_owner, bob_input_io_index, bob_output_io_index, bob_bounty_vault_id, bob_input_vault_id, bob_output_vault_id) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}', '{}', '{}', '{}', {}, {}, '{}', '{}', '{}');\n",
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        decoded.sender,
+        decoded.alice_order_hash,
+        decoded.alice_owner,
+        alice_input_io_index,
+        alice_output_io_index,
+        decoded.alice_bounty_vault_id,
+        decoded.alice_input_vault_id,
+        decoded.alice_output_vault_id,
+        decoded.bob_order_hash,
+        decoded.bob_owner,
+        bob_input_io_index,
+        bob_output_io_index,
+        decoded.bob_bounty_vault_id,
+        decoded.bob_input_vault_id,
+        decoded.bob_output_vault_id
+    ))
 }
 
-fn get_string_field<'a>(value: &'a Value, field: &str) -> Result<&'a str, InsertError> {
-    value
-        .get(field)
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| InsertError::MissingField {
-            field: field.to_string(),
-        })
+fn generate_after_clear_sql(
+    context: &EventContext<'_>,
+    decoded: &AfterClearV2Decoded,
+) -> Result<String, InsertError> {
+    Ok(format!(
+        "INSERT INTO after_clear_v2_events (block_number, block_timestamp, transaction_hash, log_index, sender, alice_input, alice_output, bob_input, bob_output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}');\n",
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        decoded.sender,
+        decoded.alice_input,
+        decoded.alice_output,
+        decoded.bob_input,
+        decoded.bob_output
+    ))
+}
+
+fn generate_meta_sql(
+    context: &EventContext<'_>,
+    decoded: &MetaV1_2Decoded,
+) -> Result<String, InsertError> {
+    Ok(format!(
+        "INSERT INTO meta_events (block_number, block_timestamp, transaction_hash, log_index, sender, subject, meta) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}');\n",
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        decoded.sender,
+        decoded.subject,
+        decoded.meta
+    ))
+}
+
+fn generate_order_ios_sql(context: &EventContext<'_>, order: &OrderDecoded) -> String {
+    let mut rows = Vec::new();
+
+    for (index, input) in order.valid_inputs.iter().enumerate() {
+        rows.push(format!(
+            "('{}', {}, {}, 'input', '{}', '{}')",
+            context.transaction_hash,
+            context.log_index,
+            index,
+            input.token,
+            input.vault_id
+        ));
+    }
+
+    for (index, output) in order.valid_outputs.iter().enumerate() {
+        rows.push(format!(
+            "('{}', {}, {}, 'output', '{}', '{}')",
+            context.transaction_hash,
+            context.log_index,
+            index,
+            output.token,
+            output.vault_id
+        ));
+    }
+
+    if rows.is_empty() {
+        return String::new();
+    }
+
+    format!(
+        "INSERT INTO order_ios (transaction_hash, log_index, io_index, io_type, token, vault_id) VALUES {};\n",
+        rows.join(", ")
+    )
 }
 
 fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
@@ -417,177 +351,240 @@ fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use super::super::decode::{
+        OrderEvaluableDecoded, OrderIoDecoded, SignedContextDecoded, TakeOrderConfigDecoded,
+    };
 
-    fn create_sample_deposit_event() -> serde_json::Value {
-        json!({
-            "event_type": "DepositV2",
-            "block_number": "0x123456",
-            "block_timestamp": "0x64b8c123",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-            "log_index": "0x1",
-            "decoded_data": {
-                "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
-                "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-                "vault_id": "0x258",
-                "deposit_amount_uint256": "0xfa0"
-            }
-        })
+    fn build_event(
+        event_type: EventType,
+        block_number: &str,
+        block_timestamp: &str,
+        transaction_hash: &str,
+        log_index: &str,
+        decoded: DecodedEvent,
+    ) -> DecodedEventData<DecodedEvent> {
+        DecodedEventData {
+            event_type,
+            block_number: block_number.to_string(),
+            block_timestamp: block_timestamp.to_string(),
+            transaction_hash: transaction_hash.to_string(),
+            log_index: log_index.to_string(),
+            decoded_data: decoded,
+        }
     }
 
-    fn create_sample_withdraw_event() -> serde_json::Value {
-        json!({
-            "event_type": "WithdrawV2",
-            "block_number": "0x123457",
-            "block_timestamp": "0x64b8c124",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567891",
-            "log_index": "0x2",
-            "decoded_data": {
-                "sender": "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-                "token": "0x0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
-                "vault_id": "0x1f4",
-                "target_amount": "0xbb8",
-                "withdraw_amount": "0x9c4",
-                "withdraw_amount_uint256": "0x9c4"
-            }
-        })
-    }
-
-    fn create_sample_add_order_event() -> serde_json::Value {
-        json!({
-            "event_type": "AddOrderV3",
-            "block_number": "0x123458",
-            "block_timestamp": "0x64b8c125",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892",
-            "log_index": "0x3",
-            "decoded_data": {
-                "sender": "0x0707070707070707070707070707070707070707",
-                "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808",
-                "order": {
-                    "owner": "0x0101010101010101010101010101010101010101",
-                    "nonce": "0x1",
-                    "evaluable": {
-                        "interpreter": "0x0202020202020202020202020202020202020202",
-                        "store": "0x0303030303030303030303030303030303030303",
-                        "bytecode": "0x01020304"
-                    },
-                    "valid_inputs": [
-                        {
-                            "token": "0x0404040404040404040404040404040404040404",
-                            "vault_id": "0x64"
-                        },
-                        {
-                            "token": "0x0505050505050505050505050505050505050505",
-                            "vault_id": "0xc8"
-                        }
-                    ],
-                    "valid_outputs": [
-                        {
-                            "token": "0x0606060606060606060606060606060606060606",
-                            "vault_id": "0x12c"
-                        }
-                    ]
-                }
-            }
-        })
-    }
-
-    fn create_sample_take_order_event() -> serde_json::Value {
-        json!({
-            "event_type": "TakeOrderV3",
-            "block_number": "0x123459",
-            "block_timestamp": "0x64b8c126",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
-            "log_index": "0x4",
-            "decoded_data": {
-                "sender": "0x0909090909090909090909090909090909090909",
-                "config": {
-                    "order": {
-                        "owner": "0x0101010101010101010101010101010101010101",
-                        "nonce": "0x1"
-                    },
-                    "input_io_index": "0x0",
-                    "output_io_index": "0x0",
-                    "signed_context": [
-                        {
-                            "signer": "0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
-                            "signature": "0x112233",
-                            "context": ["0x2a", "0x2b"]
-                        }
-                    ]
+    fn sample_order() -> OrderDecoded {
+        OrderDecoded {
+            owner: "0x0101010101010101010101010101010101010101".to_string(),
+            nonce: "0x1".to_string(),
+            evaluable: OrderEvaluableDecoded {
+                interpreter: "0x0202020202020202020202020202020202020202".to_string(),
+                store: "0x0303030303030303030303030303030303030303".to_string(),
+                bytecode: "0x01020304".to_string(),
+            },
+            valid_inputs: vec![
+                OrderIoDecoded {
+                    token: "0x0404040404040404040404040404040404040404".to_string(),
+                    vault_id: "0x64".to_string(),
                 },
-                "input": "0x3e8",
-                "output": "0x7d0"
-            }
-        })
+                OrderIoDecoded {
+                    token: "0x0505050505050505050505050505050505050505".to_string(),
+                    vault_id: "0xc8".to_string(),
+                },
+            ],
+            valid_outputs: vec![OrderIoDecoded {
+                token: "0x0606060606060606060606060606060606060606".to_string(),
+                vault_id: "0x12c".to_string(),
+            }],
+        }
     }
 
-    fn create_sample_clear_v3_event() -> serde_json::Value {
-        json!({
-            "event_type": "ClearV3",
-            "block_number": "0x12345a",
-            "block_timestamp": "0x64b8c127",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894",
-            "log_index": "0x5",
-            "decoded_data": {
-                "sender": "0x1111111111111111111111111111111111111111",
-                "alice_owner": "0x0101010101010101010101010101010101010101",
-                "bob_owner": "0x1212121212121212121212121212121212121212",
-                "alice_order_hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                "bob_order_hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-                "alice_input_io_index": "0x0",
-                "alice_output_io_index": "0x0",
-                "alice_bounty_vault_id": "0x0",
-                "alice_input_vault_id": "0x64",
-                "alice_output_vault_id": "0x12c",
-                "bob_input_io_index": "0x0",
-                "bob_output_io_index": "0x0",
-                "bob_bounty_vault_id": "0x0",
-                "bob_input_vault_id": "0x2bc",
-                "bob_output_vault_id": "0x320"
-            }
-        })
+    fn sample_deposit_event() -> DecodedEventData<DecodedEvent> {
+        build_event(
+            EventType::DepositV2,
+            "0x123456",
+            "0x64b8c123",
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "0x1",
+            DecodedEvent::DepositV2(DepositV2Decoded {
+                sender: "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d".to_string(),
+                token: "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e".to_string(),
+                vault_id: "0x258".to_string(),
+                deposit_amount_uint256: "0xfa0".to_string(),
+            }),
+        )
     }
 
-    fn create_sample_after_clear_event() -> serde_json::Value {
-        json!({
-            "event_type": "AfterClearV2",
-            "block_number": "0x12345b",
-            "block_timestamp": "0x64b8c128",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567895",
-            "log_index": "0x6",
-            "decoded_data": {
-                "sender": "0x1717171717171717171717171717171717171717",
-                "alice_input": "0x1388",
-                "alice_output": "0x1770",
-                "bob_input": "0x1b58",
-                "bob_output": "0x1f40"
-            }
-        })
+    fn sample_withdraw_event() -> DecodedEventData<DecodedEvent> {
+        build_event(
+            EventType::WithdrawV2,
+            "0x123457",
+            "0x64b8c124",
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567891",
+            "0x2",
+            DecodedEvent::WithdrawV2(WithdrawV2Decoded {
+                sender: "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b".to_string(),
+                token: "0x0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c".to_string(),
+                vault_id: "0x1f4".to_string(),
+                target_amount: "0xbb8".to_string(),
+                withdraw_amount: "0x9c4".to_string(),
+                withdraw_amount_uint256: "0x9c4".to_string(),
+            }),
+        )
     }
 
-    fn create_sample_meta_event() -> serde_json::Value {
-        json!({
-            "event_type": "MetaV1_2",
-            "block_number": "0x12345c",
-            "block_timestamp": "0x64b8c129",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
-            "log_index": "0x7",
-            "decoded_data": {
-                "sender": "0x1818181818181818181818181818181818181818",
-                "subject": "0x1919191919191919191919191919191919191919",
-                "meta": "0x090a0b0c0d"
-            }
-        })
+    fn sample_add_order_event() -> DecodedEventData<DecodedEvent> {
+        build_event(
+            EventType::AddOrderV3,
+            "0x123458",
+            "0x64b8c125",
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892",
+            "0x3",
+            DecodedEvent::AddOrderV3(AddOrderV3Decoded {
+                sender: "0x0707070707070707070707070707070707070707".to_string(),
+                order_hash: "0x0808080808080808080808080808080808080808080808080808080808080808".to_string(),
+                order: sample_order(),
+            }),
+        )
+    }
+
+    fn sample_remove_order_event() -> DecodedEventData<DecodedEvent> {
+        build_event(
+            EventType::RemoveOrderV3,
+            "0x123459",
+            "0x64b8c125",
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567897",
+            "0x4",
+            DecodedEvent::RemoveOrderV3(RemoveOrderV3Decoded {
+                sender: "0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a".to_string(),
+                order_hash: "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b".to_string(),
+                order: OrderDecoded {
+                    owner: "0x0101010101010101010101010101010101010101".to_string(),
+                    nonce: "0x2".to_string(),
+                    evaluable: OrderEvaluableDecoded {
+                        interpreter: "0x0202020202020202020202020202020202020202".to_string(),
+                        store: "0x0303030303030303030303030303030303030303".to_string(),
+                        bytecode: "0x05060708".to_string(),
+                    },
+                    valid_inputs: vec![OrderIoDecoded {
+                        token: "0x0404040404040404040404040404040404040404".to_string(),
+                        vault_id: "0x96".to_string(),
+                    }],
+                    valid_outputs: vec![
+                        OrderIoDecoded {
+                            token: "0x0505050505050505050505050505050505050505".to_string(),
+                            vault_id: "0x12c".to_string(),
+                        },
+                        OrderIoDecoded {
+                            token: "0x0606060606060606060606060606060606060606".to_string(),
+                            vault_id: "0x190".to_string(),
+                        },
+                    ],
+                },
+            }),
+        )
+    }
+
+    fn sample_take_order_event() -> DecodedEventData<DecodedEvent> {
+        build_event(
+            EventType::TakeOrderV3,
+            "0x123459",
+            "0x64b8c126",
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
+            "0x4",
+            DecodedEvent::TakeOrderV3(TakeOrderV3Decoded {
+                sender: "0x0909090909090909090909090909090909090909".to_string(),
+                config: TakeOrderConfigDecoded {
+                    order: OrderDecoded {
+                        owner: "0x0101010101010101010101010101010101010101".to_string(),
+                        nonce: "0x1".to_string(),
+                        evaluable: OrderEvaluableDecoded {
+                            interpreter: "0x0202020202020202020202020202020202020202".to_string(),
+                            store: "0x0303030303030303030303030303030303030303".to_string(),
+                            bytecode: "0x01020304".to_string(),
+                        },
+                        valid_inputs: vec![],
+                        valid_outputs: vec![],
+                    },
+                    input_io_index: "0x0".to_string(),
+                    output_io_index: "0x0".to_string(),
+                    signed_context: vec![SignedContextDecoded {
+                        signer: "0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a".to_string(),
+                        context: vec!["0x2a".to_string(), "0x2b".to_string()],
+                        signature: "0x112233".to_string(),
+                    }],
+                },
+                input: "0x3e8".to_string(),
+                output: "0x7d0".to_string(),
+            }),
+        )
+    }
+
+    fn sample_clear_event() -> DecodedEventData<DecodedEvent> {
+        build_event(
+            EventType::ClearV3,
+            "0x12345a",
+            "0x64b8c127",
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894",
+            "0x5",
+            DecodedEvent::ClearV3(ClearV3Decoded {
+                sender: "0x1111111111111111111111111111111111111111".to_string(),
+                alice_owner: "0x0101010101010101010101010101010101010101".to_string(),
+                bob_owner: "0x1212121212121212121212121212121212121212".to_string(),
+                alice_order_hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                bob_order_hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                alice_input_io_index: "0x0".to_string(),
+                alice_output_io_index: "0x0".to_string(),
+                bob_input_io_index: "0x0".to_string(),
+                bob_output_io_index: "0x0".to_string(),
+                alice_bounty_vault_id: "0x0".to_string(),
+                bob_bounty_vault_id: "0x0".to_string(),
+                alice_input_vault_id: "0x64".to_string(),
+                alice_output_vault_id: "0x12c".to_string(),
+                bob_input_vault_id: "0x2bc".to_string(),
+                bob_output_vault_id: "0x320".to_string(),
+            }),
+        )
+    }
+
+    fn sample_after_clear_event() -> DecodedEventData<DecodedEvent> {
+        build_event(
+            EventType::AfterClearV2,
+            "0x12345b",
+            "0x64b8c128",
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567895",
+            "0x6",
+            DecodedEvent::AfterClearV2(AfterClearV2Decoded {
+                sender: "0x1717171717171717171717171717171717171717".to_string(),
+                alice_input: "0x1388".to_string(),
+                alice_output: "0x1770".to_string(),
+                bob_input: "0x1b58".to_string(),
+                bob_output: "0x1f40".to_string(),
+            }),
+        )
+    }
+
+    fn sample_meta_event() -> DecodedEventData<DecodedEvent> {
+        build_event(
+            EventType::MetaV1_2,
+            "0x12345c",
+            "0x64b8c129",
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
+            "0x7",
+            DecodedEvent::MetaV1_2(MetaV1_2Decoded {
+                sender: "0x1818181818181818181818181818181818181818".to_string(),
+                subject: "0x1919191919191919191919191919191919191919".to_string(),
+                meta: "0x090a0b0c0d".to_string(),
+            }),
+        )
     }
 
     #[test]
-    fn test_deposit_sql_generation() {
-        let deposit_event = create_sample_deposit_event();
-        let result = generate_deposit_sql(&deposit_event);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
+    fn deposit_sql_generation() {
+        let event = sample_deposit_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::DepositV2(decoded) = &event.decoded_data else { unreachable!() };
+        let sql = generate_deposit_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("1193046"));
@@ -601,12 +598,11 @@ mod tests {
     }
 
     #[test]
-    fn test_withdraw_sql_generation() {
-        let withdraw_event = create_sample_withdraw_event();
-        let result = generate_withdraw_sql(&withdraw_event);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
+    fn withdraw_sql_generation() {
+        let event = sample_withdraw_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::WithdrawV2(decoded) = &event.decoded_data else { unreachable!() };
+        let sql = generate_withdraw_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO withdrawals"));
         assert!(sql.contains("1193047"));
@@ -621,12 +617,11 @@ mod tests {
     }
 
     #[test]
-    fn test_add_order_sql_generation() {
-        let add_order_event = create_sample_add_order_event();
-        let result = generate_add_order_sql(&add_order_event);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
+    fn add_order_sql_generation() {
+        let event = sample_add_order_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::AddOrderV3(decoded) = &event.decoded_data else { unreachable!() };
+        let sql = generate_add_order_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO order_events"));
         assert!(sql.contains("'AddOrderV3'"));
@@ -649,40 +644,58 @@ mod tests {
     }
 
     #[test]
-    fn test_take_order_sql_generation() {
-        let take_order_event = create_sample_take_order_event();
-        let result = generate_take_order_sql(&take_order_event);
+    fn remove_order_sql_generation() {
+        let event = sample_remove_order_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::RemoveOrderV3(decoded) = &event.decoded_data else { unreachable!() };
+        let sql = generate_remove_order_sql(&context, decoded).unwrap();
 
-        assert!(result.is_ok());
-        let sql = result.unwrap();
+        assert!(sql.contains("INSERT INTO order_events"));
+        assert!(sql.contains("'RemoveOrderV3'"));
+        assert!(sql.contains("1193049"));
+        assert!(sql.contains("1689829669"));
+        assert!(sql.contains("0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"));
+        assert!(sql.contains("0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"));
+        assert!(sql.contains("0x2"));
+        assert!(sql.contains("INSERT INTO order_ios"));
+        assert!(sql.contains("'input'"));
+        assert!(sql.contains("'output'"));
+        assert!(sql.contains("0x0404040404040404040404040404040404040404"));
+        assert!(sql.contains("0x96"));
+        assert!(sql.contains("0x0505050505050505050505050505050505050505"));
+        assert!(sql.contains("0x12c"));
+        assert!(sql.contains("0x0606060606060606060606060606060606060606"));
+        assert!(sql.contains("0x190"));
+    }
+
+    #[test]
+    fn take_order_sql_generation() {
+        let event = sample_take_order_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::TakeOrderV3(decoded) = &event.decoded_data else { unreachable!() };
+        let sql = generate_take_order_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO take_orders"));
         assert!(sql.contains("1193049"));
         assert!(sql.contains("1689829670"));
         assert!(sql.contains("0x0909090909090909090909090909090909090909"));
         assert!(sql.contains("0x0101010101010101010101010101010101010101"));
-        assert!(sql.contains("0x1"));
         assert!(sql.contains("0"));
         assert!(sql.contains("0x3e8"));
         assert!(sql.contains("0x7d0"));
-
         assert!(sql.contains("INSERT INTO take_order_contexts"));
-        assert!(
-            sql.contains("signer:0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a,signature:0x112233")
-        );
-
+        assert!(sql.contains("signer:0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a,signature:0x112233"));
         assert!(sql.contains("INSERT INTO context_values"));
         assert!(sql.contains("'0x2a'"));
         assert!(sql.contains("'0x2b'"));
     }
 
     #[test]
-    fn test_clear_v3_sql_generation() {
-        let clear_event = create_sample_clear_v3_event();
-        let result = generate_clear_v3_sql(&clear_event);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
+    fn clear_v3_sql_generation() {
+        let event = sample_clear_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::ClearV3(decoded) = &event.decoded_data else { unreachable!() };
+        let sql = generate_clear_v3_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO clear_v3_events"));
         assert!(sql.contains("1193050"));
@@ -699,12 +712,11 @@ mod tests {
     }
 
     #[test]
-    fn test_after_clear_sql_generation() {
-        let after_clear_event = create_sample_after_clear_event();
-        let result = generate_after_clear_sql(&after_clear_event);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
+    fn after_clear_sql_generation() {
+        let event = sample_after_clear_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::AfterClearV2(decoded) = &event.decoded_data else { unreachable!() };
+        let sql = generate_after_clear_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO after_clear_v2_events"));
         assert!(sql.contains("1193051"));
@@ -717,12 +729,11 @@ mod tests {
     }
 
     #[test]
-    fn test_meta_sql_generation() {
-        let meta_event = create_sample_meta_event();
-        let result = generate_meta_sql(&meta_event);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
+    fn meta_sql_generation() {
+        let event = sample_meta_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::MetaV1_2(decoded) = &event.decoded_data else { unreachable!() };
+        let sql = generate_meta_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO meta_events"));
         assert!(sql.contains("1193052"));
@@ -733,27 +744,22 @@ mod tests {
     }
 
     #[test]
-    fn test_decoded_events_to_sql_complete() {
-        let events = json!([
-            create_sample_deposit_event(),
-            create_sample_withdraw_event(),
-            create_sample_add_order_event(),
-            create_sample_take_order_event(),
-            create_sample_clear_v3_event(),
-            create_sample_after_clear_event(),
-            create_sample_meta_event()
-        ]);
+    fn decoded_events_to_sql_complete() {
+        let events = vec![
+            sample_deposit_event(),
+            sample_withdraw_event(),
+            sample_add_order_event(),
+            sample_take_order_event(),
+            sample_clear_event(),
+            sample_after_clear_event(),
+            sample_meta_event(),
+        ];
 
-        let result = decoded_events_to_sql(events, 5000000);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
+        let sql = decoded_events_to_sql(&events, 5_000_000).unwrap();
 
         assert!(sql.starts_with("BEGIN TRANSACTION;"));
         assert!(sql.ends_with("COMMIT;\n"));
-
         assert!(sql.contains("UPDATE sync_status SET last_synced_block = 5000000"));
-
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("INSERT INTO withdrawals"));
         assert!(sql.contains("INSERT INTO order_events"));
@@ -767,553 +773,81 @@ mod tests {
     }
 
     #[test]
-    fn test_missing_decoded_data_error() {
-        let invalid_event = json!({
-            "event_type": "DepositV2",
-            "block_number": "0x123456",
-            "block_timestamp": "0x64b8c123",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-            "log_index": "0x1"
-        });
+    fn decoded_events_handles_unknown_event() {
+        let events = vec![sample_meta_event(), build_event(
+            EventType::Unknown,
+            "0x0",
+            "0x0",
+            "0xdeadbeef",
+            "0x0",
+            DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x".to_string(),
+                note: "unknown".to_string(),
+            }),
+        )];
 
-        let result = generate_deposit_sql(&invalid_event);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::MissingDecodedData { .. }
-        ));
+        let sql = decoded_events_to_sql(&events, 42).unwrap();
+        assert!(sql.contains("UPDATE sync_status SET last_synced_block = 42"));
     }
 
     #[test]
-    fn test_missing_field_error() {
-        let invalid_event = json!({
-            "event_type": "DepositV2",
-            "block_number": "0x123456",
-            "block_timestamp": "0x64b8c123",
-            "log_index": "0x1",
-            "decoded_data": {
-                "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
-                "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-                "vault_id": "0x258",
-                "deposit_amount_uint256": "0xfa0"
-            }
-        });
-
-        let result = generate_deposit_sql(&invalid_event);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::MissingField { .. }
-        ));
+    fn hex_parse_error_propagates() {
+        let mut event = sample_deposit_event();
+        event.block_number = "invalid".to_string();
+        let events = vec![event];
+        let result = decoded_events_to_sql(&events, 1000);
+        assert!(matches!(result, Err(InsertError::HexParseError { .. })));
     }
 
     #[test]
-    fn test_hex_parse_error() {
-        let invalid_event = json!({
-            "event_type": "DepositV2",
-            "block_number": "invalid_hex",
-            "block_timestamp": "0x64b8c123",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-            "log_index": "0x1",
-            "decoded_data": {
-                "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
-                "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-                "vault_id": "0x258",
-                "deposit_amount_uint256": "0xfa0"
-            }
-        });
+    fn order_ios_generation_empty() {
+        let context = EventContext {
+            block_number: 1,
+            block_timestamp: 2,
+            transaction_hash: "0xhash",
+            log_index: 3,
+        };
+        let order = OrderDecoded {
+            owner: String::new(),
+            nonce: String::new(),
+            evaluable: OrderEvaluableDecoded {
+                interpreter: String::new(),
+                store: String::new(),
+                bytecode: String::new(),
+            },
+            valid_inputs: vec![],
+            valid_outputs: vec![],
+        };
 
-        let result = generate_deposit_sql(&invalid_event);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::HexParseError { .. }
-        ));
+        let sql = generate_order_ios_sql(&context, &order);
+        assert!(sql.is_empty());
     }
 
     #[test]
-    fn test_invalid_input_format_error() {
-        let not_array = json!({"not": "an_array"});
-        let result = decoded_events_to_sql(not_array, 1000);
+    fn order_ios_generation_with_inputs_only() {
+        let context = EventContext {
+            block_number: 1,
+            block_timestamp: 2,
+            transaction_hash: "0xhash",
+            log_index: 3,
+        };
+        let order = OrderDecoded {
+            owner: String::new(),
+            nonce: String::new(),
+            evaluable: OrderEvaluableDecoded {
+                interpreter: String::new(),
+                store: String::new(),
+                bytecode: String::new(),
+            },
+            valid_inputs: vec![OrderIoDecoded {
+                token: "0xaaa".to_string(),
+                vault_id: "0x1".to_string(),
+            }],
+            valid_outputs: vec![],
+        };
 
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::InvalidInputFormat
-        ));
-    }
-
-    #[test]
-    fn test_unknown_event_type_warning() {
-        let unknown_event = json!({
-            "event_type": "UnknownEvent",
-            "block_number": "0x123456",
-            "block_timestamp": "0x64b8c123",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-            "log_index": "0x1",
-            "decoded_data": {}
-        });
-
-        let events = json!([unknown_event]);
-        let result = decoded_events_to_sql(events, 1000);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
-        assert!(sql.contains("BEGIN TRANSACTION;"));
-        assert!(sql.contains("COMMIT;"));
-        assert!(sql.contains("UPDATE sync_status"));
-    }
-
-    #[test]
-    fn test_empty_events_array() {
-        let empty_array = json!([]);
-        let result = decoded_events_to_sql(empty_array, 1000);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
-        assert!(sql.contains("BEGIN TRANSACTION;"));
-        assert!(sql.contains("COMMIT;"));
-        assert!(sql.contains("UPDATE sync_status SET last_synced_block = 1000"));
-    }
-
-    #[test]
-    fn test_hex_to_decimal_conversion() {
-        assert_eq!(hex_to_decimal("0x10").unwrap(), 16);
-        assert_eq!(hex_to_decimal("10").unwrap(), 16);
-        assert_eq!(hex_to_decimal("0xFF").unwrap(), 255);
-        assert_eq!(hex_to_decimal("ff").unwrap(), 255);
-
-        assert!(hex_to_decimal("invalid").is_err());
-        assert!(matches!(
-            hex_to_decimal("invalid").unwrap_err(),
-            InsertError::HexParseError { .. }
-        ));
-    }
-
-    #[test]
-    fn test_get_string_field() {
-        let test_value = json!({
-            "string_field": "test_value",
-            "number_field": 42,
-            "null_field": null
-        });
-
-        assert_eq!(
-            get_string_field(&test_value, "string_field").unwrap(),
-            "test_value"
-        );
-
-        assert!(get_string_field(&test_value, "number_field").is_err());
-        assert!(matches!(
-            get_string_field(&test_value, "number_field").unwrap_err(),
-            InsertError::MissingField { .. }
-        ));
-
-        assert!(get_string_field(&test_value, "missing_field").is_err());
-        assert!(matches!(
-            get_string_field(&test_value, "missing_field").unwrap_err(),
-            InsertError::MissingField { .. }
-        ));
-
-        assert!(get_string_field(&test_value, "null_field").is_err());
-        assert!(matches!(
-            get_string_field(&test_value, "null_field").unwrap_err(),
-            InsertError::MissingField { .. }
-        ));
-    }
-
-    #[test]
-    fn test_order_ios_generation_empty_arrays() {
-        let order_with_empty_ios = json!({
-            "owner": "0x0101010101010101010101010101010101010101",
-            "nonce": "0x1",
-            "valid_inputs": [],
-            "valid_outputs": []
-        });
-
-        let result = generate_order_ios_sql(&order_with_empty_ios, "0xtest", 1);
-        assert!(result.is_ok());
-
-        let sql = result.unwrap();
-        assert_eq!(sql, "");
-    }
-
-    #[test]
-    fn test_take_order_with_no_signed_context() {
-        let take_order_event = json!({
-            "event_type": "TakeOrderV3",
-            "block_number": "0x123459",
-            "block_timestamp": "0x64b8c126",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
-            "log_index": "0x4",
-            "decoded_data": {
-                "sender": "0x0909090909090909090909090909090909090909",
-                "config": {
-                    "order": {
-                        "owner": "0x0101010101010101010101010101010101010101",
-                        "nonce": "0x1"
-                    },
-                    "input_io_index": "0x0",
-                    "output_io_index": "0x0",
-                    "signed_context": []
-                },
-                "input": "0x3e8",
-                "output": "0x7d0"
-            }
-        });
-
-        let result = generate_take_order_sql(&take_order_event);
-        assert!(result.is_ok());
-
-        let sql = result.unwrap();
-        assert!(sql.contains("INSERT INTO take_orders"));
-        assert!(!sql.contains("INSERT INTO take_order_contexts"));
-        assert!(!sql.contains("INSERT INTO context_values"));
-    }
-
-    #[test]
-    fn test_invalid_context_value_error() {
-        let take_order_event = json!({
-            "event_type": "TakeOrderV3",
-            "block_number": "0x123459",
-            "block_timestamp": "0x64b8c126",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
-            "log_index": "0x4",
-            "decoded_data": {
-                "sender": "0x0909090909090909090909090909090909090909",
-                "config": {
-                    "order": {
-                        "owner": "0x0101010101010101010101010101010101010101",
-                        "nonce": "0x1"
-                    },
-                    "input_io_index": "0x0",
-                    "output_io_index": "0x0",
-                    "signed_context": [
-                        {
-                            "signer": "0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
-                            "signature": "0x112233",
-                            "context": [123]
-                        }
-                    ]
-                },
-                "input": "0x3e8",
-                "output": "0x7d0"
-            }
-        });
-
-        let result = generate_take_order_sql(&take_order_event);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::InvalidContextValue
-        ));
-    }
-
-    #[test]
-    fn test_missing_order_field_in_add_order() {
-        let invalid_event = json!({
-            "event_type": "AddOrderV3",
-            "block_number": "0x123458",
-            "block_timestamp": "0x64b8c125",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892",
-            "log_index": "0x3",
-            "decoded_data": {
-                "sender": "0x0707070707070707070707070707070707070707",
-                "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808"
-            }
-        });
-
-        let result = generate_add_order_sql(&invalid_event);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::MissingEventField { .. }
-        ));
-    }
-
-    #[test]
-    fn test_missing_config_field_in_take_order() {
-        let invalid_event = json!({
-            "event_type": "TakeOrderV3",
-            "block_number": "0x123459",
-            "block_timestamp": "0x64b8c126",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
-            "log_index": "0x4",
-            "decoded_data": {
-                "sender": "0x0909090909090909090909090909090909090909",
-                "input": "0x3e8",
-                "output": "0x7d0"
-            }
-        });
-
-        let result = generate_take_order_sql(&invalid_event);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::MissingEventField { .. }
-        ));
-    }
-
-    fn create_sample_remove_order_event() -> serde_json::Value {
-        json!({
-            "event_type": "RemoveOrderV3",
-            "block_number": "0x123459",
-            "block_timestamp": "0x64b8c126",
-            "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
-            "log_index": "0x4",
-            "decoded_data": {
-                "sender": "0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
-                "order_hash": "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-                "order": {
-                    "owner": "0x0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
-                    "nonce": "0x2",
-                    "evaluable": {
-                        "interpreter": "0x0202020202020202020202020202020202020202",
-                        "store": "0x0303030303030303030303030303030303030303",
-                        "bytecode": "0x05060708"
-                    },
-                    "valid_inputs": [
-                        {
-                            "token": "0x0404040404040404040404040404040404040404",
-                            "vault_id": "0x96"
-                        }
-                    ],
-                    "valid_outputs": [
-                        {
-                            "token": "0x0505050505050505050505050505050505050505",
-                            "vault_id": "0x12c"
-                        },
-                        {
-                            "token": "0x0606060606060606060606060606060606060606",
-                            "vault_id": "0x190"
-                        }
-                    ]
-                }
-            }
-        })
-    }
-
-    #[test]
-    fn test_remove_order_sql_generation() {
-        let remove_order_event = create_sample_remove_order_event();
-        let result = generate_remove_order_sql(&remove_order_event);
-
-        assert!(result.is_ok());
-        let sql = result.unwrap();
-
-        assert!(sql.contains("INSERT INTO order_events"));
-        assert!(sql.contains("'RemoveOrderV3'"));
-        assert!(sql.contains("1193049"));
-        assert!(sql.contains("1689829670"));
-        assert!(sql.contains("0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"));
-        assert!(sql.contains("0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"));
-        assert!(sql.contains("0x0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"));
-        assert!(sql.contains("0x2"));
-
-        assert!(sql.contains("INSERT INTO order_ios"));
-        assert!(sql.contains("'input'"));
-        assert!(sql.contains("'output'"));
-        assert!(sql.contains("0x0404040404040404040404040404040404040404"));
-        assert!(sql.contains("0x96"));
-        assert!(sql.contains("0x0505050505050505050505050505050505050505"));
-        assert!(sql.contains("0x12c"));
-        assert!(sql.contains("0x0606060606060606060606060606060606060606"));
-        assert!(sql.contains("0x190"));
-    }
-
-    #[test]
-    fn test_missing_valid_inputs_in_order() {
-        let order_without_inputs = json!({
-            "event_type": "AddOrderV3",
-            "block_number": "0x123458",
-            "block_timestamp": "0x64b8c125",
-            "transaction_hash": "0xtest_missing_inputs",
-            "log_index": "0x3",
-            "decoded_data": {
-                "sender": "0x0707070707070707070707070707070707070707",
-                "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808",
-                "order": {
-                    "owner": "0x0101010101010101010101010101010101010101",
-                    "nonce": "0x1",
-                    "valid_outputs": [
-                        {
-                            "token": "0x0606060606060606060606060606060606060606",
-                            "vault_id": "0x12c"
-                        }
-                    ]
-                }
-            }
-        });
-
-        let result = generate_add_order_sql(&order_without_inputs);
-        assert!(result.is_ok());
-
-        let sql = result.unwrap();
-        assert!(sql.contains("INSERT INTO order_events"));
-        assert!(sql.contains("INSERT INTO order_ios"));
-        assert!(sql.contains("'output'"));
-        assert!(!sql.contains("'input'"));
-    }
-
-    #[test]
-    fn test_missing_valid_outputs_in_order() {
-        let order_without_outputs = json!({
-            "event_type": "RemoveOrderV3",
-            "block_number": "0x123458",
-            "block_timestamp": "0x64b8c125",
-            "transaction_hash": "0xtest_missing_outputs",
-            "log_index": "0x3",
-            "decoded_data": {
-                "sender": "0x0707070707070707070707070707070707070707",
-                "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808",
-                "order": {
-                    "owner": "0x0101010101010101010101010101010101010101",
-                    "nonce": "0x1",
-                    "valid_inputs": [
-                        {
-                            "token": "0x0404040404040404040404040404040404040404",
-                            "vault_id": "0x64"
-                        }
-                    ]
-                }
-            }
-        });
-
-        let result = generate_remove_order_sql(&order_without_outputs);
-        assert!(result.is_ok());
-
-        let sql = result.unwrap();
-        assert!(sql.contains("INSERT INTO order_events"));
-        assert!(sql.contains("INSERT INTO order_ios"));
+        let sql = generate_order_ios_sql(&context, &order);
         assert!(sql.contains("'input'"));
         assert!(!sql.contains("'output'"));
-    }
-
-    #[test]
-    fn test_missing_both_valid_inputs_and_outputs() {
-        let order_without_ios = json!({
-            "event_type": "AddOrderV3",
-            "block_number": "0x123458",
-            "block_timestamp": "0x64b8c125",
-            "transaction_hash": "0xtest_no_ios",
-            "log_index": "0x3",
-            "decoded_data": {
-                "sender": "0x0707070707070707070707070707070707070707",
-                "order_hash": "0x0808080808080808080808080808080808080808080808080808080808080808",
-                "order": {
-                    "owner": "0x0101010101010101010101010101010101010101",
-                    "nonce": "0x1"
-                }
-            }
-        });
-
-        let result = generate_add_order_sql(&order_without_ios);
-        assert!(result.is_ok());
-
-        let sql = result.unwrap();
-        assert!(sql.contains("INSERT INTO order_events"));
-        assert!(!sql.contains("INSERT INTO order_ios"));
-    }
-
-    #[test]
-    fn test_block_number_tracking() {
-        let events = json!([
-            {
-                "event_type": "DepositV2",
-                "block_number": "0x100",
-                "block_timestamp": "0x64b8c123",
-                "transaction_hash": "0xtest1",
-                "log_index": "0x1",
-                "decoded_data": {
-                    "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
-                    "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-                    "vault_id": "0x258",
-                    "deposit_amount_uint256": "0xfa0"
-                }
-            },
-            {
-                "event_type": "DepositV2",
-                "block_number": "0x200",
-                "block_timestamp": "0x64b8c123",
-                "transaction_hash": "0xtest2",
-                "log_index": "0x2",
-                "decoded_data": {
-                    "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
-                    "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-                    "vault_id": "0x258",
-                    "deposit_amount_uint256": "0xfa0"
-                }
-            }
-        ]);
-
-        let result = decoded_events_to_sql(events, 1000);
-        assert!(result.is_ok());
-
-        let sql = result.unwrap();
-        assert!(sql.contains("UPDATE sync_status SET last_synced_block = 1000"));
-    }
-
-    #[test]
-    fn test_malformed_block_number_in_main_function() {
-        let events_with_invalid_block = json!([
-            {
-                "event_type": "DepositV2",
-                "block_number": "invalid_hex",
-                "block_timestamp": "0x64b8c123",
-                "transaction_hash": "0xtest1",
-                "log_index": "0x1",
-                "decoded_data": {
-                    "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
-                    "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-                    "vault_id": "0x258",
-                    "deposit_amount_uint256": "0xfa0"
-                }
-            },
-            {
-                "event_type": "DepositV2",
-                "block_number": "0x200",
-                "block_timestamp": "0x64b8c123",
-                "transaction_hash": "0xtest2",
-                "log_index": "0x2",
-                "decoded_data": {
-                    "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
-                    "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-                    "vault_id": "0x258",
-                    "deposit_amount_uint256": "0xfa0"
-                }
-            }
-        ]);
-
-        let result = decoded_events_to_sql(events_with_invalid_block, 1000);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::HexParseError { .. }
-        ));
-    }
-
-    #[test]
-    fn test_missing_block_number_in_main_function() {
-        let events_without_block_number = json!([
-            {
-                "event_type": "DepositV2",
-                "block_timestamp": "0x64b8c123",
-                "transaction_hash": "0xtest1",
-                "log_index": "0x1",
-                "decoded_data": {
-                    "sender": "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
-                    "token": "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-                    "vault_id": "0x258",
-                    "deposit_amount_uint256": "0xfa0"
-                }
-            }
-        ]);
-
-        let result = decoded_events_to_sql(events_without_block_number, 1000);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            InsertError::MissingField { .. }
-        ));
     }
 }
