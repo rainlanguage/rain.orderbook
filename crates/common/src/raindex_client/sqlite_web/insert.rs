@@ -1,17 +1,7 @@
 use super::decode::{
-    AfterClearV2Decoded,
-    AddOrderV3Decoded,
-    ClearV3Decoded,
-    DecodedEvent,
-    DecodedEventData,
-    DepositV2Decoded,
-    EventType,
-    MetaV1_2Decoded,
-    OrderDecoded,
-    RemoveOrderV3Decoded,
-    TakeOrderV3Decoded,
-    UnknownEventDecoded,
-    WithdrawV2Decoded,
+    AddOrderV3Decoded, AfterClearV2Decoded, ClearV3Decoded, DecodedEvent, DecodedEventData,
+    DepositV2Decoded, EventType, MetaV1_2Decoded, OrderDecoded, RemoveOrderV3Decoded,
+    TakeOrderV3Decoded, UnknownEventDecoded, WithdrawV2Decoded,
 };
 use thiserror::Error;
 
@@ -28,7 +18,9 @@ struct EventContext<'a> {
     log_index: u64,
 }
 
-fn event_context<'a>(event: &'a DecodedEventData<DecodedEvent>) -> Result<EventContext<'a>, InsertError> {
+fn event_context<'a>(
+    event: &'a DecodedEventData<DecodedEvent>,
+) -> Result<EventContext<'a>, InsertError> {
     Ok(EventContext {
         block_number: hex_to_decimal(&event.block_number)?,
         block_timestamp: hex_to_decimal(&event.block_timestamp)?,
@@ -81,8 +73,7 @@ pub fn decoded_events_to_sql(
             DecodedEvent::Unknown(decoded) => {
                 eprintln!(
                     "Warning: Unknown event type for transaction {}: {}",
-                    event.transaction_hash,
-                    decoded.note
+                    event.transaction_hash, decoded.note
                 );
             }
         }
@@ -312,22 +303,14 @@ fn generate_order_ios_sql(context: &EventContext<'_>, order: &OrderDecoded) -> S
     for (index, input) in order.valid_inputs.iter().enumerate() {
         rows.push(format!(
             "('{}', {}, {}, 'input', '{}', '{}')",
-            context.transaction_hash,
-            context.log_index,
-            index,
-            input.token,
-            input.vault_id
+            context.transaction_hash, context.log_index, index, input.token, input.vault_id
         ));
     }
 
     for (index, output) in order.valid_outputs.iter().enumerate() {
         rows.push(format!(
             "('{}', {}, {}, 'output', '{}', '{}')",
-            context.transaction_hash,
-            context.log_index,
-            index,
-            output.token,
-            output.vault_id
+            context.transaction_hash, context.log_index, index, output.token, output.vault_id
         ));
     }
 
@@ -350,10 +333,10 @@ fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::decode::{
         OrderEvaluableDecoded, OrderIoDecoded, SignedContextDecoded, TakeOrderConfigDecoded,
     };
+    use super::*;
 
     fn build_event(
         event_type: EventType,
@@ -442,7 +425,8 @@ mod tests {
             "0x3",
             DecodedEvent::AddOrderV3(AddOrderV3Decoded {
                 sender: "0x0707070707070707070707070707070707070707".to_string(),
-                order_hash: "0x0808080808080808080808080808080808080808080808080808080808080808".to_string(),
+                order_hash: "0x0808080808080808080808080808080808080808080808080808080808080808"
+                    .to_string(),
                 order: sample_order(),
             }),
         )
@@ -457,7 +441,8 @@ mod tests {
             "0x4",
             DecodedEvent::RemoveOrderV3(RemoveOrderV3Decoded {
                 sender: "0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a".to_string(),
-                order_hash: "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b".to_string(),
+                order_hash: "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+                    .to_string(),
                 order: OrderDecoded {
                     owner: "0x0101010101010101010101010101010101010101".to_string(),
                     nonce: "0x2".to_string(),
@@ -531,8 +516,10 @@ mod tests {
                 sender: "0x1111111111111111111111111111111111111111".to_string(),
                 alice_owner: "0x0101010101010101010101010101010101010101".to_string(),
                 bob_owner: "0x1212121212121212121212121212121212121212".to_string(),
-                alice_order_hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
-                bob_order_hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                alice_order_hash:
+                    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                bob_order_hash:
+                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
                 alice_input_io_index: "0x0".to_string(),
                 alice_output_io_index: "0x0".to_string(),
                 bob_input_io_index: "0x0".to_string(),
@@ -583,7 +570,9 @@ mod tests {
     fn deposit_sql_generation() {
         let event = sample_deposit_event();
         let context = event_context(&event).unwrap();
-        let DecodedEvent::DepositV2(decoded) = &event.decoded_data else { unreachable!() };
+        let DecodedEvent::DepositV2(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
         let sql = generate_deposit_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO deposits"));
@@ -601,7 +590,9 @@ mod tests {
     fn withdraw_sql_generation() {
         let event = sample_withdraw_event();
         let context = event_context(&event).unwrap();
-        let DecodedEvent::WithdrawV2(decoded) = &event.decoded_data else { unreachable!() };
+        let DecodedEvent::WithdrawV2(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
         let sql = generate_withdraw_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO withdrawals"));
@@ -620,7 +611,9 @@ mod tests {
     fn add_order_sql_generation() {
         let event = sample_add_order_event();
         let context = event_context(&event).unwrap();
-        let DecodedEvent::AddOrderV3(decoded) = &event.decoded_data else { unreachable!() };
+        let DecodedEvent::AddOrderV3(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
         let sql = generate_add_order_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO order_events"));
@@ -647,7 +640,9 @@ mod tests {
     fn remove_order_sql_generation() {
         let event = sample_remove_order_event();
         let context = event_context(&event).unwrap();
-        let DecodedEvent::RemoveOrderV3(decoded) = &event.decoded_data else { unreachable!() };
+        let DecodedEvent::RemoveOrderV3(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
         let sql = generate_remove_order_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO order_events"));
@@ -672,7 +667,9 @@ mod tests {
     fn take_order_sql_generation() {
         let event = sample_take_order_event();
         let context = event_context(&event).unwrap();
-        let DecodedEvent::TakeOrderV3(decoded) = &event.decoded_data else { unreachable!() };
+        let DecodedEvent::TakeOrderV3(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
         let sql = generate_take_order_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO take_orders"));
@@ -684,7 +681,9 @@ mod tests {
         assert!(sql.contains("0x3e8"));
         assert!(sql.contains("0x7d0"));
         assert!(sql.contains("INSERT INTO take_order_contexts"));
-        assert!(sql.contains("signer:0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a,signature:0x112233"));
+        assert!(
+            sql.contains("signer:0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a,signature:0x112233")
+        );
         assert!(sql.contains("INSERT INTO context_values"));
         assert!(sql.contains("'0x2a'"));
         assert!(sql.contains("'0x2b'"));
@@ -694,7 +693,9 @@ mod tests {
     fn clear_v3_sql_generation() {
         let event = sample_clear_event();
         let context = event_context(&event).unwrap();
-        let DecodedEvent::ClearV3(decoded) = &event.decoded_data else { unreachable!() };
+        let DecodedEvent::ClearV3(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
         let sql = generate_clear_v3_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO clear_v3_events"));
@@ -715,7 +716,9 @@ mod tests {
     fn after_clear_sql_generation() {
         let event = sample_after_clear_event();
         let context = event_context(&event).unwrap();
-        let DecodedEvent::AfterClearV2(decoded) = &event.decoded_data else { unreachable!() };
+        let DecodedEvent::AfterClearV2(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
         let sql = generate_after_clear_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO after_clear_v2_events"));
@@ -732,7 +735,9 @@ mod tests {
     fn meta_sql_generation() {
         let event = sample_meta_event();
         let context = event_context(&event).unwrap();
-        let DecodedEvent::MetaV1_2(decoded) = &event.decoded_data else { unreachable!() };
+        let DecodedEvent::MetaV1_2(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
         let sql = generate_meta_sql(&context, decoded).unwrap();
 
         assert!(sql.contains("INSERT INTO meta_events"));
@@ -774,17 +779,20 @@ mod tests {
 
     #[test]
     fn decoded_events_handles_unknown_event() {
-        let events = vec![sample_meta_event(), build_event(
-            EventType::Unknown,
-            "0x0",
-            "0x0",
-            "0xdeadbeef",
-            "0x0",
-            DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0x".to_string(),
-                note: "unknown".to_string(),
-            }),
-        )];
+        let events = vec![
+            sample_meta_event(),
+            build_event(
+                EventType::Unknown,
+                "0x0",
+                "0x0",
+                "0xdeadbeef",
+                "0x0",
+                DecodedEvent::Unknown(UnknownEventDecoded {
+                    raw_data: "0x".to_string(),
+                    note: "unknown".to_string(),
+                }),
+            ),
+        ];
 
         let sql = decoded_events_to_sql(&events, 42).unwrap();
         assert!(sql.contains("UPDATE sync_status SET last_synced_block = 42"));
