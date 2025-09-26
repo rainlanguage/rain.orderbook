@@ -279,14 +279,10 @@ where
     format!("0x{:x}", value)
 }
 
-fn to_prefixed_hex_bytes(bytes: impl AsRef<[u8]>) -> String {
-    format!("0x{}", hex::encode(bytes.as_ref()))
-}
-
 fn compute_order_hash(order: &OrderV4) -> Result<String, DecodeError> {
     let encoded = order.abi_encode();
     let hash = keccak256(&encoded);
-    Ok(to_prefixed_hex_bytes(hash))
+    Ok(hex::encode_prefixed(hash))
 }
 
 fn order_from_v4(order: &OrderV4) -> OrderDecoded {
@@ -296,7 +292,7 @@ fn order_from_v4(order: &OrderV4) -> OrderDecoded {
         evaluable: OrderEvaluableDecoded {
             interpreter: to_prefixed_hex(order.evaluable.interpreter),
             store: to_prefixed_hex(order.evaluable.store),
-            bytecode: to_prefixed_hex_bytes(&order.evaluable.bytecode),
+            bytecode: hex::encode_prefixed(&order.evaluable.bytecode),
         },
         valid_inputs: order
             .validInputs
@@ -323,7 +319,7 @@ fn decode_add_order_v3(data_str: &str) -> Result<AddOrderV3Decoded, DecodeError>
     match AddOrderV3::abi_decode_data(&data_bytes) {
         Ok(decoded) => Ok(AddOrderV3Decoded {
             sender: to_prefixed_hex(decoded.0),
-            order_hash: to_prefixed_hex_bytes(decoded.1),
+            order_hash: hex::encode_prefixed(decoded.1),
             order: order_from_v4(&decoded.2),
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
@@ -347,7 +343,7 @@ fn decode_take_order_v3(data_str: &str) -> Result<TakeOrderV3Decoded, DecodeErro
                     .map(|ctx| SignedContextDecoded {
                         signer: to_prefixed_hex(ctx.signer),
                         context: ctx.context.iter().map(|c| to_prefixed_hex(*c)).collect(),
-                        signature: to_prefixed_hex_bytes(&ctx.signature),
+                        signature: hex::encode_prefixed(&ctx.signature),
                     })
                     .collect(),
             },
@@ -394,7 +390,7 @@ fn decode_remove_order_v3(data_str: &str) -> Result<RemoveOrderV3Decoded, Decode
     match RemoveOrderV3::abi_decode_data(&data_bytes) {
         Ok(decoded) => Ok(RemoveOrderV3Decoded {
             sender: to_prefixed_hex(decoded.0),
-            order_hash: to_prefixed_hex_bytes(decoded.1),
+            order_hash: hex::encode_prefixed(decoded.1),
             order: order_from_v4(&decoded.2),
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
@@ -491,7 +487,7 @@ fn decode_meta_v1_2(data_str: &str) -> Result<MetaV1_2Decoded, DecodeError> {
         Ok(decoded) => Ok(MetaV1_2Decoded {
             sender: to_prefixed_hex(decoded.0),
             subject: to_prefixed_hex(decoded.1),
-            meta: to_prefixed_hex_bytes(&decoded.2),
+            meta: hex::encode_prefixed(&decoded.2),
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
