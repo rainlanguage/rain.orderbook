@@ -1,5 +1,10 @@
 use crate::hyper_rpc::LogEntryResponse;
-use alloy::{hex, sol_types::SolEvent};
+use alloy::{
+    hex,
+    primitives::B256,
+    sol_types::{abi::token::WordToken, SolEvent},
+};
+use core::convert::TryFrom;
 use rain_orderbook_bindings::{
     IOrderBookV5::{
         AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
@@ -105,25 +110,27 @@ pub fn decode_events(
 
         let decoded_data = match event_type {
             EventType::AddOrderV3 => {
-                DecodedEvent::AddOrderV3(Box::new(decode_add_order_v3(&event.data)?))
+                DecodedEvent::AddOrderV3(Box::new(decode_event::<AddOrderV3>(event)?))
             }
             EventType::TakeOrderV3 => {
-                DecodedEvent::TakeOrderV3(Box::new(decode_take_order_v3(&event.data)?))
+                DecodedEvent::TakeOrderV3(Box::new(decode_event::<TakeOrderV3>(event)?))
             }
             EventType::WithdrawV2 => {
-                DecodedEvent::WithdrawV2(Box::new(decode_withdraw_v2(&event.data)?))
+                DecodedEvent::WithdrawV2(Box::new(decode_event::<WithdrawV2>(event)?))
             }
             EventType::DepositV2 => {
-                DecodedEvent::DepositV2(Box::new(decode_deposit_v2(&event.data)?))
+                DecodedEvent::DepositV2(Box::new(decode_event::<DepositV2>(event)?))
             }
             EventType::RemoveOrderV3 => {
-                DecodedEvent::RemoveOrderV3(Box::new(decode_remove_order_v3(&event.data)?))
+                DecodedEvent::RemoveOrderV3(Box::new(decode_event::<RemoveOrderV3>(event)?))
             }
-            EventType::ClearV3 => DecodedEvent::ClearV3(Box::new(decode_clear_v3(&event.data)?)),
+            EventType::ClearV3 => DecodedEvent::ClearV3(Box::new(decode_event::<ClearV3>(event)?)),
             EventType::AfterClearV2 => {
-                DecodedEvent::AfterClearV2(Box::new(decode_after_clear_v2(&event.data)?))
+                DecodedEvent::AfterClearV2(Box::new(decode_event::<AfterClearV2>(event)?))
             }
-            EventType::MetaV1_2 => DecodedEvent::MetaV1_2(Box::new(decode_meta_v1_2(&event.data)?)),
+            EventType::MetaV1_2 => {
+                DecodedEvent::MetaV1_2(Box::new(decode_event::<MetaV1_2>(event)?))
+            }
             EventType::Unknown => DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: event.data.clone(),
                 note: "Unknown event type - could not decode".to_string(),
@@ -160,93 +167,19 @@ pub struct UnknownEventDecoded {
     pub note: String,
 }
 
-fn decode_event_data<T, O, F, M>(data_str: &str, decode_fn: F, map_fn: M) -> Result<O, DecodeError>
-where
-    F: FnOnce(&[u8]) -> Result<T, alloy::sol_types::Error>,
-    M: FnOnce(T) -> O,
-{
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-    let decoded = decode_fn(&data_bytes).map_err(|e| DecodeError::AbiDecode(e.to_string()))?;
-    Ok(map_fn(decoded))
-}
-
-fn decode_add_order_v3(data_str: &str) -> Result<AddOrderV3, DecodeError> {
-    decode_event_data(data_str, AddOrderV3::abi_decode_data, |decoded| {
-        AddOrderV3 {
-            sender: decoded.0,
-            orderHash: decoded.1,
-            order: decoded.2,
-        }
-    })
-}
-
-fn decode_take_order_v3(data_str: &str) -> Result<TakeOrderV3, DecodeError> {
-    decode_event_data(data_str, TakeOrderV3::abi_decode_data, |decoded| {
-        TakeOrderV3 {
-            sender: decoded.0,
-            config: decoded.1,
-            input: decoded.2,
-            output: decoded.3,
-        }
-    })
-}
-
-fn decode_withdraw_v2(data_str: &str) -> Result<WithdrawV2, DecodeError> {
-    decode_event_data(data_str, WithdrawV2::abi_decode_data, |decoded| {
-        WithdrawV2 {
-            sender: decoded.0,
-            token: decoded.1,
-            vaultId: decoded.2,
-            targetAmount: decoded.3,
-            withdrawAmount: decoded.4,
-            withdrawAmountUint256: decoded.5,
-        }
-    })
-}
-
-fn decode_deposit_v2(data_str: &str) -> Result<DepositV2, DecodeError> {
-    decode_event_data(data_str, DepositV2::abi_decode_data, |decoded| DepositV2 {
-        sender: decoded.0,
-        token: decoded.1,
-        vaultId: decoded.2,
-        depositAmountUint256: decoded.3,
-    })
-}
-
-fn decode_remove_order_v3(data_str: &str) -> Result<RemoveOrderV3, DecodeError> {
-    decode_event_data(data_str, RemoveOrderV3::abi_decode_data, |decoded| {
-        RemoveOrderV3 {
-            sender: decoded.0,
-            orderHash: decoded.1,
-            order: decoded.2,
-        }
-    })
-}
-
-fn decode_clear_v3(data_str: &str) -> Result<ClearV3, DecodeError> {
-    decode_event_data(data_str, ClearV3::abi_decode_data, |decoded| ClearV3 {
-        sender: decoded.0,
-        alice: decoded.1,
-        bob: decoded.2,
-        clearConfig: decoded.3,
-    })
-}
-
-fn decode_after_clear_v2(data_str: &str) -> Result<AfterClearV2, DecodeError> {
-    decode_event_data(data_str, AfterClearV2::abi_decode_data, |decoded| {
-        AfterClearV2 {
-            sender: decoded.0,
-            clearStateChange: decoded.1,
-        }
-    })
-}
-
-fn decode_meta_v1_2(data_str: &str) -> Result<MetaV1_2, DecodeError> {
-    decode_event_data(data_str, MetaV1_2::abi_decode_data, |decoded| MetaV1_2 {
-        sender: decoded.0,
-        subject: decoded.1,
-        meta: decoded.2,
-    })
+fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError> {
+    let topics = event
+        .topics
+        .iter()
+        .map(|topic| {
+            let bytes = hex::decode(topic).map_err(DecodeError::HexDecode)?;
+            let b256 = B256::try_from(bytes.as_slice())
+                .map_err(|_| DecodeError::AbiDecode("topic length != 32 bytes".to_string()))?;
+            Ok::<WordToken, DecodeError>(WordToken::from(b256))
+        })
+        .collect::<Result<Vec<_>, DecodeError>>()?;
+    let data = hex::decode(&event.data).map_err(DecodeError::HexDecode)?;
+    E::decode_raw_log(topics, &data).map_err(|err| DecodeError::AbiDecode(err.to_string()))
 }
 
 #[cfg(test)]
