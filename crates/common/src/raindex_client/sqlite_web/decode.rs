@@ -14,14 +14,6 @@ pub enum DecodeError {
     HexDecode(#[from] hex::FromHexError),
     #[error("ABI decode error: {0}")]
     AbiDecode(String),
-    #[error("Alice input IO index {index} out of bounds (max: {max})")]
-    AliceInputIOIndexOutOfBounds { index: u64, max: usize },
-    #[error("Alice output IO index {index} out of bounds (max: {max})")]
-    AliceOutputIOIndexOutOfBounds { index: u64, max: usize },
-    #[error("Bob input IO index {index} out of bounds (max: {max})")]
-    BobInputIOIndexOutOfBounds { index: u64, max: usize },
-    #[error("Bob output IO index {index} out of bounds (max: {max})")]
-    BobOutputIOIndexOutOfBounds { index: u64, max: usize },
     #[error("Order hash computation failed: {0}")]
     OrderHashComputation(String),
 }
