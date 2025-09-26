@@ -4,6 +4,7 @@ use rain_orderbook_common::hyper_rpc::{HyperRpcError, LogEntryResponse};
 use rain_orderbook_common::raindex_client::sqlite_web::{SqliteWeb, SqliteWebError};
 use std::fs::File;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 
 #[async_trait::async_trait]
 pub trait EventClient {
@@ -69,11 +70,12 @@ impl FetchEvents {
 
         let output_filename = self
             .output_file
-            .unwrap_or_else(|| format!("src/commands/local_db/events_{}.json", end_block));
+            .map(PathBuf::from)
+            .unwrap_or_else(|| Self::default_output_path(end_block));
         let mut file = File::create(&output_filename)?;
         file.write_all(serde_json::to_string_pretty(&all_events)?.as_bytes())?;
 
-        println!("Events and results saved to: {}", output_filename);
+        println!("Events and results saved to: {}", output_filename.display());
         Ok(())
     }
 
@@ -81,12 +83,21 @@ impl FetchEvents {
         let local_db = SqliteWeb::new(self.chain_id, self.api_token.clone())?;
         self.execute_with_client(local_db).await
     }
+
+    fn default_output_path(end_block: u64) -> PathBuf {
+        let filename = format!("events_{}.json", end_block);
+        if let Ok(dir) = std::env::var("RAIN_ORDERBOOK_EVENTS_DIR") {
+            Path::new(&dir).join(filename)
+        } else {
+            Path::new("src/commands/local_db").join(filename)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
+    use tempfile::{NamedTempFile, TempDir};
 
     fn sample_event(block_number: &str) -> LogEntryResponse {
         LogEntryResponse {
@@ -100,6 +111,24 @@ mod tests {
             block_hash: "0xblock".to_string(),
             log_index: "0x0".to_string(),
             removed: false,
+        }
+    }
+
+    struct EnvVarGuard {
+        key: String,
+    }
+
+    impl EnvVarGuard {
+        fn set<K: Into<String>, V: AsRef<str>>(key: K, value: V) -> Self {
+            let key = key.into();
+            std::env::set_var(&key, value.as_ref());
+            Self { key }
+        }
+    }
+
+    impl Drop for EnvVarGuard {
+        fn drop(&mut self) {
+            std::env::remove_var(&self.key);
         }
     }
 
@@ -265,6 +294,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_execute_with_client_default_output_filename() {
+        let temp_dir = TempDir::new().unwrap();
+        let _env_guard = EnvVarGuard::set(
+            "RAIN_ORDERBOOK_EVENTS_DIR",
+            temp_dir.path().to_str().unwrap(),
+        );
+
         let fetch_events = FetchEvents {
             api_token: "test_token".to_string(),
             chain_id: 1,
@@ -279,8 +314,7 @@ mod tests {
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
 
-        let expected_filename = "src/commands/local_db/events_200.json";
-        assert!(std::path::Path::new(expected_filename).exists());
-        std::fs::remove_file(expected_filename).ok();
+        let expected_filename = temp_dir.path().join("events_200.json");
+        assert!(expected_filename.exists());
     }
 }
