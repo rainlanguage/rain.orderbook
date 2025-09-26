@@ -168,113 +168,93 @@ pub struct UnknownEventDecoded {
     pub note: String,
 }
 
-fn decode_add_order_v3(data_str: &str) -> Result<AddOrderV3, DecodeError> {
+fn decode_event_data<T, O, F, M>(data_str: &str, decode_fn: F, map_fn: M) -> Result<O, DecodeError>
+where
+    F: FnOnce(&[u8]) -> Result<T, alloy::sol_types::Error>,
+    M: FnOnce(T) -> O,
+{
     let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
+    let decoded = decode_fn(&data_bytes).map_err(|e| DecodeError::AbiDecode(e.to_string()))?;
+    Ok(map_fn(decoded))
+}
 
-    match AddOrderV3::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(AddOrderV3 {
+fn decode_add_order_v3(data_str: &str) -> Result<AddOrderV3, DecodeError> {
+    decode_event_data(data_str, AddOrderV3::abi_decode_data, |decoded| {
+        AddOrderV3 {
             sender: decoded.0,
             orderHash: decoded.1,
             order: decoded.2,
-        }),
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
+        }
+    })
 }
 
 fn decode_take_order_v3(data_str: &str) -> Result<TakeOrderV3, DecodeError> {
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-
-    match TakeOrderV3::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(TakeOrderV3 {
+    decode_event_data(data_str, TakeOrderV3::abi_decode_data, |decoded| {
+        TakeOrderV3 {
             sender: decoded.0,
             config: decoded.1,
             input: decoded.2,
             output: decoded.3,
-        }),
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
+        }
+    })
 }
 
 fn decode_withdraw_v2(data_str: &str) -> Result<WithdrawV2, DecodeError> {
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-
-    match WithdrawV2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(WithdrawV2 {
+    decode_event_data(data_str, WithdrawV2::abi_decode_data, |decoded| {
+        WithdrawV2 {
             sender: decoded.0,
             token: decoded.1,
             vaultId: decoded.2,
             targetAmount: decoded.3,
             withdrawAmount: decoded.4,
             withdrawAmountUint256: decoded.5,
-        }),
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
+        }
+    })
 }
 
 fn decode_deposit_v2(data_str: &str) -> Result<DepositV2, DecodeError> {
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-
-    match DepositV2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(DepositV2 {
-            sender: decoded.0,
-            token: decoded.1,
-            vaultId: decoded.2,
-            depositAmountUint256: decoded.3,
-        }),
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
+    decode_event_data(data_str, DepositV2::abi_decode_data, |decoded| DepositV2 {
+        sender: decoded.0,
+        token: decoded.1,
+        vaultId: decoded.2,
+        depositAmountUint256: decoded.3,
+    })
 }
 
 fn decode_remove_order_v3(data_str: &str) -> Result<RemoveOrderV3, DecodeError> {
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-
-    match RemoveOrderV3::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(RemoveOrderV3 {
+    decode_event_data(data_str, RemoveOrderV3::abi_decode_data, |decoded| {
+        RemoveOrderV3 {
             sender: decoded.0,
             orderHash: decoded.1,
             order: decoded.2,
-        }),
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
+        }
+    })
 }
 
 fn decode_clear_v3(data_str: &str) -> Result<ClearV3, DecodeError> {
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-
-    match ClearV3::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(ClearV3 {
-            sender: decoded.0,
-            alice: decoded.1,
-            bob: decoded.2,
-            clearConfig: decoded.3,
-        }),
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
+    decode_event_data(data_str, ClearV3::abi_decode_data, |decoded| ClearV3 {
+        sender: decoded.0,
+        alice: decoded.1,
+        bob: decoded.2,
+        clearConfig: decoded.3,
+    })
 }
 
 fn decode_after_clear_v2(data_str: &str) -> Result<AfterClearV2, DecodeError> {
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-
-    match AfterClearV2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(AfterClearV2 {
+    decode_event_data(data_str, AfterClearV2::abi_decode_data, |decoded| {
+        AfterClearV2 {
             sender: decoded.0,
             clearStateChange: decoded.1,
-        }),
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
+        }
+    })
 }
 
 fn decode_meta_v1_2(data_str: &str) -> Result<MetaV1_2, DecodeError> {
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-
-    match MetaV1_2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(MetaV1_2 {
-            sender: decoded.0,
-            subject: decoded.1,
-            meta: decoded.2,
-        }),
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
+    decode_event_data(data_str, MetaV1_2::abi_decode_data, |decoded| MetaV1_2 {
+        sender: decoded.0,
+        subject: decoded.1,
+        meta: decoded.2,
+    })
 }
 
 #[cfg(test)]
