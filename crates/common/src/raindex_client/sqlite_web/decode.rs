@@ -1,18 +1,12 @@
 use crate::hyper_rpc::LogEntryResponse;
-use alloy::primitives::keccak256;
-use alloy::{
-    hex,
-    sol_types::{SolEvent, SolValue},
-};
+use alloy::{hex, sol_types::SolEvent};
 use rain_orderbook_bindings::{
     IOrderBookV5::{
-        AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3,
-        WithdrawV2,
+        AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     },
     OrderBook::MetaV1_2,
 };
 use serde::Serialize;
-use std::fmt::LowerHex;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecodeError {
@@ -92,14 +86,14 @@ pub struct DecodedEventData<T> {
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum DecodedEvent {
-    AddOrderV3(AddOrderV3Decoded),
-    TakeOrderV3(TakeOrderV3Decoded),
-    WithdrawV2(WithdrawV2Decoded),
-    DepositV2(DepositV2Decoded),
-    RemoveOrderV3(RemoveOrderV3Decoded),
-    ClearV3(ClearV3Decoded),
-    AfterClearV2(AfterClearV2Decoded),
-    MetaV1_2(MetaV1_2Decoded),
+    AddOrderV3(Box<AddOrderV3>),
+    TakeOrderV3(Box<TakeOrderV3>),
+    WithdrawV2(Box<WithdrawV2>),
+    DepositV2(Box<DepositV2>),
+    RemoveOrderV3(Box<RemoveOrderV3>),
+    ClearV3(Box<ClearV3>),
+    AfterClearV2(Box<AfterClearV2>),
+    MetaV1_2(Box<MetaV1_2>),
     Unknown(UnknownEventDecoded),
 }
 
@@ -118,18 +112,26 @@ pub fn decode_events(
         let event_type = EventType::from_topic(topic0);
 
         let decoded_data = match event_type {
-            EventType::AddOrderV3 => DecodedEvent::AddOrderV3(decode_add_order_v3(&event.data)?),
-            EventType::TakeOrderV3 => DecodedEvent::TakeOrderV3(decode_take_order_v3(&event.data)?),
-            EventType::WithdrawV2 => DecodedEvent::WithdrawV2(decode_withdraw_v2(&event.data)?),
-            EventType::DepositV2 => DecodedEvent::DepositV2(decode_deposit_v2(&event.data)?),
+            EventType::AddOrderV3 => {
+                DecodedEvent::AddOrderV3(Box::new(decode_add_order_v3(&event.data)?))
+            }
+            EventType::TakeOrderV3 => {
+                DecodedEvent::TakeOrderV3(Box::new(decode_take_order_v3(&event.data)?))
+            }
+            EventType::WithdrawV2 => {
+                DecodedEvent::WithdrawV2(Box::new(decode_withdraw_v2(&event.data)?))
+            }
+            EventType::DepositV2 => {
+                DecodedEvent::DepositV2(Box::new(decode_deposit_v2(&event.data)?))
+            }
             EventType::RemoveOrderV3 => {
-                DecodedEvent::RemoveOrderV3(decode_remove_order_v3(&event.data)?)
+                DecodedEvent::RemoveOrderV3(Box::new(decode_remove_order_v3(&event.data)?))
             }
-            EventType::ClearV3 => DecodedEvent::ClearV3(decode_clear_v3(&event.data)?),
+            EventType::ClearV3 => DecodedEvent::ClearV3(Box::new(decode_clear_v3(&event.data)?)),
             EventType::AfterClearV2 => {
-                DecodedEvent::AfterClearV2(decode_after_clear_v2(&event.data)?)
+                DecodedEvent::AfterClearV2(Box::new(decode_after_clear_v2(&event.data)?))
             }
-            EventType::MetaV1_2 => DecodedEvent::MetaV1_2(decode_meta_v1_2(&event.data)?),
+            EventType::MetaV1_2 => DecodedEvent::MetaV1_2(Box::new(decode_meta_v1_2(&event.data)?)),
             EventType::Unknown => DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: event.data.clone(),
                 note: "Unknown event type - could not decode".to_string(),
@@ -161,333 +163,115 @@ pub fn decode_events(
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct OrderEvaluableDecoded {
-    pub interpreter: String,
-    pub store: String,
-    pub bytecode: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct OrderIoDecoded {
-    pub token: String,
-    pub vault_id: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct OrderDecoded {
-    pub owner: String,
-    pub nonce: String,
-    pub evaluable: OrderEvaluableDecoded,
-    pub valid_inputs: Vec<OrderIoDecoded>,
-    pub valid_outputs: Vec<OrderIoDecoded>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct AddOrderV3Decoded {
-    pub sender: String,
-    pub order_hash: String,
-    pub order: OrderDecoded,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct SignedContextDecoded {
-    pub signer: String,
-    pub context: Vec<String>,
-    pub signature: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct TakeOrderConfigDecoded {
-    pub order: OrderDecoded,
-    pub input_io_index: String,
-    pub output_io_index: String,
-    pub signed_context: Vec<SignedContextDecoded>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct TakeOrderV3Decoded {
-    pub sender: String,
-    pub config: TakeOrderConfigDecoded,
-    pub input: String,
-    pub output: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct WithdrawV2Decoded {
-    pub sender: String,
-    pub token: String,
-    pub vault_id: String,
-    pub target_amount: String,
-    pub withdraw_amount: String,
-    pub withdraw_amount_uint256: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct DepositV2Decoded {
-    pub sender: String,
-    pub token: String,
-    pub vault_id: String,
-    pub deposit_amount_uint256: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct RemoveOrderV3Decoded {
-    pub sender: String,
-    pub order_hash: String,
-    pub order: OrderDecoded,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct ClearV3Decoded {
-    pub sender: String,
-    pub alice_owner: String,
-    pub bob_owner: String,
-    pub alice_order_hash: String,
-    pub bob_order_hash: String,
-    pub alice_input_vault_id: String,
-    pub alice_output_vault_id: String,
-    pub bob_input_vault_id: String,
-    pub bob_output_vault_id: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct AfterClearV2Decoded {
-    pub sender: String,
-    pub alice_input: String,
-    pub alice_output: String,
-    pub bob_input: String,
-    pub bob_output: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct MetaV1_2Decoded {
-    pub sender: String,
-    pub subject: String,
-    pub meta: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
 pub struct UnknownEventDecoded {
     pub raw_data: String,
     pub note: String,
 }
 
-fn to_prefixed_hex<T>(value: T) -> String
-where
-    T: LowerHex,
-{
-    format!("0x{:x}", value)
-}
-
-fn compute_order_hash(order: &OrderV4) -> Result<String, DecodeError> {
-    let encoded = order.abi_encode();
-    let hash = keccak256(&encoded);
-    Ok(hex::encode_prefixed(hash))
-}
-
-fn order_from_v4(order: &OrderV4) -> OrderDecoded {
-    OrderDecoded {
-        owner: to_prefixed_hex(order.owner),
-        nonce: to_prefixed_hex(order.nonce),
-        evaluable: OrderEvaluableDecoded {
-            interpreter: to_prefixed_hex(order.evaluable.interpreter),
-            store: to_prefixed_hex(order.evaluable.store),
-            bytecode: hex::encode_prefixed(&order.evaluable.bytecode),
-        },
-        valid_inputs: order
-            .validInputs
-            .iter()
-            .map(|input| OrderIoDecoded {
-                token: to_prefixed_hex(input.token),
-                vault_id: to_prefixed_hex(input.vaultId),
-            })
-            .collect(),
-        valid_outputs: order
-            .validOutputs
-            .iter()
-            .map(|output| OrderIoDecoded {
-                token: to_prefixed_hex(output.token),
-                vault_id: to_prefixed_hex(output.vaultId),
-            })
-            .collect(),
-    }
-}
-
-fn decode_add_order_v3(data_str: &str) -> Result<AddOrderV3Decoded, DecodeError> {
+fn decode_add_order_v3(data_str: &str) -> Result<AddOrderV3, DecodeError> {
     let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
 
     match AddOrderV3::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(AddOrderV3Decoded {
-            sender: to_prefixed_hex(decoded.0),
-            order_hash: hex::encode_prefixed(decoded.1),
-            order: order_from_v4(&decoded.2),
+        Ok(decoded) => Ok(AddOrderV3 {
+            sender: decoded.0,
+            orderHash: decoded.1,
+            order: decoded.2,
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_take_order_v3(data_str: &str) -> Result<TakeOrderV3Decoded, DecodeError> {
+fn decode_take_order_v3(data_str: &str) -> Result<TakeOrderV3, DecodeError> {
     let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
 
     match TakeOrderV3::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(TakeOrderV3Decoded {
-            sender: to_prefixed_hex(decoded.0),
-            config: TakeOrderConfigDecoded {
-                order: order_from_v4(&decoded.1.order),
-                input_io_index: to_prefixed_hex(decoded.1.inputIOIndex),
-                output_io_index: to_prefixed_hex(decoded.1.outputIOIndex),
-                signed_context: decoded
-                    .1
-                    .signedContext
-                    .iter()
-                    .map(|ctx| SignedContextDecoded {
-                        signer: to_prefixed_hex(ctx.signer),
-                        context: ctx.context.iter().map(|c| to_prefixed_hex(*c)).collect(),
-                        signature: hex::encode_prefixed(&ctx.signature),
-                    })
-                    .collect(),
-            },
-            input: to_prefixed_hex(decoded.2),
-            output: to_prefixed_hex(decoded.3),
+        Ok(decoded) => Ok(TakeOrderV3 {
+            sender: decoded.0,
+            config: decoded.1,
+            input: decoded.2,
+            output: decoded.3,
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_withdraw_v2(data_str: &str) -> Result<WithdrawV2Decoded, DecodeError> {
+fn decode_withdraw_v2(data_str: &str) -> Result<WithdrawV2, DecodeError> {
     let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
 
     match WithdrawV2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(WithdrawV2Decoded {
-            sender: to_prefixed_hex(decoded.0),
-            token: to_prefixed_hex(decoded.1),
-            vault_id: to_prefixed_hex(decoded.2),
-            target_amount: to_prefixed_hex(decoded.3),
-            withdraw_amount: to_prefixed_hex(decoded.4),
-            withdraw_amount_uint256: to_prefixed_hex(decoded.5),
+        Ok(decoded) => Ok(WithdrawV2 {
+            sender: decoded.0,
+            token: decoded.1,
+            vaultId: decoded.2,
+            targetAmount: decoded.3,
+            withdrawAmount: decoded.4,
+            withdrawAmountUint256: decoded.5,
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_deposit_v2(data_str: &str) -> Result<DepositV2Decoded, DecodeError> {
+fn decode_deposit_v2(data_str: &str) -> Result<DepositV2, DecodeError> {
     let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
 
     match DepositV2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(DepositV2Decoded {
-            sender: to_prefixed_hex(decoded.0),
-            token: to_prefixed_hex(decoded.1),
-            vault_id: to_prefixed_hex(decoded.2),
-            deposit_amount_uint256: to_prefixed_hex(decoded.3),
+        Ok(decoded) => Ok(DepositV2 {
+            sender: decoded.0,
+            token: decoded.1,
+            vaultId: decoded.2,
+            depositAmountUint256: decoded.3,
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_remove_order_v3(data_str: &str) -> Result<RemoveOrderV3Decoded, DecodeError> {
+fn decode_remove_order_v3(data_str: &str) -> Result<RemoveOrderV3, DecodeError> {
     let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
 
     match RemoveOrderV3::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(RemoveOrderV3Decoded {
-            sender: to_prefixed_hex(decoded.0),
-            order_hash: hex::encode_prefixed(decoded.1),
-            order: order_from_v4(&decoded.2),
+        Ok(decoded) => Ok(RemoveOrderV3 {
+            sender: decoded.0,
+            orderHash: decoded.1,
+            order: decoded.2,
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_clear_v3(data_str: &str) -> Result<ClearV3Decoded, DecodeError> {
+fn decode_clear_v3(data_str: &str) -> Result<ClearV3, DecodeError> {
     let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
 
     match ClearV3::abi_decode_data(&data_bytes) {
-        Ok(decoded) => {
-            let alice_input_index = decoded.3.aliceInputIOIndex.to::<u64>();
-            let alice_input_vault_id =
-                if let Some(input) = decoded.1.validInputs.get(alice_input_index as usize) {
-                    format!("0x{:x}", input.vaultId)
-                } else {
-                    return Err(DecodeError::AliceInputIOIndexOutOfBounds {
-                        index: alice_input_index,
-                        max: decoded.1.validInputs.len(),
-                    });
-                };
-
-            let alice_output_index = decoded.3.aliceOutputIOIndex.to::<u64>();
-            let alice_output_vault_id =
-                if let Some(output) = decoded.1.validOutputs.get(alice_output_index as usize) {
-                    format!("0x{:x}", output.vaultId)
-                } else {
-                    return Err(DecodeError::AliceOutputIOIndexOutOfBounds {
-                        index: alice_output_index,
-                        max: decoded.1.validOutputs.len(),
-                    });
-                };
-
-            let bob_input_index = decoded.3.bobInputIOIndex.to::<u64>();
-            let bob_input_vault_id =
-                if let Some(input) = decoded.2.validInputs.get(bob_input_index as usize) {
-                    format!("0x{:x}", input.vaultId)
-                } else {
-                    return Err(DecodeError::BobInputIOIndexOutOfBounds {
-                        index: bob_input_index,
-                        max: decoded.2.validInputs.len(),
-                    });
-                };
-
-            let bob_output_index = decoded.3.bobOutputIOIndex.to::<u64>();
-            let bob_output_vault_id =
-                if let Some(output) = decoded.2.validOutputs.get(bob_output_index as usize) {
-                    format!("0x{:x}", output.vaultId)
-                } else {
-                    return Err(DecodeError::BobOutputIOIndexOutOfBounds {
-                        index: bob_output_index,
-                        max: decoded.2.validOutputs.len(),
-                    });
-                };
-
-            let alice_order_hash = compute_order_hash(&decoded.1)?;
-            let bob_order_hash = compute_order_hash(&decoded.2)?;
-
-            Ok(ClearV3Decoded {
-                sender: to_prefixed_hex(decoded.0),
-                alice_owner: to_prefixed_hex(decoded.1.owner),
-                bob_owner: to_prefixed_hex(decoded.2.owner),
-                alice_order_hash,
-                bob_order_hash,
-                alice_input_vault_id,
-                alice_output_vault_id,
-                bob_input_vault_id,
-                bob_output_vault_id,
-            })
-        }
-        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
-    }
-}
-
-fn decode_after_clear_v2(data_str: &str) -> Result<AfterClearV2Decoded, DecodeError> {
-    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
-
-    match AfterClearV2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(AfterClearV2Decoded {
-            sender: to_prefixed_hex(decoded.0),
-            alice_input: to_prefixed_hex(decoded.1.aliceInput),
-            alice_output: to_prefixed_hex(decoded.1.aliceOutput),
-            bob_input: to_prefixed_hex(decoded.1.bobInput),
-            bob_output: to_prefixed_hex(decoded.1.bobOutput),
+        Ok(decoded) => Ok(ClearV3 {
+            sender: decoded.0,
+            alice: decoded.1,
+            bob: decoded.2,
+            clearConfig: decoded.3,
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
 }
 
-fn decode_meta_v1_2(data_str: &str) -> Result<MetaV1_2Decoded, DecodeError> {
+fn decode_after_clear_v2(data_str: &str) -> Result<AfterClearV2, DecodeError> {
+    let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
+
+    match AfterClearV2::abi_decode_data(&data_bytes) {
+        Ok(decoded) => Ok(AfterClearV2 {
+            sender: decoded.0,
+            clearStateChange: decoded.1,
+        }),
+        Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
+    }
+}
+
+fn decode_meta_v1_2(data_str: &str) -> Result<MetaV1_2, DecodeError> {
     let data_bytes = hex::decode(data_str).map_err(DecodeError::HexDecode)?;
 
     match MetaV1_2::abi_decode_data(&data_bytes) {
-        Ok(decoded) => Ok(MetaV1_2Decoded {
-            sender: to_prefixed_hex(decoded.0),
-            subject: to_prefixed_hex(decoded.1),
-            meta: hex::encode_prefixed(&decoded.2),
+        Ok(decoded) => Ok(MetaV1_2 {
+            sender: decoded.0,
+            subject: decoded.1,
+            meta: decoded.2,
         }),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
@@ -534,6 +318,10 @@ mod test_helpers {
         }
     }
 
+    fn fixed_u256(value: u64) -> FixedBytes<32> {
+        FixedBytes::<32>::from(U256::from(value).to_be_bytes::<32>())
+    }
+
     fn new_log_entry(
         topic: String,
         data: String,
@@ -556,9 +344,8 @@ mod test_helpers {
         }
     }
 
-    fn decode_events_json(events: Vec<LogEntryResponse>) -> serde_json::Value {
-        let decoded = decode_events(&events).unwrap();
-        serde_json::to_value(decoded).unwrap()
+    fn decode_events_vec(events: Vec<LogEntryResponse>) -> Vec<DecodedEventData<DecodedEvent>> {
+        decode_events(&events).unwrap()
     }
 
     fn build_clear_log(
@@ -815,347 +602,210 @@ mod test_helpers {
     #[test]
     fn test_add_order_v3_decode() {
         let event_data = create_add_order_v3_event_data();
-        let decoded_result = decode_events_json(vec![event_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![event_data]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "AddOrderV3");
-        assert_eq!(
-            decoded_event["decoded_data"]["sender"],
-            "0x0707070707070707070707070707070707070707"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order_hash"],
-            "0x0808080808080808080808080808080808080808080808080808080808080808"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["owner"],
-            "0x0101010101010101010101010101010101010101"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["nonce"],
-            "0x0000000000000000000000000000000000000000000000000000000000000001"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["evaluable"]["interpreter"],
-            "0x0202020202020202020202020202020202020202"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["evaluable"]["store"],
-            "0x0303030303030303030303030303030303030303"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["evaluable"]["bytecode"],
-            "0x01020304"
-        );
+        assert_eq!(decoded_event.event_type, EventType::AddOrderV3);
 
-        let valid_inputs = decoded_event["decoded_data"]["order"]["valid_inputs"]
-            .as_array()
-            .unwrap();
-        assert_eq!(valid_inputs.len(), 2);
-        assert_eq!(
-            valid_inputs[0]["token"],
-            "0x0404040404040404040404040404040404040404"
-        );
-        assert_eq!(
-            valid_inputs[0]["vault_id"],
-            "0x0000000000000000000000000000000000000000000000000000000000000064"
-        );
-        assert_eq!(
-            valid_inputs[1]["token"],
-            "0x0505050505050505050505050505050505050505"
-        );
-        assert_eq!(
-            valid_inputs[1]["vault_id"],
-            "0x00000000000000000000000000000000000000000000000000000000000000c8"
-        );
+        let DecodedEvent::AddOrderV3(add_order) = &decoded_event.decoded_data else {
+            panic!("expected AddOrderV3 decoded data");
+        };
 
-        let valid_outputs = decoded_event["decoded_data"]["order"]["valid_outputs"]
-            .as_array()
-            .unwrap();
-        assert_eq!(valid_outputs.len(), 1);
-        assert_eq!(
-            valid_outputs[0]["token"],
-            "0x0606060606060606060606060606060606060606"
-        );
-        assert_eq!(
-            valid_outputs[0]["vault_id"],
-            "0x000000000000000000000000000000000000000000000000000000000000012c"
-        );
+        let add_order = add_order.as_ref();
+        assert_eq!(add_order.sender, Address::from([7u8; 20]));
+        assert_eq!(add_order.orderHash, FixedBytes::<32>::from([8u8; 32]));
+
+        let expected_order = create_sample_order_v4();
+        assert_eq!(add_order.order, expected_order);
     }
 
     #[test]
     fn test_take_order_v3_decode() {
         let event_data = create_take_order_v3_event_data();
-        let decoded_result = decode_events_json(vec![event_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![event_data]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "TakeOrderV3");
-        assert_eq!(
-            decoded_event["decoded_data"]["sender"],
-            "0x0909090909090909090909090909090909090909"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["input"],
-            "0x00000000000000000000000000000000000000000000000000000000000003e8"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["output"],
-            "0x00000000000000000000000000000000000000000000000000000000000007d0"
-        );
+        assert_eq!(decoded_event.event_type, EventType::TakeOrderV3);
 
-        // Verify config structure
-        let config = &decoded_event["decoded_data"]["config"];
-        assert_eq!(config["input_io_index"], "0x0");
-        assert_eq!(config["output_io_index"], "0x0");
+        let DecodedEvent::TakeOrderV3(take_order) = &decoded_event.decoded_data else {
+            panic!("expected TakeOrderV3 decoded data");
+        };
 
-        // Verify order within config
-        assert_eq!(
-            config["order"]["owner"],
-            "0x0101010101010101010101010101010101010101"
-        );
-        assert_eq!(
-            config["order"]["nonce"],
-            "0x0000000000000000000000000000000000000000000000000000000000000001"
-        );
+        let take_order = take_order.as_ref();
+        assert_eq!(take_order.sender, Address::from([9u8; 20]));
+        assert_eq!(take_order.input, fixed_u256(1000));
+        assert_eq!(take_order.output, fixed_u256(2000));
 
-        // Verify signed context
-        let signed_context = config["signed_context"].as_array().unwrap();
+        let expected_order = create_sample_order_v4();
+        assert_eq!(take_order.config.order, expected_order);
+        assert_eq!(take_order.config.inputIOIndex, U256::from(0));
+        assert_eq!(take_order.config.outputIOIndex, U256::from(0));
+
+        let signed_context = &take_order.config.signedContext;
         assert_eq!(signed_context.len(), 1);
-        assert_eq!(
-            signed_context[0]["signer"],
-            "0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"
-        );
-        assert_eq!(signed_context[0]["signature"], "0x112233");
-
-        let context = signed_context[0]["context"].as_array().unwrap();
-        assert_eq!(context.len(), 2);
-        assert_eq!(
-            context[0],
-            "0x000000000000000000000000000000000000000000000000000000000000002a"
-        );
-        assert_eq!(
-            context[1],
-            "0x000000000000000000000000000000000000000000000000000000000000002b"
-        );
+        let ctx = &signed_context[0];
+        assert_eq!(ctx.signer, Address::from([10u8; 20]));
+        assert_eq!(ctx.context, vec![fixed_u256(42), fixed_u256(43)]);
+        assert_eq!(ctx.signature, Bytes::from(vec![0x11, 0x22, 0x33]));
     }
 
     #[test]
     fn test_withdraw_v2_decode() {
         let event_data = create_withdraw_v2_event_data();
-        let decoded_result = decode_events_json(vec![event_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![event_data]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "WithdrawV2");
-        assert_eq!(
-            decoded_event["decoded_data"]["sender"],
-            "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["token"],
-            "0x0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["vault_id"],
-            "0x00000000000000000000000000000000000000000000000000000000000001f4"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["target_amount"],
-            "0x0000000000000000000000000000000000000000000000000000000000000bb8"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["withdraw_amount"],
-            "0x00000000000000000000000000000000000000000000000000000000000009c4"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["withdraw_amount_uint256"],
-            "0x9c4"
-        );
+        assert_eq!(decoded_event.event_type, EventType::WithdrawV2);
+
+        let DecodedEvent::WithdrawV2(withdraw) = &decoded_event.decoded_data else {
+            panic!("expected WithdrawV2 decoded data");
+        };
+
+        let withdraw = withdraw.as_ref();
+        assert_eq!(withdraw.sender, Address::from([11u8; 20]));
+        assert_eq!(withdraw.token, Address::from([12u8; 20]));
+        assert_eq!(withdraw.vaultId, fixed_u256(500));
+        assert_eq!(withdraw.targetAmount, fixed_u256(3000));
+        assert_eq!(withdraw.withdrawAmount, fixed_u256(2500));
+        assert_eq!(withdraw.withdrawAmountUint256, U256::from(2500));
     }
 
     #[test]
     fn test_deposit_v2_decode() {
         let event_data = create_deposit_v2_event_data();
-        let decoded_result = decode_events_json(vec![event_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![event_data]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "DepositV2");
-        assert_eq!(
-            decoded_event["decoded_data"]["sender"],
-            "0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["token"],
-            "0x0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["vault_id"],
-            "0x0000000000000000000000000000000000000000000000000000000000000258"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["deposit_amount_uint256"],
-            "0xfa0"
-        );
+        assert_eq!(decoded_event.event_type, EventType::DepositV2);
+
+        let DecodedEvent::DepositV2(deposit) = &decoded_event.decoded_data else {
+            panic!("expected DepositV2 decoded data");
+        };
+
+        let deposit = deposit.as_ref();
+        assert_eq!(deposit.sender, Address::from([13u8; 20]));
+        assert_eq!(deposit.token, Address::from([14u8; 20]));
+        assert_eq!(deposit.vaultId, fixed_u256(600));
+        assert_eq!(deposit.depositAmountUint256, U256::from(4000));
     }
 
     #[test]
     fn test_remove_order_v3_decode() {
         let event_data = create_remove_order_v3_event_data();
-        let decoded_result = decode_events_json(vec![event_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![event_data]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "RemoveOrderV3");
-        assert_eq!(
-            decoded_event["decoded_data"]["sender"],
-            "0x0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order_hash"],
-            "0x1010101010101010101010101010101010101010101010101010101010101010"
-        );
+        assert_eq!(decoded_event.event_type, EventType::RemoveOrderV3);
 
-        // Verify order structure (same as AddOrderV3 but with different sender)
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["owner"],
-            "0x0101010101010101010101010101010101010101"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["nonce"],
-            "0x0000000000000000000000000000000000000000000000000000000000000001"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["evaluable"]["interpreter"],
-            "0x0202020202020202020202020202020202020202"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["evaluable"]["store"],
-            "0x0303030303030303030303030303030303030303"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["order"]["evaluable"]["bytecode"],
-            "0x01020304"
-        );
+        let DecodedEvent::RemoveOrderV3(remove_order) = &decoded_event.decoded_data else {
+            panic!("expected RemoveOrderV3 decoded data");
+        };
+
+        let remove_order = remove_order.as_ref();
+        assert_eq!(remove_order.sender, Address::from([15u8; 20]));
+        assert_eq!(remove_order.orderHash, FixedBytes::<32>::from([16u8; 32]));
+
+        let expected_order = create_sample_order_v4();
+        assert_eq!(remove_order.order, expected_order);
     }
 
     #[test]
     fn test_clear_v3_decode() {
         let event_data = create_clear_v3_event_data();
-        let decoded_result = decode_events_json(vec![event_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![event_data]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "ClearV3");
-        assert_eq!(
-            decoded_event["decoded_data"]["sender"],
-            "0x1111111111111111111111111111111111111111"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["alice_owner"],
-            "0x0101010101010101010101010101010101010101"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["bob_owner"],
-            "0x1212121212121212121212121212121212121212"
-        );
+        assert_eq!(decoded_event.event_type, EventType::ClearV3);
 
-        // These are computed order hashes, so we just verify they exist and are proper hex
-        let alice_hash = decoded_event["decoded_data"]["alice_order_hash"]
-            .as_str()
-            .unwrap();
-        let bob_hash = decoded_event["decoded_data"]["bob_order_hash"]
-            .as_str()
-            .unwrap();
-        assert!(alice_hash.starts_with("0x"));
-        assert_eq!(alice_hash.len(), 66); // 0x + 64 hex chars
-        assert!(bob_hash.starts_with("0x"));
-        assert_eq!(bob_hash.len(), 66);
+        let DecodedEvent::ClearV3(clear) = &decoded_event.decoded_data else {
+            panic!("expected ClearV3 decoded data");
+        };
 
-        // Verify vault IDs are correctly extracted from IO indexes
-        assert_eq!(
-            decoded_event["decoded_data"]["alice_input_vault_id"],
-            "0x0000000000000000000000000000000000000000000000000000000000000064"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["alice_output_vault_id"],
-            "0x000000000000000000000000000000000000000000000000000000000000012c"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["bob_input_vault_id"],
-            "0x00000000000000000000000000000000000000000000000000000000000002bc"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["bob_output_vault_id"],
-            "0x0000000000000000000000000000000000000000000000000000000000000320"
-        );
+        let clear = clear.as_ref();
+        assert_eq!(clear.sender, Address::from([17u8; 20]));
+
+        let expected_alice = create_sample_order_v4();
+        assert_eq!(clear.alice, expected_alice);
+
+        let expected_bob = OrderV4 {
+            owner: Address::from([18u8; 20]),
+            nonce: U256::from(2).into(),
+            evaluable: EvaluableV4 {
+                interpreter: Address::from([19u8; 20]),
+                store: Address::from([20u8; 20]),
+                bytecode: Bytes::from(vec![0x05, 0x06, 0x07, 0x08]),
+            },
+            validInputs: vec![IOV2 {
+                token: Address::from([21u8; 20]),
+                vaultId: U256::from(700).into(),
+            }],
+            validOutputs: vec![IOV2 {
+                token: Address::from([22u8; 20]),
+                vaultId: U256::from(800).into(),
+            }],
+        };
+        assert_eq!(clear.bob, expected_bob);
+
+        let expected_config = ClearConfigV2 {
+            aliceInputIOIndex: U256::from(0),
+            aliceOutputIOIndex: U256::from(0),
+            bobInputIOIndex: U256::from(0),
+            bobOutputIOIndex: U256::from(0),
+            aliceBountyVaultId: U256::from(0).into(),
+            bobBountyVaultId: U256::from(0).into(),
+        };
+        assert_eq!(clear.clearConfig, expected_config);
     }
 
     #[test]
     fn test_after_clear_v2_decode() {
         let event_data = create_after_clear_v2_event_data();
-        let decoded_result = decode_events_json(vec![event_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![event_data]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "AfterClearV2");
-        assert_eq!(
-            decoded_event["decoded_data"]["sender"],
-            "0x1717171717171717171717171717171717171717"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["alice_input"],
-            "0x0000000000000000000000000000000000000000000000000000000000001388"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["alice_output"],
-            "0x0000000000000000000000000000000000000000000000000000000000001770"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["bob_input"],
-            "0x0000000000000000000000000000000000000000000000000000000000001b58"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["bob_output"],
-            "0x0000000000000000000000000000000000000000000000000000000000001f40"
-        );
+        assert_eq!(decoded_event.event_type, EventType::AfterClearV2);
+
+        let DecodedEvent::AfterClearV2(after_clear) = &decoded_event.decoded_data else {
+            panic!("expected AfterClearV2 decoded data");
+        };
+
+        let after_clear = after_clear.as_ref();
+        assert_eq!(after_clear.sender, Address::from([23u8; 20]));
+        assert_eq!(after_clear.clearStateChange.aliceInput, fixed_u256(5000));
+        assert_eq!(after_clear.clearStateChange.aliceOutput, fixed_u256(6000));
+        assert_eq!(after_clear.clearStateChange.bobInput, fixed_u256(7000));
+        assert_eq!(after_clear.clearStateChange.bobOutput, fixed_u256(8000));
     }
 
     #[test]
     fn test_meta_v1_2_decode() {
         let event_data = create_meta_v1_2_event_data();
-        let decoded_result = decode_events_json(vec![event_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![event_data]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "MetaV1_2");
+        assert_eq!(decoded_event.event_type, EventType::MetaV1_2);
+
+        let DecodedEvent::MetaV1_2(meta_event) = &decoded_event.decoded_data else {
+            panic!("expected MetaV1_2 decoded data");
+        };
+
+        let meta_event = meta_event.as_ref();
+        assert_eq!(meta_event.sender, Address::from([24u8; 20]));
+        let mut expected_subject = [0u8; 32];
+        expected_subject[12..32].copy_from_slice(&Address::from([25u8; 20])[..]);
+        assert_eq!(meta_event.subject, FixedBytes::<32>::from(expected_subject));
         assert_eq!(
-            decoded_event["decoded_data"]["sender"],
-            "0x1818181818181818181818181818181818181818"
+            meta_event.meta,
+            Bytes::from(vec![0x09, 0x0a, 0x0b, 0x0c, 0x0d])
         );
-        assert_eq!(
-            decoded_event["decoded_data"]["subject"],
-            "0x0000000000000000000000001919191919191919191919191919191919191919"
-        );
-        assert_eq!(decoded_event["decoded_data"]["meta"], "0x090a0b0c0d");
     }
 
     #[test]
@@ -1189,29 +839,24 @@ mod test_helpers {
         unknown_event.topics = vec![unknown_topic];
         unknown_event.data = "0x1234567890abcdef".to_string();
 
-        let decoded_result = decode_events_json(vec![unknown_event]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![unknown_event]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "Unknown");
-        assert_eq!(
-            decoded_event["decoded_data"]["raw_data"],
-            "0x1234567890abcdef"
-        );
-        assert_eq!(
-            decoded_event["decoded_data"]["note"],
-            "Unknown event type - could not decode"
-        );
+        assert_eq!(decoded_event.event_type, EventType::Unknown);
+
+        let DecodedEvent::Unknown(unknown) = &decoded_event.decoded_data else {
+            panic!("expected Unknown decoded data");
+        };
+
+        assert_eq!(unknown.raw_data, "0x1234567890abcdef");
+        assert_eq!(unknown.note, "Unknown event type - could not decode");
     }
 
     #[test]
     fn test_empty_events_array() {
-        let decoded_result = decode_events_json(Vec::new());
-
-        let decoded_events = decoded_result.as_array().unwrap();
-        assert_eq!(decoded_events.len(), 0);
+        let decoded_events = decode_events_vec(Vec::new());
+        assert!(decoded_events.is_empty());
     }
 
     #[test]
@@ -1220,10 +865,8 @@ mod test_helpers {
         event_empty_topics.topics.clear();
         event_empty_topics.data = "0x1234567890abcdef".to_string();
 
-        let decoded_result = decode_events_json(vec![event_empty_topics]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
-        assert_eq!(decoded_events.len(), 0);
+        let decoded_events = decode_events_vec(vec![event_empty_topics]);
+        assert!(decoded_events.is_empty());
     }
 
     #[test]
@@ -1231,10 +874,8 @@ mod test_helpers {
         let mut event_no_data = create_add_order_v3_event_data();
         event_no_data.data = String::new();
 
-        let decoded_result = decode_events_json(vec![event_no_data]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
-        assert_eq!(decoded_events.len(), 0);
+        let decoded_events = decode_events_vec(vec![event_no_data]);
+        assert!(decoded_events.is_empty());
     }
 
     #[test]
@@ -1245,17 +886,15 @@ mod test_helpers {
         minimal_event.transaction_hash.clear();
         minimal_event.log_index.clear();
 
-        let decoded_result = decode_events_json(vec![minimal_event]);
-
-        let decoded_events = decoded_result.as_array().unwrap();
+        let decoded_events = decode_events_vec(vec![minimal_event]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event["event_type"], "AddOrderV3");
-        assert_eq!(decoded_event["block_number"], "0x0");
-        assert_eq!(decoded_event["block_timestamp"], "0x0");
-        assert_eq!(decoded_event["transaction_hash"], "");
-        assert_eq!(decoded_event["log_index"], "0x0");
+        assert_eq!(decoded_event.event_type, EventType::AddOrderV3);
+        assert_eq!(decoded_event.block_number, "0x0");
+        assert_eq!(decoded_event.block_timestamp, "0x0");
+        assert_eq!(decoded_event.transaction_hash, "");
+        assert_eq!(decoded_event.log_index, "0x0");
     }
 
     #[test]
@@ -1273,14 +912,9 @@ mod test_helpers {
         };
 
         let clear_event = build_clear_log(sender, alice_order, bob_order, clear_config);
-        let result = decode_events(&[clear_event]);
-
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert!(matches!(
-            error,
-            DecodeError::AliceInputIOIndexOutOfBounds { index: 5, max: 2 }
-        ));
+        let result = decode_events(&[clear_event]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
     }
 
     #[test]
@@ -1298,14 +932,9 @@ mod test_helpers {
         };
 
         let clear_event = build_clear_log(sender, alice_order, bob_order, clear_config);
-        let result = decode_events(&[clear_event]);
-
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert!(matches!(
-            error,
-            DecodeError::AliceOutputIOIndexOutOfBounds { index: 3, max: 1 }
-        ));
+        let result = decode_events(&[clear_event]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
     }
 
     #[test]
@@ -1323,14 +952,9 @@ mod test_helpers {
         };
 
         let clear_event = build_clear_log(sender, alice_order, bob_order, clear_config);
-        let result = decode_events(&[clear_event]);
-
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert!(matches!(
-            error,
-            DecodeError::BobInputIOIndexOutOfBounds { index: 10, max: 2 }
-        ));
+        let result = decode_events(&[clear_event]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
     }
 
     #[test]
@@ -1347,14 +971,9 @@ mod test_helpers {
             bobBountyVaultId: U256::from(0).into(),
         };
         let clear_event = build_clear_log(sender, alice_order, bob_order, clear_config);
-        let result = decode_events(&[clear_event]);
-
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert!(matches!(
-            error,
-            DecodeError::BobOutputIOIndexOutOfBounds { index: 7, max: 1 }
-        ));
+        let result = decode_events(&[clear_event]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
     }
 
     #[test]
@@ -1372,13 +991,8 @@ mod test_helpers {
             bobBountyVaultId: U256::from(0).into(),
         };
         let clear_event = build_clear_log(sender, alice_order, bob_order, clear_config);
-        let result = decode_events(&[clear_event]);
-
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert!(matches!(
-            error,
-            DecodeError::AliceInputIOIndexOutOfBounds { index: 0, max: 0 }
-        ));
+        let result = decode_events(&[clear_event]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
     }
 }
