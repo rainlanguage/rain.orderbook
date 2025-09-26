@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::hyper_rpc::HyperRpcError;
+use rain_orderbook_common::hyper_rpc::{HyperRpcError, LogEntryResponse};
 use rain_orderbook_common::raindex_client::sqlite_web::{SqliteWeb, SqliteWebError};
 use std::fs::File;
 use std::io::Write;
@@ -13,7 +13,7 @@ pub trait EventClient {
         address: &str,
         start_block: u64,
         end_block: u64,
-    ) -> Result<serde_json::Value, SqliteWebError>;
+    ) -> Result<Vec<LogEntryResponse>, SqliteWebError>;
 }
 
 #[async_trait::async_trait]
@@ -27,7 +27,7 @@ impl EventClient for SqliteWeb {
         address: &str,
         start_block: u64,
         end_block: u64,
-    ) -> Result<serde_json::Value, SqliteWebError> {
+    ) -> Result<Vec<LogEntryResponse>, SqliteWebError> {
         self.fetch_events(address, start_block, end_block).await
     }
 }
@@ -86,13 +86,27 @@ impl FetchEvents {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
     use tempfile::NamedTempFile;
+
+    fn sample_event(block_number: &str) -> LogEntryResponse {
+        LogEntryResponse {
+            address: "0x123".to_string(),
+            topics: vec!["0xabc".to_string()],
+            data: "0xdeadbeef".to_string(),
+            block_number: block_number.to_string(),
+            block_timestamp: Some("0x0".to_string()),
+            transaction_hash: "0xtransaction".to_string(),
+            transaction_index: "0x0".to_string(),
+            block_hash: "0xblock".to_string(),
+            log_index: "0x0".to_string(),
+            removed: false,
+        }
+    }
 
     struct MockEventClient {
         latest_block: Option<u64>,
         latest_block_error: Option<String>,
-        events: Option<serde_json::Value>,
+        events: Option<Vec<LogEntryResponse>>,
         events_error: Option<String>,
     }
 
@@ -116,7 +130,7 @@ mod tests {
             self
         }
 
-        fn with_events(mut self, events: serde_json::Value) -> Self {
+        fn with_events(mut self, events: Vec<LogEntryResponse>) -> Self {
             self.events = Some(events);
             self
         }
@@ -144,13 +158,13 @@ mod tests {
             _address: &str,
             _start_block: u64,
             _end_block: u64,
-        ) -> Result<serde_json::Value, SqliteWebError> {
+        ) -> Result<Vec<LogEntryResponse>, SqliteWebError> {
             if let Some(error) = &self.events_error {
                 Err(SqliteWebError::Config {
                     message: error.clone(),
                 })
             } else {
-                Ok(self.events.clone().unwrap_or_else(|| json!([])))
+                Ok(self.events.clone().unwrap_or_default())
             }
         }
     }
@@ -169,8 +183,7 @@ mod tests {
             output_file: Some(temp_path.clone()),
         };
 
-        let mock_client =
-            MockEventClient::new().with_events(json!([{"blockNumber": "0x64", "data": "test"}]));
+        let mock_client = MockEventClient::new().with_events(vec![sample_event("0x64")]);
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
@@ -196,7 +209,7 @@ mod tests {
 
         let mock_client = MockEventClient::new()
             .with_latest_block(500)
-            .with_events(json!([{"blockNumber": "0x1f4", "data": "test"}]));
+            .with_events(vec![sample_event("0x1f4")]);
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
@@ -261,7 +274,7 @@ mod tests {
             output_file: None,
         };
 
-        let mock_client = MockEventClient::new().with_events(json!([]));
+        let mock_client = MockEventClient::new().with_events(vec![]);
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
