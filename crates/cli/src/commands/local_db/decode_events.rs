@@ -1,6 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::raindex_client::sqlite_web::decode::decode_events;
+use rain_orderbook_common::{
+    hyper_rpc::LogEntryResponse, raindex_client::sqlite_web::decode::decode_events,
+};
 use std::fs::File;
 use std::io::{BufReader, Write};
 
@@ -19,13 +21,11 @@ impl DecodeEvents {
 
         let file = File::open(&self.input_file)?;
         let reader = BufReader::new(file);
-        let events: Vec<serde_json::Value> = serde_json::from_reader(reader)?;
+        let events: Vec<LogEntryResponse> = serde_json::from_reader(reader)?;
 
         println!("Processing {} events...", events.len());
 
-        let events_value = serde_json::Value::Array(events);
-
-        let decoded_result = decode_events(events_value)
+        let decoded_result = decode_events(&events)
             .map_err(|e| anyhow::anyhow!("Failed to decode events: {}", e))?;
 
         let output_filename = self
@@ -43,9 +43,25 @@ impl DecodeEvents {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use rain_orderbook_common::hyper_rpc::LogEntryResponse;
     use std::fs;
     use tempfile::TempDir;
+
+    fn sample_event(index: u32) -> LogEntryResponse {
+        let hex_index = format!("0x{:x}", index + 1);
+        LogEntryResponse {
+            address: "0x0000000000000000000000000000000000000000".to_string(),
+            topics: vec![format!("0x{:064x}", index + 1)],
+            data: format!("0x{:064x}", index + 42),
+            block_number: hex_index.clone(),
+            block_timestamp: Some(hex_index.clone()),
+            transaction_hash: format!("0x{:064x}", index + 100),
+            transaction_index: "0x0".to_string(),
+            block_hash: format!("0x{:064x}", index + 200),
+            log_index: "0x0".to_string(),
+            removed: false,
+        }
+    }
 
     #[tokio::test]
     async fn test_execute_with_custom_output_file() -> Result<()> {
@@ -53,7 +69,7 @@ mod tests {
         let input_file = temp_dir.path().join("input.json");
         let output_file = temp_dir.path().join("custom_output.json");
 
-        let test_events = vec![json!({"type": "test_event", "data": {"value": 123}})];
+        let test_events = vec![sample_event(0)];
 
         fs::write(&input_file, serde_json::to_string(&test_events)?)?;
 
@@ -79,7 +95,7 @@ mod tests {
         let input_file = temp_dir.path().join("input.json");
         let expected_output = temp_dir.path().join("decoded_events.json");
 
-        let test_events = vec![json!({"type": "test_event", "data": {"value": 456}})];
+        let test_events = vec![sample_event(1)];
 
         fs::write(&input_file, serde_json::to_string(&test_events)?)?;
 
@@ -112,7 +128,7 @@ mod tests {
         let input_file = temp_dir.path().join("empty_input.json");
         let output_file = temp_dir.path().join("empty_output.json");
 
-        let empty_events: Vec<serde_json::Value> = vec![];
+        let empty_events: Vec<LogEntryResponse> = vec![];
         fs::write(&input_file, serde_json::to_string(&empty_events)?)?;
 
         let cmd = DecodeEvents {
@@ -137,11 +153,7 @@ mod tests {
         let input_file = temp_dir.path().join("multi_input.json");
         let output_file = temp_dir.path().join("multi_output.json");
 
-        let test_events = vec![
-            json!({"type": "event1", "data": "test1"}),
-            json!({"type": "event2", "data": "test2"}),
-            json!({"type": "event3", "data": {"nested": true}}),
-        ];
+        let test_events = vec![sample_event(1), sample_event(2), sample_event(3)];
 
         fs::write(&input_file, serde_json::to_string(&test_events)?)?;
 
