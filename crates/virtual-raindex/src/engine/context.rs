@@ -1,3 +1,5 @@
+//! Helpers for constructing interpreter context grids passed to Rain evals.
+
 use alloy::primitives::{Address, B256, U256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, SignedContextV1, IOV2};
@@ -19,6 +21,7 @@ where
     C: CodeCache,
     H: host::InterpreterHost,
 {
+    /// Constructs the base context for order post tasks.
     pub(super) fn build_post_context(&self, order: &OrderV4) -> Vec<Vec<B256>> {
         let order_hash = state::order_hash(order);
         vec![vec![order_hash, order.owner.into_word()]]
@@ -64,6 +67,7 @@ where
         self.build_context(base_columns, signed_context, counterparty)
     }
 
+    /// Finalizes the context grid by prepending global metadata and signed blobs.
     pub(super) fn build_context(
         &self,
         base_columns: Vec<Vec<B256>>,
@@ -98,6 +102,7 @@ where
     }
 }
 
+/// Returns the namespace tuple used for interpreter state writes for a given order.
 pub(super) fn namespace_for_order(order: &OrderV4, orderbook: Address) -> (U256, B256) {
     let state_namespace = address_to_u256(order.owner);
     let qualified = state::derive_fqn(state_namespace, orderbook);
@@ -105,6 +110,7 @@ pub(super) fn namespace_for_order(order: &OrderV4, orderbook: Address) -> (U256,
     (namespace, qualified)
 }
 
+/// Convenience helper for encoding a `u8` value as a `B256` word.
 pub(super) fn u8_to_b256(value: u8) -> B256 {
     B256::from(U256::from(value))
 }

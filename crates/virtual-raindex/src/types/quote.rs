@@ -25,6 +25,7 @@ pub struct QuoteRequest {
 }
 
 impl QuoteRequest {
+    /// Creates a quote request for the given order reference and IO indices.
     pub fn new(
         order: OrderRef,
         input_io_index: usize,
@@ -41,11 +42,13 @@ impl QuoteRequest {
         }
     }
 
+    /// Sets signed context payloads to append to the interpreter context grid.
     pub fn with_signed_context(mut self, signed_context: Vec<SignedContextV1>) -> Self {
         self.signed_context = signed_context;
         self
     }
 
+    /// Applies temporary store overrides used during evaluation.
     pub fn with_overrides(mut self, overrides: Vec<StoreOverride>) -> Self {
         self.overrides = overrides;
         self

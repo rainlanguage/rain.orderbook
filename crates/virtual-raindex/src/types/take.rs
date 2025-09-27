@@ -6,6 +6,7 @@ use crate::state::RaindexMutation;
 
 use super::OrderRef;
 
+/// Configuration for taking a specific order instance.
 #[derive(Clone, Debug)]
 pub struct TakeOrder {
     pub order: OrderRef,
@@ -14,6 +15,7 @@ pub struct TakeOrder {
     pub signed_context: Vec<SignedContextV1>,
 }
 
+/// Payload describing a take orders batch execution.
 #[derive(Clone, Debug)]
 pub struct TakeOrdersConfig {
     pub orders: Vec<TakeOrder>,
@@ -25,6 +27,7 @@ pub struct TakeOrdersConfig {
     pub data: Vec<u8>,
 }
 
+/// Non-fatal issues encountered while attempting to take orders.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TakeOrderWarning {
     OrderNotFound { order_hash: B256 },
@@ -32,6 +35,7 @@ pub enum TakeOrderWarning {
     ZeroAmount { order_hash: B256 },
 }
 
+/// Individual order execution result.
 #[derive(Clone, Debug)]
 pub struct TakenOrder {
     pub order_hash: B256,
@@ -39,6 +43,7 @@ pub struct TakenOrder {
     pub output: Float,
 }
 
+/// Aggregate result returned by `take_orders` operations.
 #[derive(Clone, Debug)]
 pub struct TakeOrdersOutcome {
     pub total_input: Float,

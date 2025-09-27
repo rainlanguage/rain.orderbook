@@ -1,3 +1,5 @@
+//! Take order execution flow for the Virtual Raindex.
+
 use std::{
     collections::HashMap,
     ops::{Mul, Neg},
@@ -23,6 +25,7 @@ use super::{
     VirtualRaindex,
 };
 
+/// Simulates taking orders against the virtual state and returns the computed outcome.
 pub(super) fn take_orders<C, H>(
     raindex: &VirtualRaindex<C, H>,
     config: TakeOrdersConfig,
@@ -238,6 +241,7 @@ where
     })
 }
 
+/// Runs [`take_orders`] and applies the resulting mutations to the live state.
 pub(super) fn take_orders_and_apply_state<C, H>(
     raindex: &mut VirtualRaindex<C, H>,
     config: TakeOrdersConfig,
@@ -254,6 +258,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Executes calculate-io for a specific IO pair and returns the interpreter result.
 fn calculate_order_io_for_take<C, H>(
     raindex: &VirtualRaindex<C, H>,
     working_state: &state::RaindexState,
@@ -320,6 +325,7 @@ where
     run_calculate_io(raindex, store_snapshot, order, context, output_balance)
 }
 
+/// Runs the interpreter calculate entrypoint and captures its outputs and writes.
 fn run_calculate_io<C, H>(
     raindex: &VirtualRaindex<C, H>,
     store_snapshot: &HashMap<StoreKey, B256>,
@@ -375,6 +381,7 @@ where
     })
 }
 
+/// Applies the taker input/output adjustments to the working state and records deltas.
 fn apply_vault_updates(
     working_state: &mut state::RaindexState,
     order: &OrderV4,
@@ -415,6 +422,7 @@ fn apply_vault_updates(
     Ok(())
 }
 
+/// Validates that supplied IO indices are within bounds for the order.
 fn validate_io_indices(take_order: &TakeOrder, order: &OrderV4) -> Result<()> {
     if take_order.input_io_index >= order.validInputs.len() {
         return Err(RaindexError::InvalidInputIndex {
@@ -431,6 +439,7 @@ fn validate_io_indices(take_order: &TakeOrder, order: &OrderV4) -> Result<()> {
     Ok(())
 }
 
+/// Applies store writes produced by interpreter executions onto the snapshot.
 pub(super) fn apply_store_writes(
     store: &mut HashMap<StoreKey, B256>,
     store_address: Address,
@@ -442,6 +451,7 @@ pub(super) fn apply_store_writes(
     }
 }
 
+/// Converts a flat write buffer into key/value pairs, ensuring even length.
 pub(super) fn writes_to_pairs(writes: &[B256]) -> Result<Vec<(B256, B256)>> {
     if writes.len() % 2 != 0 {
         return Err(RaindexError::Unimplemented(
@@ -452,6 +462,7 @@ pub(super) fn writes_to_pairs(writes: &[B256]) -> Result<Vec<(B256, B256)>> {
     Ok(writes.chunks(2).map(|chunk| (chunk[0], chunk[1])).collect())
 }
 
+/// Sets the balance diff entry for a context column, resizing if needed.
 pub(super) fn set_balance_diff_column(column: &mut Vec<B256>, value: B256) {
     if column.len() < CONTEXT_VAULT_IO_BALANCE_DIFF_ROW {
         column.resize(CONTEXT_VAULT_IO_BALANCE_DIFF_ROW, B256::ZERO);
@@ -459,6 +470,7 @@ pub(super) fn set_balance_diff_column(column: &mut Vec<B256>, value: B256) {
     column[CONTEXT_VAULT_IO_BALANCE_DIFF_ROW - 1] = value;
 }
 
+/// Internal representation of calculate-io results for an order.
 #[derive(Clone)]
 struct OrderCalculation {
     order: OrderV4,

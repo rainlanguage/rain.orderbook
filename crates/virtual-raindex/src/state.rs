@@ -1,3 +1,5 @@
+//! Virtual Raindex state representation and mutation helpers.
+
 use std::collections::HashMap;
 
 use alloy::{
@@ -112,6 +114,7 @@ pub struct TokenDecimalEntry {
     pub decimals: u8,
 }
 
+/// In-memory state backing a [`VirtualRaindex`](crate::VirtualRaindex) instance.
 #[derive(Clone, Debug, Default)]
 pub struct RaindexState {
     pub env: Env,
@@ -122,6 +125,7 @@ pub struct RaindexState {
 }
 
 impl RaindexState {
+    /// Captures a full copy of the current state for inspection or serialization.
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
             env: self.env,
@@ -132,6 +136,7 @@ impl RaindexState {
         }
     }
 
+    /// Applies a batch of mutations, recursing through nested batches as needed.
     pub fn apply_mutations(&mut self, mutations: &[RaindexMutation]) -> Result<()> {
         for mutation in mutations {
             match mutation {
@@ -182,6 +187,7 @@ impl RaindexState {
         Ok(())
     }
 
+    /// Applies a single vault balance delta to the state.
     fn apply_vault_delta(&mut self, delta: &VaultDelta) -> Result<()> {
         let key = VaultKey::new(delta.owner, delta.token, delta.vault_id);
         let entry = self.vault_balances.entry(key).or_default();
@@ -191,10 +197,12 @@ impl RaindexState {
     }
 }
 
+/// Computes the canonical hash for an [`OrderV4`].
 pub fn order_hash(order: &OrderV4) -> B256 {
     keccak256(order.abi_encode())
 }
 
+/// Derives the fully-qualified namespace for a Rain interpreter store namespace.
 pub fn derive_fqn(namespace: U256, caller: Address) -> B256 {
     keccak256((namespace, caller).abi_encode())
 }

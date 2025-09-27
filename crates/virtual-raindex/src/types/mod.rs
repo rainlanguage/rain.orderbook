@@ -1,3 +1,5 @@
+//! Shared data structures used by the Virtual Raindex engine.
+
 mod order_ref;
 pub mod quote;
 pub mod take;

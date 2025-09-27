@@ -1,4 +1,7 @@
-//! Virtual Raindex core primitives and interpreter host glue.
+//! Core primitives for executing Rain Orderbook flows entirely in memory.
+//!
+//! The crate exposes the [`VirtualRaindex`] engine, interpreter host adapters, state
+//! management utilities, and supporting types used to quote and take orders.
 
 mod cache;
 mod engine;

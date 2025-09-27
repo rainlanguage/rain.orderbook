@@ -1,3 +1,5 @@
+//! Quote calculation pipeline for Virtual Raindex orders.
+
 use std::collections::HashMap;
 
 use alloy::primitives::{B256, U256};
@@ -13,6 +15,7 @@ use crate::{
 
 use super::{address_to_u256, VirtualRaindex};
 
+/// Computes a quote for a specific IO pairing on an order reference.
 pub(super) fn quote<C, H>(raindex: &VirtualRaindex<C, H>, request: QuoteRequest) -> Result<Quote>
 where
     C: CodeCache,
@@ -141,6 +144,7 @@ where
     })
 }
 
+/// Applies temporary store overrides to a snapshot before interpreter execution.
 fn apply_overrides(store_snapshot: &mut HashMap<StoreKey, B256>, overrides: Vec<StoreOverride>) {
     for override_entry in overrides {
         let key = StoreKey::new(override_entry.store, override_entry.fqn, override_entry.key);

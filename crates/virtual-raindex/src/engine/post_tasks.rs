@@ -1,3 +1,5 @@
+//! Helpers for executing post-order tasks inside the Virtual Raindex.
+
 use alloy::primitives::U256;
 use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, TaskV2};
@@ -11,6 +13,7 @@ use crate::{
 
 use super::{context::namespace_for_order, mutations::ensure_vault_entries, VirtualRaindex};
 
+/// Adds an order to state and executes associated post tasks within the same transaction.
 pub(super) fn add_order<C, H>(
     raindex: &mut VirtualRaindex<C, H>,
     order: OrderV4,
@@ -37,6 +40,7 @@ where
     Ok(())
 }
 
+/// Validates that all bytecode needed to execute a post task is cached.
 fn ensure_task_bytecode<C: CodeCache>(code_cache: &C, task: &TaskV2) -> Result<()> {
     let interpreter = task.evaluable.interpreter;
     if code_cache.interpreter(interpreter).is_none() {
@@ -57,6 +61,7 @@ fn ensure_task_bytecode<C: CodeCache>(code_cache: &C, task: &TaskV2) -> Result<(
     Ok(())
 }
 
+/// Executes post tasks against the provided state snapshot, writing any store updates.
 pub(super) fn run_post_tasks<C, H>(
     raindex: &VirtualRaindex<C, H>,
     state: &mut state::RaindexState,

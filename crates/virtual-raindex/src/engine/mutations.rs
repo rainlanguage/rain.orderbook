@@ -1,3 +1,5 @@
+//! Pre-processing for state mutations applied to the Virtual Raindex.
+
 use rain_orderbook_bindings::IOrderBookV5::OrderV4;
 
 use crate::{
@@ -13,6 +15,7 @@ where
     C: CodeCache,
     H: crate::host::InterpreterHost,
 {
+    /// Ensures all resources referenced in the mutation batch are available before applying them.
     pub(super) fn prepare_mutations(&self, mutations: &[RaindexMutation]) -> Result<()> {
         for mutation in mutations {
             match mutation {
@@ -28,6 +31,7 @@ where
         Ok(())
     }
 
+    /// Ensures the state has baseline entries needed to process an order.
     pub(super) fn ensure_order_context(
         &self,
         state: &mut state::RaindexState,
@@ -38,6 +42,7 @@ where
     }
 }
 
+/// Adds empty vault balance entries for every output vault referenced by the order.
 pub(super) fn ensure_vault_entries(state: &mut state::RaindexState, order: &OrderV4) {
     for io in &order.validOutputs {
         state

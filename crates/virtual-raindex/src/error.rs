@@ -1,8 +1,11 @@
+//! Error types surfaced by the Virtual Raindex crate.
+
 use std::{error::Error, fmt};
 
 use alloy::primitives::{Address, B256};
 use rain_math_float::{Float, FloatError};
 
+/// Convenience alias for fallible Virtual Raindex results.
 pub type Result<T> = std::result::Result<T, RaindexError>;
 
 /// Errors that can occur while working with the Virtual Raindex.

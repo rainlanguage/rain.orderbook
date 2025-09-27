@@ -1,3 +1,5 @@
+//! REVM-backed interpreter host implementation for the Virtual Raindex.
+
 use std::{collections::HashMap, sync::Arc};
 
 use alloy::primitives::{Address, B256, U256};
@@ -21,7 +23,9 @@ use crate::{
     BytecodeKind, RaindexError, Result,
 };
 
+/// Abstraction for running interpreter bytecode.
 pub trait InterpreterHost: Send + Sync {
+    /// Executes the Rain interpreter `eval4` entrypoint with the provided inputs.
     fn eval4(
         &self,
         interpreter: Address,
@@ -31,12 +35,14 @@ pub trait InterpreterHost: Send + Sync {
     ) -> Result<EvalOutcome>;
 }
 
+/// Successful outputs captured from an interpreter evaluation.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct EvalOutcome {
     pub stack: Vec<B256>,
     pub writes: Vec<B256>,
 }
 
+/// REVM-backed implementation of [`InterpreterHost`].
 pub struct RevmInterpreterHost<C>
 where
     C: CodeCache,
@@ -49,6 +55,7 @@ impl<C> RevmInterpreterHost<C>
 where
     C: CodeCache,
 {
+    /// Creates a new host using the provided bytecode cache as its backing source.
     pub fn new(code_cache: Arc<C>) -> Self {
         Self {
             code_cache,
@@ -61,6 +68,7 @@ impl<C> InterpreterHost for RevmInterpreterHost<C>
 where
     C: CodeCache,
 {
+    /// Executes interpreter bytecode inside REVM, loading artifacts on demand.
     fn eval4(
         &self,
         interpreter: Address,
@@ -116,12 +124,14 @@ impl<C> RevmInterpreterHost<C>
 where
     C: CodeCache,
 {
+    /// Ensures interpreter and store bytecode are present in the REVM database.
     fn ensure_code_loaded(&self, interpreter: Address, store: Address) -> Result<()> {
         let mut db = self.base_db.write();
         self.ensure_contract(&mut db, interpreter, BytecodeKind::Interpreter)?;
         self.ensure_contract(&mut db, store, BytecodeKind::Store)
     }
 
+    /// Loads bytecode into the REVM cache if the account is not yet present.
     fn ensure_contract(
         &self,
         db: &mut InMemoryDB,
@@ -145,6 +155,7 @@ where
     }
 }
 
+/// Builds the state overlay vector expected by the interpreter for a namespace.
 fn build_state_overlay(
     snapshot: &HashMap<StoreKey, B256>,
     store_address: Address,
@@ -162,6 +173,7 @@ fn build_state_overlay(
     overlay
 }
 
+/// Convenience helper for translating `Address` into the REVM representation.
 fn to_revm_address(address: Address) -> RevmAddress {
     RevmAddress::from_slice(address.as_slice())
 }
