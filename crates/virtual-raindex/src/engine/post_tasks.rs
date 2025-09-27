@@ -1,4 +1,4 @@
-use alloy::primitives::{Address, U256};
+use alloy::primitives::U256;
 use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, TaskV2};
 
@@ -38,7 +38,7 @@ where
 }
 
 fn ensure_task_bytecode<C: CodeCache>(code_cache: &C, task: &TaskV2) -> Result<()> {
-    let interpreter = Address::from(task.evaluable.interpreter);
+    let interpreter = task.evaluable.interpreter;
     if code_cache.interpreter(interpreter).is_none() {
         return Err(RaindexError::MissingBytecode {
             address: interpreter,
@@ -46,7 +46,7 @@ fn ensure_task_bytecode<C: CodeCache>(code_cache: &C, task: &TaskV2) -> Result<(
         });
     }
 
-    let store = Address::from(task.evaluable.store);
+    let store = task.evaluable.store;
     if code_cache.store(store).is_none() {
         return Err(RaindexError::MissingBytecode {
             address: store,

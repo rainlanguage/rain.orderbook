@@ -53,14 +53,14 @@ impl CodeCache for StaticCodeCache {
     }
 
     fn ensure_artifacts(&self, order: &OrderV4) -> Result<()> {
-        let interpreter = Address::from(order.evaluable.interpreter);
+        let interpreter = order.evaluable.interpreter;
         if self.interpreter(interpreter).is_none() {
             return Err(RaindexError::MissingBytecode {
                 address: interpreter,
                 kind: BytecodeKind::Interpreter,
             });
         }
-        let store = Address::from(order.evaluable.store);
+        let store = order.evaluable.store;
         if self.store(store).is_none() {
             return Err(RaindexError::MissingBytecode {
                 address: store,

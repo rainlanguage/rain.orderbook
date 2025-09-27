@@ -101,8 +101,8 @@ where
                 let returns = eval4Call::abi_decode_returns(bytes.as_ref())
                     .map_err(|err| RaindexError::RevmExecution(err.to_string()))?;
                 Ok(EvalOutcome {
-                    stack: returns.stack.into_iter().map(B256::from).collect(),
-                    writes: returns.writes.into_iter().map(B256::from).collect(),
+                    stack: returns.stack,
+                    writes: returns.writes,
                 })
             }
             other => Err(RaindexError::RevmExecution(format!(

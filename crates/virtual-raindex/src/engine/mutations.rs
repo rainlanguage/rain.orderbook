@@ -1,4 +1,3 @@
-use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::OrderV4;
 
 use crate::{
@@ -44,6 +43,6 @@ pub(super) fn ensure_vault_entries(state: &mut state::RaindexState, order: &Orde
         state
             .vault_balances
             .entry(VaultKey::new(order.owner, io.token, io.vaultId))
-            .or_insert_with(Float::default);
+            .or_default();
     }
 }

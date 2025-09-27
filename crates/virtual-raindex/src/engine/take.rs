@@ -50,7 +50,7 @@ where
 
     let mut total_input = Float::default();
     let mut total_output = Float::default();
-    let mut remaining_input = config.maximum_input.clone();
+    let mut remaining_input = config.maximum_input;
     let mut taken = Vec::new();
     let mut warnings = Vec::new();
     let mut vault_deltas = Vec::new();
@@ -99,7 +99,7 @@ where
             &take_order.signed_context,
         )?;
 
-        if calculation.io_ratio.gt(config.maximum_io_ratio.clone())? {
+        if calculation.io_ratio.gt(config.maximum_io_ratio)? {
             warnings.push(TakeOrderWarning::RatioExceeded {
                 order_hash: state::order_hash(&resolved_order),
             });
@@ -113,16 +113,16 @@ where
             continue;
         }
 
-        let taker_input = calculation.output_max.min(remaining_input.clone())?;
+        let taker_input = calculation.output_max.min(remaining_input)?;
         if taker_input.is_zero()? {
             continue;
         }
 
-        let taker_output = calculation.io_ratio.clone().mul(taker_input.clone())?;
+        let taker_output = calculation.io_ratio.mul(taker_input)?;
 
-        total_input = (total_input + taker_input.clone())?;
-        total_output = (total_output + taker_output.clone())?;
-        remaining_input = (remaining_input - taker_input.clone())?;
+        total_input = (total_input + taker_input)?;
+        total_output = (total_output + taker_output)?;
+        remaining_input = (remaining_input - taker_input)?;
 
         let mut context = calculation.context.clone();
         set_balance_diff_column(
@@ -140,8 +140,8 @@ where
             &resolved_order,
             input_io,
             output_io,
-            taker_output.clone(),
-            taker_input.clone(),
+            taker_output,
+            taker_input,
             &mut vault_deltas,
         )?;
 
@@ -174,7 +174,7 @@ where
                 namespace: calculation.namespace,
                 bytecode: calculation.order.evaluable.bytecode.clone(),
                 sourceIndex: U256::from(HANDLE_IO_ENTRYPOINT),
-                context: context,
+                context,
                 inputs: Vec::new(),
                 stateOverlay: Vec::new(),
             },
@@ -210,7 +210,7 @@ where
         });
     }
 
-    if total_input.lt(config.minimum_input.clone())? {
+    if total_input.lt(config.minimum_input)? {
         return Err(RaindexError::MinimumInputNotMet {
             minimum: config.minimum_input,
             actual: total_input,
@@ -253,6 +253,7 @@ where
     Ok(outcome)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn calculate_order_io_for_take<C, H>(
     raindex: &VirtualRaindex<C, H>,
     working_state: &state::RaindexState,
@@ -384,27 +385,19 @@ fn apply_vault_updates(
     vault_deltas: &mut Vec<VaultDelta>,
 ) -> Result<()> {
     let input_key = VaultKey::new(order.owner, input_io.token, input_io.vaultId);
-    let input_balance = working_state
-        .vault_balances
-        .entry(input_key)
-        .or_insert_with(Float::default)
-        .clone();
-    let new_input_balance = (input_balance + taker_output.clone())?;
+    let input_balance = *working_state.vault_balances.entry(input_key).or_default();
+    let new_input_balance = (input_balance + taker_output)?;
     working_state
         .vault_balances
-        .insert(input_key, new_input_balance.clone());
+        .insert(input_key, new_input_balance);
 
-    let negative_taker_input = taker_input.clone().neg()?;
+    let negative_taker_input = taker_input.neg()?;
     let output_key = VaultKey::new(order.owner, output_io.token, output_io.vaultId);
-    let output_balance = working_state
-        .vault_balances
-        .entry(output_key)
-        .or_insert_with(Float::default)
-        .clone();
-    let new_output_balance = (output_balance + negative_taker_input.clone())?;
+    let output_balance = *working_state.vault_balances.entry(output_key).or_default();
+    let new_output_balance = (output_balance + negative_taker_input)?;
     working_state
         .vault_balances
-        .insert(output_key, new_output_balance.clone());
+        .insert(output_key, new_output_balance);
 
     vault_deltas.push(VaultDelta {
         owner: order.owner,

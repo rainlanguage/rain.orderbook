@@ -24,6 +24,7 @@ where
         vec![vec![order_hash, order.owner.into_word()]]
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn build_quote_context(
         &self,
         order_hash: B256,
@@ -79,7 +80,7 @@ where
         );
 
         context.push(vec![counterparty.into_word(), self.orderbook.into_word()]);
-        context.extend(base_columns.into_iter());
+        context.extend(base_columns);
 
         if !signed_context.is_empty() {
             let mut signers = Vec::with_capacity(signed_context.len());

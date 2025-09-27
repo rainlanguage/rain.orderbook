@@ -49,25 +49,13 @@ impl StoreKey {
 }
 
 /// Serialized representation of the Virtual Raindex state.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Snapshot {
     pub env: Env,
     pub orders: HashMap<B256, OrderV4>,
     pub vault_balances: HashMap<VaultKey, Float>,
     pub store: HashMap<StoreKey, B256>,
     pub token_decimals: HashMap<Address, u8>,
-}
-
-impl Default for Snapshot {
-    fn default() -> Self {
-        Self {
-            env: Env::default(),
-            orders: HashMap::new(),
-            vault_balances: HashMap::new(),
-            store: HashMap::new(),
-            token_decimals: HashMap::new(),
-        }
-    }
 }
 
 /// Mutation payloads that describe how to update Virtual Raindex state.
@@ -124,25 +112,13 @@ pub struct TokenDecimalEntry {
     pub decimals: u8,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct RaindexState {
     pub env: Env,
     pub orders: HashMap<B256, OrderV4>,
     pub vault_balances: HashMap<VaultKey, Float>,
     pub store: HashMap<StoreKey, B256>,
     pub token_decimals: HashMap<Address, u8>,
-}
-
-impl Default for RaindexState {
-    fn default() -> Self {
-        Self {
-            env: Env::default(),
-            orders: HashMap::new(),
-            vault_balances: HashMap::new(),
-            store: HashMap::new(),
-            token_decimals: HashMap::new(),
-        }
-    }
 }
 
 impl RaindexState {
@@ -208,10 +184,7 @@ impl RaindexState {
 
     fn apply_vault_delta(&mut self, delta: &VaultDelta) -> Result<()> {
         let key = VaultKey::new(delta.owner, delta.token, delta.vault_id);
-        let entry = self
-            .vault_balances
-            .entry(key)
-            .or_insert_with(Float::default);
+        let entry = self.vault_balances.entry(key).or_default();
         let updated = (*entry + delta.delta)?;
         *entry = updated;
         Ok(())
