@@ -177,6 +177,11 @@
                 chmod +w lib/libusb-1.0.0.dylib
                 install_name_tool -id @executable_path/../Frameworks/libusb-1.0.0.dylib lib/libusb-1.0.0.dylib
                 otool -L lib/libusb-1.0.0.dylib
+
+                cp ${pkgs.bzip2.out}/lib/libbz2.1.dylib lib/libbz2.1.dylib
+                chmod +w lib/libbz2.1.dylib
+                install_name_tool -id @executable_path/../Frameworks/libbz2.1.dylib lib/libbz2.1.dylib
+                otool -L lib/libbz2.1.dylib
               fi
             '';
           };
@@ -192,6 +197,7 @@
                 install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.2.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.libusb1}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.bzip2.out}/lib/libbz2.1.dylib @executable_path/../Frameworks/libbz2.1.dylib src-tauri/target/release/Raindex
 
                 otool -L src-tauri/target/release/Raindex
                 grep_exit_code=0
