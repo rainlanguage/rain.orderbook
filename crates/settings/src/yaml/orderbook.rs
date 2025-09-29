@@ -408,7 +408,7 @@ mod tests {
     use url::Url;
 
     const FULL_YAML: &str = r#"
-    version: 2
+    version: 3
     networks:
         mainnet:
             rpcs:
@@ -435,6 +435,7 @@ mod tests {
             network: mainnet
             subgraph: mainnet
             label: Primary Orderbook
+            deployment-block: 12345
     tokens:
         token1:
             network: mainnet
@@ -465,6 +466,7 @@ mod tests {
     orderbooks:
         orderbook1:
             address: 0x1234567890abcdef
+            deployment-block: 12345
     tokens:
         token1:
             network: mainnet
@@ -831,13 +833,16 @@ test: test
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
             subgraph: mainnet
+            deployment-block: 12345
         other-orderbook:
             address: 0x1234567890123456789012345678901234567891
             network: mainnet
             subgraph: mainnet
+            deployment-block: 12345
         polygon-orderbook:
             address: 0x0987654321098765432109876543210987654321
             network: polygon
+            deployment-block: 12345
             subgraph: mainnet
     "#,
             spec_version = SpecVersion::current()

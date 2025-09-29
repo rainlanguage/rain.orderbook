@@ -199,6 +199,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -406,6 +407,7 @@ orderbooks:
     address: 0x0000000000000000000000000000000000000000
     network: some-network
     subgraph: some-subgraph
+    deployment-block: 12345
 deployers:
   some-deployer:
     network: some-network
@@ -476,6 +478,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
