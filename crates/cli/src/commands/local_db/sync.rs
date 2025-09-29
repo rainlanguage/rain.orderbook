@@ -3,6 +3,14 @@ use alloy::primitives::Address;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use clap::Parser;
+use rain_orderbook_app_settings::{
+    network::NetworkCfg,
+    orderbook::OrderbookCfg,
+    yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlParsable,
+    },
+};
 use rain_orderbook_common::erc20::TokenInfo;
 use rain_orderbook_common::raindex_client::local_db::helpers::patch_deposit_amounts_with_decimals;
 use rain_orderbook_common::raindex_client::local_db::insert::generate_erc20_tokens_sql;
@@ -119,30 +127,15 @@ pub struct SyncLocalDb {
 
     #[clap(
         long,
-        help = "Orderbook contract address to index",
-        value_name = "0xADDRESS"
+        help = "Git commit hash of the rain.orderbook repository used to resolve remote settings"
     )]
-    pub orderbook_address: String,
-
-    #[clap(long, help = "Deployment block used when DB is empty")]
-    pub deployment_block: u64,
+    pub repo_commit: String,
 
     #[clap(long, help = "Optional override for start block")]
     pub start_block: Option<u64>,
 
     #[clap(long, help = "Optional override for end block")]
     pub end_block: Option<u64>,
-
-    #[clap(long, help = "Hyperlane API token (used if no --rpc values provided)")]
-    pub api_token: Option<String>,
-
-    #[clap(
-        long,
-        action = clap::ArgAction::Append,
-        value_name = "URL",
-        help = "Direct RPC URL(s); repeat to provide multiple"
-    )]
-    pub rpc: Vec<String>,
 }
 
 impl SyncLocalDb {
@@ -152,15 +145,29 @@ impl SyncLocalDb {
         let SyncLocalDb {
             db_path,
             chain_id,
-            orderbook_address,
-            deployment_block,
+            repo_commit,
             start_block,
             end_block,
-            api_token,
-            rpc,
         } = self;
 
-        let (local_db, metadata_rpc_urls) = build_local_db(chain_id, api_token, rpc)?;
+        let primary_orderbook = load_primary_orderbook_from_commit(chain_id, &repo_commit).await?;
+        let orderbook_address = format!("{:#x}", primary_orderbook.address);
+        let deployment_block = primary_orderbook.deployment_block;
+
+        if let Some(label) = &primary_orderbook.label {
+            println!(
+                "Using orderbook {} ({}) resolved from repo commit {}",
+                orderbook_address, label, repo_commit
+            );
+        } else {
+            println!(
+                "Using orderbook {} resolved from repo commit {}",
+                orderbook_address, repo_commit
+            );
+        }
+
+        let (local_db, metadata_rpc_urls) =
+            build_local_db_from_network(chain_id, primary_orderbook.network.as_ref())?;
         let token_fetcher = DefaultTokenFetcher;
         let runner = SyncRunner::new(&db_path, &local_db, metadata_rpc_urls, &token_fetcher);
         let params = SyncParams {
@@ -173,6 +180,82 @@ impl SyncLocalDb {
 
         runner.run(&params).await
     }
+}
+
+async fn load_primary_orderbook_from_commit(
+    chain_id: u32,
+    commit_hash: &str,
+) -> Result<OrderbookCfg> {
+    let constants_url = format!(
+        "https://raw.githubusercontent.com/rainlanguage/rain.orderbook/{}/packages/webapp/src/lib/constants.ts",
+        commit_hash
+    );
+    let constants_source = fetch_remote_text(&constants_url)
+        .await
+        .with_context(|| format!("Failed to download constants.ts from {}", constants_url))?;
+
+    let settings_url = extract_settings_url(&constants_source)?;
+    let settings_yaml = fetch_remote_text(&settings_url)
+        .await
+        .with_context(|| format!("Failed to download settings YAML from {}", settings_url))?;
+
+    let orderbook_yaml =
+        OrderbookYaml::new(vec![settings_yaml], OrderbookYamlValidation::default())
+            .map_err(anyhow::Error::from)?;
+
+    let orderbooks = orderbook_yaml
+        .get_orderbooks_by_chain_id(chain_id)
+        .map_err(anyhow::Error::from)?;
+
+    // TODO: Support syncing multiple orderbooks for the same network in a single run.
+    orderbooks
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow!("No orderbooks configured for chain id {}", chain_id))
+}
+
+async fn fetch_remote_text(url: &str) -> Result<String> {
+    let response = reqwest::get(url)
+        .await
+        .with_context(|| format!("Request to {} failed", url))?;
+    let response = response
+        .error_for_status()
+        .with_context(|| format!("Request to {} returned an error status", url))?;
+    let body = response
+        .text()
+        .await
+        .with_context(|| format!("Failed to read body from {}", url))?;
+    Ok(body)
+}
+
+fn extract_settings_url(constants_source: &str) -> Result<String> {
+    const KEY: &str = "REMOTE_SETTINGS_URL";
+
+    let key_index = constants_source
+        .find(KEY)
+        .ok_or_else(|| anyhow!("Unable to locate REMOTE_SETTINGS_URL in constants source"))?;
+
+    let after_key = &constants_source[key_index + KEY.len()..];
+    let equals_index = after_key
+        .find('=')
+        .ok_or_else(|| anyhow!("Unable to locate '=' after REMOTE_SETTINGS_URL"))?;
+
+    let value_segment = after_key[equals_index + 1..].trim_start();
+    let mut chars = value_segment.chars();
+    let quote = chars
+        .next()
+        .ok_or_else(|| anyhow!("Unable to parse REMOTE_SETTINGS_URL assignment"))?;
+
+    if quote != '"' && quote != '\'' {
+        return Err(anyhow!("Unable to locate REMOTE_SETTINGS_URL quotation"));
+    }
+
+    let remainder = &value_segment[1..];
+    let closing_index = remainder
+        .find(quote)
+        .ok_or_else(|| anyhow!("Unable to locate closing quote for REMOTE_SETTINGS_URL"))?;
+
+    Ok(remainder[..closing_index].to_string())
 }
 
 pub struct SyncRunner<'a, D, T> {
@@ -332,30 +415,25 @@ fn fetch_last_synced(db_path: &str) -> Result<u64> {
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
 }
 
-fn build_local_db(
-    chain_id: u32,
-    api_token: Option<String>,
-    rpc_urls: Vec<String>,
-) -> Result<(LocalDb, Vec<Url>)> {
-    let parsed_rpcs: Vec<Url> = rpc_urls
-        .iter()
-        .map(|raw| Url::parse(raw).with_context(|| format!("Invalid RPC URL: {}", raw)))
-        .collect::<Result<_, _>>()?;
-
-    if !parsed_rpcs.is_empty() {
-        if let Some(token) = api_token {
-            let local_db = LocalDb::new_with_hyper_rpc(chain_id, token).map_err(|e| anyhow!(e))?;
-            return Ok((local_db, parsed_rpcs));
-        }
-
-        let metadata_rpcs = parsed_rpcs.clone();
-        let local_db = LocalDb::new_with_regular_rpcs(parsed_rpcs);
-        return Ok((local_db, metadata_rpcs));
+fn build_local_db_from_network(chain_id: u32, network: &NetworkCfg) -> Result<(LocalDb, Vec<Url>)> {
+    if network.chain_id != chain_id {
+        return Err(anyhow!(
+            "Chain ID mismatch: CLI provided {} but network '{}' is configured for {}",
+            chain_id,
+            network.key,
+            network.chain_id
+        ));
     }
 
-    let token = api_token.ok_or_else(|| anyhow!("Provide either --rpc or --api-token"))?;
-    let local_db = LocalDb::new_with_hyper_rpc(chain_id, token).map_err(|e| anyhow!(e))?;
-    let metadata_rpcs = local_db.rpc_urls().to_vec();
+    if network.rpcs.is_empty() {
+        return Err(anyhow!(
+            "No RPC URLs configured for network '{}' in settings YAML",
+            network.key
+        ));
+    }
+
+    let metadata_rpcs = network.rpcs.clone();
+    let local_db = LocalDb::new_with_regular_rpcs(metadata_rpcs.clone());
     Ok((local_db, metadata_rpcs))
 }
 
@@ -474,6 +552,22 @@ mod tests {
     fn default_start_behavior() {
         assert_eq!(default_start_block(0, 123), 123);
         assert_eq!(default_start_block(10, 5), 11);
+    }
+
+    #[test]
+    fn extract_settings_url_success() {
+        let source = "export const REMOTE_SETTINGS_URL = 'https://example.com/settings.yaml';";
+        let url = super::extract_settings_url(source).expect("url to be extracted");
+        assert_eq!(url, "https://example.com/settings.yaml");
+    }
+
+    #[test]
+    fn extract_settings_url_missing_key() {
+        let source = "export const SOMETHING_ELSE = 'https://example.com';";
+        let err = super::extract_settings_url(source).unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("Unable to locate REMOTE_SETTINGS_URL in constants source"));
     }
 
     struct NoopFetcher;
@@ -805,22 +899,23 @@ COMMIT;
     }
 
     #[test]
-    fn build_local_db_with_token_and_rpcs_uses_hyper_for_events() {
-        let rpc_inputs = vec![
-            "https://arb1.example-rpc.com".to_string(),
-            "https://arb2.example-rpc.com".to_string(),
+    fn build_local_db_from_network_uses_configured_rpcs() {
+        let mut network = NetworkCfg::dummy();
+        network.key = "arb-mainnet".to_string();
+        network.chain_id = 42161;
+        network.rpcs = vec![
+            Url::parse("https://arb1.example-rpc.com").unwrap(),
+            Url::parse("https://arb2.example-rpc.com").unwrap(),
         ];
 
         let (local_db, metadata_rpcs) =
-            build_local_db(42161, Some("test-token".to_string()), rpc_inputs).unwrap();
-
-        let event_urls = local_db.rpc_urls();
-        assert_eq!(event_urls.len(), 1);
-        let first = event_urls.first().unwrap().as_str();
-        assert!(first.starts_with("https://arbitrum.rpc.hypersync.xyz/test-token"));
+            build_local_db_from_network(42161, &network).expect("network rpcs");
 
         assert_eq!(metadata_rpcs.len(), 2);
         assert_eq!(metadata_rpcs[0].as_str(), "https://arb1.example-rpc.com/");
         assert_eq!(metadata_rpcs[1].as_str(), "https://arb2.example-rpc.com/");
+
+        let event_urls = local_db.rpc_urls();
+        assert_eq!(event_urls, metadata_rpcs.as_slice());
     }
 }
