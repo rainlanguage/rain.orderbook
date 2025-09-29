@@ -24,13 +24,14 @@ cargo run -p rain_orderbook_cli -- local-db sync \
   --db-path "./data/orderbook.db" \
   --chain-id 42161 \
   --repo-commit f00ba47cafe1234567890abcdef1234567890ab \
+  --api-token hyper-token \
   --start-block 352866209 \
   --end-block 352999999
 ```
 
 Key behaviour:
-- The command downloads `constants.ts`/settings for the provided commit to discover the orderbook deployment. No manual `--orderbook-address`, `--deployment-block`, or RPC flags are required.
-- RPC URLs from settings power both log fetching and ERC-20 metadata calls. Start/end blocks are optional; when omitted the runner resumes from the last synced block and stops at the chain head.
+- The command downloads `constants.ts`/settings for the provided commit to discover the orderbook deployment. No manual `--orderbook-address`, `--deployment-block`, or user-supplied RPC URLs are required.
+- HyperRPC log fetching uses the provided `--api-token`; ERC-20 metadata reads reuse the network RPCs declared in settings. Start/end blocks are optional—when omitted the runner resumes from the last synced block and stops at the chain head.
 - When the DB is empty the schema is created automatically, `sync_status` is advanced to the synced block, and existing token metadata is reused while missing addresses trigger live fetches.
 
 ## Fetch Events

@@ -34,6 +34,7 @@ pub(crate) fn fetch_last_synced(db_path: &str) -> Result<u64> {
 pub(crate) fn build_local_db_from_network(
     chain_id: u32,
     network: &NetworkCfg,
+    api_token: &str,
 ) -> Result<(LocalDb, Vec<Url>)> {
     if network.chain_id != chain_id {
         return Err(anyhow!(
@@ -52,7 +53,7 @@ pub(crate) fn build_local_db_from_network(
     }
 
     let metadata_rpcs = network.rpcs.clone();
-    let local_db = LocalDb::new_with_regular_rpcs(metadata_rpcs.clone());
+    let local_db = LocalDb::new_with_hyper_rpc(chain_id, api_token.to_string())?;
     Ok((local_db, metadata_rpcs))
 }
 
@@ -104,15 +105,16 @@ mod tests {
             Url::parse("https://arb2.example-rpc.com").unwrap(),
         ];
 
+        let api_token = "hyper-token";
         let (local_db, metadata_rpcs) =
-            build_local_db_from_network(42161, &network).expect("network rpcs");
+            build_local_db_from_network(42161, &network, api_token).expect("network rpcs");
 
-        assert_eq!(metadata_rpcs.len(), 2);
-        assert_eq!(metadata_rpcs[0].as_str(), "https://arb1.example-rpc.com/");
-        assert_eq!(metadata_rpcs[1].as_str(), "https://arb2.example-rpc.com/");
+        assert_eq!(metadata_rpcs, network.rpcs);
 
         let event_urls = local_db.rpc_urls();
-        assert_eq!(event_urls, metadata_rpcs.as_slice());
+        assert_eq!(event_urls.len(), 1);
+        assert_eq!(event_urls[0].host_str(), Some("arbitrum.rpc.hypersync.xyz"));
+        assert!(event_urls[0].as_str().ends_with(&format!("/{api_token}")));
     }
 
     #[test]

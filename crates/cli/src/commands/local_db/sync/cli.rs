@@ -23,6 +23,9 @@ pub struct SyncLocalDb {
     )]
     pub repo_commit: String,
 
+    #[clap(long, help = "HyperRPC API token used for log fetching")]
+    pub api_token: String,
+
     #[clap(long, help = "Optional override for start block")]
     pub start_block: Option<u64>,
 
@@ -38,6 +41,7 @@ impl SyncLocalDb {
             db_path,
             chain_id,
             repo_commit,
+            api_token,
             start_block,
             end_block,
         } = self;
@@ -59,7 +63,7 @@ impl SyncLocalDb {
         }
 
         let (local_db, metadata_rpc_urls) =
-            build_local_db_from_network(chain_id, primary_orderbook.network.as_ref())?;
+            build_local_db_from_network(chain_id, primary_orderbook.network.as_ref(), &api_token)?;
         let token_fetcher = DefaultTokenFetcher;
         let runner = SyncRunner::new(&db_path, &local_db, metadata_rpc_urls, &token_fetcher);
         let params = SyncParams {
