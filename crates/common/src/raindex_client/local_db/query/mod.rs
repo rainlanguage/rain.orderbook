@@ -5,6 +5,7 @@ pub mod fetch_last_synced_block;
 pub mod fetch_order_trades;
 pub mod fetch_order_trades_count;
 pub mod fetch_orders;
+pub mod fetch_store_addresses;
 pub mod fetch_tables;
 pub mod fetch_vault;
 pub mod fetch_vault_balance_changes;

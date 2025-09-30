@@ -15,6 +15,8 @@ pub use fetch::FetchConfig;
 use query::LocalDbQueryError;
 
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
+pub const RAINTERPRETER_STORE_SET_TOPIC: &str =
+    "0xb0f9cbf5897504bdbdda49a4011cf35a8b4601d541d310d044e9001328f4befc";
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
