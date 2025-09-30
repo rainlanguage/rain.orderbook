@@ -294,9 +294,12 @@
           nativeBuildInputs =
             rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
-        devShells.webapp-shell =
-          pkgs.mkShell { packages = with pkgs; [ nodejs_20 ]; };
-
+        devShells.webapp-shell = pkgs.mkShell {
+          packages = with pkgs; [ nodejs_20 ];
+          buildInputs = rainix.devShells.${system}.default.buildInputs;
+          nativeBuildInputs =
+            rainix.devShells.${system}.default.nativeBuildInputs;
+        };
       });
 
 }
