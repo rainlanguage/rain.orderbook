@@ -4,6 +4,7 @@ const QUERY: &str = include_str!("query.sql");
 
 pub const REQUIRED_TABLES: &[&str] = &[
     "sync_status",
+    "raw_events",
     "deposits",
     "withdrawals",
     "order_events",
