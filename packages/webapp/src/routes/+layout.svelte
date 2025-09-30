@@ -42,7 +42,7 @@
 			raindexClient,
 			localDb,
 			chainId: 42161,
-			intervalMs: 10_000
+			intervalMs: 5_000
 		});
 	});
 
