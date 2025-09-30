@@ -10,7 +10,7 @@ alloy = { workspace = true }
 rain-math-float = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
-revm = { version = "29.0.0", default-features = false }
+revm = { version = "25.0.0", default-features = false }
 serde = { workspace = true }
 serde_json = { workspace = true }
 once_cell = { workspace = true }
