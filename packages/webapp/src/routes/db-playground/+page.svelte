@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { PageHeader, useRaindexClient, useLocalDb } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
-	import { type WasmEncodedResult } from 'sqlite-web';
+	import { type WasmEncodedResult } from '@rainlanguage/sqlite-web';
 	import { type LocalDb } from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
