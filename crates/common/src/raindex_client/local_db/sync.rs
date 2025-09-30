@@ -151,6 +151,7 @@ impl RaindexClient {
         };
 
         let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone());
+        let mut raw_events: Vec<serde_json::Value> = Vec::new();
 
         let latest_block = match local_db
             .rpc_client()
@@ -193,6 +194,10 @@ impl RaindexClient {
             }
         };
 
+        if let Some(orderbook_logs) = events.as_array() {
+            raw_events.extend(orderbook_logs.iter().cloned());
+        }
+
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
         let mut decoded_events = match local_db.decode_events(events) {
             Ok(result) => result,
@@ -227,6 +232,10 @@ impl RaindexClient {
             )
             .await?;
 
+        if let Some(store_logs) = store_events.as_array() {
+            raw_events.extend(store_logs.iter().cloned());
+        }
+
         let decoded_store_events = match local_db.decode_events(store_events) {
             Ok(result) => result,
             Err(e) => {
@@ -245,21 +254,40 @@ impl RaindexClient {
             decoded_events = serde_json::Value::Array(base_events);
         }
 
+        let raw_events_sql = match local_db.raw_events_to_sql(&raw_events) {
+            Ok(sql) => sql,
+            Err(e) => {
+                return Err(LocalDbError::CustomError(format!(
+                    "Failed to build raw events SQL: {}",
+                    e
+                )));
+            }
+        };
+
         send_status_message(
             &status_callback,
             "Populating token information...".to_string(),
         )?;
         let prep =
             prepare_erc20_tokens_prefix(&db_callback, &local_db, chain_id, &decoded_events).await?;
+        let TokenPrepResult {
+            tokens_prefix_sql,
+            decimals_by_addr,
+        } = prep;
 
         let decoded_events =
-            patch_deposit_amounts_with_decimals(decoded_events, &prep.decimals_by_addr)?;
+            patch_deposit_amounts_with_decimals(decoded_events, &decimals_by_addr)?;
+
+        let mut combined_prefix_sql = raw_events_sql;
+        if !tokens_prefix_sql.is_empty() {
+            combined_prefix_sql.push_str(&tokens_prefix_sql);
+        }
 
         send_status_message(&status_callback, "Populating database...".to_string())?;
         let sql_commands = match local_db.decoded_events_to_sql_with_prefix(
             decoded_events,
             latest_block,
-            &prep.tokens_prefix_sql,
+            &combined_prefix_sql,
         ) {
             Ok(result) => result,
             Err(e) => {
