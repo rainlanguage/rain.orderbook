@@ -17,7 +17,7 @@ use alloy::primitives::{Address, Bytes, B256, U256};
 use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_interpreter_test_fixtures::{Interpreter, LocalEvm, Store};
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV5::{OrderV4, TaskV2, IOV2};
+use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, TaskV2, IOV2};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -56,8 +56,8 @@ impl host::InterpreterHost for NullInterpreter {
 }
 
 fn new_raindex() -> VirtualRaindex<NullCache, NullInterpreter> {
-    let cache = Arc::new(NullCache::default());
-    let interpreter = Arc::new(NullInterpreter::default());
+    let cache = Arc::new(NullCache);
+    let interpreter = Arc::new(NullInterpreter);
     VirtualRaindex::new(Address::ZERO, cache, interpreter)
 }
 
@@ -111,20 +111,23 @@ impl host::InterpreterHost for RecordingHost {
 }
 
 fn test_order() -> OrderV4 {
-    let mut order = OrderV4::default();
-    order.owner = Address::repeat_byte(0x42);
-    order.evaluable.interpreter = Address::repeat_byte(0xAA);
-    order.evaluable.store = Address::repeat_byte(0xBB);
-    order.evaluable.bytecode = Bytes::from(vec![0u8]);
-    order.validInputs = vec![IOV2 {
-        token: Address::repeat_byte(0x10),
-        vaultId: B256::from([1u8; 32]),
-    }];
-    order.validOutputs = vec![IOV2 {
-        token: Address::repeat_byte(0x20),
-        vaultId: B256::from([2u8; 32]),
-    }];
-    order
+    OrderV4 {
+        owner: Address::repeat_byte(0x42),
+        evaluable: EvaluableV4 {
+            interpreter: Address::repeat_byte(0xAA),
+            store: Address::repeat_byte(0xBB),
+            bytecode: Bytes::from(vec![0u8]),
+        },
+        validInputs: vec![IOV2 {
+            token: Address::repeat_byte(0x10),
+            vaultId: B256::from([1u8; 32]),
+        }],
+        validOutputs: vec![IOV2 {
+            token: Address::repeat_byte(0x20),
+            vaultId: B256::from([2u8; 32]),
+        }],
+        nonce: B256::ZERO,
+    }
 }
 
 fn cache_with_code(order: &OrderV4) -> Arc<StaticCodeCache> {
@@ -200,10 +203,14 @@ fn batch_recurses_and_preserves_missing_fields() {
 #[test]
 fn set_orders_insert_and_remove() {
     let mut raindex = new_raindex();
-    let mut order_a = OrderV4::default();
-    order_a.nonce = B256::from([1u8; 32]);
-    let mut order_b = OrderV4::default();
-    order_b.nonce = B256::from([2u8; 32]);
+    let order_a = OrderV4 {
+        nonce: B256::from([1u8; 32]),
+        ..Default::default()
+    };
+    let order_b = OrderV4 {
+        nonce: B256::from([2u8; 32]),
+        ..Default::default()
+    };
 
     raindex
         .apply_mutations(&[RaindexMutation::SetOrders {
@@ -233,8 +240,10 @@ fn set_orders_insert_and_remove() {
 #[test]
 fn set_orders_idempotent() {
     let mut raindex = new_raindex();
-    let mut order = OrderV4::default();
-    order.nonce = B256::from([7u8; 32]);
+    let order = OrderV4 {
+        nonce: B256::from([7u8; 32]),
+        ..Default::default()
+    };
 
     let mutation = RaindexMutation::SetOrders {
         orders: vec![order.clone()],
@@ -654,10 +663,17 @@ async fn revm_host_matches_contract() {
         .await
         .expect("parse2");
 
-    let mut order = OrderV4::default();
-    order.evaluable.interpreter = *local_evm.interpreter.address();
-    order.evaluable.store = *local_evm.store.address();
-    order.evaluable.bytecode = parse_return.clone();
+    let order = OrderV4 {
+        owner: Address::ZERO,
+        evaluable: EvaluableV4 {
+            interpreter: *local_evm.interpreter.address(),
+            store: *local_evm.store.address(),
+            bytecode: parse_return.clone(),
+        },
+        validInputs: Vec::new(),
+        validOutputs: Vec::new(),
+        nonce: B256::ZERO,
+    };
 
     let contract_eval = Interpreter::EvalV4 {
         store: order.evaluable.store,
@@ -675,8 +691,7 @@ async fn revm_host_matches_contract() {
         .call()
         .await
         .expect("contract eval");
-    let expected_stack: Vec<B256> = expected._0.into_iter().map(B256::from).collect();
-    let expected_writes: Vec<B256> = expected._1.into_iter().map(B256::from).collect();
+    let (expected_stack, expected_writes) = (expected._0, expected._1);
 
     let cache = Arc::new(StaticCodeCache::default());
     cache.upsert_interpreter(
@@ -722,25 +737,28 @@ async fn quote_matches_contract_eval() {
         .await
         .expect("parse2");
     let orderbook = Address::repeat_byte(0xAB);
-    let mut order = OrderV4::default();
-    order.owner = Address::repeat_byte(0x42);
-    order.evaluable.interpreter = *local_evm.interpreter.address();
-    order.evaluable.store = *local_evm.store.address();
-    order.evaluable.bytecode = parse_return.clone();
-
     let input_token = Address::repeat_byte(0x11);
     let output_token = Address::repeat_byte(0x22);
     let input_vault_id = B256::from([1u8; 32]);
     let output_vault_id = B256::from([2u8; 32]);
 
-    order.validInputs = vec![IOV2 {
-        token: input_token,
-        vaultId: input_vault_id,
-    }];
-    order.validOutputs = vec![IOV2 {
-        token: output_token,
-        vaultId: output_vault_id,
-    }];
+    let order = OrderV4 {
+        owner: Address::repeat_byte(0x42),
+        evaluable: EvaluableV4 {
+            interpreter: *local_evm.interpreter.address(),
+            store: *local_evm.store.address(),
+            bytecode: parse_return.clone(),
+        },
+        validInputs: vec![IOV2 {
+            token: input_token,
+            vaultId: input_vault_id,
+        }],
+        validOutputs: vec![IOV2 {
+            token: output_token,
+            vaultId: output_vault_id,
+        }],
+        nonce: B256::ZERO,
+    };
 
     let cache = Arc::new(StaticCodeCache::default());
     cache.upsert_interpreter(
@@ -821,7 +839,7 @@ async fn quote_matches_contract_eval() {
         .call()
         .await
         .expect("contract eval");
-    let expected_stack: Vec<B256> = expected._0.into_iter().map(B256::from).collect();
+    let expected_stack = expected._0;
     assert_eq!(expected_stack.len(), 2);
 
     let stored_quote = raindex
@@ -879,25 +897,28 @@ async fn quote_reflects_env_values() {
         .expect("parse2");
 
     let orderbook = Address::repeat_byte(0xCC);
-    let mut order = OrderV4::default();
-    order.owner = Address::repeat_byte(0x42);
-    order.evaluable.interpreter = *local_evm.interpreter.address();
-    order.evaluable.store = *local_evm.store.address();
-    order.evaluable.bytecode = parse_return.clone();
-
     let input_token = Address::repeat_byte(0x11);
     let output_token = Address::repeat_byte(0x22);
     let input_vault_id = B256::from([0xA1; 32]);
     let output_vault_id = B256::from([0xB2; 32]);
 
-    order.validInputs = vec![IOV2 {
-        token: input_token,
-        vaultId: input_vault_id,
-    }];
-    order.validOutputs = vec![IOV2 {
-        token: output_token,
-        vaultId: output_vault_id,
-    }];
+    let order = OrderV4 {
+        owner: Address::repeat_byte(0x42),
+        evaluable: EvaluableV4 {
+            interpreter: *local_evm.interpreter.address(),
+            store: *local_evm.store.address(),
+            bytecode: parse_return.clone(),
+        },
+        validInputs: vec![IOV2 {
+            token: input_token,
+            vaultId: input_vault_id,
+        }],
+        validOutputs: vec![IOV2 {
+            token: output_token,
+            vaultId: output_vault_id,
+        }],
+        nonce: B256::ZERO,
+    };
 
     let cache = Arc::new(StaticCodeCache::default());
     cache.upsert_interpreter(

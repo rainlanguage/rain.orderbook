@@ -20,7 +20,7 @@ mod integration {
         TakeOrdersConfigV4 as OnchainTakeOrdersConfig, TaskV2 as OnchainTaskV2,
         IOV2 as OnchainIOV2,
     };
-    use std::{convert::TryInto, sync::Arc};
+    use std::sync::Arc;
     use tokio::runtime::Runtime;
 
     const BASE_OUTPUT_DEPOSIT: u64 = 5;
@@ -104,6 +104,17 @@ mod integration {
                 _ => panic!("unsupported order index {index}"),
             }
         }
+    }
+
+    struct DeployOrderParams {
+        template: OrderTemplate,
+        unique_store_key: Option<B256>,
+        shared_store_key: Option<B256>,
+        post_task_key: B256,
+        input_token: Address,
+        output_token: Address,
+        input_vault_id: B256,
+        output_vault_id: B256,
     }
 
     #[derive(Clone, Debug)]
@@ -256,28 +267,28 @@ mod integration {
             let post_secondary = B256::from(POST_TASK_KEY_SECONDARY_BYTES);
             let shared_key = B256::from(SHARED_STORE_KEY_BYTES);
 
-            self.deploy_order(
-                OrderTemplate::EnvTimestamp,
-                Some(unique_primary),
-                Some(shared_key),
-                post_primary,
+            self.deploy_order(DeployOrderParams {
+                template: OrderTemplate::EnvTimestamp,
+                unique_store_key: Some(unique_primary),
+                shared_store_key: Some(shared_key),
+                post_task_key: post_primary,
                 input_token,
                 output_token,
-                B256::from([1u8; 32]),
-                B256::from([2u8; 32]),
-            )
+                input_vault_id: B256::from([1u8; 32]),
+                output_vault_id: B256::from([2u8; 32]),
+            })
             .await;
 
-            self.deploy_order(
-                OrderTemplate::VaultBalance,
-                None,
-                Some(shared_key),
-                post_secondary,
+            self.deploy_order(DeployOrderParams {
+                template: OrderTemplate::VaultBalance,
+                unique_store_key: None,
+                shared_store_key: Some(shared_key),
+                post_task_key: post_secondary,
                 input_token,
                 output_token,
-                B256::from([3u8; 32]),
-                B256::from([4u8; 32]),
-            )
+                input_vault_id: B256::from([3u8; 32]),
+                output_vault_id: B256::from([4u8; 32]),
+            })
             .await;
 
             for target in [OrderTarget::Primary, OrderTarget::Secondary] {
@@ -289,35 +300,38 @@ mod integration {
             self.assert_all_store_synced().await;
         }
 
-        async fn deploy_order(
-            &mut self,
-            template: OrderTemplate,
-            unique_store_key: Option<B256>,
-            shared_store_key: Option<B256>,
-            post_task_key: B256,
-            input_token: Address,
-            output_token: Address,
-            input_vault_id: B256,
-            output_vault_id: B256,
-        ) {
+        async fn deploy_order(&mut self, params: DeployOrderParams) {
+            let DeployOrderParams {
+                template,
+                unique_store_key,
+                shared_store_key,
+                post_task_key,
+                input_token,
+                output_token,
+                input_vault_id,
+                output_vault_id,
+            } = params;
             let subparser = *self.local_evm.orderbook_subparser.address();
             let rain_src = build_rainlang(template, unique_store_key, shared_store_key, subparser);
             let bytecode = compile_rain(&self.local_evm, rain_src).await;
 
-            let mut order = OrderV4::default();
-            order.owner = self.owner;
-            order.evaluable.interpreter = self.interpreter_address;
-            order.evaluable.store = self.store_address;
-            order.evaluable.bytecode = bytecode.clone();
-            order.validInputs = vec![IOV2 {
-                token: input_token,
-                vaultId: input_vault_id,
-            }];
-            order.validOutputs = vec![IOV2 {
-                token: output_token,
-                vaultId: output_vault_id,
-            }];
-            order.nonce = B256::from(U256::from(self.orders.len() as u64 + 1));
+            let order = OrderV4 {
+                owner: self.owner,
+                evaluable: EvaluableV4 {
+                    interpreter: self.interpreter_address,
+                    store: self.store_address,
+                    bytecode: bytecode.clone(),
+                },
+                validInputs: vec![IOV2 {
+                    token: input_token,
+                    vaultId: input_vault_id,
+                }],
+                validOutputs: vec![IOV2 {
+                    token: output_token,
+                    vaultId: output_vault_id,
+                }],
+                nonce: B256::from(U256::from(self.orders.len() as u64 + 1)),
+            };
 
             let onchain_evaluable = OnchainEvaluable {
                 interpreter: self.interpreter_address,
@@ -428,12 +442,8 @@ mod integration {
                 .expect("block query")
                 .expect("latest block");
 
-            let block_number_u64: u64 = block_number.into();
-            let timestamp_u64: u64 = block
-                .header
-                .timestamp
-                .try_into()
-                .expect("timestamp fits in u64");
+            let block_number_u64: u64 = block_number;
+            let timestamp_u64 = block.header.timestamp;
 
             self.raindex
                 .apply_mutations(&[RaindexMutation::SetEnv {
@@ -446,7 +456,7 @@ mod integration {
         async fn deposit_output(&mut self, target: OrderTarget, amount: Float) {
             let order = &self.orders[target.index()];
             let raw_amount = amount.get_inner();
-            let amount_wei = amount.clone().to_fixed_decimal(18).expect("float to fixed");
+            let amount_wei = amount.to_fixed_decimal(18).expect("float to fixed");
 
             self.local_evm
                 .send_transaction(
@@ -542,7 +552,7 @@ mod integration {
 
         async fn take(&mut self, target: OrderTarget, amount: Float) {
             self.assert_quotes_match(target).await;
-            let onchain_config = self.onchain_take_config(target, amount.clone());
+            let onchain_config = self.onchain_take_config(target, amount);
 
             self.local_evm
                 .send_transaction(
@@ -825,7 +835,7 @@ mod integration {
         let mut harness = Harness::new().await;
 
         let unit = amount_to_float(1);
-        harness.take(OrderTarget::Primary, unit.clone()).await;
+        harness.take(OrderTarget::Primary, unit).await;
         harness.assert_all_balances_synced().await;
         harness.assert_all_store_synced().await;
 
