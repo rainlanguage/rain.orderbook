@@ -11,6 +11,12 @@ pub enum InsertError {
     MissingField { field: String },
     #[error("Failed to parse hex string: {hex_str}")]
     HexParseError { hex_str: String },
+    #[error("Raw event must be a JSON object")]
+    InvalidRawEventFormat,
+    #[error("Topics field must be an array of strings")]
+    InvalidTopicsFormat,
+    #[error("Failed to serialize raw event payload")]
+    RawEventSerialization,
     #[error("Missing decoded_data in {event_type} event")]
     MissingDecodedData { event_type: String },
     #[error("Missing {field} in {event_type} event")]
@@ -106,6 +112,99 @@ impl LocalDb {
             // Fallback: prepend prefix at the beginning
             Ok(format!("{}{}", prefix_sql, base))
         }
+    }
+
+    pub fn raw_events_to_sql(&self, raw_events: &[Value]) -> Result<String, InsertError> {
+        if raw_events.is_empty() {
+            return Ok(String::new());
+        }
+
+        struct RawEventRow {
+            block_number: u64,
+            log_index: u64,
+            block_timestamp: Option<u64>,
+            transaction_hash: String,
+            address: String,
+            data: String,
+            topics_json: String,
+            raw_json: String,
+        }
+
+        let mut rows: Vec<RawEventRow> = Vec::with_capacity(raw_events.len());
+
+        for event in raw_events {
+            if !event.is_object() {
+                return Err(InsertError::InvalidRawEventFormat);
+            }
+
+            let transaction_hash = get_string_field(event, "transactionHash")?.to_string();
+            let log_index = hex_to_decimal(get_string_field(event, "logIndex")?)?;
+            let block_number = hex_to_decimal(get_string_field(event, "blockNumber")?)?;
+            let block_timestamp = event
+                .get("blockTimestamp")
+                .and_then(|v| v.as_str())
+                .map(hex_to_decimal)
+                .transpose()?;
+            let address = get_string_field(event, "address")?.to_string();
+            let data = get_string_field(event, "data")?.to_string();
+
+            let topics = event
+                .get("topics")
+                .and_then(|v| v.as_array())
+                .ok_or(InsertError::InvalidTopicsFormat)?;
+            let mut topics_vec = Vec::with_capacity(topics.len());
+            for topic in topics {
+                let topic_str = topic
+                    .as_str()
+                    .ok_or(InsertError::InvalidTopicsFormat)?
+                    .to_string();
+                topics_vec.push(topic_str);
+            }
+            let topics_json = serde_json::to_string(&topics_vec)
+                .map_err(|_| InsertError::RawEventSerialization)?;
+
+            let raw_json =
+                serde_json::to_string(event).map_err(|_| InsertError::RawEventSerialization)?;
+
+            rows.push(RawEventRow {
+                block_number,
+                log_index,
+                block_timestamp,
+                transaction_hash,
+                address,
+                data,
+                topics_json,
+                raw_json,
+            });
+        }
+
+        rows.sort_by(|a, b| {
+            a.block_number
+                .cmp(&b.block_number)
+                .then_with(|| a.log_index.cmp(&b.log_index))
+        });
+
+        let mut sql = String::new();
+        for row in rows {
+            let timestamp_sql = row
+                .block_timestamp
+                .map(|ts| ts.to_string())
+                .unwrap_or_else(|| "NULL".to_string());
+
+            sql.push_str(&format!(
+                "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');\n",
+                row.block_number,
+                timestamp_sql,
+                escape_sql_text(&row.transaction_hash),
+                row.log_index,
+                escape_sql_text(&row.address),
+                escape_sql_text(&row.topics_json),
+                escape_sql_text(&row.data),
+                escape_sql_text(&row.raw_json),
+            ));
+        }
+
+        Ok(sql)
     }
 }
 
@@ -565,6 +664,10 @@ fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
     u64::from_str_radix(hex_str_clean, 16).map_err(|_| InsertError::HexParseError {
         hex_str: hex_str.to_string(),
     })
+}
+
+fn escape_sql_text(value: &str) -> String {
+    value.replace('\'', "''")
 }
 
 #[cfg(test)]
@@ -1539,5 +1642,64 @@ mod tests {
             .unwrap();
         let expected = "BEGIN TRANSACTION;\n\n-- prefix sql\n";
         assert!(prefixed.starts_with(expected));
+    }
+
+    #[test]
+    fn test_raw_events_sql_sorted_and_handles_null_timestamp() {
+        let events = vec![
+            serde_json::json!({
+                "blockNumber": "0x2",
+                "transactionHash": "0xbbb",
+                "logIndex": "0x1",
+                "address": "0x2222222222222222222222222222222222222222",
+                "data": "0xdeadbeef",
+                "topics": ["0x01", "0x02"],
+                "blockTimestamp": "0x64b8c125"
+            }),
+            serde_json::json!({
+                "blockNumber": "0x1",
+                "transactionHash": "0xaaa",
+                "logIndex": "0x0",
+                "address": "0x1111111111111111111111111111111111111111",
+                "data": "0xbead",
+                "topics": ["0x01"],
+                "blockTimestamp": "0x64b8c124"
+            }),
+            serde_json::json!({
+                "blockNumber": "0x3",
+                "transactionHash": "0xccc",
+                "logIndex": "0x0",
+                "address": "0x3333333333333333333333333333333333333333",
+                "data": "0xfeed",
+                "topics": ["0x01"],
+                "blockTimestamp": null
+            }),
+        ];
+
+        let sql = LocalDb::default().raw_events_to_sql(&events).unwrap();
+        assert!(sql.contains("INSERT INTO raw_events"));
+
+        let first_pos = sql.find("0xaaa").unwrap();
+        let second_pos = sql.find("0xbbb").unwrap();
+        let third_pos = sql.find("0xccc").unwrap();
+        assert!(first_pos < second_pos && second_pos < third_pos);
+
+        assert!(sql.contains("VALUES (3, NULL,"));
+        assert!(sql.contains("[\"0x01\",\"0x02\"]"));
+    }
+
+    #[test]
+    fn test_raw_events_sql_invalid_topics() {
+        let events = vec![serde_json::json!({
+            "blockNumber": "0x1",
+            "transactionHash": "0xaaa",
+            "logIndex": "0x0",
+            "address": "0x1111111111111111111111111111111111111111",
+            "data": "0xbead",
+            "topics": "not-an-array"
+        })];
+
+        let result = LocalDb::default().raw_events_to_sql(&events);
+        assert!(matches!(result, Err(InsertError::InvalidTopicsFormat)));
     }
 }
