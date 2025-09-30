@@ -4,12 +4,14 @@ use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use clap::Parser;
 use rain_orderbook_common::erc20::TokenInfo;
-use rain_orderbook_common::raindex_client::local_db::helpers::patch_deposit_amounts_with_decimals;
-use rain_orderbook_common::raindex_client::local_db::insert::generate_erc20_tokens_sql;
-use rain_orderbook_common::raindex_client::local_db::query::create_tables::REQUIRED_TABLES;
-use rain_orderbook_common::raindex_client::local_db::token_fetch::fetch_erc20_metadata_concurrent;
-use rain_orderbook_common::raindex_client::local_db::tokens::collect_token_addresses;
-use rain_orderbook_common::raindex_client::local_db::LocalDb;
+use rain_orderbook_common::raindex_client::local_db::{
+    helpers::patch_deposit_amounts_with_decimals,
+    insert::generate_erc20_tokens_sql,
+    query::{create_tables::REQUIRED_TABLES, fetch_store_addresses::StoreAddressRow},
+    token_fetch::fetch_erc20_metadata_concurrent,
+    tokens::{collect_store_addresses, collect_token_addresses},
+    FetchConfig, LocalDb,
+};
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -23,6 +25,9 @@ const SYNC_STATUS_QUERY: &str = include_str!(
 const ERC20_QUERY_TEMPLATE: &str = include_str!(
     "../../../../common/src/raindex_client/local_db/query/fetch_erc20_tokens_by_addresses/query.sql"
 );
+const STORE_ADDRESSES_QUERY: &str = include_str!(
+    "../../../../common/src/raindex_client/local_db/query/fetch_store_addresses/query.sql"
+);
 
 #[async_trait]
 pub trait SyncDataSource {
@@ -30,6 +35,12 @@ pub trait SyncDataSource {
     async fn fetch_events(
         &self,
         orderbook_address: &str,
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Value>;
+    async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
         start_block: u64,
         end_block: u64,
     ) -> Result<Value>;
@@ -87,6 +98,22 @@ impl SyncDataSource for LocalDb {
         self.fetch_events(orderbook_address, start_block, end_block)
             .await
             .map_err(|e| anyhow!(e))
+    }
+
+    async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Value> {
+        self.fetch_store_set_events(
+            store_addresses,
+            start_block,
+            end_block,
+            &FetchConfig::default(),
+        )
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     fn decode_events(&self, events: Value) -> Result<Value> {
@@ -264,9 +291,57 @@ where
         println!("Fetched {} raw events", raw_event_count);
 
         println!("Decoding events");
-        let decoded_events = self.data_source.decode_events(events)?;
-        let decoded_count = decoded_events.as_array().map(|a| a.len()).unwrap_or(0);
+        let mut decoded_events = self.data_source.decode_events(events)?;
+        let mut decoded_count = decoded_events.as_array().map(|a| a.len()).unwrap_or(0);
         println!("Decoded {} events", decoded_count);
+
+        println!("Collecting interpreter store addresses");
+        let mut store_addresses: HashSet<String> = collect_store_addresses(&decoded_events)
+            .into_iter()
+            .collect();
+
+        let existing_store_rows = fetch_existing_store_addresses(self.db_path)?;
+        for row in existing_store_rows {
+            if !row.is_empty() {
+                store_addresses.insert(row.to_ascii_lowercase());
+            }
+        }
+
+        if !store_addresses.is_empty() {
+            let mut store_list: Vec<String> = store_addresses.into_iter().collect();
+            store_list.sort();
+            println!(
+                "Fetching interpreter store Set events for {} store(s)",
+                store_list.len()
+            );
+            let store_events = self
+                .data_source
+                .fetch_store_set_events(&store_list, start_block, target_block)
+                .await?;
+            let fetched_store_count = store_events.as_array().map(|a| a.len()).unwrap_or(0);
+            println!(
+                "Fetched {} interpreter store Set events",
+                fetched_store_count
+            );
+
+            let decoded_store_events = self.data_source.decode_events(store_events)?;
+            let decoded_store_count = decoded_store_events
+                .as_array()
+                .map(|a| a.len())
+                .unwrap_or(0);
+            if decoded_store_count > 0 {
+                println!("Decoded {} interpreter store events", decoded_store_count);
+            }
+
+            if let (Some(mut base_events), Some(store_array)) = (
+                decoded_events.as_array().cloned(),
+                decoded_store_events.as_array(),
+            ) {
+                base_events.extend(store_array.iter().cloned());
+                decoded_events = Value::Array(base_events);
+                decoded_count = decoded_events.as_array().map(|a| a.len()).unwrap_or(0);
+            }
+        }
 
         println!("Preparing token metadata");
         let metadata_rpc_slice: &[Url] = if self.metadata_rpc_urls.is_empty() {
@@ -450,6 +525,21 @@ fn fetch_existing_tokens(
     sqlite_query_json(db_path, &sql)
 }
 
+fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
+    let rows: Vec<StoreAddressRow> = sqlite_query_json(db_path, STORE_ADDRESSES_QUERY)?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|row| {
+            let trimmed = row.store_address.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_ascii_lowercase())
+            }
+        })
+        .collect())
+}
+
 #[derive(Debug, Deserialize)]
 struct SyncStatusRow {
     last_synced_block: u64,
@@ -528,9 +618,12 @@ mod tests {
         latest_block: u64,
         events: Value,
         decoded: Value,
+        store_events: Value,
+        decoded_store: Value,
         sql_result: String,
         rpc_urls: Vec<Url>,
         fetch_calls: Mutex<Vec<(String, u64, u64)>>,
+        store_fetch_calls: Mutex<Vec<(Vec<String>, u64, u64)>>,
         prefixes: Mutex<Vec<String>>,
         patched_events: Mutex<Vec<Value>>,
     }
@@ -555,9 +648,28 @@ mod tests {
             Ok(self.events.clone())
         }
 
+        async fn fetch_store_set_events(
+            &self,
+            store_addresses: &[String],
+            start_block: u64,
+            end_block: u64,
+        ) -> Result<Value> {
+            self.store_fetch_calls.lock().unwrap().push((
+                store_addresses.to_vec(),
+                start_block,
+                end_block,
+            ));
+            Ok(self.store_events.clone())
+        }
+
         fn decode_events(&self, events: Value) -> Result<Value> {
-            assert_eq!(events, self.events);
-            Ok(self.decoded.clone())
+            if events == self.events {
+                Ok(self.decoded.clone())
+            } else if events == self.store_events {
+                Ok(self.decoded_store.clone())
+            } else {
+                panic!("Unexpected events payload for decode_events")
+            }
         }
 
         fn events_to_sql(
@@ -652,6 +764,8 @@ mod tests {
             latest_block: 150,
             events,
             decoded,
+            store_events: json!([]),
+            decoded_store: json!([]),
             sql_result: "BEGIN TRANSACTION;
 UPDATE sync_status SET last_synced_block = ?end_block, updated_at = CURRENT_TIMESTAMP WHERE id = 1;
 COMMIT;
@@ -659,6 +773,7 @@ COMMIT;
             .to_string(),
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
             fetch_calls: Mutex::new(Vec::new()),
+            store_fetch_calls: Mutex::new(Vec::new()),
             prefixes: Mutex::new(Vec::new()),
             patched_events: Mutex::new(Vec::new()),
         };
@@ -741,9 +856,12 @@ COMMIT;
             latest_block: 120,
             events,
             decoded,
+            store_events: json!([]),
+            decoded_store: json!([]),
             sql_result: expected_sql,
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
             fetch_calls: Mutex::new(Vec::new()),
+            store_fetch_calls: Mutex::new(Vec::new()),
             prefixes: Mutex::new(Vec::new()),
             patched_events: Mutex::new(Vec::new()),
         };
@@ -802,6 +920,117 @@ COMMIT;
         let sync_rows: Vec<SyncStatusRow> =
             sqlite_query_json(&db_path_str, SYNC_STATUS_QUERY).unwrap();
         assert_eq!(sync_rows[0].last_synced_block, 120);
+    }
+
+    #[tokio::test]
+    async fn sync_runner_fetches_store_set_events() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("stores.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        sqlite_execute(
+            &db_path_str,
+            "INSERT INTO interpreter_store_sets (store_address, transaction_hash, log_index, block_number, block_timestamp, namespace, key, value) VALUES ('0x2222222222222222222222222222222222222222', '0x1', 0, 1, 0, '0x0', '0x0', '0x0');",
+        )
+        .unwrap();
+
+        let events = json!([{
+            "blockNumber": "0x1",
+            "blockTimestamp": "0x0",
+            "transactionHash": "0xabc",
+            "logIndex": "0x0",
+            "topics": ["0xaddorder"],
+            "data": "0x",
+            "address": "0xorderbook"
+        }]);
+        let decoded = json!([{
+            "event_type": "AddOrderV3",
+            "decoded_data": {
+                "order": {
+                    "evaluable": {"store": "0x1111111111111111111111111111111111111111"},
+                    "valid_inputs": [],
+                    "valid_outputs": []
+                }
+            }
+        }]);
+
+        let store_events = json!([{
+            "blockNumber": "0x2",
+            "blockTimestamp": "0x0",
+            "transactionHash": "0xdef",
+            "logIndex": "0x0",
+            "topics": ["0xset"],
+            "data": "0x",
+            "address": "0x2222222222222222222222222222222222222222"
+        }]);
+        let decoded_store = json!([{
+            "event_type": "Set",
+            "decoded_data": {
+                "namespace": "0x01",
+                "key": "0x02",
+                "value": "0x03"
+            }
+        }]);
+
+        let expected_sql = "BEGIN TRANSACTION;
+UPDATE sync_status SET last_synced_block = ?end_block, updated_at = CURRENT_TIMESTAMP WHERE id = 1;
+COMMIT;
+"
+        .to_string();
+
+        let data_source = MockDataSource {
+            latest_block: 5,
+            events,
+            decoded,
+            store_events,
+            decoded_store,
+            sql_result: expected_sql,
+            rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
+            fetch_calls: Mutex::new(Vec::new()),
+            store_fetch_calls: Mutex::new(Vec::new()),
+            prefixes: Mutex::new(Vec::new()),
+            patched_events: Mutex::new(Vec::new()),
+        };
+
+        let token_fetcher = MockTokenFetcher {
+            metadata: Vec::new(),
+            calls: Mutex::new(Vec::new()),
+        };
+
+        let runner = SyncRunner::new(
+            &db_path_str,
+            &data_source,
+            data_source.rpc_urls.clone(),
+            &token_fetcher,
+        );
+        let params = SyncParams {
+            chain_id: 1,
+            orderbook_address: "0xfeed",
+            deployment_block: 1,
+            start_block: None,
+            end_block: Some(5),
+        };
+
+        runner.run(&params).await.unwrap();
+
+        let store_calls = data_source.store_fetch_calls.lock().unwrap();
+        assert_eq!(store_calls.len(), 1);
+        let (stores, start, end) = &store_calls[0];
+        assert_eq!(*start, 1);
+        assert_eq!(*end, 5);
+        assert_eq!(stores.len(), 2);
+        assert!(stores
+            .iter()
+            .any(|s| s == "0x1111111111111111111111111111111111111111"));
+        assert!(stores
+            .iter()
+            .any(|s| s == "0x2222222222222222222222222222222222222222"));
+
+        let patched_events = data_source.patched_events.lock().unwrap();
+        let patched = patched_events[0].as_array().unwrap();
+        assert_eq!(patched.len(), 2);
+        assert_eq!(patched[1]["event_type"], json!("Set"));
     }
 
     #[test]
