@@ -6,11 +6,11 @@ use super::super::sqlite::sqlite_execute;
 use super::{
     data_source::{SyncDataSource, TokenMetadataFetcher},
     storage::ensure_schema,
-    store::{collect_all_store_addresses, fetch_and_merge_store_events},
+    store::{collect_all_store_addresses, fetch_and_merge_store_events, StoreFetchOutcome},
 };
 
 use self::{
-    apply::{decode_events, fetch_events, prepare_sql},
+    apply::{decode_events, fetch_events, prepare_sql, FetchResult},
     window::compute_sync_window,
 };
 
@@ -78,17 +78,21 @@ where
             "Fetching events for {} from block {} to {}",
             params.orderbook_address, window.start_block, window.target_block
         );
-        let fetch = fetch_events(
+        let FetchResult {
+            events,
+            mut raw_events,
+            raw_count,
+        } = fetch_events(
             self.data_source,
             params.orderbook_address,
             window.start_block,
             window.target_block,
         )
         .await?;
-        println!("Fetched {} raw events", fetch.raw_count);
+        println!("Fetched {} raw events", raw_count);
 
         println!("Decoding events");
-        let mut decoded = decode_events(self.data_source, fetch.events)?;
+        let mut decoded = decode_events(self.data_source, events)?;
         println!("Decoded {} events", decoded.decoded_count);
 
         println!("Collecting interpreter store addresses");
@@ -99,7 +103,11 @@ where
                 store_addresses.len()
             );
             let decoded_value = mem::take(&mut decoded.decoded);
-            let merge = fetch_and_merge_store_events(
+            let StoreFetchOutcome {
+                events: merged_events,
+                raw_events: store_raw_events,
+                stats: store_stats,
+            } = fetch_and_merge_store_events(
                 self.data_source,
                 decoded_value,
                 &store_addresses,
@@ -109,16 +117,17 @@ where
             .await?;
             println!(
                 "Fetched {} interpreter store Set events",
-                merge.stats.fetched_raw_count
+                store_stats.fetched_raw_count
             );
-            if merge.stats.decoded_count > 0 {
+            if store_stats.decoded_count > 0 {
                 println!(
                     "Decoded {} interpreter store events",
-                    merge.stats.decoded_count
+                    store_stats.decoded_count
                 );
             }
-            decoded.decoded = merge.events;
-            decoded.decoded_count = merge.stats.total_decoded_count;
+            raw_events.extend(store_raw_events);
+            decoded.decoded = merged_events;
+            decoded.decoded_count = store_stats.total_decoded_count;
         }
 
         println!("Preparing token metadata");
@@ -129,6 +138,7 @@ where
             self.metadata_rpcs(),
             params.chain_id,
             decoded.decoded,
+            raw_events,
             window.target_block,
         )
         .await?;
@@ -170,6 +180,8 @@ mod tests {
         Erc20TokenRow, SyncStatusRow, DEFAULT_SCHEMA_SQL, SYNC_STATUS_QUERY,
     };
 
+    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES (0, NULL, '0x', 0, '0x', '[]', '0x', '{}');\n";
+
     struct MockDataSource {
         latest_block: u64,
         events: Value,
@@ -178,10 +190,12 @@ mod tests {
         decoded_store: Value,
         sql_result: String,
         rpc_urls: Vec<Url>,
+        raw_sql: String,
         fetch_calls: Mutex<Vec<(String, u64, u64)>>,
         store_fetch_calls: Mutex<Vec<(Vec<String>, u64, u64)>>,
         prefixes: Mutex<Vec<String>>,
         patched_events: Mutex<Vec<Value>>,
+        raw_calls: Mutex<Vec<Vec<Value>>>,
     }
 
     #[async_trait]
@@ -255,6 +269,11 @@ mod tests {
             Ok(out)
         }
 
+        fn raw_events_to_sql(&self, raw_events: &[Value]) -> Result<String> {
+            self.raw_calls.lock().unwrap().push(raw_events.to_vec());
+            Ok(self.raw_sql.clone())
+        }
+
         fn rpc_urls(&self) -> &[Url] {
             &self.rpc_urls
         }
@@ -325,10 +344,12 @@ mod tests {
             sql_result: "BEGIN TRANSACTION;\nUPDATE sync_status SET last_synced_block = ?end_block, updated_at = CURRENT_TIMESTAMP WHERE id = 1;\nCOMMIT;\n"
             .to_string(),
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
+            raw_sql: RAW_SQL_STUB.to_string(),
             fetch_calls: Mutex::new(Vec::new()),
             store_fetch_calls: Mutex::new(Vec::new()),
             prefixes: Mutex::new(Vec::new()),
             patched_events: Mutex::new(Vec::new()),
+            raw_calls: Mutex::new(Vec::new()),
         };
 
         let runner = SyncRunner::new(
@@ -353,8 +374,16 @@ mod tests {
 
         assert!(data_source.store_fetch_calls.lock().unwrap().is_empty());
 
-        // Token prefix SQL should be empty and deposit patched using cached decimals
-        assert!(data_source.prefixes.lock().unwrap()[0].is_empty());
+        // Combined prefix should contain raw events SQL only (no token inserts needed)
+        assert_eq!(data_source.prefixes.lock().unwrap()[0], RAW_SQL_STUB);
+        let raw_calls = data_source.raw_calls.lock().unwrap();
+        assert_eq!(raw_calls.len(), 1);
+        assert_eq!(raw_calls[0].len(), 1);
+        assert_eq!(
+            raw_calls[0][0],
+            json!({"blockNumber": "0x1", "data": "0x", "topics": []})
+        );
+
         let patched = data_source.patched_events.lock().unwrap()[0].clone();
         let amount = &patched[0]["decoded_data"]["deposit_amount"];
         let expected = Float::from_fixed_decimal(U256::from(1u64), 18)
@@ -413,10 +442,12 @@ mod tests {
             decoded_store: Value::Array(vec![]),
             sql_result: expected_sql,
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
+            raw_sql: RAW_SQL_STUB.to_string(),
             fetch_calls: Mutex::new(Vec::new()),
             store_fetch_calls: Mutex::new(Vec::new()),
             prefixes: Mutex::new(Vec::new()),
             patched_events: Mutex::new(Vec::new()),
+            raw_calls: Mutex::new(Vec::new()),
         };
 
         let token_info = TokenInfo {
@@ -539,10 +570,12 @@ mod tests {
             decoded_store,
             sql_result: expected_sql,
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
+            raw_sql: RAW_SQL_STUB.to_string(),
             fetch_calls: Mutex::new(Vec::new()),
             store_fetch_calls: Mutex::new(Vec::new()),
             prefixes: Mutex::new(Vec::new()),
             patched_events: Mutex::new(Vec::new()),
+            raw_calls: Mutex::new(Vec::new()),
         };
 
         let token_fetcher = MockTokenFetcher {
@@ -578,6 +611,10 @@ mod tests {
         assert!(stores
             .iter()
             .any(|s| s == "0x2222222222222222222222222222222222222222"));
+
+        let raw_calls = data_source.raw_calls.lock().unwrap();
+        assert_eq!(raw_calls.len(), 1);
+        assert_eq!(raw_calls[0].len(), 2);
 
         let patched_events = data_source.patched_events.lock().unwrap();
         let patched = patched_events[0].as_array().unwrap();

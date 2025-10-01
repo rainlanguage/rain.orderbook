@@ -7,6 +7,20 @@ CREATE TABLE IF NOT EXISTS sync_status (
 );
 INSERT OR IGNORE INTO sync_status (id, last_synced_block) VALUES (1, 0);
 
+CREATE TABLE raw_events (
+    transaction_hash TEXT NOT NULL,
+    log_index INTEGER NOT NULL,
+    block_number INTEGER NOT NULL,
+    block_timestamp INTEGER,
+    address TEXT NOT NULL,
+    topics TEXT NOT NULL,
+    data TEXT NOT NULL,
+    raw_json TEXT NOT NULL,
+    PRIMARY KEY (transaction_hash, log_index)
+);
+CREATE INDEX idx_raw_events_block ON raw_events(block_number, log_index);
+CREATE INDEX idx_raw_events_address ON raw_events(address);
+
 CREATE TABLE deposits (
     transaction_hash TEXT NOT NULL,
     log_index INTEGER NOT NULL,
