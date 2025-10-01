@@ -9,6 +9,7 @@ use super::super::token::{prepare_token_metadata, TokenPrepResult};
 pub(super) struct FetchResult {
     pub(super) events: Value,
     pub(super) raw_count: usize,
+    pub(super) raw_events: Vec<Value>,
 }
 
 pub(super) struct DecodedEvents {
@@ -28,8 +29,13 @@ where
     let events = data_source
         .fetch_events(orderbook_address, start_block, target_block)
         .await?;
-    let raw_count = events.as_array().map(|a| a.len()).unwrap_or(0);
-    Ok(FetchResult { events, raw_count })
+    let raw_events = events.as_array().map(|a| a.to_vec()).unwrap_or_default();
+    let raw_count = raw_events.len();
+    Ok(FetchResult {
+        events,
+        raw_count,
+        raw_events,
+    })
 }
 
 pub(super) fn decode_events<D>(data_source: &D, events: Value) -> Result<DecodedEvents>
@@ -44,6 +50,7 @@ where
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn prepare_sql<D, T>(
     data_source: &D,
     token_fetcher: &T,
@@ -51,6 +58,7 @@ pub(super) async fn prepare_sql<D, T>(
     metadata_rpc_urls: &[Url],
     chain_id: u32,
     decoded_events: Value,
+    raw_events: Vec<Value>,
     target_block: u64,
 ) -> Result<String>
 where
@@ -63,6 +71,8 @@ where
         metadata_rpc_urls
     };
 
+    let raw_events_sql = data_source.raw_events_to_sql(&raw_events)?;
+
     let token_prep = prepare_token_metadata(
         db_path,
         metadata_rpc_slice,
@@ -74,7 +84,12 @@ where
 
     let patched_events = patch_events(decoded_events, &token_prep)?;
 
-    data_source.events_to_sql(patched_events, target_block, &token_prep.tokens_prefix_sql)
+    let mut combined_prefix = raw_events_sql;
+    if !token_prep.tokens_prefix_sql.is_empty() {
+        combined_prefix.push_str(&token_prep.tokens_prefix_sql);
+    }
+
+    data_source.events_to_sql(patched_events, target_block, &combined_prefix)
 }
 
 fn patch_events(decoded_events: Value, token_prep: &TokenPrepResult) -> Result<Value> {
@@ -105,6 +120,8 @@ mod tests {
         rpc_urls: Vec<Url>,
         captured_prefixes: Mutex<Vec<String>>,
         captured_events: Mutex<Vec<Value>>,
+        raw_sql: String,
+        captured_raw: Mutex<Vec<Vec<Value>>>,
     }
 
     #[async_trait]
@@ -140,6 +157,11 @@ mod tests {
                 .unwrap()
                 .push(decoded_events.clone());
             Ok(self.sql_result.clone())
+        }
+
+        fn raw_events_to_sql(&self, raw_events: &[Value]) -> Result<String> {
+            self.captured_raw.lock().unwrap().push(raw_events.to_vec());
+            Ok(self.raw_sql.clone())
         }
 
         fn rpc_urls(&self) -> &[Url] {
@@ -194,7 +216,18 @@ mod tests {
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
             captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
+            raw_sql: "RAW_PREFIX;\n".to_string(),
+            captured_raw: Mutex::new(Vec::new()),
         };
+
+        let raw_events = vec![json!({
+            "blockNumber": "0x1",
+            "logIndex": "0x0",
+            "transactionHash": "0x01",
+            "address": "0xfeed",
+            "data": "0x",
+            "topics": []
+        })];
 
         let sql = prepare_sql(
             &data_source,
@@ -203,12 +236,20 @@ mod tests {
             data_source.rpc_urls(),
             1,
             events,
+            raw_events.clone(),
             50,
         )
         .await
         .unwrap();
 
         assert_eq!(sql, "SQL");
+
+        let captured_raw = data_source.captured_raw.lock().unwrap();
+        assert_eq!(captured_raw.len(), 1);
+        assert_eq!(captured_raw[0], raw_events);
+
+        let captured_prefixes = data_source.captured_prefixes.lock().unwrap();
+        assert!(captured_prefixes[0].starts_with("RAW_PREFIX;"));
 
         let patched = data_source.captured_events.lock().unwrap();
         let amount = &patched[0][0]["decoded_data"]["deposit_amount"];

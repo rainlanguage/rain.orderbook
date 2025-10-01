@@ -25,6 +25,7 @@ pub(crate) struct StoreFetchStats {
 
 pub(crate) struct StoreFetchOutcome {
     pub(crate) events: Value,
+    pub(crate) raw_events: Vec<Value>,
     pub(crate) stats: StoreFetchStats,
 }
 
@@ -42,6 +43,7 @@ where
         let total_decoded_count = decoded_events.as_array().map(|a| a.len()).unwrap_or(0);
         return Ok(StoreFetchOutcome {
             events: decoded_events,
+            raw_events: Vec::new(),
             stats: StoreFetchStats {
                 fetched_raw_count: 0,
                 decoded_count: 0,
@@ -54,6 +56,10 @@ where
         .fetch_store_set_events(store_addresses, start_block, target_block)
         .await?;
     let raw_count = store_events.as_array().map(|a| a.len()).unwrap_or(0);
+    let raw_events = store_events
+        .as_array()
+        .map(|a| a.to_vec())
+        .unwrap_or_default();
 
     let decoded_store = data_source.decode_events(store_events)?;
     let decoded_count = decoded_store.as_array().map(|a| a.len()).unwrap_or(0);
@@ -73,6 +79,7 @@ where
 
     Ok(StoreFetchOutcome {
         events: merged_events,
+        raw_events,
         stats: StoreFetchStats {
             fetched_raw_count: raw_count,
             decoded_count,
@@ -133,6 +140,10 @@ mod tests {
         }
 
         fn events_to_sql(&self, _: Value, _: u64, _: &str) -> anyhow::Result<String> {
+            Ok(String::new())
+        }
+
+        fn raw_events_to_sql(&self, _: &[Value]) -> anyhow::Result<String> {
             Ok(String::new())
         }
 
@@ -215,6 +226,7 @@ mod tests {
         assert_eq!(outcome.stats.fetched_raw_count, 1);
         assert_eq!(outcome.stats.decoded_count, 1);
         assert_eq!(outcome.stats.total_decoded_count, 2);
+        assert_eq!(outcome.raw_events.len(), 1);
         assert_eq!(
             outcome.events.as_array().unwrap().len(),
             outcome.stats.total_decoded_count
@@ -247,6 +259,7 @@ mod tests {
         assert_eq!(outcome.stats.fetched_raw_count, 0);
         assert_eq!(outcome.stats.decoded_count, 0);
         assert_eq!(outcome.stats.total_decoded_count, 0);
+        assert!(outcome.raw_events.is_empty());
         assert_eq!(outcome.events, decoded);
 
         assert!(data_source.calls.lock().unwrap().is_empty());

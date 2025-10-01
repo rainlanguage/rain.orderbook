@@ -30,6 +30,7 @@ pub(crate) trait SyncDataSource {
         end_block: u64,
         prefix_sql: &str,
     ) -> Result<String>;
+    fn raw_events_to_sql(&self, raw_events: &[Value]) -> Result<String>;
     fn rpc_urls(&self) -> &[Url];
 }
 
@@ -107,6 +108,11 @@ impl SyncDataSource for LocalDb {
     ) -> Result<String> {
         self.decoded_events_to_sql_with_prefix(decoded_events, end_block, prefix_sql)
             .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
+    }
+
+    fn raw_events_to_sql(&self, raw_events: &[Value]) -> Result<String> {
+        self.raw_events_to_sql(raw_events)
+            .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 
     fn rpc_urls(&self) -> &[Url] {

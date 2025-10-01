@@ -165,6 +165,10 @@ mod tests {
             Ok(String::new())
         }
 
+        fn raw_events_to_sql(&self, _: &[serde_json::Value]) -> Result<String> {
+            Ok(String::new())
+        }
+
         fn rpc_urls(&self) -> &[Url] {
             &[]
         }
