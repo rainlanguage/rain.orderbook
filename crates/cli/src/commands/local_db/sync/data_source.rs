@@ -2,8 +2,9 @@ use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use rain_orderbook_common::erc20::TokenInfo;
-use rain_orderbook_common::raindex_client::local_db::token_fetch::fetch_erc20_metadata_concurrent;
-use rain_orderbook_common::raindex_client::local_db::LocalDb;
+use rain_orderbook_common::raindex_client::local_db::{
+    token_fetch::fetch_erc20_metadata_concurrent, FetchConfig, LocalDb,
+};
 use serde_json::Value;
 use url::Url;
 
@@ -13,6 +14,12 @@ pub(crate) trait SyncDataSource {
     async fn fetch_events(
         &self,
         orderbook_address: &str,
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Value>;
+    async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
         start_block: u64,
         end_block: u64,
     ) -> Result<Value>;
@@ -70,6 +77,22 @@ impl SyncDataSource for LocalDb {
         self.fetch_events(orderbook_address, start_block, end_block)
             .await
             .map_err(|e| anyhow!(e))
+    }
+
+    async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Value> {
+        self.fetch_store_set_events(
+            store_addresses,
+            start_block,
+            end_block,
+            &FetchConfig::default(),
+        )
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     fn decode_events(&self, events: Value) -> Result<Value> {

@@ -56,6 +56,51 @@ pub fn collect_token_addresses(decoded_events: &Value) -> BTreeSet<Address> {
     out
 }
 
+pub fn collect_store_addresses(decoded_events: &Value) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+
+    let events = match decoded_events.as_array() {
+        Some(arr) => arr,
+        None => return out,
+    };
+
+    for event in events {
+        let Some(event_type) = event.get("event_type").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        let Some(decoded) = event.get("decoded_data") else {
+            continue;
+        };
+
+        match event_type {
+            "AddOrderV3" | "RemoveOrderV3" => {
+                if let Some(store) = decoded
+                    .get("order")
+                    .and_then(|order| order.get("evaluable"))
+                    .and_then(|eval| eval.get("store"))
+                    .and_then(|v| v.as_str())
+                {
+                    out.insert(store.to_ascii_lowercase());
+                }
+            }
+            "TakeOrderV3" => {
+                if let Some(store) = decoded
+                    .get("config")
+                    .and_then(|cfg| cfg.get("order"))
+                    .and_then(|order| order.get("evaluable"))
+                    .and_then(|eval| eval.get("store"))
+                    .and_then(|v| v.as_str())
+                {
+                    out.insert(store.to_ascii_lowercase());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -133,5 +178,43 @@ mod tests {
         ]);
         let addrs = collect_token_addresses(&data);
         assert!(addrs.is_empty());
+    }
+
+    #[test]
+    fn collects_store_addresses() {
+        let data = json!([
+            {
+                "event_type": "AddOrderV3",
+                "decoded_data": {
+                    "order": {
+                        "evaluable": {"store": "0x1111111111111111111111111111111111111111"}
+                    }
+                }
+            },
+            {
+                "event_type": "RemoveOrderV3",
+                "decoded_data": {
+                    "order": {
+                        "evaluable": {"store": "0x2222222222222222222222222222222222222222"}
+                    }
+                }
+            },
+            {
+                "event_type": "TakeOrderV3",
+                "decoded_data": {
+                    "config": {
+                        "order": {
+                            "evaluable": {"store": "0x3333333333333333333333333333333333333333"}
+                        }
+                    }
+                }
+            }
+        ]);
+
+        let stores = collect_store_addresses(&data);
+        assert_eq!(stores.len(), 3);
+        assert!(stores.contains("0x1111111111111111111111111111111111111111"));
+        assert!(stores.contains("0x2222222222222222222222222222222222222222"));
+        assert!(stores.contains("0x3333333333333333333333333333333333333333"));
     }
 }

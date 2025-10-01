@@ -1,4 +1,4 @@
-use super::{LocalDb, LocalDbError};
+use super::{LocalDb, LocalDbError, RAINTERPRETER_STORE_SET_TOPIC};
 use crate::rpc_client::{BlockResponse, RpcClientError, RpcEnvelope};
 use alloy::{primitives::U256, sol_types::SolEvent};
 use futures::{StreamExt, TryStreamExt};
@@ -123,6 +123,110 @@ impl LocalDb {
             .await?;
 
         // Flatten chunked results
+        let mut all_events: Vec<serde_json::Value> = results.into_iter().flatten().collect();
+
+        all_events.sort_by(|a, b| {
+            let block_a = extract_block_number(a).unwrap_or(0);
+            let block_b = extract_block_number(b).unwrap_or(0);
+            block_a.cmp(&block_b)
+        });
+
+        let mut events_array = serde_json::Value::Array(all_events);
+        self.backfill_missing_timestamps(&mut events_array, config)
+            .await?;
+        Ok(events_array)
+    }
+
+    pub async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
+        start_block: u64,
+        end_block: u64,
+        config: &FetchConfig,
+    ) -> Result<serde_json::Value, LocalDbError> {
+        if store_addresses.is_empty() {
+            return Ok(serde_json::Value::Array(Vec::new()));
+        }
+
+        let unique_addresses: Vec<String> = {
+            let mut dedup = HashSet::new();
+            store_addresses
+                .iter()
+                .filter_map(|addr| {
+                    let lower = addr.to_ascii_lowercase();
+                    if dedup.insert(lower.clone()) {
+                        Some(lower)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        };
+
+        if unique_addresses.is_empty() {
+            return Ok(serde_json::Value::Array(Vec::new()));
+        }
+
+        let chunk_size = config.chunk_size.max(1);
+        let mut jobs = Vec::new();
+        for address in unique_addresses.into_iter() {
+            let mut current_block = start_block;
+            while current_block <= end_block {
+                let to_block = std::cmp::min(
+                    current_block.saturating_add(chunk_size).saturating_sub(1),
+                    end_block,
+                );
+                jobs.push((address.clone(), current_block, to_block));
+                current_block = to_block.saturating_add(1);
+                if to_block == u64::MAX {
+                    break;
+                }
+            }
+        }
+
+        let concurrency = config.max_concurrent_requests.max(1);
+        let topics = Some(vec![Some(vec![RAINTERPRETER_STORE_SET_TOPIC.to_string()])]);
+        let results: Vec<Vec<serde_json::Value>> = futures::stream::iter(jobs)
+            .map(|(address, from_block, to_block)| {
+                let topics = topics.clone();
+                let rpc = self.rpc.clone();
+                let urls = self.rpc_urls.clone();
+                let max_attempts = config.max_retry_attempts;
+
+                async move {
+                    let from_block_hex = format!("0x{:x}", from_block);
+                    let to_block_hex = format!("0x{:x}", to_block);
+
+                    let response = retry_with_attempts(
+                        || {
+                            rpc.get_logs(
+                                &urls,
+                                &from_block_hex,
+                                &to_block_hex,
+                                &address,
+                                topics.clone(),
+                            )
+                        },
+                        max_attempts,
+                    )
+                    .await?;
+
+                    let rpc_envelope: RpcEnvelope<Vec<serde_json::Value>> =
+                        serde_json::from_str(&response)?;
+
+                    if let Some(error) = rpc_envelope.error {
+                        return Err(LocalDbError::Rpc(RpcClientError::RpcError {
+                            message: error.to_string(),
+                        }));
+                    }
+
+                    Ok::<_, LocalDbError>(rpc_envelope.result.unwrap_or_default())
+                }
+            })
+            .buffer_unordered(concurrency)
+            .try_collect()
+            .await?;
+
         let mut all_events: Vec<serde_json::Value> = results.into_iter().flatten().collect();
 
         all_events.sort_by(|a, b| {

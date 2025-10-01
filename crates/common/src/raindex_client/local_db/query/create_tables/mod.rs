@@ -15,6 +15,7 @@ pub const REQUIRED_TABLES: &[&str] = &[
     "after_clear_v2_events",
     "meta_events",
     "erc20_tokens",
+    "interpreter_store_sets",
 ];
 
 impl LocalDbQuery {

@@ -148,6 +148,15 @@ mod tests {
             Ok(json!([]))
         }
 
+        async fn fetch_store_set_events(
+            &self,
+            _: &[String],
+            _: u64,
+            _: u64,
+        ) -> Result<serde_json::Value> {
+            Ok(json!([]))
+        }
+
         fn decode_events(&self, events: serde_json::Value) -> Result<serde_json::Value> {
             Ok(events)
         }

@@ -1,4 +1,4 @@
-use super::LocalDb;
+use super::{LocalDb, RAINTERPRETER_STORE_SET_TOPIC};
 use alloy::primitives::keccak256;
 use alloy::{
     hex,
@@ -37,6 +37,7 @@ pub enum DecodeError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventData {
     pub event_type: String,
+    pub address: Option<String>,
     pub block_number: String,
     pub block_timestamp: String,
     pub transaction_hash: String,
@@ -62,6 +63,7 @@ impl LocalDb {
         topic_map.insert(ClearV3::SIGNATURE_HASH.to_string(), "ClearV3");
         topic_map.insert(AfterClearV2::SIGNATURE_HASH.to_string(), "AfterClearV2");
         topic_map.insert(MetaV1_2::SIGNATURE_HASH.to_string(), "MetaV1_2");
+        topic_map.insert(RAINTERPRETER_STORE_SET_TOPIC.to_string(), "Set");
 
         let mut decoded_events = Vec::new();
         let mut decode_stats = HashMap::new();
@@ -100,6 +102,7 @@ impl LocalDb {
                             "ClearV3" => decode_clear_v3(data_str)?,
                             "AfterClearV2" => decode_after_clear_v2(data_str)?,
                             "MetaV1_2" => decode_meta_v1_2(data_str)?,
+                            "Set" => decode_store_set(data_str)?,
                             _ => {
                                 serde_json::json!({
                                     "raw_data": data_str,
@@ -110,6 +113,10 @@ impl LocalDb {
 
                         let event_data = EventData {
                             event_type: event_type.to_string(),
+                            address: event
+                                .get("address")
+                                .and_then(|a| a.as_str())
+                                .map(|s| s.to_string()),
                             block_number: event
                                 .get("blockNumber")
                                 .and_then(|b| b.as_str())
@@ -226,6 +233,25 @@ fn decode_take_order_v3(data_str: &str) -> Result<serde_json::Value, DecodeError
         })),
         Err(e) => Err(DecodeError::AbiDecode(e.to_string())),
     }
+}
+
+fn decode_store_set(data_str: &str) -> Result<serde_json::Value, DecodeError> {
+    let data_bytes = hex::decode(data_str.strip_prefix("0x").unwrap_or(data_str))?;
+    if data_bytes.len() < 96 {
+        return Err(DecodeError::AbiDecode(
+            "Set event data is too short".to_string(),
+        ));
+    }
+
+    let namespace = &data_bytes[0..32];
+    let key = &data_bytes[32..64];
+    let value = &data_bytes[64..96];
+
+    Ok(serde_json::json!({
+        "namespace": format!("0x{}", hex::encode(namespace)),
+        "key": format!("0x{}", hex::encode(key)),
+        "value": format!("0x{}", hex::encode(value))
+    }))
 }
 
 fn decode_withdraw_v2(data_str: &str) -> Result<serde_json::Value, DecodeError> {
@@ -565,6 +591,27 @@ mod test_helpers {
             "blockTimestamp": "0x64b8c127",
             "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894",
             "logIndex": "0x4"
+        })
+    }
+
+    fn create_set_event_data() -> serde_json::Value {
+        let namespace = [0x33u8; 32];
+        let key = [0x44u8; 32];
+        let value = [0x55u8; 32];
+
+        let mut data = Vec::with_capacity(96);
+        data.extend_from_slice(&namespace);
+        data.extend_from_slice(&key);
+        data.extend_from_slice(&value);
+
+        serde_json::json!({
+            "address": "0x0123456789abcdef0123456789abcdef01234567",
+            "topics": [RAINTERPRETER_STORE_SET_TOPIC],
+            "data": format!("0x{}", hex::encode(data)),
+            "blockNumber": "0x12345c",
+            "blockTimestamp": "0x64b8c129",
+            "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
+            "logIndex": "0x6"
         })
     }
 
@@ -910,6 +957,35 @@ mod test_helpers {
         assert_eq!(
             decoded_event["decoded_data"]["order"]["evaluable"]["bytecode"],
             "0x01020304"
+        );
+    }
+
+    #[test]
+    fn test_set_decode() {
+        let event_data = create_set_event_data();
+        let events_array = serde_json::json!([event_data]);
+        let decoded_result = LocalDb::default().decode_events(events_array).unwrap();
+
+        let decoded_events = decoded_result.as_array().unwrap();
+        assert_eq!(decoded_events.len(), 1);
+
+        let decoded_event = &decoded_events[0];
+        assert_eq!(decoded_event["event_type"], "Set");
+        assert_eq!(
+            decoded_event["decoded_data"]["namespace"],
+            "0x3333333333333333333333333333333333333333333333333333333333333333"
+        );
+        assert_eq!(
+            decoded_event["decoded_data"]["key"],
+            "0x4444444444444444444444444444444444444444444444444444444444444444"
+        );
+        assert_eq!(
+            decoded_event["decoded_data"]["value"],
+            "0x5555555555555555555555555555555555555555555555555555555555555555"
+        );
+        assert_eq!(
+            decoded_event["address"],
+            "0x0123456789abcdef0123456789abcdef01234567"
         );
     }
 

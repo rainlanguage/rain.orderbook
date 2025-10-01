@@ -57,6 +57,9 @@ impl LocalDb {
                 Some("MetaV1_2") => {
                     sql.push_str(&generate_meta_sql(event)?);
                 }
+                Some("Set") => {
+                    sql.push_str(&generate_set_sql(event)?);
+                }
                 Some(event_type) => {
                     eprintln!("Warning: Unknown event type: {}", event_type);
                 }
@@ -217,12 +220,30 @@ fn generate_add_order_sql(event: &Value) -> Result<String, InsertError> {
     let order_bytes = get_string_field(decoded_data, "order_bytes")?;
     let owner = get_string_field(order, "owner")?;
     let nonce = get_string_field(order, "nonce")?;
+    let evaluable = order
+        .get("evaluable")
+        .ok_or(InsertError::MissingEventField {
+            field: "order.evaluable".to_string(),
+            event_type: "AddOrderV3".to_string(),
+        })?;
+    let interpreter_address = get_string_field(evaluable, "interpreter")?;
+    let store_address = get_string_field(evaluable, "store")?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, order_hash, order_owner, order_nonce, order_bytes) VALUES ({}, {}, '{}', {}, 'AddOrderV3', '{}', '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, order_hash, owner, nonce, order_bytes
+        "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, interpreter_address, store_address, order_hash, order_owner, order_nonce, order_bytes) VALUES ({}, {}, '{}', {}, 'AddOrderV3', '{}', '{}', '{}', '{}', '{}', '{}', '{}');\n",
+        block_number,
+        block_timestamp,
+        transaction_hash,
+        log_index,
+        sender,
+        interpreter_address,
+        store_address,
+        order_hash,
+        owner,
+        nonce,
+        order_bytes
     ));
 
     sql.push_str(&generate_order_ios_sql(order, transaction_hash, log_index)?);
@@ -253,15 +274,75 @@ fn generate_remove_order_sql(event: &Value) -> Result<String, InsertError> {
     let order_bytes = get_string_field(decoded_data, "order_bytes")?;
     let owner = get_string_field(order, "owner")?;
     let nonce = get_string_field(order, "nonce")?;
+    let evaluable = order
+        .get("evaluable")
+        .ok_or(InsertError::MissingEventField {
+            field: "order.evaluable".to_string(),
+            event_type: "RemoveOrderV3".to_string(),
+        })?;
+    let interpreter_address = get_string_field(evaluable, "interpreter")?;
+    let store_address = get_string_field(evaluable, "store")?;
 
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, order_hash, order_owner, order_nonce, order_bytes) VALUES ({}, {}, '{}', {}, 'RemoveOrderV3', '{}', '{}', '{}', '{}', '{}');\n",
-        block_number, block_timestamp, transaction_hash, log_index, sender, order_hash, owner, nonce, order_bytes
+        "INSERT INTO order_events (block_number, block_timestamp, transaction_hash, log_index, event_type, sender, interpreter_address, store_address, order_hash, order_owner, order_nonce, order_bytes) VALUES ({}, {}, '{}', {}, 'RemoveOrderV3', '{}', '{}', '{}', '{}', '{}', '{}', '{}');\n",
+        block_number,
+        block_timestamp,
+        transaction_hash,
+        log_index,
+        sender,
+        interpreter_address,
+        store_address,
+        order_hash,
+        owner,
+        nonce,
+        order_bytes
     ));
 
     sql.push_str(&generate_order_ios_sql(order, transaction_hash, log_index)?);
+
+    Ok(sql)
+}
+
+fn generate_set_sql(event: &Value) -> Result<String, InsertError> {
+    let decoded_data = event
+        .get("decoded_data")
+        .ok_or(InsertError::MissingDecodedData {
+            event_type: "Set".to_string(),
+        })?;
+
+    let transaction_hash = get_string_field(event, "transaction_hash")?;
+    let block_number = hex_to_decimal(get_string_field(event, "block_number")?)?;
+    let block_timestamp = hex_to_decimal(get_string_field(event, "block_timestamp")?)?;
+    let log_index = hex_to_decimal(get_string_field(event, "log_index")?)?;
+    let store_address_raw =
+        event
+            .get("address")
+            .and_then(|v| v.as_str())
+            .ok_or(InsertError::MissingEventField {
+                field: "address".to_string(),
+                event_type: "Set".to_string(),
+            })?;
+    let store_address = store_address_raw.to_ascii_lowercase();
+
+    let namespace = get_string_field(decoded_data, "namespace")?;
+    let key = get_string_field(decoded_data, "key")?;
+    let value = get_string_field(decoded_data, "value")?;
+
+    let mut sql = String::new();
+
+    sql.push_str(&format!(
+        "INSERT INTO interpreter_store_sets (store_address, block_number, block_timestamp, transaction_hash, log_index, namespace, key, value) VALUES ('{}', {}, {}, '{}', {}, '{}', '{}', '{}') ON CONFLICT(transaction_hash, log_index) DO UPDATE SET store_address = excluded.store_address, block_number = excluded.block_number, block_timestamp = excluded.block_timestamp, namespace = excluded.namespace, key = excluded.key, value = excluded.value;\n",
+        store_address,
+        block_number,
+        block_timestamp,
+        transaction_hash,
+        log_index,
+        namespace,
+        key,
+        value
+    ));
 
     Ok(sql)
 }
@@ -1211,6 +1292,11 @@ mod tests {
                 "order": {
                     "owner": "0x0101010101010101010101010101010101010101",
                     "nonce": "0x1",
+                    "evaluable": {
+                        "interpreter": "0x0202020202020202020202020202020202020202",
+                        "store": "0x0303030303030303030303030303030303030303",
+                        "bytecode": "0x"
+                    },
                     "valid_outputs": [
                         {
                             "token": "0x0606060606060606060606060606060606060606",
@@ -1246,6 +1332,11 @@ mod tests {
                 "order": {
                     "owner": "0x0101010101010101010101010101010101010101",
                     "nonce": "0x1",
+                    "evaluable": {
+                        "interpreter": "0x0202020202020202020202020202020202020202",
+                        "store": "0x0303030303030303030303030303030303030303",
+                        "bytecode": "0x"
+                    },
                     "valid_inputs": [
                         {
                             "token": "0x0404040404040404040404040404040404040404",
@@ -1281,6 +1372,11 @@ mod tests {
                 "order": {
                     "owner": "0x0101010101010101010101010101010101010101",
                     "nonce": "0x1"
+                    ,"evaluable": {
+                        "interpreter": "0x0202020202020202020202020202020202020202",
+                        "store": "0x0303030303030303030303030303030303030303",
+                        "bytecode": "0x"
+                    }
                 }
             }
         });

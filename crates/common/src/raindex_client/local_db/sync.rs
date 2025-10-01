@@ -4,9 +4,9 @@ use super::{
     insert::generate_erc20_tokens_sql,
     query::{
         create_tables::REQUIRED_TABLES, fetch_erc20_tokens_by_addresses::Erc20TokenRow,
-        LocalDbQuery,
+        fetch_store_addresses::StoreAddressRow, LocalDbQuery,
     },
-    tokens::collect_token_addresses,
+    tokens::{collect_store_addresses, collect_token_addresses},
     *,
 };
 use alloy::primitives::Address;
@@ -194,7 +194,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let decoded_events = match local_db.decode_events(events) {
+        let mut decoded_events = match local_db.decode_events(events) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -203,6 +203,47 @@ impl RaindexClient {
                 )));
             }
         };
+
+        let mut store_addresses: HashSet<String> = collect_store_addresses(&decoded_events)
+            .into_iter()
+            .collect();
+
+        let existing_stores: Vec<StoreAddressRow> =
+            LocalDbQuery::fetch_store_addresses(&db_callback).await?;
+        for row in existing_stores {
+            if !row.store_address.is_empty() {
+                store_addresses.insert(row.store_address.to_ascii_lowercase());
+            }
+        }
+
+        let store_addresses_vec: Vec<String> = store_addresses.into_iter().collect();
+
+        let store_events = local_db
+            .fetch_store_set_events(
+                &store_addresses_vec,
+                start_block,
+                latest_block,
+                &FetchConfig::default(),
+            )
+            .await?;
+
+        let decoded_store_events = match local_db.decode_events(store_events) {
+            Ok(result) => result,
+            Err(e) => {
+                return Err(LocalDbError::CustomError(format!(
+                    "There was a problem trying to decode interpreter store events: {}",
+                    e
+                )));
+            }
+        };
+
+        if let (Some(mut base_events), Some(store_array)) = (
+            decoded_events.as_array().cloned(),
+            decoded_store_events.as_array(),
+        ) {
+            base_events.extend(store_array.iter().cloned());
+            decoded_events = serde_json::Value::Array(base_events);
+        }
 
         send_status_message(
             &status_callback,
