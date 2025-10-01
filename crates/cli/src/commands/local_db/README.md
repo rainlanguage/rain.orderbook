@@ -123,6 +123,8 @@ cargo run local-db dump \
 
 This produces `local_db_<end_block>.db`, `local_db_<end_block>.sql`, and `local_db_<end_block>.sql.gz` in this folder by default.
 
+All SQL view definitions in `crates/common/src/raindex_client/local_db/views` are loaded automatically before the dump so the exported schema includes them.
+
 ## Tips
 - Recommended pipeline: Fetch Events → Decode → Tokens (tokens-fetch, tokens-to-sql) → Events (decoded-events-to-sql with --tokens-file) → Dump.
 - You can skip tokens-fetch and pass `--rpc` to decoded-events-to-sql for decimals, but you still need to run `tokens-to-sql` to produce token upserts for the DB.
