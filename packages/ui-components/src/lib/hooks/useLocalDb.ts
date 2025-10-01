@@ -1,5 +1,5 @@
 import { getContext } from 'svelte';
-import type { SQLiteWasmDatabase } from 'sqlite-web';
+import type { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import { DeploymentStepsError, DeploymentStepsErrorCode } from '../errors/DeploymentStepsError';
 
 export const LOCAL_DB_CONTEXT_KEY = 'local-db-context';
