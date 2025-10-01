@@ -117,6 +117,10 @@ mod tests {
             Ok(json!([]))
         }
 
+        async fn fetch_store_set_events(&self, _: &[String], _: u64, _: u64) -> Result<Value> {
+            Ok(Value::Array(vec![]))
+        }
+
         fn decode_events(&self, events: Value) -> Result<Value> {
             Ok(events)
         }
