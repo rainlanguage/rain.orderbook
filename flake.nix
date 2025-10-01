@@ -98,7 +98,7 @@
               ARCHIVE_NAME=rain-orderbook-cli.tar.gz
               BINARY_NAME=rain-orderbook-cli
 
-              cargo build --release -p rain_orderbook_cli
+              cargo build --release -p rain_orderbook_cli --target x86_64-unknown-linux-gnu
 
               mkdir -p "$OUTPUT_DIR"
               rm -f "$OUTPUT_DIR/$ARCHIVE_NAME"
