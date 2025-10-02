@@ -2,6 +2,7 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use alloy::primitives::{hex::decode, Bytes};
 use alloy::sol_types::{SolCall, SolValue};
+use futures::future::try_join_all;
 use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, OrderV4};
 use rain_orderbook_subgraph_client::types::{order_detail_traits::OrderDetailError, Id};
 use std::sync::{Arc, RwLock};
@@ -66,20 +67,22 @@ impl RaindexClient {
             .transaction_remove_orders(Id::new(tx_hash.to_string()))
             .await?;
 
-        let mut orders = orders
-            .into_iter()
-            .map(|value| {
+        let order_futures = orders.into_iter().map(|value| {
+            let raindex_client = raindex_client.clone();
+
+            async move {
+                let transaction = value.transaction.try_into()?;
                 RaindexOrder::try_from_sg_order(
-                    raindex_client.clone(),
+                    raindex_client,
                     chain_id,
                     value.order,
-                    Some(value.transaction.try_into()?),
+                    Some(transaction),
                 )
-            })
-            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
-        for order in orders.iter_mut() {
-            order.ensure_dotrain_source().await?;
-        }
+                .await
+            }
+        });
+
+        let orders = try_join_all(order_futures).await?;
         Ok(orders)
     }
 }

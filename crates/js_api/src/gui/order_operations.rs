@@ -1,15 +1,13 @@
 use super::*;
 use alloy::{
     hex::encode,
-    primitives::{self, Bytes, B256, U256},
+    primitives::{Bytes, B256, U256},
     sol_types::SolCall,
 };
 use rain_math_float::Float;
-use rain_metaboard_subgraph::metaboard_client::{
-    MetaboardSubgraphClient, MetaboardSubgraphClientError,
-};
+use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
 use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
-use rain_metadata::{types::dotrain::gui_state_v1::DotrainGuiStateV1, RainMetaDocumentV1Item};
+use rain_metadata::RainMetaDocumentV1Item;
 use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
@@ -106,7 +104,7 @@ pub struct DeploymentTransactionArgs {
     orderbook_address: Address,
     chain_id: u32,
     #[tsify(type = "ExternalCall | undefined")]
-    meta_call: Option<ExternalCall>,
+    emit_meta_call: Option<ExternalCall>,
 }
 impl_wasm_traits!(DeploymentTransactionArgs);
 
@@ -227,43 +225,6 @@ impl DotrainOrderGui {
             _ => {}
         }
         self.get_current_deployment()
-    }
-
-    async fn resolve_metaboard_address_for_network(&self, network_key: &str) -> Option<Address> {
-        let orderbook_yaml = self.dotrain_order.orderbook_yaml();
-        let metaboard_cfg = match orderbook_yaml.get_metaboard(network_key) {
-            Ok(cfg) => cfg,
-            Err(error) => {
-                web_sys::console::log_1(
-                    &format!("Failed to get metaboard config: {:?}", error).into(),
-                );
-                return None;
-            }
-        };
-
-        let client = MetaboardSubgraphClient::new(metaboard_cfg.url.clone());
-        match client.get_metaboard_addresses(None, None).await {
-            Ok(addresses) => {
-                web_sys::console::log_1(&format!("Metaboard addresses: {:?}", addresses).into());
-                if let Some(address) = addresses.first() {
-                    web_sys::console::log_1(
-                        &format!("Using metaboard address for meta call: {:?}", address).into(),
-                    );
-                    Some(*address)
-                } else {
-                    web_sys::console::log_1(
-                        &"Metaboard addresses list is empty; using default address".into(),
-                    );
-                    None
-                }
-            }
-            Err(error) => {
-                web_sys::console::log_1(
-                    &format!("Error fetching metaboard addresses: {:?}", error).into(),
-                );
-                None
-            }
-        }
     }
 
     /// Checks token allowances for all deposits against the orderbook contract.
@@ -514,45 +475,10 @@ impl DotrainOrderGui {
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
-    async fn should_include_dotrain_meta_for_deployment(
-        &self,
-        deployment: &GuiDeploymentCfg,
-        dotrain_state: &DotrainGuiStateV1,
-    ) -> Result<bool, GuiError> {
-        let orderbook_yaml = self.dotrain_order.orderbook_yaml();
-        let network_key = &deployment.deployment.order.network.key;
-
-        let metaboard_cfg = match orderbook_yaml.get_metaboard(network_key) {
-            Ok(cfg) => cfg,
-            Err(_) => return Ok(true),
-        };
-
-        let gui_state_hex = encode(dotrain_state.dotrain_hash());
-
-        web_sys::console::log_1(
-            &format!(
-                "DotrainGuiStateV1 hash (keccak over CBOR map only): 0x{}",
-                gui_state_hex
-            )
-            .into(),
-        );
-
-        let client = MetaboardSubgraphClient::new(metaboard_cfg.url.clone());
-        let res = client
-            .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", gui_state_hex)))
-            .await;
-        web_sys::console::log_1(&format!("Dotrain meta fetch result: {:?}", res).into());
-        match res {
-            Ok(_) => Ok(false),
-            Err(MetaboardSubgraphClientError::Empty(_)) => Ok(true),
-            Err(_) => Ok(true),
-        }
-    }
-
     async fn prepare_add_order_args(
         &mut self,
         deployment: &GuiDeploymentCfg,
-    ) -> Result<(AddOrderArgs, bool), GuiError> {
+    ) -> Result<AddOrderArgs, GuiError> {
         let dotrain_instance_v1 = self.generate_dotrain_instance_v1()?;
         let meta = RainMetaDocumentV1Item::try_from(dotrain_instance_v1.clone())?;
 
@@ -560,22 +486,14 @@ impl DotrainOrderGui {
             .dotrain_order
             .generate_dotrain_for_deployment(&deployment.deployment.key)?;
 
-        let include_dotrain_meta = self
-            .should_include_dotrain_meta_for_deployment(deployment, &dotrain_instance_v1)
-            .await?;
-
-        let mut add_order_args = AddOrderArgs::new_from_deployment(
+        let add_order_args = AddOrderArgs::new_from_deployment(
             dotrain_for_deployment,
             deployment.deployment.as_ref().clone(),
             Some(vec![meta]),
         )
         .await?;
 
-        if !include_dotrain_meta {
-            add_order_args.set_include_dotrain_meta(false);
-        }
-
-        Ok((add_order_args, include_dotrain_meta))
+        Ok(add_order_args)
     }
 
     /// Generates calldata for adding the order to the orderbook.
@@ -605,18 +523,15 @@ impl DotrainOrderGui {
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
 
-        let (add_order_args, include_dotrain_meta) =
-            self.prepare_add_order_args(&deployment).await?;
-        web_sys::console::log_1(
-            &format!("Including .rain metadata: {}", include_dotrain_meta).into(),
-        );
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
 
         let transaction_args = self.get_transaction_args()?;
-        let artifacts = add_order_args
-            .build_call_artifacts(transaction_args.rpcs.clone())
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
             .await?;
-        let calldata = artifacts.call.abi_encode();
-        Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)))
+        Ok(AddOrderCalldataResult(Bytes::copy_from_slice(
+            &add_order_call.abi_encode(),
+        )))
     }
 
     /// Generates a multicall combining all deposits and add order in one calldata.
@@ -660,16 +575,13 @@ impl DotrainOrderGui {
             DepositCalldataResult::NoDeposits => Vec::new(),
         };
 
-        let (add_order_args, include_dotrain_meta) =
-            self.prepare_add_order_args(&deployment).await?;
-        web_sys::console::log_1(
-            &format!("Including .rain metadata: {}", include_dotrain_meta).into(),
-        );
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
+
         let transaction_args = self.get_transaction_args()?;
-        let artifacts = add_order_args
-            .build_call_artifacts(transaction_args.rpcs.clone())
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
             .await?;
-        let add_order_calldata = Bytes::copy_from_slice(&artifacts.call.abi_encode());
+        let add_order_calldata = Bytes::copy_from_slice(&add_order_call.abi_encode());
 
         calls.push(add_order_calldata);
 
@@ -893,21 +805,15 @@ impl DotrainOrderGui {
             DepositCalldataResult::NoDeposits => Vec::new(),
         };
 
-        let owner_address = Address::from_str(&owner)?;
-
-        let (add_order_args, include_dotrain_meta) =
-            self.prepare_add_order_args(&deployment).await?;
-        web_sys::console::log_1(
-            &format!("Including .rain metadata: {}", include_dotrain_meta).into(),
-        );
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
 
         let transaction_args = self.get_transaction_args()?;
-        let artifacts = add_order_args
-            .build_call_artifacts(transaction_args.rpcs.clone())
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
             .await?;
 
         let mut calls = Vec::new();
-        calls.push(Bytes::copy_from_slice(&artifacts.call.abi_encode()));
+        calls.push(Bytes::copy_from_slice(&add_order_call.abi_encode()));
         for calldata in deposit_calldatas.iter() {
             calls.push(Bytes::copy_from_slice(calldata));
         }
@@ -915,57 +821,20 @@ impl DotrainOrderGui {
         let deployment_calldata =
             Bytes::copy_from_slice(&multicallCall { data: calls }.abi_encode());
 
-        let meta_call = if include_dotrain_meta {
-            let meta_board_address = self
-                .resolve_metaboard_address_for_network(&deployment.deployment.order.network.key)
-                .await
-                .unwrap_or_default();
+        let emit_meta_call = if self.should_include_dotrain_meta_for_deployment().await? {
+            let client = self.get_metaboard_client()?;
+            let addresses = client.get_metaboard_addresses(None, None).await?;
+            let metaboard_address = addresses
+                .first()
+                .ok_or_else(|| GuiError::NoAddressInMetaboardSubgraph)?;
 
-            match (
-                artifacts.dotrain_meta.as_ref(),
-                artifacts.dotrain_meta_subject,
-                artifacts.emit_dotrain_meta_calldata(owner_address),
-            ) {
-                (Some(dotrain_meta), Some(subject), Some(calldata)) => {
-                    let meta_hex = primitives::hex::encode(dotrain_meta);
-                    let meta_hash = primitives::keccak256(dotrain_meta);
-                    web_sys::console::log_1(
-                        &format!("Dotrain meta payload: 0x{}", meta_hex).into(),
-                    );
-                    web_sys::console::log_1(
-                        &format!("Dotrain meta payload hash: {meta_hash:#x}").into(),
-                    );
-                    web_sys::console::log_1(
-                        &format!(
-                            "Dotrain meta subject (DotrainGuiState hash): 0x{}",
-                            primitives::hex::encode(subject.0)
-                        )
-                        .into(),
-                    );
-
-                    Some(ExternalCall {
-                        to: meta_board_address,
-                        calldata: Bytes::copy_from_slice(&calldata),
-                    })
-                }
-                (None, _, _) => {
-                    web_sys::console::log_1(
-                        &"Dotrain meta payload unavailable; skipping meta publication".into(),
-                    );
-                    None
-                }
-                (_, None, _) => {
-                    web_sys::console::log_1(
-                        &"Dotrain meta calldata missing; skipping meta publication".into(),
-                    );
-                    None
-                }
-                (_, _, None) => {
-                    web_sys::console::log_1(
-                        &"Dotrain meta calldata missing; skipping meta publication".into(),
-                    );
-                    None
-                }
+            let calldata = add_order_args.try_into_emit_meta_call()?;
+            match calldata {
+                Some(calldata) => Some(ExternalCall {
+                    to: *metaboard_address,
+                    calldata: Bytes::copy_from_slice(&calldata.abi_encode()),
+                }),
+                None => None,
             }
         } else {
             None
@@ -982,8 +851,33 @@ impl DotrainOrderGui {
                 .ok_or(GuiError::OrderbookNotFound)?
                 .address,
             chain_id: deployment.deployment.order.network.chain_id,
-            meta_call,
+            emit_meta_call,
         })
+    }
+
+    fn get_metaboard_client(&self) -> Result<MetaboardSubgraphClient, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let orderbook_yaml = self.dotrain_order.orderbook_yaml();
+        let metaboard_cfg =
+            orderbook_yaml.get_metaboard(&deployment.deployment.order.network.key)?;
+        Ok(MetaboardSubgraphClient::new(metaboard_cfg.url.clone()))
+    }
+
+    async fn should_include_dotrain_meta_for_deployment(&self) -> Result<bool, GuiError> {
+        let dotrain_gui_state = self.generate_dotrain_instance_v1()?;
+
+        let client = self.get_metaboard_client()?;
+        let res = client
+            .get_metabytes_by_subject(&MetaBigInt(format!(
+                "0x{}",
+                encode(dotrain_gui_state.dotrain_hash())
+            )))
+            .await;
+
+        match res {
+            Ok(_) => Ok(false),
+            Err(_) => Ok(true),
+        }
     }
 }
 

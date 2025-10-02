@@ -3,6 +3,7 @@ use alloy_ethers_typecast::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_math_float::FloatError;
+use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClientError;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
     gui::{
@@ -651,6 +652,8 @@ pub enum GuiError {
     TokenNotInSelectTokens(String),
     #[error("JavaScript error: {0}")]
     JsError(String),
+    #[error("No address found in metaboard subgraph")]
+    NoAddressInMetaboardSubgraph,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -699,6 +702,8 @@ pub enum GuiError {
     FloatError(#[from] FloatError),
     #[error(transparent)]
     RainMetadataError(#[from] rain_metadata::Error),
+    #[error(transparent)]
+    MetaboardSubgraphClientError(#[from] MetaboardSubgraphClientError),
 }
 
 impl GuiError {
@@ -787,7 +792,11 @@ impl GuiError {
                 format!("There was a problem with the float value: {err}")
             }
             GuiError::RainMetadataError(err) =>
-                format!("There was a problem with the rain metadata: {err}")
+                format!("There was a problem with the rain metadata: {err}"),
+            GuiError::NoAddressInMetaboardSubgraph =>
+                "No address was found in the metaboard subgraph response.".to_string(),
+                GuiError::MetaboardSubgraphClientError(err) =>
+                format!("There was a problem with the metaboard subgraph client: {err}"),
         }
     }
 }

@@ -10,9 +10,8 @@ use crate::{
 };
 use alloy::hex::{decode, encode};
 use alloy::primitives::{Address, Bytes, U256};
-use rain_metaboard_subgraph::metaboard_client::{
-    MetaboardSubgraphClient, MetaboardSubgraphClientError,
-};
+use futures::future::try_join_all;
+use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
 use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::{
     types::dotrain::source_v1::DotrainSourceV1, KnownMagic, RainMetaDocumentV1Item,
@@ -21,7 +20,8 @@ use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
         common::{
-            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
+            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderWithSubgraphName, SgOrderbook,
+            SgOrdersListFilterArgs, SgVault,
         },
         // Id,
     },
@@ -30,10 +30,11 @@ use rain_orderbook_subgraph_client::{
     SgPaginationArgs,
 };
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     str::FromStr,
     sync::{Arc, RwLock, RwLockReadGuard},
 };
+use rain_orderbook_app_settings::yaml::YamlError;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
@@ -294,6 +295,20 @@ impl RaindexOrder {
         raindex_client.get_rpc_urls_for_chain(self.chain_id)
     }
 
+    #[wasm_export(skip)]
+    pub fn get_metaboard_client(&self) -> Result<Option<MetaboardSubgraphClient>, RaindexError> {
+        let raindex_client = self.read_raindex_client()?;
+        let network = raindex_client
+            .orderbook_yaml
+            .get_network_by_chain_id(self.chain_id)?;
+        let metaboard = match raindex_client.orderbook_yaml.get_metaboard(&network.key) {
+            Ok(metaboard) => metaboard,
+            Err(YamlError::KeyNotFound(_) | YamlError::NotFound(_)) => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+        Ok(Some(MetaboardSubgraphClient::new(metaboard.url.clone())))
+    }
+
     // /// Retrieves volume data for all vaults associated with this order over a specified time period
     // ///
     // /// Queries historical volume information across all vaults that belong to this order,
@@ -510,29 +525,37 @@ impl RaindexClient {
             )
             .await;
 
-        let mut orders = orders
+        let subgraph_to_chain: HashMap<_, _> = multi_subgraph_args
             .iter()
-            .map(|order| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
+            .flat_map(|(chain_id, args)| args.iter().map(move |arg| (arg.name.clone(), *chain_id)))
+            .collect();
+        let subgraph_to_chain = Arc::new(subgraph_to_chain);
+
+        let order_futures = orders.into_iter().map(|order_with_subgraph| {
+            let raindex_client = raindex_client.clone();
+            let subgraph_to_chain = Arc::clone(&subgraph_to_chain);
+
+            async move {
+                let SgOrderWithSubgraphName {
+                    order: sg_order,
+                    subgraph_name,
+                } = order_with_subgraph;
+
+                let order_hash = sg_order.order_hash.0.clone();
+                let chain_id = subgraph_to_chain
+                    .get(&subgraph_name)
+                    .copied()
                     .ok_or(RaindexError::SubgraphNotFound(
-                        order.subgraph_name.clone(),
-                        order.order.order_hash.0.clone(),
+                        subgraph_name.clone(),
+                        order_hash,
                     ))?;
-                let order = RaindexOrder::try_from_sg_order(
-                    raindex_client.clone(),
-                    chain_id,
-                    order.order.clone(),
-                    None,
-                )?;
-                Ok(order)
-            })
-            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
-        for order in orders.iter_mut() {
-            order.ensure_dotrain_source().await?;
-        }
+
+                RaindexOrder::try_from_sg_order(raindex_client, chain_id, sg_order, None).await
+            }
+        });
+
+        let orders = try_join_all(order_futures).await?;
+
         Ok(orders)
     }
 
@@ -599,9 +622,8 @@ impl RaindexClient {
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
             .await?;
-        let mut order =
-            RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
-        order.ensure_dotrain_source().await?;
+        let order =
+            RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None).await?;
         Ok(order)
     }
 }
@@ -647,7 +669,7 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
 }
 
 impl RaindexOrder {
-    pub fn try_from_sg_order(
+    pub async fn try_from_sg_order(
         raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         order: SgOrder,
@@ -659,7 +681,18 @@ impl RaindexOrder {
             .map(|meta| meta.0.try_decode_rainlangsource())
             .transpose()?;
 
-        Ok(Self {
+        let parsed_meta = order
+            .meta
+            .as_ref()
+            .map(|meta| {
+                ParsedMeta::parse_from_bytes(
+                    &decode(&meta.0).map_err(rain_metadata::Error::DecodeHexStringError)?,
+                )
+            })
+            .transpose()?
+            .unwrap_or_default();
+
+        let mut raindex_order = Self {
             raindex_client: raindex_client.clone(),
             chain_id,
             id: Bytes::from_str(&order.id.0)?,
@@ -702,23 +735,18 @@ impl RaindexOrder {
                 .clone()
                 .map(|meta| Bytes::from_str(&meta.0))
                 .transpose()?,
-            parsed_meta: order
-                .meta
-                .as_ref()
-                .map(|meta| {
-                    ParsedMeta::parse_from_bytes(
-                        &decode(&meta.0).map_err(rain_metadata::Error::DecodeHexStringError)?,
-                    )
-                })
-                .transpose()?
-                .unwrap_or_default(),
+            parsed_meta,
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
-        })
+        };
+
+        raindex_order.fetch_dotrain_source().await?;
+
+        Ok(raindex_order)
     }
 
-    pub async fn ensure_dotrain_source(&mut self) -> Result<(), RaindexError> {
+    pub async fn fetch_dotrain_source(&mut self) -> Result<(), RaindexError> {
         if self
             .parsed_meta
             .iter()
@@ -738,34 +766,20 @@ impl RaindexOrder {
             None => return Ok(()),
         };
 
-        let metaboard_url = {
-            let guard = self
-                .raindex_client
-                .read()
-                .map_err(|_| RaindexError::ReadLockError)?;
-            let network = guard
-                .orderbook_yaml
-                .get_network_by_chain_id(self.chain_id)?;
-            guard
-                .orderbook_yaml
-                .get_metaboard(&network.key)
-                .ok()
-                .map(|cfg| cfg.url.clone())
+        let client = match self.get_metaboard_client()? {
+            Some(client) => client,
+            None => return Ok(()),
         };
 
-        let Some(metaboard_url) = metaboard_url else {
-            return Ok(());
-        };
-
-        let client = MetaboardSubgraphClient::new(metaboard_url);
-        let subject_hex = format!("0x{}", encode(dotrain_state.dotrain_hash));
         let metabytes = match client
-            .get_metabytes_by_subject(&MetaBigInt(subject_hex))
+            .get_metabytes_by_subject(&MetaBigInt(format!(
+                "0x{}",
+                encode(dotrain_state.dotrain_hash)
+            )))
             .await
         {
             Ok(bytes) => bytes,
-            Err(MetaboardSubgraphClientError::Empty(_)) => return Ok(()),
-            Err(err) => return Err(RaindexError::MetaboardSubgraphError(err.to_string())),
+            Err(_) => return Ok(()),
         };
 
         for meta_bytes in metabytes {
@@ -1190,6 +1204,7 @@ mod tests {
                 get_order1(),
                 None,
             )
+            .await
             .unwrap();
 
             let order1 = result[0].clone();
@@ -1355,6 +1370,7 @@ mod tests {
                 get_order1(),
                 None,
             )
+            .await
             .unwrap();
             assert_eq!(res.id, expected_order.id);
             assert_eq!(res.order_bytes, expected_order.order_bytes);

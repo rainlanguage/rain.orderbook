@@ -1,6 +1,7 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use alloy::primitives::Bytes;
+use futures::future::try_join_all;
 use rain_orderbook_subgraph_client::types::Id;
 use std::sync::{Arc, RwLock};
 
@@ -64,20 +65,22 @@ impl RaindexClient {
         let orders = client
             .transaction_add_orders(Id::new(tx_hash.to_string()))
             .await?;
-        let mut orders = orders
-            .into_iter()
-            .map(|value| {
+        let order_futures = orders.into_iter().map(|value| {
+            let raindex_client = raindex_client.clone();
+
+            async move {
+                let transaction = value.transaction.try_into()?;
                 RaindexOrder::try_from_sg_order(
-                    raindex_client.clone(),
+                    raindex_client,
                     chain_id,
                     value.order,
-                    Some(value.transaction.try_into()?),
+                    Some(transaction),
                 )
-            })
-            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
-        for order in orders.iter_mut() {
-            order.ensure_dotrain_source().await?;
-        }
+                .await
+            }
+        });
+
+        let orders = try_join_all(order_futures).await?;
         Ok(orders)
     }
 }

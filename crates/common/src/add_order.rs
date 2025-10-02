@@ -3,10 +3,10 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
-use alloy::primitives::{hex::FromHexError, keccak256, Address, Bytes, B256};
+use alloy::primitives::{hex::FromHexError, Address, Bytes, B256};
 #[cfg(not(target_family = "wasm"))]
 use alloy::primitives::{FixedBytes, U256};
-use alloy::sol_types::{SolCall, SolValue};
+use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
 };
@@ -21,7 +21,7 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
 };
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
-use rain_metadata::types::dotrain::{gui_state_v1::DotrainGuiStateV1, source_v1::DotrainSourceV1};
+use rain_metadata::types::dotrain::gui_state_v1::DotrainGuiStateV1;
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
@@ -29,7 +29,7 @@ use rain_metadata::{
 use rain_metadata_bindings::MetaBoard::emitMetaCall;
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
 use rain_orderbook_bindings::IOrderBookV5::{
-    addOrder3Call, EvaluableV4, OrderConfigV4, OrderV4, TaskV2, IOV2,
+    addOrder3Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -43,46 +43,6 @@ pub static ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS: [&str; 1] = ["handle-add-or
 pub struct AddOrderCallArtifacts {
     pub call: addOrder3Call,
     pub meta: Vec<u8>,
-    pub dotrain_meta: Option<Vec<u8>>,
-    pub dotrain_meta_subject: Option<B256>,
-}
-
-impl AddOrderCallArtifacts {
-    pub fn order(&self, owner: Address) -> OrderV4 {
-        OrderV4 {
-            owner,
-            evaluable: self.call.config.evaluable.clone(),
-            validInputs: self.call.config.validInputs.clone(),
-            validOutputs: self.call.config.validOutputs.clone(),
-            nonce: self.call.config.nonce,
-        }
-    }
-
-    pub fn order_hash(&self, owner: Address) -> B256 {
-        keccak256(self.order(owner).abi_encode())
-    }
-
-    pub fn emit_meta_calldata(&self, owner: Address) -> Vec<u8> {
-        emitMetaCall {
-            subject: self.order_hash(owner),
-            meta: Bytes::copy_from_slice(&self.meta),
-        }
-        .abi_encode()
-    }
-
-    pub fn emit_dotrain_meta_calldata(&self, owner: Address) -> Option<Vec<u8>> {
-        let _ = owner;
-        let subject = self.dotrain_meta_subject?;
-        let meta = self.dotrain_meta.as_ref()?;
-
-        Some(
-            emitMetaCall {
-                subject,
-                meta: Bytes::copy_from_slice(meta),
-            }
-            .abi_encode(),
-        )
-    }
 }
 
 #[derive(Error, Debug)]
@@ -140,15 +100,9 @@ pub struct AddOrderArgs {
     pub deployer: Address,
     pub bindings: HashMap<String, String>,
     pub meta: Option<Vec<RainMetaDocumentV1Item>>,
-    #[serde(skip, default = "AddOrderArgs::default_include_dotrain_meta")]
-    include_dotrain_meta: bool,
 }
 
 impl AddOrderArgs {
-    fn default_include_dotrain_meta() -> bool {
-        true
-    }
-
     /// create a new  instance from Deployment
     pub async fn new_from_deployment(
         dotrain: String,
@@ -190,15 +144,7 @@ impl AddOrderArgs {
             deployer: deployment.scenario.deployer.address,
             bindings: deployment.scenario.bindings.to_owned(),
             meta,
-            include_dotrain_meta: true,
         })
-    }
-
-    pub fn set_include_dotrain_meta(&mut self, include: bool) {
-        self.include_dotrain_meta = include;
-    }
-    pub fn include_dotrain_meta(&self) -> bool {
-        self.include_dotrain_meta
     }
 
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants
@@ -251,10 +197,6 @@ impl AddOrderArgs {
         Ok(meta_doc_bytes)
     }
 
-    fn dotrain_meta_document(&self) -> RainMetaDocumentV1Item {
-        DotrainSourceV1(self.dotrain.clone()).into()
-    }
-
     /// Compose to rainlang string
     pub fn compose_to_rainlang(&self) -> Result<String, AddOrderArgsError> {
         let res = compose_to_rainlang(
@@ -275,41 +217,16 @@ impl AddOrderArgs {
         Ok(res)
     }
 
-    /// Generate an addOrder call from given dotrain
-    pub async fn build_call_artifacts(
+    pub async fn try_into_call(
         &self,
         rpcs: Vec<String>,
-    ) -> Result<AddOrderCallArtifacts, AddOrderArgsError> {
+    ) -> Result<addOrder3Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpcs.clone(), rainlang.clone())
             .await?;
 
         let meta = self.try_generate_meta(rainlang)?;
-        let dotrain_meta = if self.include_dotrain_meta {
-            let doc = self.dotrain_meta_document();
-            let encoded =
-                RainMetaDocumentV1Item::cbor_encode_seq(&vec![doc], KnownMagic::RainMetaDocumentV1)
-                    .map_err(AddOrderArgsError::RainMetaError)?;
-            Some(encoded)
-        } else {
-            None
-        };
-
-        let dotrain_meta_subject = if let Some(meta_docs) = self.meta.as_ref() {
-            let maybe_doc = meta_docs
-                .iter()
-                .find(|document| document.magic == KnownMagic::DotrainGuiStateV1);
-
-            if let Some(document) = maybe_doc {
-                let source = DotrainGuiStateV1::try_from(document.clone())?;
-                Some(source.dotrain_hash)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
 
         let deployer = self.deployer;
         let dispair =
@@ -333,7 +250,7 @@ impl AddOrderArgs {
             signedContext: vec![],
         };
 
-        let call = addOrder3Call {
+        Ok(addOrder3Call {
             config: OrderConfigV4 {
                 validInputs: self.inputs.clone(),
                 validOutputs: self.outputs.clone(),
@@ -347,21 +264,30 @@ impl AddOrderArgs {
                 secret: B256::random(),
             },
             tasks: vec![post_task],
-        };
-
-        Ok(AddOrderCallArtifacts {
-            call,
-            meta,
-            dotrain_meta,
-            dotrain_meta_subject,
         })
     }
 
-    pub async fn try_into_call(
-        &self,
-        rpcs: Vec<String>,
-    ) -> Result<addOrder3Call, AddOrderArgsError> {
-        Ok(self.build_call_artifacts(rpcs).await?.call)
+    pub fn try_into_emit_meta_call(&self) -> Result<Option<emitMetaCall>, AddOrderArgsError> {
+        match self.meta.as_ref() {
+            Some(meta_docs) => {
+                match meta_docs
+                    .iter()
+                    .find(|document| document.magic == KnownMagic::DotrainGuiStateV1)
+                {
+                    Some(doc) => {
+                        let source = DotrainGuiStateV1::try_from(doc.clone())?;
+                        Ok(Some(emitMetaCall {
+                            subject: source.dotrain_hash,
+                            meta: Bytes::copy_from_slice(
+                                &self.try_generate_meta(self.compose_to_rainlang()?)?,
+                            ),
+                        }))
+                    }
+                    None => Ok(None),
+                }
+            }
+            None => Ok(None),
+        }
     }
 
     pub async fn get_add_order_call_parameters(
@@ -398,9 +324,8 @@ impl AddOrderArgs {
         transaction_args: TransactionArgs,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
         Ok(self
-            .build_call_artifacts(transaction_args.clone().rpcs)
+            .try_into_call(transaction_args.clone().rpcs)
             .await?
-            .call
             .abi_encode())
     }
 
@@ -518,7 +443,6 @@ price: 2e18;
             bindings: HashMap::new(),
             deployer: Address::default(),
             meta: None,
-            include_dotrain_meta: true,
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
@@ -540,46 +464,6 @@ price: 2e18;
     }
 
     #[test]
-    fn test_try_generate_meta_skip_dotrain_source() {
-        let dotrain_body = "#calculate-io\n_ _: 1 2;".to_string();
-
-        let dotrain_instance_data = DotrainGuiStateV1 {
-            dotrain_hash: B256::ZERO,
-            field_values: BTreeMap::new(),
-            deposits: BTreeMap::new(),
-            select_tokens: BTreeMap::new(),
-            vault_ids: BTreeMap::new(),
-            selected_deployment: "test".to_string(),
-        };
-
-        let mut args = AddOrderArgs {
-            dotrain: "some dotrain".into(),
-            inputs: vec![],
-            outputs: vec![],
-            bindings: HashMap::new(),
-            deployer: Address::default(),
-            meta: Some(vec![dotrain_instance_data.try_into().unwrap()]),
-            include_dotrain_meta: true,
-        };
-
-        args.set_include_dotrain_meta(false);
-
-        let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
-        let decoded_docs = RainMetaDocumentV1Item::cbor_decode(&meta_bytes).unwrap();
-
-        assert_eq!(decoded_docs.len(), 2);
-        assert!(decoded_docs
-            .iter()
-            .any(|doc| doc.magic == KnownMagic::RainlangSourceV1));
-        assert!(decoded_docs
-            .iter()
-            .any(|doc| doc.magic == KnownMagic::DotrainGuiStateV1));
-        assert!(!decoded_docs
-            .iter()
-            .any(|doc| doc.magic == KnownMagic::DotrainSourceV1));
-    }
-
-    #[test]
     fn test_try_generate_meta_empty_dotrain() {
         let args = AddOrderArgs {
             dotrain: "".into(),
@@ -588,7 +472,6 @@ price: 2e18;
             bindings: HashMap::new(),
             deployer: Address::default(),
             meta: None,
-            include_dotrain_meta: true,
         };
         let meta_bytes = args.try_generate_meta("".to_string()).unwrap();
         assert_eq!(
@@ -1474,7 +1357,6 @@ _ _: key1 key2;
                 ("key2".to_string(), "20".to_string()),
             ]),
             meta: None,
-            include_dotrain_meta: true,
         };
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         assert_eq!(
@@ -1495,7 +1377,6 @@ _ _: key1 key2;
                 ("key2".to_string(), "20".to_string()),
             ]),
             meta: None,
-            include_dotrain_meta: true,
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
         assert!(matches!(
@@ -1539,7 +1420,6 @@ _ _: key1 key2;
             deployer: Address::random(),
             bindings: HashMap::new(),
             meta: None,
-            include_dotrain_meta: true,
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
         assert!(matches!(
@@ -1588,7 +1468,6 @@ _ _: 0 0;
             deployer: *local_evm.deployer.address(),
             bindings: HashMap::new(),
             meta: None,
-            include_dotrain_meta: true,
         };
 
         let add_order_call = addOrder3Call {
@@ -1821,7 +1700,6 @@ price: 2e18;
             bindings: HashMap::new(),
             deployer: Address::default(),
             meta: Some(vec![dotrain_instance_data.try_into().unwrap()]),
-            include_dotrain_meta: true,
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();

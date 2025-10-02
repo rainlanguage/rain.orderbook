@@ -125,7 +125,6 @@ mod tests {
         );
         assert!(result.bindings.is_empty());
         assert!(result.meta.is_none());
-        assert!(result.include_dotrain_meta());
     }
 
     fn get_dotrain() -> String {
