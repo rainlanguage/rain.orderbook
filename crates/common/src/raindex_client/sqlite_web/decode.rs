@@ -19,8 +19,6 @@ pub enum DecodeError {
     HexDecode(#[from] hex::FromHexError),
     #[error("ABI decode error: {0}")]
     AbiDecode(String),
-    #[error("Order hash computation failed: {0}")]
-    OrderHashComputation(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
