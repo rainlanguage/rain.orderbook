@@ -6739,6 +6739,7 @@ name = "rain_orderbook_bindings"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "getrandom 0.2.16",
  "serde",
  "thiserror 1.0.69",
  "tower",
@@ -6791,6 +6792,7 @@ dependencies = [
  "dotrain-lsp",
  "eyre",
  "futures",
+ "getrandom 0.2.16",
  "httpmock",
  "once_cell",
  "proptest",
@@ -6847,8 +6849,10 @@ dependencies = [
  "cynic",
  "flate2",
  "futures",
+ "getrandom 0.2.16",
  "httpmock",
  "rain-math-float",
+ "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
