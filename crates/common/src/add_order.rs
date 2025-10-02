@@ -3,10 +3,10 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
-use alloy::primitives::{hex::FromHexError, Address, B256};
+use alloy::primitives::{hex::FromHexError, keccak256, Address, Bytes, B256};
 #[cfg(not(target_family = "wasm"))]
 use alloy::primitives::{FixedBytes, U256};
-use alloy::sol_types::SolCall;
+use alloy::sol_types::{SolCall, SolValue};
 use alloy_ethers_typecast::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
 };
@@ -25,9 +25,10 @@ use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
 };
+use rain_metadata_bindings::MetaBoard::emitMetaCall;
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
 use rain_orderbook_bindings::IOrderBookV5::{
-    addOrder3Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
+    addOrder3Call, EvaluableV4, OrderConfigV4, OrderV4, TaskV2, IOV2,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -36,6 +37,37 @@ use thiserror::Error;
 
 pub static ORDERBOOK_ORDER_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
 pub static ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS: [&str; 1] = ["handle-add-order"];
+
+#[derive(Debug, Clone)]
+pub struct AddOrderCallArtifacts {
+    pub call: addOrder3Call,
+    pub meta: Vec<u8>,
+}
+
+impl AddOrderCallArtifacts {
+    pub fn order(&self, owner: Address) -> OrderV4 {
+        OrderV4 {
+            owner,
+            evaluable: self.call.config.evaluable.clone(),
+            validInputs: self.call.config.validInputs.clone(),
+            validOutputs: self.call.config.validOutputs.clone(),
+            nonce: self.call.config.nonce,
+        }
+    }
+
+    pub fn order_hash(&self, owner: Address) -> B256 {
+        keccak256(self.order(owner).abi_encode())
+    }
+
+    pub fn emit_meta_calldata(&self, owner: Address) -> Vec<u8> {
+        let subject = self.order_hash(owner);
+        emitMetaCall {
+            subject,
+            meta: Bytes::copy_from_slice(&self.meta),
+        }
+        .abi_encode()
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
@@ -235,10 +267,10 @@ impl AddOrderArgs {
     }
 
     /// Generate an addOrder call from given dotrain
-    pub async fn try_into_call(
+    pub async fn build_call_artifacts(
         &self,
         rpcs: Vec<String>,
-    ) -> Result<addOrder3Call, AddOrderArgsError> {
+    ) -> Result<AddOrderCallArtifacts, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpcs.clone(), rainlang.clone())
@@ -268,7 +300,7 @@ impl AddOrderArgs {
             signedContext: vec![],
         };
 
-        Ok(addOrder3Call {
+        let call = addOrder3Call {
             config: OrderConfigV4 {
                 validInputs: self.inputs.clone(),
                 validOutputs: self.outputs.clone(),
@@ -277,12 +309,21 @@ impl AddOrderArgs {
                     store: dispair.store,
                     bytecode: bytecode.into(),
                 },
-                meta: meta.into(),
+                meta: meta.clone().into(),
                 nonce: B256::random(),
                 secret: B256::random(),
             },
             tasks: vec![post_task],
-        })
+        };
+
+        Ok(AddOrderCallArtifacts { call, meta })
+    }
+
+    pub async fn try_into_call(
+        &self,
+        rpcs: Vec<String>,
+    ) -> Result<addOrder3Call, AddOrderArgsError> {
+        Ok(self.build_call_artifacts(rpcs).await?.call)
     }
 
     pub async fn get_add_order_call_parameters(
@@ -319,8 +360,9 @@ impl AddOrderArgs {
         transaction_args: TransactionArgs,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
         Ok(self
-            .try_into_call(transaction_args.clone().rpcs)
+            .build_call_artifacts(transaction_args.clone().rpcs)
             .await?
+            .call
             .abi_encode())
     }
 
