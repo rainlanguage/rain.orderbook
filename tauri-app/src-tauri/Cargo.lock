@@ -8920,6 +8920,7 @@ name = "rain_orderbook_bindings"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "getrandom 0.2.16",
  "serde",
  "thiserror 1.0.69",
  "tower",
@@ -8939,6 +8940,7 @@ dependencies = [
  "dotrain-lsp",
  "eyre",
  "futures",
+ "getrandom 0.2.16",
  "once_cell",
  "proptest",
  "rain-error-decoding",
