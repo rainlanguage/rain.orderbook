@@ -5,13 +5,15 @@ pub mod query;
 pub mod sync;
 
 use super::*;
-use crate::hyper_rpc::{HyperRpcClient, HyperRpcError};
+use crate::hyper_rpc::{HyperRpcClient, HyperRpcError, LogEntryResponse};
 use alloy::primitives::hex::FromHexError;
 use alloy::primitives::ruint::ParseError;
+use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::FetchConfig;
+use insert::decoded_events_to_sql as decoded_events_to_sql_impl;
 use query::LocalDbQueryError;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct LocalDb {
     client: HyperRpcClient,
@@ -135,6 +137,25 @@ impl LocalDb {
     #[cfg(test)]
     pub fn client_mut(&mut self) -> &mut HyperRpcClient {
         &mut self.client
+    }
+
+    pub fn decode_events(
+        &self,
+        events: &[LogEntryResponse],
+    ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
+        decode_events_impl(events).map_err(|err| LocalDbError::DecodeError {
+            message: err.to_string(),
+        })
+    }
+
+    pub fn decoded_events_to_sql(
+        &self,
+        events: &[DecodedEventData<DecodedEvent>],
+        end_block: u64,
+    ) -> Result<String, LocalDbError> {
+        decoded_events_to_sql_impl(events, end_block).map_err(|err| LocalDbError::InsertError {
+            message: err.to_string(),
+        })
     }
 }
 

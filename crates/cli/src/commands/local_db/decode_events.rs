@@ -5,6 +5,7 @@ use rain_orderbook_common::{
 };
 use std::fs::File;
 use std::io::{BufReader, Write};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Parser)]
 #[command(about = "Decode events from a JSON file and save the results")]
@@ -30,17 +31,25 @@ impl DecodeEvents {
         let decoded_result = decode_events(&events)
             .map_err(|e| anyhow::anyhow!("Failed to decode events: {}", e))?;
 
-        let output_filename = self
-            .output_file
-            .unwrap_or_else(|| "decoded_events.json".to_string());
+        let input_path = std::path::Path::new(&self.input_file);
+        let output_path = self.output_file.map(PathBuf::from).unwrap_or_else(|| {
+            input_path
+                .parent()
+                .map(|dir| dir.join("decoded_events.json"))
+                .unwrap_or_else(|| PathBuf::from("decoded_events.json"))
+        });
 
-        let mut file = File::create(&output_filename)
-            .with_context(|| format!("Failed to create {}", output_filename))?;
-        serde_json::to_writer_pretty(&mut file, &decoded_result)
-            .with_context(|| format!("Failed to write decoded events to {}", output_filename))?;
+        let mut file = File::create(&output_path)
+            .with_context(|| format!("Failed to create {}", output_path.display()))?;
+        serde_json::to_writer_pretty(&mut file, &decoded_result).with_context(|| {
+            format!(
+                "Failed to write decoded events to {}",
+                output_path.display()
+            )
+        })?;
         writeln!(file)?;
 
-        println!("Decoded events saved to: {}", output_filename);
+        println!("Decoded events saved to: {}", output_path.display());
         Ok(())
     }
 }
@@ -166,14 +175,7 @@ mod tests {
             output_file: None,
         };
 
-        let original_dir = std::env::current_dir()?;
-        std::env::set_current_dir(&temp_dir)?;
-
-        let result = cmd.execute().await;
-
-        std::env::set_current_dir(original_dir)?;
-
-        result?;
+        cmd.execute().await?;
 
         assert!(expected_output.exists());
         let parsed_output = decoded_output(&expected_output);

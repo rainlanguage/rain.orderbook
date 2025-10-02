@@ -426,7 +426,7 @@ fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raindex_client::sqlite_web::decode::{EventType, UnknownEventDecoded};
+    use crate::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
     use alloy::primitives::{Address, Bytes, U256};
     use rain_orderbook_bindings::IOrderBookV5::{
         ClearConfigV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,

@@ -168,7 +168,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let decoded_events = match local_db.decode_events(events) {
+        let decoded_events = match local_db.decode_events(&events) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -179,7 +179,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        let sql_commands = match local_db.decoded_events_to_sql(decoded_events, latest_block) {
+        let sql_commands = match local_db.decoded_events_to_sql(&decoded_events, latest_block) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(e.to_string()));
@@ -206,7 +206,7 @@ mod tests {
         };
         use std::cell::RefCell;
         use std::rc::Rc;
-        use wasm_bindgen::{prelude::*, JsCast};
+        use wasm_bindgen::JsCast;
         use wasm_bindgen_test::*;
         use wasm_bindgen_utils::prelude::*;
 
