@@ -105,7 +105,7 @@ const config = result.value;
 // Structure: { orders: {}, scenarios: {}, charts: {}, deployments: {}, gui: {} }
 const dotrainConfig = config.dotrainOrder;
 
-// Orderbook config contains the broader orderbook infrastructure including networks, subgraphs, metaboards, orderbooks, tokens, deployers and accounts. 
+// Orderbook config contains the broader orderbook infrastructure including networks, subgraphs, metaboards, orderbooks, tokens, deployers and accounts.
 // It manages the underlying blockchain and service configurations that support the orderbook.
 // Structure: { version: string, networks: {}, subgraphs: {}, metaboards: {}, orderbooks: {}, accounts: {}, tokens: {}, deployers: {} }
 const orderbookConfig = config.orderbook;
@@ -201,7 +201,7 @@ const trades = await order.getTradesList(); // Trade[]
 ### Order inputs / outputs / vaults
 
 An `Order` exposes a `RaindexVaultsList` wrapper around the underlying `RaindexVault[]`.
-The list offers batch operations (e.g. multicall-withdraw).  
+The list offers batch operations (e.g. multicall-withdraw).
 You can still access the raw vaults via the `items` getter:
 
 ```javascript
@@ -273,7 +273,7 @@ const vault = result.value; // RaindexVault instance
 const token = vault.token; // RaindexVaultToken
 
 // Get the current balance for this vault in Float format
-const balance = vault.balance; // Float 
+const balance = vault.balance; // Float
 
 // Get the current balance in human-readable format
 const formattedBalance = vault.formattedBalance; // string (e.g., "1")
@@ -357,9 +357,9 @@ const dotrain = `
             label: USDT
           - key: output-token
             label: ETH
-  
+
   ---
-  
+
   #calculate-io:
   <your order logic goes here>
 `;
@@ -460,7 +460,7 @@ const {
   // Calldata to deposit tokens (if any) and add the order to the orderbook
   deploymentCalldata, // string (hex-encoded calldata)
   // Optional calldata to publish metadata to the metaboard
-  metaCall, // { to: string, calldata: string } | undefined
+  emitMetaCall, // { to: string, calldata: string } | undefined
   // Target orderbook and chain metadata
   orderbookAddress,
   chainId

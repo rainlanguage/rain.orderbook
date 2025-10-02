@@ -43,7 +43,7 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 		return errToast('Could not deploy: ' + result.error.msg);
 	}
 
-	const { approvals, deploymentCalldata, orderbookAddress, chainId, metaCall } = result.value;
+	const { approvals, deploymentCalldata, orderbookAddress, chainId, emitMetaCall } = result.value;
 
 	for (const approval of approvals) {
 		try {
@@ -76,15 +76,15 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 		}
 	}
 
-	if (metaCall) {
+	if (emitMetaCall) {
 		try {
 			const metaResult = await deps.handleTransactionConfirmationModal({
 				open: true,
 				modalTitle: 'Publishing metadata',
 				args: {
-					toAddress: metaCall.to as Hex,
+					toAddress: emitMetaCall.to as Hex,
 					chainId,
-					calldata: metaCall.calldata as `0x${string}`,
+					calldata: emitMetaCall.calldata as `0x${string}`,
 					onConfirm: (hash: Hex) => {
 						deps.manager.createMetaTransaction({
 							chainId,

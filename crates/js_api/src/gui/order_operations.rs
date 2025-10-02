@@ -865,13 +865,11 @@ impl DotrainOrderGui {
 
     async fn should_include_dotrain_meta_for_deployment(&self) -> Result<bool, GuiError> {
         let dotrain_gui_state = self.generate_dotrain_instance_v1()?;
+        let subject = RainMetaDocumentV1Item::try_from(dotrain_gui_state.clone())?.hash(false)?;
 
         let client = self.get_metaboard_client()?;
         let res = client
-            .get_metabytes_by_subject(&MetaBigInt(format!(
-                "0x{}",
-                encode(dotrain_gui_state.dotrain_hash())
-            )))
+            .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", encode(subject))))
             .await;
 
         match res {

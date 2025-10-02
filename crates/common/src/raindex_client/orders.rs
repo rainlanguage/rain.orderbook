@@ -16,6 +16,7 @@ use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::{
     types::dotrain::source_v1::DotrainSourceV1, KnownMagic, RainMetaDocumentV1Item,
 };
+use rain_orderbook_app_settings::yaml::YamlError;
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -34,7 +35,6 @@ use std::{
     str::FromStr,
     sync::{Arc, RwLock, RwLockReadGuard},
 };
-use rain_orderbook_app_settings::yaml::YamlError;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
@@ -542,13 +542,9 @@ impl RaindexClient {
                 } = order_with_subgraph;
 
                 let order_hash = sg_order.order_hash.0.clone();
-                let chain_id = subgraph_to_chain
-                    .get(&subgraph_name)
-                    .copied()
-                    .ok_or(RaindexError::SubgraphNotFound(
-                        subgraph_name.clone(),
-                        order_hash,
-                    ))?;
+                let chain_id = subgraph_to_chain.get(&subgraph_name).copied().ok_or(
+                    RaindexError::SubgraphNotFound(subgraph_name.clone(), order_hash),
+                )?;
 
                 RaindexOrder::try_from_sg_order(raindex_client, chain_id, sg_order, None).await
             }
@@ -681,17 +677,6 @@ impl RaindexOrder {
             .map(|meta| meta.0.try_decode_rainlangsource())
             .transpose()?;
 
-        let parsed_meta = order
-            .meta
-            .as_ref()
-            .map(|meta| {
-                ParsedMeta::parse_from_bytes(
-                    &decode(&meta.0).map_err(rain_metadata::Error::DecodeHexStringError)?,
-                )
-            })
-            .transpose()?
-            .unwrap_or_default();
-
         let mut raindex_order = Self {
             raindex_client: raindex_client.clone(),
             chain_id,
@@ -735,7 +720,16 @@ impl RaindexOrder {
                 .clone()
                 .map(|meta| Bytes::from_str(&meta.0))
                 .transpose()?,
-            parsed_meta,
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .map(|meta| {
+                    ParsedMeta::parse_from_bytes(
+                        &decode(&meta.0).map_err(rain_metadata::Error::DecodeHexStringError)?,
+                    )
+                })
+                .transpose()?
+                .unwrap_or_default(),
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
@@ -755,7 +749,7 @@ impl RaindexOrder {
             return Ok(());
         }
 
-        let dotrain_state = match self.parsed_meta.iter().find_map(|meta| {
+        let dotrain_gui_state = match self.parsed_meta.iter().find_map(|meta| {
             if let ParsedMeta::DotrainGuiStateV1(state) = meta {
                 Some(state.clone())
             } else {
@@ -771,11 +765,11 @@ impl RaindexOrder {
             None => return Ok(()),
         };
 
+        let subject_hash =
+            RainMetaDocumentV1Item::try_from(dotrain_gui_state.clone())?.hash(false)?;
+
         let metabytes = match client
-            .get_metabytes_by_subject(&MetaBigInt(format!(
-                "0x{}",
-                encode(dotrain_state.dotrain_hash)
-            )))
+            .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", encode(subject_hash))))
             .await
         {
             Ok(bytes) => bytes,

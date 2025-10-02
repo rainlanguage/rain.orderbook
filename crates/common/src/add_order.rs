@@ -3,9 +3,10 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
-use alloy::primitives::{hex::FromHexError, Address, Bytes, B256};
+use alloy::primitives::FixedBytes;
 #[cfg(not(target_family = "wasm"))]
-use alloy::primitives::{FixedBytes, U256};
+use alloy::primitives::U256;
+use alloy::primitives::{hex::FromHexError, Address, Bytes, B256};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
@@ -21,7 +22,6 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
 };
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
-use rain_metadata::types::dotrain::gui_state_v1::DotrainGuiStateV1;
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
@@ -275,12 +275,20 @@ impl AddOrderArgs {
                     .find(|document| document.magic == KnownMagic::DotrainGuiStateV1)
                 {
                     Some(doc) => {
-                        let source = DotrainGuiStateV1::try_from(doc.clone())?;
+                        let subject_hash = doc.clone().hash(false)?;
+                        let meta = RainMetaDocumentV1Item::cbor_encode_seq(
+                            &vec![RainMetaDocumentV1Item {
+                                payload: ByteBuf::from(self.dotrain.as_bytes()),
+                                magic: KnownMagic::DotrainSourceV1,
+                                content_type: ContentType::OctetStream,
+                                content_encoding: ContentEncoding::None,
+                                content_language: ContentLanguage::None,
+                            }],
+                            KnownMagic::RainMetaDocumentV1,
+                        )?;
                         Ok(Some(emitMetaCall {
-                            subject: source.dotrain_hash,
-                            meta: Bytes::copy_from_slice(
-                                &self.try_generate_meta(self.compose_to_rainlang()?)?,
-                            ),
+                            subject: FixedBytes::from(subject_hash),
+                            meta: Bytes::copy_from_slice(&meta),
                         }))
                     }
                     None => Ok(None),

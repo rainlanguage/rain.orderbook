@@ -53,7 +53,7 @@ const mockDeploymentArgs: DeploymentTransactionArgs = {
 	deploymentCalldata: '0xdeploymentCalldata' as Hex,
 	orderbookAddress: '0xorderbookAddressFromArgs' as Hex,
 	chainId: 1,
-	metaCall: undefined
+	emitMetaCall: undefined
 };
 
 describe('handleAddOrder', () => {
@@ -70,7 +70,7 @@ describe('handleAddOrder', () => {
 		const currentTestSpecificArgs: DeploymentTransactionArgs = {
 			...mockDeploymentArgs,
 			approvals: [],
-			metaCall: mockMetaCall
+			emitMetaCall: mockMetaCall
 		};
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: currentTestSpecificArgs,
@@ -145,7 +145,7 @@ describe('handleAddOrder', () => {
 		const currentTestSpecificArgs: DeploymentTransactionArgs = {
 			...mockDeploymentArgs,
 			approvals: [approval1],
-			metaCall: mockMetaCall
+			emitMetaCall: mockMetaCall
 		};
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: currentTestSpecificArgs,
@@ -262,7 +262,7 @@ describe('handleAddOrder', () => {
 		const currentTestSpecificArgs: DeploymentTransactionArgs = {
 			...mockDeploymentArgs,
 			approvals: [approval1, approval2],
-			metaCall: mockMetaCall
+			emitMetaCall: mockMetaCall
 		};
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: currentTestSpecificArgs,
@@ -369,7 +369,7 @@ describe('handleAddOrder', () => {
 		const currentTestSpecificArgs: DeploymentTransactionArgs = {
 			...mockDeploymentArgs,
 			approvals: [approval1],
-			metaCall: mockMetaCall
+			emitMetaCall: mockMetaCall
 		};
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: currentTestSpecificArgs,
