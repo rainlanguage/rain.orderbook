@@ -1,9 +1,13 @@
 use super::*;
 use alloy::{
+    hex::encode,
     primitives::{Bytes, B256, U256},
     sol_types::SolCall,
 };
 use rain_math_float::Float;
+use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
+use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
+use rain_metadata::RainMetaDocumentV1Item;
 use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
@@ -82,6 +86,16 @@ impl_wasm_traits!(ExtendedApprovalCalldata);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
+pub struct ExternalCall {
+    #[tsify(type = "string")]
+    pub to: Address,
+    #[tsify(type = "string")]
+    pub calldata: Bytes,
+}
+impl_wasm_traits!(ExternalCall);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
 pub struct DeploymentTransactionArgs {
     approvals: Vec<ExtendedApprovalCalldata>,
     #[tsify(type = "string")]
@@ -89,6 +103,8 @@ pub struct DeploymentTransactionArgs {
     #[tsify(type = "string")]
     orderbook_address: Address,
     chain_id: u32,
+    #[tsify(type = "ExternalCall | undefined")]
+    emit_meta_call: Option<ExternalCall>,
 }
 impl_wasm_traits!(DeploymentTransactionArgs);
 
@@ -459,6 +475,27 @@ impl DotrainOrderGui {
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
+    async fn prepare_add_order_args(
+        &mut self,
+        deployment: &GuiDeploymentCfg,
+    ) -> Result<AddOrderArgs, GuiError> {
+        let dotrain_instance_v1 = self.generate_dotrain_instance_v1()?;
+        let meta = RainMetaDocumentV1Item::try_from(dotrain_instance_v1.clone())?;
+
+        let dotrain_for_deployment = self
+            .dotrain_order
+            .generate_dotrain_for_deployment(&deployment.deployment.key)?;
+
+        let add_order_args = AddOrderArgs::new_from_deployment(
+            dotrain_for_deployment,
+            deployment.deployment.as_ref().clone(),
+            Some(vec![meta]),
+        )
+        .await?;
+
+        Ok(add_order_args)
+    }
+
     /// Generates calldata for adding the order to the orderbook.
     ///
     /// Creates the addOrder calldata with all field values applied to the
@@ -486,14 +523,15 @@ impl DotrainOrderGui {
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
 
-        let calldata = AddOrderArgs::new_from_deployment(
-            self.dotrain_order.dotrain()?,
-            deployment.deployment.as_ref().clone(),
-        )
-        .await?
-        .get_add_order_calldata(self.get_transaction_args()?)
-        .await?;
-        return Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)));
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
+
+        let transaction_args = self.get_transaction_args()?;
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
+            .await?;
+        Ok(AddOrderCalldataResult(Bytes::copy_from_slice(
+            &add_order_call.abi_encode(),
+        )))
     }
 
     /// Generates a multicall combining all deposits and add order in one calldata.
@@ -526,7 +564,7 @@ impl DotrainOrderGui {
     pub async fn generate_deposit_and_add_order_calldatas(
         &mut self,
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
-        self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
+        let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut calls = Vec::new();
 
@@ -537,9 +575,15 @@ impl DotrainOrderGui {
             DepositCalldataResult::NoDeposits => Vec::new(),
         };
 
-        let add_order_calldata = self.generate_add_order_calldata().await?;
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
 
-        calls.push(Bytes::copy_from_slice(&add_order_calldata.0));
+        let transaction_args = self.get_transaction_args()?;
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
+            .await?;
+        let add_order_calldata = Bytes::copy_from_slice(&add_order_call.abi_encode());
+
+        calls.push(add_order_calldata);
 
         for calldata in deposit_calldatas.iter() {
             calls.push(Bytes::copy_from_slice(calldata));
@@ -731,7 +775,7 @@ impl DotrainOrderGui {
         let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut approvals = Vec::new();
-        let approval_calldata = self.generate_approval_calldatas(owner).await?;
+        let approval_calldata = self.generate_approval_calldatas(owner.clone()).await?;
         if let ApprovalCalldataResult::Calldatas(calldatas) = approval_calldata {
             let mut output_token_infos = HashMap::new();
             for output in deployment.deployment.order.outputs.clone() {
@@ -755,12 +799,50 @@ impl DotrainOrderGui {
             }
         }
 
-        let deposit_and_add_order_calldata =
-            self.generate_deposit_and_add_order_calldatas().await?;
+        let deposit_calldata_result = self.generate_deposit_calldatas().await?;
+        let deposit_calldatas = match deposit_calldata_result {
+            DepositCalldataResult::Calldatas(calldatas) => calldatas,
+            DepositCalldataResult::NoDeposits => Vec::new(),
+        };
+
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
+
+        let transaction_args = self.get_transaction_args()?;
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
+            .await?;
+
+        let mut calls = Vec::new();
+        calls.push(Bytes::copy_from_slice(&add_order_call.abi_encode()));
+        for calldata in deposit_calldatas.iter() {
+            calls.push(Bytes::copy_from_slice(calldata));
+        }
+
+        let deployment_calldata =
+            Bytes::copy_from_slice(&multicallCall { data: calls }.abi_encode());
+
+        let emit_meta_call = if self.should_include_dotrain_meta_for_deployment().await? {
+            let client = self.get_metaboard_client()?;
+            let addresses = client.get_metaboard_addresses(None, None).await?;
+            let metaboard_address = addresses
+                .first()
+                .ok_or_else(|| GuiError::NoAddressInMetaboardSubgraph)?;
+
+            let calldata = add_order_args.try_into_emit_meta_call()?;
+            match calldata {
+                Some(calldata) => Some(ExternalCall {
+                    to: *metaboard_address,
+                    calldata: Bytes::copy_from_slice(&calldata.abi_encode()),
+                }),
+                None => None,
+            }
+        } else {
+            None
+        };
 
         Ok(DeploymentTransactionArgs {
             approvals,
-            deployment_calldata: deposit_and_add_order_calldata.0,
+            deployment_calldata,
             orderbook_address: deployment
                 .deployment
                 .order
@@ -769,7 +851,31 @@ impl DotrainOrderGui {
                 .ok_or(GuiError::OrderbookNotFound)?
                 .address,
             chain_id: deployment.deployment.order.network.chain_id,
+            emit_meta_call,
         })
+    }
+
+    fn get_metaboard_client(&self) -> Result<MetaboardSubgraphClient, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let orderbook_yaml = self.dotrain_order.orderbook_yaml();
+        let metaboard_cfg =
+            orderbook_yaml.get_metaboard(&deployment.deployment.order.network.key)?;
+        Ok(MetaboardSubgraphClient::new(metaboard_cfg.url.clone()))
+    }
+
+    async fn should_include_dotrain_meta_for_deployment(&self) -> Result<bool, GuiError> {
+        let dotrain_gui_state = self.generate_dotrain_instance_v1()?;
+        let subject = RainMetaDocumentV1Item::try_from(dotrain_gui_state.clone())?.hash(false)?;
+
+        let client = self.get_metaboard_client()?;
+        let res = client
+            .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", encode(subject))))
+            .await;
+
+        match res {
+            Ok(_) => Ok(false),
+            Err(_) => Ok(true),
+        }
     }
 }
 
@@ -972,5 +1078,107 @@ mod tests {
         let deployment = gui.get_current_deployment().unwrap();
         assert_eq!(deployment.deployment.scenario.bindings["binding-1"], "100");
         assert_eq!(deployment.deployment.scenario.bindings["binding-2"], "200");
+    }
+}
+
+#[cfg(all(test, not(target_family = "wasm")))]
+mod non_wasm_tests {
+    use super::*;
+    use crate::gui::tests::get_yaml;
+    use httpmock::{Method::POST, MockServer};
+    use serde_json::json;
+
+    fn yaml_with_metaboard(url: &str) -> String {
+        get_yaml().replace("https://metaboard.com", url)
+    }
+
+    #[tokio::test]
+    async fn test_should_skip_emit_meta_call_when_subject_exists() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("metaV1S");
+            then.status(200).json_body(json!({
+                "data": {
+                    "metaV1S": [{
+                        "meta": "0x01",
+                        "metaHash": "0x01",
+                        "sender": "0x00",
+                        "id": "meta-id",
+                        "metaBoard": { "address": "0x00" },
+                        "subject": "0x123",
+                    }]
+                }
+            }));
+        });
+
+        let yaml = yaml_with_metaboard(&server.url("/"));
+        let mut gui =
+            DotrainOrderGui::new_with_deployment(yaml, "some-deployment".to_string(), None)
+                .await
+                .unwrap();
+
+        let include = gui
+            .should_include_dotrain_meta_for_deployment()
+            .await
+            .unwrap();
+        assert!(!include);
+    }
+
+    #[tokio::test]
+    async fn test_no_metaboard_address_surfaces_error() {
+        let server = MockServer::start_async().await;
+
+        // Returning an empty list forces the subject lookup to fail and request metadata upload.
+        server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("metaV1S");
+            then.status(200).json_body(json!({
+                "data": {
+                    "metaV1S": []
+                }
+            }));
+        });
+
+        server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("metaBoards");
+            then.status(200).json_body(json!({
+                "data": {
+                    "metaBoards": []
+                }
+            }));
+        });
+
+        let yaml = yaml_with_metaboard(&server.url("/"));
+        let mut gui =
+            DotrainOrderGui::new_with_deployment(yaml, "some-deployment".to_string(), None)
+                .await
+                .unwrap();
+
+        // Populate defaults expected by the generator.
+        gui.check_field_values().unwrap();
+
+        let deployment = gui
+            .prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)
+            .unwrap();
+
+        // Subject lookup fails (empty result) so we should attempt to include meta.
+        let include = gui
+            .should_include_dotrain_meta_for_deployment()
+            .await
+            .unwrap();
+        assert!(include);
+
+        let client = gui.get_metaboard_client().unwrap();
+        let addresses = client.get_metaboard_addresses(None, None).await.unwrap();
+        assert!(addresses.is_empty());
+
+        let add_order_args = gui.prepare_add_order_args(&deployment).await.unwrap();
+        assert!(add_order_args.try_into_emit_meta_call().unwrap().is_some());
+
+        let err = addresses
+            .first()
+            .ok_or_else(|| GuiError::NoAddressInMetaboardSubgraph)
+            .unwrap_err();
+        assert!(matches!(err, GuiError::NoAddressInMetaboardSubgraph));
     }
 }

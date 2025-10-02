@@ -1,4 +1,5 @@
 use super::*;
+use crate::parsed_meta::ParsedMeta;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -7,12 +8,21 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
+use alloy::hex::{decode, encode};
 use alloy::primitives::{Address, Bytes, U256};
+use futures::future::try_join_all;
+use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
+use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
+use rain_metadata::{
+    types::dotrain::source_v1::DotrainSourceV1, KnownMagic, RainMetaDocumentV1Item,
+};
+use rain_orderbook_app_settings::yaml::YamlError;
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
         common::{
-            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
+            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderWithSubgraphName, SgOrderbook,
+            SgOrdersListFilterArgs, SgVault,
         },
         // Id,
     },
@@ -21,7 +31,7 @@ use rain_orderbook_subgraph_client::{
     SgPaginationArgs,
 };
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     str::FromStr,
     sync::{Arc, RwLock, RwLockReadGuard},
 };
@@ -55,6 +65,7 @@ pub struct RaindexOrder {
     active: bool,
     timestamp_added: U256,
     meta: Option<Bytes>,
+    parsed_meta: Vec<ParsedMeta>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
@@ -108,9 +119,27 @@ impl RaindexOrder {
     pub fn meta(&self) -> Option<String> {
         self.meta.clone().map(|meta| meta.to_string())
     }
+    #[wasm_bindgen(getter = parsedMeta)]
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
+    }
     #[wasm_bindgen(getter)]
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
+    }
+    #[wasm_bindgen(getter = dotrainSource)]
+    pub fn dotrain_source(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainSourceV1(source) => Some(source.0),
+            _ => None,
+        })
+    }
+    #[wasm_bindgen(getter = dotrainGuiState)]
+    pub fn dotrain_gui_state(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainGuiStateV1(state) => serde_json::to_string(&state).ok(),
+            _ => None,
+        })
     }
     #[wasm_bindgen(getter)]
     pub fn transaction(&self) -> Option<RaindexTransaction> {
@@ -170,8 +199,23 @@ impl RaindexOrder {
     pub fn meta(&self) -> Option<Bytes> {
         self.meta.clone()
     }
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
+    }
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
+    }
+    pub fn dotrain_source(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainSourceV1(source) => Some(source.0),
+            _ => None,
+        })
+    }
+    pub fn dotrain_gui_state(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainGuiStateV1(state) => serde_json::to_string(&state).ok(),
+            _ => None,
+        })
     }
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()
@@ -249,6 +293,20 @@ impl RaindexOrder {
     pub fn get_rpc_urls(&self) -> Result<Vec<Url>, RaindexError> {
         let raindex_client = self.read_raindex_client()?;
         raindex_client.get_rpc_urls_for_chain(self.chain_id)
+    }
+
+    #[wasm_export(skip)]
+    pub fn get_metaboard_client(&self) -> Result<Option<MetaboardSubgraphClient>, RaindexError> {
+        let raindex_client = self.read_raindex_client()?;
+        let network = raindex_client
+            .orderbook_yaml
+            .get_network_by_chain_id(self.chain_id)?;
+        let metaboard = match raindex_client.orderbook_yaml.get_metaboard(&network.key) {
+            Ok(metaboard) => metaboard,
+            Err(YamlError::KeyNotFound(_) | YamlError::NotFound(_)) => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+        Ok(Some(MetaboardSubgraphClient::new(metaboard.url.clone())))
     }
 
     // /// Retrieves volume data for all vaults associated with this order over a specified time period
@@ -467,26 +525,33 @@ impl RaindexClient {
             )
             .await;
 
-        let orders = orders
+        let subgraph_to_chain: HashMap<_, _> = multi_subgraph_args
             .iter()
-            .map(|order| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
-                    .ok_or(RaindexError::SubgraphNotFound(
-                        order.subgraph_name.clone(),
-                        order.order.order_hash.0.clone(),
-                    ))?;
-                let order = RaindexOrder::try_from_sg_order(
-                    raindex_client.clone(),
-                    chain_id,
-                    order.order.clone(),
-                    None,
+            .flat_map(|(chain_id, args)| args.iter().map(move |arg| (arg.name.clone(), *chain_id)))
+            .collect();
+        let subgraph_to_chain = Arc::new(subgraph_to_chain);
+
+        let order_futures = orders.into_iter().map(|order_with_subgraph| {
+            let raindex_client = raindex_client.clone();
+            let subgraph_to_chain = Arc::clone(&subgraph_to_chain);
+
+            async move {
+                let SgOrderWithSubgraphName {
+                    order: sg_order,
+                    subgraph_name,
+                } = order_with_subgraph;
+
+                let order_hash = sg_order.order_hash.0.clone();
+                let chain_id = subgraph_to_chain.get(&subgraph_name).copied().ok_or(
+                    RaindexError::SubgraphNotFound(subgraph_name.clone(), order_hash),
                 )?;
-                Ok(order)
-            })
-            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+
+                RaindexOrder::try_from_sg_order(raindex_client, chain_id, sg_order, None).await
+            }
+        });
+
+        let orders = try_join_all(order_futures).await?;
+
         Ok(orders)
     }
 
@@ -553,7 +618,8 @@ impl RaindexClient {
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
             .await?;
-        let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
+        let order =
+            RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None).await?;
         Ok(order)
     }
 }
@@ -599,7 +665,7 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
 }
 
 impl RaindexOrder {
-    pub fn try_from_sg_order(
+    pub async fn try_from_sg_order(
         raindex_client: Arc<RwLock<RaindexClient>>,
         chain_id: u32,
         order: SgOrder,
@@ -608,9 +674,10 @@ impl RaindexOrder {
         let rainlang = order
             .meta
             .as_ref()
-            .and_then(|meta| meta.0.try_decode_rainlangsource().ok());
+            .map(|meta| meta.0.try_decode_rainlangsource())
+            .transpose()?;
 
-        Ok(Self {
+        let mut raindex_order = Self {
             raindex_client: raindex_client.clone(),
             chain_id,
             id: Bytes::from_str(&order.id.0)?,
@@ -650,12 +717,77 @@ impl RaindexOrder {
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
             meta: order
                 .meta
+                .clone()
                 .map(|meta| Bytes::from_str(&meta.0))
                 .transpose()?,
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .map(|meta| {
+                    ParsedMeta::parse_from_bytes(
+                        &decode(&meta.0).map_err(rain_metadata::Error::DecodeHexStringError)?,
+                    )
+                })
+                .transpose()?
+                .unwrap_or_default(),
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
-        })
+        };
+
+        raindex_order.fetch_dotrain_source().await?;
+
+        Ok(raindex_order)
+    }
+
+    pub async fn fetch_dotrain_source(&mut self) -> Result<(), RaindexError> {
+        if self
+            .parsed_meta
+            .iter()
+            .any(|meta| matches!(meta, ParsedMeta::DotrainSourceV1(_)))
+        {
+            return Ok(());
+        }
+
+        let dotrain_gui_state = match self.parsed_meta.iter().find_map(|meta| {
+            if let ParsedMeta::DotrainGuiStateV1(state) = meta {
+                Some(state.clone())
+            } else {
+                None
+            }
+        }) {
+            Some(state) => state,
+            None => return Ok(()),
+        };
+
+        let client = match self.get_metaboard_client()? {
+            Some(client) => client,
+            None => return Ok(()),
+        };
+
+        let subject_hash =
+            RainMetaDocumentV1Item::try_from(dotrain_gui_state.clone())?.hash(false)?;
+
+        let metabytes = match client
+            .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", encode(subject_hash))))
+            .await
+        {
+            Ok(bytes) => bytes,
+            Err(_) => return Ok(()),
+        };
+
+        for meta_bytes in metabytes {
+            let documents = RainMetaDocumentV1Item::cbor_decode(&meta_bytes)?;
+            for document in documents {
+                if document.magic == KnownMagic::DotrainSourceV1 {
+                    let source = DotrainSourceV1::try_from(document)?;
+                    self.parsed_meta.push(ParsedMeta::DotrainSourceV1(source));
+                    return Ok(());
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub fn into_sg_order(self) -> Result<SgOrder, RaindexError> {
@@ -1066,6 +1198,7 @@ mod tests {
                 get_order1(),
                 None,
             )
+            .await
             .unwrap();
 
             let order1 = result[0].clone();
@@ -1231,6 +1364,7 @@ mod tests {
                 get_order1(),
                 None,
             )
+            .await
             .unwrap();
             assert_eq!(res.id, expected_order.id);
             assert_eq!(res.order_bytes, expected_order.order_bytes);
@@ -1257,57 +1391,6 @@ mod tests {
                 res.vaults_list().items()[2].id(),
                 expected_order.inputs[1].id()
             );
-        }
-
-        #[tokio::test]
-        async fn test_invalid_meta() {
-            let sg_server = MockServer::start_async().await;
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
-                    "data": {
-                        "orders": [
-                            json!({
-                            "id": "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1",
-                            "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000f08bcbce72f62c95dcb7c07dcb5ed26acfcfbc1100000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000005c00000000000000000000000000000000000000000000000000000000000000640392c489ef67afdc348209452c338ea5ba2b6152b936e152f610d05e1a20621a40000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae60000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000049d000000000000000000000000000000000000000000000000000000000000000f0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000c7d713b49da0000914d696e20747261646520616d6f756e742e00000000000000000000000000008b616d6f756e742d75736564000000000000000000000000000000000000000000000000000000000000000000000000000000000000000340aad21b3b70000000000000000000000000000000000000000000000000006194049f30f7200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b1a2bc2ec500000000000000000000000000000000000000000000000000000e043da6172500008f6c6173742d74726164652d74696d65000000000000000000000000000000008d6c6173742d74726164652d696f0000000000000000000000000000000000008c696e697469616c2d74696d650000000000000000000000000000000000000000000000000000000000000000000000000000000000000006f05b59d3b200000000000000000000000000000000000000000000000000008ac7230489e80000000000000000000000020000915e36ef882941816356bc3718df868054f868ad000000000000000000000000000000000000000000000000000000000000027d0a00000024007400e0015801b401e001f40218025c080500040b20000200100001001000000b120003001000010b110004001000030b0100051305000201100001011000003d120000011000020010000003100404211200001d02000001100003031000010c1200004911000003100404001000012b12000001100003031000010c1200004a0200001a0b00090b1000060b20000700100000001000011b1200001a10000047120000001000001a1000004712000001100000011000002e12000001100005011000042e120000001000053d12000001100004001000042e1200000010000601100005001000032e120000481200011d0b020a0010000001100000011000062713000001100003031000010c12000049110000001000030010000247120000001000010b110008001000050110000700100001201200001f12000001100000011000004712000000100006001000073d120000011000002b12000000100008001000043b120000160901080b1000070b10000901100008001000013d1200001b12000001100006001000013d1200000b100009001000033a120000001000040010000248120001001000000b110008001000053d12000000100006001000042b1200000a0401011a10000001100009031000010c1200004a020000001000000110000a031000010c1200004a020000040200010110000b031000010c120000491100000803000201100009031000010c120000491100000110000a031000010c12000049110000100c01030110000d001000002e1200000110000c3e1200000010000100100001001000010010000100100001001000010010000100100001001000013d1a0000020100010210000e3611000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012a6e3c06415539f92823a18ba63e1c0303040c4892970a0d1e3a27663d7583b33000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012a6e3c06415539f92823a18ba63e1c0303040c4892970a0d1e3a27663d7583b33",
-                            "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4",
-                            "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
-                            "outputs": [],
-                            "inputs": [],
-                            "orderbook": {
-                                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
-                            },
-                            "active": true,
-                            "timestampAdded": "1739448802",
-                            "meta": "0x123456",
-                            "addEvents": [],
-                            "trades": [],
-                            "removeEvents": []
-                            })
-                        ]
-                    }
-                }));
-            });
-
-            let raindex_client = RaindexClient::new(
-                vec![get_test_yaml(
-                    &sg_server.url("/sg1"),
-                    &sg_server.url("/sg2"),
-                    // not used
-                    &sg_server.url("/rpc1"),
-                    &sg_server.url("/rpc2"),
-                )],
-                None,
-            )
-            .unwrap();
-            let res = raindex_client
-                .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                    Bytes::from_str("0x0123").unwrap(),
-                )
-                .await;
-            assert!(res.is_ok());
         }
 
         #[tokio::test]

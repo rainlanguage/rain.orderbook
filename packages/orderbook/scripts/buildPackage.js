@@ -1,16 +1,18 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
+const run = (command) => execSync(command, { stdio: 'inherit' });
+
 const packagePrefix = 'rain_orderbook_';
 const [package] = process.argv.slice(2);
 
 // generate node/web bindgens
-execSync(
+run(
 	`wasm-bindgen --target nodejs ../../target/wasm32-unknown-unknown/release/${
 		packagePrefix + package
 	}.wasm --out-dir ./temp/node/${package} --out-name ${package}`
 );
-execSync(
+run(
 	`wasm-bindgen --target web ../../target/wasm32-unknown-unknown/release/${
 		packagePrefix + package
 	}.wasm --out-dir ./temp/web/${package} --out-name ${package}`
