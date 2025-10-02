@@ -714,11 +714,16 @@ impl DotrainOrder {
 
         if !scenario.bindings.is_empty() {
             let mut bindings_hash = StrictYamlHash::new();
-            for (key, value) in &scenario.bindings {
-                bindings_hash.insert(
-                    StrictYaml::String(key.clone()),
-                    StrictYaml::String(value.clone()),
-                );
+            let mut binding_keys: Vec<_> = scenario.bindings.keys().cloned().collect();
+            binding_keys.sort();
+
+            for key in binding_keys {
+                if let Some(value) = scenario.bindings.get(&key) {
+                    bindings_hash.insert(
+                        StrictYaml::String(key.clone()),
+                        StrictYaml::String(value.clone()),
+                    );
+                }
             }
             scenario_hash.insert(
                 StrictYaml::String("bindings".to_string()),
