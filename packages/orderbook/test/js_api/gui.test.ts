@@ -1775,6 +1775,9 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(result.deploymentCalldata.length, 7306);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
+			assert.ok(result.metaCall);
+			assert.equal(result.metaCall?.to, '0x0000000000000000000000000000000000000000');
+			assert.ok(result.metaCall?.calldata.startsWith('0x'));
 
 			gui.unsetDeposit('token2');
 			result = extractWasmEncodedData<DeploymentTransactionArgs>(
@@ -1785,6 +1788,9 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(result.deploymentCalldata.length, 6730);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
+			assert.ok(result.metaCall);
+			assert.equal(result.metaCall?.to, '0x0000000000000000000000000000000000000000');
+			assert.ok(result.metaCall?.calldata.startsWith('0x'));
 		});
 	});
 

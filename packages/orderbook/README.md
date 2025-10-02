@@ -459,6 +459,11 @@ const {
   approvals, // Array<{ token: string, spender: string, calldata: string }>
   // Calldata to deposit tokens (if any) and add the order to the orderbook
   deploymentCalldata, // string (hex-encoded calldata)
+  // Optional calldata to publish metadata to the metaboard
+  metaCall, // { to: string, calldata: string } | undefined
+  // Target orderbook and chain metadata
+  orderbookAddress,
+  chainId
 } = deploymentArgsResult.value;
 ```
 
