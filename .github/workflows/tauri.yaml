@@ -34,8 +34,17 @@ jobs:
         if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get clean
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf \
+            "$AGENT_TOOLSDIRECTORY" \
+            /usr/local/lib/android \
+            /usr/local/lib/node_modules \
+            /usr/local/share/boost \
+            /usr/local/share/chromium \
+            /usr/local/share/powershell \
+            /usr/share/dotnet \
+            /opt/ghc
+          sudo rm -rf "$HOME/.rustup/toolchains" "$HOME/.rustup/update-hashes"
+          df -h /
       - name: Free up disk space in action runner (Macos)
         if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
         run: |
@@ -91,12 +100,20 @@ jobs:
       - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
         working-directory: ./tauri-app
 
-      - name: Remove cargo targets before Rust tests
+      - name: Reset workspace target before Rust tests
         run: |
           rm -rf target
           rm -rf tauri-app/src-tauri/target
 
-      - run: nix develop .#tauri-shell --command tauri-rs-test
+      - name: Run Rust tests with reduced debug artifacts
+        run: nix develop .#tauri-shell --command tauri-rs-test
+        env:
+          RUSTFLAGS: "-Cdebuginfo=0"
+          CARGO_INCREMENTAL: 0
+
+      - run: |
+          rm -rf target
+          rm -rf tauri-app/src-tauri/target
 
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
