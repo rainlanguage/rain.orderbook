@@ -341,7 +341,7 @@ describe('OrderDetail', () => {
 		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
 			value: {
 				...mockOrder,
-        dotrainSource: 'some-source'
+				dotrainSource: 'some-source'
 			}
 		});
 
@@ -360,7 +360,7 @@ describe('OrderDetail', () => {
 		const guiState = {
 			test: 'value',
 			nested: {
-			  key: 'value'
+				key: 'value'
 			}
 		};
 		const user = userEvent.setup();
