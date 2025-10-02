@@ -1,13 +1,15 @@
 use super::*;
 use alloy::{
-    primitives::{Bytes, B256, U256},
+    primitives::{self, Bytes, B256, U256},
     sol_types::SolCall,
 };
 use rain_math_float::Float;
 use rain_metaboard_subgraph::metaboard_client::{
     MetaboardSubgraphClient, MetaboardSubgraphClientError,
 };
-use rain_metadata::{types::dotrain::source_v1::DotrainSourceV1, RainMetaDocumentV1Item};
+use rain_metadata::{
+    types::dotrain::source_v1::DotrainSourceV1, KnownMagic, RainMetaDocumentV1Item,
+};
 use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
@@ -225,6 +227,43 @@ impl DotrainOrderGui {
             _ => {}
         }
         self.get_current_deployment()
+    }
+
+    async fn resolve_metaboard_address_for_network(&self, network_key: &str) -> Option<Address> {
+        let orderbook_yaml = self.dotrain_order.orderbook_yaml();
+        let metaboard_cfg = match orderbook_yaml.get_metaboard(network_key) {
+            Ok(cfg) => cfg,
+            Err(error) => {
+                web_sys::console::log_1(
+                    &format!("Failed to get metaboard config: {:?}", error).into(),
+                );
+                return None;
+            }
+        };
+
+        let client = MetaboardSubgraphClient::new(metaboard_cfg.url.clone());
+        match client.get_metaboard_addresses(None, None).await {
+            Ok(addresses) => {
+                web_sys::console::log_1(&format!("Metaboard addresses: {:?}", addresses).into());
+                if let Some(address) = addresses.first() {
+                    web_sys::console::log_1(
+                        &format!("Using metaboard address for meta call: {:?}", address).into(),
+                    );
+                    Some(*address)
+                } else {
+                    web_sys::console::log_1(
+                        &"Metaboard addresses list is empty; using default address".into(),
+                    );
+                    None
+                }
+            }
+            Err(error) => {
+                web_sys::console::log_1(
+                    &format!("Error fetching metaboard addresses: {:?}", error).into(),
+                );
+                None
+            }
+        }
     }
 
     /// Checks token allowances for all deposits against the orderbook contract.
@@ -492,11 +531,31 @@ impl DotrainOrderGui {
 
         let dotrain_document: RainMetaDocumentV1Item =
             DotrainSourceV1(dotrain_for_deployment.to_string()).into();
-        let hash = dotrain_document.hash(false)?;
-        web_sys::console::log_1(&format!(".rain meta hash: {:?}", hash).into());
+        let dotrain_meta = RainMetaDocumentV1Item::cbor_encode_seq(
+            &vec![dotrain_document.clone()],
+            KnownMagic::RainMetaDocumentV1,
+        )?;
+        let dotrain_meta_hash = primitives::keccak256(&dotrain_meta);
+
+        if let Ok(doc_hash) = dotrain_document.hash(false) {
+            web_sys::console::log_1(
+                &format!(
+                    ".rain DotrainSourceV1 hash (keccak over CBOR map only): 0x{}",
+                    primitives::hex::encode(doc_hash)
+                )
+                .into(),
+            );
+        }
+
+        web_sys::console::log_1(
+            &format!(".rain DotrainSourceV1 RainMetaDocumentV1 hash: {dotrain_meta_hash:#x}")
+                .into(),
+        );
 
         let client = MetaboardSubgraphClient::new(metaboard_cfg.url.clone());
-        match client.get_metabytes_by_hash(&hash).await {
+        let res = client.get_metabytes_by_hash(&dotrain_meta_hash.0).await;
+        web_sys::console::log_1(&format!("Meta fetch result: {:?}", res).into());
+        match res {
             Ok(_) => Ok(false),
             Err(MetaboardSubgraphClientError::Empty(_)) => Ok(true),
             Err(_) => Ok(true),
@@ -870,12 +929,43 @@ impl DotrainOrderGui {
             Bytes::copy_from_slice(&multicallCall { data: calls }.abi_encode());
 
         let meta_call = if include_dotrain_meta {
-            let emit_calldata = artifacts.emit_meta_calldata(owner_address);
+            let meta_board_address = self
+                .resolve_metaboard_address_for_network(&deployment.deployment.order.network.key)
+                .await
+                .unwrap_or_default();
 
-            Some(ExternalCall {
-                to: Address::default(),
-                calldata: Bytes::copy_from_slice(&emit_calldata),
-            })
+            match (
+                artifacts.dotrain_meta.as_ref(),
+                artifacts.emit_dotrain_meta_calldata(owner_address),
+            ) {
+                (Some(dotrain_meta), Some(calldata)) => {
+                    let meta_hex = primitives::hex::encode(dotrain_meta);
+                    let meta_hash = primitives::keccak256(dotrain_meta);
+                    web_sys::console::log_1(
+                        &format!("Dotrain meta payload: 0x{}", meta_hex).into(),
+                    );
+                    web_sys::console::log_1(
+                        &format!("Dotrain meta payload hash: {meta_hash:#x}").into(),
+                    );
+
+                    Some(ExternalCall {
+                        to: meta_board_address,
+                        calldata: Bytes::copy_from_slice(&calldata),
+                    })
+                }
+                (None, _) => {
+                    web_sys::console::log_1(
+                        &"Dotrain meta payload unavailable; skipping meta publication".into(),
+                    );
+                    None
+                }
+                (_, None) => {
+                    web_sys::console::log_1(
+                        &"Dotrain meta calldata missing; skipping meta publication".into(),
+                    );
+                    None
+                }
+            }
         } else {
             None
         };

@@ -21,6 +21,7 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
 };
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
+use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
@@ -42,6 +43,7 @@ pub static ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS: [&str; 1] = ["handle-add-or
 pub struct AddOrderCallArtifacts {
     pub call: addOrder3Call,
     pub meta: Vec<u8>,
+    pub dotrain_meta: Option<Vec<u8>>,
 }
 
 impl AddOrderCallArtifacts {
@@ -65,6 +67,16 @@ impl AddOrderCallArtifacts {
             meta: Bytes::copy_from_slice(&self.meta),
         }
         .abi_encode()
+    }
+
+    pub fn emit_dotrain_meta_calldata(&self, owner: Address) -> Option<Vec<u8>> {
+        self.dotrain_meta.as_ref().map(|meta| {
+            emitMetaCall {
+                subject: self.order_hash(owner),
+                meta: Bytes::copy_from_slice(meta),
+            }
+            .abi_encode()
+        })
     }
 }
 
@@ -219,14 +231,7 @@ impl AddOrderArgs {
         meta_docs.push(rainlang_meta_doc);
 
         if self.include_dotrain_meta {
-            let dotrain_source_meta_doc = RainMetaDocumentV1Item {
-                payload: ByteBuf::from(self.dotrain.as_bytes()),
-                magic: KnownMagic::DotrainSourceV1,
-                content_type: ContentType::OctetStream,
-                content_encoding: ContentEncoding::None,
-                content_language: ContentLanguage::None,
-            };
-            meta_docs.push(dotrain_source_meta_doc);
+            meta_docs.push(self.dotrain_meta_document());
         }
 
         if let Some(existing_meta) = &self.meta {
@@ -243,6 +248,10 @@ impl AddOrderArgs {
                 .map_err(AddOrderArgsError::RainMetaError)?;
 
         Ok(meta_doc_bytes)
+    }
+
+    fn dotrain_meta_document(&self) -> RainMetaDocumentV1Item {
+        DotrainSourceV1(self.dotrain.clone()).into()
     }
 
     /// Compose to rainlang string
@@ -276,6 +285,15 @@ impl AddOrderArgs {
             .await?;
 
         let meta = self.try_generate_meta(rainlang)?;
+        let dotrain_meta = if self.include_dotrain_meta {
+            let doc = self.dotrain_meta_document();
+            Some(
+                RainMetaDocumentV1Item::cbor_encode_seq(&vec![doc], KnownMagic::RainMetaDocumentV1)
+                    .map_err(AddOrderArgsError::RainMetaError)?,
+            )
+        } else {
+            None
+        };
 
         let deployer = self.deployer;
         let dispair =
@@ -315,7 +333,11 @@ impl AddOrderArgs {
             tasks: vec![post_task],
         };
 
-        Ok(AddOrderCallArtifacts { call, meta })
+        Ok(AddOrderCallArtifacts {
+            call,
+            meta,
+            dotrain_meta,
+        })
     }
 
     pub async fn try_into_call(
