@@ -1080,3 +1080,105 @@ mod tests {
         assert_eq!(deployment.deployment.scenario.bindings["binding-2"], "200");
     }
 }
+
+#[cfg(all(test, not(target_family = "wasm")))]
+mod non_wasm_tests {
+    use super::*;
+    use crate::gui::tests::get_yaml;
+    use httpmock::{Method::POST, MockServer};
+    use serde_json::json;
+
+    fn yaml_with_metaboard(url: &str) -> String {
+        get_yaml().replace("https://metaboard.com", url)
+    }
+
+    #[tokio::test]
+    async fn test_should_skip_emit_meta_call_when_subject_exists() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("metaV1S");
+            then.status(200).json_body(json!({
+                "data": {
+                    "metaV1S": [{
+                        "meta": "0x01",
+                        "metaHash": "0x01",
+                        "sender": "0x00",
+                        "id": "meta-id",
+                        "metaBoard": { "address": "0x00" },
+                        "subject": "0x123",
+                    }]
+                }
+            }));
+        });
+
+        let yaml = yaml_with_metaboard(&server.url("/"));
+        let mut gui =
+            DotrainOrderGui::new_with_deployment(yaml, "some-deployment".to_string(), None)
+                .await
+                .unwrap();
+
+        let include = gui
+            .should_include_dotrain_meta_for_deployment()
+            .await
+            .unwrap();
+        assert!(!include);
+    }
+
+    #[tokio::test]
+    async fn test_no_metaboard_address_surfaces_error() {
+        let server = MockServer::start_async().await;
+
+        // Returning an empty list forces the subject lookup to fail and request metadata upload.
+        server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("metaV1S");
+            then.status(200).json_body(json!({
+                "data": {
+                    "metaV1S": []
+                }
+            }));
+        });
+
+        server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("metaBoards");
+            then.status(200).json_body(json!({
+                "data": {
+                    "metaBoards": []
+                }
+            }));
+        });
+
+        let yaml = yaml_with_metaboard(&server.url("/"));
+        let mut gui =
+            DotrainOrderGui::new_with_deployment(yaml, "some-deployment".to_string(), None)
+                .await
+                .unwrap();
+
+        // Populate defaults expected by the generator.
+        gui.check_field_values().unwrap();
+
+        let deployment = gui
+            .prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)
+            .unwrap();
+
+        // Subject lookup fails (empty result) so we should attempt to include meta.
+        let include = gui
+            .should_include_dotrain_meta_for_deployment()
+            .await
+            .unwrap();
+        assert!(include);
+
+        let client = gui.get_metaboard_client().unwrap();
+        let addresses = client.get_metaboard_addresses(None, None).await.unwrap();
+        assert!(addresses.is_empty());
+
+        let add_order_args = gui.prepare_add_order_args(&deployment).await.unwrap();
+        assert!(add_order_args.try_into_emit_meta_call().unwrap().is_some());
+
+        let err = addresses
+            .first()
+            .ok_or_else(|| GuiError::NoAddressInMetaboardSubgraph)
+            .unwrap_err();
+        assert!(matches!(err, GuiError::NoAddressInMetaboardSubgraph));
+    }
+}

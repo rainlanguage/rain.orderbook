@@ -337,7 +337,7 @@ describe('OrderDetail', () => {
 		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaultsList.items[1]);
 	});
 
-	it('shows Dotrain tab when parsed meta includes Dotrain source', async () => {
+	it('shows Dotrain tab when order instance includes dotrain source', async () => {
 		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
 			value: {
 				...mockOrder,
@@ -356,7 +356,7 @@ describe('OrderDetail', () => {
 		});
 	});
 
-	it('shows Gui State tab when parsed meta includes Dotrain gui state', async () => {
+	it('shows Gui State tab when order instance dotrain gui state', async () => {
 		const guiState = {
 			test: 'value',
 			nested: {

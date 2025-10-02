@@ -120,6 +120,10 @@ describe('Full Deployment Tests', () => {
 			transactions: readable()
 		});
 		mockConnectedStore.mockSetSubscribeValue(true);
+		vi.mocked(handleTransactionConfirmationModal).mockResolvedValue({
+			success: true,
+			hash: '0xtesthash'
+		});
 	});
 
 	afterEach(async () => {
@@ -229,8 +233,15 @@ describe('Full Deployment Tests', () => {
 			});
 
 			// @ts-expect-error mock is not typed
-			const callArgs = handleTransactionConfirmationModal.mock
-				.calls[0][0] as TransactionConfirmationProps;
+			const callArgs = handleTransactionConfirmationModal.mock.calls.at(-1)?.[0] as
+				| TransactionConfirmationProps
+				| undefined;
+
+			expect(callArgs).toBeDefined();
+			if (!callArgs) {
+				return;
+			}
+			expect(callArgs.modalTitle).toEqual('Deploying your order');
 
 			const { prefixEnd, suffixEnd } = findLockRegion(
 				callArgs.args.calldata,

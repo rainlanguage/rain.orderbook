@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { decodeFunctionData, hexToBytes } from 'viem';
 import {
 	DotrainOrderGui,
 	ApprovalCalldataResult,
@@ -149,7 +150,8 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: https://metaboard.com
+    test: http://localhost:8085/metaboard
+    some-network: http://localhost:8085/metaboard
 
 deployers:
     some-deployer:
@@ -228,7 +230,8 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: https://metaboard.com
+    test: http://localhost:8085/metaboard
+    some-network: http://localhost:8085/metaboard
 
 deployers:
     some-deployer:
@@ -300,7 +303,7 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: https://metaboard.com
+    test: http://localhost:8085/metaboard
 
 deployers:
     some-deployer:
@@ -384,7 +387,8 @@ subgraphs:
     some-sg: https://www.some-sg.com
     other-sg: https://www.other-sg.com
 metaboards:
-    test: https://metaboard.com
+    test: http://localhost:8085/metaboard
+    some-network: http://localhost:8085/metaboard
 deployers:
     some-deployer:
         network: remote-network
@@ -484,6 +488,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		return result.value;
 	};
+
+	const metaBoardAbi = [
+		{
+			type: 'function',
+			name: 'emitMeta',
+			inputs: [
+				{ name: 'subject', type: 'bytes32' },
+				{ name: 'meta', type: 'bytes' }
+			],
+			outputs: [],
+			stateMutability: 'nonpayable'
+		}
+	] as const;
 
 	it('should return available deployments', async () => {
 		const result = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
@@ -968,7 +985,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QsU7DMBCNAwIJMSDEioTESojj4KqtysBQCRAMoAysbWpqq65txTa04iMYWfmBii9gZeN7EBuKOFMiuMHvfO-d_e5Q9B2bgI5ZlwyFGgk1RlDD0cZv9m4gPYuhshYYPWEqi0KsAlJ82GpIyI9kBTDDGP33GGnegkGrpyxRzN3rahL6dgG5c6abplKXA8m1dd02btO0MmXiK_lQK1B9ovB1vzjdgfSx97HYf-8tXp_oy-dNTDpvzyXaRutAF7WHPYLC2AWJo2U0l4CCrQz9mWnJHUAiy5Nzz2fciPyS2v48uTqzWT68MPiW-k4xbuXWzqwX1-LoeAt6tOOsSkbMSD2fMuW-AIPIgQ7FAQAA';
+			'H4sIAAAAAAAA_21QsU7DMBCNAwIJMSDEioTESkhiCKRVGRCiQkWqEGToFqWJhUsdO42dlsBHMLLyAxVfwMrG9yA2FHGmjdob_M733tnvDhl_sQmoiFRWf8CTAb9HUHOMjXl2HLGCmFBZ04wYEu4aOlYBPefwpCbB_5IVQNdx0LLHcP2mDUqREosTNRH5UPftAlKlsqZtMxFHjAqpmr7je3aexVaRs-dKgaoT6a8vg6sdSF9a39P9r9b049V7_-mZuPH5FqNttA50UHnYw0iPHWDTmEV9CUjbctHCTDPuAJJOryzTh3a3eHSju8np-Pb8-uZCdsPj0ahs9GknabOjUD6FPvXPtqBHKEpyKyEZE2VKuPoFD2BYy8UBAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1304,7 +1321,7 @@ ${dotrain}`;
 			gui.setFieldValue('test-binding', '10');
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert.equal(addOrderCalldata.length, 6410);
+			assert.equal(addOrderCalldata.length, 2634);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1339,7 +1356,7 @@ ${dotrain}`;
 				);
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert.equal(addOrderCalldata.length, 6410);
+			assert.equal(addOrderCalldata.length, 2634);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1381,7 +1398,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 7370);
+			assert.equal(calldata.length, 3594);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1424,7 +1441,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 7370);
+			assert.equal(calldata.length, 3658);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1484,7 +1501,7 @@ ${dotrainWithoutVaultIds}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 7754);
+			assert.equal(calldata.length, 3914);
 
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1741,6 +1758,30 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000003635C9ADC5DEA00000'
 				);
 			await mockServer
+				.forPost('/metaboard')
+				.withBodyIncluding('metaV1S')
+				.thenReply(
+					200,
+					JSON.stringify({
+						data: {
+							metaV1S: []
+						}
+					}),
+					{ 'Content-Type': 'application/json' }
+				);
+			await mockServer
+				.forPost('/metaboard')
+				.withBodyIncluding('metaBoards')
+				.thenReply(
+					200,
+					JSON.stringify({
+						data: {
+							metaBoards: [{ address: '0x0000000000000000000000000000000000000000' }]
+						}
+					}),
+					{ 'Content-Type': 'application/json' }
+				);
+			await mockServer
 				.forPost('/rpc-url')
 				.withBodyIncluding('0xf0cfdd37')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
@@ -1772,12 +1813,23 @@ ${dotrainWithoutVaultIds}`;
 				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
-			assert.equal(result.deploymentCalldata.length, 7306);
+			assert.equal(result.deploymentCalldata.length, 3594);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
-			assert.ok(result.emitMetaCall);
-			assert.equal(result.emitMetaCall?.to, '0x0000000000000000000000000000000000000000');
-			assert.ok(result.emitMetaCall?.calldata.startsWith('0x'));
+			const emitMetaCall = result.emitMetaCall;
+			assert.ok(emitMetaCall);
+			assert.equal(emitMetaCall?.to, '0x0000000000000000000000000000000000000000');
+			const decoded = decodeFunctionData({
+				abi: metaBoardAbi,
+				data: emitMetaCall!.calldata as `0x${string}`
+			});
+			assert.equal(decoded.functionName, 'emitMeta');
+			const [subject, metaBytes] = decoded.args as [`0x${string}`, `0x${string}`];
+			assert.match(subject, /^0x[0-9a-f]{64}$/);
+			assert.notStrictEqual(subject, `0x${'0'.repeat(64)}`);
+			assert.ok(metaBytes.startsWith('0xff0a89c674ee7874'));
+			const metaText = new TextDecoder().decode(hexToBytes(metaBytes).slice(8));
+			assert.ok(metaText.includes('\n#handle-add-order'));
 
 			gui.unsetDeposit('token2');
 			result = extractWasmEncodedData<DeploymentTransactionArgs>(
@@ -1785,12 +1837,26 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(result.approvals.length, 0);
-			assert.equal(result.deploymentCalldata.length, 6730);
+			assert.equal(result.deploymentCalldata.length, 2954);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
-			assert.ok(result.emitMetaCall);
-			assert.equal(result.emitMetaCall?.to, '0x0000000000000000000000000000000000000000');
-			assert.ok(result.emitMetaCall?.calldata.startsWith('0x'));
+			const emitMetaCallAfterUnset = result.emitMetaCall;
+			assert.ok(emitMetaCallAfterUnset);
+			assert.equal(emitMetaCallAfterUnset?.to, '0x0000000000000000000000000000000000000000');
+			const decodedAfterUnset = decodeFunctionData({
+				abi: metaBoardAbi,
+				data: emitMetaCallAfterUnset!.calldata as `0x${string}`
+			});
+			assert.equal(decodedAfterUnset.functionName, 'emitMeta');
+			const [subjectAfterUnset, metaBytesAfterUnset] = decodedAfterUnset.args as [
+				`0x${string}`,
+				`0x${string}`
+			];
+			assert.match(subjectAfterUnset, /^0x[0-9a-f]{64}$/);
+			assert.notStrictEqual(subjectAfterUnset, `0x${'0'.repeat(64)}`);
+			assert.ok(metaBytesAfterUnset.startsWith('0xff0a89c674ee7874'));
+			const metaTextAfterUnset = new TextDecoder().decode(hexToBytes(metaBytesAfterUnset).slice(8));
+			assert.ok(metaTextAfterUnset.includes('\n#handle-add-order'));
 		});
 	});
 
