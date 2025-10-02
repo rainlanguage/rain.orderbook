@@ -91,10 +91,12 @@ jobs:
       - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
         working-directory: ./tauri-app
 
-      - run: nix develop .#tauri-shell --command tauri-rs-test
+      - name: Remove cargo targets before Rust tests
+        run: |
+          rm -rf target
+          rm -rf tauri-app/src-tauri/target
 
-      # remove test artifacts before the release build to keep disk usage low
-      - run: rm -rf tauri-app/src-tauri/target
+      - run: nix develop .#tauri-shell --command tauri-rs-test
 
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
