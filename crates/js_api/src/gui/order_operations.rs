@@ -1,5 +1,6 @@
 use super::*;
 use alloy::{
+    hex::encode,
     primitives::{self, Bytes, B256, U256},
     sol_types::SolCall,
 };
@@ -7,9 +8,8 @@ use rain_math_float::Float;
 use rain_metaboard_subgraph::metaboard_client::{
     MetaboardSubgraphClient, MetaboardSubgraphClientError,
 };
-use rain_metadata::{
-    types::dotrain::source_v1::DotrainSourceV1, KnownMagic, RainMetaDocumentV1Item,
-};
+use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
+use rain_metadata::{types::dotrain::gui_state_v1::DotrainGuiStateV1, RainMetaDocumentV1Item};
 use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
@@ -517,7 +517,7 @@ impl DotrainOrderGui {
     async fn should_include_dotrain_meta_for_deployment(
         &self,
         deployment: &GuiDeploymentCfg,
-        dotrain_for_deployment: &str,
+        dotrain_state: &DotrainGuiStateV1,
     ) -> Result<bool, GuiError> {
         let orderbook_yaml = self.dotrain_order.orderbook_yaml();
         let network_key = &deployment.deployment.order.network.key;
@@ -527,34 +527,21 @@ impl DotrainOrderGui {
             Err(_) => return Ok(true),
         };
 
-        web_sys::console::log_1(&format!("{:?}", dotrain_for_deployment).into());
-
-        let dotrain_document: RainMetaDocumentV1Item =
-            DotrainSourceV1(dotrain_for_deployment.to_string()).into();
-        let dotrain_meta = RainMetaDocumentV1Item::cbor_encode_seq(
-            &vec![dotrain_document.clone()],
-            KnownMagic::RainMetaDocumentV1,
-        )?;
-        let dotrain_meta_hash = primitives::keccak256(&dotrain_meta);
-
-        if let Ok(doc_hash) = dotrain_document.hash(false) {
-            web_sys::console::log_1(
-                &format!(
-                    ".rain DotrainSourceV1 hash (keccak over CBOR map only): 0x{}",
-                    primitives::hex::encode(doc_hash)
-                )
-                .into(),
-            );
-        }
+        let gui_state_hex = encode(dotrain_state.dotrain_hash());
 
         web_sys::console::log_1(
-            &format!(".rain DotrainSourceV1 RainMetaDocumentV1 hash: {dotrain_meta_hash:#x}")
-                .into(),
+            &format!(
+                "DotrainGuiStateV1 hash (keccak over CBOR map only): 0x{}",
+                gui_state_hex
+            )
+            .into(),
         );
 
         let client = MetaboardSubgraphClient::new(metaboard_cfg.url.clone());
-        let res = client.get_metabytes_by_hash(&dotrain_meta_hash.0).await;
-        web_sys::console::log_1(&format!("Meta fetch result: {:?}", res).into());
+        let res = client
+            .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", gui_state_hex)))
+            .await;
+        web_sys::console::log_1(&format!("Dotrain meta fetch result: {:?}", res).into());
         match res {
             Ok(_) => Ok(false),
             Err(MetaboardSubgraphClientError::Empty(_)) => Ok(true),
@@ -574,7 +561,7 @@ impl DotrainOrderGui {
             .generate_dotrain_for_deployment(&deployment.deployment.key)?;
 
         let include_dotrain_meta = self
-            .should_include_dotrain_meta_for_deployment(deployment, &dotrain_for_deployment)
+            .should_include_dotrain_meta_for_deployment(deployment, &dotrain_instance_v1)
             .await?;
 
         let mut add_order_args = AddOrderArgs::new_from_deployment(
@@ -936,9 +923,10 @@ impl DotrainOrderGui {
 
             match (
                 artifacts.dotrain_meta.as_ref(),
+                artifacts.dotrain_meta_subject,
                 artifacts.emit_dotrain_meta_calldata(owner_address),
             ) {
-                (Some(dotrain_meta), Some(calldata)) => {
+                (Some(dotrain_meta), Some(subject), Some(calldata)) => {
                     let meta_hex = primitives::hex::encode(dotrain_meta);
                     let meta_hash = primitives::keccak256(dotrain_meta);
                     web_sys::console::log_1(
@@ -947,19 +935,32 @@ impl DotrainOrderGui {
                     web_sys::console::log_1(
                         &format!("Dotrain meta payload hash: {meta_hash:#x}").into(),
                     );
+                    web_sys::console::log_1(
+                        &format!(
+                            "Dotrain meta subject (DotrainGuiState hash): 0x{}",
+                            primitives::hex::encode(subject.0)
+                        )
+                        .into(),
+                    );
 
                     Some(ExternalCall {
                         to: meta_board_address,
                         calldata: Bytes::copy_from_slice(&calldata),
                     })
                 }
-                (None, _) => {
+                (None, _, _) => {
                     web_sys::console::log_1(
                         &"Dotrain meta payload unavailable; skipping meta publication".into(),
                     );
                     None
                 }
-                (_, None) => {
+                (_, None, _) => {
+                    web_sys::console::log_1(
+                        &"Dotrain meta calldata missing; skipping meta publication".into(),
+                    );
+                    None
+                }
+                (_, _, None) => {
                     web_sys::console::log_1(
                         &"Dotrain meta calldata missing; skipping meta publication".into(),
                     );

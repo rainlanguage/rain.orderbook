@@ -21,7 +21,7 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
 };
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
-use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
+use rain_metadata::types::dotrain::{gui_state_v1::DotrainGuiStateV1, source_v1::DotrainSourceV1};
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
@@ -44,6 +44,7 @@ pub struct AddOrderCallArtifacts {
     pub call: addOrder3Call,
     pub meta: Vec<u8>,
     pub dotrain_meta: Option<Vec<u8>>,
+    pub dotrain_meta_subject: Option<B256>,
 }
 
 impl AddOrderCallArtifacts {
@@ -70,13 +71,17 @@ impl AddOrderCallArtifacts {
     }
 
     pub fn emit_dotrain_meta_calldata(&self, owner: Address) -> Option<Vec<u8>> {
-        self.dotrain_meta.as_ref().map(|meta| {
+        let _ = owner;
+        let subject = self.dotrain_meta_subject?;
+        let meta = self.dotrain_meta.as_ref()?;
+
+        Some(
             emitMetaCall {
-                subject: self.order_hash(owner),
+                subject,
                 meta: Bytes::copy_from_slice(meta),
             }
-            .abi_encode()
-        })
+            .abi_encode(),
+        )
     }
 }
 
@@ -230,10 +235,6 @@ impl AddOrderArgs {
         };
         meta_docs.push(rainlang_meta_doc);
 
-        if self.include_dotrain_meta {
-            meta_docs.push(self.dotrain_meta_document());
-        }
-
         if let Some(existing_meta) = &self.meta {
             if !existing_meta.is_empty() {
                 meta_docs.extend(existing_meta.iter().filter_map(|i| match i.magic {
@@ -287,10 +288,25 @@ impl AddOrderArgs {
         let meta = self.try_generate_meta(rainlang)?;
         let dotrain_meta = if self.include_dotrain_meta {
             let doc = self.dotrain_meta_document();
-            Some(
+            let encoded =
                 RainMetaDocumentV1Item::cbor_encode_seq(&vec![doc], KnownMagic::RainMetaDocumentV1)
-                    .map_err(AddOrderArgsError::RainMetaError)?,
-            )
+                    .map_err(AddOrderArgsError::RainMetaError)?;
+            Some(encoded)
+        } else {
+            None
+        };
+
+        let dotrain_meta_subject = if let Some(meta_docs) = self.meta.as_ref() {
+            let maybe_doc = meta_docs
+                .iter()
+                .find(|document| document.magic == KnownMagic::DotrainGuiStateV1);
+
+            if let Some(document) = maybe_doc {
+                let source = DotrainGuiStateV1::try_from(document.clone())?;
+                Some(source.dotrain_hash)
+            } else {
+                None
+            }
         } else {
             None
         };
@@ -337,6 +353,7 @@ impl AddOrderArgs {
             call,
             meta,
             dotrain_meta,
+            dotrain_meta_subject,
         })
     }
 

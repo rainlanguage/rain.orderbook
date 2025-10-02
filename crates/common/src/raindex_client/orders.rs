@@ -8,11 +8,12 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
-use alloy::hex::decode;
+use alloy::hex::{decode, encode};
 use alloy::primitives::{Address, Bytes, U256};
 use rain_metaboard_subgraph::metaboard_client::{
     MetaboardSubgraphClient, MetaboardSubgraphClientError,
 };
+use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::{
     types::dotrain::source_v1::DotrainSourceV1, KnownMagic, RainMetaDocumentV1Item,
 };
@@ -726,14 +727,14 @@ impl RaindexOrder {
             return Ok(());
         }
 
-        let dotrain_hash = match self.parsed_meta.iter().find_map(|meta| {
+        let dotrain_state = match self.parsed_meta.iter().find_map(|meta| {
             if let ParsedMeta::DotrainGuiStateV1(state) = meta {
-                Some(state.dotrain_hash)
+                Some(state.clone())
             } else {
                 None
             }
         }) {
-            Some(hash) => hash,
+            Some(state) => state,
             None => return Ok(()),
         };
 
@@ -757,8 +758,11 @@ impl RaindexOrder {
         };
 
         let client = MetaboardSubgraphClient::new(metaboard_url);
-        let subject_hash: [u8; 32] = dotrain_hash.into();
-        let metabytes = match client.get_metabytes_by_hash(&subject_hash).await {
+        let subject_hex = format!("0x{}", encode(dotrain_state.dotrain_hash));
+        let metabytes = match client
+            .get_metabytes_by_subject(&MetaBigInt(subject_hex))
+            .await
+        {
             Ok(bytes) => bytes,
             Err(MetaboardSubgraphClientError::Empty(_)) => return Ok(()),
             Err(err) => return Err(RaindexError::MetaboardSubgraphError(err.to_string())),
