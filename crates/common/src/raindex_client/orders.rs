@@ -119,6 +119,20 @@ impl RaindexOrder {
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
     }
+    #[wasm_bindgen(getter = dotrainSource)]
+    pub fn dotrain_source(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainSourceV1(source) => Some(source.0),
+            _ => None,
+        })
+    }
+    #[wasm_bindgen(getter = dotrainGuiState)]
+    pub fn dotrain_gui_state(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainGuiStateV1(state) => serde_json::to_string(&state).ok(),
+            _ => None,
+        })
+    }
     #[wasm_bindgen(getter)]
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()
@@ -182,6 +196,18 @@ impl RaindexOrder {
     }
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
+    }
+    pub fn dotrain_source(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainSourceV1(source) => Some(source.0),
+            _ => None,
+        })
+    }
+    pub fn dotrain_gui_state(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainGuiStateV1(state) => serde_json::to_string(&state).ok(),
+            _ => None,
+        })
     }
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()

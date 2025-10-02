@@ -138,10 +138,7 @@ impl RaindexClient {
             }
             Some(_) | None => {
                 let all_nets = self.orderbook_yaml.get_networks()?;
-                let mut networks = Vec::with_capacity(all_nets.len());
-                for network in all_nets.values() {
-                    networks.push(network.clone());
-                }
+                let networks = all_nets.values().cloned().collect();
                 Ok(networks)
             }
         }
