@@ -182,7 +182,7 @@ mod integration {
     }
 
     enum EventKind {
-        OrderBook(OrderBookEventOwned),
+        OrderBook(Box<OrderBookEventOwned>),
         Store(StoreSetEvent),
     }
 
@@ -191,8 +191,8 @@ mod integration {
         Deposit(DepositV2),
         Take(TakeOrderV3),
         Clear {
-            clear: ClearV3,
-            state_change: AfterClearV2,
+            clear: Box<ClearV3>,
+            state_change: Box<AfterClearV2>,
         },
     }
 
@@ -1169,10 +1169,10 @@ mod integration {
                     combined_events.push((
                         block,
                         index,
-                        EventKind::OrderBook(OrderBookEventOwned::Clear {
-                            clear: converted_clear,
-                            state_change: converted_after,
-                        }),
+                        EventKind::OrderBook(Box::new(OrderBookEventOwned::Clear {
+                            clear: Box::new(converted_clear),
+                            state_change: Box::new(converted_after),
+                        })),
                     ));
                     continue;
                 }
@@ -1182,7 +1182,7 @@ mod integration {
                     combined_events.push((
                         block,
                         index,
-                        EventKind::OrderBook(OrderBookEventOwned::Take(converted)),
+                        EventKind::OrderBook(Box::new(OrderBookEventOwned::Take(converted))),
                     ));
                     continue;
                 }
@@ -1192,7 +1192,7 @@ mod integration {
                     combined_events.push((
                         block,
                         index,
-                        EventKind::OrderBook(OrderBookEventOwned::Add(converted)),
+                        EventKind::OrderBook(Box::new(OrderBookEventOwned::Add(converted))),
                     ));
                     continue;
                 }
@@ -1202,7 +1202,7 @@ mod integration {
                     combined_events.push((
                         block,
                         index,
-                        EventKind::OrderBook(OrderBookEventOwned::Deposit(converted)),
+                        EventKind::OrderBook(Box::new(OrderBookEventOwned::Deposit(converted))),
                     ));
                     continue;
                 }
@@ -1237,69 +1237,78 @@ mod integration {
 
             combined_events.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
             assert!(
-                combined_events.iter().any(|(_, _, kind)| matches!(
-                    kind,
-                    EventKind::OrderBook(OrderBookEventOwned::Add(_))
-                )),
+                combined_events.iter().any(|(_, _, kind)| match kind {
+                    EventKind::OrderBook(event) =>
+                        matches!(event.as_ref(), OrderBookEventOwned::Add(_)),
+                    EventKind::Store(_) => false,
+                }),
                 "expected add order events in log replay"
             );
             assert!(
-                combined_events.iter().any(|(_, _, kind)| matches!(
-                    kind,
-                    EventKind::OrderBook(OrderBookEventOwned::Take(_))
-                )),
+                combined_events.iter().any(|(_, _, kind)| match kind {
+                    EventKind::OrderBook(event) =>
+                        matches!(event.as_ref(), OrderBookEventOwned::Take(_)),
+                    EventKind::Store(_) => false,
+                }),
                 "expected take order events in log replay"
             );
             assert!(
-                combined_events.iter().any(|(_, _, kind)| matches!(
-                    kind,
-                    EventKind::OrderBook(OrderBookEventOwned::Clear { .. })
-                )),
+                combined_events.iter().any(|(_, _, kind)| match kind {
+                    EventKind::OrderBook(event) =>
+                        matches!(event.as_ref(), OrderBookEventOwned::Clear { .. }),
+                    EventKind::Store(_) => false,
+                }),
                 "expected clear events in log replay"
             );
 
             for (_, _, kind) in combined_events {
                 match kind {
-                    EventKind::OrderBook(OrderBookEventOwned::Add(event)) => {
-                        let mutations =
-                            orderbook_event_to_mutations(OrderBookEvent::AddOrder(&event))
-                                .expect("convert add order");
-                        replay
-                            .apply_mutations(&mutations)
-                            .expect("apply add order mutations");
-                    }
-                    EventKind::OrderBook(OrderBookEventOwned::Deposit(event)) => {
-                        let decimals = expected_snapshot.token_decimals.get(&event.token).copied();
-                        let mutations = orderbook_event_to_mutations(OrderBookEvent::Deposit {
-                            event: &event,
-                            decimals,
-                        })
-                        .expect("convert deposit");
-                        replay
-                            .apply_mutations(&mutations)
-                            .expect("apply deposit mutation");
-                    }
-                    EventKind::OrderBook(OrderBookEventOwned::Take(event)) => {
-                        let mutations =
-                            orderbook_event_to_mutations(OrderBookEvent::TakeOrder(&event))
-                                .expect("convert take order");
-                        replay
-                            .apply_mutations(&mutations)
-                            .expect("apply take order mutation");
-                    }
-                    EventKind::OrderBook(OrderBookEventOwned::Clear {
-                        clear,
-                        state_change,
-                    }) => {
-                        let mutations = orderbook_event_to_mutations(OrderBookEvent::Clear {
-                            clear: &clear,
-                            state_change: &state_change,
-                        })
-                        .expect("convert clear event");
-                        replay
-                            .apply_mutations(&mutations)
-                            .expect("apply clear mutation");
-                    }
+                    EventKind::OrderBook(event) => match event.as_ref() {
+                        OrderBookEventOwned::Add(order_event) => {
+                            let mutations =
+                                orderbook_event_to_mutations(OrderBookEvent::AddOrder(order_event))
+                                    .expect("convert add order");
+                            replay
+                                .apply_mutations(&mutations)
+                                .expect("apply add order mutations");
+                        }
+                        OrderBookEventOwned::Deposit(order_event) => {
+                            let decimals = expected_snapshot
+                                .token_decimals
+                                .get(&order_event.token)
+                                .copied();
+                            let mutations = orderbook_event_to_mutations(OrderBookEvent::Deposit {
+                                event: order_event,
+                                decimals,
+                            })
+                            .expect("convert deposit");
+                            replay
+                                .apply_mutations(&mutations)
+                                .expect("apply deposit mutation");
+                        }
+                        OrderBookEventOwned::Take(order_event) => {
+                            let mutations = orderbook_event_to_mutations(
+                                OrderBookEvent::TakeOrder(order_event),
+                            )
+                            .expect("convert take order");
+                            replay
+                                .apply_mutations(&mutations)
+                                .expect("apply take order mutation");
+                        }
+                        OrderBookEventOwned::Clear {
+                            clear,
+                            state_change,
+                        } => {
+                            let mutations = orderbook_event_to_mutations(OrderBookEvent::Clear {
+                                clear: clear.as_ref(),
+                                state_change: state_change.as_ref(),
+                            })
+                            .expect("convert clear event");
+                            replay
+                                .apply_mutations(&mutations)
+                                .expect("apply clear mutation");
+                        }
+                    },
                     EventKind::Store(event) => {
                         let mutation = store_event_to_mutation(StoreEvent {
                             store: harness.store_address,

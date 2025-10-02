@@ -46,7 +46,7 @@ mod tests {
     #[test]
     fn converts_store_event_to_mutation() {
         let data = Set {
-            namespace: U256::from(42).into(),
+            namespace: U256::from(42),
             key: B256::from([1u8; 32]),
             value: B256::from([2u8; 32]),
         };
