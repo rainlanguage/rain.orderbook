@@ -92,9 +92,15 @@ pub struct AddOrderArgs {
     pub deployer: Address,
     pub bindings: HashMap<String, String>,
     pub meta: Option<Vec<RainMetaDocumentV1Item>>,
+    #[serde(skip, default = "AddOrderArgs::default_include_dotrain_meta")]
+    include_dotrain_meta: bool,
 }
 
 impl AddOrderArgs {
+    fn default_include_dotrain_meta() -> bool {
+        true
+    }
+
     /// create a new  instance from Deployment
     pub async fn new_from_deployment(
         dotrain: String,
@@ -136,7 +142,15 @@ impl AddOrderArgs {
             deployer: deployment.scenario.deployer.address,
             bindings: deployment.scenario.bindings.to_owned(),
             meta,
+            include_dotrain_meta: true,
         })
+    }
+
+    pub fn set_include_dotrain_meta(&mut self, include: bool) {
+        self.include_dotrain_meta = include;
+    }
+    pub fn include_dotrain_meta(&self) -> bool {
+        self.include_dotrain_meta
     }
 
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants
@@ -173,14 +187,16 @@ impl AddOrderArgs {
         };
         meta_docs.push(rainlang_meta_doc);
 
-        let dotrain_source_meta_doc = RainMetaDocumentV1Item {
-            payload: ByteBuf::from(self.dotrain.as_bytes()),
-            magic: KnownMagic::DotrainSourceV1,
-            content_type: ContentType::OctetStream,
-            content_encoding: ContentEncoding::None,
-            content_language: ContentLanguage::None,
-        };
-        meta_docs.push(dotrain_source_meta_doc);
+        if self.include_dotrain_meta {
+            let dotrain_source_meta_doc = RainMetaDocumentV1Item {
+                payload: ByteBuf::from(self.dotrain.as_bytes()),
+                magic: KnownMagic::DotrainSourceV1,
+                content_type: ContentType::OctetStream,
+                content_encoding: ContentEncoding::None,
+                content_language: ContentLanguage::None,
+            };
+            meta_docs.push(dotrain_source_meta_doc);
+        }
 
         if let Some(existing_meta) = &self.meta {
             if !existing_meta.is_empty() {
@@ -422,6 +438,7 @@ price: 2e18;
             bindings: HashMap::new(),
             deployer: Address::default(),
             meta: None,
+            include_dotrain_meta: true,
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
@@ -443,6 +460,46 @@ price: 2e18;
     }
 
     #[test]
+    fn test_try_generate_meta_skip_dotrain_source() {
+        let dotrain_body = "#calculate-io\n_ _: 1 2;".to_string();
+
+        let dotrain_instance_data = DotrainGuiStateV1 {
+            dotrain_hash: B256::ZERO,
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            select_tokens: BTreeMap::new(),
+            vault_ids: BTreeMap::new(),
+            selected_deployment: "test".to_string(),
+        };
+
+        let mut args = AddOrderArgs {
+            dotrain: "some dotrain".into(),
+            inputs: vec![],
+            outputs: vec![],
+            bindings: HashMap::new(),
+            deployer: Address::default(),
+            meta: Some(vec![dotrain_instance_data.try_into().unwrap()]),
+            include_dotrain_meta: true,
+        };
+
+        args.set_include_dotrain_meta(false);
+
+        let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
+        let decoded_docs = RainMetaDocumentV1Item::cbor_decode(&meta_bytes).unwrap();
+
+        assert_eq!(decoded_docs.len(), 2);
+        assert!(decoded_docs
+            .iter()
+            .any(|doc| doc.magic == KnownMagic::RainlangSourceV1));
+        assert!(decoded_docs
+            .iter()
+            .any(|doc| doc.magic == KnownMagic::DotrainGuiStateV1));
+        assert!(!decoded_docs
+            .iter()
+            .any(|doc| doc.magic == KnownMagic::DotrainSourceV1));
+    }
+
+    #[test]
     fn test_try_generate_meta_empty_dotrain() {
         let args = AddOrderArgs {
             dotrain: "".into(),
@@ -451,6 +508,7 @@ price: 2e18;
             bindings: HashMap::new(),
             deployer: Address::default(),
             meta: None,
+            include_dotrain_meta: true,
         };
         let meta_bytes = args.try_generate_meta("".to_string()).unwrap();
         assert_eq!(
@@ -1336,6 +1394,7 @@ _ _: key1 key2;
                 ("key2".to_string(), "20".to_string()),
             ]),
             meta: None,
+            include_dotrain_meta: true,
         };
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         assert_eq!(
@@ -1356,6 +1415,7 @@ _ _: key1 key2;
                 ("key2".to_string(), "20".to_string()),
             ]),
             meta: None,
+            include_dotrain_meta: true,
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
         assert!(matches!(
@@ -1399,6 +1459,7 @@ _ _: key1 key2;
             deployer: Address::random(),
             bindings: HashMap::new(),
             meta: None,
+            include_dotrain_meta: true,
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
         assert!(matches!(
@@ -1447,6 +1508,7 @@ _ _: 0 0;
             deployer: *local_evm.deployer.address(),
             bindings: HashMap::new(),
             meta: None,
+            include_dotrain_meta: true,
         };
 
         let add_order_call = addOrder3Call {
@@ -1679,6 +1741,7 @@ price: 2e18;
             bindings: HashMap::new(),
             deployer: Address::default(),
             meta: Some(vec![dotrain_instance_data.try_into().unwrap()]),
+            include_dotrain_meta: true,
         };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();

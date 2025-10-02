@@ -10,6 +10,12 @@ use crate::{
 };
 use alloy::hex::decode;
 use alloy::primitives::{Address, Bytes, U256};
+use rain_metaboard_subgraph::metaboard_client::{
+    MetaboardSubgraphClient, MetaboardSubgraphClientError,
+};
+use rain_metadata::{
+    types::dotrain::source_v1::DotrainSourceV1, KnownMagic, RainMetaDocumentV1Item,
+};
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -503,7 +509,7 @@ impl RaindexClient {
             )
             .await;
 
-        let orders = orders
+        let mut orders = orders
             .iter()
             .map(|order| {
                 let chain_id = multi_subgraph_args
@@ -523,6 +529,9 @@ impl RaindexClient {
                 Ok(order)
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+        for order in orders.iter_mut() {
+            order.ensure_dotrain_source().await?;
+        }
         Ok(orders)
     }
 
@@ -589,7 +598,9 @@ impl RaindexClient {
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
             .await?;
-        let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
+        let mut order =
+            RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
+        order.ensure_dotrain_source().await?;
         Ok(order)
     }
 }
@@ -704,6 +715,67 @@ impl RaindexOrder {
             transaction,
             trades_count: order.trades.len() as u16,
         })
+    }
+
+    pub async fn ensure_dotrain_source(&mut self) -> Result<(), RaindexError> {
+        if self
+            .parsed_meta
+            .iter()
+            .any(|meta| matches!(meta, ParsedMeta::DotrainSourceV1(_)))
+        {
+            return Ok(());
+        }
+
+        let dotrain_hash = match self.parsed_meta.iter().find_map(|meta| {
+            if let ParsedMeta::DotrainGuiStateV1(state) = meta {
+                Some(state.dotrain_hash)
+            } else {
+                None
+            }
+        }) {
+            Some(hash) => hash,
+            None => return Ok(()),
+        };
+
+        let metaboard_url = {
+            let guard = self
+                .raindex_client
+                .read()
+                .map_err(|_| RaindexError::ReadLockError)?;
+            let network = guard
+                .orderbook_yaml
+                .get_network_by_chain_id(self.chain_id)?;
+            guard
+                .orderbook_yaml
+                .get_metaboard(&network.key)
+                .ok()
+                .map(|cfg| cfg.url.clone())
+        };
+
+        let Some(metaboard_url) = metaboard_url else {
+            return Ok(());
+        };
+
+        let client = MetaboardSubgraphClient::new(metaboard_url);
+        let subject_hash: [u8; 32] = dotrain_hash.into();
+        let metabytes = match client.get_metabytes_by_hash(&subject_hash).await {
+            Ok(bytes) => bytes,
+            Err(MetaboardSubgraphClientError::Empty(_)) => return Ok(()),
+            Err(err) => return Err(RaindexError::MetaboardSubgraphError(err.to_string())),
+        };
+
+        for meta_bytes in metabytes {
+            let documents = RainMetaDocumentV1Item::cbor_decode(&meta_bytes)?;
+            for document in documents {
+                if document.magic == KnownMagic::DotrainSourceV1 {
+                    let source = DotrainSourceV1::try_from(document)?;
+                    self.parsed_meta.push(ParsedMeta::DotrainSourceV1(source));
+                    return Ok(());
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub fn into_sg_order(self) -> Result<SgOrder, RaindexError> {

@@ -78,7 +78,7 @@ mod tests {
     use alloy::primitives::{address, Address, B256, U256};
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_bindings::IOrderBookV5::IOV2;
-    use std::{collections::HashMap, str::FromStr};
+    use std::str::FromStr;
     use tempfile::NamedTempFile;
 
     #[tokio::test]
@@ -104,21 +104,28 @@ mod tests {
         };
 
         let result = cli_order_add_args.to_add_order_args().await.unwrap();
-        let expected = AddOrderArgs {
-            dotrain: get_dotrain(),
-            inputs: vec![IOV2 {
+        assert_eq!(result.dotrain, get_dotrain());
+        assert_eq!(
+            result.inputs,
+            vec![IOV2 {
                 token: address!("0xc2132d05d31c914a87c6611c10748aeb04b58e8f"),
                 vaultId: B256::from(U256::from(1)),
-            }],
-            outputs: vec![IOV2 {
+            }]
+        );
+        assert_eq!(
+            result.outputs,
+            vec![IOV2 {
                 token: address!("0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"),
                 vaultId: B256::from(U256::from(1)),
-            }],
-            deployer: Address::from_str("0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba").unwrap(),
-            bindings: HashMap::new(),
-            meta: None,
-        };
-        assert_eq!(result, expected);
+            }]
+        );
+        assert_eq!(
+            result.deployer,
+            Address::from_str("0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba").unwrap()
+        );
+        assert!(result.bindings.is_empty());
+        assert!(result.meta.is_none());
+        assert!(result.include_dotrain_meta());
     }
 
     fn get_dotrain() -> String {

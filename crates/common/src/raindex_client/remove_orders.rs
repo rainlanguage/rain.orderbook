@@ -66,7 +66,7 @@ impl RaindexClient {
             .transaction_remove_orders(Id::new(tx_hash.to_string()))
             .await?;
 
-        let orders = orders
+        let mut orders = orders
             .into_iter()
             .map(|value| {
                 RaindexOrder::try_from_sg_order(
@@ -77,6 +77,9 @@ impl RaindexClient {
                 )
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+        for order in orders.iter_mut() {
+            order.ensure_dotrain_source().await?;
+        }
         Ok(orders)
     }
 }

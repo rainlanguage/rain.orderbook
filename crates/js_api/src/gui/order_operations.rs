@@ -1,10 +1,15 @@
 use super::*;
 use alloy::{
-    primitives::{Bytes, B256, U256},
+    primitives::{keccak256, Bytes, B256, U256},
     sol_types::SolCall,
 };
 use rain_math_float::Float;
-use rain_metadata::RainMetaDocumentV1Item;
+use rain_metaboard_subgraph::metaboard_client::{
+    MetaboardSubgraphClient, MetaboardSubgraphClientError,
+};
+use rain_metadata::{
+    types::dotrain::source_v1::DotrainSourceV1, KnownMagic, RainMetaDocumentV1Item,
+};
 use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
@@ -460,6 +465,34 @@ impl DotrainOrderGui {
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
+    async fn should_include_dotrain_meta_for_deployment(
+        &self,
+        deployment: &GuiDeploymentCfg,
+        dotrain_for_deployment: &str,
+    ) -> Result<bool, GuiError> {
+        let orderbook_yaml = self.dotrain_order.orderbook_yaml();
+        let network_key = &deployment.deployment.order.network.key;
+
+        let metaboard_cfg = match orderbook_yaml.get_metaboard(network_key) {
+            Ok(cfg) => cfg,
+            Err(_) => return Ok(true),
+        };
+
+        web_sys::console::log_1(&format!("{:?}", dotrain_for_deployment).into());
+
+        let dotrain_document: RainMetaDocumentV1Item =
+            DotrainSourceV1(dotrain_for_deployment.to_string()).into();
+        let hash = dotrain_document.hash(false)?;
+        web_sys::console::log_1(&format!(".rain meta hash: {:?}", hash).into());
+
+        let client = MetaboardSubgraphClient::new(metaboard_cfg.url.clone());
+        match client.get_metabytes_by_hash(&meta_hash).await {
+            Ok(_) => Ok(false),
+            Err(MetaboardSubgraphClientError::Empty(_)) => Ok(true),
+            Err(_) => Ok(true),
+        }
+    }
+
     /// Generates calldata for adding the order to the orderbook.
     ///
     /// Creates the addOrder calldata with all field values applied to the
@@ -494,15 +527,29 @@ impl DotrainOrderGui {
             .dotrain_order
             .generate_dotrain_for_deployment(&deployment.deployment.key)?;
 
-        let calldata = AddOrderArgs::new_from_deployment(
+        let include_dotrain_meta = self
+            .should_include_dotrain_meta_for_deployment(&deployment, &dotrain_for_deployment)
+            .await?;
+        web_sys::console::log_1(
+            &format!("Including .rain metadata: {}", include_dotrain_meta).into(),
+        );
+
+        let mut add_order_args = AddOrderArgs::new_from_deployment(
             dotrain_for_deployment,
             deployment.deployment.as_ref().clone(),
             Some(vec![meta]),
         )
-        .await?
-        .get_add_order_calldata(self.get_transaction_args()?)
         .await?;
-        return Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)));
+
+        if !include_dotrain_meta {
+            add_order_args.set_include_dotrain_meta(false);
+        }
+
+        let transaction_args = self.get_transaction_args()?;
+        let calldata = add_order_args
+            .get_add_order_calldata(transaction_args)
+            .await?;
+        Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)))
     }
 
     /// Generates a multicall combining all deposits and add order in one calldata.
