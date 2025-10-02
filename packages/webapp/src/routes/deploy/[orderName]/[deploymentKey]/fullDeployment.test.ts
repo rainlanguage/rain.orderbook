@@ -214,7 +214,7 @@ describe('Full Deployment Tests', () => {
 				await gui.setSelectToken('token1', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
 				await gui.setSelectToken('token2', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				gui.setVaultId('output', 'token2', '234');
-				gui.setVaultId('input', 'token1', '134');
+				gui.setVaultId('input', 'token1', '123');
 				gui.setFieldValue('fixed-io', '10');
 				const args = await gui.getDeploymentTransactionArgs(
 					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'

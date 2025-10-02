@@ -60,9 +60,8 @@ impl AddOrderCallArtifacts {
     }
 
     pub fn emit_meta_calldata(&self, owner: Address) -> Vec<u8> {
-        let subject = self.order_hash(owner);
         emitMetaCall {
-            subject,
+            subject: self.order_hash(owner),
             meta: Bytes::copy_from_slice(&self.meta),
         }
         .abi_encode()

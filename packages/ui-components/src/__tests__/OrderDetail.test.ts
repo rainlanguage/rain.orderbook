@@ -341,11 +341,7 @@ describe('OrderDetail', () => {
 		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
 			value: {
 				...mockOrder,
-				parsedMeta: [
-					{
-						DotrainSourceV1: 'test value'
-					}
-				]
+        dotrainSource: 'some-source'
 			}
 		});
 
@@ -363,18 +359,16 @@ describe('OrderDetail', () => {
 	it('shows Gui State tab when parsed meta includes Dotrain gui state', async () => {
 		const guiState = {
 			test: 'value',
-			nested: new Map([['key', 'value']])
+			nested: {
+			  key: 'value'
+			}
 		};
 		const user = userEvent.setup();
 
 		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
 			value: {
 				...mockOrder,
-				parsedMeta: [
-					{
-						DotrainGuiStateV1: guiState
-					}
-				]
+				dotrainGuiState: JSON.stringify(guiState)
 			}
 		});
 

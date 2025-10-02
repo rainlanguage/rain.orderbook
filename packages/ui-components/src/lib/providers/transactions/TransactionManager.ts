@@ -284,7 +284,35 @@ export class TransactionManager {
 			name,
 			errorMessage,
 			successMessage,
-			queryKey,
+			toastLinks
+		});
+	}
+
+	/**
+	 * Creates and initializes a new transaction for publishing metadata to the metaboard.
+	 * @param args - Configuration for the metadata transaction.
+	 * @param args.txHash - Hash of the metadata transaction.
+	 * @param args.chainId - Chain ID where the transaction is executed.
+	 * @param args.queryKey - Identifier used for query invalidation, typically the order hash.
+	 */
+	public async createMetaTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+		const name = 'Publishing metadata';
+		const errorMessage = 'Metadata publication failed.';
+		const successMessage = 'Metadata published.';
+
+		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: explorerLink,
+				label: 'View on explorer'
+			}
+		];
+
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
 			toastLinks
 		});
 	}
