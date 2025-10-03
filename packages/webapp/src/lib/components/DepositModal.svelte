@@ -23,7 +23,7 @@
 
 	let amount: Float = Float.parse('0').value as Float;
 	let userBalance: AccountBalance = {
-		balance: BigInt(0),
+		balance: Float.parse('0').value,
 		formattedBalance: '0'
 	} as unknown as AccountBalance;
 	let errorMessage = '';
@@ -49,10 +49,7 @@
 		amount = Float.parse('0').value as Float;
 	}
 
-	$: validation = validateAmount(
-		amount,
-		Float.fromFixedDecimal(userBalance.balance, vault.token.decimals).value as Float
-	);
+	$: validation = validateAmount(amount, userBalance.balance);
 </script>
 
 <Modal bind:open autoclose={false} size="md">
@@ -91,7 +88,7 @@
 		<InputTokenAmount
 			bind:value={amount}
 			symbol={vault.token.symbol}
-			maxValue={Float.fromFixedDecimal(userBalance.balance, vault.token.decimals).value}
+			maxValue={userBalance.balance}
 		/>
 		<div class="flex flex-col justify-end gap-2">
 			<div class="flex gap-2">
