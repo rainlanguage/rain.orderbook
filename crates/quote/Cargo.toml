@@ -42,7 +42,6 @@ tokio = { workspace = true, features = [
     "rt",
     "time",
 ] }
-getrandom = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"

@@ -15,9 +15,6 @@ export default defineConfig(({ mode }) => ({
 	build: {
 		target: 'es2023'
 	},
-	optimizeDeps: {
-		exclude: ['@rainlanguage/sqlite-web']
-	},
 
 	test: {
 		// Jest like globals

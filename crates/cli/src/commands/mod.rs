@@ -1,5 +1,4 @@
 mod chart;
-pub mod local_db;
 mod order;
 mod quote;
 mod subgraph;

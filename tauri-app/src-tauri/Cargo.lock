@@ -6976,6 +6976,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "minicov"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f27fe9f1cc3c22e1687f9446c2083c4c5fc7f0bcf1c7a86bdbded14985895b4b"
+dependencies = [
+ "cc",
+ "walkdir",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8910,7 +8920,6 @@ name = "rain_orderbook_bindings"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "getrandom 0.2.16",
  "serde",
  "thiserror 1.0.69",
  "tower",
@@ -8929,9 +8938,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "eyre",
- "flate2",
  "futures",
- "getrandom 0.2.16",
  "once_cell",
  "proptest",
  "rain-error-decoding",
@@ -8949,7 +8956,6 @@ dependencies = [
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.20",
  "serde",
- "serde-wasm-bindgen 0.4.5",
  "serde_bytes",
  "serde_json",
  "serde_yaml",
@@ -8959,6 +8965,7 @@ dependencies = [
  "tower",
  "tracing",
  "url",
+ "wasm-bindgen-test",
  "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
@@ -8979,7 +8986,6 @@ dependencies = [
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
  "anyhow",
  "clap",
- "getrandom 0.2.16",
  "once_cell",
  "rain-error-decoding",
  "rain-interpreter-eval",
@@ -10412,17 +10418,6 @@ checksum = "f3a1a3341211875ef120e117ea7fd5228530ae7e7036a779fdc9117be6b3282c"
 dependencies = [
  "ordered-float",
  "serde",
-]
-
-[[package]]
-name = "serde-wasm-bindgen"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
-dependencies = [
- "js-sys",
- "serde",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -12999,6 +12994,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a05d73b933a847d6cccdda8f838a22ff101ad9bf93e33684f39c1f5f0eece3d"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "wasm-bindgen-test"
+version = "0.3.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66c8d5e33ca3b6d9fa3b4676d774c5778031d27a578c2b007f905acf816152c3"
+dependencies = [
+ "js-sys",
+ "minicov",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-test-macro",
+]
+
+[[package]]
+name = "wasm-bindgen-test-macro"
+version = "0.3.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17d5042cc5fa009658f9a7333ef24291b1291a25b6382dd68862a7f3b969f69b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
 ]
 
 [[package]]

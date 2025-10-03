@@ -4,7 +4,7 @@ use alloy::primitives::{hex::decode, Bytes};
 use alloy::sol_types::{SolCall, SolValue};
 use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, OrderV4};
 use rain_orderbook_subgraph_client::types::{order_detail_traits::OrderDetailError, Id};
-use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
 #[wasm_export]
 impl RaindexClient {
@@ -59,7 +59,7 @@ impl RaindexClient {
         orderbook_address: Address,
         tx_hash: Bytes,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
+        let raindex_client = Arc::new(RwLock::new(self.clone()));
         let client = self.get_orderbook_client(orderbook_address)?;
 
         let orders = client

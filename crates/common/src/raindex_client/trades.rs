@@ -1,12 +1,6 @@
 use super::*;
 use crate::raindex_client::{
-    local_db::{
-        query::{fetch_order_trades::LocalDbOrderTrade, LocalDbQuery},
-        LocalDb,
-    },
-    orders::RaindexOrder,
-    transactions::RaindexTransaction,
-    vaults::RaindexVaultBalanceChange,
+    orders::RaindexOrder, transactions::RaindexTransaction, vaults::RaindexVaultBalanceChange,
 };
 use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::{
@@ -130,29 +124,6 @@ impl RaindexOrder {
         )]
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
-        let chain_id = self.chain_id();
-        if LocalDb::check_support(chain_id) {
-            let raindex_client = self.get_raindex_client();
-            if let Some(db_cb) = raindex_client.local_db_callback() {
-                let order_hash = self.order_hash().to_string();
-                let local_trades = LocalDbQuery::fetch_order_trades(
-                    &db_cb,
-                    chain_id,
-                    &order_hash,
-                    start_timestamp,
-                    end_timestamp,
-                )
-                .await?;
-
-                let trades = local_trades
-                    .into_iter()
-                    .map(|trade| RaindexTrade::try_from_local_db_trade(chain_id, trade))
-                    .collect::<Result<Vec<RaindexTrade>, RaindexError>>()?;
-
-                return Ok(trades);
-            }
-        }
-
         let client = self.get_orderbook_client()?;
         let trades = client
             .order_trades_list(
@@ -241,22 +212,6 @@ impl RaindexOrder {
         )]
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
-        let chain_id = self.chain_id();
-        if LocalDb::check_support(chain_id) {
-            let raindex_client = self.get_raindex_client();
-            if let Some(db_cb) = raindex_client.local_db_callback() {
-                let order_hash = self.order_hash().to_string();
-                let count = LocalDbQuery::fetch_order_trades_count(
-                    &db_cb,
-                    &order_hash,
-                    start_timestamp,
-                    end_timestamp,
-                )
-                .await?;
-                return Ok(count);
-            }
-        }
-
         let client = self.get_orderbook_client()?;
         let trades_count = client
             .order_trades_list_all(
@@ -298,57 +253,6 @@ impl RaindexTrade {
                 )?,
             timestamp: U256::from_str(&trade.timestamp.0)?,
             orderbook: Address::from_str(&trade.orderbook.id.0)?,
-        })
-    }
-
-    pub(crate) fn try_from_local_db_trade(
-        chain_id: u32,
-        trade: LocalDbOrderTrade,
-    ) -> Result<Self, RaindexError> {
-        let orderbook = Address::from_str(&trade.orderbook_address)?;
-        let transaction = RaindexTransaction::from_local_parts(
-            &trade.transaction_hash,
-            &trade.transaction_sender,
-            trade.block_number,
-            trade.block_timestamp,
-        )?;
-
-        let input_change = RaindexVaultBalanceChange::try_from_local_trade_side(
-            chain_id,
-            orderbook,
-            &transaction,
-            &trade.input_vault_id,
-            &trade.input_token,
-            trade.input_token_name.clone(),
-            trade.input_token_symbol.clone(),
-            trade.input_token_decimals,
-            &trade.input_delta,
-            trade.input_running_balance.clone(),
-            trade.block_timestamp,
-        )?;
-
-        let output_change = RaindexVaultBalanceChange::try_from_local_trade_side(
-            chain_id,
-            orderbook,
-            &transaction,
-            &trade.output_vault_id,
-            &trade.output_token,
-            trade.output_token_name.clone(),
-            trade.output_token_symbol.clone(),
-            trade.output_token_decimals,
-            &trade.output_delta,
-            trade.output_running_balance.clone(),
-            trade.block_timestamp,
-        )?;
-
-        Ok(RaindexTrade {
-            id: Bytes::from_str(&trade.trade_id)?,
-            order_hash: Bytes::from_str(&trade.order_hash)?,
-            transaction,
-            input_vault_balance_change: input_change,
-            output_vault_balance_change: output_change,
-            timestamp: U256::from(trade.block_timestamp),
-            orderbook,
         })
     }
 }

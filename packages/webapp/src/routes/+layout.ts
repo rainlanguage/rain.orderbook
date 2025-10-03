@@ -3,14 +3,15 @@ import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
 import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
-import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
-import { REMOTE_SETTINGS_URL } from '$lib/constants';
 
 export interface LayoutData {
 	errorMessage?: string;
 	stores: AppStoresInterface | null;
 	raindexClient: RaindexClient | null;
 }
+
+const REMOTE_SETTINGS_URL =
+	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/e5fb0899864c9a2b084dd97312f78ccac1444cab/settings.yaml';
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let errorMessage: string | undefined;
@@ -51,31 +52,6 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		};
 	}
 
-	let localDb: SQLiteWasmDatabase | null = null;
-	try {
-		await init();
-		const localDbRes = SQLiteWasmDatabase.new('worker.db');
-		if (localDbRes.error) {
-			return {
-				errorMessage: 'Error initializing local database: ' + localDbRes.error.readableMsg,
-				stores: null,
-				raindexClient: null
-			};
-		} else {
-			localDb = localDbRes.value;
-		}
-	} catch (error: unknown) {
-		return {
-			errorMessage: 'Error initializing local database: ' + (error as Error).message,
-			stores: null,
-			raindexClient: null
-		};
-	}
-
-	if (localDb && raindexClient) {
-		raindexClient.setDbCallback(localDb.query.bind(localDb));
-	}
-
 	return {
 		stores: {
 			selectedChainIds: writable<number[]>([]),
@@ -89,7 +65,6 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			showMyItemsOnly: writable<boolean>(false),
 			activeTokens: writable<Address[]>([])
 		},
-		localDb,
 		raindexClient
 	};
 };

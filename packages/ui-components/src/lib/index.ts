@@ -135,12 +135,10 @@ export { default as WalletProvider } from './providers/wallet/WalletProvider.sve
 export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
 export { default as TransactionProvider } from './providers/transactions/TransactionProvider.svelte';
-export { default as LocalDbProvider } from './providers/LocalDbProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useRaindexClient, RAINDEX_CLIENT_CONTEXT_KEY } from './hooks/useRaindexClient';
-export { useLocalDb } from './hooks/useLocalDb';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
