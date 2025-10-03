@@ -7,7 +7,7 @@
 	import { type LocalDb } from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
-	let localDbClient = raindexClient.getLocalDbClient(42161).value as LocalDb;
+	let localDbClient = raindexClient.getLocalDbClient(42161, '').value as LocalDb;
 
 	let db: WasmEncodedResult<SQLiteWasmDatabase> | null = null;
 	let sqlQuery = '';

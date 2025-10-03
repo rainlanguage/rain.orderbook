@@ -217,9 +217,7 @@
             body = ''
               set -euxo pipefail
 
-              cd crates/bindings && wasm-pack test --node
-              cd ../js_api && wasm-pack test --node
-              cd ../common && wasm-pack test --node
+              CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner' cargo test --target wasm32-unknown-unknown --lib -p rain_orderbook_quote -p rain_orderbook_bindings -p rain_orderbook_js_api -p rain_orderbook_common
             '';
           };
 

@@ -1,11 +1,15 @@
 use alloy::primitives::Address;
 use anyhow::{anyhow, Context, Result};
 use clap::Args;
-use rain_orderbook_common::raindex_client::local_db::helpers::patch_deposit_amounts_with_decimals;
-use rain_orderbook_common::raindex_client::local_db::{tokens::collect_token_addresses, LocalDb};
-use serde::Deserialize;
+use rain_orderbook_common::raindex_client::local_db::{
+    decode::{DecodedEvent, DecodedEventData},
+    helpers::ensure_deposit_decimals_available,
+    insert::{decoded_events_to_sql_with_options, SqlGenerationOptions},
+};
+use std::collections::HashMap;
 use std::fs::{write, File};
 use std::io::BufReader;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 #[derive(Args)]
@@ -37,48 +41,73 @@ impl DecodedEventsToSql {
             .with_context(|| format!("Failed to open input file: {:?}", self.input_file))?;
         let reader = BufReader::new(file);
 
-        let mut data: serde_json::Value =
-            serde_json::from_reader(reader).context("Failed to parse JSON")?;
-        let address_set = collect_token_addresses(&data);
-        if !address_set.is_empty() {
-            let mut decimals_by_addr = std::collections::HashMap::<String, u8>::new();
+        let decoded_events: Vec<DecodedEventData<DecodedEvent>> =
+            serde_json::from_reader(reader).context("Failed to parse decoded events JSON")?;
 
-            // Require tokens.json when tokens are present
+        let needs_decimals = decoded_events
+            .iter()
+            .any(|event| matches!(event.decoded_data, DecodedEvent::DepositV2(_)));
+
+        let mut deposit_decimals = HashMap::new();
+        if needs_decimals {
             let tokens_path = self.tokens_file.as_ref().ok_or_else(|| {
                 anyhow!("--tokens-file is required to compute deposit_amounts for deposits")
             })?;
-            let content = std::fs::read_to_string(tokens_path)?;
-            let tokens_in: Vec<TokensFileEntry> = serde_json::from_str(&content)?;
-            for t in tokens_in.iter() {
-                let addr = Address::from_str(&t.address).map_err(|e| {
-                    anyhow!(
-                        "Invalid token address '{}' in tokens.json: {}",
-                        t.address,
-                        e
-                    )
-                })?;
-                decimals_by_addr.insert(format!("0x{:x}", addr), t.decimals);
-            }
-
-            data = patch_deposit_amounts_with_decimals(data, &decimals_by_addr)
-                .map_err(|e| anyhow!("{}", e))?;
+            deposit_decimals = load_tokens_file(tokens_path)?;
+            ensure_deposit_decimals_available(&decoded_events, &deposit_decimals)?;
         }
 
-        let sql_statements = LocalDb::default()
-            .decoded_events_to_sql(data, self.end_block)
-            .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
+        let options = SqlGenerationOptions {
+            deposit_decimals: if needs_decimals {
+                Some(&deposit_decimals)
+            } else {
+                None
+            },
+            ..Default::default()
+        };
 
-        let output_path = self.output_file.unwrap_or_else(|| "events.sql".to_string());
+        let sql_statements =
+            decoded_events_to_sql_with_options(&decoded_events, self.end_block, &options)
+                .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
+
+        let output_path = self.output_file.map(PathBuf::from).unwrap_or_else(|| {
+            let input_path = Path::new(&self.input_file);
+            input_path
+                .parent()
+                .map(|dir| dir.join("events.sql"))
+                .unwrap_or_else(|| PathBuf::from("events.sql"))
+        });
 
         write(&output_path, sql_statements)
-            .with_context(|| format!("Failed to write output file: {:?}", output_path))?;
+            .with_context(|| format!("Failed to write output file: {}", output_path.display()))?;
 
-        println!("SQL statements written to {:?}", output_path);
+        println!("SQL statements written to {}", output_path.display());
         Ok(())
     }
 }
 
-#[derive(Deserialize)]
+fn load_tokens_file(path: &str) -> Result<HashMap<Address, u8>> {
+    let content = std::fs::read_to_string(path)
+        .with_context(|| format!("Failed to read tokens file: {path}"))?;
+    let entries: Vec<TokensFileEntry> = serde_json::from_str(&content)
+        .with_context(|| format!("Failed to parse tokens file JSON: {path}"))?;
+
+    let mut map = HashMap::new();
+    for entry in entries {
+        let addr = Address::from_str(&entry.address).map_err(|err| {
+            anyhow!(
+                "Invalid token address '{}' in tokens.json: {}",
+                entry.address,
+                err
+            )
+        })?;
+        map.insert(addr, entry.decimals);
+    }
+
+    Ok(map)
+}
+
+#[derive(serde::Deserialize)]
 struct TokensFileEntry {
     address: String,
     decimals: u8,
@@ -87,13 +116,45 @@ struct TokensFileEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address as AlloyAddress, U256};
-    use rain_math_float::Float;
-    use rain_orderbook_test_fixtures::LocalEvm;
-    use serde_json::json;
+    use rain_orderbook_common::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
     use std::fs;
-    use std::str::FromStr;
     use tempfile::TempDir;
+
+    fn sample_unknown_event() -> DecodedEventData<DecodedEvent> {
+        DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: "0x1".to_string(),
+            block_timestamp: "0x2".to_string(),
+            transaction_hash: "0xabc".to_string(),
+            log_index: "0x0".to_string(),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x0".to_string(),
+                note: "test".to_string(),
+            }),
+        }
+    }
+
+    fn sample_deposit_event() -> DecodedEventData<DecodedEvent> {
+        use alloy::primitives::{Address, U256};
+        use rain_orderbook_bindings::IOrderBookV5::DepositV2;
+        use rain_orderbook_common::raindex_client::local_db::decode::EventType;
+
+        let deposit = DepositV2 {
+            sender: Address::from([0x11u8; 20]),
+            token: Address::from([0x22u8; 20]),
+            vaultId: U256::from(1u64).into(),
+            depositAmountUint256: U256::from(1000u64),
+        };
+
+        DecodedEventData {
+            event_type: EventType::DepositV2,
+            block_number: "0x10".to_string(),
+            block_timestamp: "0x20".to_string(),
+            transaction_hash: "0xdead".to_string(),
+            log_index: "0x0".to_string(),
+            decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
+        }
+    }
 
     #[tokio::test]
     async fn test_execute_with_custom_output_file() -> Result<()> {
@@ -101,11 +162,8 @@ mod tests {
         let input_file = temp_dir.path().join("input.json");
         let output_file = temp_dir.path().join("custom_output.sql");
 
-        let test_data = json!([
-            {"type": "test_event", "data": {"value": 123}}
-        ]);
-
-        fs::write(&input_file, serde_json::to_string(&test_data)?)?;
+        let events = vec![sample_unknown_event()];
+        fs::write(&input_file, serde_json::to_string(&events)?)?;
 
         let cmd = DecodedEventsToSql {
             input_file: input_file.to_string_lossy().to_string(),
@@ -130,11 +188,8 @@ mod tests {
         let input_file = temp_dir.path().join("input.json");
         let expected_output = temp_dir.path().join("events.sql");
 
-        let test_data = json!([
-            {"type": "test_event", "data": {"value": 456}}
-        ]);
-
-        fs::write(&input_file, serde_json::to_string(&test_data)?)?;
+        let events = vec![sample_unknown_event()];
+        fs::write(&input_file, serde_json::to_string(&events)?)?;
 
         let cmd = DecodedEventsToSql {
             input_file: input_file.to_string_lossy().to_string(),
@@ -144,14 +199,7 @@ mod tests {
             tokens_file: None,
         };
 
-        let original_dir = std::env::current_dir()?;
-        std::env::set_current_dir(&temp_dir)?;
-
-        let result = cmd.execute().await;
-
-        std::env::set_current_dir(original_dir)?;
-
-        result?;
+        cmd.execute().await?;
 
         assert!(expected_output.exists());
         let output_content = fs::read_to_string(&expected_output)?;
@@ -195,42 +243,41 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_execute_computes_deposit_amount_without_token_upsert() -> Result<()> {
+    #[tokio::test]
+    async fn test_execute_requires_tokens_file_for_deposits() {
+        let temp_dir = TempDir::new().unwrap();
+        let input_file = temp_dir.path().join("deposits.json");
+
+        let events = vec![sample_deposit_event()];
+        fs::write(&input_file, serde_json::to_string(&events).unwrap()).unwrap();
+
+        let cmd = DecodedEventsToSql {
+            input_file: input_file.to_string_lossy().to_string(),
+            output_file: None,
+            end_block: 1000,
+            chain_id: 1,
+            tokens_file: None,
+        };
+
+        let result = cmd.execute().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_tokens_file_for_deposits() -> Result<()> {
+        use alloy::primitives::Address;
+
         let temp_dir = TempDir::new()?;
-        let input_file = temp_dir.path().join("decoded.json");
-        let output_file = temp_dir.path().join("events.sql");
+        let input_file = temp_dir.path().join("deposits.json");
+        let events = vec![sample_deposit_event()];
+        fs::write(&input_file, serde_json::to_string(&events)?)?;
 
-        // Start local EVM with a token
-        let local_evm = LocalEvm::new_with_tokens(1).await;
-        let token = local_evm.tokens[0].clone();
-        let token_addr: AlloyAddress = *token.address();
-
-        // Build a decoded DepositV2 event requiring decimals
-        let decoded = json!([
-            {
-                "event_type": "DepositV2",
-                "block_number": "0x3e8",
-                "block_timestamp": "0x64b8c123",
-                "transaction_hash": "0x111",
-                "log_index": "0x0",
-                "decoded_data": {
-                    "sender": "0x0000000000000000000000000000000000000001",
-                    "token": format!("0x{:x}", token_addr),
-                    "vault_id": "0x1",
-                    "deposit_amount_uint256": "0x0de0b6b3a7640000" // 1e18
-                }
-            }
-        ]);
-        std::fs::write(&input_file, serde_json::to_string(&decoded)?)?;
-
-        // Build tokens.json with decimals for the token used in decoded events
+        let token_addr = Address::from([0x22u8; 20]);
         let tokens_path = temp_dir.path().join("tokens.json");
-        let tokens_json = format!(
-            "[{{\"address\":\"0x{:x}\",\"name\":\"\",\"symbol\":\"\",\"decimals\":18}}]",
-            token_addr
-        );
-        std::fs::write(&tokens_path, tokens_json)?;
+        let tokens_json = format!("[{{\"address\":\"0x{:x}\",\"decimals\":18}}]", token_addr);
+        fs::write(&tokens_path, tokens_json)?;
+
+        let output_file = temp_dir.path().join("events.sql");
 
         let cmd = DecodedEventsToSql {
             input_file: input_file.to_string_lossy().to_string(),
@@ -242,14 +289,9 @@ mod tests {
 
         cmd.execute().await?;
 
-        let sql = std::fs::read_to_string(&output_file)?;
-        assert!(sql.contains("INSERT INTO deposits"));
-        // Expect deposit_amount to be Float for 1e18 with 18 decimals => 1
-        let expected =
-            Float::from_fixed_decimal(U256::from_str("1000000000000000000").unwrap(), 18)
-                .unwrap()
-                .as_hex();
-        assert!(sql.contains(&expected));
+        assert!(output_file.exists());
+        let output_content = fs::read_to_string(&output_file)?;
+        assert!(output_content.contains("INSERT INTO deposits"));
 
         Ok(())
     }

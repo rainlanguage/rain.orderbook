@@ -232,7 +232,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-before() ",
-                preDepositAmount.toDecimalString(),
+                preDepositAmount.toDecimalString(9),
                 ") \"vault balance before\");"
             )
         );
@@ -240,7 +240,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-after() ",
-                preDepositAmount.add(depositAmount).toDecimalString(),
+                preDepositAmount.add(depositAmount).toDecimalString(9),
                 ") \"vault balance after\");"
             )
         );

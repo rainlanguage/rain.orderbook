@@ -63,18 +63,18 @@ impl RaindexOrderQuoteValue {
         let formatted_inverse_ratio = if F0.eq(value.ratio)? {
             "Infinity".to_string()
         } else {
-            inverse_ratio.format18()?
+            inverse_ratio.format()?
         };
 
         let max_input = value.max_output.mul(value.ratio)?;
 
         Ok(Self {
             max_output: value.max_output,
-            formatted_max_output: value.max_output.format18()?,
+            formatted_max_output: value.max_output.format()?,
             max_input,
-            formatted_max_input: max_input.format18()?,
+            formatted_max_input: max_input.format()?,
             ratio: value.ratio,
-            formatted_ratio: value.ratio.format18()?,
+            formatted_ratio: value.ratio.format()?,
             inverse_ratio,
             formatted_inverse_ratio,
         })

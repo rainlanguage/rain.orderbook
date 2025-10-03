@@ -8,26 +8,19 @@ pub mod token_fetch;
 pub mod tokens;
 
 use super::*;
-use crate::rpc_client::{RpcClient, RpcClientError};
+use crate::hyper_rpc::{HyperRpcClient, HyperRpcError, LogEntryResponse};
 use alloy::primitives::hex::FromHexError;
 use alloy::primitives::ruint::ParseError;
+use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::FetchConfig;
+use insert::decoded_events_to_sql as decoded_events_to_sql_impl;
 use query::LocalDbQueryError;
+use url::Url;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct LocalDb {
-    rpc: RpcClient,
-    rpc_urls: Vec<Url>,
-}
-
-impl Default for LocalDb {
-    fn default() -> Self {
-        Self {
-            rpc: RpcClient,
-            rpc_urls: vec![Url::parse("http://localhost:4444").unwrap()],
-        }
-    }
+    client: HyperRpcClient,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -39,7 +32,7 @@ pub enum LocalDbError {
     Http(#[from] reqwest::Error),
 
     #[error("RPC error")]
-    Rpc(#[from] RpcClientError),
+    Rpc(#[from] HyperRpcError),
 
     #[error("JSON parsing failed")]
     JsonParse(#[from] serde_json::Error),
@@ -131,56 +124,73 @@ impl LocalDbError {
 }
 
 impl LocalDb {
-    pub fn new_with_regular_rpc(url: Url) -> Self {
-        Self {
-            rpc: RpcClient,
-            rpc_urls: vec![url],
-        }
+    pub fn new(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
+        let client = HyperRpcClient::new(chain_id, api_token)?;
+        Ok(Self { client })
     }
 
-    pub fn new_with_regular_rpcs(urls: Vec<Url>) -> Self {
-        Self {
-            rpc: RpcClient,
-            rpc_urls: urls,
-        }
+    pub fn new_with_additional_rpcs(
+        chain_id: u32,
+        api_token: String,
+        additional_rpcs: Vec<Url>,
+    ) -> Result<Self, LocalDbError> {
+        let client =
+            HyperRpcClient::new_with_additional_rpcs(chain_id, api_token, additional_rpcs)?;
+        Ok(Self { client })
     }
 
-    pub fn new_with_hyper_rpc(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
-        let rpc_url = RpcClient::build_hyper_url(chain_id, &api_token)?;
-        Ok(Self {
-            rpc: RpcClient,
-            rpc_urls: vec![rpc_url],
+    pub fn new_with_regular_rpc(url: Url) -> Result<Self, LocalDbError> {
+        Self::new_with_regular_rpcs(vec![url])
+    }
+
+    pub fn new_with_regular_rpcs(urls: Vec<Url>) -> Result<Self, LocalDbError> {
+        let client = HyperRpcClient::from_urls(0, urls)?;
+        Ok(Self { client })
+    }
+
+    pub fn hyper_rpc_client(&self) -> &HyperRpcClient {
+        &self.client
+    }
+
+    #[cfg(test)]
+    pub fn new_with_client(client: HyperRpcClient) -> Self {
+        Self { client }
+    }
+
+    #[cfg(test)]
+    pub fn client_mut(&mut self) -> &mut HyperRpcClient {
+        &mut self.client
+    }
+
+    pub fn decode_events(
+        &self,
+        events: &[LogEntryResponse],
+    ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
+        decode_events_impl(events).map_err(|err| LocalDbError::DecodeError {
+            message: err.to_string(),
         })
     }
 
-    pub fn rpc_client(&self) -> &RpcClient {
-        &self.rpc
-    }
-
-    pub fn rpc_urls(&self) -> &[Url] {
-        &self.rpc_urls
-    }
-
-    #[cfg(test)]
-    pub fn new_with_url(url: Url) -> Self {
-        Self {
-            rpc: RpcClient,
-            rpc_urls: vec![url],
-        }
-    }
-
-    #[cfg(test)]
-    pub fn set_rpc_url(&mut self, url: Url) {
-        self.rpc_urls = vec![url];
+    pub fn decoded_events_to_sql(
+        &self,
+        events: &[DecodedEventData<DecodedEvent>],
+        end_block: u64,
+    ) -> Result<String, LocalDbError> {
+        decoded_events_to_sql_impl(events, end_block).map_err(|err| LocalDbError::InsertError {
+            message: err.to_string(),
+        })
     }
 }
 
 #[wasm_export]
 impl RaindexClient {
     #[wasm_export(js_name = "getLocalDbClient", preserve_js_class)]
-    pub fn get_local_db_client(&self, chain_id: u32) -> Result<LocalDb, RaindexError> {
-        let rpcs = self.get_rpc_urls_for_chain(chain_id)?;
-        Ok(LocalDb::new_with_regular_rpcs(rpcs))
+    pub fn get_local_db_client(
+        &self,
+        chain_id: u32,
+        api_token: String,
+    ) -> Result<LocalDb, RaindexError> {
+        LocalDb::new(chain_id, api_token).map_err(RaindexError::LocalDbError)
     }
 }
 

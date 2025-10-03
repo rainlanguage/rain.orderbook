@@ -42,11 +42,11 @@ impl TryFrom<SgTrade> for OrderTakeFlattened {
             sender: val.trade_event.sender,
             order_id: val.order.order_hash,
             input: input_vault_balance_change.amount,
-            input_display: input_amount.format18()?,
+            input_display: input_amount.format()?,
             input_token_id: input_vault_balance_change.vault.token.id,
             input_token_symbol: input_vault_balance_change.vault.token.symbol,
             output: output_vault_balance_change.amount,
-            output_display: output_amount.format18()?,
+            output_display: output_amount.format()?,
             output_token_id: output_vault_balance_change.vault.token.address,
             output_token_symbol: output_vault_balance_change.vault.token.symbol,
         })

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 
 #[derive(Parser)]
@@ -26,6 +27,13 @@ impl DbDump {
         let dump_file_path = self
             .dump_file_path
             .unwrap_or_else(|| format!("src/commands/local_db/local_db_{}.sql", self.end_block));
+
+        if let Some(parent) = Path::new(&db_path).parent() {
+            fs::create_dir_all(parent)?;
+        }
+        if let Some(parent) = Path::new(&dump_file_path).parent() {
+            fs::create_dir_all(parent)?;
+        }
 
         let _ = fs::remove_file(&db_path);
 
@@ -87,10 +95,10 @@ CREATE TABLE test_trades (
 "#;
 
     const TEST_DATA_SQL: &str = r#"
-INSERT INTO test_orders (vault_id, owner, amount) VALUES 
+INSERT INTO test_orders (vault_id, owner, amount) VALUES
     ('vault1', 'owner1', 100),
     ('vault2', 'owner2', 200);
-INSERT INTO test_trades (order_id, amount) VALUES 
+INSERT INTO test_trades (order_id, amount) VALUES
     (1, 50),
     (2, 75);
 "#;
