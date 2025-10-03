@@ -14,6 +14,7 @@ pub const REQUIRED_TABLES: &[&str] = &[
     "clear_v3_events",
     "after_clear_v2_events",
     "meta_events",
+    "erc20_tokens",
 ];
 
 impl LocalDbQuery {

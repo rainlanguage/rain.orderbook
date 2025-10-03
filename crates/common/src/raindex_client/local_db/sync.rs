@@ -1,10 +1,20 @@
 use super::{
+    decode::{DecodedEvent, DecodedEventData},
+    helpers::ensure_deposit_decimals_available,
+    insert::{generate_erc20_tokens_sql, SqlGenerationOptions},
     query::{create_tables::REQUIRED_TABLES, LocalDbQuery},
+    token_fetch::fetch_erc20_metadata_concurrent,
+    tokens::collect_token_addresses,
     *,
 };
+use alloy::{hex, primitives::Address};
 use flate2::read::GzDecoder;
 use reqwest::Client;
-use std::io::Read;
+use std::{
+    collections::{HashMap, HashSet},
+    io::Read,
+    str::FromStr,
+};
 
 const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/46a8065a2ccbf49e9fc509cbc052cd497feb6bd5/local-db-dump.sql.gz";
 
@@ -191,8 +201,36 @@ impl RaindexClient {
             }
         };
 
+        send_status_message(
+            &status_callback,
+            "Populating token information...".to_string(),
+        )?;
+        let prep =
+            prepare_erc20_tokens_prefix(&db_callback, &local_db, chain_id, &decoded_events).await?;
+
+        ensure_deposit_decimals_available(&decoded_events, &prep.decimals_by_addr)?;
+
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        let sql_commands = match local_db.decoded_events_to_sql(&decoded_events, latest_block) {
+        let deposit_decimals_ref = if prep.decimals_by_addr.is_empty() {
+            None
+        } else {
+            Some(&prep.decimals_by_addr)
+        };
+        let prefix_ref = if prep.tokens_prefix_sql.is_empty() {
+            None
+        } else {
+            Some(prep.tokens_prefix_sql.as_str())
+        };
+        let options = SqlGenerationOptions {
+            deposit_decimals: deposit_decimals_ref,
+            prefix_sql: prefix_ref,
+        };
+
+        let sql_commands = match local_db.decoded_events_to_sql_with_options(
+            &decoded_events,
+            latest_block,
+            &options,
+        ) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(e.to_string()));
@@ -204,6 +242,73 @@ impl RaindexClient {
         send_status_message(&status_callback, "Database sync complete.".to_string())?;
         Ok(())
     }
+}
+
+struct TokenPrepResult {
+    tokens_prefix_sql: String,
+    decimals_by_addr: HashMap<Address, u8>,
+}
+
+async fn prepare_erc20_tokens_prefix(
+    db_callback: &js_sys::Function,
+    local_db: &LocalDb,
+    chain_id: u32,
+    decoded_events: &[DecodedEventData<DecodedEvent>],
+) -> Result<TokenPrepResult, LocalDbError> {
+    let address_set = collect_token_addresses(decoded_events);
+    let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
+    all_token_addrs.sort();
+
+    let mut tokens_prefix_sql = String::new();
+    let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
+
+    if !all_token_addrs.is_empty() {
+        let addr_strings: Vec<String> = all_token_addrs
+            .iter()
+            .map(|a| hex::encode_prefixed(*a))
+            .collect();
+
+        let existing =
+            LocalDbQuery::fetch_erc20_tokens_by_addresses(db_callback, chain_id, &addr_strings)
+                .await?;
+
+        for row in existing.iter() {
+            if let Ok(addr) = Address::from_str(&row.address) {
+                decimals_by_addr.insert(addr, row.decimals);
+            }
+        }
+
+        let existing_set: HashSet<String> = existing
+            .into_iter()
+            .map(|r| r.address.to_ascii_lowercase())
+            .collect();
+
+        let missing_strings: Vec<String> = addr_strings
+            .into_iter()
+            .filter(|s| !existing_set.contains(&s.to_ascii_lowercase()))
+            .collect();
+
+        if !missing_strings.is_empty() {
+            let rpc_urls = local_db.hyper_rpc_client().rpc_urls().to_vec();
+            let missing_addrs: Vec<Address> = missing_strings
+                .iter()
+                .filter_map(|s| Address::from_str(s).ok())
+                .collect();
+
+            let successes = fetch_erc20_metadata_concurrent(rpc_urls, missing_addrs).await?;
+
+            tokens_prefix_sql = generate_erc20_tokens_sql(chain_id, &successes);
+
+            for (addr, info) in successes.into_iter() {
+                decimals_by_addr.insert(addr, info.decimals);
+            }
+        }
+    }
+
+    Ok(TokenPrepResult {
+        tokens_prefix_sql,
+        decimals_by_addr,
+    })
 }
 
 #[cfg(test)]

@@ -1,14 +1,17 @@
 use super::decode::{DecodedEvent, DecodedEventData};
+use crate::erc20::TokenInfo;
 use alloy::sol_types::SolValue;
 use alloy::{
     hex,
-    primitives::{keccak256, FixedBytes, U256},
+    primitives::{keccak256, Address, FixedBytes, U256},
 };
+use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{
     AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     IOV2,
 };
 use rain_orderbook_bindings::OrderBook::MetaV1_2;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use thiserror::Error;
 
@@ -25,6 +28,16 @@ pub enum InsertError {
         index: usize,
         len: usize,
     },
+    #[error("Missing deposit decimals for token {token}")]
+    MissingDepositDecimals { token: String },
+    #[error("Failed to convert deposit amount for token {token}: {error}")]
+    DepositAmountConversion { token: String, error: String },
+}
+
+#[derive(Default)]
+pub struct SqlGenerationOptions<'a> {
+    pub deposit_decimals: Option<&'a HashMap<Address, u8>>,
+    pub prefix_sql: Option<&'a str>,
 }
 
 fn encode_u256_prefixed(value: &U256) -> String {
@@ -85,14 +98,35 @@ pub fn decoded_events_to_sql(
     events: &[DecodedEventData<DecodedEvent>],
     end_block: u64,
 ) -> Result<String, InsertError> {
+    decoded_events_to_sql_with_options(events, end_block, &SqlGenerationOptions::default())
+}
+
+pub fn decoded_events_to_sql_with_options(
+    events: &[DecodedEventData<DecodedEvent>],
+    end_block: u64,
+    options: &SqlGenerationOptions<'_>,
+) -> Result<String, InsertError> {
     let mut sql = String::new();
     sql.push_str("BEGIN TRANSACTION;\n\n");
+
+    if let Some(prefix) = options.prefix_sql {
+        if !prefix.is_empty() {
+            sql.push_str(prefix);
+            if !prefix.ends_with('\n') {
+                sql.push('\n');
+            }
+        }
+    }
 
     for event in events {
         match &event.decoded_data {
             DecodedEvent::DepositV2(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_deposit_sql(&context, decoded.as_ref())?);
+                sql.push_str(&generate_deposit_sql(
+                    &context,
+                    decoded.as_ref(),
+                    options.deposit_decimals,
+                )?);
             }
             DecodedEvent::WithdrawV2(decoded) => {
                 let context = event_context(event)?;
@@ -144,16 +178,37 @@ pub fn decoded_events_to_sql(
 fn generate_deposit_sql(
     context: &EventContext<'_>,
     decoded: &DepositV2,
+    decimals: Option<&HashMap<Address, u8>>,
 ) -> Result<String, InsertError> {
+    let token_hex = hex::encode_prefixed(decoded.token);
+
+    let decimals_map = decimals.ok_or_else(|| InsertError::MissingDepositDecimals {
+        token: token_hex.clone(),
+    })?;
+
+    let decimals_value =
+        decimals_map
+            .get(&decoded.token)
+            .ok_or_else(|| InsertError::MissingDepositDecimals {
+                token: token_hex.clone(),
+            })?;
+
+    let deposit_amount = Float::from_fixed_decimal(decoded.depositAmountUint256, *decimals_value)
+        .map_err(|error| InsertError::DepositAmountConversion {
+        token: token_hex.clone(),
+        error: error.to_string(),
+    })?;
+
     Ok(format!(
-        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');\n",
+        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}');\n",
         context.block_number,
         context.block_timestamp,
         context.transaction_hash,
         context.log_index,
         hex::encode_prefixed(decoded.sender),
-        hex::encode_prefixed(decoded.token),
+        token_hex,
         hex::encode_prefixed(decoded.vaultId),
+        deposit_amount.as_hex(),
         encode_u256_prefixed(&decoded.depositAmountUint256)
     ))
 }
@@ -423,6 +478,38 @@ fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
     })
 }
 
+pub fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)]) -> String {
+    if tokens.is_empty() {
+        return String::new();
+    }
+
+    let mut sql = String::new();
+    sql.push_str("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES ");
+
+    let mut first = true;
+    for (addr, info) in tokens.iter() {
+        let address_str = hex::encode_prefixed(*addr);
+        let name = info.name.replace('\'', "''");
+        let symbol = info.symbol.replace('\'', "''");
+
+        if !first {
+            sql.push_str(", ");
+        }
+        first = false;
+
+        sql.push_str(&format!(
+            "({}, '{}', '{}', '{}', {})",
+            chain_id, address_str, name, symbol, info.decimals
+        ));
+    }
+
+    sql.push_str(
+        " ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;\n",
+    );
+
+    sql
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -544,10 +631,10 @@ mod tests {
         )
     }
 
-    fn sample_deposit_event() -> DecodedEventData<DecodedEvent> {
+    fn sample_deposit_event_with_token(token: Address) -> DecodedEventData<DecodedEvent> {
         let deposit = DepositV2 {
             sender: Address::from([0x0d; 20]),
-            token: Address::from([0x0e; 20]),
+            token,
             vaultId: U256::from(0x258).into(),
             depositAmountUint256: U256::from(0xfa0),
         };
@@ -562,6 +649,10 @@ mod tests {
         )
     }
 
+    fn sample_deposit_event() -> DecodedEventData<DecodedEvent> {
+        sample_deposit_event_with_token(Address::from([0x0e; 20]))
+    }
+
     #[test]
     fn deposit_sql_generation() {
         let event = sample_deposit_event();
@@ -569,9 +660,15 @@ mod tests {
         let DecodedEvent::DepositV2(decoded) = &event.decoded_data else {
             unreachable!()
         };
-        let sql = generate_deposit_sql(&context, decoded).unwrap();
+        let mut decimals = HashMap::new();
+        decimals.insert(Address::from([0x0e; 20]), 18u8);
+        let sql = generate_deposit_sql(&context, decoded, Some(&decimals)).unwrap();
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("0x0000000000000000000000000000000000000000000000000000000000000fa0"));
+        let expected = Float::from_fixed_decimal(U256::from(0xfa0u64), 18)
+            .unwrap()
+            .as_hex();
+        assert!(sql.contains(&expected));
     }
 
     #[test]
@@ -615,7 +712,17 @@ mod tests {
     fn decoded_events_to_sql_multiple_events() {
         let clear_event = sample_clear_event();
         let deposit_event = sample_deposit_event();
-        let sql = decoded_events_to_sql(&[deposit_event, clear_event], 0x200).unwrap();
+        let mut decimals = HashMap::new();
+        if let DecodedEvent::DepositV2(deposit) = &deposit_event.decoded_data {
+            decimals.insert(deposit.token, 18u8);
+        }
+        let options = SqlGenerationOptions {
+            deposit_decimals: Some(&decimals),
+            ..Default::default()
+        };
+        let sql =
+            decoded_events_to_sql_with_options(&[deposit_event, clear_event], 0x200, &options)
+                .unwrap();
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("INSERT INTO clear_v3_events"));
         assert!(sql.contains("UPDATE sync_status SET last_synced_block = 512"));
