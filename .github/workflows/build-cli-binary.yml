@@ -1,12 +1,7 @@
 name: Build CLI Binary
 
 on:
-  workflow_dispatch:
-    inputs:
-      commit_message:
-        description: "Commit message when tarball changes"
-        required: false
-        default: "chore(cli): refresh bundled binary"
+  push:
 
 concurrency:
   group: build-cli-binary-${{ github.ref }}
