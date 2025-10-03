@@ -1,4 +1,4 @@
-use crate::commands::local_db::FetchEvents;
+use crate::commands::local_db::{DecodeEvents, FetchEvents};
 use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
@@ -10,12 +10,15 @@ use rain_orderbook_quote::cli::Quoter;
 pub enum LocalDb {
     #[command(name = "fetch-events")]
     FetchEvents(FetchEvents),
+    #[command(name = "decode-events")]
+    DecodeEvents(DecodeEvents),
 }
 
 impl LocalDb {
     pub async fn execute(self) -> Result<()> {
         match self {
             LocalDb::FetchEvents(fetch_events) => fetch_events.execute().await,
+            LocalDb::DecodeEvents(decode_events) => decode_events.execute().await,
         }
     }
 }
