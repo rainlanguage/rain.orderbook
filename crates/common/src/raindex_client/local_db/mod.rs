@@ -13,7 +13,10 @@ use alloy::primitives::hex::FromHexError;
 use alloy::primitives::ruint::ParseError;
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::FetchConfig;
-use insert::decoded_events_to_sql as decoded_events_to_sql_impl;
+use insert::{
+    decoded_events_to_sql_with_options as decoded_events_to_sql_with_options_impl,
+    SqlGenerationOptions,
+};
 use query::LocalDbQueryError;
 use url::Url;
 
@@ -176,8 +179,19 @@ impl LocalDb {
         events: &[DecodedEventData<DecodedEvent>],
         end_block: u64,
     ) -> Result<String, LocalDbError> {
-        decoded_events_to_sql_impl(events, end_block).map_err(|err| LocalDbError::InsertError {
-            message: err.to_string(),
+        self.decoded_events_to_sql_with_options(events, end_block, &SqlGenerationOptions::default())
+    }
+
+    pub fn decoded_events_to_sql_with_options(
+        &self,
+        events: &[DecodedEventData<DecodedEvent>],
+        end_block: u64,
+        options: &SqlGenerationOptions<'_>,
+    ) -> Result<String, LocalDbError> {
+        decoded_events_to_sql_with_options_impl(events, end_block, options).map_err(|err| {
+            LocalDbError::InsertError {
+                message: err.to_string(),
+            }
         })
     }
 }

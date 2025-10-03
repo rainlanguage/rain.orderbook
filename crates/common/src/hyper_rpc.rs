@@ -130,6 +130,10 @@ impl HyperRpcClient {
         self.rpc_urls.first().map(Url::as_str).unwrap_or_default()
     }
 
+    pub fn rpc_urls(&self) -> &[Url] {
+        &self.rpc_urls
+    }
+
     pub async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
         let response = match self
             .provider
