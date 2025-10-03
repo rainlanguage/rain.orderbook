@@ -68,14 +68,14 @@ impl FetchEvents {
             .await
             .map_err(|e| anyhow::anyhow!("Failed to fetch events: {}", e))?;
 
-        let output_filename = self
+        let output_path = self
             .output_file
             .map(PathBuf::from)
             .unwrap_or_else(|| Self::default_output_path(end_block));
-        let mut file = File::create(&output_filename)?;
-        file.write_all(serde_json::to_string_pretty(&all_events)?.as_bytes())?;
+        let mut output_handle = File::create(&output_path)?;
+        output_handle.write_all(serde_json::to_string_pretty(&all_events)?.as_bytes())?;
 
-        println!("Events and results saved to: {}", output_filename.display());
+        println!("Events and results saved to: {}", output_path.display());
         Ok(())
     }
 

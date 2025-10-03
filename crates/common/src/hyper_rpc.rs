@@ -83,7 +83,7 @@ impl HyperRpcClient {
             42161 => "https://arbitrum.rpc.hypersync.xyz".to_string(),
             _ => return Err(HyperRpcError::UnsupportedChainId { chain_id }),
         };
-        let rpc_url = format!("{}/{}", base_url, api_token);
+        let rpc_url = format!("{base_url}/{api_token}");
         let provider = Arc::new(Self::build_provider(&rpc_url)?);
 
         Ok(Self {
