@@ -129,13 +129,13 @@ impl RaindexClient {
             }
         };
 
-        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone());
+        let local_db = LocalDb::new_with_additional_rpcs(
+            orderbook_cfg.network.chain_id,
+            "41e50e69-6da4-4462-b70e-c7b5e7b70f05".to_string(),
+            orderbook_cfg.network.rpcs.clone(),
+        )?;
 
-        let latest_block = match local_db
-            .rpc_client()
-            .get_latest_block_number(local_db.rpc_urls())
-            .await
-        {
+        let latest_block = match local_db.client.get_latest_block_number().await {
             Ok(block) => block,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -169,7 +169,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let decoded_events = match local_db.decode_events(events) {
+        let decoded_events: Vec<_> = match local_db.decode_events(&events) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -180,7 +180,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        let sql_commands = match local_db.decoded_events_to_sql(decoded_events, latest_block) {
+        let sql_commands = match local_db.decoded_events_to_sql(&decoded_events, latest_block) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(e.to_string()));
@@ -207,7 +207,9 @@ mod tests {
         };
         use std::cell::RefCell;
         use std::rc::Rc;
+        use wasm_bindgen::JsCast;
         use wasm_bindgen_test::*;
+        use wasm_bindgen_utils::prelude::*;
 
         #[wasm_bindgen_test]
         async fn test_check_required_tables_all_exist() {
@@ -472,12 +474,14 @@ mod tests {
                 .sync_database(db_callback, status_callback, address)
                 .await;
 
+            // Should eventually fail due to unsupported chain id in HyperRpcClient
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get latest block"));
+                LocalDbError::Rpc(err) => {
+                    let msg = err.to_string();
+                    assert!(msg.contains("Unsupported chain ID"));
                 }
-                other => panic!("Expected CustomError from latest block fetch, got {other:?}"),
+                other => panic!("Expected Rpc UnsupportedChainId, got {other:?}"),
             }
 
             let msgs = captured.borrow();

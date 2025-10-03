@@ -169,6 +169,11 @@
 				{#each item.inputsList.items as vault}
 					<VaultCard {vault} />
 				{/each}
+				{#each item.inputsOutputsList.items as vault}
+					{#if !item.inputsList.items.find((v) => v.id === vault.id)}
+						<VaultCard {vault} />
+					{/if}
+				{/each}
 			</div>
 		</TableBodyCell>
 
@@ -176,6 +181,11 @@
 			<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
 				{#each item.outputsList.items as vault}
 					<VaultCard {vault} />
+				{/each}
+				{#each item.inputsOutputsList.items as vault}
+					{#if !item.outputsList.items.find((v) => v.id === vault.id)}
+						<VaultCard {vault} />
+					{/if}
 				{/each}
 			</div>
 		</TableBodyCell>
