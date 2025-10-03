@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 #[async_trait::async_trait]
 pub trait EventClient {
     async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError>;
-    async fn fetch_events(
+    async fn fetch(
         &self,
         address: &str,
         start_block: u64,
@@ -23,7 +23,7 @@ impl EventClient for SqliteWeb {
         self.hyper_rpc_client().get_latest_block_number().await
     }
 
-    async fn fetch_events(
+    async fn fetch(
         &self,
         address: &str,
         start_block: u64,
@@ -64,7 +64,7 @@ impl FetchEvents {
         };
 
         let all_events = client
-            .fetch_events(&self.orderbook_address, self.start_block, end_block)
+            .fetch(&self.orderbook_address, self.start_block, end_block)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to fetch events: {}", e))?;
 
@@ -182,7 +182,7 @@ mod tests {
             }
         }
 
-        async fn fetch_events(
+        async fn fetch(
             &self,
             _address: &str,
             _start_block: u64,
