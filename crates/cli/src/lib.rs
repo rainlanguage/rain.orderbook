@@ -1,8 +1,46 @@
+use crate::commands::local_db::{
+    DbDump, DecodeEvents, DecodedEventsToSql, FetchEvents, SyncLocalDb, TokensFetch, TokensToSql,
+};
 use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
 use rain_orderbook_quote::cli::Quoter;
+
+#[derive(Subcommand)]
+#[command(about = "Local database operations")]
+pub enum LocalDb {
+    #[command(name = "fetch-events")]
+    FetchEvents(FetchEvents),
+    #[command(name = "decode-events")]
+    DecodeEvents(DecodeEvents),
+    #[command(name = "decoded-events-to-sql")]
+    DecodedEventsToSql(DecodedEventsToSql),
+    #[command(name = "dump")]
+    Dump(DbDump),
+    #[command(name = "tokens-fetch")]
+    TokensFetch(TokensFetch),
+    #[command(name = "tokens-to-sql")]
+    TokensToSql(TokensToSql),
+    #[command(name = "sync")]
+    Sync(SyncLocalDb),
+}
+
+impl LocalDb {
+    pub async fn execute(self) -> Result<()> {
+        match self {
+            LocalDb::FetchEvents(fetch_events) => fetch_events.execute().await,
+            LocalDb::DecodeEvents(decode_events) => decode_events.execute().await,
+            LocalDb::DecodedEventsToSql(decoded_events_to_sql) => {
+                decoded_events_to_sql.execute().await
+            }
+            LocalDb::Dump(dump) => dump.execute().await,
+            LocalDb::TokensFetch(cmd) => cmd.execute().await,
+            LocalDb::TokensToSql(cmd) => cmd.execute().await,
+            LocalDb::Sync(cmd) => cmd.execute().await,
+        }
+    }
+}
 
 mod commands;
 mod execute;
@@ -30,6 +68,9 @@ pub enum Orderbook {
     Quote(Quoter),
 
     Words(Words),
+
+    #[command(name = "local-db", subcommand)]
+    LocalDb(LocalDb),
 }
 
 impl Orderbook {
@@ -42,6 +83,7 @@ impl Orderbook {
             Orderbook::Quote(quote) => quote.execute().await,
             Orderbook::Subgraph(subgraph) => subgraph.execute().await,
             Orderbook::Words(words) => words.execute().await,
+            Orderbook::LocalDb(local_db) => local_db.execute().await,
         }
     }
 }

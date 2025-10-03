@@ -1,0 +1,6 @@
+src/commands/local_db/events*.json
+src/commands/local_db/decoded_events*.json
+src/commands/local_db/events*.sql
+src/commands/local_db/local_db*
+src/commands/local_db/tokens*.sql
+src/commands/local_db/tokens*.json
