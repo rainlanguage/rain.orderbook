@@ -342,8 +342,12 @@ mod integration {
             let store_address = *local_evm.store.address();
 
             let cache = Arc::new(StaticCodeCache::default());
-            cache.upsert_interpreter(interpreter_address, Interpreter::DEPLOYED_BYTECODE.as_ref());
-            cache.upsert_store(store_address, Store::DEPLOYED_BYTECODE.as_ref());
+            cache
+                .upsert_interpreter(interpreter_address, Interpreter::DEPLOYED_BYTECODE.as_ref())
+                .expect("insert interpreter bytecode");
+            cache
+                .upsert_store(store_address, Store::DEPLOYED_BYTECODE.as_ref())
+                .expect("insert store bytecode");
             let host = Arc::new(RevmInterpreterHost::new(cache.clone()));
             let raindex = VirtualRaindex::new(orderbook_address, cache.clone(), host);
 
@@ -1109,11 +1113,15 @@ mod integration {
             let expected_snapshot = harness.raindex.snapshot();
 
             let cache = Arc::new(StaticCodeCache::default());
-            cache.upsert_interpreter(
-                harness.interpreter_address,
-                Interpreter::DEPLOYED_BYTECODE.as_ref(),
-            );
-            cache.upsert_store(harness.store_address, Store::DEPLOYED_BYTECODE.as_ref());
+            cache
+                .upsert_interpreter(
+                    harness.interpreter_address,
+                    Interpreter::DEPLOYED_BYTECODE.as_ref(),
+                )
+                .expect("insert interpreter bytecode");
+            cache
+                .upsert_store(harness.store_address, Store::DEPLOYED_BYTECODE.as_ref())
+                .expect("insert store bytecode");
             let host = Arc::new(RevmInterpreterHost::new(cache.clone()));
             let mut replay = VirtualRaindex::new(harness.orderbook_address, cache, host);
 

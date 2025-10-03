@@ -6,8 +6,9 @@ use alloy::primitives::Address;
 
 use crate::{
     cache::CodeCache,
-    error::Result,
+    error::{BytecodeKind, Result},
     host,
+    snapshot::{CacheHandles, SnapshotBundle},
     state::{self, RaindexMutation, Snapshot},
     types::{OrderRef, QuoteRequest, TakeOrdersConfig, TakeOrdersOutcome},
 };
@@ -47,6 +48,35 @@ where
             interpreter_host,
             orderbook,
         }
+    }
+
+    /// Rehydrates a Virtual Raindex from a previously captured snapshot.
+    pub fn from_snapshot(
+        orderbook: Address,
+        snapshot: Snapshot,
+        code_cache: Arc<C>,
+        interpreter_host: Arc<H>,
+    ) -> Self {
+        Self {
+            state: state::RaindexState::from_snapshot(snapshot),
+            code_cache,
+            interpreter_host,
+            orderbook,
+        }
+    }
+
+    /// Loads an engine instance from a [SnapshotBundle] and validates cache readiness.
+    pub fn from_snapshot_bundle(
+        bundle: SnapshotBundle,
+        code_cache: Arc<C>,
+        interpreter_host: Arc<H>,
+    ) -> Result<Self> {
+        let orderbook = bundle.orderbook;
+        let handles = bundle.cache_handles().clone();
+        let snapshot = bundle.into_snapshot();
+        let instance = Self::from_snapshot(orderbook, snapshot, code_cache, interpreter_host);
+        instance.ensure_cache_handles(&handles)?;
+        Ok(instance)
     }
 
     /// Returns a snapshot of the current state suitable for persistence or inspection.
@@ -127,6 +157,28 @@ where
                 .cloned()
                 .ok_or(crate::error::RaindexError::OrderNotFound { order_hash: hash }),
         }
+    }
+
+    fn ensure_cache_handles(&self, handles: &CacheHandles) -> Result<()> {
+        for address in &handles.interpreters {
+            if self.code_cache.interpreter(*address).is_none() {
+                return Err(crate::error::RaindexError::MissingBytecode {
+                    address: *address,
+                    kind: BytecodeKind::Interpreter,
+                });
+            }
+        }
+
+        for address in &handles.stores {
+            if self.code_cache.store(*address).is_none() {
+                return Err(crate::error::RaindexError::MissingBytecode {
+                    address: *address,
+                    kind: BytecodeKind::Store,
+                });
+            }
+        }
+
+        Ok(())
     }
 }
 

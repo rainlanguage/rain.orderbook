@@ -8,18 +8,19 @@ use alloy::{
 };
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::OrderV4;
+use serde::{Deserialize, Serialize};
 
 use crate::Result;
 
 /// Shared environmental information for the Virtual Raindex.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Env {
     pub block_number: u64,
     pub timestamp: u64,
 }
 
 /// Key that uniquely identifies a vault balance.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct VaultKey {
     pub owner: Address,
     pub token: Address,
@@ -37,7 +38,7 @@ impl VaultKey {
 }
 
 /// Key that uniquely identifies a store value.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct StoreKey {
     pub store: Address,
     pub fqn: B256,
@@ -51,7 +52,7 @@ impl StoreKey {
 }
 
 /// Serialized representation of the Virtual Raindex state.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Snapshot {
     pub env: Env,
     pub orders: HashMap<B256, OrderV4>,
@@ -84,7 +85,7 @@ pub enum RaindexMutation {
 }
 
 /// Vault delta descriptor used in [RaindexMutation::VaultDeltas].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct VaultDelta {
     pub owner: Address,
     pub token: Address,
@@ -93,7 +94,7 @@ pub struct VaultDelta {
 }
 
 /// Store write descriptor used in [RaindexMutation::ApplyStore].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StoreSet {
     pub store: Address,
     pub fqn: B256,
@@ -101,14 +102,14 @@ pub struct StoreSet {
 }
 
 /// Store key/value pair.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StoreKeyValue {
     pub key: B256,
     pub value: B256,
 }
 
 /// Token decimal entry used in [RaindexMutation::SetTokenDecimals].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenDecimalEntry {
     pub token: Address,
     pub decimals: u8,
@@ -133,6 +134,17 @@ impl RaindexState {
             vault_balances: self.vault_balances.clone(),
             store: self.store.clone(),
             token_decimals: self.token_decimals.clone(),
+        }
+    }
+
+    /// Rebuilds state from a previously captured snapshot.
+    pub fn from_snapshot(snapshot: Snapshot) -> Self {
+        Self {
+            env: snapshot.env,
+            orders: snapshot.orders,
+            vault_balances: snapshot.vault_balances,
+            store: snapshot.store,
+            token_decimals: snapshot.token_decimals,
         }
     }
 
