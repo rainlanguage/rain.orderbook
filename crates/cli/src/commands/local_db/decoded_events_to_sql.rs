@@ -6,7 +6,7 @@ use rain_orderbook_common::raindex_client::local_db::{
 };
 use std::fs::{write, File};
 use std::io::BufReader;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Args)]
 pub struct DecodedEventsToSql {
@@ -28,14 +28,14 @@ impl DecodedEventsToSql {
             .with_context(|| format!("Failed to open input file: {:?}", self.input_file))?;
         let reader = BufReader::new(file);
 
-        let data: Vec<DecodedEventData<DecodedEvent>> =
-            serde_json::from_reader(reader).context("Failed to parse JSON")?;
+        let decoded_events: Vec<DecodedEventData<DecodedEvent>> =
+            serde_json::from_reader(reader).context("Failed to parse decoded events JSON")?;
 
-        let sql_statements = decoded_events_to_sql(&data, self.end_block)
+        let sql_statements = decoded_events_to_sql(&decoded_events, self.end_block)
             .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
 
-        let input_path = std::path::Path::new(&self.input_file);
         let output_path = self.output_file.map(PathBuf::from).unwrap_or_else(|| {
+            let input_path = Path::new(&self.input_file);
             input_path
                 .parent()
                 .map(|dir| dir.join("events.sql"))
@@ -57,25 +57,28 @@ mod tests {
     use std::fs;
     use tempfile::TempDir;
 
-    #[tokio::test]
-    async fn test_execute_with_custom_output_file() -> Result<()> {
-        let temp_dir = TempDir::new()?;
-        let input_file = temp_dir.path().join("input.json");
-        let output_file = temp_dir.path().join("custom_output.sql");
-
-        let test_data = vec![DecodedEventData {
+    fn sample_unknown_event() -> DecodedEventData<DecodedEvent> {
+        DecodedEventData {
             event_type: EventType::Unknown,
             block_number: "0x1".to_string(),
             block_timestamp: "0x2".to_string(),
             transaction_hash: "0xabc".to_string(),
             log_index: "0x0".to_string(),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0xdead".to_string(),
+                raw_data: "0x0".to_string(),
                 note: "test".to_string(),
             }),
-        }];
+        }
+    }
 
-        fs::write(&input_file, serde_json::to_string(&test_data)?)?;
+    #[tokio::test]
+    async fn test_execute_with_custom_output_file() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let input_file = temp_dir.path().join("input.json");
+        let output_file = temp_dir.path().join("custom_output.sql");
+
+        let events = vec![sample_unknown_event()];
+        fs::write(&input_file, serde_json::to_string(&events)?)?;
 
         let cmd = DecodedEventsToSql {
             input_file: input_file.to_string_lossy().to_string(),
@@ -98,19 +101,8 @@ mod tests {
         let input_file = temp_dir.path().join("input.json");
         let expected_output = temp_dir.path().join("events.sql");
 
-        let test_data = vec![DecodedEventData {
-            event_type: EventType::Unknown,
-            block_number: "0x3".to_string(),
-            block_timestamp: "0x4".to_string(),
-            transaction_hash: "0xdef".to_string(),
-            log_index: "0x0".to_string(),
-            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0xbeef".to_string(),
-                note: "test".to_string(),
-            }),
-        }];
-
-        fs::write(&input_file, serde_json::to_string(&test_data)?)?;
+        let events = vec![sample_unknown_event()];
+        fs::write(&input_file, serde_json::to_string(&events)?)?;
 
         let cmd = DecodedEventsToSql {
             input_file: input_file.to_string_lossy().to_string(),

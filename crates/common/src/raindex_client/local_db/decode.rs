@@ -68,7 +68,7 @@ impl EventType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(bound(serialize = "T: Serialize", deserialize = "T: for<'a> Deserialize<'a>"))]
+#[serde(bound(serialize = "T: Serialize", deserialize = "T: Deserialize<'de>"))]
 pub struct DecodedEventData<T> {
     pub event_type: EventType,
     pub block_number: String,
