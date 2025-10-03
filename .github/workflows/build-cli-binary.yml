@@ -13,8 +13,11 @@ jobs:
     permissions:
       id-token: write
       contents: write
+    env:
+      COMMIT_SHA: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
