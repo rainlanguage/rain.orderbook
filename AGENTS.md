@@ -14,22 +14,22 @@
 - Solidity (Foundry): `nix develop -c forge build`; tests: `nix develop -c forge test`.
 - Webapp: `cd packages/webapp && nix develop -c npm run dev`.
 - Tauri: `nix develop .#tauri-shell --command cargo tauri dev`.
-- JS workspaces (top-level): `npm run test`, `npm run build:ui`, `npm run build:orderbook`.
-- WASM bundle: `cd packages/orderbook && npm run build-wasm`.
+- JS workspaces (top-level): `nix develop -c npm run test`, `nix develop -c npm run build:ui`, `nix develop -c npm run build:orderbook`.
+- WASM bundle: `nix develop -c rainix-wasm-artifacts`.
 
 ## Coding Style & Naming Conventions
-- Rust: format with `cargo fmt --all`; lint with `nix develop -c rainix-rs-static clippy` (preconfigured flags included). Crates/modules use `snake_case`; types `PascalCase`.
-- TS/Svelte: `npm run format`, `npm run lint`, `npm run check` in each package. Components `PascalCase.svelte`; files otherwise kebab/snake as appropriate.
+- Rust: format with `nix develop -c cargo fmt --all`; lint with `nix develop -c rainix-rs-static` (preconfigured flags included). Crates/modules use `snake_case`; types `PascalCase`.
+- TS/Svelte: `nix develop -c npm run format`, `nix develop -c npm run lint`, `nix develop -c npm run check` in each package. Components `PascalCase.svelte`; files otherwise kebab/snake as appropriate.
 - Solidity: `forge fmt`; compiler `solc 0.8.25` (see `foundry.toml`).
 
 ## Testing Guidelines
 - Rust: `cargo test`; integration tests live in `crates/integration_tests`. Prefer `insta` snapshots and `proptest` where helpful.
-- TS/Svelte: `npm run test` (Vitest). Name files `*.test.ts`/`*.spec.ts`.
+- TS/Svelte: `nix develop -c npm run test` (Vitest). Name files `*.test.ts`/`*.spec.ts`.
 - Solidity: `forge test` (add fuzz/property tests where relevant).
 
 ## Commit & Pull Request Guidelines
 - PRs must: describe scope/approach, link issues, include screenshots/GIFs for UI changes, update/ add tests, and pass CI.
-- Quick preflight: `nix develop -c npm run lint-format-check:all && nix develop -c rainix-rs-static clippy`.
+- Quick preflight: `nix develop -c npm run lint-format-check:all && nix develop -c rainix-rs-static`.
 
 ## Security & Configuration Tips
 - Never commit secrets. Copy `.env.example` files (root, `packages/webapp`, `tauri-app`) and populate `PUBLIC_WALLETCONNECT_PROJECT_ID` / `VITE_WALLETCONNECT_PROJECT_ID` as required.

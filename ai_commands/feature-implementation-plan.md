@@ -42,14 +42,14 @@ Constraints & Repo Conventions
   - TypeScript: `sg --lang ts -p '<pattern>'`
   - Use simple reads for languages without ast-grep support when structural matching is unnecessary.
 - Follow `AGENTS.md` for tone and repo norms:
-  - Rust: format `cargo fmt --all`, lint `cargo clippy --all-targets -- -D warnings`.
-  - TS/Svelte: `npm run format`, `npm run lint`, `npm run check`.
+  - Rust: format `nix develop -c cargo fmt --all`, lint `nix develop -c rainix-rs-static`.
+  - TS/Svelte: `nix develop -c npm run format`, `nix develop -c npm run lint`, `nix develop -c npm run check`.
   - Solidity: `forge fmt`; compiler `solc 0.8.25`.
 - Testing guidelines:
   - Rust: unit + `crates/integration_tests` (prefer `insta` snapshots and `proptest` where helpful).
   - TS/Svelte: Vitest (`*.test.ts`/`*.spec.ts`).
   - Solidity: Foundry fuzz/property tests where relevant.
-- Commit/PR: Conventional Commits; PRs describe scope, link issues, include screenshots for UI, and pass CI. Preflight: `nix develop -c npm run lint-format-check:all && nix develop -c cargo clippy -- -D warnings`.
+- Commit/PR: Conventional Commits; PRs describe scope, link issues, include screenshots for UI, and pass CI. Preflight: `nix develop -c npm run lint-format-check:all && nix develop -c rainix-rs-static`.
 - Never commit secrets; respect `.env.example` guidance.
 
 High‑Level Goal

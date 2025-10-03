@@ -74,7 +74,7 @@ Procedure
      - Keep imports correct: `import { ... } from '@rainlanguage/orderbook'`.
 
 6) Validate
-   - Rust checks: `nix develop -c cargo fmt --all && nix develop -c cargo clippy --all-targets -- -D warnings`
+   - Rust checks: `nix develop -c cargo fmt --all && nix develop -c rainix-rs-static`
    - Build artifacts needed for TS surface checks: `cd packages/orderbook && nix develop -c npm run build`
    - TS type-check the built output: `cd packages/orderbook && nix develop -c npm run check`
    - Run tests to confirm examples mirror real usage: `cd packages/orderbook && nix develop -c npm run test`
