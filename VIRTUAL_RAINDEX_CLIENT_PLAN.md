@@ -17,17 +17,20 @@
 - Add helper structs (`SnapshotBundle`, etc.) that package env metadata, decimals, and cache handles for transport; include serde derives for browser persistence.
 - Provide a convenience loader under `crates/virtual-raindex/src/engine/mod.rs` to rebuild the engine from the bundle plus a ready cache.
 - Document snapshot usage patterns in `VIRTUAL_RAINDEX_IMPLEMENTATION.md` and expose a `virtual_raindex::snapshot` module in `src/lib.rs`.
+  - Snapshot helpers now live in `virtual_raindex::snapshot::{SnapshotBundle, CacheHandles}` with `VirtualRaindex::from_snapshot_bundle` performing cache validation.
 
 ### 0.3 Bytecode Cache Ingestion Helpers
 - Add public constructors on `StaticCodeCache` for `(interpreter_addr, store_addr, bytecode_bytes)` so the client can hydrate from DB snapshots.
 - Implement an ingestion helper that accepts order-level bytecode (`evaluable`) and memoises by hash/address; ensure we dedupe per orderbook.
 - Expose a typed error enum covering missing bytecode, invalid encoding, and cache collisions; surface it to the sync pipeline docs.
 - Update `VIRTUAL_RAINDEX_CLIENT_PLAN.md` breadcrumbs with the new helper locations once landing.
+  - Cache ingestion lives in `virtual_raindex::StaticCodeCache::{from_artifacts, ingest_interpreters, ingest_stores}`; `StaticCodeCache::upsert_*` now returns `Result` with `RaindexError::InvalidBytecodeEncoding`/`BytecodeCollision` for error reporting.
 
 ### 0.4 Testing & Validation
 - Add round-trip tests for snapshot export/import and cache hydration in `crates/virtual-raindex/src/engine/tests.rs`.
 - Gate wasm-specific tests behind `--cfg wasm_test` and run them via `nix develop -c cargo test --target wasm32-unknown-unknown -p virtual-raindex --no-default-features --features web` once the feature flag exists.
 - Ensure CI treats wasm checks as required (non-optional) and document local run commands in `VIRTUAL_RAINDEX_IMPLEMENTATION.md`.
+  - Snapshot/cache tests landed in `crates/virtual-raindex/src/engine/tests.rs`; wasm coverage uses `#[cfg(wasm_test)]` with commands documented in `VIRTUAL_RAINDEX_IMPLEMENTATION.md`.
 
 ### Exit Criteria Checklist
 - `nix develop -c cargo check --target wasm32-unknown-unknown -p virtual-raindex` passes without feature toggles.

@@ -1,3 +1,5 @@
+#![allow(unexpected_cfgs)]
+
 use super::context::{
     CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_OUTPUTS_COLUMN,
 };
@@ -6,6 +8,7 @@ use crate::{
     cache::{CodeCache, StaticCodeCache},
     error::{RaindexError, Result},
     host::{self, InterpreterHost},
+    snapshot::SnapshotBundle,
     state::{
         self, derive_fqn, Env, RaindexMutation, StoreKey, StoreKeyValue, StoreSet,
         TokenDecimalEntry, VaultDelta,
@@ -132,8 +135,12 @@ fn test_order() -> OrderV4 {
 
 fn cache_with_code(order: &OrderV4) -> Arc<StaticCodeCache> {
     let cache = Arc::new(StaticCodeCache::default());
-    cache.upsert_interpreter(order.evaluable.interpreter, &[0u8]);
-    cache.upsert_store(order.evaluable.store, &[0u8]);
+    cache
+        .upsert_interpreter(order.evaluable.interpreter, &[0u8])
+        .expect("insert interpreter code");
+    cache
+        .upsert_store(order.evaluable.store, &[0u8])
+        .expect("insert store code");
     cache
 }
 
@@ -143,6 +150,166 @@ fn new_quote_request(order_ref: OrderRef) -> QuoteRequest {
 
 fn parse_float(value: &str) -> Float {
     Float::parse(value.to_string()).expect("float parse")
+}
+
+#[test]
+fn snapshot_bundle_round_trip_restores_state() {
+    let orderbook = Address::repeat_byte(0x33);
+    let mut order = test_order();
+    order.validInputs[0].token = Address::repeat_byte(0x91);
+    order.validOutputs[0].token = Address::repeat_byte(0x92);
+
+    let interpreter_code = [0xAA, 0xBB, 0x01];
+    let store_code = [0xCC, 0xDD, 0x02];
+
+    let cache = Arc::new(StaticCodeCache::default());
+    cache
+        .upsert_interpreter(order.evaluable.interpreter, &interpreter_code)
+        .expect("insert interpreter bytecode");
+    cache
+        .upsert_store(order.evaluable.store, &store_code)
+        .expect("insert store bytecode");
+    let host = Arc::new(NullInterpreter::default());
+    let mut raindex = VirtualRaindex::new(orderbook, cache, host);
+
+    let env_mutation = RaindexMutation::SetEnv {
+        block_number: Some(42),
+        timestamp: Some(1_337),
+    };
+
+    let decimals = RaindexMutation::SetTokenDecimals {
+        entries: vec![
+            TokenDecimalEntry {
+                token: order.validInputs[0].token,
+                decimals: 18,
+            },
+            TokenDecimalEntry {
+                token: order.validOutputs[0].token,
+                decimals: 6,
+            },
+        ],
+    };
+
+    let vault_delta = RaindexMutation::VaultDeltas {
+        deltas: vec![VaultDelta {
+            owner: order.owner,
+            token: order.validOutputs[0].token,
+            vault_id: order.validOutputs[0].vaultId,
+            delta: parse_float("12.5"),
+        }],
+    };
+
+    let store_mutation = RaindexMutation::ApplyStore {
+        sets: vec![StoreSet {
+            store: order.evaluable.store,
+            fqn: B256::from([0x11; 32]),
+            kvs: vec![StoreKeyValue {
+                key: B256::from([0x22; 32]),
+                value: B256::from([0x33; 32]),
+            }],
+        }],
+    };
+
+    raindex
+        .apply_mutations(&[
+            env_mutation,
+            decimals,
+            RaindexMutation::SetOrders {
+                orders: vec![order.clone()],
+            },
+            vault_delta,
+            store_mutation,
+        ])
+        .expect("apply mutations");
+
+    let snapshot = raindex.snapshot();
+    let bundle = SnapshotBundle::from_snapshot(orderbook, snapshot.clone());
+    assert_eq!(
+        bundle.cache_handles().interpreters,
+        vec![order.evaluable.interpreter]
+    );
+    assert_eq!(bundle.cache_handles().stores, vec![order.evaluable.store]);
+
+    let restored_cache = Arc::new(
+        StaticCodeCache::from_artifacts(
+            vec![(order.evaluable.interpreter, interpreter_code.as_slice())],
+            vec![(order.evaluable.store, store_code.as_slice())],
+        )
+        .expect("hydrate cache"),
+    );
+    let restored_host = Arc::new(NullInterpreter::default());
+    let restored =
+        VirtualRaindex::from_snapshot_bundle(bundle.clone(), restored_cache, restored_host)
+            .expect("hydrate engine");
+
+    let restored_snapshot = restored.snapshot();
+    assert_eq!(snapshot.env, restored_snapshot.env);
+    assert_eq!(snapshot.orders, restored_snapshot.orders);
+    assert_eq!(snapshot.store, restored_snapshot.store);
+    assert_eq!(snapshot.token_decimals, restored_snapshot.token_decimals);
+    assert_eq!(
+        snapshot.vault_balances.len(),
+        restored_snapshot.vault_balances.len()
+    );
+
+    for (key, expected) in snapshot.vault_balances.iter() {
+        let actual = restored_snapshot
+            .vault_balances
+            .get(key)
+            .expect("vault balance should round-trip");
+        assert_eq!(expected.get_inner(), actual.get_inner());
+    }
+
+    let restored_bundle = SnapshotBundle::from_snapshot(orderbook, restored_snapshot);
+    assert_eq!(
+        bundle.cache_handles().interpreters,
+        restored_bundle.cache_handles().interpreters
+    );
+    assert_eq!(
+        bundle.cache_handles().stores,
+        restored_bundle.cache_handles().stores
+    );
+}
+
+#[test]
+fn static_code_cache_detects_collisions_and_invalid_input() {
+    let cache = StaticCodeCache::default();
+    let address = Address::repeat_byte(0xAB);
+    cache
+        .upsert_interpreter(address, &[1u8, 2, 3])
+        .expect("insert interpreter bytecode");
+    let collision = cache.upsert_interpreter(address, &[9u8, 9, 9]).unwrap_err();
+    assert!(matches!(
+        collision,
+        RaindexError::BytecodeCollision {
+            address: collided,
+            kind: crate::BytecodeKind::Interpreter,
+        } if collided == address
+    ));
+
+    let invalid = cache
+        .upsert_store(Address::repeat_byte(0xCD), &[])
+        .unwrap_err();
+    assert!(matches!(
+        invalid,
+        RaindexError::InvalidBytecodeEncoding {
+            address: _,
+            kind: crate::BytecodeKind::Store,
+        }
+    ));
+}
+
+#[cfg(wasm_test)]
+mod wasm_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn snapshot_bundle_serializes_under_wasm_cfg() {
+        let bundle = SnapshotBundle::from_snapshot(Address::ZERO, crate::Snapshot::default());
+        let serialized = serde_json::to_string(&bundle).expect("serialize bundle");
+        assert!(!serialized.is_empty());
+    }
 }
 
 #[test]
@@ -694,11 +861,15 @@ async fn revm_host_matches_contract() {
     let (expected_stack, expected_writes) = (expected._0, expected._1);
 
     let cache = Arc::new(StaticCodeCache::default());
-    cache.upsert_interpreter(
-        order.evaluable.interpreter,
-        Interpreter::DEPLOYED_BYTECODE.as_ref(),
-    );
-    cache.upsert_store(order.evaluable.store, Store::DEPLOYED_BYTECODE.as_ref());
+    cache
+        .upsert_interpreter(
+            order.evaluable.interpreter,
+            Interpreter::DEPLOYED_BYTECODE.as_ref(),
+        )
+        .expect("insert interpreter bytecode");
+    cache
+        .upsert_store(order.evaluable.store, Store::DEPLOYED_BYTECODE.as_ref())
+        .expect("insert store bytecode");
 
     let host = RevmInterpreterHost::new(cache);
 
@@ -761,11 +932,15 @@ async fn quote_matches_contract_eval() {
     };
 
     let cache = Arc::new(StaticCodeCache::default());
-    cache.upsert_interpreter(
-        order.evaluable.interpreter,
-        Interpreter::DEPLOYED_BYTECODE.as_ref(),
-    );
-    cache.upsert_store(order.evaluable.store, Store::DEPLOYED_BYTECODE.as_ref());
+    cache
+        .upsert_interpreter(
+            order.evaluable.interpreter,
+            Interpreter::DEPLOYED_BYTECODE.as_ref(),
+        )
+        .expect("insert interpreter bytecode");
+    cache
+        .upsert_store(order.evaluable.store, Store::DEPLOYED_BYTECODE.as_ref())
+        .expect("insert store bytecode");
 
     let host = Arc::new(RevmInterpreterHost::new(cache.clone()));
     let mut raindex = VirtualRaindex::new(orderbook, cache, host);
@@ -921,11 +1096,15 @@ async fn quote_reflects_env_values() {
     };
 
     let cache = Arc::new(StaticCodeCache::default());
-    cache.upsert_interpreter(
-        order.evaluable.interpreter,
-        Interpreter::DEPLOYED_BYTECODE.as_ref(),
-    );
-    cache.upsert_store(order.evaluable.store, Store::DEPLOYED_BYTECODE.as_ref());
+    cache
+        .upsert_interpreter(
+            order.evaluable.interpreter,
+            Interpreter::DEPLOYED_BYTECODE.as_ref(),
+        )
+        .expect("insert interpreter bytecode");
+    cache
+        .upsert_store(order.evaluable.store, Store::DEPLOYED_BYTECODE.as_ref())
+        .expect("insert store bytecode");
 
     let host = Arc::new(RevmInterpreterHost::new(cache.clone()));
     let mut raindex = VirtualRaindex::new(orderbook, cache, host);
