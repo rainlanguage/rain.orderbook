@@ -129,9 +129,10 @@ impl RaindexClient {
             }
         };
 
-        let local_db = LocalDb::new(
+        let local_db = LocalDb::new_with_additional_rpcs(
             orderbook_cfg.network.chain_id,
             "41e50e69-6da4-4462-b70e-c7b5e7b70f05".to_string(),
+            orderbook_cfg.network.rpcs.clone(),
         )?;
 
         let latest_block = match local_db.client.get_latest_block_number().await {
@@ -168,7 +169,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let decoded_events = match local_db.decode_events(&events) {
+        let decoded_events: Vec<_> = match local_db.decode_events(&events) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(

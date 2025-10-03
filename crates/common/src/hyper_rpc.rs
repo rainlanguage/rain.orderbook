@@ -11,7 +11,7 @@ use url::Url;
 #[derive(Clone)]
 pub struct HyperRpcClient {
     chain_id: u32,
-    rpc_url: String,
+    rpc_urls: Vec<Url>,
     provider: Arc<ReadProvider>,
 }
 
@@ -63,11 +63,17 @@ pub struct LogEntryResponse {
 
 impl std::fmt::Debug for HyperRpcClient {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let redacted_url = if let Some(last_slash) = self.rpc_url.rfind('/') {
-            format!("{}/***", &self.rpc_url[..last_slash])
-        } else {
-            "***".to_string()
-        };
+        let redacted_url = self
+            .rpc_urls
+            .first()
+            .map(|url| {
+                let url_str = url.as_str();
+                url_str
+                    .rsplit_once('/')
+                    .map(|(base, _)| format!("{}/***", base))
+                    .unwrap_or_else(|| "***".to_string())
+            })
+            .unwrap_or_else(|| "***".to_string());
 
         f.debug_struct("HyperRpcClient")
             .field("chain_id", &self.chain_id)
@@ -78,23 +84,50 @@ impl std::fmt::Debug for HyperRpcClient {
 
 impl HyperRpcClient {
     pub fn new(chain_id: u32, api_token: String) -> Result<Self, HyperRpcError> {
+        Self::new_with_additional_rpcs(chain_id, api_token, Vec::new())
+    }
+
+    pub fn new_with_additional_rpcs(
+        chain_id: u32,
+        api_token: String,
+        mut additional_rpcs: Vec<Url>,
+    ) -> Result<Self, HyperRpcError> {
         let base_url = match chain_id {
             8453 => "https://base.rpc.hypersync.xyz".to_string(),
             42161 => "https://arbitrum.rpc.hypersync.xyz".to_string(),
             _ => return Err(HyperRpcError::UnsupportedChainId { chain_id }),
         };
-        let rpc_url = format!("{}/{}", base_url, api_token);
-        let provider = Arc::new(Self::build_provider(&rpc_url)?);
+        let hyper_url = Url::parse(&format!("{}/{}", base_url, api_token))?;
+        let mut rpc_urls = Vec::with_capacity(1 + additional_rpcs.len());
+        rpc_urls.push(hyper_url);
+        rpc_urls.append(&mut additional_rpcs);
+        let provider = Arc::new(Self::build_provider(&rpc_urls)?);
 
         Ok(Self {
             chain_id,
-            rpc_url,
+            rpc_urls,
+            provider,
+        })
+    }
+
+    pub fn from_urls(chain_id: u32, rpc_urls: Vec<Url>) -> Result<Self, HyperRpcError> {
+        if rpc_urls.is_empty() {
+            return Err(HyperRpcError::ProviderConstruction(
+                ReadProviderError::NoRpcs,
+            ));
+        }
+
+        let provider = Arc::new(Self::build_provider(&rpc_urls)?);
+
+        Ok(Self {
+            chain_id,
+            rpc_urls,
             provider,
         })
     }
 
     pub fn get_url(&self) -> &str {
-        &self.rpc_url
+        self.rpc_urls.first().map(Url::as_str).unwrap_or_default()
     }
 
     pub async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
@@ -167,14 +200,14 @@ impl HyperRpcClient {
 
     #[cfg(all(test, not(target_family = "wasm")))]
     pub(crate) fn update_rpc_url(&mut self, new_url: String) {
-        self.rpc_url = new_url;
-        let provider = Self::build_provider(&self.rpc_url).expect("failed to update provider");
+        let parsed = Url::parse(&new_url).expect("failed to parse new URL");
+        self.rpc_urls = vec![parsed.clone()];
+        let provider = Self::build_provider(&self.rpc_urls).expect("failed to update provider");
         self.provider = Arc::new(provider);
     }
 
-    fn build_provider(rpc_url: &str) -> Result<ReadProvider, HyperRpcError> {
-        let parsed = Url::parse(rpc_url)?;
-        Ok(mk_read_provider(&[parsed])?)
+    fn build_provider(rpc_urls: &[Url]) -> Result<ReadProvider, HyperRpcError> {
+        Ok(mk_read_provider(rpc_urls)?)
     }
 
     fn map_transport_error(err: TransportError, context: Option<&str>) -> HyperRpcError {

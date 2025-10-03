@@ -12,6 +12,7 @@ use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData
 pub use fetch::FetchConfig;
 use insert::decoded_events_to_sql as decoded_events_to_sql_impl;
 use query::LocalDbQueryError;
+use url::Url;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -122,6 +123,25 @@ impl LocalDbError {
 impl LocalDb {
     pub fn new(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
         let client = HyperRpcClient::new(chain_id, api_token)?;
+        Ok(Self { client })
+    }
+
+    pub fn new_with_additional_rpcs(
+        chain_id: u32,
+        api_token: String,
+        additional_rpcs: Vec<Url>,
+    ) -> Result<Self, LocalDbError> {
+        let client =
+            HyperRpcClient::new_with_additional_rpcs(chain_id, api_token, additional_rpcs)?;
+        Ok(Self { client })
+    }
+
+    pub fn new_with_regular_rpc(url: Url) -> Result<Self, LocalDbError> {
+        Self::new_with_regular_rpcs(vec![url])
+    }
+
+    pub fn new_with_regular_rpcs(urls: Vec<Url>) -> Result<Self, LocalDbError> {
+        let client = HyperRpcClient::from_urls(0, urls)?;
         Ok(Self { client })
     }
 
