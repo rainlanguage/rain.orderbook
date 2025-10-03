@@ -98,12 +98,14 @@
               ARCHIVE_NAME=rain-orderbook-cli.tar.gz
               BINARY_NAME=rain-orderbook-cli
 
-              cargo build --release -p rain_orderbook_cli --target x86_64-unknown-linux-gnu
+              TARGET_TRIPLE=x86_64-unknown-linux-gnu
+
+              cargo build --release -p rain_orderbook_cli --target "${TARGET_TRIPLE}"
 
               mkdir -p "$OUTPUT_DIR"
               rm -f "$OUTPUT_DIR/$ARCHIVE_NAME"
 
-              cp target/release/rain_orderbook_cli "$OUTPUT_DIR/$BINARY_NAME"
+              cp "target/${TARGET_TRIPLE}/release/rain_orderbook_cli" "$OUTPUT_DIR/$BINARY_NAME"
               chmod 755 "$OUTPUT_DIR/$BINARY_NAME"
               strip "$OUTPUT_DIR/$BINARY_NAME" || true
 
