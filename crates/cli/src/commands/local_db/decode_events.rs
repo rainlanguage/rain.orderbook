@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use rain_orderbook_common::{
-    hyper_rpc::LogEntryResponse, raindex_client::sqlite_web::decode::decode_events,
+    hyper_rpc::LogEntryResponse, raindex_client::local_db::decode::decode_events,
 };
 use std::fs::File;
 use std::io::{BufReader, Write};

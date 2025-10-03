@@ -45,7 +45,7 @@
             name = "tauri-rs-test";
             body = ''
               set -euxo pipefail
-              cd tauri-app/src-tauri 
+              cd tauri-app/src-tauri
               cargo test
             '';
           };
@@ -116,7 +116,7 @@
               # Create env file with working defaults
               ENV_FILE=".env"
               ENV_EXAMPLE_FILE=".env.example"
-              cp $ENV_EXAMPLE_FILE $ENV_FILE  
+              cp $ENV_EXAMPLE_FILE $ENV_FILE
 
               # Update the existing WALLETCONNECT_PROJECT_ID line
               sed -i "s/^VITE_WALLETCONNECT_PROJECT_ID=.*/VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID}/" $ENV_FILE

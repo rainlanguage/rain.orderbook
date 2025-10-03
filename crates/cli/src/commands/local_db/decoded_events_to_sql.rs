@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Args;
-use rain_orderbook_common::raindex_client::sqlite_web::{
+use rain_orderbook_common::raindex_client::local_db::{
     decode::{DecodedEvent, DecodedEventData},
     insert::decoded_events_to_sql,
 };
@@ -53,9 +53,7 @@ impl DecodedEventsToSql {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_common::raindex_client::sqlite_web::decode::{
-        DecodedEvent, DecodedEventData, EventType, UnknownEventDecoded,
-    };
+    use rain_orderbook_common::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
     use std::fs;
     use tempfile::TempDir;
 
