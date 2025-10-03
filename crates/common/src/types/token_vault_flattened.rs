@@ -23,7 +23,7 @@ impl TryFrom<SgVault> for TokenVaultFlattened {
 
     fn try_from(val: SgVault) -> Result<Self, Self::Error> {
         let balance = Float::from_hex(&val.balance.0)?;
-        let balance_display = balance.format18()?;
+        let balance_display = balance.format()?;
 
         Ok(Self {
             id: val.id.0,
@@ -226,7 +226,7 @@ mod tests {
         let result = TokenVaultFlattened::try_from(sg_vault);
         let flattened = result.unwrap();
 
-        assert_eq!(flattened.balance_display, "98765");
+        assert_eq!(flattened.balance_display, "9.87650000000000000000001e4");
         assert_eq!(flattened.balance, SgBytes(balance_str.to_string()));
     }
 }

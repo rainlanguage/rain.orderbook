@@ -138,13 +138,12 @@ impl RaindexClient {
             }
         };
 
-        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone());
+        let local_db =
+            LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone()).map_err(|err| {
+                LocalDbError::CustomError(format!("Failed to initialize RPC client: {}", err))
+            })?;
 
-        let latest_block = match local_db
-            .rpc_client()
-            .get_latest_block_number(local_db.rpc_urls())
-            .await
-        {
+        let latest_block = match local_db.hyper_rpc_client().get_latest_block_number().await {
             Ok(block) => block,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -182,7 +181,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let decoded_events = match local_db.decode_events(events) {
+        let decoded_events = match local_db.decode_events(&events) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -193,7 +192,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        let sql_commands = match local_db.decoded_events_to_sql(decoded_events, latest_block) {
+        let sql_commands = match local_db.decoded_events_to_sql(&decoded_events, latest_block) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(e.to_string()));

@@ -175,6 +175,93 @@ describe('OrdersListTable', () => {
 		expect(screen.queryByText('Strategy Balance:')).not.toBeInTheDocument();
 	});
 
+	it('displays multiple tokens correctly in grid layout with shared IO', async () => {
+		const orderWithMultipleTokens = {
+			...mockOrder,
+			inputs: [
+				{
+					token: { symbol: 'ETH' },
+					formattedBalance: '1.5'
+				},
+				{
+					token: { symbol: 'USDC' },
+					formattedBalance: '100.0'
+				}
+			],
+			outputs: [
+				{
+					token: { symbol: 'DAI' },
+					formattedBalance: '2500.0'
+				},
+				{
+					token: { symbol: 'USDC' },
+					formattedBalance: '100.0'
+				}
+			],
+			inputsList: {
+				...mockVaultsList(),
+				items: [
+					{
+						id: '0xeth',
+						token: { symbol: 'ETH' },
+						formattedBalance: '1.5'
+					}
+				]
+			},
+			outputsList: {
+				...mockVaultsList(),
+				items: [
+					{
+						id: '0xdai',
+						token: { symbol: 'DAI' },
+						formattedBalance: '2500.0'
+					}
+				]
+			},
+			inputsOutputsList: {
+				...mockVaultsList(),
+				items: [
+					{
+						id: '0xusdc',
+						token: { symbol: 'USDC' },
+						formattedBalance: '100.0'
+					}
+				]
+			}
+		};
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[orderWithMultipleTokens]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+		render(OrdersListTable, defaultProps as OrdersListTableProps);
+
+		// Verify all tokens are displayed in vault cards
+		const vaultCards = screen.getAllByTestId('vault-card');
+		expect(vaultCards).toHaveLength(4); // 2 inputs + 2 outputs (1 is shared between IO)
+
+		// Verify all input tokens are displayed
+		expect(screen.getByText('ETH')).toBeInTheDocument();
+		expect(screen.getByText('1.5')).toBeInTheDocument();
+
+		// Verify all output tokens are displayed
+		expect(screen.getByText('DAI')).toBeInTheDocument();
+		expect(screen.getByText('2500.0')).toBeInTheDocument();
+
+		// Verify shared token is displayed for input and output
+		expect(screen.getAllByText('USDC')).toHaveLength(2);
+		expect(screen.getAllByText('100.0')).toHaveLength(2);
+	});
+
 	it('displays multiple tokens correctly in grid layout', async () => {
 		const orderWithMultipleTokens = {
 			...mockOrder,
