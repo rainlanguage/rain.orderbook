@@ -1,8 +1,12 @@
 use anyhow::{Context, Result};
 use clap::Args;
-use rain_orderbook_common::raindex_client::sqlite_web::insert::decoded_events_to_sql;
+use rain_orderbook_common::raindex_client::sqlite_web::{
+    decode::{DecodedEvent, DecodedEventData},
+    insert::decoded_events_to_sql,
+};
 use std::fs::{write, File};
 use std::io::BufReader;
+use std::path::{Path, PathBuf};
 
 #[derive(Args)]
 pub struct DecodedEventsToSql {
@@ -24,18 +28,24 @@ impl DecodedEventsToSql {
             .with_context(|| format!("Failed to open input file: {:?}", self.input_file))?;
         let reader = BufReader::new(file);
 
-        let data: serde_json::Value =
-            serde_json::from_reader(reader).context("Failed to parse JSON")?;
+        let decoded_events: Vec<DecodedEventData<DecodedEvent>> =
+            serde_json::from_reader(reader).context("Failed to parse decoded events JSON")?;
 
-        let sql_statements = decoded_events_to_sql(data, self.end_block)
+        let sql_statements = decoded_events_to_sql(&decoded_events, self.end_block)
             .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
 
-        let output_path = self.output_file.unwrap_or_else(|| "events.sql".to_string());
+        let output_path = self.output_file.map(PathBuf::from).unwrap_or_else(|| {
+            let input_path = Path::new(&self.input_file);
+            input_path
+                .parent()
+                .map(|dir| dir.join("events.sql"))
+                .unwrap_or_else(|| PathBuf::from("events.sql"))
+        });
 
         write(&output_path, sql_statements)
-            .with_context(|| format!("Failed to write output file: {:?}", output_path))?;
+            .with_context(|| format!("Failed to write output file: {}", output_path.display()))?;
 
-        println!("SQL statements written to {:?}", output_path);
+        println!("SQL statements written to {}", output_path.display());
         Ok(())
     }
 }
@@ -43,9 +53,25 @@ impl DecodedEventsToSql {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use rain_orderbook_common::raindex_client::sqlite_web::decode::{
+        DecodedEvent, DecodedEventData, EventType, UnknownEventDecoded,
+    };
     use std::fs;
     use tempfile::TempDir;
+
+    fn sample_unknown_event() -> DecodedEventData<DecodedEvent> {
+        DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: "0x1".to_string(),
+            block_timestamp: "0x2".to_string(),
+            transaction_hash: "0xabc".to_string(),
+            log_index: "0x0".to_string(),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x0".to_string(),
+                note: "test".to_string(),
+            }),
+        }
+    }
 
     #[tokio::test]
     async fn test_execute_with_custom_output_file() -> Result<()> {
@@ -53,11 +79,8 @@ mod tests {
         let input_file = temp_dir.path().join("input.json");
         let output_file = temp_dir.path().join("custom_output.sql");
 
-        let test_data = json!([
-            {"type": "test_event", "data": {"value": 123}}
-        ]);
-
-        fs::write(&input_file, serde_json::to_string(&test_data)?)?;
+        let events = vec![sample_unknown_event()];
+        fs::write(&input_file, serde_json::to_string(&events)?)?;
 
         let cmd = DecodedEventsToSql {
             input_file: input_file.to_string_lossy().to_string(),
@@ -80,11 +103,8 @@ mod tests {
         let input_file = temp_dir.path().join("input.json");
         let expected_output = temp_dir.path().join("events.sql");
 
-        let test_data = json!([
-            {"type": "test_event", "data": {"value": 456}}
-        ]);
-
-        fs::write(&input_file, serde_json::to_string(&test_data)?)?;
+        let events = vec![sample_unknown_event()];
+        fs::write(&input_file, serde_json::to_string(&events)?)?;
 
         let cmd = DecodedEventsToSql {
             input_file: input_file.to_string_lossy().to_string(),
@@ -92,14 +112,7 @@ mod tests {
             end_block: 2000,
         };
 
-        let original_dir = std::env::current_dir()?;
-        std::env::set_current_dir(&temp_dir)?;
-
-        let result = cmd.execute().await;
-
-        std::env::set_current_dir(original_dir)?;
-
-        result?;
+        cmd.execute().await?;
 
         assert!(expected_output.exists());
         let output_content = fs::read_to_string(&expected_output)?;
