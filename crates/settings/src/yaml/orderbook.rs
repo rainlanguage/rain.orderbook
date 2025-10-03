@@ -281,6 +281,28 @@ impl OrderbookYaml {
         Ok(orderbooks)
     }
 
+    pub fn get_orderbooks_by_chain_id(
+        &self,
+        chain_id: u32,
+    ) -> Result<Vec<OrderbookCfg>, YamlError> {
+        let network = self.get_network_by_chain_id(chain_id)?;
+        let mut orderbooks: Vec<_> = self
+            .get_orderbooks()?
+            .into_iter()
+            .filter(|(_, ob)| ob.network.key == network.key)
+            .map(|(_, ob)| ob)
+            .collect();
+        orderbooks.sort_by(|a, b| a.key.cmp(&b.key));
+
+        if orderbooks.is_empty() {
+            return Err(YamlError::NotFound(format!(
+                "orderbook with chain-id: {}",
+                chain_id
+            )));
+        }
+        Ok(orderbooks)
+    }
+
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_metaboards()?.keys().cloned().collect())
     }
@@ -883,6 +905,95 @@ test: test
         assert_eq!(
             error,
             YamlError::NotFound("orderbook with network key: arbitrum".to_string())
+        );
+    }
+
+    #[test]
+    fn test_get_orderbooks_by_chain_id_single_network() {
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
+
+        let orderbooks = ob_yaml.get_orderbooks_by_chain_id(1).unwrap();
+        assert_eq!(orderbooks.len(), 1);
+        assert_eq!(orderbooks[0].key, "orderbook1");
+        assert_eq!(orderbooks[0].network.key, "mainnet");
+        assert_eq!(
+            orderbooks[0].address,
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
+        );
+
+        let err = ob_yaml.get_orderbooks_by_chain_id(999).unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::NotFound("network with chain-id: 999".to_string())
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The requested item \"network with chain-id: 999\" could not be found in the YAML configuration."
+        );
+    }
+
+    #[test]
+    fn test_get_orderbooks_by_chain_id_multiple_networks() {
+        let yaml = format!(
+            r#"
+    version: {spec_version}
+    networks:
+        mainnet:
+            rpcs:
+                - https://mainnet.infura.io
+            chain-id: 1
+        polygon:
+            rpcs:
+                - https://polygon-rpc.com
+            chain-id: 137
+        arbitrum:
+            rpcs:
+                - https://arb1.arbitrum.io
+            chain-id: 42161
+    subgraphs:
+        mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    orderbooks:
+        mainnet-orderbook:
+            address: 0x1234567890123456789012345678901234567890
+            network: mainnet
+            subgraph: mainnet
+            deployment-block: 12345
+        other-orderbook:
+            address: 0x1234567890123456789012345678901234567891
+            network: mainnet
+            subgraph: mainnet
+            deployment-block: 12345
+        polygon-orderbook:
+            address: 0x0987654321098765432109876543210987654321
+            network: polygon
+            deployment-block: 12345
+            subgraph: mainnet
+    "#,
+            spec_version = SpecVersion::current()
+        );
+
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+
+        // mainnet chain id
+        let orderbooks = ob_yaml.get_orderbooks_by_chain_id(1).unwrap();
+        assert_eq!(orderbooks.len(), 2);
+        assert_eq!(orderbooks[0].network.key, "mainnet");
+        assert_eq!(orderbooks[1].network.key, "mainnet");
+
+        // polygon chain id
+        let orderbooks = ob_yaml.get_orderbooks_by_chain_id(137).unwrap();
+        assert_eq!(orderbooks.len(), 1);
+        assert_eq!(orderbooks[0].network.key, "polygon");
+
+        // arbitrum chain id has no orderbooks
+        let err = ob_yaml.get_orderbooks_by_chain_id(42161).unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::NotFound("orderbook with chain-id: 42161".to_string())
         );
     }
 }

@@ -75,12 +75,9 @@ impl RaindexClient {
         db_callback: js_sys::Function,
         #[wasm_export(param_description = "JavaScript function called with status updates")]
         status_callback: js_sys::Function,
-        // TODO: This will be replaced with chainid. We are going to loop all the orderbooks for that chainid
-        #[wasm_export(param_description = "The contract address to sync events for")]
-        contract_address: String,
+        #[wasm_export(param_description = "The blockchain network ID to sync against")]
+        chain_id: u32,
     ) -> Result<(), LocalDbError> {
-        let orderbook_address = Address::from_str(&contract_address)?;
-
         send_status_message(&status_callback, "Starting database sync...".to_string())?;
 
         let has_tables = match check_required_tables(&db_callback).await {
@@ -119,23 +116,34 @@ impl RaindexClient {
             format!("Last synced block: {}", last_synced_block),
         )?;
 
-        let orderbook_cfg = match self.get_orderbook_by_address(orderbook_address) {
+        let orderbooks = match self.get_orderbooks_by_chain_id(chain_id) {
             Ok(o) => o,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
-                    "Failed to get orderbook configuration: {}",
+                    "Failed to get orderbook configurations: {}",
                     e
                 )));
             }
         };
 
-        let local_db = LocalDb::new_with_additional_rpcs(
-            orderbook_cfg.network.chain_id,
-            "41e50e69-6da4-4462-b70e-c7b5e7b70f05".to_string(),
-            orderbook_cfg.network.rpcs.clone(),
-        )?;
+        // TODO: For simplicity, we only handle one orderbook per chain ID here.
+        // This will be changed in the future to support multiple orderbooks.
+        let orderbook_cfg = match orderbooks.first() {
+            Some(cfg) => cfg,
+            None => {
+                return Err(LocalDbError::CustomError(format!(
+                    "No orderbook configuration found for chain ID {}",
+                    chain_id
+                )));
+            }
+        };
 
-        let latest_block = match local_db.client.get_latest_block_number().await {
+        let local_db =
+            LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone()).map_err(|err| {
+                LocalDbError::CustomError(format!("Failed to initialize RPC client: {}", err))
+            })?;
+
+        let latest_block = match local_db.hyper_rpc_client().get_latest_block_number().await {
             Ok(block) => block,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -156,7 +164,11 @@ impl RaindexClient {
             "Fetching latest onchain events...".to_string(),
         )?;
         let events = match local_db
-            .fetch_events(&contract_address, start_block, latest_block)
+            .fetch_events(
+                &orderbook_cfg.address.to_string(),
+                start_block,
+                latest_block,
+            )
             .await
         {
             Ok(result) => result,
@@ -169,7 +181,7 @@ impl RaindexClient {
         };
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let decoded_events: Vec<_> = match local_db.decode_events(&events) {
+        let decoded_events = match local_db.decode_events(&events) {
             Ok(result) => result,
             Err(e) => {
                 return Err(LocalDbError::CustomError(format!(
@@ -207,9 +219,7 @@ mod tests {
         };
         use std::cell::RefCell;
         use std::rc::Rc;
-        use wasm_bindgen::JsCast;
         use wasm_bindgen_test::*;
-        use wasm_bindgen_utils::prelude::*;
 
         #[wasm_bindgen_test]
         async fn test_check_required_tables_all_exist() {
@@ -419,8 +429,8 @@ mod tests {
         }
 
         #[wasm_bindgen_test]
-        async fn test_sync_invalid_address() {
-            // Any client config is fine; we bail before using it
+        async fn test_sync_invalid_chain_id() {
+            // Any client config is fine; we bail after initial steps
             let client = RaindexClient::new(
                 vec![crate::raindex_client::tests::get_test_yaml(
                     "http://localhost:3000/sg1",
@@ -432,21 +442,28 @@ mod tests {
             )
             .unwrap();
 
-            // Callbacks (won't be used due to early address parse error)
-            let db_callback = create_success_callback("[]");
+            // Callbacks
+            let db_callback = create_dispatching_db_callback(&make_tables_json(), "[]");
             let (status_callback, captured) = create_status_collector();
 
             let result = client
-                .sync_database(db_callback, status_callback, "invalid_address".to_string())
+                .sync_database(db_callback, status_callback, 999u32)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::FromHexError(_) => {}
-                other => panic!("Expected FromHexError, got {other:?}"),
+                LocalDbError::CustomError(msg) => {
+                    assert!(msg.contains("Failed to get orderbook configurations"));
+                }
+                other => panic!("Expected CustomError from missing chain ID, got {other:?}"),
             }
-            // No status messages should be emitted
-            assert!(captured.borrow().is_empty());
+
+            // Status messages should be emitted before the error occurs
+            let msgs = captured.borrow();
+            assert!(msgs.len() >= 3);
+            assert_eq!(msgs[0], "Starting database sync...");
+            assert!(msgs[1].starts_with("has tables:"));
+            assert!(msgs[2].starts_with("Last synced block:"));
         }
 
         #[wasm_bindgen_test]
@@ -468,20 +485,16 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
-            // Address from test YAML
-            let address = "0x1234567890123456789012345678901234567890".to_string();
             let result = client
-                .sync_database(db_callback, status_callback, address)
+                .sync_database(db_callback, status_callback, 1u32)
                 .await;
 
-            // Should eventually fail due to unsupported chain id in HyperRpcClient
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::Rpc(err) => {
-                    let msg = err.to_string();
-                    assert!(msg.contains("Unsupported chain ID"));
+                LocalDbError::CustomError(msg) => {
+                    assert!(msg.contains("Failed to get latest block"));
                 }
-                other => panic!("Expected Rpc UnsupportedChainId, got {other:?}"),
+                other => panic!("Expected CustomError from latest block fetch, got {other:?}"),
             }
 
             let msgs = captured.borrow();
@@ -516,16 +529,14 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, &last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
-            // Valid-looking address not present in test YAML
-            let missing_address = "0x1111111111111111111111111111111111111111".to_string();
             let result = client
-                .sync_database(db_callback, status_callback, missing_address)
+                .sync_database(db_callback, status_callback, 999u32)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
                 LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get orderbook configuration"));
+                    assert!(msg.contains("Failed to get orderbook configurations"));
                 }
                 other => panic!("Expected CustomError from missing orderbook, got {other:?}"),
             }

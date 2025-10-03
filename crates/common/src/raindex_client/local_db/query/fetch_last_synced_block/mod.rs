@@ -22,9 +22,8 @@ impl LocalDbQuery {
     }
 }
 
-// TODO: This could be exposed from LocalDb
 #[wasm_export]
-impl RaindexClient {
+impl LocalDb {
     #[wasm_export(
         js_name = "getSyncStatus",
         unchecked_return_type = "SyncStatusResponse[]"
