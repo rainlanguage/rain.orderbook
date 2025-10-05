@@ -136,10 +136,10 @@ fn test_order() -> OrderV4 {
 fn cache_with_code(order: &OrderV4) -> Arc<StaticCodeCache> {
     let cache = Arc::new(StaticCodeCache::default());
     cache
-        .upsert_interpreter(order.evaluable.interpreter, &[0u8])
+        .upsert_interpreter(order.evaluable.interpreter, [0u8])
         .expect("insert interpreter code");
     cache
-        .upsert_store(order.evaluable.store, &[0u8])
+        .upsert_store(order.evaluable.store, [0u8])
         .expect("insert store code");
     cache
 }
@@ -164,12 +164,12 @@ fn snapshot_bundle_round_trip_restores_state() {
 
     let cache = Arc::new(StaticCodeCache::default());
     cache
-        .upsert_interpreter(order.evaluable.interpreter, &interpreter_code)
+        .upsert_interpreter(order.evaluable.interpreter, interpreter_code)
         .expect("insert interpreter bytecode");
     cache
-        .upsert_store(order.evaluable.store, &store_code)
+        .upsert_store(order.evaluable.store, store_code)
         .expect("insert store bytecode");
-    let host = Arc::new(NullInterpreter::default());
+    let host = Arc::new(NullInterpreter);
     let mut raindex = VirtualRaindex::new(orderbook, cache, host);
 
     let env_mutation = RaindexMutation::SetEnv {
@@ -237,7 +237,7 @@ fn snapshot_bundle_round_trip_restores_state() {
         )
         .expect("hydrate cache"),
     );
-    let restored_host = Arc::new(NullInterpreter::default());
+    let restored_host = Arc::new(NullInterpreter);
     let restored =
         VirtualRaindex::from_snapshot_bundle(bundle.clone(), restored_cache, restored_host)
             .expect("hydrate engine");
@@ -276,9 +276,9 @@ fn static_code_cache_detects_collisions_and_invalid_input() {
     let cache = StaticCodeCache::default();
     let address = Address::repeat_byte(0xAB);
     cache
-        .upsert_interpreter(address, &[1u8, 2, 3])
+        .upsert_interpreter(address, [1u8, 2, 3])
         .expect("insert interpreter bytecode");
-    let collision = cache.upsert_interpreter(address, &[9u8, 9, 9]).unwrap_err();
+    let collision = cache.upsert_interpreter(address, [9u8, 9, 9]).unwrap_err();
     assert!(matches!(
         collision,
         RaindexError::BytecodeCollision {
@@ -288,7 +288,7 @@ fn static_code_cache_detects_collisions_and_invalid_input() {
     ));
 
     let invalid = cache
-        .upsert_store(Address::repeat_byte(0xCD), &[])
+        .upsert_store(Address::repeat_byte(0xCD), [])
         .unwrap_err();
     assert!(matches!(
         invalid,
