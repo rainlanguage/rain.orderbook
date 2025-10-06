@@ -8,6 +8,7 @@ mod engine;
 mod error;
 pub mod events;
 pub mod host;
+pub mod snapshot;
 mod state;
 mod types;
 
@@ -16,6 +17,7 @@ pub use engine::VirtualRaindex;
 pub use error::{BytecodeKind, RaindexError, Result};
 pub use host::RevmInterpreterHost;
 pub use rain_math_float::Float;
+pub use snapshot::{CacheHandles, OrderRecord, SnapshotBundle, StoreRecord, VaultBalanceRecord};
 pub use state::{
     derive_fqn, Env, RaindexMutation, Snapshot, StoreKey, StoreKeyValue, StoreSet,
     TokenDecimalEntry, VaultDelta, VaultKey,

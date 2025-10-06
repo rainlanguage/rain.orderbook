@@ -20,6 +20,16 @@ pub enum RaindexError {
         address: Address,
         kind: BytecodeKind,
     },
+    /// Raised when provided bytecode cannot be decoded into binary form.
+    InvalidBytecodeEncoding {
+        address: Address,
+        kind: BytecodeKind,
+    },
+    /// Raised when attempting to insert conflicting bytecode for an address.
+    BytecodeCollision {
+        address: Address,
+        kind: BytecodeKind,
+    },
     /// Wrapper for REVM execution failures.
     RevmExecution(String),
     /// Raised when a referenced order hash cannot be resolved from state.
@@ -55,6 +65,15 @@ impl fmt::Display for RaindexError {
             RaindexError::Float(err) => write!(f, "float error: {err}"),
             RaindexError::MissingBytecode { address, kind } => {
                 write!(f, "missing {kind} bytecode for address {address}")
+            }
+            RaindexError::InvalidBytecodeEncoding { address, kind } => {
+                write!(f, "invalid {kind} bytecode encoding for address {address}")
+            }
+            RaindexError::BytecodeCollision { address, kind } => {
+                write!(
+                    f,
+                    "conflicting {kind} bytecode already cached for address {address}"
+                )
             }
             RaindexError::RevmExecution(reason) => write!(f, "revm execution failed: {reason}"),
             RaindexError::OrderNotFound { order_hash } => {
