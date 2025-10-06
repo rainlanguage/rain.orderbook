@@ -1,12 +1,11 @@
 use super::*;
 use futures::StreamExt;
+use rain_math_float::Float;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
 };
-use rain_orderbook_common::{
-    raindex_client::vaults::AccountBalance, utils::amount_formatter::format_amount_u256,
-};
+use rain_orderbook_common::raindex_client::vaults::AccountBalance;
 use std::str::FromStr;
 
 const MAX_CONCURRENT_FETCHES: usize = 5;
@@ -419,11 +418,9 @@ impl DotrainOrderGui {
         let balance = erc20
             .get_account_balance(Address::from_str(&owner)?)
             .await?;
+        let float_balance = Float::from_fixed_decimal(balance, decimals)?;
 
-        Ok(AccountBalance::new(
-            balance,
-            format_amount_u256(balance, decimals)?,
-        ))
+        Ok(AccountBalance::new(float_balance, float_balance.format()?))
     }
 }
 
