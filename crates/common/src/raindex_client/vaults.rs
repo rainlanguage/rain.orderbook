@@ -787,9 +787,9 @@ impl RaindexVaultBalanceChange {
         let new_balance = Float::from_hex(&change.running_balance)?;
         let old_balance = (new_balance - amount)?;
 
-        let formatted_amount = amount.format18()?;
-        let formatted_new_balance = new_balance.format18()?;
-        let formatted_old_balance = old_balance.format18()?;
+        let formatted_amount = amount.format()?;
+        let formatted_new_balance = new_balance.format()?;
+        let formatted_old_balance = old_balance.format()?;
 
         let from_address = Address::from_str(&change.owner).unwrap_or(vault.owner);
         let transaction = RaindexTransaction::from_local_parts(
