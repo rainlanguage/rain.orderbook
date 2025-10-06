@@ -2,7 +2,7 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 
 const packagePrefix = 'rain_orderbook_';
-const [package] = process.argv.slice(2);
+const [package, isTauriBuild = false] = process.argv.slice(2);
 
 // generate node/web bindgens
 execSync(
@@ -66,7 +66,17 @@ fs.writeFileSync(`./dist/cjs/index.js`, cjs);
 let esm = fs.readFileSync(`./temp/web/${package}/${package}.js`, {
 	encoding: 'utf-8'
 });
-esm = esm.replace(
+if (isTauriBuild) {
+	esm = esm.replace(
+	`export { initSync };
+export default __wbg_init;`,
+	`import { Buffer } from 'buffer';
+import wasmB64 from '../esm/orderbook_wbg.json';
+const bytes = Buffer.from(wasmB64.wasm, 'base64');
+initSync(bytes);`
+);
+} else {
+	esm = esm.replace(
 	`export { initSync };
 export default __wbg_init;`,
 	`import { Buffer } from 'buffer';
@@ -74,5 +84,6 @@ import wasmB64 from '../esm/orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');
 await __wbg_init(bytes);`
 );
+}
 esm = '/* this file is auto-generated, do not modify */\n' + esm;
 fs.writeFileSync(`./dist/esm/index.js`, esm);
