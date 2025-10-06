@@ -1,5 +1,5 @@
 use super::{
-    query::{create_tables::REQUIRED_TABLES, LocalDbQuery},
+    query::{create_tables::REQUIRED_TABLES, LocalDbQuery, LocalDbQueryError},
     *,
 };
 use flate2::read::GzDecoder;
@@ -8,20 +8,16 @@ use std::io::Read;
 
 const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/46a8065a2ccbf49e9fc509cbc052cd497feb6bd5/local-db-dump.sql.gz";
 
-async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbError> {
-    match LocalDbQuery::fetch_all_tables(db_callback).await {
-        Ok(tables) => {
-            let existing_table_names: std::collections::HashSet<String> =
-                tables.into_iter().map(|t| t.name).collect();
+async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbQueryError> {
+    let tables = LocalDbQuery::fetch_all_tables(db_callback).await?;
+    let existing_table_names: std::collections::HashSet<String> =
+        tables.into_iter().map(|t| t.name).collect();
 
-            let has_all_tables = REQUIRED_TABLES
-                .iter()
-                .all(|&table| existing_table_names.contains(table));
+    let has_all_tables = REQUIRED_TABLES
+        .iter()
+        .all(|&table| existing_table_names.contains(table));
 
-            Ok(has_all_tables)
-        }
-        Err(_) => Ok(false),
-    }
+    Ok(has_all_tables)
 }
 
 async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
@@ -43,16 +39,14 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     Ok(decompressed)
 }
 
-pub async fn get_last_synced_block(db_callback: &js_sys::Function) -> Result<u64, LocalDbError> {
-    match LocalDbQuery::fetch_last_synced_block(db_callback).await {
-        Ok(results) => {
-            if let Some(sync_status) = results.first() {
-                Ok(sync_status.last_synced_block)
-            } else {
-                Ok(0)
-            }
-        }
-        Err(e) => Err(e.into()),
+pub async fn get_last_synced_block(
+    db_callback: &js_sys::Function,
+) -> Result<u64, LocalDbQueryError> {
+    let results = LocalDbQuery::fetch_last_synced_block(db_callback).await?;
+    if let Some(sync_status) = results.first() {
+        Ok(sync_status.last_synced_block)
+    } else {
+        Ok(0)
     }
 }
 
@@ -80,15 +74,9 @@ impl RaindexClient {
     ) -> Result<(), LocalDbError> {
         send_status_message(&status_callback, "Starting database sync...".to_string())?;
 
-        let has_tables = match check_required_tables(&db_callback).await {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to check tables: {}",
-                    e
-                )));
-            }
-        };
+        let has_tables = check_required_tables(&db_callback)
+            .await
+            .map_err(LocalDbError::TableCheckFailed)?;
 
         send_status_message(&status_callback, format!("has tables: {}", has_tables))?;
 
@@ -102,57 +90,28 @@ impl RaindexClient {
             LocalDbQuery::execute_query_text(&db_callback, &dump_sql).await?;
         }
 
-        let last_synced_block = match get_last_synced_block(&db_callback).await {
-            Ok(block) => block,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to read sync status: {}",
-                    e
-                )));
-            }
-        };
+        let last_synced_block = get_last_synced_block(&db_callback)
+            .await
+            .map_err(LocalDbError::SyncStatusReadFailed)?;
         send_status_message(
             &status_callback,
             format!("Last synced block: {}", last_synced_block),
         )?;
 
-        let orderbooks = match self.get_orderbooks_by_chain_id(chain_id) {
-            Ok(o) => o,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to get orderbook configurations: {}",
-                    e
-                )));
-            }
+        let orderbooks = self
+            .get_orderbooks_by_chain_id(chain_id)
+            .map_err(|e| LocalDbError::OrderbookConfigNotFound(Box::new(e)))?;
+
+        let Some(orderbook_cfg) = orderbooks.first() else {
+            return Err(LocalDbError::CustomError(format!(
+                "No orderbook configuration found for chain ID {}",
+                chain_id
+            )));
         };
 
-        // TODO: For simplicity, we only handle one orderbook per chain ID here.
-        // This will be changed in the future to support multiple orderbooks.
-        let orderbook_cfg = match orderbooks.first() {
-            Some(cfg) => cfg,
-            None => {
-                return Err(LocalDbError::CustomError(format!(
-                    "No orderbook configuration found for chain ID {}",
-                    chain_id
-                )));
-            }
-        };
+        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone())?;
 
-        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone());
-
-        let latest_block = match local_db
-            .rpc_client()
-            .get_latest_block_number(local_db.rpc_urls())
-            .await
-        {
-            Ok(block) => block,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to get latest block: {}",
-                    e
-                )));
-            }
-        };
+        let latest_block = local_db.rpc_client().get_latest_block_number().await?;
 
         let start_block = if last_synced_block == 0 {
             orderbook_cfg.deployment_block
@@ -164,41 +123,24 @@ impl RaindexClient {
             &status_callback,
             "Fetching latest onchain events...".to_string(),
         )?;
-        let events = match local_db
+        let events = local_db
             .fetch_events(
                 &orderbook_cfg.address.to_string(),
                 start_block,
                 latest_block,
             )
             .await
-        {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "There was a problem trying to fetch events: {}",
-                    e
-                )));
-            }
-        };
+            .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let decoded_events = match local_db.decode_events(events) {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "There was a problem trying to decode events: {}",
-                    e
-                )));
-            }
-        };
+        let decoded_events = local_db
+            .decode_events(&events)
+            .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
 
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        let sql_commands = match local_db.decoded_events_to_sql(decoded_events, latest_block) {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(e.to_string()));
-            }
-        };
+        let sql_commands = local_db
+            .decoded_events_to_sql(&decoded_events, latest_block)
+            .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
 
         LocalDbQuery::execute_query_text(&db_callback, &sql_commands).await?;
 
@@ -218,9 +160,13 @@ mod tests {
             create_tables::REQUIRED_TABLES, fetch_last_synced_block::SyncStatusResponse,
             fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
         };
+        use crate::raindex_client::RaindexError;
+        use rain_orderbook_app_settings::yaml::YamlError;
         use std::cell::RefCell;
         use std::rc::Rc;
+        use wasm_bindgen::JsCast;
         use wasm_bindgen_test::*;
+        use wasm_bindgen_utils::prelude::*;
 
         #[wasm_bindgen_test]
         async fn test_check_required_tables_all_exist() {
@@ -276,8 +222,11 @@ mod tests {
 
             let result = check_required_tables(&callback).await;
 
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), false);
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::JsonError(_) => {}
+                other => panic!("Expected LocalDbQueryError::JsonError, got {other:?}"),
+            }
         }
 
         #[wasm_bindgen_test]
@@ -339,7 +288,7 @@ mod tests {
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::LocalDbQueryError(LocalDbQueryError::JsonError(_)) => {}
+                LocalDbQueryError::JsonError(_) => {}
                 other => panic!("Expected LocalDbQueryError::JsonError, got {other:?}"),
             }
         }
@@ -430,8 +379,8 @@ mod tests {
         }
 
         #[wasm_bindgen_test]
-        async fn test_sync_invalid_chain_id() {
-            // Any client config is fine; we bail after initial steps
+        async fn test_sync_unknown_chain_id() {
+            // Any client config is fine; we bail before using it once the chain lookup fails
             let client = RaindexClient::new(
                 vec![crate::raindex_client::tests::get_test_yaml(
                     "http://localhost:3000/sg1",
@@ -443,28 +392,32 @@ mod tests {
             )
             .unwrap();
 
-            // Callbacks
-            let db_callback = create_dispatching_db_callback(&make_tables_json(), "[]");
+            // Provide existing tables and an empty sync status so we skip dump downloads
+            let tables_json = make_tables_json();
+            let db_callback = create_dispatching_db_callback(&tables_json, "[]");
             let (status_callback, captured) = create_status_collector();
 
+            let missing_chain_id = 999_999u32;
             let result = client
-                .sync_database(db_callback, status_callback, 999u32)
+                .sync_database(db_callback, status_callback, missing_chain_id)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get orderbook configurations"));
-                }
-                other => panic!("Expected CustomError from missing chain ID, got {other:?}"),
+                LocalDbError::OrderbookConfigNotFound(err) => match *err {
+                    RaindexError::YamlError(YamlError::NotFound(message)) => {
+                        assert!(message.contains(&missing_chain_id.to_string()));
+                    }
+                    other => panic!("Expected YamlError::NotFound, got {other:?}"),
+                },
+                other => panic!("Expected OrderbookConfigNotFound, got {other:?}"),
             }
-
-            // Status messages should be emitted before the error occurs
+            // We emit status messages before failing on the chain lookup
             let msgs = captured.borrow();
             assert!(msgs.len() >= 3);
             assert_eq!(msgs[0], "Starting database sync...");
-            assert!(msgs[1].starts_with("has tables:"));
-            assert!(msgs[2].starts_with("Last synced block:"));
+            assert_eq!(msgs[1], "has tables: true");
+            assert_eq!(msgs[2], "Last synced block: 0");
         }
 
         #[wasm_bindgen_test]
@@ -486,16 +439,14 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
-            let result = client
-                .sync_database(db_callback, status_callback, 1u32)
-                .await;
+            // Chain ID for mainnet in test YAML
+            let result = client.sync_database(db_callback, status_callback, 1).await;
 
+            // Should eventually fail when attempting to reach the mocked RPC endpoint
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get latest block"));
-                }
-                other => panic!("Expected CustomError from latest block fetch, got {other:?}"),
+                LocalDbError::Rpc(_) => {}
+                other => panic!("Expected Rpc error, got {other:?}"),
             }
 
             let msgs = captured.borrow();
@@ -530,16 +481,21 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, &last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
+            // Chain ID not present in the test YAML
+            let missing_chain_id = 999_999u32;
             let result = client
-                .sync_database(db_callback, status_callback, 999u32)
+                .sync_database(db_callback, status_callback, missing_chain_id)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get orderbook configurations"));
-                }
-                other => panic!("Expected CustomError from missing orderbook, got {other:?}"),
+                LocalDbError::OrderbookConfigNotFound(err) => match *err {
+                    RaindexError::YamlError(YamlError::NotFound(message)) => {
+                        assert!(message.contains(&missing_chain_id.to_string()));
+                    }
+                    other => panic!("Expected YamlError::NotFound, got {other:?}"),
+                },
+                other => panic!("Expected OrderbookConfigNotFound, got {other:?}"),
             }
 
             let msgs = captured.borrow();
