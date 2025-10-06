@@ -175,16 +175,17 @@ pub fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)])
     let mut first = true;
     for (addr, info) in tokens.iter() {
         let address_str = format!("0x{:x}", addr);
-        let name = info.name.replace('\'', "''");
-        let symbol = info.symbol.replace('\'', "''");
+        let address_literal = sql_string_literal(&address_str);
+        let name_literal = sql_string_literal(&info.name);
+        let symbol_literal = sql_string_literal(&info.symbol);
         let decimals = info.decimals as u32; // store as INTEGER
         if !first {
             sql.push_str(", ");
         }
         first = false;
         sql.push_str(&format!(
-            "({}, '{}', '{}', '{}', {})",
-            chain_id, address_str, name, symbol, decimals
+            "({}, {}, {}, {}, {})",
+            chain_id, address_literal, name_literal, symbol_literal, decimals
         ));
     }
 
@@ -192,6 +193,19 @@ pub fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)])
         " ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;\n",
     );
     sql
+}
+
+fn sql_string_literal(value: &str) -> String {
+    let mut literal = String::with_capacity(value.len() + 2);
+    literal.push('\'');
+    for ch in value.chars() {
+        match ch {
+            '\'' => literal.push_str("''"),
+            _ => literal.push(ch),
+        }
+    }
+    literal.push('\'');
+    literal
 }
 
 fn generate_deposit_sql(
@@ -778,6 +792,78 @@ mod tests {
         // Apostrophes should be doubled
         assert!(sql.contains("Bar''s Token"));
         assert!(sql.contains("B''AR"));
+    }
+
+    fn assert_literal_round_trip(literal: &str, expected: &str) {
+        assert!(literal.starts_with('\'') && literal.ends_with('\''));
+        let mut chars = literal[1..literal.len() - 1].chars().peekable();
+        let mut reconstructed = String::new();
+        while let Some(ch) = chars.next() {
+            if ch == '\'' {
+                match chars.next() {
+                    Some('\'') => reconstructed.push('\''),
+                    _ => panic!("found unescaped single quote in literal: {}", literal),
+                }
+            } else {
+                reconstructed.push(ch);
+            }
+        }
+        assert_eq!(reconstructed, expected);
+    }
+
+    #[test]
+    fn sql_string_literal_round_trip_special_characters() {
+        let value = "Alice's \"Token\" \\ Backslash\nNewline\rCarriage\tTab; DROP TABLE tokens; --";
+        let literal = super::sql_string_literal(value);
+        assert!(literal.contains("''"));
+        assert!(literal.contains('"'));
+        assert!(literal.contains('\\'));
+        assert_literal_round_trip(&literal, value);
+    }
+
+    #[test]
+    fn generate_erc20_tokens_sql_escapes_special_characters() {
+        let addr = Address::from([3u8; 20]);
+        let name =
+            "Dangerous 'Name' \"Quotes\" \\ Backslash\nNewline; DROP TABLE tokens; --".to_string();
+        let symbol = "SYM'\"\\\n;--".to_string();
+        let tokens = vec![(
+            addr,
+            TokenInfo {
+                decimals: 8,
+                name: name.clone(),
+                symbol: symbol.clone(),
+            },
+        )];
+
+        let sql = generate_erc20_tokens_sql(5, &tokens);
+
+        let expected_tuple = format!(
+            "({}, {}, {}, {}, {})",
+            5,
+            super::sql_string_literal(&format!("0x{:x}", addr)),
+            super::sql_string_literal(&name),
+            super::sql_string_literal(&symbol),
+            8u32
+        );
+
+        assert!(sql.starts_with("INSERT INTO erc20_tokens"));
+        assert!(sql.contains(&expected_tuple));
+        assert!(sql.ends_with(
+            " ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;\n"
+        ));
+
+        let address_literal = super::sql_string_literal(&format!("0x{:x}", addr));
+        let name_literal = super::sql_string_literal(&name);
+        let symbol_literal = super::sql_string_literal(&symbol);
+
+        assert!(sql.contains(&address_literal));
+        assert!(sql.contains(&name_literal));
+        assert!(sql.contains(&symbol_literal));
+
+        assert_literal_round_trip(&address_literal, &format!("0x{:x}", addr));
+        assert_literal_round_trip(&name_literal, &name);
+        assert_literal_round_trip(&symbol_literal, &symbol);
     }
 
     #[test]
