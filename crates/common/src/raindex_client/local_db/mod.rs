@@ -209,3 +209,101 @@ impl RaindexClient {
         LocalDb::new(chain_id, api_token).map_err(RaindexError::LocalDbError)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::primitives::{Address, U256};
+    use alloy::sol_types::SolEvent;
+    use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, DepositV2};
+
+    fn make_local_db() -> LocalDb {
+        LocalDb::new(8453, "test_token".to_string()).expect("create LocalDb")
+    }
+
+    fn sample_log_entry_with_invalid_data() -> LogEntryResponse {
+        LogEntryResponse {
+            address: "0x1111111111111111111111111111111111111111".to_string(),
+            topics: vec![AddOrderV3::SIGNATURE_HASH.to_string()],
+            data: "0xnothex".to_string(),
+            block_number: "0x1".to_string(),
+            block_timestamp: Some("0x2".to_string()),
+            transaction_hash: "0x3".to_string(),
+            transaction_index: "0x0".to_string(),
+            block_hash: "0x4".to_string(),
+            log_index: "0x0".to_string(),
+            removed: false,
+        }
+    }
+
+    #[test]
+    fn decode_events_maps_decode_errors() {
+        let db = make_local_db();
+        let event = sample_log_entry_with_invalid_data();
+
+        let err = db.decode_events(&[event]).unwrap_err();
+        match err {
+            LocalDbError::DecodeError { message } => {
+                assert!(
+                    message.to_lowercase().contains("hex"),
+                    "unexpected message: {}",
+                    message
+                );
+            }
+            other => panic!("expected LocalDbError::DecodeError, got {other:?}"),
+        }
+    }
+
+    fn deposit_event_with_invalid_block() -> DecodedEventData<DecodedEvent> {
+        let deposit = DepositV2 {
+            sender: Address::from([0u8; 20]),
+            token: Address::from([1u8; 20]),
+            vaultId: U256::from(1u64).into(),
+            depositAmountUint256: U256::from(10u64),
+        };
+
+        DecodedEventData {
+            event_type: decode::EventType::DepositV2,
+            block_number: "not-hex".to_string(),
+            block_timestamp: "0x0".to_string(),
+            transaction_hash: "0x5".to_string(),
+            log_index: "0x0".to_string(),
+            decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
+        }
+    }
+
+    #[test]
+    fn decoded_events_to_sql_maps_insert_errors() {
+        let db = make_local_db();
+        let event = deposit_event_with_invalid_block();
+
+        let err = db.decoded_events_to_sql(&[event], 42).unwrap_err();
+        match err {
+            LocalDbError::InsertError { message } => {
+                assert!(
+                    message.to_lowercase().contains("hex"),
+                    "unexpected message: {}",
+                    message
+                );
+            }
+            other => panic!("expected LocalDbError::InsertError, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn invalid_block_number_helper_preserves_source() {
+        let source = ParseError::InvalidDigit('x');
+        let err = LocalDbError::invalid_block_number("0xzz", source);
+
+        match err {
+            LocalDbError::InvalidBlockNumber {
+                value,
+                source: parse,
+            } => {
+                assert_eq!(value, "0xzz");
+                assert_eq!(parse, source);
+            }
+            other => panic!("expected LocalDbError::InvalidBlockNumber, got {other:?}"),
+        }
+    }
+}
