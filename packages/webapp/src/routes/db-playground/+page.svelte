@@ -31,7 +31,7 @@
 
 	onMount(async () => {
 		await init();
-		db = SQLiteWasmDatabase.new();
+		db = SQLiteWasmDatabase.new('rainlanguage_orderbook_webapp');
 
 		if (db && !db.error && db.value) {
 			const queryFn = db.value.query.bind(db.value);
