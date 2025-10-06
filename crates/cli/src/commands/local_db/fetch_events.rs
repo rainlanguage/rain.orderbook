@@ -1,9 +1,10 @@
 use anyhow::Result;
 use clap::Parser;
 use rain_orderbook_common::raindex_client::local_db::{LocalDb, LocalDbError};
-use rain_orderbook_common::rpc_client::RpcClientError;
+use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClientError};
 use std::fs::File;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 
 #[async_trait::async_trait]
 pub trait EventClient {
@@ -13,15 +14,13 @@ pub trait EventClient {
         address: &str,
         start_block: u64,
         end_block: u64,
-    ) -> Result<serde_json::Value, LocalDbError>;
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError>;
 }
 
 #[async_trait::async_trait]
 impl EventClient for LocalDb {
     async fn get_latest_block_number(&self) -> Result<u64, RpcClientError> {
-        self.rpc_client()
-            .get_latest_block_number(self.rpc_urls())
-            .await
+        self.rpc_client().get_latest_block_number().await
     }
 
     async fn fetch_events(
@@ -29,7 +28,7 @@ impl EventClient for LocalDb {
         address: &str,
         start_block: u64,
         end_block: u64,
-    ) -> Result<serde_json::Value, LocalDbError> {
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         self.fetch_events(address, start_block, end_block).await
     }
 }
@@ -71,11 +70,12 @@ impl FetchEvents {
 
         let output_filename = self
             .output_file
-            .unwrap_or_else(|| format!("src/commands/local_db/events_{}.json", end_block));
+            .map(PathBuf::from)
+            .unwrap_or_else(|| Self::default_output_path(end_block));
         let mut file = File::create(&output_filename)?;
         file.write_all(serde_json::to_string_pretty(&all_events)?.as_bytes())?;
 
-        println!("Events and results saved to: {}", output_filename);
+        println!("Events and results saved to: {}", output_filename.display());
         Ok(())
     }
 
@@ -83,18 +83,59 @@ impl FetchEvents {
         let local_db = LocalDb::new_with_hyper_rpc(self.chain_id, self.api_token.clone())?;
         self.execute_with_client(local_db).await
     }
+
+    fn default_output_path(end_block: u64) -> PathBuf {
+        let filename = format!("events_{}.json", end_block);
+        if let Ok(dir) = std::env::var("RAIN_ORDERBOOK_EVENTS_DIR") {
+            Path::new(&dir).join(filename)
+        } else {
+            Path::new("src/commands/local_db").join(filename)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
-    use tempfile::NamedTempFile;
+    use tempfile::{NamedTempFile, TempDir};
+
+    fn sample_event(block_number: &str) -> LogEntryResponse {
+        LogEntryResponse {
+            address: "0x123".to_string(),
+            topics: vec!["0xabc".to_string()],
+            data: "0xdeadbeef".to_string(),
+            block_number: block_number.to_string(),
+            block_timestamp: Some("0x0".to_string()),
+            transaction_hash: "0xtransaction".to_string(),
+            transaction_index: "0x0".to_string(),
+            block_hash: "0xblock".to_string(),
+            log_index: "0x0".to_string(),
+            removed: false,
+        }
+    }
+
+    struct EnvVarGuard {
+        key: String,
+    }
+
+    impl EnvVarGuard {
+        fn set<K: Into<String>, V: AsRef<str>>(key: K, value: V) -> Self {
+            let key = key.into();
+            std::env::set_var(&key, value.as_ref());
+            Self { key }
+        }
+    }
+
+    impl Drop for EnvVarGuard {
+        fn drop(&mut self) {
+            std::env::remove_var(&self.key);
+        }
+    }
 
     struct MockEventClient {
         latest_block: Option<u64>,
         latest_block_error: Option<String>,
-        events: Option<serde_json::Value>,
+        events: Option<Vec<LogEntryResponse>>,
         events_error: Option<String>,
     }
 
@@ -118,7 +159,7 @@ mod tests {
             self
         }
 
-        fn with_events(mut self, events: serde_json::Value) -> Self {
+        fn with_events(mut self, events: Vec<LogEntryResponse>) -> Self {
             self.events = Some(events);
             self
         }
@@ -146,13 +187,13 @@ mod tests {
             _address: &str,
             _start_block: u64,
             _end_block: u64,
-        ) -> Result<serde_json::Value, LocalDbError> {
+        ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
             if let Some(error) = &self.events_error {
                 Err(LocalDbError::Config {
                     message: error.clone(),
                 })
             } else {
-                Ok(self.events.clone().unwrap_or_else(|| json!([])))
+                Ok(self.events.clone().unwrap_or_default())
             }
         }
     }
@@ -171,8 +212,7 @@ mod tests {
             output_file: Some(temp_path.clone()),
         };
 
-        let mock_client =
-            MockEventClient::new().with_events(json!([{"blockNumber": "0x64", "data": "test"}]));
+        let mock_client = MockEventClient::new().with_events(vec![sample_event("0x64")]);
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
@@ -198,7 +238,7 @@ mod tests {
 
         let mock_client = MockEventClient::new()
             .with_latest_block(500)
-            .with_events(json!([{"blockNumber": "0x1f4", "data": "test"}]));
+            .with_events(vec![sample_event("0x1f4")]);
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
@@ -254,6 +294,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_execute_with_client_default_output_filename() {
+        let temp_dir = TempDir::new().unwrap();
+        let _env_guard = EnvVarGuard::set(
+            "RAIN_ORDERBOOK_EVENTS_DIR",
+            temp_dir.path().to_str().unwrap(),
+        );
+
         let fetch_events = FetchEvents {
             api_token: "test_token".to_string(),
             chain_id: 1,
@@ -263,13 +309,12 @@ mod tests {
             output_file: None,
         };
 
-        let mock_client = MockEventClient::new().with_events(json!([]));
+        let mock_client = MockEventClient::new().with_events(vec![]);
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
 
-        let expected_filename = "src/commands/local_db/events_200.json";
-        assert!(std::path::Path::new(expected_filename).exists());
-        std::fs::remove_file(expected_filename).ok();
+        let expected_filename = temp_dir.path().join("events_200.json");
+        assert!(expected_filename.exists());
     }
 }
