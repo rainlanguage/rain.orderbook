@@ -201,39 +201,56 @@
 			}
 
 			for (const order of result.value) {
+				// eslint-disable-next-line no-console
 				console.log('Order active:', order.active);
+				// eslint-disable-next-line no-console
 				console.log('Order hash:', order.orderHash);
 				console.log('Order bytes:', order.orderBytes);
 
 				for (const input of order.inputsList.items) {
+					// eslint-disable-next-line no-console
 					console.log('Input vault id: ', input.vaultId);
+					// eslint-disable-next-line no-console
 					console.log(
 						`Token: ${input.token.symbol} (${input.token.address}) - ${input.token.decimals}`
 					);
+					// eslint-disable-next-line no-console
 					console.log('Balance: ', input.balance.format().value);
+					// eslint-disable-next-line no-console
 					console.log('Orders as input:', input.ordersAsInput);
+					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
 
 				for (const output of order.outputsList.items) {
+					// eslint-disable-next-line no-console
 					console.log('Output vault id: ', output.vaultId);
+					// eslint-disable-next-line no-console
 					console.log(
 						`Token: ${output.token.symbol} (${output.token.address}) - ${output.token.decimals}`
 					);
+					// eslint-disable-next-line no-console
 					console.log('Balance: ', output.balance.format().value);
+					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
 
 				for (const vault of order.vaultsList.items) {
+					// eslint-disable-next-line no-console
 					console.log('Input/Output vault id: ', vault.vaultId);
+					// eslint-disable-next-line no-console
 					console.log(
 						`Token: ${vault.token.symbol} (${vault.token.address}) - ${vault.token.decimals}`
 					);
+					// eslint-disable-next-line no-console
 					console.log('Balance: ', vault.balance.format().value);
+					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
 
+				// eslint-disable-next-line no-console
 				console.log('Order trade count:', order.tradesCount);
+				// eslint-disable-next-line no-console
 				console.log('\n\n');
 			}
 		} catch (err) {
