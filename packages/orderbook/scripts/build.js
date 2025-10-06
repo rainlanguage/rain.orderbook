@@ -1,6 +1,8 @@
 const fs = require("fs");
 const { execSync } = require("child_process");
 
+const [isTauriBuild = false] = process.argv.slice(2);
+
 // create root esm.js and cjs.js files with their .d.ts
 fs.writeFileSync(
   "./cjs.js",
@@ -22,7 +24,7 @@ execSync("npm run build-wasm");
 // names to the list below
 const packages = ["js_api"];
 for (const package of packages) {
-  execSync(`node ./scripts/buildPackage ${package}`);
+  execSync(`node ./scripts/buildPackage ${package} ${isTauriBuild ? 'true' : ''}`);
 }
 
 // rm temp folder
