@@ -93,6 +93,7 @@ pub(crate) struct Erc20TokenRow {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::local_db::sync::data_source::SyncDataSource;
     use tempfile::TempDir;
 
     #[test]
