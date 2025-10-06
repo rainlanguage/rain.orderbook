@@ -344,52 +344,6 @@ mod tests {
             .to_string()
         }
 
-        fn logs_response(entries: Vec<serde_json::Value>) -> String {
-            json!({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": entries,
-            })
-            .to_string()
-        }
-
-        fn sample_log_entry(block_number: &str, timestamp: Option<&str>) -> serde_json::Value {
-            let mut entry = json!({
-                "address": "0x123",
-                "topics": ["0xabc"],
-                "data": "0xdeadbeef",
-                "blockNumber": block_number,
-                "blockTimestamp": timestamp.unwrap_or("0x5"),
-                "transactionHash": "0xtransaction",
-                "transactionIndex": "0x0",
-                "blockHash": "0xblock",
-                "logIndex": "0x0",
-                "removed": false
-            });
-
-            if timestamp.is_none() {
-                if let serde_json::Value::Object(ref mut obj) = entry {
-                    obj.remove("blockTimestamp");
-                }
-            }
-
-            entry
-        }
-
-        fn log_entry_with(
-            block_number: &str,
-            transaction_hash: &str,
-            data: &str,
-            block_timestamp: Option<&str>,
-        ) -> serde_json::Value {
-            let mut entry = sample_log_entry(block_number, block_timestamp);
-            if let serde_json::Value::Object(ref mut obj) = entry {
-                obj.insert("transactionHash".to_string(), json!(transaction_hash));
-                obj.insert("data".to_string(), json!(data));
-            }
-            entry
-        }
-
         #[tokio::test(flavor = "multi_thread")]
         async fn test_retry_with_attempts_success_first_try() {
             let result = retry_with_attempts(|| async { Ok::<i32, RpcClientError>(42) }, 3).await;

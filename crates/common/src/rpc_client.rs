@@ -125,23 +125,17 @@ impl RpcClient {
     }
 
     pub async fn get_latest_block_number(&self) -> Result<u64, RpcClientError> {
-        let response = self
+        let block_hex = self
             .provider
             .client()
-            .request_noparams::<Value>("eth_blockNumber")
+            .request::<Vec<()>, String>("eth_blockNumber", Vec::new())
             .map_meta(set_request_id)
             .await
             .map_err(|err| Self::map_transport_error(err, Some("Getting latest block")))?;
 
-        if let Value::String(block_hex) = response {
-            let block_hex = block_hex.strip_prefix("0x").unwrap_or(&block_hex);
-            let block_number = u64::from_str_radix(block_hex, 16)?;
-            return Ok(block_number);
-        }
-
-        Err(RpcClientError::MissingField {
-            field: "result".to_string(),
-        })
+        let block_hex = block_hex.strip_prefix("0x").unwrap_or(&block_hex);
+        let block_number = u64::from_str_radix(block_hex, 16)?;
+        Ok(block_number)
     }
 
     pub async fn get_logs(
@@ -361,7 +355,6 @@ mod tests {
         // Update URLs to ensure debug path works.
         client.update_rpc_urls(vec![Url::parse(&server.base_url()).unwrap()]);
     }
-
     #[tokio::test]
     async fn test_get_latest_block_number_rpc_error() {
         let server = MockServer::start();
