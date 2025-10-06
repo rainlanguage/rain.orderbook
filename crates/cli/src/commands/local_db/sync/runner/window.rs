@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 use super::super::data_source::SyncDataSource;
 use super::super::storage::fetch_last_synced;
@@ -46,7 +46,12 @@ where
     let mut start_adjustment = None;
 
     if last_synced_block > 0 && start_block <= last_synced_block {
-        let new_start = last_synced_block + 1;
+        let new_start = last_synced_block.checked_add(1).ok_or_else(|| {
+            anyhow!(
+                "last synced block {} overflowed when incrementing",
+                last_synced_block
+            )
+        })?;
         start_adjustment = Some(StartAdjustment {
             previous: start_block,
             new_start,
@@ -127,8 +132,10 @@ mod tests {
     use super::*;
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
+    use alloy::primitives::Address;
     use async_trait::async_trait;
-    use serde_json::json;
+    use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
+    use rain_orderbook_common::rpc_client::LogEntryResponse;
     use tempfile::TempDir;
     use url::Url;
 
@@ -136,6 +143,7 @@ mod tests {
 
     struct MockDataSource {
         latest_block: u64,
+        rpc_urls: Vec<Url>,
     }
 
     #[async_trait]
@@ -144,20 +152,29 @@ mod tests {
             Ok(self.latest_block)
         }
 
-        async fn fetch_events(&self, _: &str, _: u64, _: u64) -> Result<serde_json::Value> {
-            Ok(json!([]))
+        async fn fetch_events(&self, _: &str, _: u64, _: u64) -> Result<Vec<LogEntryResponse>> {
+            Ok(vec![])
         }
 
-        fn decode_events(&self, events: serde_json::Value) -> Result<serde_json::Value> {
-            Ok(events)
+        fn decode_events(
+            &self,
+            _: &[LogEntryResponse],
+        ) -> Result<Vec<DecodedEventData<DecodedEvent>>> {
+            Ok(vec![])
         }
 
-        fn events_to_sql(&self, _: serde_json::Value, _: u64, _: &str) -> Result<String> {
+        fn events_to_sql(
+            &self,
+            _: &[DecodedEventData<DecodedEvent>],
+            _: u64,
+            _: &std::collections::HashMap<Address, u8>,
+            _: &str,
+        ) -> Result<String> {
             Ok(String::new())
         }
 
         fn rpc_urls(&self) -> &[Url] {
-            &[]
+            &self.rpc_urls
         }
     }
 
@@ -168,7 +185,10 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
 
-        let data_source = MockDataSource { latest_block: 10 };
+        let data_source = MockDataSource {
+            latest_block: 10,
+            rpc_urls: Vec::new(),
+        };
         let params = SyncParams {
             chain_id: 1,
             orderbook_address: "0xfeed",
