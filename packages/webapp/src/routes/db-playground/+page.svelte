@@ -201,24 +201,36 @@
 				return;
 			}
 			for (let order of result.value) {
+				// eslint-disable-next-line no-console
 				console.log('Order active:', order.active);
+				// eslint-disable-next-line no-console
 				console.log('Order hash:', order.orderHash);
 
 				for (let input of order.inputsList.items) {
+					// eslint-disable-next-line no-console
 					console.log('Input vault id: ', input.vaultId);
+					// eslint-disable-next-line no-console
 					console.log('Input token: ', input.token.address);
+					// eslint-disable-next-line no-console
 					console.log('Balance: ', input.balance.format().value);
+					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
 
 				for (let output of order.outputsList.items) {
+					// eslint-disable-next-line no-console
 					console.log('Output vault id: ', output.vaultId);
+					// eslint-disable-next-line no-console
 					console.log('Output token: ', output.token.address);
+					// eslint-disable-next-line no-console
 					console.log('Balance: ', output.balance.format().value);
+					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
 
+				// eslint-disable-next-line no-console
 				console.log('Order trade count:', order.tradesCount);
+				// eslint-disable-next-line no-console
 				console.log('\n\n');
 			}
 		} catch (e) {
