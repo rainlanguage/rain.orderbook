@@ -217,8 +217,8 @@ where
     Fut: std::future::Future<Output = Result<T, HyperRpcError>>,
 {
     if max_attempts == 0 {
-        return Err(LocalDbError::MissingField {
-            field: "Not attempted".to_string(),
+        return Err(LocalDbError::Config {
+            message: "max_attempts must be > 0".to_string(),
         });
     }
 

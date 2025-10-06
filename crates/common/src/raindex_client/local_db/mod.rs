@@ -58,6 +58,24 @@ pub enum LocalDbError {
     #[error("Database insertion error: {message}")]
     InsertError { message: String },
 
+    #[error("Failed to check required tables")]
+    TableCheckFailed(#[source] LocalDbQueryError),
+
+    #[error("Failed to read sync status")]
+    SyncStatusReadFailed(#[source] LocalDbQueryError),
+
+    #[error("Failed to load orderbook configuration")]
+    OrderbookConfigNotFound(#[source] Box<RaindexError>),
+
+    #[error("Failed to fetch events")]
+    FetchEventsFailed(#[source] Box<LocalDbError>),
+
+    #[error("Failed to decode events")]
+    DecodeEventsFailed(#[source] Box<LocalDbError>),
+
+    #[error("Failed to generate SQL from events")]
+    SqlGenerationFailed(#[source] Box<LocalDbError>),
+
     #[error("HTTP request failed with status: {status}")]
     HttpStatus { status: u16 },
 
@@ -90,6 +108,27 @@ impl LocalDbError {
             LocalDbError::DecodeError { message } => format!("Event decoding error: {}", message),
             LocalDbError::InsertError { message } => {
                 format!("Database insertion error: {}", message)
+            }
+            LocalDbError::TableCheckFailed(err) => {
+                format!("Failed to check required tables: {}", err)
+            }
+            LocalDbError::SyncStatusReadFailed(err) => {
+                format!("Failed to read sync status: {}", err)
+            }
+            LocalDbError::OrderbookConfigNotFound(err) => {
+                format!("Failed to load orderbook configuration: {}", err)
+            }
+            LocalDbError::FetchEventsFailed(err) => {
+                format!("Failed to fetch events: {}", err.to_readable_msg())
+            }
+            LocalDbError::DecodeEventsFailed(err) => {
+                format!("Failed to decode events: {}", err.to_readable_msg())
+            }
+            LocalDbError::SqlGenerationFailed(err) => {
+                format!(
+                    "Failed to generate SQL from events: {}",
+                    err.to_readable_msg()
+                )
             }
             LocalDbError::HttpStatus { status } => {
                 format!("HTTP request failed with status code: {}", status)

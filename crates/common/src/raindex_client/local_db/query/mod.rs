@@ -62,7 +62,6 @@ impl LocalDbQuery {
         }
     }
 
-    // TODO: Write test for this function
     pub async fn execute_query_text(
         callback: &js_sys::Function,
         sql: &str,
