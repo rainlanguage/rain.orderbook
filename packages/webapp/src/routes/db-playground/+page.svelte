@@ -125,6 +125,7 @@
 		if (!db?.value) return;
 
 		try {
+			error = '';
 			const queryFn = db.value.query.bind(db.value);
 			const statusResult = await localDbClient.getSyncStatus(queryFn);
 
@@ -137,7 +138,7 @@
 				}
 			}
 		} catch (err) {
-			console.error('Failed to get sync status:', err);
+			error = err instanceof Error ? err.message : String(err);
 		}
 	}
 
@@ -167,14 +168,15 @@
 			);
 
 			if (syncResult.error) {
-				console.error('Auto-sync error:', syncResult.error.msg);
+				error = syncResult.error.msg;
 				return;
 			}
 
+			error = '';
 			// Update sync status display
 			await updateSyncStatus();
 		} catch (err) {
-			console.error('Auto-sync failed:', err);
+			error = err instanceof Error ? err.message : String(err);
 		} finally {
 			isSyncing = false;
 		}
@@ -195,9 +197,7 @@
 			const queryFn = db.value.query.bind(db.value);
 			const result = await raindexClient.getOrdersLocalDb(42161, queryFn);
 			if (result.error) {
-				console.error('Error fetching orders:', result.error);
-				// @ts-expect-error get message
-				error = error.readableMsg;
+				error = result.error.msg;
 				return;
 			}
 			for (let order of result.value) {

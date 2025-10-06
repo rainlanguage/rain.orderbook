@@ -6,7 +6,6 @@ use crate::{
         orders::RaindexOrderAsIO, transactions::RaindexTransaction, vaults_list::RaindexVaultsList,
     },
     transaction::TransactionArgs,
-    utils::amount_formatter::format_amount_u256,
     withdraw::WithdrawArgs,
 };
 use alloy::sol_types::SolCall;
@@ -165,15 +164,15 @@ impl RaindexVault {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct AccountBalance {
-    balance: U256,
+    balance: Float,
     formatted_balance: String,
 }
 impl AccountBalance {
-    pub fn new(balance: U256, formatted_balance: String) -> Self {
+    pub fn new(balance: Float, formatted_balance: String) -> Self {
         Self {
             balance,
             formatted_balance,
@@ -184,9 +183,8 @@ impl AccountBalance {
 #[wasm_bindgen]
 impl AccountBalance {
     #[wasm_bindgen(getter)]
-    pub fn balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.balance.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn balance(&self) -> Float {
+        self.balance
     }
     #[wasm_bindgen(getter = formattedBalance)]
     pub fn formatted_balance(&self) -> String {
@@ -195,7 +193,7 @@ impl AccountBalance {
 }
 #[cfg(not(target_family = "wasm"))]
 impl AccountBalance {
-    pub fn balance(&self) -> U256 {
+    pub fn balance(&self) -> Float {
         self.balance
     }
     pub fn formatted_balance(&self) -> String {
@@ -329,7 +327,7 @@ impl RaindexVault {
         Ok(balance_changes)
     }
 
-    fn validate_amount(&self, amount: Float) -> Result<(), RaindexError> {
+    fn validate_amount(&self, amount: &Float) -> Result<(), RaindexError> {
         let zero_float = Float::parse("0".to_string())?;
         if amount.is_zero()? {
             return Err(RaindexError::ZeroAmount);
@@ -363,7 +361,7 @@ impl RaindexVault {
     )]
     pub async fn get_deposit_calldata(
         &self,
-        #[wasm_export(param_description = "Amount to deposit in Float value")] amount: Float,
+        #[wasm_export(param_description = "Amount to deposit in Float value")] amount: &Float,
     ) -> Result<Bytes, RaindexError> {
         self.validate_amount(amount)?;
         let (deposit_args, _) = self.get_deposit_and_transaction_args(amount).await?;
@@ -394,14 +392,14 @@ impl RaindexVault {
     )]
     pub async fn get_withdraw_calldata(
         &self,
-        #[wasm_export(param_description = "Amount to withdraw in Float value")] amount: Float,
+        #[wasm_export(param_description = "Amount to withdraw in Float value")] amount: &Float,
     ) -> Result<Bytes, RaindexError> {
         self.validate_amount(amount)?;
         Ok(Bytes::copy_from_slice(
             &WithdrawArgs {
                 token: self.token.address,
                 vault_id: B256::from(self.vault_id),
-                target_amount: amount,
+                target_amount: *amount,
             }
             .get_withdraw_calldata()
             .await?,
@@ -410,7 +408,7 @@ impl RaindexVault {
 
     async fn get_deposit_and_transaction_args(
         &self,
-        amount: Float,
+        amount: &Float,
     ) -> Result<(DepositArgs, TransactionArgs), RaindexError> {
         let rpcs = {
             let raindex_client = self
@@ -423,7 +421,7 @@ impl RaindexVault {
         let deposit_args = DepositArgs {
             token: self.token.address,
             vault_id: B256::from(self.vault_id),
-            amount,
+            amount: *amount,
             decimals: self.token.decimals,
         };
 
@@ -460,7 +458,7 @@ impl RaindexVault {
     pub async fn get_approval_calldata(
         &self,
         #[wasm_export(param_description = "Amount requiring approval in Float value")]
-        amount: Float,
+        amount: &Float,
     ) -> Result<Bytes, RaindexError> {
         self.validate_amount(amount)?;
 
@@ -472,7 +470,7 @@ impl RaindexVault {
             .await?;
         let allowance_float = Float::from_fixed_decimal(allowance, self.token.decimals)?;
 
-        if allowance_float.gte(amount)? {
+        if allowance_float.gte(*amount)? {
             return Err(RaindexError::ExistingAllowance);
         }
 
@@ -507,7 +505,7 @@ impl RaindexVault {
     )]
     pub async fn get_allowance(&self) -> Result<RaindexVaultAllowance, RaindexError> {
         let (deposit_args, transaction_args) = self
-            .get_deposit_and_transaction_args(Float::parse("0".to_string())?)
+            .get_deposit_and_transaction_args(&Float::parse("0".to_string())?)
             .await?;
         let allowance = deposit_args
             .read_allowance(self.owner, transaction_args.clone())
@@ -541,9 +539,10 @@ impl RaindexVault {
     pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
         let balance = self.get_owner_balance(self.owner).await?;
         let decimals = self.token.decimals;
+        let float_balance = Float::from_fixed_decimal(balance, decimals)?;
         let account_balance = AccountBalance {
-            balance,
-            formatted_balance: format_amount_u256(balance, decimals)?,
+            balance: float_balance,
+            formatted_balance: float_balance.format()?,
         };
         Ok(account_balance)
     }
@@ -712,9 +711,9 @@ impl RaindexVaultBalanceChange {
         let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
         let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
 
-        let formatted_amount = amount.format18()?;
-        let formatted_new_balance = new_balance.format18()?;
-        let formatted_old_balance = old_balance.format18()?;
+        let formatted_amount = amount.format()?;
+        let formatted_new_balance = new_balance.format()?;
+        let formatted_old_balance = old_balance.format()?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
@@ -744,9 +743,9 @@ impl RaindexVaultBalanceChange {
         let new_balance = Float::from_hex(&balance_change.new_vault_balance.0)?;
         let old_balance = Float::from_hex(&balance_change.old_vault_balance.0)?;
 
-        let formatted_amount = amount.format18()?;
-        let formatted_new_balance = new_balance.format18()?;
-        let formatted_old_balance = old_balance.format18()?;
+        let formatted_amount = amount.format()?;
+        let formatted_new_balance = new_balance.format()?;
+        let formatted_old_balance = old_balance.format()?;
 
         Ok(Self {
             r#type: balance_change.__typename.try_into()?,
@@ -1183,7 +1182,7 @@ impl RaindexVault {
         let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault.token)?;
 
         let balance = Float::from_hex(&vault.balance.0)?;
-        let formatted_balance = balance.format18()?;
+        let formatted_balance = balance.format()?;
 
         Ok(Self {
             raindex_client,
@@ -2000,7 +1999,7 @@ mod tests {
                 .await
                 .unwrap();
             let result = vault
-                .get_deposit_calldata(Float::parse("500".to_string()).unwrap())
+                .get_deposit_calldata(&Float::parse("500".to_string()).unwrap())
                 .await
                 .unwrap();
             assert_eq!(
@@ -2018,7 +2017,7 @@ mod tests {
             );
 
             let err = vault
-                .get_deposit_calldata(Float::parse("0".to_string()).unwrap())
+                .get_deposit_calldata(&Float::parse("0".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ZeroAmount.to_string());
@@ -2065,7 +2064,7 @@ mod tests {
                 .await
                 .unwrap();
             let amount: Float = Float::parse("0.0000000000000005".to_string()).unwrap();
-            let result = vault.get_withdraw_calldata(amount).await.unwrap();
+            let result = vault.get_withdraw_calldata(&amount).await.unwrap();
             assert_eq!(
                 result,
                 Bytes::copy_from_slice(
@@ -2081,7 +2080,7 @@ mod tests {
             );
 
             let err = vault
-                .get_withdraw_calldata(Float::parse("0".to_string()).unwrap())
+                .get_withdraw_calldata(&Float::parse("0".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ZeroAmount.to_string());
@@ -2128,7 +2127,7 @@ mod tests {
                 .await
                 .unwrap();
             let result = vault
-                .get_approval_calldata(Float::parse("600".to_string()).unwrap())
+                .get_approval_calldata(&Float::parse("600".to_string()).unwrap())
                 .await
                 .unwrap();
             assert_eq!(
@@ -2143,19 +2142,19 @@ mod tests {
             );
 
             let err = vault
-                .get_approval_calldata(Float::parse("0".to_string()).unwrap())
+                .get_approval_calldata(&Float::parse("0".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ZeroAmount.to_string());
 
             let err = vault
-                .get_approval_calldata(Float::parse("90".to_string()).unwrap())
+                .get_approval_calldata(&Float::parse("90".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ExistingAllowance.to_string());
 
             let err = vault
-                .get_approval_calldata(Float::parse("100".to_string()).unwrap())
+                .get_approval_calldata(&Float::parse("100".to_string()).unwrap())
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ExistingAllowance.to_string());
