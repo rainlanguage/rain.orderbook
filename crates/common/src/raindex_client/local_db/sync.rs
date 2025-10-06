@@ -248,7 +248,6 @@ mod tests {
     mod wasm_tests {
         use super::*;
         use crate::raindex_client::local_db::decode::EventType;
-        use crate::raindex_client::local_db::insert::generate_erc20_tokens_sql;
         use crate::raindex_client::local_db::query::{
             create_tables::REQUIRED_TABLES, fetch_last_synced_block::SyncStatusResponse,
             fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
@@ -262,7 +261,6 @@ mod tests {
         use std::str::FromStr;
         use wasm_bindgen::JsCast;
         use wasm_bindgen_test::*;
-        use wasm_bindgen_utils::prelude::*;
 
         #[wasm_bindgen_test]
         async fn test_check_required_tables_all_exist() {
