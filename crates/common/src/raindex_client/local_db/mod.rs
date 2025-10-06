@@ -231,7 +231,7 @@ impl RaindexClient {
 }
 
 #[cfg(test)]
-mod tests {
+mod bool_deserialize_tests {
     use super::*;
     use alloy::primitives::{Address, U256};
     use alloy::sol_types::SolEvent;
