@@ -6766,6 +6766,7 @@ dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
  "anyhow",
+ "async-trait",
  "chrono",
  "clap",
  "comfy-table",
