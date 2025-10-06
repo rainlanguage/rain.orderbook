@@ -207,7 +207,7 @@
 				console.log('Order hash:', order.orderHash);
 
 				for (let input of order.inputsList.items) {
-				// eslint-disable-next-line no-console
+					// eslint-disable-next-line no-console
 					console.log('Input vault id: ', input.vaultId);
 					// eslint-disable-next-line no-console
 					console.log('Input token: ', input.token.address);
@@ -218,7 +218,7 @@
 				}
 
 				for (let output of order.outputsList.items) {
-				// eslint-disable-next-line no-console
+					// eslint-disable-next-line no-console
 					console.log('Output vault id: ', output.vaultId);
 					// eslint-disable-next-line no-console
 					console.log('Output token: ', output.token.address);
