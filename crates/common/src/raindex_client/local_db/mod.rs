@@ -1,6 +1,5 @@
 pub mod decode;
 pub mod fetch;
-pub mod helpers;
 pub mod insert;
 pub mod query;
 pub mod sync;
@@ -8,27 +7,29 @@ pub mod token_fetch;
 pub mod tokens;
 
 use super::*;
-use crate::rpc_client::{RpcClient, RpcClientError};
-use alloy::primitives::hex::FromHexError;
+use crate::rpc_client::{LogEntryResponse, RpcClient, RpcClientError};
 use alloy::primitives::ruint::ParseError;
+use alloy::primitives::{hex::FromHexError, Address};
+use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::FetchConfig;
+use insert::decoded_events_to_sql as decoded_events_to_sql_impl;
 use query::LocalDbQueryError;
+use std::collections::HashMap;
+use url::Url;
 
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct LocalDb {
-    rpc: RpcClient,
-    rpc_urls: Vec<Url>,
+    rpc_client: RpcClient,
 }
 
 impl Default for LocalDb {
     fn default() -> Self {
-        Self {
-            rpc: RpcClient,
-            rpc_urls: vec![Url::parse("http://localhost:4444").unwrap()],
-        }
+        let url = Url::parse("http://localhost:4444").expect("valid default URL");
+        let rpc_client = RpcClient::new_with_urls(vec![url]).expect("create default RPC client");
+        Self { rpc_client }
     }
 }
 
@@ -71,6 +72,24 @@ pub enum LocalDbError {
     #[error("Database insertion error: {message}")]
     InsertError { message: String },
 
+    #[error("Failed to check required tables")]
+    TableCheckFailed(#[source] LocalDbQueryError),
+
+    #[error("Failed to read sync status")]
+    SyncStatusReadFailed(#[source] LocalDbQueryError),
+
+    #[error("Failed to load orderbook configuration")]
+    OrderbookConfigNotFound(#[source] Box<RaindexError>),
+
+    #[error("Failed to fetch events")]
+    FetchEventsFailed(#[source] Box<LocalDbError>),
+
+    #[error("Failed to decode events")]
+    DecodeEventsFailed(#[source] Box<LocalDbError>),
+
+    #[error("Failed to generate SQL from events")]
+    SqlGenerationFailed(#[source] Box<LocalDbError>),
+
     #[error("HTTP request failed with status: {status}")]
     HttpStatus { status: u16 },
 
@@ -104,6 +123,27 @@ impl LocalDbError {
             LocalDbError::InsertError { message } => {
                 format!("Database insertion error: {}", message)
             }
+            LocalDbError::TableCheckFailed(err) => {
+                format!("Failed to check required tables: {}", err)
+            }
+            LocalDbError::SyncStatusReadFailed(err) => {
+                format!("Failed to read sync status: {}", err)
+            }
+            LocalDbError::OrderbookConfigNotFound(err) => {
+                format!("Failed to load orderbook configuration: {}", err)
+            }
+            LocalDbError::FetchEventsFailed(err) => {
+                format!("Failed to fetch events: {}", err.to_readable_msg())
+            }
+            LocalDbError::DecodeEventsFailed(err) => {
+                format!("Failed to decode events: {}", err.to_readable_msg())
+            }
+            LocalDbError::SqlGenerationFailed(err) => {
+                format!(
+                    "Failed to generate SQL from events: {}",
+                    err.to_readable_msg()
+                )
+            }
             LocalDbError::HttpStatus { status } => {
                 format!("HTTP request failed with status code: {}", status)
             }
@@ -133,34 +173,26 @@ impl LocalDbError {
 }
 
 impl LocalDb {
-    pub fn new_with_regular_rpc(url: Url) -> Self {
-        Self {
-            rpc: RpcClient,
-            rpc_urls: vec![url],
-        }
+    pub fn new_with_regular_rpc(url: Url) -> Result<Self, LocalDbError> {
+        Self::new_with_regular_rpcs(vec![url])
     }
 
-    pub fn new_with_regular_rpcs(urls: Vec<Url>) -> Self {
-        Self {
-            rpc: RpcClient,
-            rpc_urls: urls,
-        }
+    pub fn new_with_regular_rpcs(urls: Vec<Url>) -> Result<Self, LocalDbError> {
+        let rpc_client = RpcClient::new_with_urls(urls)?;
+        Ok(Self { rpc_client })
     }
 
     pub fn new_with_hyper_rpc(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
-        let rpc_url = RpcClient::build_hyper_url(chain_id, &api_token)?;
-        Ok(Self {
-            rpc: RpcClient,
-            rpc_urls: vec![rpc_url],
-        })
+        let rpc_client = RpcClient::new_with_hyper_rpc(chain_id, &api_token)?;
+        Ok(Self { rpc_client })
+    }
+
+    pub fn new(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
+        Self::new_with_hyper_rpc(chain_id, api_token)
     }
 
     pub fn rpc_client(&self) -> &RpcClient {
-        &self.rpc
-    }
-
-    pub fn rpc_urls(&self) -> &[Url] {
-        &self.rpc_urls
+        &self.rpc_client
     }
 
     pub fn check_support(chain_id: u32) -> bool {
@@ -169,15 +201,36 @@ impl LocalDb {
 
     #[cfg(test)]
     pub fn new_with_url(url: Url) -> Self {
-        Self {
-            rpc: RpcClient,
-            rpc_urls: vec![url],
-        }
+        let rpc_client = RpcClient::new_with_urls(vec![url]).expect("create RPC client");
+        Self { rpc_client }
     }
 
-    #[cfg(test)]
-    pub fn set_rpc_url(&mut self, url: Url) {
-        self.rpc_urls = vec![url];
+    #[cfg(all(test, not(target_family = "wasm")))]
+    pub fn update_rpc_urls(&mut self, urls: Vec<Url>) {
+        self.rpc_client.update_rpc_urls(urls);
+    }
+
+    pub fn decode_events(
+        &self,
+        events: &[LogEntryResponse],
+    ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
+        decode_events_impl(events).map_err(|err| LocalDbError::DecodeError {
+            message: err.to_string(),
+        })
+    }
+
+    pub fn decoded_events_to_sql(
+        &self,
+        events: &[DecodedEventData<DecodedEvent>],
+        end_block: u64,
+        decimals_by_token: &HashMap<Address, u8>,
+        prefix_sql: Option<&str>,
+    ) -> Result<String, LocalDbError> {
+        decoded_events_to_sql_impl(events, end_block, decimals_by_token, prefix_sql).map_err(
+            |err| LocalDbError::InsertError {
+                message: err.to_string(),
+            },
+        )
     }
 }
 
@@ -186,7 +239,112 @@ impl RaindexClient {
     #[wasm_export(js_name = "getLocalDbClient", preserve_js_class)]
     pub fn get_local_db_client(&self, chain_id: u32) -> Result<LocalDb, RaindexError> {
         let rpcs = self.get_rpc_urls_for_chain(chain_id)?;
-        Ok(LocalDb::new_with_regular_rpcs(rpcs))
+        LocalDb::new_with_regular_rpcs(rpcs).map_err(RaindexError::LocalDbError)
+    }
+}
+
+#[cfg(test)]
+mod bool_deserialize_tests {
+    use super::*;
+    use alloy::primitives::{Address, U256};
+    use alloy::sol_types::SolEvent;
+    use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, DepositV2};
+    use std::collections::HashMap;
+
+    fn make_local_db() -> LocalDb {
+        LocalDb::new(8453, "test_token".to_string()).expect("create LocalDb")
+    }
+
+    fn sample_log_entry_with_invalid_data() -> LogEntryResponse {
+        LogEntryResponse {
+            address: "0x1111111111111111111111111111111111111111".to_string(),
+            topics: vec![AddOrderV3::SIGNATURE_HASH.to_string()],
+            data: "0xnothex".to_string(),
+            block_number: "0x1".to_string(),
+            block_timestamp: Some("0x2".to_string()),
+            transaction_hash: "0x3".to_string(),
+            transaction_index: "0x0".to_string(),
+            block_hash: "0x4".to_string(),
+            log_index: "0x0".to_string(),
+            removed: false,
+        }
+    }
+
+    #[test]
+    fn decode_events_maps_decode_errors() {
+        let db = make_local_db();
+        let event = sample_log_entry_with_invalid_data();
+
+        let err = db.decode_events(&[event]).unwrap_err();
+        match err {
+            LocalDbError::DecodeError { message } => {
+                assert!(
+                    message.to_lowercase().contains("hex"),
+                    "unexpected message: {}",
+                    message
+                );
+            }
+            other => panic!("expected LocalDbError::DecodeError, got {other:?}"),
+        }
+    }
+
+    fn deposit_event_with_invalid_block() -> DecodedEventData<DecodedEvent> {
+        let deposit = DepositV2 {
+            sender: Address::from([0u8; 20]),
+            token: Address::from([1u8; 20]),
+            vaultId: U256::from(1u64).into(),
+            depositAmountUint256: U256::from(10u64),
+        };
+
+        DecodedEventData {
+            event_type: decode::EventType::DepositV2,
+            block_number: "not-hex".to_string(),
+            block_timestamp: "0x0".to_string(),
+            transaction_hash: "0x5".to_string(),
+            log_index: "0x0".to_string(),
+            decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
+        }
+    }
+
+    #[test]
+    fn decoded_events_to_sql_maps_insert_errors() {
+        let db = make_local_db();
+        let event = deposit_event_with_invalid_block();
+        let mut decimals = HashMap::new();
+        if let DecodedEvent::DepositV2(deposit) = &event.decoded_data {
+            decimals.insert(deposit.token, 18);
+        }
+
+        let err = db
+            .decoded_events_to_sql(&[event], 42, &decimals, None)
+            .unwrap_err();
+        match err {
+            LocalDbError::InsertError { message } => {
+                assert!(
+                    message.to_lowercase().contains("hex"),
+                    "unexpected message: {}",
+                    message
+                );
+            }
+            other => panic!("expected LocalDbError::InsertError, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn invalid_block_number_helper_preserves_source() {
+        let source = ParseError::InvalidDigit('x');
+        let err = LocalDbError::invalid_block_number("0xzz", source);
+
+        match err {
+            LocalDbError::InvalidBlockNumber {
+                value,
+                source: parse,
+            } => {
+                assert_eq!(value, "0xzz");
+                assert_eq!(parse, source);
+            }
+            other => panic!("expected LocalDbError::InvalidBlockNumber, got {other:?}"),
+        }
     }
 }
 

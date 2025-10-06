@@ -170,7 +170,9 @@
 					<VaultCard {vault} />
 				{/each}
 				{#each item.inputsOutputsList.items as vault}
-					<VaultCard {vault} />
+					{#if !item.inputsList.items.find((v) => v.id === vault.id)}
+						<VaultCard {vault} />
+					{/if}
 				{/each}
 			</div>
 		</TableBodyCell>
@@ -181,7 +183,9 @@
 					<VaultCard {vault} />
 				{/each}
 				{#each item.inputsOutputsList.items as vault}
-					<VaultCard {vault} />
+					{#if !item.outputsList.items.find((v) => v.id === vault.id)}
+						<VaultCard {vault} />
+					{/if}
 				{/each}
 			</div>
 		</TableBodyCell>
