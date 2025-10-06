@@ -56,11 +56,11 @@ pub async fn fetch_erc20_metadata_concurrent(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
-        use super::*;
+        use crate::raindex_client::local_db::token_fetch::fetch_erc20_metadata_concurrent;
+        use crate::raindex_client::local_db::LocalDbError;
+        use alloy::primitives::Address;
         use rain_orderbook_test_fixtures::LocalEvm;
         use url::Url;
 
