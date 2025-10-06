@@ -1,6 +1,7 @@
 use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
 use clap::Parser;
+use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::raindex_client::local_db::token_fetch::fetch_erc20_metadata_concurrent;
 use rain_orderbook_common::raindex_client::local_db::tokens::collect_token_addresses;
 use serde::Serialize;
@@ -40,10 +41,14 @@ impl TokensFetch {
 
         // Read decoded events
         let decoded_str = fs::read_to_string(&self.input_file)?;
-        let decoded: serde_json::Value = serde_json::from_str(&decoded_str)?;
+        let decoded_events: Vec<DecodedEventData<DecodedEvent>> =
+            serde_json::from_str(&decoded_str)
+                .map_err(|e| anyhow!("Failed to parse decoded events JSON: {}", e))?;
 
         // Collect token addresses
-        let mut addrs: Vec<Address> = collect_token_addresses(&decoded).into_iter().collect();
+        let mut addrs: Vec<Address> = collect_token_addresses(&decoded_events)
+            .into_iter()
+            .collect();
         addrs.sort();
         if addrs.is_empty() {
             fs::write(&self.output_file, "[]")?;
@@ -81,8 +86,12 @@ impl TokensFetch {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::{Address as AlloyAddress, U256};
+    use rain_orderbook_bindings::IOrderBookV5::DepositV2;
+    use rain_orderbook_common::raindex_client::local_db::decode::{
+        DecodedEvent, DecodedEventData, EventType,
+    };
     use rain_orderbook_test_fixtures::LocalEvm;
-    use serde_json::json;
     use tempfile::TempDir;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -94,10 +103,20 @@ mod tests {
         // Local EVM and a decoded event that references its token address
         let local_evm = LocalEvm::new_with_tokens(1).await;
         let token = local_evm.tokens[0].clone();
-        let decoded = json!([
-            {"event_type":"DepositV2","decoded_data": {"token": format!("0x{:x}", token.address())}}
-        ]);
-        fs::write(&input_path, serde_json::to_string(&decoded).unwrap()).unwrap();
+        let decoded_events = vec![DecodedEventData {
+            event_type: EventType::DepositV2,
+            block_number: "0x0".into(),
+            block_timestamp: "0x0".into(),
+            transaction_hash: "0x1".into(),
+            log_index: "0x0".into(),
+            decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
+                sender: AlloyAddress::from([0u8; 20]),
+                token: *token.address(),
+                vaultId: U256::from(1).into(),
+                depositAmountUint256: U256::from(0),
+            })),
+        }];
+        fs::write(&input_path, serde_json::to_string(&decoded_events).unwrap()).unwrap();
 
         let cmd = TokensFetch {
             rpc: vec![local_evm.url()],
