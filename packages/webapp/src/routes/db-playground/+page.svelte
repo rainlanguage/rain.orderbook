@@ -201,36 +201,36 @@
 				return;
 			}
 			for (let order of result.value) {
-				// @ts-expect-error intentional logging for debug
+				// eslint-disable-next-line no-console
 				console.log('Order active:', order.active);
-				// @ts-expect-error intentional logging for debug
+				// eslint-disable-next-line no-console
 				console.log('Order hash:', order.orderHash);
 
 				for (let input of order.inputsList.items) {
-					// @ts-expect-error intentional logging for debug
+				// eslint-disable-next-line no-console
 					console.log('Input vault id: ', input.vaultId);
-					// @ts-expect-error intentional logging for debug
+					// eslint-disable-next-line no-console
 					console.log('Input token: ', input.token.address);
-					// @ts-expect-error intentional logging for debug
+					// eslint-disable-next-line no-console
 					console.log('Balance: ', input.balance.format().value);
-					// @ts-expect-error intentional logging for debug
+					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
 
 				for (let output of order.outputsList.items) {
-					// @ts-expect-error intentional logging for debug
+				// eslint-disable-next-line no-console
 					console.log('Output vault id: ', output.vaultId);
-					// @ts-expect-error intentional logging for debug
+					// eslint-disable-next-line no-console
 					console.log('Output token: ', output.token.address);
-					// @ts-expect-error intentional logging for debug
+					// eslint-disable-next-line no-console
 					console.log('Balance: ', output.balance.format().value);
-					// @ts-expect-error intentional logging for debug
+					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
 
-				// @ts-expect-error intentional logging for debug
+				// eslint-disable-next-line no-console
 				console.log('Order trade count:', order.tradesCount);
-				// @ts-expect-error intentional logging for debug
+				// eslint-disable-next-line no-console
 				console.log('\n\n');
 			}
 		} catch (e) {
