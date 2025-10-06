@@ -1,11 +1,12 @@
 use alloy::primitives::Address;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use rain_orderbook_common::erc20::TokenInfo;
 use rain_orderbook_common::raindex_client::local_db::insert::generate_erc20_tokens_sql;
 use serde::Deserialize;
-use std::fs;
+use std::collections::BTreeMap;
 use std::str::FromStr;
+use tokio::fs;
 
 #[derive(Debug, Clone, Parser)]
 #[command(about = "Turn tokens.json into erc20_tokens upsert SQL")]
@@ -32,25 +33,37 @@ struct TokenJsonIn {
 
 impl TokensToSql {
     pub async fn execute(self) -> Result<()> {
-        let content = fs::read_to_string(&self.input_file)?;
-        let tokens_in: Vec<TokenJsonIn> = serde_json::from_str(&content)?;
+        let TokensToSql {
+            chain_id,
+            input_file,
+            output_file,
+        } = self;
 
-        let mut tokens: Vec<(Address, TokenInfo)> = Vec::new();
+        let content = fs::read_to_string(&input_file)
+            .await
+            .with_context(|| format!("failed to read tokens JSON from {}", &input_file))?;
+        let tokens_in: Vec<TokenJsonIn> = serde_json::from_str(&content)
+            .with_context(|| format!("failed to parse tokens JSON from {}", &input_file))?;
+
+        let mut tokens_map: BTreeMap<Address, TokenInfo> = BTreeMap::new();
         for t in tokens_in.into_iter() {
             let addr = Address::from_str(&t.address)
                 .map_err(|e| anyhow!("Invalid token address '{}': {}", t.address, e))?;
-            tokens.push((
+            tokens_map.insert(
                 addr,
                 TokenInfo {
                     decimals: t.decimals,
                     name: t.name,
                     symbol: t.symbol,
                 },
-            ));
+            );
         }
+        let tokens: Vec<(Address, TokenInfo)> = tokens_map.into_iter().collect();
 
-        let sql = generate_erc20_tokens_sql(self.chain_id, &tokens);
-        fs::write(&self.output_file, sql)?;
+        let sql = generate_erc20_tokens_sql(chain_id, &tokens);
+        fs::write(&output_file, sql)
+            .await
+            .with_context(|| format!("failed to write token SQL to {}", &output_file))?;
         Ok(())
     }
 }
@@ -70,7 +83,7 @@ mod tests {
             {"address":"0x0101010101010101010101010101010101010101","name":"Foo","symbol":"FOO","decimals":18},
             {"address":"0x0202020202020202020202020202020202020202","name":"Bar","symbol":"BAR","decimals":6}
         ]"#;
-        fs::write(&input_path, json).unwrap();
+        std::fs::write(&input_path, json).unwrap();
 
         let cmd = TokensToSql {
             chain_id: 1,
@@ -79,7 +92,7 @@ mod tests {
         };
         cmd.execute().await.unwrap();
 
-        let sql = fs::read_to_string(&output_path).unwrap();
+        let sql = std::fs::read_to_string(&output_path).unwrap();
         assert!(sql.contains("INSERT INTO erc20_tokens"));
         assert!(sql.contains("0x0101010101010101010101010101010101010101"));
         assert!(sql.contains("FOO"));
