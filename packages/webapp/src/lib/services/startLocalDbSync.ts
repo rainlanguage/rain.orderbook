@@ -50,7 +50,9 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 				const syncTime = latestStatus.updated_at ? new Date(latestStatus.updated_at) : new Date();
 				dbSyncLastSyncTime.set(syncTime);
 			} else if (statusResult.error) {
-				dbSyncStatus.set(statusResult.error.readableMsg ?? statusResult.error.msg ?? 'Failed to fetch sync status');
+				dbSyncStatus.set(
+					statusResult.error.readableMsg ?? statusResult.error.msg ?? 'Failed to fetch sync status'
+				);
 			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Failed to update sync status';
