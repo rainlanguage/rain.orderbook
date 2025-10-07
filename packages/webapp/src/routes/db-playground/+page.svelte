@@ -205,6 +205,7 @@
 				console.log('Order active:', order.active);
 				// eslint-disable-next-line no-console
 				console.log('Order hash:', order.orderHash);
+				// eslint-disable-next-line no-console
 				console.log('Order bytes:', order.orderBytes);
 
 				for (const input of order.inputsList.items) {
