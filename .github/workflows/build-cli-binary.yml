@@ -2,11 +2,6 @@ name: Build CLI Binary
 
 on:
   workflow_dispatch:
-    inputs:
-      commit_message:
-        description: "Commit message when tarball changes"
-        required: false
-        default: "chore(cli): refresh bundled binary"
 
 concurrency:
   group: build-cli-binary-${{ github.ref }}
@@ -14,12 +9,16 @@ concurrency:
 
 jobs:
   build:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: write
+    env:
+      COMMIT_SHA: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
@@ -38,17 +37,21 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1G
 
+      - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+
       - name: Build CLI tarball
         run: nix develop -c rainix-ob-cli-artifact
 
-      - name: Configure git
+      - name: Configure Git
         run: |
-          git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"
-          git config --global user.name "${{ secrets.CI_GIT_USER }}"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
 
       - name: Commit and push updated tarball
         env:
-          COMMIT_MESSAGE: ${{ inputs.commit_message || 'chore(cli): refresh bundled binary' }}
+          COMMIT_MESSAGE: "refresh orderbook cli"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git add crates/cli/bin/rain-orderbook-cli.tar.gz

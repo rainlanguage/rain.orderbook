@@ -1,13 +1,13 @@
-use super::helpers::patch_deposit_amounts_with_decimals;
 use super::token_fetch::fetch_erc20_metadata_concurrent;
 use super::{
-    insert::generate_erc20_tokens_sql,
+    decode::{DecodedEvent, DecodedEventData},
+    insert,
     query::{
         create_tables::REQUIRED_TABLES, fetch_erc20_tokens_by_addresses::Erc20TokenRow,
-        fetch_store_addresses::StoreAddressRow, LocalDbQuery,
+        fetch_store_addresses::StoreAddressRow, LocalDbQuery, LocalDbQueryError,
     },
     tokens::{collect_store_addresses, collect_token_addresses},
-    *,
+    FetchConfig, LocalDb, LocalDbError, RaindexClient,
 };
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
@@ -17,23 +17,20 @@ use std::{
     io::Read,
     str::FromStr,
 };
+use wasm_bindgen_utils::{prelude::*, wasm_export};
 
 const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/07d48a0dd5136d42a29f2b0d8950cc9d77dfb1c9/local_db.sql.gz";
 
-async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbError> {
-    match LocalDbQuery::fetch_all_tables(db_callback).await {
-        Ok(tables) => {
-            let existing_table_names: std::collections::HashSet<String> =
-                tables.into_iter().map(|t| t.name).collect();
+async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbQueryError> {
+    let tables = LocalDbQuery::fetch_all_tables(db_callback).await?;
+    let existing_table_names: std::collections::HashSet<String> =
+        tables.into_iter().map(|t| t.name).collect();
 
-            let has_all_tables = REQUIRED_TABLES
-                .iter()
-                .all(|&table| existing_table_names.contains(table));
+    let has_all_tables = REQUIRED_TABLES
+        .iter()
+        .all(|&table| existing_table_names.contains(table));
 
-            Ok(has_all_tables)
-        }
-        Err(_) => Ok(false),
-    }
+    Ok(has_all_tables)
 }
 
 async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
@@ -55,16 +52,14 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     Ok(decompressed)
 }
 
-pub async fn get_last_synced_block(db_callback: &js_sys::Function) -> Result<u64, LocalDbError> {
-    match LocalDbQuery::fetch_last_synced_block(db_callback).await {
-        Ok(results) => {
-            if let Some(sync_status) = results.first() {
-                Ok(sync_status.last_synced_block)
-            } else {
-                Ok(0)
-            }
-        }
-        Err(e) => Err(e.into()),
+pub async fn get_last_synced_block(
+    db_callback: &js_sys::Function,
+) -> Result<u64, LocalDbQueryError> {
+    let results = LocalDbQuery::fetch_last_synced_block(db_callback).await?;
+    if let Some(sync_status) = results.first() {
+        Ok(sync_status.last_synced_block)
+    } else {
+        Ok(0)
     }
 }
 
@@ -92,15 +87,9 @@ impl RaindexClient {
     ) -> Result<(), LocalDbError> {
         send_status_message(&status_callback, "Starting database sync...".to_string())?;
 
-        let has_tables = match check_required_tables(&db_callback).await {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to check tables: {}",
-                    e
-                )));
-            }
-        };
+        let has_tables = check_required_tables(&db_callback)
+            .await
+            .map_err(LocalDbError::TableCheckFailed)?;
 
         send_status_message(&status_callback, format!("has tables: {}", has_tables))?;
 
@@ -114,57 +103,28 @@ impl RaindexClient {
             LocalDbQuery::execute_query_text(&db_callback, &dump_sql).await?;
         }
 
-        let last_synced_block = match get_last_synced_block(&db_callback).await {
-            Ok(block) => block,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to read sync status: {}",
-                    e
-                )));
-            }
-        };
+        let last_synced_block = get_last_synced_block(&db_callback)
+            .await
+            .map_err(LocalDbError::SyncStatusReadFailed)?;
         send_status_message(
             &status_callback,
             format!("Last synced block: {}", last_synced_block),
         )?;
 
-        let orderbooks = match self.get_orderbooks_by_chain_id(chain_id) {
-            Ok(o) => o,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to get orderbook configurations: {}",
-                    e
-                )));
-            }
+        let orderbooks = self
+            .get_orderbooks_by_chain_id(chain_id)
+            .map_err(|e| LocalDbError::OrderbookConfigNotFound(Box::new(e)))?;
+
+        let Some(orderbook_cfg) = orderbooks.first() else {
+            return Err(LocalDbError::CustomError(format!(
+                "No orderbook configuration found for chain ID {}",
+                chain_id
+            )));
         };
 
-        // TODO: For simplicity, we only handle one orderbook per chain ID here.
-        // This will be changed in the future to support multiple orderbooks.
-        let orderbook_cfg = match orderbooks.first() {
-            Some(cfg) => cfg,
-            None => {
-                return Err(LocalDbError::CustomError(format!(
-                    "No orderbook configuration found for chain ID {}",
-                    chain_id
-                )));
-            }
-        };
+        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone())?;
 
-        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone());
-
-        let latest_block = match local_db
-            .rpc_client()
-            .get_latest_block_number(local_db.rpc_urls())
-            .await
-        {
-            Ok(block) => block,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "Failed to get latest block: {}",
-                    e
-                )));
-            }
-        };
+        let latest_block = local_db.rpc_client().get_latest_block_number().await?;
 
         let start_block = if last_synced_block == 0 {
             orderbook_cfg.deployment_block
@@ -176,33 +136,19 @@ impl RaindexClient {
             &status_callback,
             "Fetching latest onchain events...".to_string(),
         )?;
-        let events = match local_db
+        let events = local_db
             .fetch_events(
                 &orderbook_cfg.address.to_string(),
                 start_block,
                 latest_block,
             )
             .await
-        {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "There was a problem trying to fetch events: {}",
-                    e
-                )));
-            }
-        };
+            .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
         send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let mut decoded_events = match local_db.decode_events(events) {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "There was a problem trying to decode events: {}",
-                    e
-                )));
-            }
-        };
+        let mut decoded_events = local_db
+            .decode_events(&events)
+            .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
 
         let mut store_addresses: HashSet<String> = collect_store_addresses(&decoded_events)
             .into_iter()
@@ -225,25 +171,15 @@ impl RaindexClient {
                 latest_block,
                 &FetchConfig::default(),
             )
-            .await?;
+            .await
+            .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
-        let decoded_store_events = match local_db.decode_events(store_events) {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(format!(
-                    "There was a problem trying to decode interpreter store events: {}",
-                    e
-                )));
-            }
-        };
+        let mut decoded_store_events = local_db
+            .decode_events(&store_events)
+            .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
 
-        if let (Some(mut base_events), Some(store_array)) = (
-            decoded_events.as_array().cloned(),
-            decoded_store_events.as_array(),
-        ) {
-            base_events.extend(store_array.iter().cloned());
-            decoded_events = serde_json::Value::Array(base_events);
-        }
+        decoded_events.append(&mut decoded_store_events);
+        sort_events_by_block_and_log(&mut decoded_events);
 
         send_status_message(
             &status_callback,
@@ -252,20 +188,22 @@ impl RaindexClient {
         let prep =
             prepare_erc20_tokens_prefix(&db_callback, &local_db, chain_id, &decoded_events).await?;
 
-        let decoded_events =
-            patch_deposit_amounts_with_decimals(decoded_events, &prep.decimals_by_addr)?;
-
         send_status_message(&status_callback, "Populating database...".to_string())?;
-        let sql_commands = match local_db.decoded_events_to_sql_with_prefix(
-            decoded_events,
-            latest_block,
-            &prep.tokens_prefix_sql,
-        ) {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(LocalDbError::CustomError(e.to_string()));
-            }
+
+        let prefix_sql = if prep.tokens_prefix_sql.is_empty() {
+            None
+        } else {
+            Some(prep.tokens_prefix_sql.as_str())
         };
+
+        let sql_commands = local_db
+            .decoded_events_to_sql(
+                &decoded_events,
+                latest_block,
+                &prep.decimals_by_addr,
+                prefix_sql,
+            )
+            .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
 
         LocalDbQuery::execute_query_text(&db_callback, &sql_commands).await?;
 
@@ -274,23 +212,45 @@ impl RaindexClient {
     }
 }
 
+fn sort_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
+    events.sort_by(|a, b| {
+        let block_a = parse_block_number(&a.block_number);
+        let block_b = parse_block_number(&b.block_number);
+        block_a
+            .cmp(&block_b)
+            .then_with(|| parse_block_number(&a.log_index).cmp(&parse_block_number(&b.log_index)))
+    });
+}
+
+fn parse_block_number(value: &str) -> u64 {
+    let trimmed = value.trim();
+    if let Some(hex) = trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"))
+    {
+        u64::from_str_radix(hex, 16).unwrap_or(0)
+    } else {
+        trimmed.parse::<u64>().unwrap_or(0)
+    }
+}
+
 struct TokenPrepResult {
     tokens_prefix_sql: String,
-    decimals_by_addr: HashMap<String, u8>,
+    decimals_by_addr: HashMap<Address, u8>,
 }
 
 async fn prepare_erc20_tokens_prefix(
     db_callback: &js_sys::Function,
     local_db: &LocalDb,
     chain_id: u32,
-    decoded_events: &serde_json::Value,
+    decoded_events: &[DecodedEventData<DecodedEvent>],
 ) -> Result<TokenPrepResult, LocalDbError> {
     let address_set = collect_token_addresses(decoded_events);
     let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
     all_token_addrs.sort();
 
     let mut tokens_prefix_sql = String::new();
-    let mut decimals_by_addr: HashMap<String, u8> = HashMap::new();
+    let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
 
     if !all_token_addrs.is_empty() {
         let addr_strings: Vec<String> = all_token_addrs
@@ -298,38 +258,31 @@ async fn prepare_erc20_tokens_prefix(
             .map(|a| format!("0x{:x}", a))
             .collect();
 
-        let existing: Vec<Erc20TokenRow> =
+        let existing_rows: Vec<Erc20TokenRow> =
             LocalDbQuery::fetch_erc20_tokens_by_addresses(db_callback, chain_id, &addr_strings)
                 .await?;
-        // Populate decimals map from existing DB rows
-        for row in existing.iter() {
-            decimals_by_addr.insert(row.address.to_ascii_lowercase(), row.decimals);
+
+        let mut existing_set: HashSet<Address> = HashSet::new();
+        for row in existing_rows.iter() {
+            if let Ok(addr) = Address::from_str(&row.address) {
+                decimals_by_addr.insert(addr, row.decimals);
+                existing_set.insert(addr);
+            }
         }
 
-        let existing_set: HashSet<String> = existing
+        let missing_addrs: Vec<Address> = all_token_addrs
             .into_iter()
-            .map(|r| r.address.to_ascii_lowercase())
-            .collect();
-        let missing_strings: Vec<String> = addr_strings
-            .into_iter()
-            .filter(|s| !existing_set.contains(s))
+            .filter(|addr| !existing_set.contains(addr))
             .collect();
 
-        if !missing_strings.is_empty() {
-            let rpcs = local_db.rpc_urls().to_vec();
-            let missing_addrs: Vec<Address> = missing_strings
-                .iter()
-                .filter_map(|s| Address::from_str(s).ok())
-                .collect();
-
+        if !missing_addrs.is_empty() {
+            let rpcs = local_db.rpc_client().rpc_urls().to_vec();
             let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs).await?;
 
-            tokens_prefix_sql = generate_erc20_tokens_sql(chain_id, &successes);
+            tokens_prefix_sql = insert::generate_erc20_tokens_sql(chain_id, &successes);
 
-            // Populate decimals map from fetched metadata
-            for (addr, info) in successes.into_iter() {
-                let key = format!("0x{:x}", addr);
-                decimals_by_addr.insert(key, info.decimals);
+            for (addr, info) in successes.iter() {
+                decimals_by_addr.insert(*addr, info.decimals);
             }
         }
     }
@@ -347,14 +300,19 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
+        use crate::raindex_client::local_db::decode::EventType;
         use crate::raindex_client::local_db::query::{
             create_tables::REQUIRED_TABLES, fetch_last_synced_block::SyncStatusResponse,
             fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
         };
-        use alloy::primitives::U256;
-        use rain_math_float::Float;
+        use crate::raindex_client::RaindexError;
+        use alloy::primitives::{Address, U256};
+        use rain_orderbook_app_settings::yaml::YamlError;
+        use rain_orderbook_bindings::IOrderBookV5::{DepositV2, WithdrawV2};
         use std::cell::RefCell;
         use std::rc::Rc;
+        use std::str::FromStr;
+        use wasm_bindgen::JsCast;
         use wasm_bindgen_test::*;
 
         #[wasm_bindgen_test]
@@ -411,8 +369,11 @@ mod tests {
 
             let result = check_required_tables(&callback).await;
 
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), false);
+            assert!(result.is_err());
+            match result.unwrap_err() {
+                LocalDbQueryError::JsonError(_) => {}
+                other => panic!("Expected LocalDbQueryError::JsonError, got {other:?}"),
+            }
         }
 
         #[wasm_bindgen_test]
@@ -474,7 +435,7 @@ mod tests {
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::LocalDbQueryError(LocalDbQueryError::JsonError(_)) => {}
+                LocalDbQueryError::JsonError(_) => {}
                 other => panic!("Expected LocalDbQueryError::JsonError, got {other:?}"),
             }
         }
@@ -522,7 +483,7 @@ mod tests {
             let db_cb = create_success_callback("[]");
 
             let local_db = LocalDb::default();
-            let decoded = serde_json::json!([]);
+            let decoded: Vec<DecodedEventData<DecodedEvent>> = Vec::new();
 
             let res = prepare_erc20_tokens_prefix(&db_cb, &local_db, 1, &decoded)
                 .await
@@ -534,10 +495,38 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_prepare_erc20_tokens_prefix_sql_all_known() {
             // decoded events with two tokens
-            let decoded = serde_json::json!([
-                {"event_type":"DepositV2","decoded_data": {"token": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
-                {"event_type":"WithdrawV2","decoded_data": {"token": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
-            ]);
+            let mut events: Vec<DecodedEventData<DecodedEvent>> = Vec::new();
+            let deposit = DepositV2 {
+                sender: Address::from([0x11; 20]),
+                token: Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
+                vaultId: U256::from(1).into(),
+                depositAmountUint256: U256::from(0),
+            };
+            events.push(DecodedEventData {
+                event_type: EventType::DepositV2,
+                block_number: "0x0".into(),
+                block_timestamp: "0x0".into(),
+                transaction_hash: "0x0".into(),
+                log_index: "0x0".into(),
+                decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
+            });
+
+            let withdraw = WithdrawV2 {
+                sender: Address::from([0x22; 20]),
+                token: Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap(),
+                vaultId: U256::from(2).into(),
+                targetAmount: U256::from(0).into(),
+                withdrawAmount: U256::from(0).into(),
+                withdrawAmountUint256: U256::from(0),
+            };
+            events.push(DecodedEventData {
+                event_type: EventType::WithdrawV2,
+                block_number: "0x0".into(),
+                block_timestamp: "0x0".into(),
+                transaction_hash: "0x1".into(),
+                log_index: "0x1".into(),
+                decoded_data: DecodedEvent::WithdrawV2(Box::new(withdraw)),
+            });
 
             // Callback returns both rows from erc20_tokens query
             let rows = vec![
@@ -588,78 +577,15 @@ mod tests {
 
             let local_db = LocalDb::default();
 
-            let res = prepare_erc20_tokens_prefix(&cb, &local_db, 1, &decoded)
+            let res = prepare_erc20_tokens_prefix(&cb, &local_db, 1, &events)
                 .await
                 .unwrap();
             assert!(res.tokens_prefix_sql.is_empty());
             assert_eq!(res.decimals_by_addr.len(), 2);
-            assert_eq!(
-                res.decimals_by_addr
-                    .get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-                Some(&18)
-            );
-            assert_eq!(
-                res.decimals_by_addr
-                    .get("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-                Some(&6)
-            );
-        }
-
-        #[wasm_bindgen_test]
-        fn test_patch_deposit_amounts_with_decimals_success() {
-            let token = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
-            let decoded = serde_json::json!([
-                {
-                    "event_type": "DepositV2",
-                    "decoded_data": {
-                        "sender": "0x0000000000000000000000000000000000000001",
-                        "token": token,
-                        "vault_id": "0x01",
-                        "deposit_amount_uint256": "0xfa0"
-                    }
-                }
-            ]);
-
-            let mut map = HashMap::new();
-            map.insert(
-                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
-                6u8,
-            );
-
-            let patched = patch_deposit_amounts_with_decimals(decoded, &map).unwrap();
-            let arr = patched.as_array().unwrap();
-            let dd = &arr[0]["decoded_data"];
-
-            let expected = Float::from_fixed_decimal(U256::from(4000u64), 6)
-                .unwrap()
-                .as_hex();
-            assert_eq!(dd["deposit_amount"], expected);
-        }
-
-        #[wasm_bindgen_test]
-        fn test_patch_deposit_amounts_with_decimals_missing_decimals_errors() {
-            let decoded = serde_json::json!([
-                {
-                    "event_type": "DepositV2",
-                    "decoded_data": {
-                        "sender": "0x0000000000000000000000000000000000000001",
-                        "token": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                        "vault_id": "0x01",
-                        "deposit_amount_uint256": "0xfa0"
-                    }
-                }
-            ]);
-
-            let map: HashMap<String, u8> = HashMap::new();
-
-            let res = patch_deposit_amounts_with_decimals(decoded, &map);
-            assert!(res.is_err());
-            match res.unwrap_err() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Missing decimals for token"));
-                }
-                other => panic!("Expected CustomError for missing decimals, got {other:?}"),
-            }
+            let addr_a = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+            let addr_b = Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
+            assert_eq!(res.decimals_by_addr.get(&addr_a), Some(&18));
+            assert_eq!(res.decimals_by_addr.get(&addr_b), Some(&6));
         }
 
         fn create_dispatching_db_callback(
@@ -710,8 +636,8 @@ mod tests {
         }
 
         #[wasm_bindgen_test]
-        async fn test_sync_invalid_chain_id() {
-            // Any client config is fine; we bail after initial steps
+        async fn test_sync_unknown_chain_id() {
+            // Any client config is fine; we bail before using it once the chain lookup fails
             let client = RaindexClient::new(
                 vec![crate::raindex_client::tests::get_test_yaml(
                     "http://localhost:3000/sg1",
@@ -723,28 +649,32 @@ mod tests {
             )
             .unwrap();
 
-            // Callbacks
-            let db_callback = create_dispatching_db_callback(&make_tables_json(), "[]");
+            // Provide existing tables and an empty sync status so we skip dump downloads
+            let tables_json = make_tables_json();
+            let db_callback = create_dispatching_db_callback(&tables_json, "[]");
             let (status_callback, captured) = create_status_collector();
 
+            let missing_chain_id = 999_999u32;
             let result = client
-                .sync_database(db_callback, status_callback, 999u32)
+                .sync_database(db_callback, status_callback, missing_chain_id)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get orderbook configurations"));
-                }
-                other => panic!("Expected CustomError from missing chain ID, got {other:?}"),
+                LocalDbError::OrderbookConfigNotFound(err) => match *err {
+                    RaindexError::YamlError(YamlError::NotFound(message)) => {
+                        assert!(message.contains(&missing_chain_id.to_string()));
+                    }
+                    other => panic!("Expected YamlError::NotFound, got {other:?}"),
+                },
+                other => panic!("Expected OrderbookConfigNotFound, got {other:?}"),
             }
-
-            // Status messages should be emitted before the error occurs
+            // We emit status messages before failing on the chain lookup
             let msgs = captured.borrow();
             assert!(msgs.len() >= 3);
             assert_eq!(msgs[0], "Starting database sync...");
-            assert!(msgs[1].starts_with("has tables:"));
-            assert!(msgs[2].starts_with("Last synced block:"));
+            assert_eq!(msgs[1], "has tables: true");
+            assert_eq!(msgs[2], "Last synced block: 0");
         }
 
         #[wasm_bindgen_test]
@@ -766,16 +696,14 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
-            let result = client
-                .sync_database(db_callback, status_callback, 1u32)
-                .await;
+            // Chain ID for mainnet in test YAML
+            let result = client.sync_database(db_callback, status_callback, 1).await;
 
+            // Should eventually fail when attempting to reach the mocked RPC endpoint
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get latest block"));
-                }
-                other => panic!("Expected CustomError from latest block fetch, got {other:?}"),
+                LocalDbError::Rpc(_) => {}
+                other => panic!("Expected Rpc error, got {other:?}"),
             }
 
             let msgs = captured.borrow();
@@ -810,16 +738,21 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, &last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
+            // Chain ID not present in the test YAML
+            let missing_chain_id = 999_999u32;
             let result = client
-                .sync_database(db_callback, status_callback, 999u32)
+                .sync_database(db_callback, status_callback, missing_chain_id)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to get orderbook configurations"));
-                }
-                other => panic!("Expected CustomError from missing orderbook, got {other:?}"),
+                LocalDbError::OrderbookConfigNotFound(err) => match *err {
+                    RaindexError::YamlError(YamlError::NotFound(message)) => {
+                        assert!(message.contains(&missing_chain_id.to_string()));
+                    }
+                    other => panic!("Expected YamlError::NotFound, got {other:?}"),
+                },
+                other => panic!("Expected OrderbookConfigNotFound, got {other:?}"),
             }
 
             let msgs = captured.borrow();
@@ -1051,7 +984,8 @@ mod tests {
             let fetched = fetch_erc20_metadata_concurrent(rpcs, vec![addr])
                 .await
                 .unwrap();
-            let sql = generate_erc20_tokens_sql(1, &fetched);
+            let sql =
+                crate::raindex_client::local_db::insert::generate_erc20_tokens_sql(1, &fetched);
             assert!(sql.contains("INSERT INTO erc20_tokens"));
             assert!(sql.contains("0x"));
             assert!(sql.contains("Token1"));
