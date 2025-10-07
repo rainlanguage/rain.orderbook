@@ -10,8 +10,7 @@ use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::{
-    clone_section_entries, clone_section_entry, dotrain::DotrainYaml, orderbook::OrderbookYaml,
-    YamlError, YamlParsable,
+    clone_section_entry, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
 };
 use rain_orderbook_app_settings::{
     remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
@@ -24,10 +23,7 @@ use rain_orderbook_app_settings::{
 };
 use serde::{Deserialize, Serialize};
 use serde_yaml;
-use std::{
-    collections::BTreeSet,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{strict_yaml::Hash as StrictYamlHash, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -512,14 +508,6 @@ impl DotrainOrder {
             .as_ref()
             .map(|ob| ob.subgraph.key.clone());
 
-        let token_keys = order_cfg
-            .inputs
-            .iter()
-            .chain(order_cfg.outputs.iter())
-            .filter_map(|io| io.token.as_ref())
-            .map(|token| token.key.clone())
-            .collect::<BTreeSet<_>>();
-
         let order_key = order_cfg.key.clone();
         let deployment_key = deployment.key.clone();
 
@@ -546,19 +534,6 @@ impl DotrainOrder {
             StrictYaml::String("networks".to_string()),
             StrictYaml::Hash(networks_hash),
         );
-
-        if !token_keys.is_empty() {
-            let tokens_hash = clone_section_entries(
-                &documents,
-                "tokens",
-                token_keys.iter().map(|key| key.as_str()),
-            )
-            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
-            root_hash.insert(
-                StrictYaml::String("tokens".to_string()),
-                StrictYaml::Hash(tokens_hash),
-            );
-        }
 
         let deployer_value = clone_section_entry(&documents, "deployers", &deployer_key)
             .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
@@ -711,25 +686,6 @@ impl DotrainOrder {
             StrictYaml::String("deployer".to_string()),
             StrictYaml::String(scenario.deployer.key.clone()),
         );
-
-        if !scenario.bindings.is_empty() {
-            let mut bindings_hash = StrictYamlHash::new();
-            let mut binding_keys: Vec<_> = scenario.bindings.keys().cloned().collect();
-            binding_keys.sort();
-
-            for key in binding_keys {
-                if let Some(value) = scenario.bindings.get(&key) {
-                    bindings_hash.insert(
-                        StrictYaml::String(key.clone()),
-                        StrictYaml::String(value.clone()),
-                    );
-                }
-            }
-            scenario_hash.insert(
-                StrictYaml::String("bindings".to_string()),
-                StrictYaml::Hash(bindings_hash),
-            );
-        }
 
         if let Some(runs) = scenario.runs {
             scenario_hash.insert(
@@ -1692,13 +1648,10 @@ gui:
         assert!(networks.contains_key(Value::String("polygon".to_string())));
         assert!(!networks.contains_key(Value::String("goerli".to_string())));
 
-        let tokens = root
-            .get(Value::String("tokens".to_string()))
-            .and_then(|v| v.as_mapping())
-            .unwrap();
-        assert_eq!(tokens.len(), 2);
-        assert!(tokens.contains_key(Value::String("t1".to_string())));
-        assert!(tokens.contains_key(Value::String("t2".to_string())));
+        assert!(
+            root.get(Value::String("tokens".to_string())).is_none(),
+            "trimmed doc should omit tokens section"
+        );
 
         let deployers = root
             .get(Value::String("deployers".to_string()))
@@ -1754,6 +1707,12 @@ gui:
         assert!(scenario_entry
             .get(Value::String("scenarios".to_string()))
             .is_none());
+        assert!(
+            scenario_entry
+                .get(Value::String("bindings".to_string()))
+                .is_none(),
+            "trimmed doc should omit scenario bindings"
+        );
 
         assert!(!frontmatter.contains("goerli"));
     }
