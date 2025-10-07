@@ -8,6 +8,7 @@ mod engine;
 mod error;
 pub mod events;
 pub mod host;
+pub mod live;
 pub mod snapshot;
 mod state;
 mod types;
