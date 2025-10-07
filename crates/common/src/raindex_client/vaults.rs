@@ -9,7 +9,7 @@ use crate::{
     withdraw::WithdrawArgs,
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
-use alloy::{primitives::keccak256, sol_types::SolCall};
+use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
@@ -1236,22 +1236,21 @@ impl RaindexVault {
         let balance = Float::from_hex(&vault.balance)?;
         let formatted_balance = balance.format()?;
 
-        let mut id = Vec::with_capacity(
-            vault.orderbook_address.len()
-                + vault.owner.len()
-                + vault.token.len()
-                + vault.vault_id.len(),
-        );
-        id.extend_from_slice(vault.orderbook_address.as_bytes());
-        id.extend_from_slice(vault.owner.as_bytes());
-        id.extend_from_slice(vault.token.as_bytes());
-        id.extend_from_slice(vault.vault_id.as_bytes());
+        let id: Vec<u8> = vault
+            .orderbook_address
+            .as_bytes()
+            .iter()
+            .chain(vault.owner.as_bytes())
+            .chain(vault.token.as_bytes())
+            .chain(vault.vault_id.as_bytes())
+            .copied()
+            .collect();
 
         Ok(Self {
             raindex_client,
             chain_id,
             vault_type,
-            id: Bytes::from(keccak256(&id).as_slice().to_vec()),
+            id: Bytes::from(id),
             owner: Address::from_str(&vault.owner)?,
             vault_id: U256::from_str(&vault.vault_id)?,
             balance,
