@@ -5,18 +5,27 @@ pub mod query;
 pub mod sync;
 
 use super::*;
-use crate::hyper_rpc::{HyperRpcClient, HyperRpcError, LogEntryResponse};
+use crate::rpc_client::{LogEntryResponse, RpcClient, RpcClientError};
 use alloy::primitives::hex::FromHexError;
 use alloy::primitives::ruint::ParseError;
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::FetchConfig;
 use insert::decoded_events_to_sql as decoded_events_to_sql_impl;
 use query::LocalDbQueryError;
+use url::Url;
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct LocalDb {
-    client: HyperRpcClient,
+    rpc_client: RpcClient,
+}
+
+impl Default for LocalDb {
+    fn default() -> Self {
+        let url = Url::parse("foo://example.com").unwrap();
+        let rpc_client = RpcClient::new_with_urls(vec![url]).unwrap();
+        Self { rpc_client }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -28,7 +37,7 @@ pub enum LocalDbError {
     Http(#[from] reqwest::Error),
 
     #[error("RPC error")]
-    Rpc(#[from] HyperRpcError),
+    Rpc(#[from] RpcClientError),
 
     #[error("JSON parsing failed")]
     JsonParse(#[from] serde_json::Error),
@@ -159,23 +168,37 @@ impl LocalDbError {
 }
 
 impl LocalDb {
+    pub fn new_with_regular_rpc(url: Url) -> Result<Self, LocalDbError> {
+        Self::new_with_regular_rpcs(vec![url])
+    }
+
+    pub fn new_with_regular_rpcs(urls: Vec<Url>) -> Result<Self, LocalDbError> {
+        let rpc_client = RpcClient::new_with_urls(urls)?;
+        Ok(Self { rpc_client })
+    }
+
+    pub fn new_with_hyper_rpc(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
+        let rpc_client = RpcClient::new_with_hyper_rpc(chain_id, &api_token)?;
+        Ok(Self { rpc_client })
+    }
+
     pub fn new(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
-        let client = HyperRpcClient::new(chain_id, api_token)?;
-        Ok(Self { client })
+        Self::new_with_hyper_rpc(chain_id, api_token)
     }
 
-    pub fn hyper_rpc_client(&self) -> &HyperRpcClient {
-        &self.client
-    }
-
-    #[cfg(test)]
-    pub fn new_with_client(client: HyperRpcClient) -> Self {
-        Self { client }
+    pub fn rpc_client(&self) -> &RpcClient {
+        &self.rpc_client
     }
 
     #[cfg(test)]
-    pub fn client_mut(&mut self) -> &mut HyperRpcClient {
-        &mut self.client
+    pub fn new_with_url(url: Url) -> Self {
+        let rpc_client = RpcClient::new_with_urls(vec![url]).expect("create RPC client");
+        Self { rpc_client }
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    pub fn update_rpc_urls(&mut self, urls: Vec<Url>) {
+        self.rpc_client.update_rpc_urls(urls);
     }
 
     pub fn decode_events(
@@ -201,12 +224,9 @@ impl LocalDb {
 #[wasm_export]
 impl RaindexClient {
     #[wasm_export(js_name = "getLocalDbClient", preserve_js_class)]
-    pub fn get_local_db_client(
-        &self,
-        chain_id: u32,
-        api_token: String,
-    ) -> Result<LocalDb, RaindexError> {
-        LocalDb::new(chain_id, api_token).map_err(RaindexError::LocalDbError)
+    pub fn get_local_db_client(&self, chain_id: u32) -> Result<LocalDb, RaindexError> {
+        let rpcs = self.get_rpc_urls_for_chain(chain_id)?;
+        LocalDb::new_with_regular_rpcs(rpcs).map_err(RaindexError::LocalDbError)
     }
 }
 

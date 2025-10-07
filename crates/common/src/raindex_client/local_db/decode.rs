@@ -1,4 +1,4 @@
-use crate::hyper_rpc::LogEntryResponse;
+use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
     primitives::B256,
@@ -183,7 +183,7 @@ fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError>
 #[cfg(test)]
 mod test_helpers {
     use super::*;
-    use crate::hyper_rpc::LogEntryResponse;
+    use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use rain_orderbook_bindings::{

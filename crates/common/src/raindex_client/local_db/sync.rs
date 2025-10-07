@@ -110,7 +110,7 @@ impl RaindexClient {
             "41e50e69-6da4-4462-b70e-c7b5e7b70f05".to_string(),
         )?;
 
-        let latest_block = local_db.client.get_latest_block_number().await?;
+        let latest_block = local_db.rpc_client().get_latest_block_number().await?;
 
         let start_block = if last_synced_block == 0 {
             orderbook_cfg.deployment_block

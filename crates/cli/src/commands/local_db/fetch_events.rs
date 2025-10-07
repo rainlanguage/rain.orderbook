@@ -1,14 +1,14 @@
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::hyper_rpc::{HyperRpcError, LogEntryResponse};
 use rain_orderbook_common::raindex_client::local_db::{LocalDb, LocalDbError};
+use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClientError};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 #[async_trait::async_trait]
 pub trait EventClient {
-    async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError>;
+    async fn get_latest_block_number(&self) -> Result<u64, RpcClientError>;
     async fn fetch(
         &self,
         address: &str,
@@ -19,8 +19,8 @@ pub trait EventClient {
 
 #[async_trait::async_trait]
 impl EventClient for LocalDb {
-    async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
-        self.hyper_rpc_client().get_latest_block_number().await
+    async fn get_latest_block_number(&self) -> Result<u64, RpcClientError> {
+        self.rpc_client().get_latest_block_number().await
     }
 
     async fn fetch(
@@ -80,7 +80,7 @@ impl FetchEvents {
     }
 
     pub async fn execute(self) -> Result<()> {
-        let local_db = LocalDb::new(self.chain_id, self.api_token.clone())?;
+        let local_db = LocalDb::new_with_hyper_rpc(self.chain_id, self.api_token.clone())?;
         self.execute_with_client(local_db).await
     }
 
@@ -172,9 +172,9 @@ mod tests {
 
     #[async_trait::async_trait]
     impl EventClient for MockEventClient {
-        async fn get_latest_block_number(&self) -> Result<u64, HyperRpcError> {
+        async fn get_latest_block_number(&self) -> Result<u64, RpcClientError> {
             if let Some(error) = &self.latest_block_error {
-                Err(HyperRpcError::RpcError {
+                Err(RpcClientError::RpcError {
                     message: error.clone(),
                 })
             } else {
