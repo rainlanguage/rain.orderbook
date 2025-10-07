@@ -953,6 +953,7 @@ _ _: 0 0;
                 yaml.to_string(),
                 "some-deployment".to_string(),
                 None,
+                None,
             )
             .await
             .unwrap();
@@ -1002,6 +1003,7 @@ _ _: 0 0;
                 yaml.to_string(),
                 "normal-deployment".to_string(),
                 None,
+                None,
             )
             .await
             .unwrap();
@@ -1047,6 +1049,7 @@ _ _: 0 0;
             let gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
                 "some-deployment".to_string(),
+                None,
                 None,
             )
             .await

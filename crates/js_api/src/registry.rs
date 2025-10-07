@@ -287,7 +287,14 @@ impl DotrainRegistry {
         let mut order_details = BTreeMap::new();
 
         for (order_key, dotrain) in &self.orders {
-            let details = DotrainOrderGui::get_order_details(dotrain.clone())?;
+            let details = DotrainOrderGui::get_order_details(
+                dotrain.clone(),
+                if self.settings.is_empty() {
+                    None
+                } else {
+                    Some(vec![self.settings.clone()])
+                },
+            )?;
             order_details.insert(order_key.clone(), details);
         }
 
@@ -354,7 +361,14 @@ impl DotrainRegistry {
             .orders
             .get(&order_key)
             .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
-        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain.clone())?;
+        let deployment_details = DotrainOrderGui::get_deployment_details(
+            dotrain.clone(),
+            if self.settings.is_empty() {
+                None
+            } else {
+                Some(vec![self.settings.clone()])
+            },
+        )?;
         Ok(deployment_details)
     }
 
@@ -405,11 +419,19 @@ impl DotrainRegistry {
         )]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, DotrainRegistryError> {
-        let merged_content = self.merge_content_for_order(&order_key)?;
+        let dotrain = self
+            .orders
+            .get(&order_key)
+            .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
         let gui = DotrainOrderGui::new_with_deployment(
-            merged_content,
+            dotrain.clone(),
             deployment_key,
             state_update_callback,
+            if self.settings.is_empty() {
+                None
+            } else {
+                Some(vec![self.settings.clone()])
+            },
         )
         .await?;
         Ok(gui)

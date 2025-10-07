@@ -7,22 +7,24 @@ export async function handleGuiInitialization(
 	stateFromUrl: string | null
 ): Promise<{ gui: DotrainOrderGui | null; error: string | null }> {
 	if (stateFromUrl) {
-		const stateResult = await DotrainOrderGui.newFromState(
-			dotrain,
-			stateFromUrl,
-			pushGuiStateToUrlHistory
-		);
+                const stateResult = await DotrainOrderGui.newFromState(
+                        dotrain,
+                        stateFromUrl,
+                        pushGuiStateToUrlHistory,
+                        undefined
+                );
 
 		if (!stateResult.error) {
 			return { gui: stateResult.value, error: null };
 		}
 
 		// Fallback to newWithDeployment if newFromState fails
-		const deploymentResult = await DotrainOrderGui.newWithDeployment(
-			dotrain,
-			deploymentKey,
-			pushGuiStateToUrlHistory
-		);
+                const deploymentResult = await DotrainOrderGui.newWithDeployment(
+                        dotrain,
+                        deploymentKey,
+                        pushGuiStateToUrlHistory,
+                        undefined
+                );
 
 		if (deploymentResult.error)
 			return {
@@ -32,11 +34,12 @@ export async function handleGuiInitialization(
 
 		return { gui: deploymentResult.value, error: null };
 	} else {
-		const result = await DotrainOrderGui.newWithDeployment(
-			dotrain,
-			deploymentKey,
-			pushGuiStateToUrlHistory
-		);
+                const result = await DotrainOrderGui.newWithDeployment(
+                        dotrain,
+                        deploymentKey,
+                        pushGuiStateToUrlHistory,
+                        undefined
+                );
 
 		if (result.error)
 			return { gui: null, error: `Failed to create deployment form: ${result.error.readableMsg}` };
