@@ -27,7 +27,6 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 	if (localDbClientResult.error || !localDbClientResult.value) {
 		const msg = localDbClientResult.error?.readableMsg ?? 'Failed to get local DB client';
 		dbSyncStatus.set(msg);
-		console.error('startLocalDbSync: unable to create local DB client', localDbClientResult.error);
 		return () => {
 			dbSyncIsActive.set(false);
 			dbSyncIsRunning.set(false);
@@ -51,10 +50,11 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 				const syncTime = latestStatus.updated_at ? new Date(latestStatus.updated_at) : new Date();
 				dbSyncLastSyncTime.set(syncTime);
 			} else if (statusResult.error) {
-				console.warn('startLocalDbSync: getSyncStatus error', statusResult.error.readableMsg);
+				dbSyncStatus.set(statusResult.error.readableMsg ?? statusResult.error.msg ?? 'Failed to fetch sync status');
 			}
 		} catch (error) {
-			console.error('startLocalDbSync: failed to update sync status', error);
+			const message = error instanceof Error ? error.message : 'Failed to update sync status';
+			dbSyncStatus.set(message || 'Failed to update sync status');
 		}
 	}
 
@@ -75,13 +75,13 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 
 			if (syncResult.error) {
 				dbSyncStatus.set(syncResult.error.readableMsg ?? syncResult.error.msg ?? 'Sync failed');
-				console.error('startLocalDbSync: sync error', syncResult.error);
 				return;
 			}
 
 			await updateSyncStatus();
 		} catch (error) {
-			console.error('startLocalDbSync: sync threw', error);
+			const message = error instanceof Error ? error.message : 'Sync failed';
+			dbSyncStatus.set(message || 'Sync failed');
 		} finally {
 			dbSyncIsRunning.set(false);
 			isSyncing = false;
@@ -174,21 +174,13 @@ if (import.meta.vitest) {
 		};
 	};
 
-	type SpyInstance = ReturnType<typeof vi.spyOn>;
-	let consoleErrorSpy: SpyInstance;
-	let consoleWarnSpy: SpyInstance;
-
 	describe('startLocalDbSync', () => {
 		beforeEach(() => {
 			vi.useFakeTimers();
-			consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-			consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 			resetStores();
 		});
 
 		afterEach(() => {
-			consoleErrorSpy.mockRestore();
-			consoleWarnSpy.mockRestore();
 			vi.clearAllTimers();
 			vi.useRealTimers();
 		});
@@ -286,7 +278,6 @@ if (import.meta.vitest) {
 			expect(get(dbSyncLastBlock)).toBeNull();
 			expect(localDbClient.getSyncStatus).toHaveBeenCalledTimes(1);
 			expect(deps.syncLocalDatabase).toHaveBeenCalledTimes(1);
-			expect(consoleErrorSpy).toHaveBeenCalled();
 
 			stop();
 		});
