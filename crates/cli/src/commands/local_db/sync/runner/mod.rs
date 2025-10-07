@@ -198,6 +198,8 @@ mod tests {
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
+    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES (0, NULL, '0x0', 0, '0x0', '[]', '0x', '{}');\n";
+
     struct TestFetcher {
         metadata: Vec<(Address, TokenInfo)>,
         calls: Mutex<Vec<Vec<Address>>>,
@@ -403,7 +405,7 @@ mod tests {
             sql_calls: Mutex::new(vec![]),
             prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
-            raw_sql: "RAW_EVENTS;\n".into(),
+            raw_sql: RAW_SQL_STUB.into(),
             raw_calls: Mutex::new(vec![]),
         };
 
@@ -512,7 +514,7 @@ mod tests {
             sql_calls: Mutex::new(vec![]),
             prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
-            raw_sql: "RAW;\n".into(),
+            raw_sql: RAW_SQL_STUB.into(),
             raw_calls: Mutex::new(vec![]),
         };
         let fetcher = TestFetcher {

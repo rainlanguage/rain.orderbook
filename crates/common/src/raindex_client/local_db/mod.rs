@@ -12,7 +12,10 @@ use alloy::primitives::ruint::ParseError;
 use alloy::primitives::{hex::FromHexError, Address};
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::FetchConfig;
-use insert::decoded_events_to_sql as decoded_events_to_sql_impl;
+use insert::{
+    decoded_events_to_sql as decoded_events_to_sql_impl,
+    raw_events_to_sql as raw_events_to_sql_impl,
+};
 use query::LocalDbQueryError;
 use std::collections::HashMap;
 use url::Url;
@@ -233,6 +236,15 @@ impl LocalDb {
                 message: err.to_string(),
             },
         )
+    }
+
+    pub fn raw_events_to_sql(
+        &self,
+        raw_events: &[LogEntryResponse],
+    ) -> Result<String, LocalDbError> {
+        raw_events_to_sql_impl(raw_events).map_err(|err| LocalDbError::InsertError {
+            message: err.to_string(),
+        })
     }
 }
 

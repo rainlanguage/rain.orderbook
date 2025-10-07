@@ -111,6 +111,8 @@ mod tests {
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
+    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES (0, NULL, '0x0', 0, '0x0', '[]', '0x', '{}');\n";
+
     struct MockDataSource {
         sql_result: String,
         rpc_urls: Vec<Url>,
@@ -258,7 +260,7 @@ mod tests {
             captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
-            raw_sql: "RAW_PREFIX;\n".to_string(),
+            raw_sql: RAW_SQL_STUB.to_string(),
             captured_raw: Mutex::new(vec![]),
         };
 
@@ -279,7 +281,7 @@ mod tests {
         assert!(result.contains("INSERT INTO sync"));
         let prefixes = data_source.captured_prefixes.lock().unwrap();
         assert_eq!(prefixes.len(), 1);
-        assert!(prefixes[0].starts_with("RAW_PREFIX;"));
+        assert!(prefixes[0].starts_with("INSERT INTO raw_events"));
         let raw = data_source.captured_raw.lock().unwrap();
         assert_eq!(raw.len(), 1);
         assert!(raw[0].is_empty());
@@ -323,7 +325,7 @@ mod tests {
             captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
             captured_decimals: Mutex::new(Vec::new()),
-            raw_sql: "RAW;\n".into(),
+            raw_sql: RAW_SQL_STUB.into(),
             captured_raw: Mutex::new(Vec::new()),
         };
 
@@ -357,7 +359,7 @@ mod tests {
 
         let prefixes = data_source.captured_prefixes.lock().unwrap();
         assert_eq!(prefixes.len(), 1);
-        assert!(prefixes[0].starts_with("RAW;\n"));
+        assert!(prefixes[0].starts_with("INSERT INTO raw_events"));
 
         let captured_events = data_source.captured_events.lock().unwrap();
         assert_eq!(captured_events.len(), 1);
