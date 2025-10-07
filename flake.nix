@@ -98,12 +98,14 @@
               ARCHIVE_NAME=rain-orderbook-cli.tar.gz
               BINARY_NAME=rain-orderbook-cli
 
-              cargo build --release -p rain_orderbook_cli
+              TARGET_TRIPLE=x86_64-unknown-linux-gnu
+
+              cargo build --release -p rain_orderbook_cli --target "$TARGET_TRIPLE"
 
               mkdir -p "$OUTPUT_DIR"
               rm -f "$OUTPUT_DIR/$ARCHIVE_NAME"
 
-              cp target/release/rain_orderbook_cli "$OUTPUT_DIR/$BINARY_NAME"
+              cp "target/$TARGET_TRIPLE/release/rain_orderbook_cli" "$OUTPUT_DIR/$BINARY_NAME"
               chmod 755 "$OUTPUT_DIR/$BINARY_NAME"
               strip "$OUTPUT_DIR/$BINARY_NAME" || true
 
@@ -201,6 +203,11 @@
                 chmod +w lib/libusb-1.0.0.dylib
                 install_name_tool -id @executable_path/../Frameworks/libusb-1.0.0.dylib lib/libusb-1.0.0.dylib
                 otool -L lib/libusb-1.0.0.dylib
+
+                cp ${pkgs.bzip2.out}/lib/libbz2.1.dylib lib/libbz2.1.dylib
+                chmod +w lib/libbz2.1.dylib
+                install_name_tool -id @executable_path/../Frameworks/libbz2.1.dylib lib/libbz2.1.dylib
+                otool -L lib/libbz2.1.dylib
               fi
             '';
           };
@@ -216,6 +223,7 @@
                 install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.2.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.libusb1}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.bzip2.out}/lib/libbz2.1.dylib @executable_path/../Frameworks/libbz2.1.dylib src-tauri/target/release/Raindex
 
                 otool -L src-tauri/target/release/Raindex
                 grep_exit_code=0
@@ -241,9 +249,7 @@
             body = ''
               set -euxo pipefail
 
-              cd crates/bindings && wasm-pack test --node
-              cd ../js_api && wasm-pack test --node
-              cd ../common && wasm-pack test --node
+              CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner' cargo test --target wasm32-unknown-unknown --lib -p rain_orderbook_quote -p rain_orderbook_bindings -p rain_orderbook_js_api -p rain_orderbook_common
             '';
           };
 
@@ -315,9 +321,12 @@
           nativeBuildInputs =
             rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
-        devShells.webapp-shell =
-          pkgs.mkShell { packages = with pkgs; [ nodejs_20 ]; };
-
+        devShells.webapp-shell = pkgs.mkShell {
+          packages = with pkgs; [ nodejs_20 ];
+          buildInputs = rainix.devShells.${system}.default.buildInputs;
+          nativeBuildInputs =
+            rainix.devShells.${system}.default.nativeBuildInputs;
+        };
       });
 
 }

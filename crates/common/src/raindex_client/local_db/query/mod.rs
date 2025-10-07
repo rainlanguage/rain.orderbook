@@ -36,13 +36,10 @@ pub enum LocalDbQueryError {
 }
 
 impl LocalDbQuery {
-    pub async fn execute_query_json<T>(
+    async fn execute_query_raw(
         callback: &js_sys::Function,
         sql: &str,
-    ) -> Result<T, LocalDbQueryError>
-    where
-        T: for<'de> serde::Deserialize<'de>,
-    {
+    ) -> Result<String, LocalDbQueryError> {
         let result = callback
             .call1(
                 &wasm_bindgen::JsValue::NULL,
@@ -61,40 +58,30 @@ impl LocalDbQuery {
             .map_err(|_| LocalDbQueryError::InvalidResponse)?;
 
         match wasm_result {
-            WasmEncodedResult::Success { value, .. } => {
-                serde_json::from_str(&value).map_err(LocalDbQueryError::JsonError)
-            }
+            WasmEncodedResult::Success { value, .. } => Ok(value),
             WasmEncodedResult::Err { error, .. } => Err(LocalDbQueryError::DatabaseError {
                 message: error.readable_msg,
             }),
         }
     }
 
+    pub async fn execute_query_json<T>(
+        callback: &js_sys::Function,
+        sql: &str,
+    ) -> Result<T, LocalDbQueryError>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
+        let value = Self::execute_query_raw(callback, sql).await?;
+
+        serde_json::from_str(&value).map_err(LocalDbQueryError::JsonError)
+    }
+
     pub async fn execute_query_text(
         callback: &js_sys::Function,
         sql: &str,
     ) -> Result<String, LocalDbQueryError> {
-        let result = callback
-            .call1(
-                &wasm_bindgen::JsValue::NULL,
-                &wasm_bindgen::JsValue::from_str(sql),
-            )
-            .map_err(|e| LocalDbQueryError::CallbackError(format!("{:?}", e)))?;
-
-        let future = wasm_bindgen_futures::JsFuture::from(js_sys::Promise::resolve(&result));
-        let js_result = future
-            .await
-            .map_err(|e| LocalDbQueryError::PromiseError(format!("{:?}", e)))?;
-
-        let wasm_result: WasmEncodedResult<String> = serde_wasm_bindgen::from_value(js_result)
-            .map_err(|_| LocalDbQueryError::InvalidResponse)?;
-
-        match wasm_result {
-            WasmEncodedResult::Success { value, .. } => Ok(value),
-            WasmEncodedResult::Err { error, .. } => Err(LocalDbQueryError::DatabaseError {
-                message: error.readable_msg,
-            }),
-        }
+        Self::execute_query_raw(callback, sql).await
     }
 }
 
@@ -113,22 +100,6 @@ pub mod tests {
         struct TestData {
             id: u32,
             name: String,
-        }
-
-        fn create_success_callback(json_data: &str) -> Function {
-            let success_result = WasmEncodedResult::Success::<String> {
-                value: json_data.to_string(),
-                error: None,
-            };
-            let js_value = serde_wasm_bindgen::to_value(&success_result).unwrap();
-
-            Function::new_no_args(&format!(
-                "return {}",
-                js_sys::JSON::stringify(&js_value)
-                    .unwrap()
-                    .as_string()
-                    .unwrap()
-            ))
         }
 
         fn create_error_callback(readable_msg: &str) -> Function {
@@ -171,7 +142,7 @@ pub mod tests {
                 },
             ];
             let json_data = serde_json::to_string(&test_data).unwrap();
-            let callback = create_success_callback(&json_data);
+            let callback = super::create_success_callback(&json_data);
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
                 LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
@@ -185,7 +156,7 @@ pub mod tests {
 
         #[wasm_bindgen_test]
         async fn test_execute_query_empty_success() {
-            let callback = create_success_callback("[]");
+            let callback = super::create_success_callback("[]");
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
                 LocalDbQuery::execute_query_json(&callback, "SELECT * FROM empty_table").await;
@@ -213,7 +184,7 @@ pub mod tests {
 
         #[wasm_bindgen_test]
         async fn test_execute_query_invalid_json() {
-            let callback = create_success_callback("{ invalid json }");
+            let callback = super::create_success_callback("{ invalid json }");
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
                 LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
@@ -259,7 +230,7 @@ pub mod tests {
 
         #[wasm_bindgen_test]
         async fn test_execute_query_text_success() {
-            let callback = create_success_callback("hello world");
+            let callback = super::create_success_callback("hello world");
 
             let result = LocalDbQuery::execute_query_text(&callback, "SELECT 'hello world'").await;
 
@@ -269,7 +240,7 @@ pub mod tests {
 
         #[wasm_bindgen_test]
         async fn test_execute_query_text_empty_success() {
-            let callback = create_success_callback("");
+            let callback = super::create_success_callback("");
 
             let result = LocalDbQuery::execute_query_text(&callback, "SELECT ''").await;
 

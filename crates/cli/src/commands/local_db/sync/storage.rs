@@ -109,13 +109,14 @@ pub(crate) struct Erc20TokenRow {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct StoreAddressRow {
-    pub(crate) store_address: String,
+struct StoreAddressRow {
+    store_address: String,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::local_db::sync::data_source::SyncDataSource;
     use tempfile::TempDir;
 
     #[test]
