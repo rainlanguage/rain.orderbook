@@ -159,6 +159,7 @@ io: fixed-io;
     fn get_settings(rpc: &str, orderbook: &str, deployer: &str) -> String {
         format!(
             r#"
+version: {spec_version}
 networks:
   flare:
     rpcs:
@@ -178,7 +179,8 @@ deployers:
   flare:
     address: {deployer}
     network: "flare"
-"#
+"#,
+            spec_version = SpecVersion::current(),
         )
     }
 
