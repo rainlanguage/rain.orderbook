@@ -46,6 +46,7 @@ eyre.workspace = true
 rain-math-float.workspace = true
 tower.workspace = true
 backon = "0.4.4"
+flate2 = "1.0.34"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
@@ -60,6 +61,8 @@ tokio = { workspace = true, features = [
     "rt",
     "time",
 ] }
+serde-wasm-bindgen = "0.4"
+getrandom = { workspace = true }
 wasm-bindgen-test = "0.3"
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]

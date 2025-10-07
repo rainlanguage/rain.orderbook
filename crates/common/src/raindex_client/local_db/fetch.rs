@@ -1,4 +1,4 @@
-use super::{SqliteWeb, SqliteWebError};
+use super::{LocalDb, LocalDbError};
 use crate::hyper_rpc::{HyperRpcError, LogEntryResponse};
 use alloy::{primitives::U256, sol_types::SolEvent};
 use backon::{ConstantBuilder, Retryable};
@@ -33,13 +33,13 @@ impl Default for FetchConfig {
     }
 }
 
-impl SqliteWeb {
+impl LocalDb {
     pub async fn fetch_events(
         &self,
         contract_address: &str,
         start_block: u64,
         end_block: u64,
-    ) -> Result<Vec<LogEntryResponse>, SqliteWebError> {
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         self.fetch_events_with_config(
             contract_address,
             start_block,
@@ -55,7 +55,7 @@ impl SqliteWeb {
         start_block: u64,
         end_block: u64,
         config: &FetchConfig,
-    ) -> Result<Vec<LogEntryResponse>, SqliteWebError> {
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         let topics = Some(vec![Some(vec![
             AddOrderV3::SIGNATURE_HASH.to_string(),
             TakeOrderV3::SIGNATURE_HASH.to_string(),
@@ -106,7 +106,7 @@ impl SqliteWeb {
                     )
                     .await?;
 
-                    Ok::<_, SqliteWebError>(response)
+                    Ok::<_, LocalDbError>(response)
                 }
             })
             .buffer_unordered(concurrency)
@@ -131,13 +131,13 @@ impl SqliteWeb {
         &self,
         block_numbers: Vec<u64>,
         config: &FetchConfig,
-    ) -> Result<HashMap<u64, String>, SqliteWebError> {
+    ) -> Result<HashMap<u64, String>, LocalDbError> {
         if block_numbers.is_empty() {
             return Ok(HashMap::new());
         }
 
         let concurrency = config.max_concurrent_blocks.max(1);
-        let results: Vec<Result<(u64, String), SqliteWebError>> =
+        let results: Vec<Result<(u64, String), LocalDbError>> =
             futures::stream::iter(block_numbers)
                 .map(|block_number| {
                     let client = self.client.clone();
@@ -150,7 +150,7 @@ impl SqliteWeb {
                         .await?;
 
                         let block_data =
-                            block_response.ok_or_else(|| SqliteWebError::MissingField {
+                            block_response.ok_or_else(|| LocalDbError::MissingField {
                                 field: "result".to_string(),
                             })?;
 
@@ -168,7 +168,7 @@ impl SqliteWeb {
         &self,
         events: &mut [LogEntryResponse],
         config: &FetchConfig,
-    ) -> Result<(), SqliteWebError> {
+    ) -> Result<(), LocalDbError> {
         let mut missing_blocks = HashSet::new();
 
         for event in events.iter() {
@@ -211,14 +211,14 @@ const RETRY_DELAY_MILLIS: u64 = 100;
 async fn retry_with_attempts<T, F, Fut>(
     operation: F,
     max_attempts: usize,
-) -> Result<T, SqliteWebError>
+) -> Result<T, LocalDbError>
 where
     F: Fn() -> Fut,
     Fut: std::future::Future<Output = Result<T, HyperRpcError>>,
 {
     if max_attempts == 0 {
-        return Err(SqliteWebError::MissingField {
-            field: "Not attempted".to_string(),
+        return Err(LocalDbError::Config {
+            message: "max_attempts must be > 0".to_string(),
         });
     }
 
@@ -229,37 +229,37 @@ where
     let retryable = || async {
         match operation().await {
             Ok(result) => Ok(result),
-            Err(HyperRpcError::JsonSerialization(err)) => Err(SqliteWebError::JsonParse(err)),
-            Err(err) => Err(SqliteWebError::Rpc(err)),
+            Err(HyperRpcError::JsonSerialization(err)) => Err(LocalDbError::JsonParse(err)),
+            Err(err) => Err(LocalDbError::Rpc(err)),
         }
     };
 
     retryable
         .retry(&backoff)
-        .when(|error: &SqliteWebError| matches!(error, SqliteWebError::Rpc(_)))
+        .when(|error: &LocalDbError| matches!(error, LocalDbError::Rpc(_)))
         .await
 }
 
-fn extract_block_number_from_entry(event: &LogEntryResponse) -> Result<u64, SqliteWebError> {
+fn extract_block_number_from_entry(event: &LogEntryResponse) -> Result<u64, LocalDbError> {
     parse_block_number_str(&event.block_number)
 }
 
-fn parse_block_number_str(block_number_str: &str) -> Result<u64, SqliteWebError> {
+fn parse_block_number_str(block_number_str: &str) -> Result<u64, LocalDbError> {
     let block_u256 = if let Some(hex_digits) = block_number_str
         .strip_prefix("0x")
         .or_else(|| block_number_str.strip_prefix("0X"))
     {
         if hex_digits.is_empty() {
-            return Err(SqliteWebError::invalid_block_number(
+            return Err(LocalDbError::invalid_block_number(
                 block_number_str,
                 alloy::primitives::ruint::ParseError::InvalidDigit('\0'),
             ));
         }
         U256::from_str_radix(hex_digits, 16)
-            .map_err(|e| SqliteWebError::invalid_block_number(block_number_str, e))?
+            .map_err(|e| LocalDbError::invalid_block_number(block_number_str, e))?
     } else {
         U256::from_str_radix(block_number_str, 10)
-            .map_err(|e| SqliteWebError::invalid_block_number(block_number_str, e))?
+            .map_err(|e| LocalDbError::invalid_block_number(block_number_str, e))?
     };
 
     Ok(block_u256.to::<u64>())
@@ -435,7 +435,7 @@ mod tests {
             let result = retry_with_attempts(operation, 3).await;
             assert!(matches!(
                 result,
-                Err(SqliteWebError::Rpc(HyperRpcError::RpcError { ref message })) if message == "always fails"
+                Err(LocalDbError::Rpc(HyperRpcError::RpcError { ref message })) if message == "always fails"
             ));
         }
 
@@ -450,7 +450,7 @@ mod tests {
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_fetch_block_timestamps_empty_block_numbers() {
-            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
             let config = FetchConfig::default();
             let result = db.fetch_block_timestamps(vec![], &config).await;
             assert!(result.is_ok());
@@ -459,8 +459,8 @@ mod tests {
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_fetch_block_timestamps_rpc_client_creation_failure() {
-            let result = SqliteWeb::new(999999, "test_token".to_string());
-            assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
+            let result = LocalDb::new(999999, "test_token".to_string());
+            assert!(matches!(result, Err(LocalDbError::Rpc(_))));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -477,7 +477,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -514,7 +514,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -540,14 +540,14 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
             let result = db.fetch_block_timestamps(vec![100], &config).await;
 
             mock.assert();
-            assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
+            assert!(matches!(result.unwrap_err(), LocalDbError::JsonParse(_)));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -561,7 +561,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -571,7 +571,7 @@ mod tests {
             let result = db.fetch_block_timestamps(vec![100], &config).await;
 
             mock.assert();
-            assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
+            assert!(matches!(result.unwrap_err(), LocalDbError::Rpc(_)));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -585,7 +585,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -594,7 +594,7 @@ mod tests {
             mock.assert();
             assert!(matches!(
                 result.unwrap_err(),
-                SqliteWebError::MissingField { ref field } if field == "result"
+                LocalDbError::MissingField { ref field } if field == "result"
             ));
         }
 
@@ -609,14 +609,14 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
             let result = db.fetch_block_timestamps(vec![100], &config).await;
 
             mock.assert();
-            assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
+            assert!(matches!(result.unwrap_err(), LocalDbError::JsonParse(_)));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -640,7 +640,7 @@ mod tests {
             }
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -670,7 +670,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -679,7 +679,7 @@ mod tests {
             };
             let result = db.fetch_block_timestamps(vec![100], &config).await;
 
-            assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
+            assert!(matches!(result.unwrap_err(), LocalDbError::Rpc(_)));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -714,7 +714,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -733,7 +733,7 @@ mod tests {
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_backfill_missing_timestamps_events_with_existing_timestamps() {
-            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
             let config = FetchConfig::default();
 
             let mut events = vec![
@@ -779,7 +779,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -831,7 +831,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -867,7 +867,7 @@ mod tests {
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_backfill_missing_timestamps_block_number_extraction_failures() {
-            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
             let config = FetchConfig::default();
 
             let mut events = vec![
@@ -892,7 +892,7 @@ mod tests {
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_backfill_missing_timestamps_empty_events_array() {
-            let db = SqliteWeb::new(8453, "test_token".to_string()).unwrap();
+            let db = LocalDb::new(8453, "test_token".to_string()).unwrap();
             let config = FetchConfig::default();
 
             let mut events: Vec<LogEntryResponse> = Vec::new();
@@ -916,7 +916,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -931,7 +931,7 @@ mod tests {
             }];
 
             let result = db.backfill_missing_timestamps(&mut events, &config).await;
-            assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
+            assert!(matches!(result.unwrap_err(), LocalDbError::Rpc(_)));
             mock.assert();
         }
 
@@ -948,7 +948,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -1022,7 +1022,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -1104,7 +1104,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1158,7 +1158,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1176,7 +1176,7 @@ mod tests {
                 )
                 .await;
 
-            assert!(matches!(result, Err(SqliteWebError::Rpc(_))));
+            assert!(matches!(result, Err(LocalDbError::Rpc(_))));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1209,7 +1209,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -1262,7 +1262,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1329,7 +1329,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1447,7 +1447,7 @@ mod tests {
         });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -1529,7 +1529,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1590,7 +1590,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1655,7 +1655,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1690,7 +1690,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -1714,7 +1714,7 @@ mod tests {
             let server = MockServer::start();
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig::default();
@@ -1750,7 +1750,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1767,7 +1767,7 @@ mod tests {
                 .await;
 
             mock.assert();
-            assert!(matches!(result.unwrap_err(), SqliteWebError::JsonParse(_)));
+            assert!(matches!(result.unwrap_err(), LocalDbError::JsonParse(_)));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1788,7 +1788,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1805,7 +1805,7 @@ mod tests {
                 .await;
 
             mock.assert();
-            assert!(matches!(result.unwrap_err(), SqliteWebError::Rpc(_)));
+            assert!(matches!(result.unwrap_err(), LocalDbError::Rpc(_)));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -1860,7 +1860,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -1934,7 +1934,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config_small = FetchConfig {
@@ -1975,7 +1975,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -2035,7 +2035,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let result = db
@@ -2086,7 +2086,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {
@@ -2136,7 +2136,7 @@ mod tests {
             });
 
             let client = HyperRpcClient::new(8453, "test_token".to_string()).unwrap();
-            let mut db = SqliteWeb::new_with_client(client);
+            let mut db = LocalDb::new_with_client(client);
             db.client_mut().update_rpc_url(server.base_url());
 
             let config = FetchConfig {

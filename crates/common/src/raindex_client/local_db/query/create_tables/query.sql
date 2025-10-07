@@ -1,3 +1,12 @@
+BEGIN TRANSACTION;
+
+CREATE TABLE IF NOT EXISTS sync_status (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    last_synced_block INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT OR IGNORE INTO sync_status (id, last_synced_block) VALUES (1, 0);
+
 CREATE TABLE deposits (
     transaction_hash TEXT NOT NULL,
     log_index INTEGER NOT NULL,
@@ -155,10 +164,4 @@ CREATE INDEX idx_after_clear_block ON after_clear_v2_events(block_number);
 CREATE INDEX idx_meta_subject ON meta_events(subject);
 CREATE INDEX idx_meta_block ON meta_events(block_number);
 
-CREATE TABLE IF NOT EXISTS sync_status (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    last_synced_block INTEGER NOT NULL DEFAULT 0,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT OR IGNORE INTO sync_status (id, last_synced_block) VALUES (1, 0);
+COMMIT;
