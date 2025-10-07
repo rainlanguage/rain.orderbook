@@ -3,6 +3,7 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
+#[cfg(not(target_family = "wasm"))]
 use alloy::primitives::FixedBytes;
 #[cfg(not(target_family = "wasm"))]
 use alloy::primitives::U256;
@@ -22,6 +23,7 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
 };
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
+use rain_metadata::types::dotrain::gui_state_v1::DotrainGuiStateV1;
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
@@ -269,19 +271,21 @@ impl AddOrderArgs {
                     .find(|document| document.magic == KnownMagic::DotrainGuiStateV1)
                 {
                     Some(doc) => {
-                        let subject_hash = doc.clone().hash(false)?;
+                        let gui_state = DotrainGuiStateV1::try_from(doc.clone())?;
+                        let subject_hash = gui_state.dotrain_hash();
+                        let meta_document = RainMetaDocumentV1Item {
+                            payload: ByteBuf::from(self.dotrain.as_bytes()),
+                            magic: KnownMagic::DotrainSourceV1,
+                            content_type: ContentType::OctetStream,
+                            content_encoding: ContentEncoding::None,
+                            content_language: ContentLanguage::None,
+                        };
                         let meta = RainMetaDocumentV1Item::cbor_encode_seq(
-                            &vec![RainMetaDocumentV1Item {
-                                payload: ByteBuf::from(self.dotrain.as_bytes()),
-                                magic: KnownMagic::DotrainSourceV1,
-                                content_type: ContentType::OctetStream,
-                                content_encoding: ContentEncoding::None,
-                                content_language: ContentLanguage::None,
-                            }],
+                            &vec![meta_document.clone()],
                             KnownMagic::RainMetaDocumentV1,
                         )?;
                         Ok(Some(emitMetaCall {
-                            subject: FixedBytes::from(subject_hash),
+                            subject: subject_hash,
                             meta: Bytes::copy_from_slice(&meta),
                         }))
                     }
@@ -779,8 +783,10 @@ _ _: 0 0;
             .unwrap()
             .expect("should emit meta call");
 
-        let expected_subject = gui_state_doc.hash(false).unwrap();
-        assert_eq!(emit_meta_call.subject, FixedBytes::from(expected_subject));
+        let expected_subject = DotrainGuiStateV1::try_from(gui_state_doc.clone())
+            .unwrap()
+            .dotrain_hash();
+        assert_eq!(emit_meta_call.subject, expected_subject);
 
         let decoded = RainMetaDocumentV1Item::cbor_decode(emit_meta_call.meta.as_ref()).unwrap();
         assert_eq!(decoded.len(), 1);

@@ -1,10 +1,8 @@
 use super::*;
-use alloy::primitives::FixedBytes;
 use rain_metadata::types::dotrain::{
     gui_state_v1::{DotrainGuiStateV1, ShortenedTokenCfg, ValueCfg},
     source_v1::DotrainSourceV1,
 };
-use rain_metadata::RainMetaDocumentV1Item;
 use rain_orderbook_app_settings::{
     gui::GuiDepositCfg,
     order::{OrderIOCfg, VaultType},
@@ -96,9 +94,10 @@ impl DotrainOrderGui {
 
     #[wasm_export(skip)]
     pub fn generate_dotrain_instance_v1(&self) -> Result<DotrainGuiStateV1, GuiError> {
-        let dotrain_source: RainMetaDocumentV1Item =
-            DotrainSourceV1(self.dotrain_order.dotrain()?.to_string()).into();
-        let dotrain_hash = dotrain_source.hash(false)?;
+        let trimmed_dotrain = self
+            .dotrain_order
+            .generate_dotrain_for_deployment(&self.selected_deployment)?;
+        let dotrain_hash = DotrainSourceV1(trimmed_dotrain.clone()).hash();
 
         // Use normalized deposit amounts (resolve presets to actual values)
         let deposits = self
@@ -194,7 +193,7 @@ impl DotrainOrderGui {
             .collect::<Result<_, GuiError>>()?;
 
         Ok(DotrainGuiStateV1 {
-            dotrain_hash: FixedBytes(dotrain_hash),
+            dotrain_hash,
             field_values,
             deposits,
             select_tokens,
@@ -292,12 +291,15 @@ impl DotrainOrderGui {
             false,
         )?);
 
+        let trimmed_dotrain = self
+            .dotrain_order
+            .generate_dotrain_for_deployment(&self.selected_deployment)?;
         let state = SerializedGuiState {
             field_values: field_values.clone(),
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
-            dotrain_hash: DotrainOrderGui::get_dotrain_hash(self.dotrain_order.dotrain()?)?,
+            dotrain_hash: DotrainOrderGui::get_dotrain_hash(trimmed_dotrain)?,
             selected_deployment: self.selected_deployment.clone(),
         };
         let bytes = bincode::serialize(&state)?;
@@ -312,7 +314,9 @@ impl DotrainOrderGui {
     /// Restores a GUI instance from previously serialized state.
     ///
     /// Creates a new GUI instance with all configuration restored from a saved state.
-    /// The dotrain content must match the original for security validation.
+    /// The provided dotrain should be the full template that was used when
+    /// serializing the state. Hash validation is performed against its
+    /// trimmed-for-deployment form to keep the template user-agnostic.
     ///
     /// ## Security
     ///
@@ -348,13 +352,15 @@ impl DotrainOrderGui {
         let mut bytes = Vec::new();
         decoder.read_to_end(&mut bytes)?;
 
-        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(dotrain.clone())?;
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
 
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let trimmed_dotrain =
+            dotrain_order.generate_dotrain_for_deployment(&state.selected_deployment)?;
+        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(trimmed_dotrain)?;
         if original_dotrain_hash != state.dotrain_hash {
             return Err(GuiError::DotrainMismatch);
         }
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
 
         let field_values = state
             .field_values
@@ -528,13 +534,10 @@ mod tests {
     };
     use alloy::primitives::U256;
     use js_sys::{eval, Reflect};
-    use rain_orderbook_app_settings::order::VaultType;
+    use rain_orderbook_app_settings::{order::VaultType, yaml::dotrain::DotrainYaml};
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QUWvCMBBu3NgY7EkGexrsByw0abdhhL2MlU4GZUpRX2MNtjRNSo2o-Cf8yVK9VCzew33f5ftyd1zHOcUD4CxT80wtMHVs3ABSQtomD8EDcRpmyR2g0blQ_rVu152X1SNUS10IrIRZ6yq3_14AU2PKvutKnXCZ6qXp90jvw63KBK8quasdqM7Ijg7i3yeg3ffxZt9KqIvuQY7rHV59dGvrv8jvOOe42JU2AyhjqK16jeox9gZUsozM1PdnkYRBxIMyntAwX_PpYMzDMP7hm2iUelLo_-Hg69leQkiRGHxsiueilHpbCGUOk23JqcgBAAA=";
-
-    #[wasm_bindgen_test]
-    async fn test_serialize_state() {
+    async fn configured_gui() -> DotrainOrderGui {
         let mut gui = initialize_gui_with_select_tokens().await;
 
         gui.add_record_to_yaml(
@@ -565,14 +568,48 @@ mod tests {
         )
         .unwrap();
 
+        gui
+    }
+
+    fn reconstructed_dotrain(gui: &DotrainOrderGui) -> String {
+        let documents = gui.dotrain_order.dotrain_yaml().documents.clone();
+        let mut docs = Vec::new();
+        for doc in documents {
+            docs.push(
+                DotrainYaml::get_yaml_string(doc.clone()).expect("failed to serialise YAML doc"),
+            );
+        }
+        let frontmatter = docs.join("\n---\n");
+        let original = gui.dotrain_order.dotrain().unwrap();
+        if let Some((_, rest)) = original.split_once("\n---\n") {
+            format!("{frontmatter}\n---\n{rest}")
+        } else {
+            original
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_serialize_state() {
+        let gui = configured_gui().await;
         let state = gui.serialize_state().unwrap();
         assert!(!state.is_empty());
-        assert_eq!(state, SERIALIZED_STATE);
+
+        let dotrain = reconstructed_dotrain(&gui);
+
+        let restored = DotrainOrderGui::new_from_state(dotrain.clone(), state.clone(), None)
+            .await
+            .unwrap();
+        assert_eq!(restored.serialize_state().unwrap(), state);
     }
 
     #[wasm_bindgen_test]
     async fn test_new_from_state() {
-        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
+        let gui = configured_gui().await;
+        let state = gui.serialize_state().unwrap();
+
+        let dotrain = reconstructed_dotrain(&gui);
+
+        let gui = DotrainOrderGui::new_from_state(dotrain.clone(), state, None)
             .await
             .unwrap();
 
@@ -607,19 +644,15 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
-        let dotrain = r#"
-        dotrain:
-            name: Test
-            description: Test
-        "#;
+        let gui = configured_gui().await;
+        let serialized_state = gui.serialize_state().unwrap();
 
-        let err = DotrainOrderGui::new_from_state(
-            dotrain.to_string(),
-            SERIALIZED_STATE.to_string(),
-            None,
-        )
-        .await
-        .unwrap_err();
+        let mut altered_dotrain = reconstructed_dotrain(&gui);
+        altered_dotrain.push_str("\n// mutated template");
+
+        let err = DotrainOrderGui::new_from_state(altered_dotrain, serialized_state, None)
+            .await
+            .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),

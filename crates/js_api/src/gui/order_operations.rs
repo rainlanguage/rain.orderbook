@@ -865,7 +865,7 @@ impl DotrainOrderGui {
 
     async fn should_include_dotrain_meta_for_deployment(&self) -> Result<bool, GuiError> {
         let dotrain_gui_state = self.generate_dotrain_instance_v1()?;
-        let subject = RainMetaDocumentV1Item::try_from(dotrain_gui_state.clone())?.hash(false)?;
+        let subject = dotrain_gui_state.dotrain_hash();
 
         let client = self.get_metaboard_client()?;
         let res = client

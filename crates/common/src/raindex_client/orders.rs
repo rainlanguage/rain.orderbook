@@ -765,8 +765,7 @@ impl RaindexOrder {
             None => return Ok(()),
         };
 
-        let subject_hash =
-            RainMetaDocumentV1Item::try_from(dotrain_gui_state.clone())?.hash(false)?;
+        let subject_hash = dotrain_gui_state.dotrain_hash();
 
         let metabytes = match client
             .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", encode(subject_hash))))
