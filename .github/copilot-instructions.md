@@ -1,3 +1,5 @@
+> NOTE: Before using this guide, read the repository root `AGENTS.md` for authoritative agent instructions.
+
 # Rain Orderbook – Agent Guide (Concise)
 
 Always run commands via Nix: `nix develop -c <command>`. Never cancel long-running tasks (45–90 min builds, 30+ min tests).
