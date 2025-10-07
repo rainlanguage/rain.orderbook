@@ -1,16 +1,20 @@
 use anyhow::Result;
+use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
 use url::Url;
 
 use super::super::sqlite::sqlite_execute;
 use super::{
     data_source::{SyncDataSource, TokenMetadataFetcher},
-    storage::ensure_schema,
+    storage::{ensure_schema, fetch_existing_store_addresses},
 };
 
 use self::{
     apply::{decode_events, fetch_events, prepare_sql},
     window::compute_sync_window,
 };
+
+use rain_orderbook_common::raindex_client::local_db::tokens::collect_store_addresses;
+use std::collections::BTreeSet;
 
 mod apply;
 mod window;
@@ -86,8 +90,36 @@ where
         println!("Fetched {} raw events", fetch.raw_count);
 
         println!("Decoding events");
-        let decoded = decode_events(self.data_source, fetch.events)?;
+        let mut decoded = decode_events(self.data_source, fetch.events)?;
         println!("Decoded {} events", decoded.decoded_count);
+
+        println!("Collecting interpreter store addresses");
+        let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded.decoded);
+        let existing_stores = fetch_existing_store_addresses(self.db_path)?;
+        store_addresses.extend(existing_stores);
+
+        if !store_addresses.is_empty() {
+            let store_list: Vec<String> = store_addresses.into_iter().collect();
+            println!(
+                "Fetching interpreter store Set events for {} store(s)",
+                store_list.len()
+            );
+            let store_events = self
+                .data_source
+                .fetch_store_set_events(&store_list, window.start_block, window.target_block)
+                .await?;
+            println!(
+                "Fetched {} interpreter store Set events",
+                store_events.len()
+            );
+
+            if !store_events.is_empty() {
+                let mut decoded_store = self.data_source.decode_events(&store_events)?;
+                decoded.decoded.append(&mut decoded_store);
+                sort_events_by_block_and_log(&mut decoded.decoded);
+                decoded.decoded_count = decoded.decoded.len();
+            }
+        }
 
         println!("Preparing token metadata");
         let sql = prepare_sql(
@@ -121,15 +153,37 @@ where
     }
 }
 
+fn sort_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
+    events.sort_by(|a, b| {
+        let block_a = parse_block_number(&a.block_number);
+        let block_b = parse_block_number(&b.block_number);
+        block_a
+            .cmp(&block_b)
+            .then_with(|| parse_block_number(&a.log_index).cmp(&parse_block_number(&b.log_index)))
+    });
+}
+
+fn parse_block_number(value: &str) -> u64 {
+    let trimmed = value.trim();
+    if let Some(hex) = trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"))
+    {
+        u64::from_str_radix(hex, 16).unwrap_or(0)
+    } else {
+        trimmed.parse::<u64>().unwrap_or(0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
+    use alloy::primitives::{Address, FixedBytes, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
     use rain_orderbook_common::raindex_client::local_db::decode::{
-        DecodedEvent, DecodedEventData, EventType,
+        DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
     use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::collections::HashMap;
@@ -162,9 +216,11 @@ mod tests {
         latest_block: u64,
         rpc_urls: Vec<Url>,
         fetch_logs: Vec<LogEntryResponse>,
-        decoded_events: Vec<DecodedEventData<DecodedEvent>>,
+        store_logs: Vec<LogEntryResponse>,
+        decode_responses: Mutex<Vec<Vec<DecodedEventData<DecodedEvent>>>>,
         sql_result: String,
         fetch_calls: Mutex<Vec<(String, u64, u64)>>,
+        fetch_store_calls: Mutex<Vec<(Vec<String>, u64, u64)>>,
         sql_calls: Mutex<Vec<(usize, u64)>>,
         prefixes: Mutex<Vec<String>>,
         decimals: Mutex<Vec<HashMap<Address, u8>>>,
@@ -190,11 +246,29 @@ mod tests {
             Ok(self.fetch_logs.clone())
         }
 
+        async fn fetch_store_set_events(
+            &self,
+            store_addresses: &[String],
+            start_block: u64,
+            end_block: u64,
+        ) -> Result<Vec<LogEntryResponse>> {
+            self.fetch_store_calls.lock().unwrap().push((
+                store_addresses.to_vec(),
+                start_block,
+                end_block,
+            ));
+            Ok(self.store_logs.clone())
+        }
+
         fn decode_events(
             &self,
             _events: &[LogEntryResponse],
         ) -> Result<Vec<DecodedEventData<DecodedEvent>>> {
-            Ok(self.decoded_events.clone())
+            let mut guard = self.decode_responses.lock().unwrap();
+            if guard.is_empty() {
+                return Ok(vec![]);
+            }
+            Ok(guard.remove(0))
         }
 
         fn events_to_sql(
@@ -265,6 +339,37 @@ mod tests {
         }
     }
 
+    fn sample_store_log() -> LogEntryResponse {
+        LogEntryResponse {
+            address: "0xdead".into(),
+            topics: vec!["0x0".into()],
+            data: "0x".into(),
+            block_number: "0x2".into(),
+            block_timestamp: Some("0x0".into()),
+            transaction_hash: "0xstore".into(),
+            transaction_index: "0x0".into(),
+            block_hash: "0x456".into(),
+            log_index: "0x1".into(),
+            removed: false,
+        }
+    }
+
+    fn sample_store_decoded_event(store: Address) -> DecodedEventData<DecodedEvent> {
+        DecodedEventData {
+            event_type: EventType::InterpreterStoreSet,
+            block_number: "0x2".into(),
+            block_timestamp: "0x0".into(),
+            transaction_hash: "0xstore".into(),
+            log_index: "0x1".into(),
+            decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
+                store_address: store,
+                namespace: FixedBytes::from([0xaa; 32]),
+                key: FixedBytes::from([0xbb; 32]),
+                value: FixedBytes::from([0xcc; 32]),
+            })),
+        }
+    }
+
     #[tokio::test]
     async fn run_executes_full_flow() {
         let temp_dir = TempDir::new().unwrap();
@@ -280,9 +385,11 @@ mod tests {
             latest_block: 200,
             rpc_urls: vec![Url::parse("http://event.rpc").unwrap()],
             fetch_logs: vec![sample_log()],
-            decoded_events: decoded_events.clone(),
+            store_logs: vec![],
+            decode_responses: Mutex::new(vec![decoded_events.clone()]),
             sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
             fetch_calls: Mutex::new(vec![]),
+            fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
             prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
@@ -318,6 +425,8 @@ mod tests {
         let fetch_calls = data_source.fetch_calls.lock().unwrap();
         assert_eq!(fetch_calls.len(), 1);
         assert_eq!(fetch_calls[0], ("0xorder".into(), 150, 190));
+        let store_calls = data_source.fetch_store_calls.lock().unwrap();
+        assert_eq!(store_calls.len(), 0);
 
         let sql_calls = data_source.sql_calls.lock().unwrap();
         assert_eq!(sql_calls.len(), 1);
@@ -339,15 +448,78 @@ mod tests {
         assert_eq!(sync_rows[0].last_synced_block, 190);
     }
 
+    #[tokio::test]
+    async fn run_appends_store_events() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("sync.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+
+        let base_event = sample_store_decoded_event(Address::from([0x11; 20]));
+        let store_event = sample_store_decoded_event(Address::from([0x55; 20]));
+
+        let data_source = TestDataSource {
+            latest_block: 200,
+            rpc_urls: vec![Url::parse("http://event.rpc").unwrap()],
+            fetch_logs: vec![sample_log()],
+            store_logs: vec![sample_store_log()],
+            decode_responses: Mutex::new(vec![vec![base_event.clone()], vec![store_event.clone()]]),
+            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            fetch_calls: Mutex::new(vec![]),
+            fetch_store_calls: Mutex::new(vec![]),
+            sql_calls: Mutex::new(vec![]),
+            prefixes: Mutex::new(vec![]),
+            decimals: Mutex::new(vec![]),
+        };
+
+        let fetcher = TestFetcher {
+            metadata: vec![],
+            calls: Mutex::new(vec![]),
+        };
+
+        let runner = SyncRunner::new(
+            &db_path_str,
+            &data_source,
+            vec![Url::parse("http://metadata.rpc").unwrap()],
+            &fetcher,
+        );
+
+        let params = SyncParams {
+            chain_id: 1,
+            orderbook_address: "0xorder",
+            deployment_block: 150,
+            start_block: None,
+            end_block: Some(160),
+        };
+
+        runner.run(&params).await.unwrap();
+
+        let store_calls = data_source.fetch_store_calls.lock().unwrap();
+        assert_eq!(store_calls.len(), 1);
+        assert_eq!(store_calls[0].1, 150);
+        assert_eq!(store_calls[0].2, 160);
+        assert_eq!(
+            store_calls[0].0,
+            vec!["0x1111111111111111111111111111111111111111".to_string()]
+        );
+
+        let sql_calls = data_source.sql_calls.lock().unwrap();
+        assert_eq!(sql_calls.len(), 1);
+        assert_eq!(sql_calls[0].0, 2);
+    }
+
     #[test]
     fn metadata_rpcs_falls_back_to_data_source() {
         let data_source = TestDataSource {
             latest_block: 0,
             rpc_urls: vec![Url::parse("http://event.rpc").unwrap()],
             fetch_logs: vec![],
-            decoded_events: vec![],
+            store_logs: vec![],
+            decode_responses: Mutex::new(vec![vec![]]),
             sql_result: String::new(),
             fetch_calls: Mutex::new(vec![]),
+            fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
             prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),

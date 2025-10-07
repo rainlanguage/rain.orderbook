@@ -415,7 +415,12 @@ mod tests {
             if timestamp.is_none() {
                 block.as_object_mut().unwrap().remove("timestamp");
             }
-            block.to_string()
+            json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": block
+            })
+            .to_string()
         }
 
         #[tokio::test]

@@ -16,6 +16,9 @@ pub(crate) const SYNC_STATUS_QUERY: &str = include_str!(
 pub(crate) const ERC20_QUERY_TEMPLATE: &str = include_str!(
     "../../../../../common/src/raindex_client/local_db/query/fetch_erc20_tokens_by_addresses/query.sql"
 );
+pub(crate) const STORE_ADDRESSES_QUERY: &str = include_str!(
+    "../../../../../common/src/raindex_client/local_db/query/fetch_store_addresses/query.sql"
+);
 
 pub(crate) fn ensure_schema(db_path: &str) -> Result<bool> {
     if sqlite_has_required_tables(db_path, REQUIRED_TABLES)? {
@@ -29,6 +32,14 @@ pub(crate) fn ensure_schema(db_path: &str) -> Result<bool> {
 pub(crate) fn fetch_last_synced(db_path: &str) -> Result<u64> {
     let rows: Vec<SyncStatusRow> = sqlite_query_json(db_path, SYNC_STATUS_QUERY)?;
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
+}
+
+pub(crate) fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
+    let rows: Vec<StoreAddressRow> = sqlite_query_json(db_path, STORE_ADDRESSES_QUERY)?;
+    Ok(rows
+        .into_iter()
+        .map(|row| row.store_address.to_ascii_lowercase())
+        .collect())
 }
 
 pub(crate) fn build_local_db_from_network(
@@ -90,6 +101,11 @@ pub(crate) struct Erc20TokenRow {
     pub(crate) decimals: u8,
 }
 
+#[derive(Debug, Deserialize)]
+struct StoreAddressRow {
+    store_address: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,5 +153,16 @@ mod tests {
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
         let value = fetch_last_synced(&db_path_str).unwrap();
         assert_eq!(value, 0);
+    }
+
+    #[test]
+    fn fetch_existing_store_addresses_defaults_to_empty() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("stores.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        let stores = fetch_existing_store_addresses(&db_path_str).unwrap();
+        assert!(stores.is_empty());
     }
 }
