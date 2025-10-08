@@ -8,11 +8,8 @@ use crate::{
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
+use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
-use alloy::{
-    hex::encode_prefixed,
-    primitives::{Address, Bytes, B256, U256},
-};
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
@@ -29,10 +26,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClient,
     SgPaginationArgs,
 };
-use std::{
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
+use std::{rc::Rc, str::FromStr};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
@@ -59,7 +53,7 @@ impl_wasm_traits!(RaindexVaultType);
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVault {
-    raindex_client: Arc<RwLock<RaindexClient>>,
+    raindex_client: Rc<RaindexClient>,
     chain_id: u32,
     vault_type: Option<RaindexVaultType>,
     id: Bytes,
@@ -274,11 +268,7 @@ impl RaindexVaultToken {
 impl RaindexVault {
     #[wasm_export(skip)]
     pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
-        let raindex_client = self
-            .raindex_client
-            .read()
-            .map_err(|_| YamlError::ReadLockError)?;
-        raindex_client.get_orderbook_client(self.orderbook)
+        self.raindex_client.get_orderbook_client(self.orderbook)
     }
 
     /// Fetches balance change history for a vault
@@ -410,13 +400,7 @@ impl RaindexVault {
         &self,
         amount: &Float,
     ) -> Result<(DepositArgs, TransactionArgs), RaindexError> {
-        let rpcs = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
-        };
+        let rpcs = self.raindex_client.get_rpc_urls_for_chain(self.chain_id)?;
 
         let deposit_args = DepositArgs {
             token: self.token.address,
@@ -549,13 +533,7 @@ impl RaindexVault {
 }
 impl RaindexVault {
     pub async fn get_owner_balance(&self, owner: Address) -> Result<U256, RaindexError> {
-        let rpcs = {
-            let raindex_client = self
-                .raindex_client
-                .read()
-                .map_err(|_| YamlError::ReadLockError)?;
-            raindex_client.get_rpc_urls_for_chain(self.chain_id)?
-        };
+        let rpcs = self.raindex_client.get_rpc_urls_for_chain(self.chain_id)?;
         let erc20 = ERC20::new(rpcs, self.token.address);
         Ok(erc20.get_account_balance(owner).await?)
     }
@@ -972,7 +950,7 @@ impl RaindexClient {
             u16,
         >,
     ) -> Result<RaindexVaultsList, RaindexError> {
-        let raindex_client = Arc::new(RwLock::new(self.clone()));
+        let raindex_client = Rc::new(self.clone());
         let multi_subgraph_args =
             self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
         let client = MultiOrderbookSubgraphClient::new(
@@ -1129,7 +1107,7 @@ impl RaindexClient {
     ) -> Result<RaindexVault, RaindexError> {
         let client = self.get_orderbook_client(orderbook_address)?;
         let vault = RaindexVault::try_from_sg_vault(
-            Arc::new(RwLock::new(self.clone())),
+            Rc::new(self.clone()),
             chain_id,
             client.vault_detail(Id::new(vault_id.to_string())).await?,
             None,
@@ -1174,7 +1152,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
 
 impl RaindexVault {
     pub fn try_from_sg_vault(
-        raindex_client: Arc<RwLock<RaindexClient>>,
+        raindex_client: Rc<RaindexClient>,
         chain_id: u32,
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
@@ -1210,7 +1188,7 @@ impl RaindexVault {
 
     pub fn with_vault_type(&self, vault_type: RaindexVaultType) -> Self {
         Self {
-            raindex_client: self.raindex_client.clone(),
+            raindex_client: Rc::clone(&self.raindex_client),
             chain_id: self.chain_id,
             vault_type: Some(vault_type),
             id: self.id.clone(),
@@ -1250,7 +1228,7 @@ impl RaindexVault {
     }
 
     pub fn try_from_local_db(
-        raindex_client: Arc<RwLock<RaindexClient>>,
+        raindex_client: Rc<RaindexClient>,
         chain_id: u32,
         vault: local_db::query::fetch_vault::LocalDbVault,
         vault_type: Option<RaindexVaultType>,
@@ -1258,46 +1236,42 @@ impl RaindexVault {
         let balance = Float::from_hex(&vault.balance)?;
         let formatted_balance = balance.format()?;
 
+        let id: Vec<u8> = vault
+            .orderbook_address
+            .as_bytes()
+            .iter()
+            .chain(vault.owner.as_bytes())
+            .chain(vault.token.as_bytes())
+            .chain(vault.vault_id.as_bytes())
+            .copied()
+            .collect();
+
         Ok(Self {
             raindex_client,
             chain_id,
             vault_type,
-            // TODO: Needs updating
-            id: Bytes::from_str(&encode_prefixed(format!(
-                "{}-{}",
-                vault.vault_id, vault.token
-            )))?,
+            id: Bytes::from(id),
             owner: Address::from_str(&vault.owner)?,
             vault_id: U256::from_str(&vault.vault_id)?,
             balance,
             formatted_balance,
             token: RaindexVaultToken {
                 chain_id,
-                // TODO: Needs updating
-                id: "0x01".to_string(),
+                id: vault.token.clone(),
                 address: Address::from_str(&vault.token)?,
-                // TODO: Needs updating
-                name: Some("vault.token_name".to_string()),
-                // TODO: Needs updating
-                symbol: Some("vault.token_symbol".to_string()),
-                decimals: 18,
+                name: Some(vault.token_name),
+                symbol: Some(vault.token_symbol),
+                decimals: vault.token_decimals,
             },
             orderbook: Address::from_str(&vault.orderbook_address)?,
-            orders_as_inputs: vec![],
-            orders_as_outputs: vec![],
-            // orders_as_inputs: vault.input_order_hashes.map(|hashes| {
-            //     hashes
-            //         .into_iter()
-            //         .map(|hash| RaindexOrderAsIO {
-            //             order_hash: Bytes::from_str(&hash).unwrap_or_default(),
-            //         })
-            //         .collect()
-            // }),
-            // orders_as_outputs: vault
-            //     .orders_as_output
-            //     .iter()
-            //     .map(|order| RaindexOrderAsIO::try_from(order.clone()))
-            //     .collect::<Result<Vec<RaindexOrderAsIO>, RaindexError>>()?,
+            orders_as_inputs: RaindexOrderAsIO::try_from_local_db_orders_csv(
+                "inputOrders",
+                &vault.input_orders,
+            )?,
+            orders_as_outputs: RaindexOrderAsIO::try_from_local_db_orders_csv(
+                "outputOrders",
+                &vault.output_orders,
+            )?,
         })
     }
 }
@@ -1341,6 +1315,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
+        use crate::raindex_client::local_db::query::fetch_vault::LocalDbVault;
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
         use alloy::hex::encode_prefixed;
@@ -1353,6 +1328,46 @@ mod tests {
         };
         use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
+
+        #[tokio::test]
+        async fn test_try_from_local_db_maps_token_metadata() {
+            // Build a minimal client; it won't be used in mapping
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://sg1",
+                    "http://sg2",
+                    "http://rpc1",
+                    "http://rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let local_vault = LocalDbVault {
+                vault_id: "0x01".to_string(),
+                token: "0x0000000000000000000000000000000000000000".to_string(),
+                owner: "0x0000000000000000000000000000000000000000".to_string(),
+                orderbook_address: CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                token_name: "Test Token".to_string(),
+                token_symbol: "TST".to_string(),
+                token_decimals: 6,
+                balance: Float::parse("0".to_string()).unwrap().as_hex(),
+                input_orders: None,
+                output_orders: None,
+            };
+
+            let rv = RaindexVault::try_from_local_db(
+                Rc::new(raindex_client),
+                1,
+                local_vault,
+                Some(RaindexVaultType::Input),
+            )
+            .unwrap();
+
+            assert_eq!(rv.token.name(), Some("Test Token".to_string()));
+            assert_eq!(rv.token.symbol(), Some("TST".to_string()));
+            assert_eq!(rv.token.decimals(), 6);
+        }
 
         fn get_vault1_json() -> Value {
             json!({
