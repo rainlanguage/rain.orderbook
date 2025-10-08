@@ -3,15 +3,18 @@ pub mod fetch;
 pub mod insert;
 pub mod query;
 pub mod sync;
+pub mod token_fetch;
+pub mod tokens;
 
 use super::*;
 use crate::rpc_client::{LogEntryResponse, RpcClient, RpcClientError};
-use alloy::primitives::hex::FromHexError;
 use alloy::primitives::ruint::ParseError;
+use alloy::primitives::{hex::FromHexError, Address};
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::FetchConfig;
 use insert::decoded_events_to_sql as decoded_events_to_sql_impl;
 use query::LocalDbQueryError;
+use std::collections::HashMap;
 use url::Url;
 
 #[derive(Debug, Clone)]
@@ -214,10 +217,14 @@ impl LocalDb {
         &self,
         events: &[DecodedEventData<DecodedEvent>],
         end_block: u64,
+        decimals_by_token: &HashMap<Address, u8>,
+        prefix_sql: Option<&str>,
     ) -> Result<String, LocalDbError> {
-        decoded_events_to_sql_impl(events, end_block).map_err(|err| LocalDbError::InsertError {
-            message: err.to_string(),
-        })
+        decoded_events_to_sql_impl(events, end_block, decimals_by_token, prefix_sql).map_err(
+            |err| LocalDbError::InsertError {
+                message: err.to_string(),
+            },
+        )
     }
 }
 
@@ -236,6 +243,7 @@ mod bool_deserialize_tests {
     use alloy::primitives::{Address, U256};
     use alloy::sol_types::SolEvent;
     use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, DepositV2};
+    use std::collections::HashMap;
 
     fn make_local_db() -> LocalDb {
         LocalDb::new(8453, "test_token".to_string()).expect("create LocalDb")
@@ -296,8 +304,14 @@ mod bool_deserialize_tests {
     fn decoded_events_to_sql_maps_insert_errors() {
         let db = make_local_db();
         let event = deposit_event_with_invalid_block();
+        let mut decimals = HashMap::new();
+        if let DecodedEvent::DepositV2(deposit) = &event.decoded_data {
+            decimals.insert(deposit.token, 18);
+        }
 
-        let err = db.decoded_events_to_sql(&[event], 42).unwrap_err();
+        let err = db
+            .decoded_events_to_sql(&[event], 42, &decimals, None)
+            .unwrap_err();
         match err {
             LocalDbError::InsertError { message } => {
                 assert!(
