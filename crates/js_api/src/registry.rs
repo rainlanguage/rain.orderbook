@@ -380,7 +380,7 @@ impl DotrainRegistry {
     /// const resultWithCallback = await registry.getGui(
     ///   "fixed-limit",
     ///   "mainnet-deployment",
-    ///   null,
+    ///   undefined,
     ///   stateCallback
     /// );
     ///
