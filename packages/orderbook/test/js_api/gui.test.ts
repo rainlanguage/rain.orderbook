@@ -2119,7 +2119,7 @@ ${dotrainWithoutVaultIds}`;
 					'0x1234567890abcdef1234567890abcdef12345678'
 				)
 			);
-			assert.equal(result.balance, BigInt(1000));
+			assert.equal(result.balance.toFixedDecimal(18).value, BigInt(1000));
 			assert.equal(result.formattedBalance, '0.000000000000001');
 		});
 	});

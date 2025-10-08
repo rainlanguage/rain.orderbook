@@ -6,11 +6,13 @@ use crate::{
         orders::RaindexOrderAsIO, transactions::RaindexTransaction, vaults_list::RaindexVaultsList,
     },
     transaction::TransactionArgs,
-    utils::amount_formatter::format_amount_u256,
     withdraw::WithdrawArgs,
 };
-use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
+use alloy::{
+    hex::encode_prefixed,
+    primitives::{Address, Bytes, B256, U256},
+};
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
@@ -162,15 +164,15 @@ impl RaindexVault {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct AccountBalance {
-    balance: U256,
+    balance: Float,
     formatted_balance: String,
 }
 impl AccountBalance {
-    pub fn new(balance: U256, formatted_balance: String) -> Self {
+    pub fn new(balance: Float, formatted_balance: String) -> Self {
         Self {
             balance,
             formatted_balance,
@@ -181,9 +183,8 @@ impl AccountBalance {
 #[wasm_bindgen]
 impl AccountBalance {
     #[wasm_bindgen(getter)]
-    pub fn balance(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.balance.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn balance(&self) -> Float {
+        self.balance
     }
     #[wasm_bindgen(getter = formattedBalance)]
     pub fn formatted_balance(&self) -> String {
@@ -192,7 +193,7 @@ impl AccountBalance {
 }
 #[cfg(not(target_family = "wasm"))]
 impl AccountBalance {
-    pub fn balance(&self) -> U256 {
+    pub fn balance(&self) -> Float {
         self.balance
     }
     pub fn formatted_balance(&self) -> String {
@@ -538,9 +539,10 @@ impl RaindexVault {
     pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
         let balance = self.get_owner_balance(self.owner).await?;
         let decimals = self.token.decimals;
+        let float_balance = Float::from_fixed_decimal(balance, decimals)?;
         let account_balance = AccountBalance {
-            balance,
-            formatted_balance: format_amount_u256(balance, decimals)?,
+            balance: float_balance,
+            formatted_balance: float_balance.format()?,
         };
         Ok(account_balance)
     }
@@ -1244,6 +1246,58 @@ impl RaindexVault {
                 .map(|v| v.try_into())
                 .collect::<Result<Vec<SgOrderAsIO>, RaindexError>>()?,
             balance_changes: vec![],
+        })
+    }
+
+    pub fn try_from_local_db(
+        raindex_client: Arc<RwLock<RaindexClient>>,
+        chain_id: u32,
+        vault: local_db::query::fetch_vault::LocalDbVault,
+        vault_type: Option<RaindexVaultType>,
+    ) -> Result<Self, RaindexError> {
+        let balance = Float::from_hex(&vault.balance)?;
+        let formatted_balance = balance.format()?;
+
+        Ok(Self {
+            raindex_client,
+            chain_id,
+            vault_type,
+            // TODO: Needs updating
+            id: Bytes::from_str(&encode_prefixed(format!(
+                "{}-{}",
+                vault.vault_id, vault.token
+            )))?,
+            owner: Address::from_str(&vault.owner)?,
+            vault_id: U256::from_str(&vault.vault_id)?,
+            balance,
+            formatted_balance,
+            token: RaindexVaultToken {
+                chain_id,
+                // TODO: Needs updating
+                id: "0x01".to_string(),
+                address: Address::from_str(&vault.token)?,
+                // TODO: Needs updating
+                name: Some("vault.token_name".to_string()),
+                // TODO: Needs updating
+                symbol: Some("vault.token_symbol".to_string()),
+                decimals: 18,
+            },
+            orderbook: Address::from_str(&vault.orderbook_address)?,
+            orders_as_inputs: vec![],
+            orders_as_outputs: vec![],
+            // orders_as_inputs: vault.input_order_hashes.map(|hashes| {
+            //     hashes
+            //         .into_iter()
+            //         .map(|hash| RaindexOrderAsIO {
+            //             order_hash: Bytes::from_str(&hash).unwrap_or_default(),
+            //         })
+            //         .collect()
+            // }),
+            // orders_as_outputs: vault
+            //     .orders_as_output
+            //     .iter()
+            //     .map(|order| RaindexOrderAsIO::try_from(order.clone()))
+            //     .collect::<Result<Vec<RaindexOrderAsIO>, RaindexError>>()?,
         })
     }
 }

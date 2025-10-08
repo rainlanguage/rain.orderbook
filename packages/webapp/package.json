@@ -6,8 +6,8 @@
 	"author": "Rain Open Source Software Ltd",
 	"private": true,
 	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
+		"dev": "npm run build -w @rainlanguage/orderbook && vite dev",
+		"build": "npm run build -w @rainlanguage/orderbook && vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -22,6 +22,7 @@
 		"@rainlanguage/float": "^0.0.0-alpha.3",
 		"flowbite-svelte": "0.44.24",
 		"lodash": "4.17.21",
+		"sqlite-web": "file:sqlite-web-0.1.0.tgz",
 		"viem": "2.24.3"
 	},
 	"devDependencies": {
