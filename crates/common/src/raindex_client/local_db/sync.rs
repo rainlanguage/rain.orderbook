@@ -69,12 +69,9 @@ impl RaindexClient {
         db_callback: js_sys::Function,
         #[wasm_export(param_description = "JavaScript function called with status updates")]
         status_callback: js_sys::Function,
-        // TODO: This will be replaced with chainid. We are going to loop all the orderbooks for that chainid
-        #[wasm_export(param_description = "The contract address to sync events for")]
-        contract_address: String,
+        #[wasm_export(param_description = "The blockchain network ID to sync against")]
+        chain_id: u32,
     ) -> Result<(), LocalDbError> {
-        let orderbook_address = Address::from_str(&contract_address)?;
-
         send_status_message(&status_callback, "Starting database sync...".to_string())?;
 
         let has_tables = check_required_tables(&db_callback)
@@ -101,14 +98,18 @@ impl RaindexClient {
             format!("Last synced block: {}", last_synced_block),
         )?;
 
-        let orderbook_cfg = self
-            .get_orderbook_by_address(orderbook_address)
+        let orderbooks = self
+            .get_orderbooks_by_chain_id(chain_id)
             .map_err(|e| LocalDbError::OrderbookConfigNotFound(Box::new(e)))?;
 
-        let local_db = LocalDb::new(
-            orderbook_cfg.network.chain_id,
-            "41e50e69-6da4-4462-b70e-c7b5e7b70f05".to_string(),
-        )?;
+        let Some(orderbook_cfg) = orderbooks.first() else {
+            return Err(LocalDbError::CustomError(format!(
+                "No orderbook configuration found for chain ID {}",
+                chain_id
+            )));
+        };
+
+        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone())?;
 
         let latest_block = local_db.rpc_client().get_latest_block_number().await?;
 
@@ -123,7 +124,11 @@ impl RaindexClient {
             "Fetching latest onchain events...".to_string(),
         )?;
         let events = local_db
-            .fetch_events(&contract_address, start_block, latest_block)
+            .fetch_events(
+                &orderbook_cfg.address.to_string(),
+                start_block,
+                latest_block,
+            )
             .await
             .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
@@ -155,6 +160,8 @@ mod tests {
             create_tables::REQUIRED_TABLES, fetch_last_synced_block::SyncStatusResponse,
             fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
         };
+        use crate::raindex_client::RaindexError;
+        use rain_orderbook_app_settings::yaml::YamlError;
         use std::cell::RefCell;
         use std::rc::Rc;
         use wasm_bindgen::JsCast;
@@ -372,8 +379,8 @@ mod tests {
         }
 
         #[wasm_bindgen_test]
-        async fn test_sync_invalid_address() {
-            // Any client config is fine; we bail before using it
+        async fn test_sync_unknown_chain_id() {
+            // Any client config is fine; we bail before using it once the chain lookup fails
             let client = RaindexClient::new(
                 vec![crate::raindex_client::tests::get_test_yaml(
                     "http://localhost:3000/sg1",
@@ -385,21 +392,32 @@ mod tests {
             )
             .unwrap();
 
-            // Callbacks (won't be used due to early address parse error)
-            let db_callback = create_success_callback("[]");
+            // Provide existing tables and an empty sync status so we skip dump downloads
+            let tables_json = make_tables_json();
+            let db_callback = create_dispatching_db_callback(&tables_json, "[]");
             let (status_callback, captured) = create_status_collector();
 
+            let missing_chain_id = 999_999u32;
             let result = client
-                .sync_database(db_callback, status_callback, "invalid_address".to_string())
+                .sync_database(db_callback, status_callback, missing_chain_id)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::FromHexError(_) => {}
-                other => panic!("Expected FromHexError, got {other:?}"),
+                LocalDbError::OrderbookConfigNotFound(err) => match *err {
+                    RaindexError::YamlError(YamlError::NotFound(message)) => {
+                        assert!(message.contains(&missing_chain_id.to_string()));
+                    }
+                    other => panic!("Expected YamlError::NotFound, got {other:?}"),
+                },
+                other => panic!("Expected OrderbookConfigNotFound, got {other:?}"),
             }
-            // No status messages should be emitted
-            assert!(captured.borrow().is_empty());
+            // We emit status messages before failing on the chain lookup
+            let msgs = captured.borrow();
+            assert!(msgs.len() >= 3);
+            assert_eq!(msgs[0], "Starting database sync...");
+            assert_eq!(msgs[1], "has tables: true");
+            assert_eq!(msgs[2], "Last synced block: 0");
         }
 
         #[wasm_bindgen_test]
@@ -421,20 +439,14 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
-            // Address from test YAML
-            let address = "0x1234567890123456789012345678901234567890".to_string();
-            let result = client
-                .sync_database(db_callback, status_callback, address)
-                .await;
+            // Chain ID for mainnet in test YAML
+            let result = client.sync_database(db_callback, status_callback, 1).await;
 
-            // Should eventually fail due to unsupported chain id in HyperRpcClient
+            // Should eventually fail when attempting to reach the mocked RPC endpoint
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::Rpc(err) => {
-                    let msg = err.to_string();
-                    assert!(msg.contains("Unsupported chain ID"));
-                }
-                other => panic!("Expected Rpc UnsupportedChainId, got {other:?}"),
+                LocalDbError::Rpc(_) => {}
+                other => panic!("Expected Rpc error, got {other:?}"),
             }
 
             let msgs = captured.borrow();
@@ -469,15 +481,20 @@ mod tests {
             let db_callback = create_dispatching_db_callback(&tables_json, &last_synced_json);
             let (status_callback, captured) = create_status_collector();
 
-            // Valid-looking address not present in test YAML
-            let missing_address = "0x1111111111111111111111111111111111111111".to_string();
+            // Chain ID not present in the test YAML
+            let missing_chain_id = 999_999u32;
             let result = client
-                .sync_database(db_callback, status_callback, missing_address)
+                .sync_database(db_callback, status_callback, missing_chain_id)
                 .await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
-                LocalDbError::OrderbookConfigNotFound(_) => {}
+                LocalDbError::OrderbookConfigNotFound(err) => match *err {
+                    RaindexError::YamlError(YamlError::NotFound(message)) => {
+                        assert!(message.contains(&missing_chain_id.to_string()));
+                    }
+                    other => panic!("Expected YamlError::NotFound, got {other:?}"),
+                },
                 other => panic!("Expected OrderbookConfigNotFound, got {other:?}"),
             }
 

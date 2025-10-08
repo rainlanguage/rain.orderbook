@@ -34,13 +34,42 @@ SELECT
   COALESCE((
     SELECT FLOAT_SUM(vd.delta)
     FROM vault_deltas vd
-    WHERE vd.owner    = o.owner
-      AND vd.token    = o.token
+    WHERE vd.token    = o.token
       AND vd.vault_id = o.vault_id
+      AND vd.owner    = o.owner
   ), '0x0000000000000000000000000000000000000000000000000000000000000000') AS balance
+
 FROM (
-  /* all distinct (owner, token, vault_id) that ever had a delta */
-  SELECT DISTINCT owner, token, vault_id
-  FROM vault_deltas
-) AS o
-ORDER BY o.owner, o.token, o.vault_id;
+  SELECT
+    '?vault_id' AS vault_id,
+    '?token'    AS token,
+    COALESCE(
+      (
+        SELECT oe.order_owner
+        FROM order_ios io
+        JOIN order_events oe
+          ON oe.transaction_hash = io.transaction_hash
+         AND oe.log_index       = io.log_index
+        WHERE io.token    = '?token'
+          AND io.vault_id = '?vault_id'
+        ORDER BY oe.block_number DESC
+        LIMIT 1
+      ),
+      (
+        SELECT owner
+        FROM (
+          SELECT d.sender AS owner, d.block_number
+          FROM deposits d
+          WHERE d.token    = '?token'
+            AND d.vault_id = '?vault_id'
+          UNION ALL
+          SELECT w.sender AS owner, w.block_number
+          FROM withdrawals w
+          WHERE w.token    = '?token'
+            AND w.vault_id = '?vault_id'
+          ORDER BY block_number DESC
+          LIMIT 1
+        ) AS last_dw
+      )
+    ) AS owner
+) AS o;

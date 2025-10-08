@@ -15,6 +15,7 @@ CREATE TABLE deposits (
     sender TEXT NOT NULL,
     token TEXT NOT NULL,
     vault_id TEXT NOT NULL,
+    deposit_amount TEXT NOT NULL,
     deposit_amount_uint256 TEXT NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );
@@ -67,8 +68,8 @@ CREATE TABLE take_orders (
     order_nonce TEXT NOT NULL,
     input_io_index INTEGER NOT NULL,
     output_io_index INTEGER NOT NULL,
-    input TEXT NOT NULL,
-    output TEXT NOT NULL,
+    taker_input TEXT NOT NULL,
+    taker_output TEXT NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );
 

@@ -4,6 +4,7 @@ use alloy::{
     hex,
     primitives::{keccak256, FixedBytes, U256},
 };
+use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{
     AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     IOV2,
@@ -25,6 +26,8 @@ pub enum InsertError {
         index: usize,
         len: usize,
     },
+    #[error("Float conversion failed: {0}")]
+    FloatConversion(String),
 }
 
 fn encode_u256_prefixed(value: &U256) -> String {
@@ -145,8 +148,11 @@ fn generate_deposit_sql(
     context: &EventContext<'_>,
     decoded: &DepositV2,
 ) -> Result<String, InsertError> {
+    let deposit_amount_float = Float::from_fixed_decimal(decoded.depositAmountUint256, 6)
+        .map_err(|err| InsertError::FloatConversion(err.to_string()))?;
+
     Ok(format!(
-        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');\n",
+        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}');\n",
         context.block_number,
         context.block_timestamp,
         context.transaction_hash,
@@ -154,6 +160,7 @@ fn generate_deposit_sql(
         hex::encode_prefixed(decoded.sender),
         hex::encode_prefixed(decoded.token),
         hex::encode_prefixed(decoded.vaultId),
+        deposit_amount_float.as_hex(),
         encode_u256_prefixed(&decoded.depositAmountUint256)
     ))
 }
@@ -239,7 +246,7 @@ fn generate_take_order_sql(
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, input, output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
+        "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, taker_input, taker_output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
         context.block_number,
         context.block_timestamp,
         context.transaction_hash,

@@ -4,8 +4,10 @@
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from 'sqlite-web';
+	import { type LocalDb } from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
+	let localDbClient = raindexClient.getLocalDbClient(42161).value as LocalDb;
 
 	let db: WasmEncodedResult<SQLiteWasmDatabase> | null = null;
 	let sqlQuery = '';
@@ -13,17 +15,26 @@
 	let isLoading = false;
 	let error = '';
 
+	// Sync status message from raindexClient.syncLocalDatabase callback
+	let syncStatus: string = '';
+
 	// Auto-sync state variables
 	let autoSyncEnabled = false;
 	let lastSyncedBlock: string | null = null;
 	let lastSyncTime: Date | null = null;
 	let autoSyncInterval: ReturnType<typeof setInterval> | null = null;
 
+	// Whether a sync operation is actively running
+	let isSyncing = false;
+
 	let showCustomQuery = false;
 
 	onMount(async () => {
 		await init();
 		db = SQLiteWasmDatabase.new();
+
+		// Populate last sync info on load
+		await updateSyncStatus();
 
 		// Auto-start syncing after db is initialized
 		if (db && !db.error && db.value) {
@@ -116,7 +127,7 @@
 		try {
 			error = '';
 			const queryFn = db.value.query.bind(db.value);
-			const statusResult = await raindexClient.getSyncStatus(queryFn);
+			const statusResult = await localDbClient.getSyncStatus(queryFn);
 
 			if (!statusResult.error && statusResult.value) {
 				const statusArray = statusResult.value;
@@ -143,13 +154,17 @@
 		if (!db?.value || isLoading) return;
 
 		try {
+			isSyncing = true;
 			const queryFn = db.value.query.bind(db.value);
 
-			// Sync database
+			// Sync database and capture status updates
 			const syncResult = await raindexClient.syncLocalDatabase(
 				queryFn,
-				() => {},
-				'0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' // contract address
+				(status: string) => {
+					// Update the UI with latest status message
+					syncStatus = status;
+				},
+				42161
 			);
 
 			if (syncResult.error) {
@@ -162,6 +177,66 @@
 			await updateSyncStatus();
 		} catch (err) {
 			error = err instanceof Error ? err.message : String(err);
+		} finally {
+			isSyncing = false;
+		}
+	}
+
+	// Fetch all orders using local DB via raindexClient
+	async function fetchAllOrders() {
+		if (!db?.value) {
+			error = 'Database not initialized';
+			return;
+		}
+
+		isLoading = true;
+		error = '';
+		queryResults = null;
+
+		try {
+			const queryFn = db.value.query.bind(db.value);
+			const result = await raindexClient.getOrdersLocalDb(42161, queryFn);
+			if (result.error) {
+				error = result.error.msg;
+				return;
+			}
+			for (let order of result.value) {
+				// eslint-disable-next-line no-console
+				console.log('Order active:', order.active);
+				// eslint-disable-next-line no-console
+				console.log('Order hash:', order.orderHash);
+
+				for (let input of order.inputsList.items) {
+					// eslint-disable-next-line no-console
+					console.log('Input vault id: ', input.vaultId);
+					// eslint-disable-next-line no-console
+					console.log('Input token: ', input.token.address);
+					// eslint-disable-next-line no-console
+					console.log('Balance: ', input.balance.format().value);
+					// eslint-disable-next-line no-console
+					console.log('\n');
+				}
+
+				for (let output of order.outputsList.items) {
+					// eslint-disable-next-line no-console
+					console.log('Output vault id: ', output.vaultId);
+					// eslint-disable-next-line no-console
+					console.log('Output token: ', output.token.address);
+					// eslint-disable-next-line no-console
+					console.log('Balance: ', output.balance.format().value);
+					// eslint-disable-next-line no-console
+					console.log('\n');
+				}
+
+				// eslint-disable-next-line no-console
+				console.log('Order trade count:', order.tradesCount);
+				// eslint-disable-next-line no-console
+				console.log('\n\n');
+			}
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		} finally {
+			isLoading = false;
 		}
 	}
 
@@ -207,11 +282,18 @@
 											<span class="font-medium text-gray-500">Auto-Sync Stopped</span>
 										{/if}
 									</div>
-									<div class="text-xs text-blue-600 dark:text-blue-400">
-										Block: {lastSyncedBlock || 'Loading...'} | Last: {lastSyncTime
-											? lastSyncTime.toLocaleTimeString()
-											: 'Loading...'}
-									</div>
+									{#if isSyncing && syncStatus}
+										<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+											Status: {syncStatus}
+										</div>
+									{:else if lastSyncedBlock}
+										<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+											Last sync: block {lastSyncedBlock}
+											{#if lastSyncTime}
+												at {lastSyncTime.toLocaleString()}
+											{/if}
+										</div>
+									{/if}
 								</div>
 							{/if}
 							<button
@@ -253,12 +335,24 @@
 					</h4>
 					<div class="flex flex-wrap gap-2">
 						<Button
-							on:click={() => executeRaindexQuery(() => raindexClient.clearTables(queryFn))}
+							on:click={() => executeRaindexQuery(() => localDbClient.clearTables(queryFn))}
 							disabled={isLoading}
 							color="red"
 							size="sm"
 						>
 							Clear All Tables
+						</Button>
+					</div>
+				</div>
+
+				<!-- Order Management Section -->
+				<div class="mb-6">
+					<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+						Order Management
+					</h4>
+					<div class="flex flex-wrap gap-2">
+						<Button on:click={fetchAllOrders} disabled={isLoading} color="blue" size="sm">
+							Fetch All Orders
 						</Button>
 					</div>
 				</div>

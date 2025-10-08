@@ -10,11 +10,14 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
-use local_db::LocalDbError;
+use local_db::{query::LocalDbQueryError, LocalDbError};
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::yaml::{
-    orderbook::{OrderbookYaml, OrderbookYamlValidation},
-    YamlError, YamlParsable,
+use rain_orderbook_app_settings::{
+    orderbook::OrderbookCfg,
+    yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
@@ -189,6 +192,11 @@ impl RaindexClient {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpcs.clone())
     }
+
+    fn get_orderbooks_by_chain_id(&self, chain_id: u32) -> Result<Vec<OrderbookCfg>, RaindexError> {
+        let orderbooks = self.orderbook_yaml.get_orderbooks_by_chain_id(chain_id)?;
+        Ok(orderbooks)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -280,6 +288,8 @@ pub enum RaindexError {
     AmountFormatterError(#[from] AmountFormatterError),
     #[error(transparent)]
     LocalDbError(#[from] LocalDbError),
+    #[error(transparent)]
+    LocalDbQueryError(#[from] LocalDbQueryError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -398,6 +408,9 @@ impl RaindexError {
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
             RaindexError::LocalDbError(err) => {
                 format!("There was an error with the local database: {err}")
+            }
+            RaindexError::LocalDbQueryError(err) => {
+                format!("There was an error querying the local database: {err}")
             }
         }
     }

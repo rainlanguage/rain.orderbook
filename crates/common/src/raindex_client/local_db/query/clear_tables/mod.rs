@@ -10,9 +10,8 @@ impl LocalDbQuery {
     }
 }
 
-// TODO: This could be exposed from LocalDb
 #[wasm_export]
-impl RaindexClient {
+impl LocalDb {
     #[wasm_export(js_name = "clearTables", unchecked_return_type = "void")]
     pub async fn clear_tables(&self, db_callback: js_sys::Function) -> Result<(), RaindexError> {
         LocalDbQuery::clear_tables(&db_callback)
