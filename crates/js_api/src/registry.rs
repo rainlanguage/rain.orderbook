@@ -1364,8 +1364,8 @@ _ _: 1 1;
                 .get_gui(
                     "first-order".to_string(),
                     "flare".to_string(),
-                    None,
                     Some(saved_state.clone()),
+                    None,
                 )
                 .await
                 .unwrap();
@@ -1375,8 +1375,8 @@ _ _: 1 1;
                 .get_gui(
                     "first-order".to_string(),
                     "flare".to_string(),
-                    None,
                     Some("not-a-valid-state".to_string()),
+                    None,
                 )
                 .await
                 .unwrap();
