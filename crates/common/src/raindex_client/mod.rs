@@ -10,28 +10,32 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
+use local_db::{query::LocalDbQueryError, LocalDbError};
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::yaml::{
-    orderbook::{OrderbookYaml, OrderbookYamlValidation},
-    YamlError, YamlParsable,
+use rain_orderbook_app_settings::{
+    orderbook::OrderbookCfg,
+    yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, num::ParseIntError, str::FromStr};
+use std::{collections::BTreeMap, fmt, num::ParseIntError, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod local_db;
 pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
 pub mod remove_orders;
-pub mod sqlite_web;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
@@ -188,6 +192,32 @@ impl RaindexClient {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpcs.clone())
     }
+
+    fn get_orderbooks_by_chain_id(&self, chain_id: u32) -> Result<Vec<OrderbookCfg>, RaindexError> {
+        let orderbooks = self.orderbook_yaml.get_orderbooks_by_chain_id(chain_id)?;
+        Ok(orderbooks)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SerdeWasmBindgenErrorWrapper {
+    message: String,
+}
+
+impl fmt::Display for SerdeWasmBindgenErrorWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for SerdeWasmBindgenErrorWrapper {}
+
+impl From<serde_wasm_bindgen::Error> for SerdeWasmBindgenErrorWrapper {
+    fn from(error: serde_wasm_bindgen::Error) -> Self {
+        Self {
+            message: error.to_string(),
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -203,7 +233,7 @@ pub enum RaindexError {
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
-    SerdeError(#[from] serde_wasm_bindgen::Error),
+    SerdeError(#[from] SerdeWasmBindgenErrorWrapper),
     #[error(transparent)]
     DotrainOrderError(Box<DotrainOrderError>),
     #[error(transparent)]
@@ -256,11 +286,21 @@ pub enum RaindexError {
     MissingErc20Decimals(String),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
+    #[error(transparent)]
+    LocalDbError(#[from] LocalDbError),
+    #[error(transparent)]
+    LocalDbQueryError(#[from] LocalDbQueryError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<serde_wasm_bindgen::Error> for RaindexError {
+    fn from(err: serde_wasm_bindgen::Error) -> Self {
+        RaindexError::SerdeError(err.into())
     }
 }
 
@@ -366,6 +406,12 @@ impl RaindexError {
                 format!("Missing decimal information for the token address: {token}")
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
+            RaindexError::LocalDbError(err) => {
+                format!("There was an error with the local database: {err}")
+            }
+            RaindexError::LocalDbQueryError(err) => {
+                format!("There was an error querying the local database: {err}")
+            }
         }
     }
 }

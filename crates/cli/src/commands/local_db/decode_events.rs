@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use rain_orderbook_common::{
-    hyper_rpc::LogEntryResponse, raindex_client::sqlite_web::decode::decode_events,
+    raindex_client::local_db::decode::decode_events, rpc_client::LogEntryResponse,
 };
 use std::fs::File;
 use std::io::{BufReader, Write};
@@ -63,7 +63,7 @@ mod tests {
         sol_types::SolEvent,
     };
     use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
-    use rain_orderbook_common::hyper_rpc::LogEntryResponse;
+    use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::{fs, path::Path};
     use tempfile::TempDir;
 

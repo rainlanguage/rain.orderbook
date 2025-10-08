@@ -1,14 +1,17 @@
 use super::decode::{DecodedEvent, DecodedEventData};
+use crate::erc20::TokenInfo;
 use alloy::sol_types::SolValue;
 use alloy::{
     hex,
-    primitives::{keccak256, FixedBytes, U256},
+    primitives::{keccak256, Address, FixedBytes, U256},
 };
+use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{
     AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     IOV2,
 };
 use rain_orderbook_bindings::OrderBook::MetaV1_2;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use thiserror::Error;
 
@@ -25,6 +28,10 @@ pub enum InsertError {
         index: usize,
         len: usize,
     },
+    #[error("Float conversion failed: {0}")]
+    FloatConversion(String),
+    #[error("Missing decimals for token {token}")]
+    MissingTokenDecimals { token: String },
 }
 
 fn encode_u256_prefixed(value: &U256) -> String {
@@ -84,15 +91,30 @@ fn event_context<'a>(
 pub fn decoded_events_to_sql(
     events: &[DecodedEventData<DecodedEvent>],
     end_block: u64,
+    decimals_by_token: &HashMap<Address, u8>,
+    prefix_sql: Option<&str>,
 ) -> Result<String, InsertError> {
     let mut sql = String::new();
     sql.push_str("BEGIN TRANSACTION;\n\n");
+
+    if let Some(prefix) = prefix_sql {
+        if !prefix.is_empty() {
+            sql.push_str(prefix);
+            if !prefix.ends_with('\n') {
+                sql.push('\n');
+            }
+        }
+    }
 
     for event in events {
         match &event.decoded_data {
             DecodedEvent::DepositV2(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_deposit_sql(&context, decoded.as_ref())?);
+                sql.push_str(&generate_deposit_sql(
+                    &context,
+                    decoded.as_ref(),
+                    decimals_by_token,
+                )?);
             }
             DecodedEvent::WithdrawV2(decoded) => {
                 let context = event_context(event)?;
@@ -141,12 +163,68 @@ pub fn decoded_events_to_sql(
     Ok(sql)
 }
 
+/// Build upsert SQL for erc20_tokens. Only include successfully fetched tokens.
+pub fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)]) -> String {
+    if tokens.is_empty() {
+        return String::new();
+    }
+
+    let mut sql = String::new();
+    sql.push_str("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES ");
+
+    let mut first = true;
+    for (addr, info) in tokens.iter() {
+        let address_str = format!("0x{:x}", addr);
+        let address_literal = sql_string_literal(&address_str);
+        let name_literal = sql_string_literal(&info.name);
+        let symbol_literal = sql_string_literal(&info.symbol);
+        let decimals = info.decimals as u32; // store as INTEGER
+        if !first {
+            sql.push_str(", ");
+        }
+        first = false;
+        sql.push_str(&format!(
+            "({}, {}, {}, {}, {})",
+            chain_id, address_literal, name_literal, symbol_literal, decimals
+        ));
+    }
+
+    sql.push_str(
+        " ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;\n",
+    );
+    sql
+}
+
+fn sql_string_literal(value: &str) -> String {
+    let mut literal = String::with_capacity(value.len() + 2);
+    literal.push('\'');
+    for ch in value.chars() {
+        match ch {
+            '\'' => literal.push_str("''"),
+            _ => literal.push(ch),
+        }
+    }
+    literal.push('\'');
+    literal
+}
+
 fn generate_deposit_sql(
     context: &EventContext<'_>,
     decoded: &DepositV2,
+    decimals_by_token: &HashMap<Address, u8>,
 ) -> Result<String, InsertError> {
+    let decimals = decimals_by_token
+        .get(&decoded.token)
+        .copied()
+        .ok_or_else(|| InsertError::MissingTokenDecimals {
+            token: hex::encode_prefixed(decoded.token),
+        })?;
+
+    let deposit_amount_float = Float::from_fixed_decimal(decoded.depositAmountUint256, decimals)
+        .map_err(|err| InsertError::FloatConversion(err.to_string()))?;
+
     Ok(format!(
-        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');\n",
+        "INSERT INTO deposits (block_number, block_timestamp, transaction_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}', '{}');\n",
         context.block_number,
         context.block_timestamp,
         context.transaction_hash,
@@ -154,6 +232,7 @@ fn generate_deposit_sql(
         hex::encode_prefixed(decoded.sender),
         hex::encode_prefixed(decoded.token),
         hex::encode_prefixed(decoded.vaultId),
+        deposit_amount_float.as_hex(),
         encode_u256_prefixed(&decoded.depositAmountUint256)
     ))
 }
@@ -239,7 +318,7 @@ fn generate_take_order_sql(
     let mut sql = String::new();
 
     sql.push_str(&format!(
-        "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, input, output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
+        "INSERT INTO take_orders (block_number, block_timestamp, transaction_hash, log_index, sender, order_owner, order_nonce, input_io_index, output_io_index, taker_input, taker_output) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', {}, {}, '{}', '{}');\n",
         context.block_number,
         context.block_timestamp,
         context.transaction_hash,
@@ -426,11 +505,13 @@ fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raindex_client::sqlite_web::decode::{EventType, UnknownEventDecoded};
+    use crate::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
+    use crate::raindex_client::local_db::LocalDb;
     use alloy::primitives::{Address, Bytes, U256};
     use rain_orderbook_bindings::IOrderBookV5::{
         ClearConfigV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
     };
+    use std::collections::HashMap;
 
     fn build_event(
         event_type: EventType,
@@ -569,7 +650,10 @@ mod tests {
         let DecodedEvent::DepositV2(decoded) = &event.decoded_data else {
             unreachable!()
         };
-        let sql = generate_deposit_sql(&context, decoded).unwrap();
+        let deposit = decoded.as_ref();
+        let mut decimals = HashMap::new();
+        decimals.insert(deposit.token, 6);
+        let sql = generate_deposit_sql(&context, deposit, &decimals).unwrap();
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("0x0000000000000000000000000000000000000000000000000000000000000fa0"));
     }
@@ -615,7 +699,12 @@ mod tests {
     fn decoded_events_to_sql_multiple_events() {
         let clear_event = sample_clear_event();
         let deposit_event = sample_deposit_event();
-        let sql = decoded_events_to_sql(&[deposit_event, clear_event], 0x200).unwrap();
+        let mut decimals = HashMap::new();
+        if let DecodedEvent::DepositV2(deposit) = &deposit_event.decoded_data {
+            decimals.insert(deposit.token, 6);
+        }
+        let sql =
+            decoded_events_to_sql(&[deposit_event, clear_event], 0x200, &decimals, None).unwrap();
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("INSERT INTO clear_v3_events"));
         assert!(sql.contains("UPDATE sync_status SET last_synced_block = 512"));
@@ -634,7 +723,128 @@ mod tests {
                 note: "n/a".into(),
             }),
         );
-        let sql = decoded_events_to_sql(&[unknown_event], 0).unwrap();
+        let sql = decoded_events_to_sql(&[unknown_event], 0, &HashMap::new(), None).unwrap();
         assert!(sql.contains("BEGIN TRANSACTION"));
+    }
+
+    #[test]
+    fn test_generate_erc20_tokens_sql_builder() {
+        let addr1 = Address::from([1u8; 20]);
+        let addr2 = Address::from([2u8; 20]);
+        let tokens = vec![
+            (
+                addr1,
+                TokenInfo {
+                    decimals: 18,
+                    name: "Foo Token".to_string(),
+                    symbol: "FOO".to_string(),
+                },
+            ),
+            (
+                addr2,
+                TokenInfo {
+                    decimals: 6,
+                    name: "Bar's Token".to_string(),
+                    symbol: "B'AR".to_string(),
+                },
+            ),
+        ];
+
+        let sql = generate_erc20_tokens_sql(1, &tokens);
+        assert!(sql.starts_with("INSERT INTO erc20_tokens"));
+        assert!(sql.contains("ON CONFLICT(chain_id, address) DO UPDATE"));
+        assert!(sql.contains("0x0101010101010101010101010101010101010101"));
+        assert!(sql.contains("0x0202020202020202020202020202020202020202"));
+        // Apostrophes should be doubled
+        assert!(sql.contains("Bar''s Token"));
+        assert!(sql.contains("B''AR"));
+    }
+
+    fn assert_literal_round_trip(literal: &str, expected: &str) {
+        assert!(literal.starts_with('\'') && literal.ends_with('\''));
+        let mut chars = literal[1..literal.len() - 1].chars().peekable();
+        let mut reconstructed = String::new();
+        while let Some(ch) = chars.next() {
+            if ch == '\'' {
+                match chars.next() {
+                    Some('\'') => reconstructed.push('\''),
+                    _ => panic!("found unescaped single quote in literal: {}", literal),
+                }
+            } else {
+                reconstructed.push(ch);
+            }
+        }
+        assert_eq!(reconstructed, expected);
+    }
+
+    #[test]
+    fn sql_string_literal_round_trip_special_characters() {
+        let value = "Alice's \"Token\" \\ Backslash\nNewline\rCarriage\tTab; DROP TABLE tokens; --";
+        let literal = super::sql_string_literal(value);
+        assert!(literal.contains("''"));
+        assert!(literal.contains('"'));
+        assert!(literal.contains('\\'));
+        assert_literal_round_trip(&literal, value);
+    }
+
+    #[test]
+    fn generate_erc20_tokens_sql_escapes_special_characters() {
+        let addr = Address::from([3u8; 20]);
+        let name =
+            "Dangerous 'Name' \"Quotes\" \\ Backslash\nNewline; DROP TABLE tokens; --".to_string();
+        let symbol = "SYM'\"\\\n;--".to_string();
+        let tokens = vec![(
+            addr,
+            TokenInfo {
+                decimals: 8,
+                name: name.clone(),
+                symbol: symbol.clone(),
+            },
+        )];
+
+        let sql = generate_erc20_tokens_sql(5, &tokens);
+
+        let expected_tuple = format!(
+            "({}, {}, {}, {}, {})",
+            5,
+            super::sql_string_literal(&format!("0x{:x}", addr)),
+            super::sql_string_literal(&name),
+            super::sql_string_literal(&symbol),
+            8u32
+        );
+
+        assert!(sql.starts_with("INSERT INTO erc20_tokens"));
+        assert!(sql.contains(&expected_tuple));
+        assert!(sql.ends_with(
+            " ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;\n"
+        ));
+
+        let address_literal = super::sql_string_literal(&format!("0x{:x}", addr));
+        let name_literal = super::sql_string_literal(&name);
+        let symbol_literal = super::sql_string_literal(&symbol);
+
+        assert!(sql.contains(&address_literal));
+        assert!(sql.contains(&name_literal));
+        assert!(sql.contains(&symbol_literal));
+
+        assert_literal_round_trip(&address_literal, &format!("0x{:x}", addr));
+        assert_literal_round_trip(&name_literal, &name);
+        assert_literal_round_trip(&symbol_literal, &symbol);
+    }
+
+    #[test]
+    fn test_decoded_events_to_sql_with_prefix_injection() {
+        let events: Vec<DecodedEventData<DecodedEvent>> = Vec::new();
+        let base = LocalDb::default()
+            .decoded_events_to_sql(&events, 0, &HashMap::new(), None)
+            .unwrap();
+        assert!(base.starts_with("BEGIN TRANSACTION;\n\n"));
+
+        let prefix = "-- prefix sql\n";
+        let prefixed = LocalDb::default()
+            .decoded_events_to_sql(&events, 0, &HashMap::new(), Some(prefix))
+            .unwrap();
+        let expected = format!("BEGIN TRANSACTION;\n\n{}", prefix);
+        assert!(prefixed.starts_with(&expected));
     }
 }
