@@ -1,9 +1,9 @@
 {
   "lib/rain.interpreter": {
-    "rev": "ff1d064d8fef013d17934694b59aecafad8409b9"
+    "rev": "6068857887731d910f3f1850c5f27248fce3a5d5"
   },
   "lib/rain.orderbook.interface": {
-    "rev": "698588adcf35117864fe56fef8b83f436b6db2b1"
+    "rev": "26d2a017e98d081f38d0fcff92690e3fc6c204e2"
   },
   "lib/sushixswap-v2": {
     "rev": "ca38c64cf7c3042f6427414d7bff61c54293da51"
