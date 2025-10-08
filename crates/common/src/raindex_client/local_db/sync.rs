@@ -151,19 +151,9 @@ impl RaindexClient {
             .decode_events(&events)
             .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
 
-        let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded_events)
-            .into_iter()
-            .collect();
-
         let existing_stores: Vec<StoreAddressRow> =
             LocalDbQuery::fetch_store_addresses(&db_callback).await?;
-        for row in existing_stores {
-            if !row.store_address.is_empty() {
-                store_addresses.insert(row.store_address.to_ascii_lowercase());
-            }
-        }
-
-        let store_addresses_vec: Vec<String> = store_addresses.into_iter().collect();
+        let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
 
         let store_events = local_db
             .fetch_store_set_events(
@@ -179,8 +169,7 @@ impl RaindexClient {
             .decode_events(&store_events)
             .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
 
-        decoded_events.append(&mut decoded_store_events);
-        sort_events_by_block_and_log(&mut decoded_events);
+        merge_store_events(&mut decoded_events, &mut decoded_store_events);
 
         send_status_message(
             &status_callback,
@@ -233,6 +222,35 @@ fn parse_block_number(value: &str) -> u64 {
     } else {
         trimmed.parse::<u64>().unwrap_or(0)
     }
+}
+
+fn collect_all_store_addresses(
+    decoded_events: &[DecodedEventData<DecodedEvent>],
+    existing_stores: &[StoreAddressRow],
+) -> Vec<String> {
+    let mut store_addresses: BTreeSet<String> = collect_store_addresses(decoded_events)
+        .into_iter()
+        .collect();
+
+    for row in existing_stores {
+        if !row.store_address.is_empty() {
+            store_addresses.insert(row.store_address.to_ascii_lowercase());
+        }
+    }
+
+    store_addresses.into_iter().collect()
+}
+
+fn merge_store_events(
+    decoded_events: &mut Vec<DecodedEventData<DecodedEvent>>,
+    store_events: &mut Vec<DecodedEventData<DecodedEvent>>,
+) {
+    if store_events.is_empty() {
+        return;
+    }
+
+    decoded_events.append(store_events);
+    sort_events_by_block_and_log(decoded_events);
 }
 
 struct TokenPrepResult {
@@ -773,6 +791,90 @@ mod tests {
         use rain_orderbook_test_fixtures::LocalEvm;
         use std::io::Write;
         use url::Url;
+
+        use crate::raindex_client::local_db::decode::{EventType, InterpreterStoreSetEvent};
+        use alloy::primitives::FixedBytes;
+
+        fn make_store_set_event(
+            block_number: u64,
+            log_index: u64,
+            store_byte: u8,
+        ) -> DecodedEventData<DecodedEvent> {
+            let store_event = InterpreterStoreSetEvent {
+                store_address: Address::from([store_byte; 20]),
+                namespace: FixedBytes::<32>::from([0x11; 32]),
+                key: FixedBytes::<32>::from([0x22; 32]),
+                value: FixedBytes::<32>::from([0x33; 32]),
+            };
+
+            DecodedEventData {
+                event_type: EventType::InterpreterStoreSet,
+                block_number: format!("0x{block_number:x}"),
+                block_timestamp: "0x0".into(),
+                transaction_hash: format!("0x{block_number:x}{log_index:x}"),
+                log_index: format!("0x{log_index:x}"),
+                decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(store_event)),
+            }
+        }
+
+        #[test]
+        fn test_collect_all_store_addresses_merges_sources() {
+            let decoded_events = vec![
+                make_store_set_event(10, 0, 0x11),
+                make_store_set_event(11, 1, 0x22),
+            ];
+
+            let existing = vec![
+                StoreAddressRow {
+                    store_address: "0x2222222222222222222222222222222222222222".to_string(),
+                },
+                StoreAddressRow {
+                    store_address: "0X3333333333333333333333333333333333333333".to_string(),
+                },
+                StoreAddressRow {
+                    store_address: "".to_string(),
+                },
+            ];
+
+            let result = collect_all_store_addresses(&decoded_events, &existing);
+
+            assert_eq!(result.len(), 3);
+            assert!(result.contains(&"0x1111111111111111111111111111111111111111".to_string()));
+            assert!(result.contains(&"0x2222222222222222222222222222222222222222".to_string()));
+            assert!(result.contains(&"0x3333333333333333333333333333333333333333".to_string()));
+
+            // Ensure deterministic ordering (BTreeSet) and lowercasing behaviour
+            assert_eq!(
+                result,
+                vec![
+                    "0x1111111111111111111111111111111111111111".to_string(),
+                    "0x2222222222222222222222222222222222222222".to_string(),
+                    "0x3333333333333333333333333333333333333333".to_string(),
+                ]
+            );
+        }
+
+        #[test]
+        fn test_merge_store_events_sorts_and_appends() {
+            let mut base_events = vec![
+                make_store_set_event(12, 1, 0xaa),
+                make_store_set_event(15, 0, 0xbb),
+            ];
+            let mut store_events = vec![make_store_set_event(8, 2, 0xcc)];
+
+            merge_store_events(&mut base_events, &mut store_events);
+
+            assert!(store_events.is_empty(), "store events drained after merge");
+            assert_eq!(base_events.len(), 3);
+            assert_eq!(base_events[0].block_number, "0x8");
+            assert_eq!(base_events[0].log_index, "0x2");
+            match &base_events[0].decoded_data {
+                DecodedEvent::InterpreterStoreSet(store_event) => {
+                    assert_eq!(store_event.store_address, Address::from([0xcc; 20]));
+                }
+                other => panic!("expected InterpreterStoreSet event, got {other:?}"),
+            }
+        }
 
         fn create_gzipped_sql() -> Vec<u8> {
             let sql_content = "CREATE TABLE test (id INTEGER);";
