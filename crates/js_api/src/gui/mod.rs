@@ -639,12 +639,14 @@ impl DotrainOrderGui {
         dotrain: &str,
         additional_configs: Option<Vec<String>>,
     ) -> Result<Vec<Arc<RwLock<StrictYaml>>>, GuiError> {
-        let frontmatter = RainDocument::get_front_matter(&dotrain)
-            .unwrap_or("")
-            .to_string();
-        let mut sources = vec![frontmatter];
+        let mut sources = Vec::new();
+        if let Some(frontmatter) = RainDocument::get_front_matter(&dotrain) {
+            if !frontmatter.trim().is_empty() {
+                sources.push(frontmatter.to_string());
+            }
+        }
         if let Some(configs) = additional_configs {
-            sources.extend(configs);
+            sources.extend(configs.into_iter().filter(|cfg| !cfg.trim().is_empty()));
         }
         let dotrain_yaml = DotrainYaml::new(sources, DotrainYamlValidation::default())?;
         Ok(dotrain_yaml.documents)
