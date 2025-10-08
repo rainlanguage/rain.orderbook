@@ -1,13 +1,12 @@
-use alloy::hex;
-use anyhow::Result;
-use clap::Parser;
-
 use super::{
-    config::load_primary_orderbook_from_commit,
+    config::load_primary_orderbook_from_settings,
     data_source::DefaultTokenFetcher,
     runner::{SyncParams, SyncRunner},
     storage::build_local_db_from_network,
 };
+use alloy::hex;
+use anyhow::Result;
+use clap::Parser;
 
 #[derive(Debug, Clone, Parser)]
 #[command(about = "Incrementally sync a local SQLite database using on-chain events")]
@@ -20,9 +19,9 @@ pub struct SyncLocalDb {
 
     #[clap(
         long,
-        help = "Git commit hash of the rain.orderbook repository used to resolve remote settings"
+        help = "YAML document containing orderbook settings for the deployment"
     )]
-    pub repo_commit: String,
+    pub settings_yaml: String,
 
     #[clap(long, help = "HyperRPC API token used for log fetching")]
     pub api_token: String,
@@ -41,25 +40,25 @@ impl SyncLocalDb {
         let SyncLocalDb {
             db_path,
             chain_id,
-            repo_commit,
+            settings_yaml,
             api_token,
             start_block,
             end_block,
         } = self;
 
-        let primary_orderbook = load_primary_orderbook_from_commit(chain_id, &repo_commit).await?;
+        let primary_orderbook = load_primary_orderbook_from_settings(chain_id, &settings_yaml)?;
         let orderbook_address = hex::encode_prefixed(primary_orderbook.address);
         let deployment_block = primary_orderbook.deployment_block;
 
         if let Some(label) = &primary_orderbook.label {
             println!(
-                "Using orderbook {} ({}) resolved from repo commit {}",
-                orderbook_address, label, repo_commit
+                "Using orderbook {} ({}) from provided settings YAML",
+                orderbook_address, label
             );
         } else {
             println!(
-                "Using orderbook {} resolved from repo commit {}",
-                orderbook_address, repo_commit
+                "Using orderbook {} from provided settings YAML",
+                orderbook_address
             );
         }
 

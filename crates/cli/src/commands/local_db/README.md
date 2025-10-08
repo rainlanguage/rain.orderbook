@@ -15,7 +15,7 @@ Notes
 
 ## Incremental Sync (fetch, decode, insert)
 
-`local-db sync` is now a single command that mirrors the browser sync logic. It reads the Rain settings from a specific repository commit, resolves the primary orderbook for the given chain, and then updates your SQLite database by fetching the missing on-chain events, decoding them, preparing any missing token metadata, and applying the combined SQL transaction.
+`local-db sync` is now a single command that mirrors the browser sync logic. It accepts the Rain settings YAML directly, resolves the primary orderbook for the given chain, and then updates your SQLite database by fetching the missing on-chain events, decoding them, preparing any missing token metadata, and applying the combined SQL transaction.
 
 Example:
 
@@ -23,14 +23,14 @@ Example:
 cargo run -p rain_orderbook_cli -- local-db sync \
   --db-path "./data/orderbook.db" \
   --chain-id 42161 \
-  --repo-commit f00ba47cafe1234567890abcdef1234567890ab \
+  --settings-yaml "..." \
   --api-token hyper-token \
   --start-block 352866209 \
   --end-block 352999999
 ```
 
 Key behaviour:
-- The command downloads `constants.ts`/settings for the provided commit to discover the orderbook deployment. No manual `--orderbook-address`, `--deployment-block`, or user-supplied RPC URLs are required.
+- The command parses the provided settings YAML to discover the orderbook deployment. No manual `--orderbook-address`, `--deployment-block`, or user-supplied RPC URLs are required.
 - HyperRPC log fetching uses the provided `--api-token`; ERC-20 metadata reads reuse the network RPCs declared in settings. Start/end blocks are optional—when omitted the runner resumes from the last synced block and stops at the chain head.
 - When the DB is empty the schema is created automatically, `sync_status` is advanced to the synced block, and existing token metadata is reused while missing addresses trigger live fetches.
 
