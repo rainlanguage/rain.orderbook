@@ -1,4 +1,8 @@
 use super::*;
+use crate::raindex_client::local_db::{
+    query::{fetch_vaults::FetchVaultsArgs, LocalDbQuery},
+    LocalDb,
+};
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
@@ -950,9 +954,51 @@ impl RaindexClient {
             u16,
         >,
     ) -> Result<RaindexVaultsList, RaindexError> {
+        let Some(ids) = chain_ids else {
+            let vaults = self.get_vaults_sg(None, filters, page).await?;
+            return Ok(RaindexVaultsList::new(vaults));
+        };
+
+        let Some(db_cb) = self.local_db_callback() else {
+            let vaults = self.get_vaults_sg(Some(ids.0), filters, page).await?;
+            return Ok(RaindexVaultsList::new(vaults));
+        };
+
+        let all_ids = ids.0;
+        let (local_ids, sg_ids): (Vec<u32>, Vec<u32>) = all_ids
+            .into_iter()
+            .partition(|&id| LocalDb::check_support(id));
+
+        let mut vaults: Vec<RaindexVault> = Vec::new();
+
+        if !local_ids.is_empty() {
+            let locals = futures::future::try_join_all(
+                local_ids
+                    .into_iter()
+                    .map(|id| self.get_vaults_local_db(&db_cb, id, filters.clone())),
+            )
+            .await?;
+            for mut chunk in locals {
+                vaults.append(&mut chunk);
+            }
+        }
+
+        if !sg_ids.is_empty() {
+            let sg_vaults = self.get_vaults_sg(Some(sg_ids), filters, page).await?;
+            vaults.extend(sg_vaults);
+        }
+
+        Ok(RaindexVaultsList::new(vaults))
+    }
+
+    async fn get_vaults_sg(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+        filters: Option<GetVaultsFilters>,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexVault>, RaindexError> {
         let raindex_client = Rc::new(self.clone());
-        let multi_subgraph_args =
-            self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
+        let multi_subgraph_args = self.get_multi_subgraph_args(chain_ids)?;
         let client = MultiOrderbookSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
         );
@@ -980,7 +1026,12 @@ impl RaindexClient {
                     .iter()
                     .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
                     .map(|(chain_id, _)| *chain_id)
-                    .unwrap();
+                    .ok_or_else(|| {
+                        RaindexError::SubgraphNotFound(
+                            vault.subgraph_name.clone(),
+                            vault.vault.vault_id.0.clone(),
+                        )
+                    })?;
                 let vault = RaindexVault::try_from_sg_vault(
                     raindex_client.clone(),
                     chain_id,
@@ -990,7 +1041,37 @@ impl RaindexClient {
                 Ok(vault)
             })
             .collect::<Result<Vec<RaindexVault>, RaindexError>>()?;
-        Ok(RaindexVaultsList::new(vaults))
+
+        Ok(vaults)
+    }
+
+    async fn get_vaults_local_db(
+        &self,
+        db_callback: &js_sys::Function,
+        chain_id: u32,
+        filters: Option<GetVaultsFilters>,
+    ) -> Result<Vec<RaindexVault>, RaindexError> {
+        let fetch_args = filters
+            .clone()
+            .map(FetchVaultsArgs::from)
+            .unwrap_or_default();
+
+        let local_vaults = LocalDbQuery::fetch_vaults(db_callback, chain_id, fetch_args).await?;
+        let mut vaults = Vec::new();
+        let raindex_client = Rc::new(self.clone());
+
+        for local_vault in local_vaults {
+            let vault = RaindexVault::try_from_local_db(
+                Rc::clone(&raindex_client),
+                chain_id,
+                local_vault,
+                None,
+            )?;
+
+            vaults.push(vault);
+        }
+
+        Ok(vaults)
     }
 
     /// Fetches detailed information for a specific vault
@@ -1309,8 +1390,145 @@ impl TryFrom<RaindexVaultToken> for SgErc20 {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(not(target_family = "wasm"))]
+
     use super::*;
+
+    #[cfg(target_family = "wasm")]
+    mod wasm_tests {
+        use super::*;
+        use crate::raindex_client::local_db::query::fetch_vault::LocalDbVault;
+        use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
+        use crate::raindex_client::tests::get_local_db_test_yaml;
+        use alloy::primitives::Address;
+        use rain_math_float::Float;
+        use serde_json;
+        use std::cell::RefCell;
+        use std::rc::Rc;
+        use std::str::FromStr;
+        use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+        use wasm_bindgen_test::wasm_bindgen_test;
+        use wasm_bindgen_utils::prelude::WasmEncodedResult;
+
+        fn make_local_db_vaults_callback(vaults: Vec<LocalDbVault>) -> js_sys::Function {
+            let json = serde_json::to_string(&vaults).unwrap();
+            let result = WasmEncodedResult::Success::<String> {
+                value: json,
+                error: None,
+            };
+            let payload = js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&result).unwrap())
+                .unwrap()
+                .as_string()
+                .unwrap();
+
+            let callback = Closure::wrap(Box::new(move |_sql: String| -> JsValue {
+                js_sys::JSON::parse(&payload).unwrap()
+            }) as Box<dyn Fn(String) -> JsValue>);
+
+            callback.into_js_value().dyn_into().unwrap()
+        }
+
+        fn make_local_vault(
+            vault_id: &str,
+            token: &str,
+            owner: &str,
+            balance: Float,
+        ) -> LocalDbVault {
+            LocalDbVault {
+                vault_id: vault_id.to_string(),
+                token: token.to_string(),
+                owner: owner.to_string(),
+                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                token_name: "Token".to_string(),
+                token_symbol: "TKN".to_string(),
+                token_decimals: 18,
+                balance: balance.as_hex(),
+                input_orders: None,
+                output_orders: None,
+            }
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_vaults_local_db_path() {
+            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let token = "0x00000000000000000000000000000000000000aa";
+            let vault =
+                make_local_vault("0x01", token, owner, Float::parse("1".to_string()).unwrap());
+
+            let callback = make_local_db_vaults_callback(vec![vault]);
+
+            let mut client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            client
+                .set_local_db_callback(callback)
+                .expect("setting callback succeeds");
+
+            let vaults = client
+                .get_vaults(Some(ChainIds(vec![42161])), None, None)
+                .await
+                .expect("local db vaults should load");
+
+            let items = vaults.items();
+            assert_eq!(items.len(), 1);
+            let result_vault = &items[0];
+            assert_eq!(result_vault.chain_id(), 42161);
+            assert_eq!(result_vault.owner().to_lowercase(), owner.to_string());
+            assert_eq!(
+                result_vault.orderbook().to_lowercase(),
+                "0x2f209e5b67a33b8fe96e28f24628df6da301c8eb".to_string()
+            );
+            assert_eq!(result_vault.formatted_balance(), "1".to_string());
+            let token_meta = result_vault.token();
+            assert_eq!(token_meta.address().to_lowercase(), token.to_string());
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_vaults_local_db_filters() {
+            let owner_kept = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let token_kept = "0x00000000000000000000000000000000000000aa";
+
+            let keep_vault = make_local_vault(
+                "0x01",
+                token_kept,
+                owner_kept,
+                Float::parse("2".to_string()).unwrap(),
+            );
+            let captured_sql = Rc::new(RefCell::new(String::new()));
+            let json = serde_json::to_string(&vec![keep_vault]).unwrap();
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+
+            let mut client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            client
+                .set_local_db_callback(callback)
+                .expect("setting callback succeeds");
+
+            let filters = GetVaultsFilters {
+                owners: vec![Address::from_str(owner_kept).unwrap()],
+                hide_zero_balance: true,
+                tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+            };
+
+            let vaults = client
+                .get_vaults(Some(ChainIds(vec![42161])), Some(filters), None)
+                .await
+                .expect("filtered vaults should load");
+
+            let items = vaults.items();
+            assert_eq!(items.len(), 1);
+            let vault = &items[0];
+            assert_eq!(vault.owner().to_lowercase(), owner_kept.to_string());
+            let token_meta = vault.token();
+            assert_eq!(token_meta.address().to_lowercase(), token_kept.to_string());
+            assert_eq!(vault.formatted_balance(), "2".to_string());
+
+            let sql = captured_sql.borrow();
+            assert!(
+                sql.contains("lower(o.owner) IN ('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')")
+            );
+            assert!(
+                sql.contains("lower(o.token) IN ('0x00000000000000000000000000000000000000aa')")
+            );
+            assert!(sql.contains("AND NOT FLOAT_IS_ZERO("));
+        }
+    }
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {

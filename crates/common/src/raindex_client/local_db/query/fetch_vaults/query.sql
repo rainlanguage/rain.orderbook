@@ -75,4 +75,8 @@ FROM (
 JOIN erc20_tokens et
   ON et.chain_id = '?chain_id'
  AND lower(et.address) = lower(o.token)
+WHERE 1=1
+?filter_owners
+?filter_tokens
+?filter_hide_zero_balance
 ORDER BY o.owner, o.token, o.vault_id;
