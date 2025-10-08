@@ -21,6 +21,10 @@ simulation, backtesting, and deterministic ingestion workloads.
   instances by supplying your own `CodeCache` implementation.
 - **Snapshots for persistence** – capture and restore state with the `Snapshot`
   type for reproducible testing.
+- **Live sync facade** – orchestrate background mutation replay, bytecode
+  warmup, and persistence using `live::LiveVirtualRaindex`; see
+  `src/live/README.md` for the state machine, adapter contracts, and stub
+  fixtures.
 - **Event replay adapters** – translate on-chain OrderBook and Interpreter
   Store logs into `RaindexMutation`s for offline ingestion and parity checks.
 
@@ -38,6 +42,8 @@ The crate is organised by concern:
 - `types` – request/response payloads shared by the engine.
 - `events` – adapters that convert decoded logs into `RaindexMutation`s for
   OrderBook and Store contracts.
+- `live` – async live-sync facade, adapters, and fixtures; see
+  `src/live/README.md` for details on the state machine and usage patterns.
 - `integration_tests.rs` – black-box tests covering quote/take flows plus
   end-to-end event replay parity against a local Anvil deployment.
 

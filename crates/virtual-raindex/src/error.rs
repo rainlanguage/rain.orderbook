@@ -4,6 +4,7 @@ use std::{error::Error, fmt};
 
 use alloy::primitives::{Address, B256};
 use rain_math_float::{Float, FloatError};
+use serde::{Deserialize, Serialize};
 
 /// Convenience alias for fallible Virtual Raindex results.
 pub type Result<T> = std::result::Result<T, RaindexError>;
@@ -115,7 +116,7 @@ impl fmt::Display for RaindexError {
 impl Error for RaindexError {}
 
 /// Identifies the type of bytecode requested from the [CodeCache].
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum BytecodeKind {
     Interpreter,
     Store,
