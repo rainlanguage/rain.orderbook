@@ -6774,6 +6774,7 @@ dependencies = [
  "csv",
  "futures",
  "httpmock",
+ "itertools 0.14.0",
  "rain-math-float",
  "rain-metadata 0.0.2-alpha.6",
  "rain_orderbook_app_settings",

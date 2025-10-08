@@ -1,3 +1,4 @@
+use alloy::hex;
 use anyhow::Result;
 use clap::Parser;
 
@@ -47,7 +48,7 @@ impl SyncLocalDb {
         } = self;
 
         let primary_orderbook = load_primary_orderbook_from_commit(chain_id, &repo_commit).await?;
-        let orderbook_address = format!("{:#x}", primary_orderbook.address);
+        let orderbook_address = hex::encode_prefixed(primary_orderbook.address);
         let deployment_block = primary_orderbook.deployment_block;
 
         if let Some(label) = &primary_orderbook.label {
