@@ -900,9 +900,11 @@ impl RaindexOrder {
             .as_ref()
             .and_then(|meta| meta.try_decode_rainlangsource().ok());
 
-        let mut id = Vec::with_capacity(order.orderbook_address.len() + order.order_hash.len());
-        id.extend_from_slice(order.orderbook_address.as_bytes());
-        id.extend_from_slice(order.order_hash.as_bytes());
+        let id = [
+            order.orderbook_address.as_bytes(),
+            order.order_hash.as_bytes(),
+        ]
+        .concat();
 
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
