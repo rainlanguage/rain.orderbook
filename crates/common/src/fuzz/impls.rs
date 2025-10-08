@@ -130,15 +130,12 @@ impl FuzzRunnerContext {
             .unwrap_or("")
             .to_string();
 
-        let source = if let Some(settings) = settings {
-            vec![frontmatter.to_string(), settings.to_string()]
-        } else {
-            vec![frontmatter.to_string()]
-        };
-
-        let orderbook_yaml =
-            OrderbookYaml::new(source.clone(), OrderbookYamlValidation::default())?;
-        let spec_version = orderbook_yaml.get_spec_version()?;
+        let frontmatter_source = vec![frontmatter.clone()];
+        let frontmatter_orderbook_yaml = OrderbookYaml::new(
+            frontmatter_source.clone(),
+            OrderbookYamlValidation::default(),
+        )?;
+        let spec_version = frontmatter_orderbook_yaml.get_spec_version()?;
         if !SpecVersion::is_current(&spec_version) {
             return Err(FuzzRunnerError::SpecVersionMismatch(
                 SpecVersion::current().to_string(),
@@ -146,7 +143,12 @@ impl FuzzRunnerContext {
             ));
         }
 
-        let dotrain_yaml = DotrainYaml::new(source, DotrainYamlValidation::default())?;
+        let mut sources = frontmatter_source;
+        if let Some(settings) = settings {
+            sources.push(settings);
+        }
+
+        let dotrain_yaml = DotrainYaml::new(sources, DotrainYamlValidation::default())?;
 
         Ok(FuzzRunnerContext {
             dotrain: dotrain.into(),
