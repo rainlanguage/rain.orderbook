@@ -919,7 +919,21 @@ impl RaindexOrder {
             orderbook: Address::from_str(&order.orderbook_address)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
-            meta: order.meta.map(|meta| Bytes::from_str(&meta)).transpose()?,
+            meta: order
+                .meta
+                .clone()
+                .map(|meta| Bytes::from_str(&meta))
+                .transpose()?,
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .map(|meta| {
+                    ParsedMeta::parse_from_bytes(
+                        &decode(meta).map_err(rain_metadata::Error::DecodeHexStringError)?,
+                    )
+                })
+                .transpose()?
+                .unwrap_or_default(),
             rainlang,
             transaction: None,
             trades_count: order.trade_count as u16,
