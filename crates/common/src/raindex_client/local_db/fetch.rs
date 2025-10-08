@@ -1,9 +1,10 @@
-use super::{LocalDb, LocalDbError, RAINTERPRETER_STORE_SET_TOPIC};
+use super::{LocalDb, LocalDbError};
 use crate::rpc_client::{LogEntryResponse, RpcClientError};
 use alloy::{primitives::U256, sol_types::SolEvent};
 use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::{
+    IInterpreterStoreV3::Set,
     IOrderBookV5::{
         AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     },
@@ -159,22 +160,31 @@ impl LocalDb {
             return Ok(Vec::new());
         }
 
-        let mut jobs = Vec::new();
         let chunk_size = config.chunk_size.max(1);
         let chunk_span = chunk_size.saturating_sub(1);
-        for address in unique_addresses.into_iter() {
-            let mut current_block = start_block;
-            while current_block <= end_block {
-                let to_block = current_block.saturating_add(chunk_span).min(end_block);
-                jobs.push((address.clone(), current_block, to_block));
-                current_block = to_block.saturating_add(1);
-                if to_block == u64::MAX {
-                    break;
-                }
-            }
-        }
+        let jobs: Vec<_> = unique_addresses
+            .into_iter()
+            .flat_map(|address| {
+                std::iter::successors(Some(start_block), |&current| {
+                    if current >= end_block || current == u64::MAX {
+                        None
+                    } else {
+                        Some(
+                            current
+                                .saturating_add(chunk_span)
+                                .min(end_block)
+                                .saturating_add(1),
+                        )
+                    }
+                })
+                .map(move |current_block| {
+                    let to_block = current_block.saturating_add(chunk_span).min(end_block);
+                    (address.clone(), current_block, to_block)
+                })
+            })
+            .collect();
 
-        let topics = Some(vec![Some(vec![RAINTERPRETER_STORE_SET_TOPIC.to_string()])]);
+        let topics = Some(vec![Some(vec![Set::SIGNATURE_HASH.to_string()])]);
         let concurrency = config.max_concurrent_requests.max(1);
         let client = self.rpc_client().clone();
         let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(jobs)

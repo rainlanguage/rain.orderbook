@@ -1,4 +1,3 @@
-use super::RAINTERPRETER_STORE_SET_TOPIC;
 use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
@@ -7,6 +6,7 @@ use alloy::{
 };
 use core::convert::{TryFrom, TryInto};
 use rain_orderbook_bindings::{
+    IInterpreterStoreV3::Set,
     IOrderBookV5::{
         AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     },
@@ -39,9 +39,6 @@ pub enum EventType {
 
 impl EventType {
     fn from_topic(topic: &str) -> Self {
-        if topic.eq_ignore_ascii_case(RAINTERPRETER_STORE_SET_TOPIC) {
-            return Self::InterpreterStoreSet;
-        }
         if let Ok(bytes) = hex::decode(topic) {
             if bytes == AddOrderV3::SIGNATURE_HASH.as_slice() {
                 return Self::AddOrderV3;
@@ -66,6 +63,9 @@ impl EventType {
             }
             if bytes == MetaV1_2::SIGNATURE_HASH.as_slice() {
                 return Self::MetaV1_2;
+            }
+            if bytes == Set::SIGNATURE_HASH.as_slice() {
+                return Self::InterpreterStoreSet;
             }
         }
 
@@ -466,7 +466,7 @@ mod test_helpers {
 
         let encoded = format!("0x{}", hex::encode(data));
         let mut entry = new_log_entry(
-            RAINTERPRETER_STORE_SET_TOPIC.to_string(),
+            Set::SIGNATURE_HASH.to_string(),
             encoded,
             "0x12345c",
             Some("0x64b8c129"),

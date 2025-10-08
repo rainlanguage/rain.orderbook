@@ -12,6 +12,7 @@ use super::{
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
 use reqwest::Client;
+use std::collections::BTreeSet;
 use std::{
     collections::{HashMap, HashSet},
     io::Read,
@@ -150,7 +151,7 @@ impl RaindexClient {
             .decode_events(&events)
             .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
 
-        let mut store_addresses: HashSet<String> = collect_store_addresses(&decoded_events)
+        let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded_events)
             .into_iter()
             .collect();
 
