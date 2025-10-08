@@ -6,7 +6,7 @@ use crate::raindex_client::{
     },
     orders::RaindexOrder,
     transactions::RaindexTransaction,
-    vaults::RaindexVaultBalanceChange,
+    vaults::{LocalTradeBalanceInfo, LocalTradeTokenInfo, RaindexVaultBalanceChange},
 };
 use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::{
@@ -318,12 +318,16 @@ impl RaindexTrade {
             orderbook,
             &transaction,
             &trade.input_vault_id,
-            &trade.input_token,
-            trade.input_token_name.clone(),
-            trade.input_token_symbol.clone(),
-            trade.input_token_decimals,
-            &trade.input_delta,
-            trade.input_running_balance.clone(),
+            LocalTradeTokenInfo {
+                address: trade.input_token.clone(),
+                name: trade.input_token_name.clone(),
+                symbol: trade.input_token_symbol.clone(),
+                decimals: trade.input_token_decimals,
+            },
+            LocalTradeBalanceInfo {
+                delta: trade.input_delta.clone(),
+                running_balance: trade.input_running_balance.clone(),
+            },
             trade.block_timestamp,
         )?;
 
@@ -332,12 +336,16 @@ impl RaindexTrade {
             orderbook,
             &transaction,
             &trade.output_vault_id,
-            &trade.output_token,
-            trade.output_token_name.clone(),
-            trade.output_token_symbol.clone(),
-            trade.output_token_decimals,
-            &trade.output_delta,
-            trade.output_running_balance.clone(),
+            LocalTradeTokenInfo {
+                address: trade.output_token.clone(),
+                name: trade.output_token_name.clone(),
+                symbol: trade.output_token_symbol.clone(),
+                decimals: trade.output_token_decimals,
+            },
+            LocalTradeBalanceInfo {
+                delta: trade.output_delta.clone(),
+                running_balance: trade.output_running_balance.clone(),
+            },
             trade.block_timestamp,
         )?;
 
@@ -364,11 +372,12 @@ mod test_helpers {
     mod wasm_tests {
         use super::*;
         use crate::raindex_client::local_db::query::{
-            fetch_order_trades::LocalDbOrderTrade,
-            fetch_orders::LocalDbOrder,
+            fetch_order_trades::LocalDbOrderTrade, fetch_orders::LocalDbOrder,
             fetch_vault::LocalDbVault,
         };
-        use crate::raindex_client::tests::{get_local_db_test_yaml, new_test_client_with_db_callback};
+        use crate::raindex_client::tests::{
+            get_local_db_test_yaml, new_test_client_with_db_callback,
+        };
         use alloy::primitives::{Address, Bytes};
         use rain_orderbook_subgraph_client::utils::float::{F1, F2, F3, NEG2};
         use serde_json::{self, json};
@@ -424,8 +433,8 @@ mod test_helpers {
                 block_timestamp: 1_700_000_010,
                 block_number: 123_456,
                 orderbook_address: ORDERBOOK_ADDRESS.to_string(),
-                order_bytes:
-                    "0x00000000000000000000000000000000000000000000000000000000000000ff".to_string(),
+                order_bytes: "0x00000000000000000000000000000000000000000000000000000000000000ff"
+                    .to_string(),
                 transaction_hash: tx_hash.to_string(),
                 inputs: Some(format!("0:{}:{}", INPUT_VAULT_ID, INPUT_TOKEN)),
                 outputs: Some(format!("0:{}:{}", OUTPUT_VAULT_ID, OUTPUT_TOKEN)),
@@ -528,17 +537,18 @@ mod test_helpers {
                     .as_string()
                     .unwrap();
 
-            let trade_count_rows = serde_json::to_string(&vec![json!({ "trade_count": trade_count })])
-                .unwrap();
+            let trade_count_rows =
+                serde_json::to_string(&vec![json!({ "trade_count": trade_count })]).unwrap();
             let trade_count_result = WasmEncodedResult::Success::<String> {
                 value: trade_count_rows,
                 error: None,
             };
-            let trade_count_payload =
-                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&trade_count_result).unwrap())
-                    .unwrap()
-                    .as_string()
-                    .unwrap();
+            let trade_count_payload = js_sys::JSON::stringify(
+                &serde_wasm_bindgen::to_value(&trade_count_result).unwrap(),
+            )
+            .unwrap()
+            .as_string()
+            .unwrap();
 
             let empty_result = WasmEncodedResult::Success::<String> {
                 value: "[]".to_string(),
@@ -602,10 +612,7 @@ mod test_helpers {
 
             let callback = make_local_db_trades_callback(
                 vec![fixture.order.clone()],
-                vec![
-                    fixture.input_vault.clone(),
-                    fixture.output_vault.clone(),
-                ],
+                vec![fixture.input_vault.clone(), fixture.output_vault.clone()],
                 vec![fixture.trade.clone()],
                 4,
             );
@@ -620,10 +627,7 @@ mod test_helpers {
                 .await
                 .unwrap();
 
-            let trades = order
-                .get_trades_list(None, None, None)
-                .await
-                .unwrap();
+            let trades = order.get_trades_list(None, None, None).await.unwrap();
 
             assert_eq!(trades.len(), 1);
 
@@ -665,10 +669,7 @@ mod test_helpers {
                 .unwrap()
                 .as_string()
                 .unwrap();
-            assert_eq!(
-                trade_timestamp,
-                fixture.trade.block_timestamp.to_string()
-            );
+            assert_eq!(trade_timestamp, fixture.trade.block_timestamp.to_string());
 
             let input_change = trade.input_vault_balance_change();
             assert!(input_change.amount().eq(F1).unwrap());
@@ -700,17 +701,14 @@ mod test_helpers {
         #[wasm_bindgen_test]
         async fn test_get_trade_count_local_db_path() {
             let fixture = build_local_trade_fixture(
-                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-                    3,
-                    7,
-                );
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                3,
+                7,
+            );
 
             let callback = make_local_db_trades_callback(
                 vec![fixture.order.clone()],
-                vec![
-                    fixture.input_vault.clone(),
-                    fixture.output_vault.clone(),
-                ],
+                vec![fixture.input_vault.clone(), fixture.output_vault.clone()],
                 vec![fixture.trade.clone()],
                 7,
             );
