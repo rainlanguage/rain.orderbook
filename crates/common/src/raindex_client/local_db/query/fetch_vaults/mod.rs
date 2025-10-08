@@ -81,10 +81,21 @@ impl LocalDbQuery {
             format!("\nAND lower(o.token) IN ({})\n", token_values.join(", "))
         };
 
-        const BALANCE_EXPR: &str = "COALESCE((\n    SELECT FLOAT_SUM(vd.delta)\n    FROM vault_deltas vd\n    WHERE vd.owner    = o.owner\n      AND vd.token    = o.token\n      AND vd.vault_id = o.vault_id\n  ), '0x0000000000000000000000000000000000000000000000000000000000000000')";
+        const BALANCE_EXPR: &str = r#"COALESCE((
+    SELECT FLOAT_SUM(vd.delta)
+    FROM vault_deltas vd
+    WHERE vd.owner    = o.owner
+      AND vd.token    = o.token
+      AND vd.vault_id = o.vault_id
+  ), '0x0000000000000000000000000000000000000000000000000000000000000000')"#;
 
         let filter_hide_zero_balance = if hide_zero_balance {
-            format!("\nAND NOT FLOAT_IS_ZERO({expr})\n", expr = BALANCE_EXPR)
+            format!(
+                "\nAND NOT FLOAT_IS_ZERO(
+    {expr}
+)\n",
+                expr = BALANCE_EXPR,
+            )
         } else {
             String::new()
         };
