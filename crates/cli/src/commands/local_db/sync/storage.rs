@@ -170,7 +170,26 @@ mod tests {
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
         sqlite_execute(
             &db_path_str,
-            "INSERT INTO interpreter_store_sets (store_address, transaction_hash, log_index, block_number, block_timestamp, namespace, key, value) VALUES ('0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD', '0x1', 0, 1, 0, '0x0', '0x0', '0x0');",
+            r#"INSERT INTO interpreter_store_sets (
+                store_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                namespace,
+                key,
+                value
+            ) VALUES (
+                '0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD',
+                '0x1',
+                0,
+                1,
+                0,
+                '0x0',
+                '0x0',
+                '0x0'
+            );
+"#,
         )
         .unwrap();
 

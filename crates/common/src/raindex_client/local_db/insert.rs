@@ -5,6 +5,7 @@ use alloy::{
     hex,
     primitives::{keccak256, Address, FixedBytes, U256},
 };
+use itertools::Itertools;
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{
     AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3, WithdrawV2,
@@ -170,10 +171,6 @@ pub fn decoded_events_to_sql(
 }
 
 pub fn raw_events_to_sql(raw_events: &[LogEntryResponse]) -> Result<String, InsertError> {
-    if raw_events.is_empty() {
-        return Ok(String::new());
-    }
-
     struct RawEventRow<'a> {
         block_number: u64,
         log_index: u64,
@@ -183,56 +180,65 @@ pub fn raw_events_to_sql(raw_events: &[LogEntryResponse]) -> Result<String, Inse
         raw_json: String,
     }
 
-    let mut rows = Vec::with_capacity(raw_events.len());
-    for event in raw_events {
-        let block_number = hex_to_decimal(&event.block_number)?;
-        let log_index = hex_to_decimal(&event.log_index)?;
-        let block_timestamp = event
-            .block_timestamp
-            .as_deref()
-            .map(hex_to_decimal)
-            .transpose()?;
+    let rows = raw_events
+        .iter()
+        .map(|event| {
+            let block_number = hex_to_decimal(&event.block_number)?;
+            let log_index = hex_to_decimal(&event.log_index)?;
+            let block_timestamp = event
+                .block_timestamp
+                .as_deref()
+                .map(hex_to_decimal)
+                .transpose()?;
+            let topics_json = serde_json::to_string(&event.topics)
+                .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
+            let raw_json = serde_json::to_string(&event)
+                .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
+            Ok(RawEventRow {
+                block_number,
+                log_index,
+                block_timestamp,
+                event,
+                topics_json,
+                raw_json,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
 
-        let topics_json = serde_json::to_string(&event.topics)
-            .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
-        let raw_json = serde_json::to_string(event)
-            .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
-
-        rows.push(RawEventRow {
-            block_number,
-            log_index,
-            block_timestamp,
-            event,
-            topics_json,
-            raw_json,
-        });
-    }
-
-    rows.sort_by(|a, b| {
-        a.block_number
-            .cmp(&b.block_number)
-            .then_with(|| a.log_index.cmp(&b.log_index))
-    });
-
-    let mut sql = String::new();
-    for row in rows {
-        let timestamp_sql = match row.block_timestamp {
-            Some(ts) => ts.to_string(),
-            None => "NULL".to_string(),
-        };
-
-        sql.push_str(&format!(
-            "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');\n",
-            row.block_number,
-            timestamp_sql,
-            escape_sql_text(&row.event.transaction_hash),
-            row.log_index,
-            escape_sql_text(&row.event.address),
-            escape_sql_text(&row.topics_json),
-            escape_sql_text(&row.event.data),
-            escape_sql_text(&row.raw_json),
-        ));
-    }
+    let sql = rows
+        .iter()
+        .sorted_by(|a, b| {
+            a.block_number
+                .cmp(&b.block_number)
+                .then_with(|| a.log_index.cmp(&b.log_index))
+        })
+        .map(|row| {
+            let timestamp_sql = row
+                .block_timestamp
+                .map_or_else(|| "NULL".to_string(), |ts| ts.to_string());
+            format!(
+                r#"INSERT INTO raw_events (
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    address,
+    topics,
+    data,
+    raw_json
+) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');
+"#,
+                row.block_number,
+                timestamp_sql,
+                escape_sql_text(&row.event.transaction_hash),
+                row.log_index,
+                escape_sql_text(&row.event.address),
+                escape_sql_text(&row.topics_json),
+                escape_sql_text(&row.event.data),
+                escape_sql_text(&row.raw_json),
+            )
+        })
+        .collect::<String>();
 
     Ok(sql)
 }

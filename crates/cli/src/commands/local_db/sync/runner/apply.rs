@@ -47,34 +47,46 @@ where
     })
 }
 
-#[allow(clippy::too_many_arguments)]
+pub(super) struct PrepareSqlParams {
+    pub(super) db_path: String,
+    pub(super) metadata_rpc_urls: Vec<Url>,
+    pub(super) chain_id: u32,
+    pub(super) decoded_events: Vec<DecodedEventData<DecodedEvent>>,
+    pub(super) raw_events: Vec<LogEntryResponse>,
+    pub(super) target_block: u64,
+}
+
 pub(super) async fn prepare_sql<D, T>(
     data_source: &D,
     token_fetcher: &T,
-    db_path: &str,
-    metadata_rpc_urls: &[Url],
-    chain_id: u32,
-    decoded_events: &[DecodedEventData<DecodedEvent>],
-    raw_events: &[LogEntryResponse],
-    target_block: u64,
+    params: PrepareSqlParams,
 ) -> Result<String>
 where
     D: SyncDataSource + Send + Sync,
     T: TokenMetadataFetcher + Send + Sync,
 {
+    let PrepareSqlParams {
+        db_path,
+        metadata_rpc_urls,
+        chain_id,
+        decoded_events,
+        raw_events,
+        target_block,
+    } = params;
+
     let metadata_rpc_slice = if metadata_rpc_urls.is_empty() {
         data_source.rpc_urls()
     } else {
-        metadata_rpc_urls
+        &metadata_rpc_urls
     };
 
-    let raw_events_sql = data_source.raw_events_to_sql(raw_events)?;
+    let raw_events_sql = data_source.raw_events_to_sql(&raw_events)?;
 
     let token_prep = prepare_token_metadata(
-        db_path,
+        &db_path,
         metadata_rpc_slice,
         chain_id,
-        decoded_events,
+        &decoded_events,
         token_fetcher,
     )
     .await?;
@@ -85,7 +97,7 @@ where
     }
 
     data_source.events_to_sql(
-        decoded_events,
+        &decoded_events,
         target_block,
         &token_prep.decimals_by_addr,
         &combined_prefix,
@@ -111,7 +123,26 @@ mod tests {
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
-    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES (0, NULL, '0x0', 0, '0x0', '[]', '0x', '{}');\n";
+    const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
+        block_number,
+        block_timestamp,
+        transaction_hash,
+        log_index,
+        address,
+        topics,
+        data,
+        raw_json
+    ) VALUES (
+        0,
+        NULL,
+        '0x0',
+        0,
+        '0x0',
+        '[]',
+        '0x',
+        '{}'
+    );
+"#;
 
     struct MockDataSource {
         sql_result: String,
@@ -268,12 +299,14 @@ mod tests {
         let result = prepare_sql(
             &data_source,
             &token_fetcher,
-            &db_path_str,
-            &[],
-            1,
-            &[],
-            &[],
-            100,
+            PrepareSqlParams {
+                db_path: db_path_str.to_string(),
+                metadata_rpc_urls: vec![],
+                chain_id: 1,
+                decoded_events: vec![],
+                raw_events: vec![],
+                target_block: 100,
+            },
         )
         .await
         .expect("prepare sql");
@@ -345,12 +378,14 @@ mod tests {
         let sql = prepare_sql(
             &data_source,
             &mock_fetcher,
-            &db_path_str,
-            data_source.rpc_urls(),
-            1,
-            &decoded,
-            &raw_events,
-            42,
+            PrepareSqlParams {
+                db_path: db_path_str.to_string(),
+                metadata_rpc_urls: data_source.rpc_urls().to_vec(),
+                chain_id: 1,
+                decoded_events: decoded,
+                raw_events,
+                target_block: 42,
+            },
         )
         .await
         .unwrap();
@@ -402,12 +437,14 @@ mod tests {
         let sql = prepare_sql(
             &data_source,
             &mock_fetcher,
-            &db_path_str,
-            data_source.rpc_urls(),
-            1,
-            &[],
-            &[],
-            75,
+            PrepareSqlParams {
+                db_path: db_path_str.to_string(),
+                metadata_rpc_urls: data_source.rpc_urls().to_vec(),
+                chain_id: 1,
+                decoded_events: vec![],
+                raw_events: vec![],
+                target_block: 75,
+            },
         )
         .await
         .unwrap();
