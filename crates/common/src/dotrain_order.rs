@@ -1716,13 +1716,19 @@ gui:
             .and_then(|v| v.as_sequence())
             .unwrap();
         let polygon_input_entry = polygon_inputs[0].as_mapping().unwrap();
-        assert!(!polygon_input_entry.contains_key(Value::String("vault-id".to_string())), "trimmed doc should omit input vault ids");
+        assert!(
+            !polygon_input_entry.contains_key(Value::String("vault-id".to_string())),
+            "trimmed doc should omit input vault ids"
+        );
         let polygon_outputs = polygon_order
             .get(Value::String("outputs".to_string()))
             .and_then(|v| v.as_sequence())
             .unwrap();
         let polygon_output_entry = polygon_outputs[0].as_mapping().unwrap();
-        assert!(!polygon_output_entry.contains_key(Value::String("vault-id".to_string())), "trimmed doc should omit output vault ids");
+        assert!(
+            !polygon_output_entry.contains_key(Value::String("vault-id".to_string())),
+            "trimmed doc should omit output vault ids"
+        );
 
         let deployments = root
             .get(Value::String("deployments".to_string()))

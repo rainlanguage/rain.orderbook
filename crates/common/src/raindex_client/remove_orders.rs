@@ -68,17 +68,18 @@ impl RaindexClient {
             .await?;
 
         let order_futures = orders.into_iter().map(|value| {
-            let raindex_client = raindex_client.clone();
+            let raindex_client = Rc::clone(&raindex_client);
 
             async move {
                 let transaction = value.transaction.try_into()?;
-                RaindexOrder::try_from_sg_order(
+                let mut order = RaindexOrder::try_from_sg_order(
                     raindex_client,
                     chain_id,
                     value.order,
                     Some(transaction),
-                )
-                .await
+                )?;
+                order.fetch_dotrain_source().await?;
+                Ok::<RaindexOrder, RaindexError>(order)
             }
         });
 
