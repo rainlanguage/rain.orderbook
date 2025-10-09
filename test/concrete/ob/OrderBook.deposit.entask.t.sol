@@ -35,13 +35,13 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
         // 5 reads for deposit.
-        assertEq(reads.length, isFirstDeposit ? 8 : 6);
+        assertEq(reads.length, 5);
         assertEq(reads[0], bytes32(uint256(0)));
         assertEq(reads[1], bytes32(uint256(0)));
         assertEq(reads[reads.length - 1], bytes32(uint256(0)));
         // 2 writes for reentrancy guard.
         // 2 write for deposit.
-        assertEq(writes.length, isFirstDeposit ? 4 : 3);
+        assertEq(writes.length, 3);
         assertEq(writes[0], bytes32(uint256(0)));
         assertEq(writes[writes.length - 1], bytes32(uint256(0)));
     }

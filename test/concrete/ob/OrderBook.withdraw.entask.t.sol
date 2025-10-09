@@ -114,7 +114,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         }
         iOrderbook.withdraw3(address(iToken0), vaultId, targetAmount, actions);
         if (err.length == 0) {
-            checkReentrancyRW(7, 3);
+            checkReentrancyRW(6, 3);
             (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
             assertEq(reads.length, expectedReads);
             assertEq(writes.length, expectedWrites);

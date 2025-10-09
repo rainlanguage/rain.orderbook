@@ -66,7 +66,7 @@ import {
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_IO_VAULT_ID
 } from "../../lib/LibOrderBook.sol";
-import {OrderBookV4FlashLenderDisabled} from "../../abstract/OrderBookV4FlashLenderDisabled.sol";
+import {OrderBookV4FlashLender} from "../../abstract/OrderBookV4FlashLender.sol";
 import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
@@ -202,7 +202,7 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLenderDisabled {
+contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for OrderV4;
@@ -383,10 +383,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    function checkTokenSelfTrade(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
-        internal
-        pure
-    {
+    function checkTokenSelfTrade(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex) internal pure {
         if (order.validInputs[inputIOIndex].token == order.validOutputs[outputIOIndex].token) {
             revert TokenSelfTrade();
         }
@@ -459,14 +456,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 // Every order needs the same input token.
                 // Every order needs the same output token.
                 if (
-                    (
-                        order.validInputs[takeOrderConfig.inputIOIndex].token
-                            != orderInputToken
-                    )
-                        || (
-                            order.validOutputs[takeOrderConfig.outputIOIndex].token
-                                != orderOutputToken
-                        )
+                    (order.validInputs[takeOrderConfig.inputIOIndex].token != orderInputToken)
+                        || (order.validOutputs[takeOrderConfig.outputIOIndex].token != orderOutputToken)
                 ) {
                     revert TokenMismatch();
                 }
@@ -528,9 +519,9 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             }
         }
 
-            if (totalTakerInput.lt(config.minimumInput)) {
-                revert MinimumInput(config.minimumInput, totalTakerInput);
-            }
+        if (totalTakerInput.lt(config.minimumInput)) {
+            revert MinimumInput(config.minimumInput, totalTakerInput);
+        }
 
         // We send the tokens to `msg.sender` first adopting a similar pattern to
         // Uniswap flash swaps. We call the caller before attempting to pull
@@ -547,11 +538,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         if (config.data.length > 0) {
             IOrderBookV5OrderTaker(msg.sender).onTakeOrders2(
-                orderOutputToken,
-                orderInputToken,
-                totalTakerInput,
-                totalTakerOutput,
-                config.data
+                orderOutputToken, orderInputToken, totalTakerInput, totalTakerOutput, config.data
             );
         }
 
@@ -688,9 +675,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 );
 
                 {
-                    (TOFUOutcome inputOutcome, uint8 inputDecimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(
-                        order.validInputs[inputIOIndex].token
-                    );
+                    (TOFUOutcome inputOutcome, uint8 inputDecimals) =
+                        LibTOFUTokenDecimals.decimalsForTokenReadOnly(order.validInputs[inputIOIndex].token);
                     if (inputOutcome != TOFUOutcome.Consistent && inputOutcome != TOFUOutcome.Initial) {
                         revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
@@ -708,9 +694,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 }
 
                 {
-                    (TOFUOutcome outputOutcome, uint8 outputDecimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(
-                        order.validOutputs[outputIOIndex].token
-                    );
+                    (TOFUOutcome outputOutcome, uint8 outputDecimals) =
+                        LibTOFUTokenDecimals.decimalsForTokenReadOnly(order.validOutputs[outputIOIndex].token);
                     if (outputOutcome != TOFUOutcome.Consistent && outputOutcome != TOFUOutcome.Initial) {
                         revert TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
                     }

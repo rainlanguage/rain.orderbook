@@ -35,11 +35,7 @@ abstract contract OrderBookV4FlashLenderDisabled is IERC3156FlashLender, ERC165 
     }
 
     /// @inheritdoc IERC3156FlashLender
-    function flashLoan(IERC3156FlashBorrower , address , uint256 , bytes calldata )
-        external
-        override
-        returns (bool)
-    {
+    function flashLoan(IERC3156FlashBorrower, address, uint256, bytes calldata) external override returns (bool) {
         revert FlashLenderCallbackFailed(0);
     }
 
@@ -52,7 +48,7 @@ abstract contract OrderBookV4FlashLenderDisabled is IERC3156FlashLender, ERC165 
     /// the current tokens deposited in `Orderbook`. If there is an active debt
     /// then loans are disabled so the max becomes `0` until after repayment.
     /// @inheritdoc IERC3156FlashLender
-    function maxFlashLoan(address ) external view override returns (uint256) {
+    function maxFlashLoan(address) external view override returns (uint256) {
         return 0;
     }
 }
