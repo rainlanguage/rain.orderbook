@@ -6,6 +6,7 @@
 mod cache;
 mod engine;
 mod error;
+pub mod events;
 pub mod host;
 mod state;
 mod types;

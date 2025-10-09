@@ -2,6 +2,10 @@
 mod integration {
     use crate::{
         cache::StaticCodeCache,
+        events::{
+            orderbook::{orderbook_event_to_mutations, OrderBookEvent},
+            store::{store_event_to_mutation, StoreEvent},
+        },
         host::RevmInterpreterHost,
         state::{self, StoreKey, VaultKey},
         Float, OrderRef, QuoteRequest, RaindexMutation, TakeOrder, TakeOrdersConfig,
@@ -9,10 +13,14 @@ mod integration {
     };
     use alloy::primitives::{Address, Bytes, B256, U256};
     use alloy::providers::{ext::AnvilApi, Provider};
-    use alloy::rpc::types::BlockNumberOrTag;
+    use alloy::rpc::types::{eth::Filter, BlockNumberOrTag};
     use proptest::prelude::*;
+    use rain_interpreter_bindings::IInterpreterStoreV3::Set as StoreSetEvent;
     use rain_interpreter_test_fixtures::{Interpreter, Store};
-    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, TaskV2, IOV2};
+    use rain_orderbook_bindings::IOrderBookV5::{
+        AddOrderV3, AfterClearV2, ClearConfigV2, ClearStateChangeV2, ClearV3, DepositV2,
+        EvaluableV4, OrderV4, SignedContextV1, TakeOrderConfigV4, TakeOrderV3, TaskV2, IOV2,
+    };
     use rain_orderbook_test_fixtures::LocalEvm;
     use rain_orderbook_test_fixtures::Orderbook::{
         self, EvaluableV4 as OnchainEvaluable, OrderConfigV4 as OnchainOrderConfig,
@@ -20,7 +28,7 @@ mod integration {
         TakeOrdersConfigV4 as OnchainTakeOrdersConfig, TaskV2 as OnchainTaskV2,
         IOV2 as OnchainIOV2,
     };
-    use std::sync::Arc;
+    use std::{collections::VecDeque, sync::Arc};
     use tokio::runtime::Runtime;
 
     const BASE_OUTPUT_DEPOSIT: u64 = 5;
@@ -59,6 +67,133 @@ mod integration {
 
     fn address_to_u256(address: Address) -> U256 {
         U256::from_be_slice(address.into_word().as_slice())
+    }
+
+    fn convert_onchain_io(io: &Orderbook::IOV2) -> IOV2 {
+        IOV2 {
+            token: io.token,
+            vaultId: io.vaultId,
+        }
+    }
+
+    fn convert_onchain_evaluable(evaluable: &Orderbook::EvaluableV4) -> EvaluableV4 {
+        EvaluableV4 {
+            interpreter: evaluable.interpreter,
+            store: evaluable.store,
+            bytecode: evaluable.bytecode.clone(),
+        }
+    }
+
+    fn convert_onchain_order(order: &Orderbook::OrderV4) -> OrderV4 {
+        OrderV4 {
+            owner: order.owner,
+            evaluable: convert_onchain_evaluable(&order.evaluable),
+            validInputs: order.validInputs.iter().map(convert_onchain_io).collect(),
+            validOutputs: order.validOutputs.iter().map(convert_onchain_io).collect(),
+            nonce: order.nonce,
+        }
+    }
+
+    fn convert_add_order_event(event: &Orderbook::AddOrderV3) -> AddOrderV3 {
+        AddOrderV3 {
+            sender: event.sender,
+            orderHash: event.orderHash,
+            order: convert_onchain_order(&event.order),
+        }
+    }
+
+    fn convert_deposit_event(event: &Orderbook::DepositV2) -> DepositV2 {
+        DepositV2 {
+            sender: event.sender,
+            token: event.token,
+            vaultId: event.vaultId,
+            depositAmountUint256: event.depositAmountUint256,
+        }
+    }
+
+    fn convert_store_event(event: &Store::Set) -> StoreSetEvent {
+        StoreSetEvent {
+            namespace: event.namespace,
+            key: event.key,
+            value: event.value,
+        }
+    }
+
+    fn convert_signed_context(context: &Orderbook::SignedContextV1) -> SignedContextV1 {
+        SignedContextV1 {
+            signer: context.signer,
+            context: context.context.clone(),
+            signature: context.signature.clone(),
+        }
+    }
+
+    fn convert_take_order_config(config: &Orderbook::TakeOrderConfigV4) -> TakeOrderConfigV4 {
+        TakeOrderConfigV4 {
+            order: convert_onchain_order(&config.order),
+            inputIOIndex: config.inputIOIndex,
+            outputIOIndex: config.outputIOIndex,
+            signedContext: config
+                .signedContext
+                .iter()
+                .map(convert_signed_context)
+                .collect(),
+        }
+    }
+
+    fn convert_take_order_event(event: &Orderbook::TakeOrderV3) -> TakeOrderV3 {
+        TakeOrderV3 {
+            sender: event.sender,
+            config: convert_take_order_config(&event.config),
+            input: event.input,
+            output: event.output,
+        }
+    }
+
+    fn convert_clear_config(config: &Orderbook::ClearConfigV2) -> ClearConfigV2 {
+        ClearConfigV2 {
+            aliceInputIOIndex: config.aliceInputIOIndex,
+            aliceOutputIOIndex: config.aliceOutputIOIndex,
+            bobInputIOIndex: config.bobInputIOIndex,
+            bobOutputIOIndex: config.bobOutputIOIndex,
+            aliceBountyVaultId: config.aliceBountyVaultId,
+            bobBountyVaultId: config.bobBountyVaultId,
+        }
+    }
+
+    fn convert_clear_event(event: &Orderbook::ClearV3) -> ClearV3 {
+        ClearV3 {
+            sender: event.sender,
+            alice: convert_onchain_order(&event.alice),
+            bob: convert_onchain_order(&event.bob),
+            clearConfig: convert_clear_config(&event.clearConfig),
+        }
+    }
+
+    fn convert_after_clear_event(event: &Orderbook::AfterClearV2) -> AfterClearV2 {
+        AfterClearV2 {
+            sender: event.sender,
+            clearStateChange: ClearStateChangeV2 {
+                aliceOutput: event.clearStateChange.aliceOutput,
+                bobOutput: event.clearStateChange.bobOutput,
+                aliceInput: event.clearStateChange.aliceInput,
+                bobInput: event.clearStateChange.bobInput,
+            },
+        }
+    }
+
+    enum EventKind {
+        OrderBook(Box<OrderBookEventOwned>),
+        Store(StoreSetEvent),
+    }
+
+    enum OrderBookEventOwned {
+        Add(AddOrderV3),
+        Deposit(DepositV2),
+        Take(TakeOrderV3),
+        Clear {
+            clear: Box<ClearV3>,
+            state_change: Box<AfterClearV2>,
+        },
     }
 
     #[derive(Clone, Copy, Debug)]
@@ -107,6 +242,7 @@ mod integration {
     }
 
     struct DeployOrderParams {
+        owner: Address,
         template: OrderTemplate,
         unique_store_key: Option<B256>,
         shared_store_key: Option<B256>,
@@ -189,6 +325,7 @@ mod integration {
         local_evm: LocalEvm,
         raindex: TestVirtualRaindex,
         owner: Address,
+        secondary_owner: Address,
         store_address: Address,
         orderbook_address: Address,
         interpreter_address: Address,
@@ -199,6 +336,7 @@ mod integration {
         async fn new() -> Self {
             let local_evm = LocalEvm::new_with_tokens(2).await;
             let owner = local_evm.anvil.addresses()[0];
+            let secondary_owner = local_evm.anvil.addresses()[1];
             let orderbook_address = *local_evm.orderbook.address();
             let interpreter_address = *local_evm.interpreter.address();
             let store_address = *local_evm.store.address();
@@ -213,6 +351,7 @@ mod integration {
                 local_evm,
                 raindex,
                 owner,
+                secondary_owner,
                 store_address,
                 orderbook_address,
                 interpreter_address,
@@ -226,6 +365,22 @@ mod integration {
         async fn initialise_orders(&mut self) {
             let input_token = *self.local_evm.tokens[0].address();
             let output_token = *self.local_evm.tokens[1].address();
+
+            let transfer_amount = parse_float("20");
+            let transfer_amount_wei = transfer_amount
+                .to_fixed_decimal(18)
+                .expect("transfer amount to fixed");
+            for token in &self.local_evm.tokens {
+                self.local_evm
+                    .send_transaction(
+                        token
+                            .transfer(self.secondary_owner, transfer_amount_wei)
+                            .from(self.owner)
+                            .into_transaction_request(),
+                    )
+                    .await
+                    .expect("transfer tokens to secondary owner");
+            }
 
             self.local_evm
                 .send_transaction(
@@ -246,6 +401,18 @@ mod integration {
                 )
                 .await
                 .expect("approve input token");
+
+            for token in &self.local_evm.tokens {
+                self.local_evm
+                    .send_transaction(
+                        token
+                            .approve(self.orderbook_address, U256::MAX)
+                            .from(self.secondary_owner)
+                            .into_transaction_request(),
+                    )
+                    .await
+                    .expect("approve token for secondary owner");
+            }
 
             self.raindex
                 .apply_mutations(&[RaindexMutation::SetTokenDecimals {
@@ -268,6 +435,7 @@ mod integration {
             let shared_key = B256::from(SHARED_STORE_KEY_BYTES);
 
             self.deploy_order(DeployOrderParams {
+                owner: self.owner,
                 template: OrderTemplate::EnvTimestamp,
                 unique_store_key: Some(unique_primary),
                 shared_store_key: Some(shared_key),
@@ -280,12 +448,13 @@ mod integration {
             .await;
 
             self.deploy_order(DeployOrderParams {
+                owner: self.secondary_owner,
                 template: OrderTemplate::VaultBalance,
                 unique_store_key: None,
                 shared_store_key: Some(shared_key),
                 post_task_key: post_secondary,
-                input_token,
-                output_token,
+                input_token: output_token,
+                output_token: input_token,
                 input_vault_id: B256::from([3u8; 32]),
                 output_vault_id: B256::from([4u8; 32]),
             })
@@ -302,6 +471,7 @@ mod integration {
 
         async fn deploy_order(&mut self, params: DeployOrderParams) {
             let DeployOrderParams {
+                owner,
                 template,
                 unique_store_key,
                 shared_store_key,
@@ -316,7 +486,7 @@ mod integration {
             let bytecode = compile_rain(&self.local_evm, rain_src).await;
 
             let order = OrderV4 {
-                owner: self.owner,
+                owner,
                 evaluable: EvaluableV4 {
                     interpreter: self.interpreter_address,
                     store: self.store_address,
@@ -391,6 +561,7 @@ mod integration {
                     self.local_evm
                         .orderbook
                         .addOrder3(onchain_config.clone(), vec![onchain_task])
+                        .from(owner)
                         .into_transaction_request(),
                 )
                 .await
@@ -460,9 +631,13 @@ mod integration {
 
             self.local_evm
                 .send_transaction(
-                    self.local_evm.tokens[1]
+                    self.local_evm
+                        .tokens
+                        .iter()
+                        .find(|token| *token.address() == order.output_token)
+                        .expect("output token instance")
                         .approve(self.orderbook_address, amount_wei)
-                        .from(self.owner)
+                        .from(order.onchain_order.owner)
                         .into_transaction_request(),
                 )
                 .await
@@ -478,7 +653,7 @@ mod integration {
                             raw_amount,
                             Vec::<OnchainTaskV2>::new(),
                         )
-                        .from(self.owner)
+                        .from(order.onchain_order.owner)
                         .into_transaction_request(),
                 )
                 .await
@@ -487,7 +662,7 @@ mod integration {
             self.raindex
                 .apply_mutations(&[RaindexMutation::VaultDeltas {
                     deltas: vec![VaultDelta {
-                        owner: self.owner,
+                        owner: order.onchain_order.owner,
                         token: order.output_token,
                         vault_id: order.output_vault_id,
                         delta: amount,
@@ -579,6 +754,91 @@ mod integration {
             );
         }
 
+        async fn clear(&mut self) {
+            self.sync_env_with_chain().await;
+
+            let alice = self.orders[0].onchain_order.clone();
+            let bob = self.orders[1].onchain_order.clone();
+
+            let clear_config = Orderbook::ClearConfigV2 {
+                aliceInputIOIndex: U256::ZERO,
+                aliceOutputIOIndex: U256::ZERO,
+                bobInputIOIndex: U256::ZERO,
+                bobOutputIOIndex: U256::ZERO,
+                aliceBountyVaultId: alice.validOutputs[0].vaultId,
+                bobBountyVaultId: bob.validOutputs[0].vaultId,
+            };
+
+            let tx = self
+                .local_evm
+                .orderbook
+                .clear3(
+                    alice.clone(),
+                    bob.clone(),
+                    clear_config.clone(),
+                    vec![],
+                    vec![],
+                )
+                .from(self.owner)
+                .into_transaction_request();
+
+            let receipt = self
+                .local_evm
+                .send_transaction(tx)
+                .await
+                .expect("clear onchain");
+
+            let mut clear_log: Option<Orderbook::ClearV3> = None;
+            let mut after_clear_log: Option<Orderbook::AfterClearV2> = None;
+            let mut store_events: Vec<Store::Set> = Vec::new();
+
+            for log in receipt.inner.inner.logs() {
+                if let Ok(decoded) = log.log_decode::<Orderbook::ClearV3>() {
+                    clear_log = Some(decoded.inner.data);
+                    continue;
+                }
+
+                if let Ok(decoded) = log.log_decode::<Orderbook::AfterClearV2>() {
+                    after_clear_log = Some(decoded.inner.data);
+                    continue;
+                }
+
+                if let Ok(decoded) = log.log_decode::<Store::Set>() {
+                    store_events.push(decoded.inner.data);
+                }
+            }
+
+            let clear = clear_log.expect("clear event emitted");
+            let after = after_clear_log.expect("after clear event emitted");
+
+            let converted_clear = convert_clear_event(&clear);
+            let converted_after = convert_after_clear_event(&after);
+
+            let clear_mutations = orderbook_event_to_mutations(OrderBookEvent::Clear {
+                clear: &converted_clear,
+                state_change: &converted_after,
+            })
+            .expect("convert clear mutations");
+
+            self.raindex
+                .apply_mutations(&clear_mutations)
+                .expect("apply clear mutations");
+
+            for store_event in store_events {
+                let converted = convert_store_event(&store_event);
+                let mutation = store_event_to_mutation(StoreEvent {
+                    store: self.store_address,
+                    data: &converted,
+                });
+                self.raindex
+                    .apply_mutations(&[mutation])
+                    .expect("apply store mutation from clear");
+            }
+
+            self.assert_all_balances_synced().await;
+            self.assert_all_store_synced().await;
+        }
+
         async fn assert_balances_synced_for(&self, target: OrderTarget) {
             let order = &self.orders[target.index()];
             let snapshot = self.raindex.snapshot();
@@ -596,14 +856,22 @@ mod integration {
             let onchain_input = self
                 .local_evm
                 .orderbook
-                .vaultBalance2(self.owner, order.input_token, order.input_vault_id)
+                .vaultBalance2(
+                    order.onchain_order.owner,
+                    order.input_token,
+                    order.input_vault_id,
+                )
                 .call()
                 .await
                 .expect("onchain input vault");
             let onchain_output = self
                 .local_evm
                 .orderbook
-                .vaultBalance2(self.owner, order.output_token, order.output_vault_id)
+                .vaultBalance2(
+                    order.onchain_order.owner,
+                    order.output_token,
+                    order.output_vault_id,
+                )
                 .call()
                 .await
                 .expect("onchain output vault");
@@ -621,7 +889,7 @@ mod integration {
         async fn assert_store_synced_for(&mut self, target: OrderTarget) {
             let idx = target.index();
             let order = self.orders.get_mut(idx).expect("order state for target");
-            let namespace = address_to_u256(self.owner);
+            let namespace = address_to_u256(order.onchain_order.owner);
             let fqn = state::derive_fqn(namespace, self.orderbook_address);
             let fqn_u256 = U256::from_be_slice(fqn.as_slice());
 
@@ -828,6 +1096,262 @@ mod integration {
             .call()
             .await
             .expect("parse2")
+    }
+
+    #[test]
+    fn event_ingestion_recreates_virtual_state() {
+        let runtime = Runtime::new().expect("runtime");
+        runtime.block_on(async move {
+            let mut harness = Harness::new().await;
+            let unit = amount_to_float(1);
+            harness.take(OrderTarget::Primary, unit).await;
+            harness.clear().await;
+            let expected_snapshot = harness.raindex.snapshot();
+
+            let cache = Arc::new(StaticCodeCache::default());
+            cache.upsert_interpreter(
+                harness.interpreter_address,
+                Interpreter::DEPLOYED_BYTECODE.as_ref(),
+            );
+            cache.upsert_store(harness.store_address, Store::DEPLOYED_BYTECODE.as_ref());
+            let host = Arc::new(RevmInterpreterHost::new(cache.clone()));
+            let mut replay = VirtualRaindex::new(harness.orderbook_address, cache, host);
+
+            replay
+                .apply_mutations(&[RaindexMutation::SetEnv {
+                    block_number: Some(expected_snapshot.env.block_number),
+                    timestamp: Some(expected_snapshot.env.timestamp),
+                }])
+                .expect("set env from snapshot");
+
+            if !expected_snapshot.token_decimals.is_empty() {
+                let entries = expected_snapshot
+                    .token_decimals
+                    .iter()
+                    .map(|(&token, &decimals)| TokenDecimalEntry { token, decimals })
+                    .collect::<Vec<_>>();
+                replay
+                    .apply_mutations(&[RaindexMutation::SetTokenDecimals { entries }])
+                    .expect("set token decimals");
+            }
+
+            let mut combined_events: Vec<(u64, u64, EventKind)> = Vec::new();
+
+            let orderbook_filter = Filter::new()
+                .address(harness.orderbook_address)
+                .from_block(BlockNumberOrTag::Earliest)
+                .to_block(BlockNumberOrTag::Latest);
+            let orderbook_logs = harness
+                .local_evm
+                .provider
+                .get_logs(&orderbook_filter)
+                .await
+                .expect("fetch orderbook logs");
+
+            let mut pending_clears: VecDeque<Orderbook::ClearV3> = VecDeque::new();
+            for log in orderbook_logs {
+                let block = log
+                    .block_number
+                    .expect("orderbook log should include block number");
+                let index = log
+                    .log_index
+                    .expect("orderbook log should include log index");
+
+                if let Ok(decoded) = log.log_decode::<Orderbook::ClearV3>() {
+                    pending_clears.push_back(decoded.into_inner().data);
+                    continue;
+                }
+
+                if let Ok(decoded) = log.log_decode::<Orderbook::AfterClearV2>() {
+                    let clear_event = pending_clears.pop_front().expect("matching clear event");
+                    let converted_clear = convert_clear_event(&clear_event);
+                    let converted_after = convert_after_clear_event(&decoded.inner);
+                    combined_events.push((
+                        block,
+                        index,
+                        EventKind::OrderBook(Box::new(OrderBookEventOwned::Clear {
+                            clear: Box::new(converted_clear),
+                            state_change: Box::new(converted_after),
+                        })),
+                    ));
+                    continue;
+                }
+
+                if let Ok(decoded) = log.log_decode::<Orderbook::TakeOrderV3>() {
+                    let converted = convert_take_order_event(&decoded.inner);
+                    combined_events.push((
+                        block,
+                        index,
+                        EventKind::OrderBook(Box::new(OrderBookEventOwned::Take(converted))),
+                    ));
+                    continue;
+                }
+
+                if let Ok(decoded) = log.log_decode::<Orderbook::AddOrderV3>() {
+                    let converted = convert_add_order_event(&decoded.inner);
+                    combined_events.push((
+                        block,
+                        index,
+                        EventKind::OrderBook(Box::new(OrderBookEventOwned::Add(converted))),
+                    ));
+                    continue;
+                }
+
+                if let Ok(decoded) = log.log_decode::<Orderbook::DepositV2>() {
+                    let converted = convert_deposit_event(&decoded.inner);
+                    combined_events.push((
+                        block,
+                        index,
+                        EventKind::OrderBook(Box::new(OrderBookEventOwned::Deposit(converted))),
+                    ));
+                    continue;
+                }
+            }
+
+            assert!(
+                pending_clears.is_empty(),
+                "unmatched clear events in log replay"
+            );
+
+            let store_filter = Filter::new()
+                .address(harness.store_address)
+                .from_block(BlockNumberOrTag::Earliest)
+                .to_block(BlockNumberOrTag::Latest);
+            let store_logs = harness
+                .local_evm
+                .provider
+                .get_logs(&store_filter)
+                .await
+                .expect("fetch store logs");
+
+            for log in store_logs {
+                let block = log
+                    .block_number
+                    .expect("store log should include block number");
+                let index = log.log_index.expect("store log should include log index");
+                if let Ok(decoded) = log.log_decode::<Store::Set>() {
+                    let converted = convert_store_event(&decoded.inner);
+                    combined_events.push((block, index, EventKind::Store(converted)));
+                }
+            }
+
+            combined_events.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
+            assert!(
+                combined_events.iter().any(|(_, _, kind)| match kind {
+                    EventKind::OrderBook(event) =>
+                        matches!(event.as_ref(), OrderBookEventOwned::Add(_)),
+                    EventKind::Store(_) => false,
+                }),
+                "expected add order events in log replay"
+            );
+            assert!(
+                combined_events.iter().any(|(_, _, kind)| match kind {
+                    EventKind::OrderBook(event) =>
+                        matches!(event.as_ref(), OrderBookEventOwned::Take(_)),
+                    EventKind::Store(_) => false,
+                }),
+                "expected take order events in log replay"
+            );
+            assert!(
+                combined_events.iter().any(|(_, _, kind)| match kind {
+                    EventKind::OrderBook(event) =>
+                        matches!(event.as_ref(), OrderBookEventOwned::Clear { .. }),
+                    EventKind::Store(_) => false,
+                }),
+                "expected clear events in log replay"
+            );
+
+            for (_, _, kind) in combined_events {
+                match kind {
+                    EventKind::OrderBook(event) => match event.as_ref() {
+                        OrderBookEventOwned::Add(order_event) => {
+                            let mutations =
+                                orderbook_event_to_mutations(OrderBookEvent::AddOrder(order_event))
+                                    .expect("convert add order");
+                            replay
+                                .apply_mutations(&mutations)
+                                .expect("apply add order mutations");
+                        }
+                        OrderBookEventOwned::Deposit(order_event) => {
+                            let decimals = expected_snapshot
+                                .token_decimals
+                                .get(&order_event.token)
+                                .copied();
+                            let mutations = orderbook_event_to_mutations(OrderBookEvent::Deposit {
+                                event: order_event,
+                                decimals,
+                            })
+                            .expect("convert deposit");
+                            replay
+                                .apply_mutations(&mutations)
+                                .expect("apply deposit mutation");
+                        }
+                        OrderBookEventOwned::Take(order_event) => {
+                            let mutations = orderbook_event_to_mutations(
+                                OrderBookEvent::TakeOrder(order_event),
+                            )
+                            .expect("convert take order");
+                            replay
+                                .apply_mutations(&mutations)
+                                .expect("apply take order mutation");
+                        }
+                        OrderBookEventOwned::Clear {
+                            clear,
+                            state_change,
+                        } => {
+                            let mutations = orderbook_event_to_mutations(OrderBookEvent::Clear {
+                                clear: clear.as_ref(),
+                                state_change: state_change.as_ref(),
+                            })
+                            .expect("convert clear event");
+                            replay
+                                .apply_mutations(&mutations)
+                                .expect("apply clear mutation");
+                        }
+                    },
+                    EventKind::Store(event) => {
+                        let mutation = store_event_to_mutation(StoreEvent {
+                            store: harness.store_address,
+                            data: &event,
+                        });
+                        replay
+                            .apply_mutations(&[mutation])
+                            .expect("apply store mutation");
+                    }
+                }
+            }
+
+            let actual_snapshot = replay.snapshot();
+            assert_eq!(
+                actual_snapshot.orders, expected_snapshot.orders,
+                "orders reconstructed from events"
+            );
+            assert_eq!(
+                actual_snapshot.vault_balances.len(),
+                expected_snapshot.vault_balances.len(),
+                "vault balance entry counts should match"
+            );
+            for (key, expected_value) in &expected_snapshot.vault_balances {
+                let actual = actual_snapshot
+                    .vault_balances
+                    .get(key)
+                    .unwrap_or_else(|| panic!("missing vault entry for {key:?}"));
+                let actual_str = actual.format().expect("format actual float");
+                let expected_str = expected_value.format().expect("format expected float");
+                assert_eq!(
+                    actual_str, expected_str,
+                    "vault balance mismatch for {key:?}"
+                );
+            }
+            assert_eq!(
+                actual_snapshot.store, expected_snapshot.store,
+                "store state reconstructed"
+            );
+            assert_eq!(
+                actual_snapshot.token_decimals, expected_snapshot.token_decimals,
+                "token decimals preserved"
+            );
+        });
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
