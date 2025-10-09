@@ -5,6 +5,9 @@
   "lib/rain.orderbook.interface": {
     "rev": "26d2a017e98d081f38d0fcff92690e3fc6c204e2"
   },
+  "lib/rain.tofu.erc20-decimals": {
+    "rev": "ca8e8bacf6c6cb3b9938a6961efb9f93cc1754f9"
+  },
   "lib/sushixswap-v2": {
     "rev": "ca38c64cf7c3042f6427414d7bff61c54293da51"
   }

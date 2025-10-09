@@ -427,8 +427,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         TakeOrderConfigV4 memory takeOrderConfig;
         OrderV4 memory order;
-        address inputToken = config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token;
-        address outputToken = config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token;
+        address orderInputToken = config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token;
+        address orderOutputToken = config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token;
 
         // Allocate a region of memory to hold pointers. We don't know how many
         // will run at this point, but we conservatively set aside a slot for
@@ -461,11 +461,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 if (
                     (
                         order.validInputs[takeOrderConfig.inputIOIndex].token
-                            != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
+                            != orderInputToken
                     )
                         || (
                             order.validOutputs[takeOrderConfig.outputIOIndex].token
-                                != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
+                                != orderOutputToken
                         )
                 ) {
                     revert TokenMismatch();
@@ -543,19 +543,19 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
 
-        pushTokens(config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token, totalTakerInput);
+        pushTokens(orderOutputToken, totalTakerInput);
 
         if (config.data.length > 0) {
             IOrderBookV5OrderTaker(msg.sender).onTakeOrders2(
-                config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
-                config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
+                orderOutputToken,
+                orderInputToken,
                 totalTakerInput,
                 totalTakerOutput,
                 config.data
             );
         }
 
-        pullTokens(config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token, totalTakerOutput);
+        pullTokens(orderInputToken, totalTakerOutput);
 
         unchecked {
             for (uint256 i = 0; i < orderIOCalculationsToHandle.length; i++) {
