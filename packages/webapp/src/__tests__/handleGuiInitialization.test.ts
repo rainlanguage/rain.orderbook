@@ -27,12 +27,12 @@ describe('handleGuiInitialization', () => {
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'validStateUrl');
 
 		expect(result).toEqual({ gui: {}, error: null });
-                expect(DotrainOrderGui.newFromState).toHaveBeenCalledWith(
-                        mockDotrain,
-                        'validStateUrl',
-                        pushGuiStateToUrlHistory,
-                        undefined
-                );
+		expect(DotrainOrderGui.newFromState).toHaveBeenCalledWith(
+			mockDotrain,
+			'validStateUrl',
+			pushGuiStateToUrlHistory,
+			undefined
+		);
 		expect(DotrainOrderGui.newWithDeployment).not.toHaveBeenCalled();
 	});
 
@@ -48,12 +48,12 @@ describe('handleGuiInitialization', () => {
 
 		expect(result).toEqual({ gui: {}, error: null });
 		expect(DotrainOrderGui.newFromState).toHaveBeenCalled();
-                expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
-                        mockDotrain,
-                        mockDeploymentKey,
-                        pushGuiStateToUrlHistory,
-                        undefined
-                );
+		expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
+			mockDotrain,
+			mockDeploymentKey,
+			pushGuiStateToUrlHistory,
+			undefined
+		);
 	});
 
 	it('should use newWithDeployment when no state URL is provided', async () => {
@@ -65,12 +65,12 @@ describe('handleGuiInitialization', () => {
 
 		expect(result).toEqual({ gui: {}, error: null });
 		expect(DotrainOrderGui.newFromState).not.toHaveBeenCalled();
-                expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
-                        mockDotrain,
-                        mockDeploymentKey,
-                        pushGuiStateToUrlHistory,
-                        undefined
-                );
+		expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
+			mockDotrain,
+			mockDeploymentKey,
+			pushGuiStateToUrlHistory,
+			undefined
+		);
 	});
 
 	it('should handle errors and return error message', async () => {
