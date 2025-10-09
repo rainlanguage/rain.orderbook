@@ -26,8 +26,6 @@ pub enum ManifestError {
     Http(#[from] reqwest::Error),
     #[error("Failed to parse manifest YAML: {0}")]
     Parse(String),
-    #[error("Manifest YAML is empty")]
-    EmptyDocument,
     #[error("Manifest schema version {found} does not match expected {expected}")]
     SchemaMismatch { expected: u32, found: u32 },
     #[error("Manifest does not contain any chains")]
@@ -134,14 +132,16 @@ impl Manifest {
 
             let entry_hash = require_hash(value_node, None, Some(location.clone()))?;
 
-            let dump_url_str =
-                require_string(value_node, Some("dump_url"), Some(location.clone()))?;
+            let dump_url_node = get_hash_value(entry_hash, "dump_url", Some(location.clone()))?;
+            let dump_url_str = require_string(dump_url_node, None, Some(location.clone()))?;
             let dump_url = Url::parse(&dump_url_str).map_err(|err| {
                 ManifestError::Parse(format!("Invalid dump_url for chain {chain_id}: {err}"))
             })?;
 
+            let dump_timestamp_node =
+                get_hash_value(entry_hash, "dump_timestamp", Some(location.clone()))?;
             let dump_timestamp_str =
-                require_string(value_node, Some("dump_timestamp"), Some(location.clone()))?;
+                require_string(dump_timestamp_node, None, Some(location.clone()))?;
             let dump_timestamp = DateTime::parse_from_rfc3339(&dump_timestamp_str)
                 .map(|dt| dt.with_timezone(&Utc))
                 .map_err(|source| ManifestError::InvalidTimestamp { chain_id, source })?;
