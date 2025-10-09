@@ -427,6 +427,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         TakeOrderConfigV4 memory takeOrderConfig;
         OrderV4 memory order;
+        address inputToken = config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token;
+        address outputToken = config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token;
 
         // Allocate a region of memory to hold pointers. We don't know how many
         // will run at this point, but we conservatively set aside a slot for
