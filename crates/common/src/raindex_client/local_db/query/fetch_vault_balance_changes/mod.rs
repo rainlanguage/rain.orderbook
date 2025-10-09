@@ -5,6 +5,10 @@ const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbVaultBalanceChange {
+    #[serde(alias = "chain_id")]
+    pub chain_id: u32,
+    #[serde(alias = "orderbook_address")]
+    pub orderbook_address: String,
     #[serde(alias = "transaction_hash")]
     pub transaction_hash: String,
     #[serde(alias = "log_index")]
@@ -27,6 +31,8 @@ pub struct LocalDbVaultBalanceChange {
 impl LocalDbQuery {
     pub async fn fetch_vault_balance_changes(
         db_callback: &js_sys::Function,
+        chain_id: u32,
+        orderbook_address: &str,
         vault_id: &str,
         token: &str,
     ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
@@ -34,10 +40,13 @@ impl LocalDbQuery {
 
         let vault_id = sanitize_literal(&vault_id.trim().to_lowercase());
         let token = sanitize_literal(&token.trim().to_lowercase());
+        let orderbook_address = sanitize_literal(&orderbook_address.trim().to_lowercase());
 
         let sql = QUERY
             .replace("'?vault_id'", &format!("'{}'", vault_id))
-            .replace("'?token'", &format!("'{}'", token));
+            .replace("'?token'", &format!("'{}'", token))
+            .replace("'?orderbook_address'", &format!("'{}'", orderbook_address))
+            .replace("?chain_id", &chain_id.to_string());
 
         LocalDbQuery::execute_query_json::<Vec<LocalDbVaultBalanceChange>>(db_callback, &sql).await
     }
@@ -58,6 +67,8 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_fetch_vault_balance_changes_parses_data() {
             let change = LocalDbVaultBalanceChange {
+                chain_id: 1,
+                orderbook_address: "0xob".into(),
                 transaction_hash: "0xabc".into(),
                 log_index: 2,
                 block_number: 42,
@@ -73,9 +84,11 @@ mod tests {
             let callback =
                 create_success_callback(&serde_json::to_string(&vec![change.clone()]).unwrap());
 
-            let result = LocalDbQuery::fetch_vault_balance_changes(&callback, "0xVAULT", "0xTOKEN")
-                .await
-                .expect("query should succeed");
+            let result = LocalDbQuery::fetch_vault_balance_changes(
+                &callback, 1, "0xOB", "0xVAULT", "0xTOKEN",
+            )
+            .await
+            .expect("query should succeed");
 
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].transaction_hash, change.transaction_hash);
@@ -87,13 +100,19 @@ mod tests {
             let captured_sql = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
             let callback = create_sql_capturing_callback("[]", captured_sql.clone());
 
-            let _ = LocalDbQuery::fetch_vault_balance_changes(&callback, "0xABC", "0xDEF").await;
+            let _ =
+                LocalDbQuery::fetch_vault_balance_changes(&callback, 137, "0xOB", "0xABC", "0xDEF")
+                    .await;
 
             let sql = captured_sql.borrow();
             assert!(sql.contains("'0xabc'"));
             assert!(sql.contains("'0xdef'"));
+            assert!(sql.contains("'0xob'"));
+            assert!(sql.contains("137"));
             assert!(!sql.contains("?vault_id"));
             assert!(!sql.contains("?token"));
+            assert!(!sql.contains("?orderbook_address"));
+            assert!(!sql.contains("?chain_id"));
             assert!(sql.contains("ORDER BY vd.block_number DESC"));
         }
     }

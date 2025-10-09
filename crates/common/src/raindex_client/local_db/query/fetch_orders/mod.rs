@@ -18,6 +18,8 @@ pub struct FetchOrdersArgs {
     pub owners: Vec<String>,
     pub order_hash: Option<String>,
     pub tokens: Vec<String>,
+    pub chain_ids: Vec<u32>,
+    pub orderbook_addresses: Vec<String>,
 }
 
 impl Default for FetchOrdersArgs {
@@ -27,31 +29,48 @@ impl Default for FetchOrdersArgs {
             owners: Vec::new(),
             order_hash: None,
             tokens: Vec::new(),
+            chain_ids: Vec::new(),
+            orderbook_addresses: Vec::new(),
         }
     }
 }
 
 impl From<GetOrdersFilters> for FetchOrdersArgs {
     fn from(filters: GetOrdersFilters) -> Self {
-        let filter = match filters.active {
+        let GetOrdersFilters {
+            owners,
+            active,
+            order_hash,
+            tokens,
+            chain_ids,
+            orderbook_addresses,
+        } = filters;
+
+        let filter = match active {
             Some(true) => FetchOrdersActiveFilter::Active,
             Some(false) => FetchOrdersActiveFilter::Inactive,
             None => FetchOrdersActiveFilter::All,
         };
 
-        let owners = filters
-            .owners
+        let owners = owners
             .into_iter()
             .map(|owner| owner.to_string().to_lowercase())
             .collect();
 
-        let order_hash = filters.order_hash.map(|hash| hash.to_string());
+        let order_hash = order_hash.map(|hash| hash.to_string());
 
-        let tokens = filters
-            .tokens
+        let tokens = tokens
             .unwrap_or_default()
             .into_iter()
             .map(|token| token.to_string().to_lowercase())
+            .collect();
+
+        let chain_ids = chain_ids.unwrap_or_default();
+
+        let orderbook_addresses = orderbook_addresses
+            .unwrap_or_default()
+            .into_iter()
+            .map(|address| address.to_string().to_lowercase())
             .collect();
 
         FetchOrdersArgs {
@@ -59,12 +78,16 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
             owners,
             order_hash,
             tokens,
+            chain_ids,
+            orderbook_addresses,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbOrder {
+    #[serde(alias = "chainId")]
+    pub chain_id: u32,
     #[serde(alias = "orderHash")]
     pub order_hash: String,
     pub owner: String,
@@ -97,6 +120,8 @@ impl LocalDbQuery {
             owners,
             order_hash,
             tokens,
+            chain_ids,
+            orderbook_addresses,
         } = args;
 
         let filter_str = match filter {
@@ -156,13 +181,46 @@ impl LocalDbQuery {
             String::new()
         } else {
             format!(
-                "\nAND EXISTS (\n    SELECT 1 FROM order_ios io2\n    WHERE io2.transaction_hash = la.transaction_hash\n      AND io2.log_index = la.log_index\n      AND lower(io2.token) IN ({})\n)\n",
+                "\nAND EXISTS (\n    SELECT 1 FROM order_ios io2\n    WHERE io2.chain_id = la.chain_id\n      AND io2.orderbook_address = la.orderbook_address\n      AND io2.transaction_hash = la.transaction_hash\n      AND io2.log_index = la.log_index\n      AND lower(io2.token) IN ({})\n)\n",
                 token_values.join(", ")
+            )
+        };
+
+        let filter_chain_ids = if chain_ids.is_empty() {
+            String::new()
+        } else {
+            let values = chain_ids
+                .into_iter()
+                .map(|id| id.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("\nAND l.chain_id IN ({})\n", values)
+        };
+
+        let orderbook_values: Vec<String> = orderbook_addresses
+            .into_iter()
+            .filter_map(|addr| {
+                let trimmed = addr.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(format!("'{}'", sanitize_literal(trimmed)))
+                }
+            })
+            .collect();
+        let filter_orderbooks = if orderbook_values.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\nAND lower(l.orderbook_address) IN ({})\n",
+                orderbook_values.join(", ")
             )
         };
 
         let sql = QUERY
             .replace("'?filter_active'", &format!("'{}'", filter_str))
+            .replace("?filter_chain_ids", &filter_chain_ids)
+            .replace("?filter_orderbooks", &filter_orderbooks)
             .replace("?filter_owners", &filter_owners)
             .replace("?filter_order_hash", &filter_order_hash)
             .replace("?filter_tokens", &filter_tokens);
@@ -198,6 +256,11 @@ mod tests {
                     "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
                 )
                 .unwrap()]),
+                chain_ids: Some(vec![1, 137]),
+                orderbook_addresses: Some(vec![Address::from_str(
+                    "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                )
+                .unwrap()]),
             };
 
             let args = FetchOrdersArgs::from(filters);
@@ -215,6 +278,11 @@ mod tests {
                 args.tokens,
                 vec!["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string()]
             );
+            assert_eq!(args.chain_ids, vec![1, 137]);
+            assert_eq!(
+                args.orderbook_addresses,
+                vec!["0x2f209e5b67a33b8fe96e28f24628df6da301c8eb".to_string()]
+            );
         }
 
         #[test]
@@ -224,6 +292,8 @@ mod tests {
                 active: None,
                 order_hash: None,
                 tokens: None,
+                chain_ids: None,
+                orderbook_addresses: None,
             };
 
             let args = FetchOrdersArgs::from(filters);
@@ -232,6 +302,8 @@ mod tests {
             assert!(args.owners.is_empty());
             assert!(args.order_hash.is_none());
             assert!(args.tokens.is_empty());
+            assert!(args.chain_ids.is_empty());
+            assert!(args.orderbook_addresses.is_empty());
         }
     }
 
@@ -249,6 +321,7 @@ mod tests {
         async fn test_fetch_orders_parses_data() {
             let orders = vec![
                 LocalDbOrder {
+                    chain_id: 42161,
                     order_hash:
                         "0xabc0000000000000000000000000000000000000000000000000000000000001".into(),
                     owner: "0x1111111111111111111111111111111111111111".into(),
@@ -265,6 +338,7 @@ mod tests {
                     meta: Some("0x010203".into()),
                 },
                 LocalDbOrder {
+                    chain_id: 42161,
                     order_hash:
                         "0xabc0000000000000000000000000000000000000000000000000000000000002".into(),
                     owner: "0x2222222222222222222222222222222222222222".into(),
@@ -339,6 +413,16 @@ mod tests {
                 "SQL should not contain placeholder ?filter_tokens: {}",
                 *sql
             );
+            assert!(
+                !sql.contains("?filter_chain_ids"),
+                "SQL should not contain placeholder ?filter_chain_ids: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_orderbooks"),
+                "SQL should not contain placeholder ?filter_orderbooks: {}",
+                *sql
+            );
         }
 
         #[wasm_bindgen_test]
@@ -379,6 +463,16 @@ mod tests {
             assert!(
                 !sql.contains("?filter_tokens"),
                 "SQL should not contain placeholder ?filter_tokens: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_chain_ids"),
+                "SQL should not contain placeholder ?filter_chain_ids: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_orderbooks"),
+                "SQL should not contain placeholder ?filter_orderbooks: {}",
                 *sql
             );
         }
@@ -423,6 +517,16 @@ mod tests {
                 "SQL should not contain placeholder ?filter_tokens: {}",
                 *sql
             );
+            assert!(
+                !sql.contains("?filter_chain_ids"),
+                "SQL should not contain placeholder ?filter_chain_ids: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_orderbooks"),
+                "SQL should not contain placeholder ?filter_orderbooks: {}",
+                *sql
+            );
         }
 
         #[wasm_bindgen_test]
@@ -438,6 +542,8 @@ mod tests {
                 ],
                 order_hash: None,
                 tokens: vec![],
+                chain_ids: vec![],
+                orderbook_addresses: vec![],
             };
 
             let _ = LocalDbQuery::fetch_orders(&callback, args).await;
@@ -460,6 +566,8 @@ mod tests {
                 owners: vec![],
                 order_hash: Some("0xabc123".into()),
                 tokens: vec![],
+                chain_ids: vec![],
+                orderbook_addresses: vec![],
             };
 
             let _ = LocalDbQuery::fetch_orders(&callback, args).await;
@@ -487,6 +595,8 @@ mod tests {
                     "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".into(),
                     "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB".into(),
                 ],
+                chain_ids: vec![],
+                orderbook_addresses: vec![],
             };
 
             let _ = LocalDbQuery::fetch_orders(&callback, args).await;
@@ -494,7 +604,7 @@ mod tests {
             let sql = captured_sql.borrow();
             assert!(
                 sql.contains(
-                    "AND EXISTS (\n    SELECT 1 FROM order_ios io2\n    WHERE io2.transaction_hash = la.transaction_hash\n      AND io2.log_index = la.log_index\n      AND lower(io2.token) IN ('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')\n)"
+                    "AND EXISTS (\n    SELECT 1 FROM order_ios io2\n    WHERE io2.chain_id = la.chain_id\n      AND io2.orderbook_address = la.orderbook_address\n      AND io2.transaction_hash = la.transaction_hash\n      AND io2.log_index = la.log_index\n      AND lower(io2.token) IN ('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')\n)"
                 ),
                 "SQL should contain tokens filter: {}",
                 *sql

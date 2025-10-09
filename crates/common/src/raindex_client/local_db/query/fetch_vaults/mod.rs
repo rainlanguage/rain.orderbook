@@ -9,6 +9,8 @@ pub struct FetchVaultsArgs {
     pub owners: Vec<String>,
     pub tokens: Vec<String>,
     pub hide_zero_balance: bool,
+    pub chain_ids: Vec<u32>,
+    pub orderbook_addresses: Vec<String>,
 }
 
 impl From<GetVaultsFilters> for FetchVaultsArgs {
@@ -24,11 +26,20 @@ impl From<GetVaultsFilters> for FetchVaultsArgs {
             .into_iter()
             .map(|token| token.to_string().to_lowercase())
             .collect();
+        let chain_ids = filters.chain_ids.unwrap_or_default();
+        let orderbook_addresses = filters
+            .orderbook_addresses
+            .unwrap_or_default()
+            .into_iter()
+            .map(|address| address.to_string().to_lowercase())
+            .collect();
 
         FetchVaultsArgs {
             owners,
             tokens,
             hide_zero_balance: filters.hide_zero_balance,
+            chain_ids,
+            orderbook_addresses,
         }
     }
 }
@@ -43,6 +54,8 @@ impl LocalDbQuery {
             owners,
             tokens,
             hide_zero_balance,
+            chain_ids,
+            orderbook_addresses,
         } = args;
 
         let sanitize_literal = |value: &str| value.replace('\'', "''");
@@ -81,6 +94,33 @@ impl LocalDbQuery {
             format!("\nAND lower(o.token) IN ({})\n", token_values.join(", "))
         };
 
+        let chain_id_values: Vec<String> = chain_ids.into_iter().map(|id| id.to_string()).collect();
+        let filter_chain_ids = if chain_id_values.is_empty() {
+            String::new()
+        } else {
+            format!("\nAND o.chain_id IN ({})\n", chain_id_values.join(", "))
+        };
+
+        let orderbook_values: Vec<String> = orderbook_addresses
+            .into_iter()
+            .filter_map(|address| {
+                let trimmed = address.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(format!("'{}'", sanitize_literal(trimmed)))
+                }
+            })
+            .collect();
+        let filter_orderbooks = if orderbook_values.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\nAND lower(o.orderbook_address) IN ({})\n",
+                orderbook_values.join(", ")
+            )
+        };
+
         const BALANCE_EXPR: &str = "COALESCE((\n    SELECT FLOAT_SUM(vd.delta)\n    FROM vault_deltas vd\n    WHERE vd.owner    = o.owner\n      AND vd.token    = o.token\n      AND vd.vault_id = o.vault_id\n  ), FLOAT_ZERO_HEX())";
 
         let filter_hide_zero_balance = if hide_zero_balance {
@@ -93,6 +133,8 @@ impl LocalDbQuery {
             .replace("?chain_id", &chain_id.to_string())
             .replace("?filter_owners", &filter_owners)
             .replace("?filter_tokens", &filter_tokens)
+            .replace("?filter_chain_ids", &filter_chain_ids)
+            .replace("?filter_orderbooks", &filter_orderbooks)
             .replace("?filter_hide_zero_balance", &filter_hide_zero_balance);
 
         LocalDbQuery::execute_query_json::<Vec<LocalDbVault>>(db_callback, &sql).await
@@ -119,6 +161,7 @@ mod tests {
         async fn test_fetch_vaults_parses_data() {
             let vaults = vec![
                 LocalDbVault {
+                    chain_id: 1,
                     vault_id: "0x01".into(),
                     token: "0xaaa".into(),
                     owner: "0x1111111111111111111111111111111111111111".into(),
@@ -137,6 +180,7 @@ mod tests {
                     ),
                 },
                 LocalDbVault {
+                    chain_id: 1,
                     vault_id: "0x02".into(),
                     token: "0xbbb".into(),
                     owner: "0x2222222222222222222222222222222222222222".into(),
@@ -156,6 +200,7 @@ mod tests {
             assert!(result.is_ok());
             let data = result.unwrap();
             assert_eq!(data.len(), 2);
+            assert_eq!(data[0].chain_id, 1);
             assert_eq!(data[0].vault_id, vaults[0].vault_id);
             assert_eq!(data[0].token, vaults[0].token);
             assert_eq!(data[0].owner, vaults[0].owner);
@@ -190,6 +235,8 @@ mod tests {
                     "0x2222222222222222222222222222222222222222",
                 )
                 .unwrap()]),
+                chain_ids: None,
+                orderbook_addresses: None,
             };
 
             let args = FetchVaultsArgs::from(filters);
@@ -203,6 +250,16 @@ mod tests {
                 sql.contains("lower(o.token) IN ('0x2222222222222222222222222222222222222222')")
             );
             assert!(sql.contains("AND NOT FLOAT_IS_ZERO("));
+            assert!(
+                !sql.contains("?filter_chain_ids"),
+                "SQL should not contain placeholder ?filter_chain_ids: {}",
+                *sql
+            );
+            assert!(
+                !sql.contains("?filter_orderbooks"),
+                "SQL should not contain placeholder ?filter_orderbooks: {}",
+                *sql
+            );
         }
     }
 }
