@@ -86,7 +86,7 @@ impl TokensFetch {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address as AlloyAddress, U256};
+    use alloy::primitives::U256;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::raindex_client::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType,
@@ -109,8 +109,9 @@ mod tests {
             block_timestamp: "0x0".into(),
             transaction_hash: "0x1".into(),
             log_index: "0x0".into(),
+            address: Address::from([0xff; 20]),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
-                sender: AlloyAddress::from([0u8; 20]),
+                sender: Address::from([0u8; 20]),
                 token: *token.address(),
                 vaultId: U256::from(1).into(),
                 depositAmountUint256: U256::from(0),

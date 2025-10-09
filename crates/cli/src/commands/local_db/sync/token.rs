@@ -125,6 +125,7 @@ mod tests {
             block_timestamp: "0x0".into(),
             transaction_hash: "0x0".into(),
             log_index: "0x0".into(),
+            address: Address::from([0xbb; 20]),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),
                 token: token_addr,

@@ -132,6 +132,7 @@ where
             self.db_path,
             self.metadata_rpcs(),
             params.chain_id,
+            params.orderbook_address,
             &decoded.decoded,
             &raw_events,
             window.target_block,
@@ -198,7 +199,8 @@ mod tests {
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
-    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES (0, NULL, '0x0', 0, '0x0', '[]', '0x', '{}');\n";
+    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) VALUES (1, '0x0000000000000000000000000000000000000abc', '0x0', 0, 0, NULL, '0x0', '[]', '0x', '{}');\n";
+    const TEST_ORDERBOOK_ADDRESS: &str = "0x0000000000000000000000000000000000000abc";
 
     struct TestFetcher {
         metadata: Vec<(Address, TokenInfo)>,
@@ -281,6 +283,8 @@ mod tests {
         fn events_to_sql(
             &self,
             decoded_events: &[DecodedEventData<DecodedEvent>],
+            chain_id: u32,
+            orderbook_address: Address,
             end_block: u64,
             decimals_by_token: &HashMap<Address, u8>,
             prefix_sql: &str,
@@ -294,6 +298,8 @@ mod tests {
                 .lock()
                 .unwrap()
                 .push(decimals_by_token.clone());
+            let _ = chain_id;
+            let _ = orderbook_address;
 
             let mut out = String::new();
             if !prefix_sql.is_empty() {
@@ -310,8 +316,15 @@ mod tests {
             Ok(out)
         }
 
-        fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
+        fn raw_events_to_sql(
+            &self,
+            raw_events: &[LogEntryResponse],
+            chain_id: u32,
+            orderbook_address: Address,
+        ) -> Result<String> {
             self.raw_calls.lock().unwrap().push(raw_events.to_vec());
+            let _ = chain_id;
+            let _ = orderbook_address;
             Ok(self.raw_sql.clone())
         }
 
@@ -327,6 +340,7 @@ mod tests {
             block_timestamp: "0x0".into(),
             transaction_hash: "0xabc".into(),
             log_index: "0x0".into(),
+            address: Address::from([0xaa; 20]),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),
                 token,
@@ -343,6 +357,7 @@ mod tests {
             block_timestamp: "0x0".into(),
             transaction_hash: "0xstore".into(),
             log_index: "0x1".into(),
+            address: store,
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
                 store_address: store,
                 namespace: FixedBytes::from([0xaa; 32]),
@@ -423,7 +438,7 @@ mod tests {
 
         let params = SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: TEST_ORDERBOOK_ADDRESS,
             deployment_block: 150,
             start_block: None,
             end_block: Some(160),
@@ -494,11 +509,10 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        sqlite_execute(
-            &db_path_str,
-            "INSERT INTO interpreter_store_sets (store_address, transaction_hash, log_index, block_number, block_timestamp, namespace, key, value) VALUES ('0x2222222222222222222222222222222222222222', '0x1', 0, 1, 0, '0x0', '0x0', '0x0');",
-        )
-        .unwrap();
+        let seed_sql = format!(
+            "INSERT INTO interpreter_store_sets (chain_id, orderbook_address, store_address, transaction_hash, log_index, block_number, block_timestamp, namespace, key, value) VALUES (1, '{TEST_ORDERBOOK_ADDRESS}', '0x2222222222222222222222222222222222222222', '0x1', 0, 1, 0, '0x0', '0x0', '0x0');"
+        );
+        sqlite_execute(&db_path_str, &seed_sql).unwrap();
 
         let decoded = vec![sample_decoded_event(Address::from([0xaa; 20]))];
 
@@ -525,7 +539,7 @@ mod tests {
 
         let params = SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: TEST_ORDERBOOK_ADDRESS,
             deployment_block: 180,
             start_block: None,
             end_block: Some(185),

@@ -29,8 +29,17 @@ pub(crate) fn ensure_schema(db_path: &str) -> Result<bool> {
     Ok(true)
 }
 
-pub(crate) fn fetch_last_synced(db_path: &str) -> Result<u64> {
-    let rows: Vec<SyncStatusRow> = sqlite_query_json(db_path, SYNC_STATUS_QUERY)?;
+pub(crate) fn fetch_last_synced(
+    db_path: &str,
+    chain_id: u32,
+    orderbook_address: &str,
+) -> Result<u64> {
+    let escaped_address = orderbook_address.replace('\'', "''");
+    let sql = SYNC_STATUS_QUERY
+        .replace("?chain_id", &chain_id.to_string())
+        .replace("?orderbook_address", &escaped_address);
+
+    let rows: Vec<SyncStatusRow> = sqlite_query_json(db_path, &sql)?;
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
 }
 
@@ -119,6 +128,8 @@ mod tests {
     use crate::commands::local_db::sync::data_source::SyncDataSource;
     use tempfile::TempDir;
 
+    const TEST_ORDERBOOK_ADDRESS: &str = "0x0000000000000000000000000000000000000abc";
+
     #[test]
     fn build_local_db_from_network_uses_configured_rpcs() {
         let mut network = NetworkCfg::dummy();
@@ -158,7 +169,7 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        let value = fetch_last_synced(&db_path_str).unwrap();
+        let value = fetch_last_synced(&db_path_str, 1, TEST_ORDERBOOK_ADDRESS).unwrap();
         assert_eq!(value, 0);
     }
 
@@ -169,11 +180,10 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        sqlite_execute(
-            &db_path_str,
-            "INSERT INTO interpreter_store_sets (store_address, transaction_hash, log_index, block_number, block_timestamp, namespace, key, value) VALUES ('0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD', '0x1', 0, 1, 0, '0x0', '0x0', '0x0');",
-        )
-        .unwrap();
+        let seed_sql = format!(
+            "INSERT INTO interpreter_store_sets (chain_id, orderbook_address, store_address, transaction_hash, log_index, block_number, block_timestamp, namespace, key, value) VALUES (1, '{TEST_ORDERBOOK_ADDRESS}', '0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD', '0x1', 0, 1, 0, '0x0', '0x0', '0x0');"
+        );
+        sqlite_execute(&db_path_str, &seed_sql).unwrap();
 
         let stores = fetch_existing_store_addresses(&db_path_str).unwrap();
         assert_eq!(stores, vec!["0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);

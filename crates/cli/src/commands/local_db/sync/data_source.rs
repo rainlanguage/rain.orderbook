@@ -35,11 +35,18 @@ pub(crate) trait SyncDataSource {
     fn events_to_sql(
         &self,
         decoded_events: &[DecodedEventData<DecodedEvent>],
+        chain_id: u32,
+        orderbook_address: Address,
         end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
         prefix_sql: &str,
     ) -> Result<String>;
-    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String>;
+    fn raw_events_to_sql(
+        &self,
+        raw_events: &[LogEntryResponse],
+        chain_id: u32,
+        orderbook_address: Address,
+    ) -> Result<String>;
     fn rpc_urls(&self) -> &[Url];
 }
 
@@ -116,6 +123,8 @@ impl SyncDataSource for LocalDb {
     fn events_to_sql(
         &self,
         decoded_events: &[DecodedEventData<DecodedEvent>],
+        chain_id: u32,
+        orderbook_address: Address,
         end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
         prefix_sql: &str,
@@ -126,12 +135,25 @@ impl SyncDataSource for LocalDb {
             Some(prefix_sql)
         };
 
-        <LocalDb>::decoded_events_to_sql(self, decoded_events, end_block, decimals_by_token, prefix)
-            .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
+        <LocalDb>::decoded_events_to_sql(
+            self,
+            decoded_events,
+            chain_id,
+            orderbook_address,
+            end_block,
+            decimals_by_token,
+            prefix,
+        )
+        .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 
-    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
-        <LocalDb>::raw_events_to_sql(self, raw_events)
+    fn raw_events_to_sql(
+        &self,
+        raw_events: &[LogEntryResponse],
+        chain_id: u32,
+        orderbook_address: Address,
+    ) -> Result<String> {
+        <LocalDb>::raw_events_to_sql(self, raw_events, chain_id, orderbook_address)
             .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 
