@@ -577,8 +577,9 @@ impl DotrainOrder {
             );
         }
 
-        let order_value = clone_section_entry(&documents, "orders", &order_key)
+        let mut order_value = clone_section_entry(&documents, "orders", &order_key)
             .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        Self::strip_vault_ids_from_order(&mut order_value);
         let mut orders_hash = StrictYamlHash::new();
         orders_hash.insert(StrictYaml::String(order_key.clone()), order_value);
         root_hash.insert(
@@ -678,6 +679,21 @@ impl DotrainOrder {
         );
 
         Ok(Some(StrictYaml::Hash(gui_hash)))
+    }
+
+    fn strip_vault_ids_from_order(order_yaml: &mut StrictYaml) {
+        if let StrictYaml::Hash(order_hash) = order_yaml {
+            for section in ["inputs", "outputs"] {
+                let section_key = StrictYaml::String(section.to_string());
+                if let Some(StrictYaml::Array(io_entries)) = order_hash.get_mut(&section_key) {
+                    for entry in io_entries.iter_mut() {
+                        if let StrictYaml::Hash(io_hash) = entry {
+                            io_hash.remove(&StrictYaml::String("vault-id".to_string()));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fn scenario_to_yaml(scenario: &ScenarioCfg) -> Result<StrictYaml, DotrainOrderError> {
@@ -1534,16 +1550,20 @@ orders:
     orderbook: polygon-ob
     inputs:
       - token: t1
+        vault-id: 0x111
     outputs:
       - token: t2
+        vault-id: 0x222
   goerli-order:
     network: goerli
     deployer: goerli
     orderbook: goerli-ob
     inputs:
       - token: extra
+        vault-id: 0x333
     outputs:
       - token: extra
+        vault-id: 0x444
 scenarios:
   polygon:
     deployer: polygon
@@ -1687,6 +1707,22 @@ gui:
             .unwrap();
         assert_eq!(orders.len(), 1);
         assert!(orders.contains_key(Value::String("polygon-order".to_string())));
+        let polygon_order = orders
+            .get(Value::String("polygon-order".to_string()))
+            .and_then(|v| v.as_mapping())
+            .unwrap();
+        let polygon_inputs = polygon_order
+            .get(Value::String("inputs".to_string()))
+            .and_then(|v| v.as_sequence())
+            .unwrap();
+        let polygon_input_entry = polygon_inputs[0].as_mapping().unwrap();
+        assert!(!polygon_input_entry.contains_key(Value::String("vault-id".to_string())), "trimmed doc should omit input vault ids");
+        let polygon_outputs = polygon_order
+            .get(Value::String("outputs".to_string()))
+            .and_then(|v| v.as_sequence())
+            .unwrap();
+        let polygon_output_entry = polygon_outputs[0].as_mapping().unwrap();
+        assert!(!polygon_output_entry.contains_key(Value::String("vault-id".to_string())), "trimmed doc should omit output vault ids");
 
         let deployments = root
             .get(Value::String("deployments".to_string()))
