@@ -12,6 +12,7 @@ serde = { workspace = true, features = ["derive", "rc"] }
 thiserror.workspace = true
 tower.workspace = true
 url.workspace = true
+getrandom = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-utils = { workspace = true }

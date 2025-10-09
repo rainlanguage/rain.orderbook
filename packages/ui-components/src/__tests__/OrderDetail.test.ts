@@ -76,7 +76,8 @@ const mockOrder: RaindexOrder = {
 	owner: '0x1234567890123456789012345678901234567890',
 	active: true,
 	meta: undefined,
-	rainlang: undefined,
+	rainlang: 'test value',
+	parsedMeta: [],
 	timestampAdded: BigInt(1234567890),
 	inputsList: mockVaultsList(),
 	outputsList: mockVaultsList(),
@@ -334,5 +335,58 @@ describe('OrderDetail', () => {
 		await user.click(withdrawButton[0]);
 
 		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaultsList.items[1]);
+	});
+
+	it('shows Dotrain tab when order instance includes dotrain source', async () => {
+		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
+			value: {
+				...mockOrder,
+				dotrainSource: 'some-source'
+			}
+		});
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByRole('tab', { name: 'Dotrain' })).toBeInTheDocument();
+			expect(screen.getByRole('tab', { name: 'On-chain Rainlang' })).toBeInTheDocument();
+		});
+	});
+
+	it('shows Gui State tab when order instance dotrain gui state', async () => {
+		const guiState = {
+			test: 'value',
+			nested: {
+				key: 'value'
+			}
+		};
+		const user = userEvent.setup();
+
+		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
+			value: {
+				...mockOrder,
+				dotrainGuiState: JSON.stringify(guiState)
+			}
+		});
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByRole('tab', { name: 'Gui State' })).toBeInTheDocument();
+		});
+
+		await user.click(screen.getByRole('tab', { name: 'Gui State' }));
+
+		await waitFor(() => {
+			const guiStateContent = screen.getByTestId('gui-state-json').textContent ?? '';
+			expect(guiStateContent).toContain('"test": "value"');
+			expect(guiStateContent).toContain('"key": "value"');
+		});
 	});
 });
