@@ -189,6 +189,7 @@ impl ManifestEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::yaml::FieldErrorKind;
     use chrono::TimeZone;
     use httpmock::prelude::*;
 
@@ -352,6 +353,12 @@ schema_version: 1
         let err = Manifest::fetch(&client, &url)
             .await
             .expect_err("fetch fails");
-        assert!(matches!(err, ManifestError::MissingChains));
+        assert!(matches!(
+            err,
+            ManifestError::Yaml(YamlError::Field {
+                kind: FieldErrorKind::Missing(field),
+                location
+            }) if field == "chains" && location == "manifest"
+        ));
     }
 }
