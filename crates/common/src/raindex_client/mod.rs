@@ -10,28 +10,32 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
+use local_db::{query::LocalDbQueryError, LocalDbError};
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::yaml::{
-    orderbook::{OrderbookYaml, OrderbookYamlValidation},
-    YamlError, YamlParsable,
+use rain_orderbook_app_settings::{
+    orderbook::OrderbookCfg,
+    yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlError, YamlParsable,
+    },
 };
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, num::ParseIntError, str::FromStr};
+use std::{collections::BTreeMap, fmt, num::ParseIntError, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod local_db;
 pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
 pub mod remove_orders;
-pub mod sqlite_web;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
@@ -77,6 +81,8 @@ impl_wasm_traits!(ChainIds);
 #[wasm_bindgen]
 pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
+    #[serde(skip_serializing, skip_deserializing)]
+    local_db_callback: Option<js_sys::Function>,
 }
 
 #[wasm_export]
@@ -119,7 +125,23 @@ impl RaindexClient {
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
-        Ok(RaindexClient { orderbook_yaml })
+        Ok(RaindexClient {
+            orderbook_yaml,
+            local_db_callback: None,
+        })
+    }
+
+    #[wasm_export(js_name = "setDbCallback", unchecked_return_type = "void")]
+    pub fn set_local_db_callback(
+        &mut self,
+        #[wasm_export(
+            js_name = "callback",
+            param_description = "JavaScript function to execute local database queries"
+        )]
+        callback: js_sys::Function,
+    ) -> Result<(), RaindexError> {
+        self.local_db_callback = Some(callback);
+        Ok(())
     }
 
     fn get_multi_subgraph_args(
@@ -188,6 +210,36 @@ impl RaindexClient {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpcs.clone())
     }
+
+    fn get_orderbooks_by_chain_id(&self, chain_id: u32) -> Result<Vec<OrderbookCfg>, RaindexError> {
+        let orderbooks = self.orderbook_yaml.get_orderbooks_by_chain_id(chain_id)?;
+        Ok(orderbooks)
+    }
+
+    fn local_db_callback(&self) -> Option<js_sys::Function> {
+        self.local_db_callback.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SerdeWasmBindgenErrorWrapper {
+    message: String,
+}
+
+impl fmt::Display for SerdeWasmBindgenErrorWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for SerdeWasmBindgenErrorWrapper {}
+
+impl From<serde_wasm_bindgen::Error> for SerdeWasmBindgenErrorWrapper {
+    fn from(error: serde_wasm_bindgen::Error) -> Self {
+        Self {
+            message: error.to_string(),
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -203,7 +255,7 @@ pub enum RaindexError {
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
-    SerdeError(#[from] serde_wasm_bindgen::Error),
+    SerdeError(#[from] SerdeWasmBindgenErrorWrapper),
     #[error(transparent)]
     DotrainOrderError(Box<DotrainOrderError>),
     #[error(transparent)]
@@ -256,11 +308,23 @@ pub enum RaindexError {
     MissingErc20Decimals(String),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
+    #[error(transparent)]
+    LocalDbError(#[from] LocalDbError),
+    #[error(transparent)]
+    LocalDbQueryError(#[from] LocalDbQueryError),
+    #[error("Chain id: {0} is not supported for local database")]
+    LocalDbUnsupportedNetwork(u32),
 }
 
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<serde_wasm_bindgen::Error> for RaindexError {
+    fn from(err: serde_wasm_bindgen::Error) -> Self {
+        RaindexError::SerdeError(err.into())
     }
 }
 
@@ -366,6 +430,15 @@ impl RaindexError {
                 format!("Missing decimal information for the token address: {token}")
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
+            RaindexError::LocalDbError(err) => {
+                format!("There was an error with the local database: {err}")
+            }
+            RaindexError::LocalDbQueryError(err) => {
+                format!("There was an error querying the local database: {err}")
+            }
+            RaindexError::LocalDbUnsupportedNetwork(chain_id) => {
+                format!("The chain ID: {chain_id} is not supported for local database operations.")
+            }
         }
     }
 }
@@ -452,6 +525,63 @@ accounts:
     alice: 0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA
     bob: 0x8ba1f109551bD432803012645aac136c0c8D2e80
     charlie: 0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5
+"#,
+            spec_version = SpecVersion::current()
+        )
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn new_test_client_with_db_callback(
+        yamls: Vec<String>,
+        callback: js_sys::Function,
+    ) -> RaindexClient {
+        let mut client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
+        client.set_local_db_callback(callback).unwrap();
+        client
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn get_local_db_test_yaml() -> String {
+        format!(
+            r#"
+version: {spec_version}
+networks:
+    arbitrum:
+        rpcs:
+            - https://arb1.example
+        chain-id: 42161
+        label: Arbitrum
+        network-id: 42161
+        currency: ETH
+subgraphs:
+    arbitrum: https://arb.subgraph
+metaboards:
+    arbitrum: https://arb.metaboard
+orderbooks:
+    arbitrum-orderbook:
+        address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
+        network: arbitrum
+        subgraph: arbitrum
+        deployment-block: 1
+tokens:
+    tokena:
+        network: arbitrum
+        address: 0x00000000000000000000000000000000000000aa
+        decimals: 18
+        label: Token A
+        symbol: TKNA
+    tokenb:
+        network: arbitrum
+        address: 0x00000000000000000000000000000000000000bb
+        decimals: 6
+        label: Token B
+        symbol: TKNB
+deployers:
+    arb-deployer:
+        address: 0x1111111111111111111111111111111111111111
+        network: arbitrum
+accounts:
+    test: 0x2222222222222222222222222222222222222222
 "#,
             spec_version = SpecVersion::current()
         )

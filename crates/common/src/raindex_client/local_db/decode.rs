@@ -1,4 +1,4 @@
-use crate::hyper_rpc::LogEntryResponse;
+use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
     primitives::B256,
@@ -11,7 +11,7 @@ use rain_orderbook_bindings::{
     },
     OrderBook::MetaV1_2,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecodeError {
@@ -21,7 +21,7 @@ pub enum DecodeError {
     AbiDecode(String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EventType {
     AddOrderV3,
     TakeOrderV3,
@@ -67,8 +67,8 @@ impl EventType {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(bound(serialize = "T: Serialize"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(bound(serialize = "T: Serialize", deserialize = "T: Deserialize<'de>"))]
 pub struct DecodedEventData<T> {
     pub event_type: EventType,
     pub block_number: String,
@@ -78,7 +78,7 @@ pub struct DecodedEventData<T> {
     pub decoded_data: T,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DecodedEvent {
     AddOrderV3(Box<AddOrderV3>),
@@ -159,7 +159,7 @@ pub fn decode_events(
     Ok(decoded_events)
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnknownEventDecoded {
     pub raw_data: String,
     pub note: String,
@@ -183,7 +183,7 @@ fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError>
 #[cfg(test)]
 mod test_helpers {
     use super::*;
-    use crate::hyper_rpc::LogEntryResponse;
+    use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use rain_orderbook_bindings::{

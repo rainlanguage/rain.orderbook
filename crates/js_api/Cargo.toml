@@ -38,6 +38,7 @@ sha2 = "0.10.8"
 strict-yaml-rust = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 rain-math-float.workspace = true
+getrandom = { workspace = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

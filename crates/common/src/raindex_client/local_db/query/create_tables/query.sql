@@ -1,3 +1,12 @@
+BEGIN TRANSACTION;
+
+CREATE TABLE IF NOT EXISTS sync_status (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    last_synced_block INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT OR IGNORE INTO sync_status (id, last_synced_block) VALUES (1, 0);
+
 CREATE TABLE deposits (
     transaction_hash TEXT NOT NULL,
     log_index INTEGER NOT NULL,
@@ -6,6 +15,7 @@ CREATE TABLE deposits (
     sender TEXT NOT NULL,
     token TEXT NOT NULL,
     vault_id TEXT NOT NULL,
+    deposit_amount TEXT NOT NULL,
     deposit_amount_uint256 TEXT NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );
@@ -34,6 +44,7 @@ CREATE TABLE order_events (
     event_type TEXT NOT NULL,
     order_owner TEXT NOT NULL,
     order_nonce TEXT NOT NULL,
+    order_bytes TEXT NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );
 
@@ -58,8 +69,8 @@ CREATE TABLE take_orders (
     order_nonce TEXT NOT NULL,
     input_io_index INTEGER NOT NULL,
     output_io_index INTEGER NOT NULL,
-    input TEXT NOT NULL,
-    output TEXT NOT NULL,
+    taker_input TEXT NOT NULL,
+    taker_output TEXT NOT NULL,
     PRIMARY KEY (transaction_hash, log_index)
 );
 
@@ -154,3 +165,14 @@ CREATE INDEX idx_after_clear_block ON after_clear_v2_events(block_number);
 
 CREATE INDEX idx_meta_subject ON meta_events(subject);
 CREATE INDEX idx_meta_block ON meta_events(block_number);
+
+CREATE TABLE erc20_tokens (
+    chain_id INTEGER NOT NULL,
+    address  TEXT    NOT NULL,
+    name     TEXT    NOT NULL,
+    symbol   TEXT    NOT NULL,
+    decimals INTEGER NOT NULL,
+    PRIMARY KEY (chain_id, address)
+);
+
+COMMIT;

@@ -54,6 +54,22 @@ impl RaindexTransaction {
     }
 }
 
+impl RaindexTransaction {
+    pub(crate) fn from_local_parts(
+        tx_hash: &str,
+        from: &str,
+        block_number: u64,
+        timestamp: u64,
+    ) -> Result<Self, RaindexError> {
+        Ok(Self {
+            id: Bytes::from_str(tx_hash)?,
+            from: Address::from_str(from)?,
+            block_number: U256::from(block_number),
+            timestamp: U256::from(timestamp),
+        })
+    }
+}
+
 #[wasm_export]
 impl RaindexClient {
     /// Fetches transaction details for a given transaction hash
