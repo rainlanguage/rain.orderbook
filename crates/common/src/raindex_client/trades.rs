@@ -135,9 +135,11 @@ impl RaindexOrder {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
                 let order_hash = self.order_hash().to_string();
+                let orderbook_address = self.orderbook().to_string();
                 let local_trades = LocalDbQuery::fetch_order_trades(
                     &db_cb,
                     chain_id,
+                    &orderbook_address,
                     &order_hash,
                     start_timestamp,
                     end_timestamp,
@@ -246,8 +248,11 @@ impl RaindexOrder {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
                 let order_hash = self.order_hash().to_string();
+                let orderbook_address = self.orderbook().to_string();
                 let count = LocalDbQuery::fetch_order_trades_count(
                     &db_cb,
+                    chain_id,
+                    &orderbook_address,
                     &order_hash,
                     start_timestamp,
                     end_timestamp,
@@ -305,6 +310,7 @@ impl RaindexTrade {
         chain_id: u32,
         trade: LocalDbOrderTrade,
     ) -> Result<Self, RaindexError> {
+        debug_assert_eq!(chain_id, trade.chain_id, "local trade chain mismatch");
         let orderbook = Address::from_str(&trade.orderbook_address)?;
         let transaction = RaindexTransaction::from_local_parts(
             &trade.transaction_hash,
@@ -355,6 +361,339 @@ impl RaindexTrade {
 
 #[cfg(test)]
 mod test_helpers {
+    use super::*;
+
+    #[cfg(target_family = "wasm")]
+    mod wasm_tests {
+        use super::*;
+
+        use crate::raindex_client::local_db::query::{
+            fetch_order_trades::LocalDbOrderTrade, fetch_orders::LocalDbOrder,
+            fetch_vault::LocalDbVault,
+        };
+        use crate::raindex_client::tests::{
+            get_local_db_test_yaml, new_test_client_with_db_callback, LOCAL_CHAIN_A,
+            LOCAL_CHAIN_A_ORDERBOOK_PRIMARY, LOCAL_CHAIN_A_ORDERBOOK_SECONDARY, LOCAL_CHAIN_B,
+            LOCAL_CHAIN_B_ORDERBOOK,
+        };
+        use crate::raindex_client::trades::RaindexOrder;
+        use rain_math_float::Float;
+        use std::rc::Rc;
+        use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+        use wasm_bindgen_test::wasm_bindgen_test;
+        use wasm_bindgen_utils::prelude::WasmEncodedResult;
+
+        fn float_hex(value: &str) -> String {
+            Float::parse(value.to_string()).unwrap().as_hex()
+        }
+
+        fn make_local_trade(
+            chain_id: u32,
+            orderbook: &str,
+            order_hash: &str,
+            trade_id: &str,
+            transaction_hash: &str,
+            block_number: u64,
+            block_timestamp: u64,
+            input_vault_id: &str,
+            input_token: &str,
+            output_vault_id: &str,
+            output_token: &str,
+        ) -> LocalDbOrderTrade {
+            LocalDbOrderTrade {
+                chain_id,
+                trade_kind: "take".into(),
+                orderbook_address: orderbook.to_string(),
+                order_hash: order_hash.to_string(),
+                order_owner: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                order_nonce: "1".into(),
+                transaction_hash: transaction_hash.to_string(),
+                log_index: 1,
+                block_number,
+                block_timestamp,
+                transaction_sender: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                input_vault_id: input_vault_id.to_string(),
+                input_token: input_token.to_string(),
+                input_token_name: Some("Token In".into()),
+                input_token_symbol: Some("TIN".into()),
+                input_token_decimals: Some(18),
+                input_delta: float_hex("1"),
+                input_running_balance: Some(float_hex("10")),
+                output_vault_id: output_vault_id.to_string(),
+                output_token: output_token.to_string(),
+                output_token_name: Some("Token Out".into()),
+                output_token_symbol: Some("TOUT".into()),
+                output_token_decimals: Some(6),
+                output_delta: float_hex("1"),
+                output_running_balance: Some(float_hex("4")),
+                trade_id: trade_id.to_string(),
+            }
+        }
+
+        fn extract_timestamp(sql_lower: &str, needle: &str) -> Option<u64> {
+            sql_lower.find(needle).map(|idx| {
+                let start = idx + needle.len();
+                sql_lower[start..]
+                    .chars()
+                    .take_while(|ch| ch.is_ascii_digit())
+                    .collect::<String>()
+                    .parse()
+                    .ok()
+            })?
+        }
+
+        fn make_local_db_trades_callback(trades: Vec<LocalDbOrderTrade>) -> js_sys::Function {
+            let trades = Rc::new(trades);
+
+            let encode_trades = |value: Vec<LocalDbOrderTrade>| -> JsValue {
+                let result = WasmEncodedResult::Success::<String> {
+                    value: serde_json::to_string(&value).unwrap(),
+                    error: None,
+                };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            };
+
+            let encode_count = |count: usize| -> JsValue {
+                let payload = serde_json::to_string(&vec![serde_json::json!({
+                    "trade_count": count as u64
+                })])
+                .unwrap();
+                let result = WasmEncodedResult::Success::<String> {
+                    value: payload,
+                    error: None,
+                };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            };
+
+            let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
+                let sql_lower = sql.to_lowercase();
+
+                let mut allowed_chains = Vec::new();
+                for chain in [LOCAL_CHAIN_A, LOCAL_CHAIN_B] {
+                    if sql_lower.contains(&chain.to_string()) {
+                        allowed_chains.push(chain);
+                    }
+                }
+                if allowed_chains.is_empty() {
+                    allowed_chains.extend([LOCAL_CHAIN_A, LOCAL_CHAIN_B]);
+                }
+
+                let known_orderbooks: Vec<String> = trades
+                    .iter()
+                    .map(|trade| trade.orderbook_address.to_lowercase())
+                    .collect();
+                let mut allowed_orderbooks: Vec<String> = known_orderbooks
+                    .iter()
+                    .filter(|addr| sql_lower.contains(addr.as_str()))
+                    .cloned()
+                    .collect();
+                if allowed_orderbooks.is_empty() {
+                    allowed_orderbooks = known_orderbooks.clone();
+                }
+
+                let known_hashes: Vec<String> = trades
+                    .iter()
+                    .map(|trade| trade.order_hash.to_lowercase())
+                    .collect();
+                let mut allowed_hashes: Vec<String> = known_hashes
+                    .iter()
+                    .filter(|hash| sql_lower.contains(hash.as_str()))
+                    .cloned()
+                    .collect();
+                if allowed_hashes.is_empty() {
+                    allowed_hashes = known_hashes.clone();
+                }
+
+                let start_ts = extract_timestamp(&sql_lower, "block_timestamp >= ");
+                let end_ts = extract_timestamp(&sql_lower, "block_timestamp <= ");
+
+                let filtered: Vec<LocalDbOrderTrade> = trades
+                    .iter()
+                    .filter(|trade| allowed_chains.contains(&trade.chain_id))
+                    .filter(|trade| {
+                        allowed_orderbooks.is_empty()
+                            || allowed_orderbooks
+                                .iter()
+                                .any(|addr| trade.orderbook_address.eq_ignore_ascii_case(addr))
+                    })
+                    .filter(|trade| {
+                        allowed_hashes.is_empty()
+                            || allowed_hashes
+                                .iter()
+                                .any(|hash| trade.order_hash.eq_ignore_ascii_case(hash))
+                    })
+                    .filter(|trade| {
+                        start_ts
+                            .map(|ts| trade.block_timestamp >= ts)
+                            .unwrap_or(true)
+                    })
+                    .filter(|trade| end_ts.map(|ts| trade.block_timestamp <= ts).unwrap_or(true))
+                    .cloned()
+                    .collect();
+
+                if sql_lower.contains("count(*) as trade_count") {
+                    return encode_count(filtered.len());
+                }
+
+                if sql_lower.contains("from take_orders")
+                    || sql_lower.contains("from clear_v3_events")
+                {
+                    return encode_trades(filtered);
+                }
+
+                encode_trades(Vec::new())
+            }) as Box<dyn Fn(String) -> JsValue>);
+
+            callback.into_js_value().dyn_into().unwrap()
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_trades_local_db_path() {
+            const ORDER_HASH_PRIMARY: &str =
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            const ORDER_HASH_SECONDARY: &str =
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+            let local_order = LocalDbOrder {
+                chain_id: LOCAL_CHAIN_A,
+                order_hash: ORDER_HASH_PRIMARY.to_string(),
+                owner: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                block_timestamp: 1_700_000_000,
+                block_number: 12_345,
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
+                order_bytes: "0x1111111111111111111111111111111111111111111111111111111111111111"
+                    .to_string(),
+                transaction_hash:
+                    "0x9999999999999999999999999999999999999999999999999999999999999999".to_string(),
+                inputs: Some("0:0x0a:0x00000000000000000000000000000000000000aa".to_string()),
+                outputs: Some("0:0x0b:0x00000000000000000000000000000000000000bb".to_string()),
+                trade_count: 3,
+                active: true,
+                meta: Some("0x1234".to_string()),
+            };
+
+            let input_vault = LocalDbVault {
+                chain_id: LOCAL_CHAIN_A,
+                vault_id: "0x0a".to_string(),
+                token: "0x00000000000000000000000000000000000000aa".to_string(),
+                owner: local_order.owner.clone(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
+                token_name: "Token In".to_string(),
+                token_symbol: "TIN".to_string(),
+                token_decimals: 18,
+                balance: float_hex("5"),
+                input_orders: Some(format!("0x01:{}:0", ORDER_HASH_PRIMARY)),
+                output_orders: None,
+            };
+
+            let output_vault = LocalDbVault {
+                chain_id: LOCAL_CHAIN_A,
+                vault_id: "0x0b".to_string(),
+                token: "0x00000000000000000000000000000000000000bb".to_string(),
+                owner: local_order.owner.clone(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
+                token_name: "Token Out".to_string(),
+                token_symbol: "TOUT".to_string(),
+                token_decimals: 6,
+                balance: float_hex("7"),
+                input_orders: None,
+                output_orders: Some(format!("0x01:{}:0", ORDER_HASH_PRIMARY)),
+            };
+
+            let trade_primary = make_local_trade(
+                LOCAL_CHAIN_A,
+                LOCAL_CHAIN_A_ORDERBOOK_PRIMARY,
+                ORDER_HASH_PRIMARY,
+                "0x1111111111111111111111111111111111111111111111111111111111111111",
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                10_000,
+                1_700_000_100,
+                "0x0a",
+                "0x00000000000000000000000000000000000000aa",
+                "0x0b",
+                "0x00000000000000000000000000000000000000bb",
+            );
+
+            let trade_secondary = make_local_trade(
+                LOCAL_CHAIN_A,
+                LOCAL_CHAIN_A_ORDERBOOK_SECONDARY,
+                ORDER_HASH_SECONDARY,
+                "0x2222222222222222222222222222222222222222222222222222222222222222",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                11_000,
+                1_700_000_200,
+                "0x0c",
+                "0x00000000000000000000000000000000000000cc",
+                "0x0d",
+                "0x00000000000000000000000000000000000000dd",
+            );
+
+            let trade_base = make_local_trade(
+                LOCAL_CHAIN_B,
+                LOCAL_CHAIN_B_ORDERBOOK,
+                ORDER_HASH_PRIMARY,
+                "0x3333333333333333333333333333333333333333333333333333333333333333",
+                "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                12_000,
+                1_700_000_300,
+                "0x0e",
+                "0x00000000000000000000000000000000000000ee",
+                "0x0f",
+                "0x00000000000000000000000000000000000000ff",
+            );
+
+            let callback = make_local_db_trades_callback(vec![
+                trade_primary.clone(),
+                trade_secondary,
+                trade_base,
+            ]);
+
+            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+            let rc_client = Rc::new(client);
+
+            let order = RaindexOrder::try_from_local_db(
+                Rc::clone(&rc_client),
+                LOCAL_CHAIN_A,
+                local_order,
+                vec![input_vault.clone()],
+                vec![output_vault.clone()],
+            )
+            .expect("local order should convert");
+
+            let trades = order
+                .get_trades_list(None, None, None)
+                .await
+                .expect("local trades should load");
+
+            assert_eq!(trades.len(), 1);
+            let trade = &trades[0];
+            assert_eq!(
+                trade.orderbook().to_lowercase(),
+                LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_lowercase()
+            );
+            assert_eq!(trade.id(), trade_primary.trade_id.to_lowercase());
+            assert_eq!(trade.order_hash(), ORDER_HASH_PRIMARY.to_lowercase());
+
+            let tx = trade.transaction();
+            assert_eq!(tx.id(), trade_primary.transaction_hash.to_lowercase());
+
+            let filtered = order
+                .get_trades_list(Some(1_700_000_200), None, None)
+                .await
+                .expect("timestamp filter should succeed");
+            assert!(
+                filtered.is_empty(),
+                "timestamp filter should exclude earlier local trades"
+            );
+
+            let count = order
+                .get_trade_count(None, None)
+                .await
+                .expect("local trade count should load");
+            assert_eq!(count, 1);
+        }
+    }
+
     #[cfg(not(target_family = "wasm"))]
     use super::*;
 

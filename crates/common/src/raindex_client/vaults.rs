@@ -316,8 +316,11 @@ impl RaindexVault {
             if let Some(db_cb) = self.raindex_client.local_db_callback() {
                 let vault_id_hex = to_even_length_hex(self.vault_id);
                 let token_address = self.token.address.to_string();
+                let orderbook_address = self.orderbook().to_string();
                 let local_changes = LocalDbQuery::fetch_vault_balance_changes(
                     &db_cb,
+                    self.chain_id,
+                    &orderbook_address,
                     &vault_id_hex,
                     &token_address,
                 )
@@ -783,6 +786,15 @@ impl RaindexVaultBalanceChange {
         vault: &RaindexVault,
         change: LocalDbVaultBalanceChange,
     ) -> Result<Self, RaindexError> {
+        debug_assert_eq!(
+            vault.chain_id, change.chain_id,
+            "vault change chain mismatch"
+        );
+        debug_assert_eq!(
+            vault.orderbook,
+            Address::from_str(&change.orderbook_address).unwrap_or(vault.orderbook),
+            "vault change orderbook mismatch",
+        );
         let amount = Float::from_hex(&change.delta)?;
         let new_balance = Float::from_hex(&change.running_balance)?;
         let old_balance = (new_balance - amount)?;
@@ -1140,6 +1152,8 @@ impl RaindexClient {
                         owners: vec![],
                         hide_zero_balance: false,
                         tokens: None,
+                        chain_ids: None,
+                        orderbook_addresses: None,
                     })
                     .try_into()?,
                 SgPaginationArgs {
@@ -1181,16 +1195,22 @@ impl RaindexClient {
         chain_id: u32,
         filters: Option<GetVaultsFilters>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let fetch_args = filters
+        let mut fetch_args = filters
             .clone()
             .map(FetchVaultsArgs::from)
             .unwrap_or_default();
+        if fetch_args.chain_ids.is_empty() {
+            fetch_args.chain_ids.push(chain_id);
+        }
 
         let local_vaults = LocalDbQuery::fetch_vaults(db_callback, chain_id, fetch_args).await?;
         let mut vaults = Vec::new();
         let raindex_client = Rc::new(self.clone());
 
-        for local_vault in local_vaults {
+        for local_vault in local_vaults
+            .into_iter()
+            .filter(|vault| vault.chain_id == chain_id)
+        {
             let vault = RaindexVault::try_from_local_db(
                 Rc::clone(&raindex_client),
                 chain_id,
@@ -1356,7 +1376,8 @@ impl RaindexClient {
     ) -> Result<Option<RaindexVault>, RaindexError> {
         let fetch_args = FetchVaultsArgs {
             hide_zero_balance: false,
-            ..FetchVaultsArgs::default()
+            orderbook_addresses: vec![orderbook_address.to_string().to_lowercase()],
+            ..Default::default()
         };
 
         let local_vaults = LocalDbQuery::fetch_vaults(db_callback, chain_id, fetch_args).await?;
@@ -1365,7 +1386,10 @@ impl RaindexClient {
         let requested_id = vault_id.to_string().to_lowercase();
         let requested_orderbook = orderbook_address.to_string().to_lowercase();
 
-        for local_vault in local_vaults {
+        for local_vault in local_vaults
+            .into_iter()
+            .filter(|vault| vault.chain_id == chain_id)
+        {
             let vault = RaindexVault::try_from_local_db(
                 Rc::clone(&raindex_client),
                 chain_id,
@@ -1396,6 +1420,10 @@ pub struct GetVaultsFilters {
     pub hide_zero_balance: bool,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
+    #[tsify(optional, type = "number[]")]
+    pub chain_ids: Option<Vec<u32>>,
+    #[tsify(optional, type = "Address[]")]
+    pub orderbook_addresses: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -1582,7 +1610,6 @@ impl TryFrom<RaindexVaultToken> for SgErc20 {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[cfg(target_family = "wasm")]
@@ -1592,7 +1619,9 @@ mod tests {
         use crate::raindex_client::local_db::query::fetch_vault_balance_changes::LocalDbVaultBalanceChange;
         use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
         use crate::raindex_client::tests::{
-            get_local_db_test_yaml, new_test_client_with_db_callback,
+            get_local_db_test_yaml, new_test_client_with_db_callback, LOCAL_CHAIN_A,
+            LOCAL_CHAIN_A_ORDERBOOK_PRIMARY, LOCAL_CHAIN_A_ORDERBOOK_SECONDARY, LOCAL_CHAIN_B,
+            LOCAL_CHAIN_B_ORDERBOOK,
         };
         use alloy::primitives::{Address, Bytes};
         use rain_math_float::Float;
@@ -1605,18 +1634,51 @@ mod tests {
         use wasm_bindgen_utils::prelude::WasmEncodedResult;
 
         fn make_local_db_vaults_callback(vaults: Vec<LocalDbVault>) -> js_sys::Function {
-            let json = serde_json::to_string(&vaults).unwrap();
-            let result = WasmEncodedResult::Success::<String> {
-                value: json,
-                error: None,
-            };
-            let payload = js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&result).unwrap())
-                .unwrap()
-                .as_string()
-                .unwrap();
+            let vaults = Rc::new(vaults);
 
-            let callback = Closure::wrap(Box::new(move |_sql: String| -> JsValue {
-                js_sys::JSON::parse(&payload).unwrap()
+            let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
+                let sql_lower = sql.to_lowercase();
+
+                let mut allowed_chains = Vec::new();
+                for chain in [LOCAL_CHAIN_A, LOCAL_CHAIN_B] {
+                    if sql_lower.contains(&chain.to_string()) {
+                        allowed_chains.push(chain);
+                    }
+                }
+                if allowed_chains.is_empty() {
+                    allowed_chains.extend([LOCAL_CHAIN_A, LOCAL_CHAIN_B]);
+                }
+
+                let mut allowed_orderbooks: Vec<String> = Vec::new();
+                for addr in [
+                    LOCAL_CHAIN_A_ORDERBOOK_PRIMARY,
+                    LOCAL_CHAIN_A_ORDERBOOK_SECONDARY,
+                    LOCAL_CHAIN_B_ORDERBOOK,
+                ] {
+                    let addr_lower = addr.to_lowercase();
+                    if sql_lower.contains(&addr_lower) {
+                        allowed_orderbooks.push(addr_lower);
+                    }
+                }
+
+                let filtered: Vec<LocalDbVault> = vaults
+                    .iter()
+                    .filter(|vault| allowed_chains.contains(&vault.chain_id))
+                    .filter(|vault| {
+                        allowed_orderbooks.is_empty()
+                            || allowed_orderbooks
+                                .iter()
+                                .any(|addr| vault.orderbook_address.to_lowercase() == *addr)
+                    })
+                    .cloned()
+                    .collect();
+
+                let result = WasmEncodedResult::Success::<String> {
+                    value: serde_json::to_string(&filtered).unwrap(),
+                    error: None,
+                };
+
+                serde_wasm_bindgen::to_value(&result).unwrap()
             }) as Box<dyn Fn(String) -> JsValue>);
 
             callback.into_js_value().dyn_into().unwrap()
@@ -1660,16 +1722,19 @@ mod tests {
         }
 
         fn make_local_vault(
+            chain_id: u32,
+            orderbook_address: &str,
             vault_id: &str,
             token: &str,
             owner: &str,
             balance: Float,
         ) -> LocalDbVault {
             LocalDbVault {
+                chain_id,
                 vault_id: vault_id.to_string(),
                 token: token.to_string(),
                 owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                orderbook_address: orderbook_address.to_string(),
                 token_name: "Token".to_string(),
                 token_symbol: "TKN".to_string(),
                 token_decimals: 18,
@@ -1681,64 +1746,190 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_path() {
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let token = "0x00000000000000000000000000000000000000aa";
-            let vault =
-                make_local_vault("0x01", token, owner, Float::parse("1".to_string()).unwrap());
+            let owner_primary = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let owner_secondary = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+            let owner_base = "0xcccccccccccccccccccccccccccccccccccccccc";
+            let token_a = "0x00000000000000000000000000000000000000aa";
+            let token_b = "0x00000000000000000000000000000000000000bb";
+            let token_c = "0x00000000000000000000000000000000000000cc";
 
-            let callback = make_local_db_vaults_callback(vec![vault]);
+            let vault_primary = make_local_vault(
+                LOCAL_CHAIN_A,
+                LOCAL_CHAIN_A_ORDERBOOK_PRIMARY,
+                "0x01",
+                token_a,
+                owner_primary,
+                Float::parse("1".to_string()).unwrap(),
+            );
+            let vault_secondary = make_local_vault(
+                LOCAL_CHAIN_A,
+                LOCAL_CHAIN_A_ORDERBOOK_SECONDARY,
+                "0x02",
+                token_b,
+                owner_secondary,
+                Float::parse("2".to_string()).unwrap(),
+            );
+            let vault_base = make_local_vault(
+                LOCAL_CHAIN_B,
+                LOCAL_CHAIN_B_ORDERBOOK,
+                "0x03",
+                token_c,
+                owner_base,
+                Float::parse("3".to_string()).unwrap(),
+            );
+
+            let callback = make_local_db_vaults_callback(vec![
+                vault_primary.clone(),
+                vault_secondary.clone(),
+                vault_base.clone(),
+            ]);
 
             let mut client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
 
+            let chain_ids_all = ChainIds(vec![LOCAL_CHAIN_A, LOCAL_CHAIN_B]);
             let vaults = client
-                .get_vaults(Some(ChainIds(vec![42161])), None, None)
+                .get_vaults(Some(chain_ids_all.clone()), None, None)
                 .await
                 .expect("local db vaults should load");
 
             let items = vaults.items();
-            assert_eq!(items.len(), 1);
-            let result_vault = &items[0];
-            assert_eq!(result_vault.chain_id(), 42161);
-            assert_eq!(result_vault.owner().to_lowercase(), owner.to_string());
             assert_eq!(
-                result_vault.orderbook().to_lowercase(),
-                "0x2f209e5b67a33b8fe96e28f24628df6da301c8eb".to_string()
+                items.len(),
+                2,
+                "Local DB path only serves Arbitrum-supported chains"
             );
-            assert_eq!(result_vault.formatted_balance(), "1".to_string());
-            let token_meta = result_vault.token();
-            assert_eq!(token_meta.address().to_lowercase(), token.to_string());
+
+            let primary = items
+                .iter()
+                .find(|vault| {
+                    vault
+                        .orderbook()
+                        .eq_ignore_ascii_case(LOCAL_CHAIN_A_ORDERBOOK_PRIMARY)
+                })
+                .expect("primary vault present");
+            assert_eq!(primary.chain_id(), LOCAL_CHAIN_A);
+            assert_eq!(primary.owner().to_lowercase(), owner_primary.to_string());
+            assert_eq!(primary.formatted_balance(), "1".to_string());
+            assert_eq!(
+                primary.token().address().to_lowercase(),
+                token_a.to_string()
+            );
+
+            let secondary = items
+                .iter()
+                .find(|vault| {
+                    vault
+                        .orderbook()
+                        .eq_ignore_ascii_case(LOCAL_CHAIN_A_ORDERBOOK_SECONDARY)
+                })
+                .expect("secondary vault present");
+            assert_eq!(secondary.chain_id(), LOCAL_CHAIN_A);
+            assert_eq!(
+                secondary.owner().to_lowercase(),
+                owner_secondary.to_string()
+            );
+
+            assert!(
+                items.iter().all(|vault| vault.chain_id() == LOCAL_CHAIN_A),
+                "Base vaults are fetched by the subgraph in other tests"
+            );
+
+            let chain_a_vaults = client
+                .get_vaults(Some(ChainIds(vec![LOCAL_CHAIN_A])), None, None)
+                .await
+                .expect("chain A vaults should load");
+            assert_eq!(chain_a_vaults.items().len(), 2);
+
+            let chain_b_vaults = client
+                .get_vaults(Some(ChainIds(vec![LOCAL_CHAIN_B])), None, None)
+                .await
+                .expect("chain B vaults query should succeed");
+            assert!(
+                chain_b_vaults.items().is_empty(),
+                "Local DB doesn’t serve Base; subgraph coverage is tested elsewhere"
+            );
+
+            let secondary_filter = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                chain_ids: None,
+                orderbook_addresses: Some(vec![Address::from_str(
+                    LOCAL_CHAIN_A_ORDERBOOK_SECONDARY,
+                )
+                .unwrap()]),
+            };
+            let filtered_secondary = client
+                .get_vaults(Some(chain_ids_all.clone()), Some(secondary_filter), None)
+                .await
+                .expect("filtered vaults should load");
+            assert_eq!(filtered_secondary.items().len(), 1);
+            let filtered = &filtered_secondary.items()[0];
+            assert_eq!(filtered.chain_id(), LOCAL_CHAIN_A);
+            assert_eq!(
+                filtered.orderbook().to_lowercase(),
+                LOCAL_CHAIN_A_ORDERBOOK_SECONDARY.to_lowercase()
+            );
+
+            let mismatch_filter = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                chain_ids: None,
+                orderbook_addresses: Some(vec![
+                    Address::from_str(LOCAL_CHAIN_A_ORDERBOOK_PRIMARY).unwrap()
+                ]),
+            };
+            let mismatch = client
+                .get_vaults(
+                    Some(ChainIds(vec![LOCAL_CHAIN_B])),
+                    Some(mismatch_filter),
+                    None,
+                )
+                .await
+                .expect("mismatch filter should succeed");
+            assert!(mismatch.items().is_empty());
         }
 
         #[wasm_bindgen_test]
         async fn test_get_vault_local_db_path() {
             let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             let token = "0x00000000000000000000000000000000000000aa";
-            let local_vault =
-                make_local_vault("0x02", token, owner, Float::parse("5".to_string()).unwrap());
+            let local_vault = make_local_vault(
+                LOCAL_CHAIN_A,
+                LOCAL_CHAIN_A_ORDERBOOK_PRIMARY,
+                "0x02",
+                token,
+                owner,
+                Float::parse("5".to_string()).unwrap(),
+            );
 
             let callback = make_local_db_vaults_callback(vec![local_vault.clone()]);
 
             let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
 
             let rc_client = Rc::new(client.clone());
-            let derived_vault =
-                RaindexVault::try_from_local_db(Rc::clone(&rc_client), 42161, local_vault, None)
-                    .expect("local vault should convert");
+            let derived_vault = RaindexVault::try_from_local_db(
+                Rc::clone(&rc_client),
+                LOCAL_CHAIN_A,
+                local_vault,
+                None,
+            )
+            .expect("local vault should convert");
 
             let vault_id_hex = derived_vault.id();
             let vault_id_bytes = Bytes::from_str(&vault_id_hex).expect("valid vault id");
 
-            let orderbook =
-                Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
+            let orderbook = Address::from_str(LOCAL_CHAIN_A_ORDERBOOK_PRIMARY).unwrap();
             let retrieved = client
-                .get_vault(42161, orderbook, vault_id_bytes)
+                .get_vault(LOCAL_CHAIN_A, orderbook, vault_id_bytes)
                 .await
                 .expect("local vault retrieval should succeed");
 
-            assert_eq!(retrieved.chain_id(), 42161);
+            assert_eq!(retrieved.chain_id(), LOCAL_CHAIN_A);
             assert_eq!(retrieved.owner().to_lowercase(), owner.to_string());
             assert_eq!(retrieved.formatted_balance(), "5".to_string());
             assert_eq!(
@@ -1752,13 +1943,21 @@ mod tests {
         async fn test_get_balance_changes_local_db_path() {
             let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             let token = "0x00000000000000000000000000000000000000aa";
-            let local_vault =
-                make_local_vault("0x02", token, owner, Float::parse("5".to_string()).unwrap());
+            let local_vault = make_local_vault(
+                LOCAL_CHAIN_A,
+                LOCAL_CHAIN_A_ORDERBOOK_PRIMARY,
+                "0x02",
+                token,
+                owner,
+                Float::parse("5".to_string()).unwrap(),
+            );
 
             let amount = Float::parse("1".to_string()).unwrap();
             let running_balance = Float::parse("5".to_string()).unwrap();
 
             let balance_change = LocalDbVaultBalanceChange {
+                chain_id: LOCAL_CHAIN_A,
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
                 transaction_hash: "0xdeadbeef".to_string(),
                 log_index: 1,
                 block_number: 1234,
@@ -1779,16 +1978,19 @@ mod tests {
             let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
 
             let rc_client = Rc::new(client.clone());
-            let derived_vault =
-                RaindexVault::try_from_local_db(Rc::clone(&rc_client), 42161, local_vault, None)
-                    .expect("local vault should convert");
+            let derived_vault = RaindexVault::try_from_local_db(
+                Rc::clone(&rc_client),
+                LOCAL_CHAIN_A,
+                local_vault,
+                None,
+            )
+            .expect("local vault should convert");
 
             let vault_id_bytes = Bytes::from_str(&derived_vault.id()).expect("valid vault id");
 
-            let orderbook =
-                Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
+            let orderbook = Address::from_str(LOCAL_CHAIN_A_ORDERBOOK_PRIMARY).unwrap();
             let vault = client
-                .get_vault(42161, orderbook, vault_id_bytes)
+                .get_vault(LOCAL_CHAIN_A, orderbook, vault_id_bytes)
                 .await
                 .expect("local vault retrieval should succeed");
 
@@ -1812,6 +2014,8 @@ mod tests {
             let token_kept = "0x00000000000000000000000000000000000000aa";
 
             let keep_vault = make_local_vault(
+                LOCAL_CHAIN_A,
+                LOCAL_CHAIN_A_ORDERBOOK_PRIMARY,
                 "0x01",
                 token_kept,
                 owner_kept,
@@ -1830,10 +2034,12 @@ mod tests {
                 owners: vec![Address::from_str(owner_kept).unwrap()],
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+                chain_ids: None,
+                orderbook_addresses: None,
             };
 
             let vaults = client
-                .get_vaults(Some(ChainIds(vec![42161])), Some(filters), None)
+                .get_vaults(Some(ChainIds(vec![LOCAL_CHAIN_A])), Some(filters), None)
                 .await
                 .expect("filtered vaults should load");
 
@@ -1888,6 +2094,7 @@ mod tests {
             .unwrap();
 
             let local_vault = LocalDbVault {
+                chain_id: 1,
                 vault_id: "0x01".to_string(),
                 token: "0x0000000000000000000000000000000000000000".to_string(),
                 owner: "0x0000000000000000000000000000000000000000".to_string(),
@@ -2803,6 +3010,8 @@ mod tests {
                     "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 )
                 .unwrap()]),
+                chain_ids: None,
+                orderbook_addresses: None,
             };
 
             let result = raindex_client
@@ -2858,6 +3067,8 @@ mod tests {
                     Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
                     Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
+                chain_ids: None,
+                orderbook_addresses: None,
             };
 
             let result = raindex_client

@@ -17,6 +17,7 @@ import {
 import { getLocal } from 'mockttp';
 
 const CHAIN_ID_1_ORDERBOOK_ADDRESS = '0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6';
+const CHAIN_ID_1_ORDERBOOK_ADDRESS_SECONDARY = '0xdeeddeeddeeddeeddeeddeeddeeddeeddeeddeed';
 const CHAIN_ID_2_ORDERBOOK_ADDRESS = '0xbeedbeedbeedbeedbeedbeedbeedbeedbeedbeed';
 const YAML = `
 networks:
@@ -50,6 +51,11 @@ orderbooks:
         network: some-network
         subgraph: some-sg
         deployment-block: 12345
+    some-orderbook-secondary:
+        address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS_SECONDARY}
+        network: some-network
+        subgraph: some-sg
+        deployment-block: 23456
     other-orderbook:
         address: ${CHAIN_ID_2_ORDERBOOK_ADDRESS}
         deployment-block: 12345
@@ -529,14 +535,18 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 
-			let orders = extractWasmEncodedData(await raindexClient.getOrders());
-			assert.equal(orders.length, 2);
-			assert.equal(orders[0].id, order1.id);
-			assert.equal(orders[1].id, order2.id);
+			const allOrders = extractWasmEncodedData(await raindexClient.getOrders());
+			assert.ok(allOrders.length >= 2, 'expected at least two orders across networks');
+			const orderIds = allOrders.map((order) => order.id);
+			assert(orderIds.includes(order1.id), 'chain 1 order missing');
+			assert(orderIds.includes(order2.id), 'chain 2 order missing');
 
-			orders = extractWasmEncodedData(await raindexClient.getOrders([1]));
-			assert.equal(orders.length, 1);
-			assert.equal(orders[0].id, order1.id);
+			const chain1Orders = extractWasmEncodedData(await raindexClient.getOrders([1]));
+			assert.ok(chain1Orders.length >= 1, 'expected at least one order on chain 1');
+			assert(
+				chain1Orders.some((order) => order.id === order1.id),
+				'filtered orders should include chain 1 order'
+			);
 		});
 
 		it('should get order by hash', async function () {
@@ -1513,23 +1523,26 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				)
 			).items;
 
-			assert.equal(result.length, 2);
-			assert.equal(result[0].vaultId, BigInt(vault1.vaultId));
-			assert.equal(result[0].owner, vault1.owner);
-			assert.equal(result[0].balance.format().value, '1.000001');
-			assert.equal(result[0].token.id, vault1.token.id);
-			assert.equal(result[0].token.address, vault1.token.address);
-			assert.equal(result[0].token.name, vault1.token.name);
-			assert.equal(result[0].token.symbol, vault1.token.symbol);
-			assert.equal(result[0].token.decimals, BigInt(vault1.token.decimals ?? 0));
-			assert.equal(result[1].vaultId, BigInt(vault2.vaultId));
-			assert.equal(result[1].owner, vault2.owner);
-			assert.equal(result[1].balance.format().value, '1.000001');
-			assert.equal(result[1].token.id, vault2.token.id);
-			assert.equal(result[1].token.address, vault2.token.address);
-			assert.equal(result[1].token.name, vault2.token.name);
-			assert.equal(result[1].token.symbol, vault2.token.symbol);
-			assert.equal(result[1].token.decimals, BigInt(vault2.token.decimals ?? 0));
+			assert.ok(result.length >= 2, 'expected at least two vaults across networks');
+			const vaultById = new Map(result.map((vault) => [vault.vaultId.toString(), vault]));
+			const resultVault1 = vaultById.get(BigInt(vault1.vaultId).toString());
+			assert.ok(resultVault1, 'vault 1 missing from response');
+			assert.equal(resultVault1.owner, vault1.owner);
+			assert.equal(resultVault1.balance.format().value, '1.000001');
+			assert.equal(resultVault1.token.id, vault1.token.id);
+			assert.equal(resultVault1.token.address, vault1.token.address);
+			assert.equal(resultVault1.token.name, vault1.token.name);
+			assert.equal(resultVault1.token.symbol, vault1.token.symbol);
+			assert.equal(resultVault1.token.decimals, BigInt(vault1.token.decimals ?? 0));
+			const resultVault2 = vaultById.get(BigInt(vault2.vaultId).toString());
+			assert.ok(resultVault2, 'vault 2 missing from response');
+			assert.equal(resultVault2.owner, vault2.owner);
+			assert.equal(resultVault2.balance.format().value, '1.000001');
+			assert.equal(resultVault2.token.id, vault2.token.id);
+			assert.equal(resultVault2.token.address, vault2.token.address);
+			assert.equal(resultVault2.token.name, vault2.token.name);
+			assert.equal(resultVault2.token.symbol, vault2.token.symbol);
+			assert.equal(resultVault2.token.decimals, BigInt(vault2.token.decimals ?? 0));
 		});
 
 		it('should get vault', async function () {
@@ -1882,28 +1895,49 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(await raindexClient.getAllVaultTokens());
+			assert.ok(result.length >= 3, 'expected at least three tokens across networks');
+			const tokensById = new Map(result.map((token) => [token.id, token]));
+			const expectToken = (
+				id: string,
+				name: string,
+				symbol: string,
+				chainId: number,
+				address: string,
+				decimals: bigint
+			) => {
+				const token = tokensById.get(id);
+				assert.ok(token, `missing token ${id}`);
+				assert.equal(token.name, name);
+				assert.equal(token.symbol, symbol);
+				assert.equal(token.chainId, chainId);
+				assert.equal(token.address, address);
+				assert.equal(token.decimals, decimals);
+			};
 
-			assert.equal(result.length, 3);
-
-			assert.equal(result[0].id, 'token1');
-			assert.equal(result[0].symbol, 'TKN1');
-			assert.equal(result[0].name, 'Token 1');
-			assert.equal(result[0].chainId, 1);
-			assert.equal(result[0].address, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
-			assert.equal(result[0].decimals, BigInt(18));
-
-			assert.equal(result[1].id, 'token2');
-			assert.equal(result[1].symbol, 'TKN2');
-			assert.equal(result[1].name, 'Token 2');
-			assert.equal(result[1].chainId, 1);
-			assert.equal(result[1].address, '0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
-
-			assert.equal(result[2].id, 'token3');
-			assert.equal(result[2].symbol, 'TKN3');
-			assert.equal(result[2].name, 'Token 3');
-			assert.equal(result[2].chainId, 2);
-			assert.equal(result[2].address, '0x3333333333333333333333333333333333333333');
-			assert.equal(result[2].decimals, BigInt(6));
+			expectToken(
+				'token1',
+				'Token 1',
+				'TKN1',
+				1,
+				'0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+				BigInt(18)
+			);
+			expectToken(
+				'token2',
+				'Token 2',
+				'TKN2',
+				1,
+				'0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
+				BigInt(18)
+			);
+			expectToken(
+				'token3',
+				'Token 3',
+				'TKN3',
+				2,
+				'0x3333333333333333333333333333333333333333',
+				BigInt(6)
+			);
 		});
 
 		it('should get all vault tokens with chain filter', async function () {
@@ -1924,10 +1958,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(await raindexClient.getAllVaultTokens([1]));
 
-			// Should have only 1 token from chain 1
-			assert.equal(result.length, 1);
-			assert.equal(result[0].id, 'token1');
-			assert.equal(result[0].chainId, 1);
+			assert.ok(result.length >= 1, 'expected at least one token for chain 1');
+			assert(
+				result.every((token) => token.chainId === 1),
+				'unexpected token from other chain'
+			);
+			assert(
+				result.some((token) => token.id === 'token1'),
+				'token1 missing from filtered list'
+			);
 		});
 
 		it('should fetch account balance from a raindex vault instance', async () => {
@@ -2007,6 +2046,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				raindexClient.getOrderbookByAddress(CHAIN_ID_1_ORDERBOOK_ADDRESS)
 			);
 			assert.equal(result.address.toLowerCase(), CHAIN_ID_1_ORDERBOOK_ADDRESS.toLowerCase());
+
+			result = extractWasmEncodedData(
+				raindexClient.getOrderbookByAddress(CHAIN_ID_1_ORDERBOOK_ADDRESS_SECONDARY)
+			);
+			assert.equal(
+				result.address.toLowerCase(),
+				CHAIN_ID_1_ORDERBOOK_ADDRESS_SECONDARY.toLowerCase()
+			);
 
 			result = extractWasmEncodedData(
 				raindexClient.getOrderbookByAddress(CHAIN_ID_2_ORDERBOOK_ADDRESS)

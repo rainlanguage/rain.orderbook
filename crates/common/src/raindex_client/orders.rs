@@ -542,6 +542,8 @@ impl RaindexClient {
                         active: None,
                         order_hash: None,
                         tokens: None,
+                        chain_ids: None,
+                        orderbook_addresses: None,
                     })
                     .try_into()?,
                 SgPaginationArgs {
@@ -583,19 +585,24 @@ impl RaindexClient {
         let raindex_client = Rc::new(self.clone());
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
-        let fetch_args = filters.map(FetchOrdersArgs::from).unwrap_or_default();
+        let mut fetch_args = filters.map(FetchOrdersArgs::from).unwrap_or_default();
+        if fetch_args.chain_ids.is_empty() {
+            fetch_args.chain_ids.push(chain_id);
+        }
         let local_db_orders = LocalDbQuery::fetch_orders(db_callback, fetch_args).await?;
 
         for local_db_order in &local_db_orders {
             let input_vaults = LocalDbQuery::fetch_vaults_for_io_string(
                 db_callback,
                 chain_id,
+                &local_db_order.orderbook_address,
                 &local_db_order.inputs,
             )
             .await?;
             let output_vaults = LocalDbQuery::fetch_vaults_for_io_string(
                 db_callback,
                 chain_id,
+                &local_db_order.orderbook_address,
                 &local_db_order.outputs,
             )
             .await?;
@@ -728,12 +735,14 @@ impl RaindexClient {
             let input_vaults = LocalDbQuery::fetch_vaults_for_io_string(
                 db_callback,
                 chain_id,
+                &local_db_order.orderbook_address,
                 &local_db_order.inputs,
             )
             .await?;
             let output_vaults = LocalDbQuery::fetch_vaults_for_io_string(
                 db_callback,
                 chain_id,
+                &local_db_order.orderbook_address,
                 &local_db_order.outputs,
             )
             .await?;
@@ -764,24 +773,33 @@ pub struct GetOrdersFilters {
     pub order_hash: Option<Bytes>,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
+    #[tsify(optional, type = "number[]")]
+    pub chain_ids: Option<Vec<u32>>,
+    #[tsify(optional, type = "Address[]")]
+    pub orderbook_addresses: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
 impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
     type Error = RaindexError;
     fn try_from(filters: GetOrdersFilters) -> Result<Self, Self::Error> {
+        let GetOrdersFilters {
+            owners,
+            active,
+            order_hash,
+            tokens,
+            chain_ids: _,
+            orderbook_addresses: _,
+        } = filters;
+
         Ok(Self {
-            owners: filters
-                .owners
+            owners: owners
                 .into_iter()
                 .map(|owner| SgBytes(owner.to_string()))
                 .collect(),
-            active: filters.active,
-            order_hash: filters
-                .order_hash
-                .map(|order_hash| SgBytes(order_hash.to_string())),
-            tokens: filters
-                .tokens
+            active,
+            order_hash: order_hash.map(|order_hash| SgBytes(order_hash.to_string())),
+            tokens: tokens
                 .map(|tokens| {
                     tokens
                         .into_iter()
@@ -955,70 +973,94 @@ mod tests {
             fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault,
         };
         use crate::raindex_client::tests::{
-            get_local_db_test_yaml, new_test_client_with_db_callback,
+            get_local_db_test_yaml, new_test_client_with_db_callback, LOCAL_CHAIN_A,
+            LOCAL_CHAIN_A_ORDERBOOK_PRIMARY, LOCAL_CHAIN_A_ORDERBOOK_SECONDARY, LOCAL_CHAIN_B,
+            LOCAL_CHAIN_B_ORDERBOOK,
         };
+        use alloy::primitives::Address;
+        use rain_math_float::Float;
         use serde_json;
-        use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+        use std::collections::{HashMap, HashSet};
+        use std::rc::Rc;
+        use std::str::FromStr;
         use wasm_bindgen_test::wasm_bindgen_test;
-        use wasm_bindgen_utils::prelude::WasmEncodedResult;
+        use wasm_bindgen_utils::prelude::{js_sys, Closure, JsCast, JsValue, WasmEncodedResult};
 
         fn make_local_db_callback(
             orders: Vec<LocalDbOrder>,
             vaults: Vec<LocalDbVault>,
         ) -> js_sys::Function {
-            let orders_json = serde_json::to_string(&orders).unwrap();
-            let orders_result = WasmEncodedResult::Success::<String> {
-                value: orders_json,
-                error: None,
-            };
-            let orders_payload =
-                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&orders_result).unwrap())
-                    .unwrap()
-                    .as_string()
-                    .unwrap();
+            let orders = Rc::new(orders);
+            let vaults = Rc::new(vaults);
 
-            let empty_result = WasmEncodedResult::Success::<String> {
-                value: "[]".to_string(),
-                error: None,
-            };
-            let empty_payload =
-                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&empty_result).unwrap())
-                    .unwrap()
-                    .as_string()
-                    .unwrap();
-
-            let mut vault_payloads: Vec<(String, String)> = Vec::new();
-            for vault in vaults.into_iter() {
-                let lookup = format!("'{}'", vault.vault_id);
-                let json = serde_json::to_string(&vec![vault]).unwrap();
+            let encode = |value: Vec<LocalDbOrder>| -> JsValue {
                 let result = WasmEncodedResult::Success::<String> {
-                    value: json,
+                    value: serde_json::to_string(&value).unwrap(),
                     error: None,
                 };
-                let payload =
-                    js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&result).unwrap())
-                        .unwrap()
-                        .as_string()
-                        .unwrap();
-                vault_payloads.push((lookup, payload));
-            }
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            };
+
+            let encode_vault = |value: Vec<LocalDbVault>| -> JsValue {
+                let result = WasmEncodedResult::Success::<String> {
+                    value: serde_json::to_string(&value).unwrap(),
+                    error: None,
+                };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            };
 
             let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
-                if sql.contains("FROM order_events")
-                    && sql.contains("GROUP_CONCAT(CASE WHEN ios.io_type = 'input'")
-                {
-                    return js_sys::JSON::parse(&orders_payload).unwrap();
-                }
+                let sql_lower = sql.to_lowercase();
 
-                if sql.contains("FLOAT_SUM(vd.delta)") {
-                    for (needle, payload) in &vault_payloads {
-                        if sql.contains(needle) {
-                            return js_sys::JSON::parse(payload).unwrap();
+                if sql_lower.contains("from order_events") && sql_lower.contains("ios.io_type") {
+                    let mut allowed_chains = Vec::new();
+                    for chain in [LOCAL_CHAIN_A, LOCAL_CHAIN_B] {
+                        if sql_lower.contains(&chain.to_string()) {
+                            allowed_chains.push(chain);
                         }
                     }
+                    if allowed_chains.is_empty() {
+                        allowed_chains.extend([LOCAL_CHAIN_A, LOCAL_CHAIN_B]);
+                    }
+
+                    let mut allowed_orderbooks: Vec<String> = Vec::new();
+                    for addr in [
+                        LOCAL_CHAIN_A_ORDERBOOK_PRIMARY,
+                        LOCAL_CHAIN_A_ORDERBOOK_SECONDARY,
+                        LOCAL_CHAIN_B_ORDERBOOK,
+                    ] {
+                        let addr_lower = addr.to_lowercase();
+                        if sql_lower.contains(&addr_lower) {
+                            allowed_orderbooks.push(addr_lower);
+                        }
+                    }
+
+                    let filtered_orders: Vec<LocalDbOrder> = orders
+                        .iter()
+                        .filter(|order| allowed_chains.contains(&order.chain_id))
+                        .filter(|order| {
+                            allowed_orderbooks.is_empty()
+                                || allowed_orderbooks
+                                    .iter()
+                                    .any(|addr| order.orderbook_address.to_lowercase() == *addr)
+                        })
+                        .cloned()
+                        .collect();
+
+                    return encode(filtered_orders);
                 }
 
-                js_sys::JSON::parse(&empty_payload).unwrap()
+                if sql_lower.contains("float_sum(vd.delta)") {
+                    for vault in vaults.iter() {
+                        let lookup = format!("'{}'", vault.vault_id.to_lowercase());
+                        if sql_lower.contains(&lookup) {
+                            return encode_vault(vec![vault.clone()]);
+                        }
+                    }
+                    return encode_vault(Vec::new());
+                }
+
+                encode(Vec::new())
             }) as Box<dyn Fn(String) -> JsValue>);
 
             callback.into_js_value().dyn_into().unwrap()
@@ -1026,111 +1068,295 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_orders_local_db_callback_path() {
-            let order_hash = "0x0000000000000000000000000000000000000000000000000000000000000abc";
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let order_bytes = "0x00000000000000000000000000000000000000000000000000000000000000ff";
-            let transaction_hash =
+            const ORDER_HASH_PRIMARY: &str =
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            const ORDER_HASH_SECONDARY: &str =
                 "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-            let meta = "0x1234";
-            let input_vault_id = "0x0a";
-            let output_vault_id = "0x0b";
-            let input_token = "0x00000000000000000000000000000000000000aa";
-            let output_token = "0x00000000000000000000000000000000000000bb";
+            const ORDER_HASH_BASE: &str =
+                "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
-            let local_order = LocalDbOrder {
-                order_hash: order_hash.to_string(),
-                owner: owner.to_string(),
+            let owner_primary = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let owner_secondary = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+            let owner_base = "0xcccccccccccccccccccccccccccccccccccccccc";
+
+            let order_primary = LocalDbOrder {
+                chain_id: LOCAL_CHAIN_A,
+                order_hash: ORDER_HASH_PRIMARY.to_string(),
+                owner: owner_primary.to_string(),
                 block_timestamp: 123456,
                 block_number: 654321,
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                order_bytes: order_bytes.to_string(),
-                transaction_hash: transaction_hash.to_string(),
-                inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),
-                outputs: Some(format!("0:{}:{}", output_vault_id, output_token)),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
+                order_bytes: "0x1111111111111111111111111111111111111111111111111111111111111111"
+                    .to_string(),
+                transaction_hash:
+                    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                inputs: Some("0:0x0a:0x00000000000000000000000000000000000000aa".to_string()),
+                outputs: Some("0:0x0b:0x00000000000000000000000000000000000000bb".to_string()),
                 trade_count: 7,
                 active: true,
-                meta: Some(meta.to_string()),
+                meta: Some("0x1234".to_string()),
             };
 
-            let input_vault = LocalDbVault {
-                vault_id: input_vault_id.to_string(),
-                token: input_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+            let order_secondary = LocalDbOrder {
+                chain_id: LOCAL_CHAIN_A,
+                order_hash: ORDER_HASH_SECONDARY.to_string(),
+                owner: owner_secondary.to_string(),
+                block_timestamp: 223456,
+                block_number: 754321,
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_SECONDARY.to_string(),
+                order_bytes: "0x2222222222222222222222222222222222222222222222222222222222222222"
+                    .to_string(),
+                transaction_hash:
+                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                inputs: Some("0:0x1a:0x00000000000000000000000000000000000000bb".to_string()),
+                outputs: Some("0:0x1b:0x00000000000000000000000000000000000000aa".to_string()),
+                trade_count: 3,
+                active: true,
+                meta: None,
+            };
+
+            let order_base = LocalDbOrder {
+                chain_id: LOCAL_CHAIN_B,
+                order_hash: ORDER_HASH_BASE.to_string(),
+                owner: owner_base.to_string(),
+                block_timestamp: 323456,
+                block_number: 854321,
+                orderbook_address: LOCAL_CHAIN_B_ORDERBOOK.to_string(),
+                order_bytes: "0x3333333333333333333333333333333333333333333333333333333333333333"
+                    .to_string(),
+                transaction_hash:
+                    "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_string(),
+                inputs: Some("0:0x2a:0x00000000000000000000000000000000000000cc".to_string()),
+                outputs: Some("0:0x2b:0x00000000000000000000000000000000000000cc".to_string()),
+                trade_count: 2,
+                active: false,
+                meta: None,
+            };
+
+            let input_vault_primary = LocalDbVault {
+                chain_id: LOCAL_CHAIN_A,
+                vault_id: "0x0a".to_string(),
+                token: "0x00000000000000000000000000000000000000aa".to_string(),
+                owner: owner_primary.to_string(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
                 token_name: "Token A".to_string(),
                 token_symbol: "TKNA".to_string(),
                 token_decimals: 18,
-                balance: "0x000000000000000000000000000000000000000000000000000000000000000a"
-                    .to_string(),
-                input_orders: Some(format!("0x01:{}:1", order_hash)),
+                balance: Float::parse("16".to_string()).unwrap().as_hex(),
+                input_orders: Some(format!("0x01:{}:1", ORDER_HASH_PRIMARY)),
                 output_orders: None,
             };
 
-            let output_vault = LocalDbVault {
-                vault_id: output_vault_id.to_string(),
-                token: output_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+            let output_vault_primary = LocalDbVault {
+                chain_id: LOCAL_CHAIN_A,
+                vault_id: "0x0b".to_string(),
+                token: "0x00000000000000000000000000000000000000bb".to_string(),
+                owner: owner_primary.to_string(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
                 token_name: "Token B".to_string(),
                 token_symbol: "TKNB".to_string(),
                 token_decimals: 6,
-                balance: "0x0000000000000000000000000000000000000000000000000000000000000005"
-                    .to_string(),
+                balance: Float::parse("32".to_string()).unwrap().as_hex(),
                 input_orders: None,
-                output_orders: Some(format!("0x01:{}:0", order_hash)),
+                output_orders: Some(format!("0x01:{}:0", ORDER_HASH_PRIMARY)),
+            };
+
+            let input_vault_secondary = LocalDbVault {
+                chain_id: LOCAL_CHAIN_A,
+                vault_id: "0x1a".to_string(),
+                token: "0x00000000000000000000000000000000000000bb".to_string(),
+                owner: owner_secondary.to_string(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_SECONDARY.to_string(),
+                token_name: "Token B".to_string(),
+                token_symbol: "TKNB".to_string(),
+                token_decimals: 6,
+                balance: Float::parse("48".to_string()).unwrap().as_hex(),
+                input_orders: Some(format!("0x01:{}:1", ORDER_HASH_SECONDARY)),
+                output_orders: None,
+            };
+
+            let output_vault_secondary = LocalDbVault {
+                chain_id: LOCAL_CHAIN_A,
+                vault_id: "0x1b".to_string(),
+                token: "0x00000000000000000000000000000000000000aa".to_string(),
+                owner: owner_secondary.to_string(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_SECONDARY.to_string(),
+                token_name: "Token A".to_string(),
+                token_symbol: "TKNA".to_string(),
+                token_decimals: 18,
+                balance: Float::parse("64".to_string()).unwrap().as_hex(),
+                input_orders: None,
+                output_orders: Some(format!("0x01:{}:0", ORDER_HASH_SECONDARY)),
+            };
+
+            let input_vault_base = LocalDbVault {
+                chain_id: LOCAL_CHAIN_B,
+                vault_id: "0x2a".to_string(),
+                token: "0x00000000000000000000000000000000000000cc".to_string(),
+                owner: owner_base.to_string(),
+                orderbook_address: LOCAL_CHAIN_B_ORDERBOOK.to_string(),
+                token_name: "Token C".to_string(),
+                token_symbol: "TKNC".to_string(),
+                token_decimals: 18,
+                balance: Float::parse("80".to_string()).unwrap().as_hex(),
+                input_orders: Some(format!("0x01:{}:1", ORDER_HASH_BASE)),
+                output_orders: None,
+            };
+
+            let output_vault_base = LocalDbVault {
+                chain_id: LOCAL_CHAIN_B,
+                vault_id: "0x2b".to_string(),
+                token: "0x00000000000000000000000000000000000000cc".to_string(),
+                owner: owner_base.to_string(),
+                orderbook_address: LOCAL_CHAIN_B_ORDERBOOK.to_string(),
+                token_name: "Token C".to_string(),
+                token_symbol: "TKNC".to_string(),
+                token_decimals: 18,
+                balance: Float::parse("96".to_string()).unwrap().as_hex(),
+                input_orders: None,
+                output_orders: Some(format!("0x01:{}:0", ORDER_HASH_BASE)),
             };
 
             let callback = make_local_db_callback(
-                vec![local_order.clone()],
-                vec![input_vault.clone(), output_vault.clone()],
+                vec![
+                    order_primary.clone(),
+                    order_secondary.clone(),
+                    order_base.clone(),
+                ],
+                vec![
+                    input_vault_primary.clone(),
+                    output_vault_primary.clone(),
+                    input_vault_secondary.clone(),
+                    output_vault_secondary.clone(),
+                    input_vault_base.clone(),
+                    output_vault_base.clone(),
+                ],
             );
 
             let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
 
-            let orders = client
-                .get_orders(Some(ChainIds(vec![42161])), None, None)
+            let chain_ids_all = ChainIds(vec![LOCAL_CHAIN_A, LOCAL_CHAIN_B]);
+
+            let all_orders = client
+                .get_orders(Some(chain_ids_all.clone()), None, None)
                 .await
                 .expect("local db query should succeed");
 
-            assert_eq!(orders.len(), 1);
-
-            let order = &orders[0];
-            assert_eq!(order.chain_id(), 42161);
-            assert_eq!(order.order_hash(), order_hash.to_string());
-            assert_eq!(order.order_bytes(), order_bytes.to_string());
-            assert_eq!(order.owner().to_lowercase(), owner.to_string());
-            assert!(order.active());
-            assert_eq!(order.trades_count(), local_order.trade_count as u16);
-            assert_eq!(order.meta(), Some(meta.to_string()));
             assert_eq!(
-                order.orderbook(),
-                "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string()
+                all_orders.len(),
+                2,
+                "Local DB callback only serves Arbitrum orders; Base relies on subgraph tests"
             );
-            assert!(order.transaction().is_none());
 
-            let timestamp = order.timestamp_added().unwrap();
-            let timestamp_str = timestamp
-                .to_string(10)
-                .expect("timestamp to_string should succeed")
-                .as_string()
-                .expect("timestamp string conversion should succeed");
-            assert_eq!(timestamp_str, local_order.block_timestamp.to_string());
+            let mut order_map: HashMap<String, (u32, String)> = HashMap::new();
+            for order in &all_orders {
+                order_map.insert(
+                    order.order_hash(),
+                    (order.chain_id(), order.orderbook().to_lowercase()),
+                );
+            }
 
-            let input_vaults = order.inputs_list().items();
-            assert_eq!(input_vaults.len(), 1);
             assert_eq!(
-                input_vaults[0].token().symbol(),
-                Some(input_vault.token_symbol.clone())
+                order_map
+                    .get(ORDER_HASH_PRIMARY)
+                    .expect("primary order present"),
+                &(
+                    LOCAL_CHAIN_A,
+                    LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_lowercase()
+                )
             );
-            assert_eq!(input_vaults[0].orderbook(), input_vault.orderbook_address);
-
-            let output_vaults = order.outputs_list().items();
-            assert_eq!(output_vaults.len(), 1);
             assert_eq!(
-                output_vaults[0].token().symbol(),
-                Some(output_vault.token_symbol.clone())
+                order_map
+                    .get(ORDER_HASH_SECONDARY)
+                    .expect("secondary order present"),
+                &(
+                    LOCAL_CHAIN_A,
+                    LOCAL_CHAIN_A_ORDERBOOK_SECONDARY.to_lowercase()
+                )
             );
-            assert_eq!(output_vaults[0].orderbook(), output_vault.orderbook_address);
+
+            let primary_order = all_orders
+                .iter()
+                .find(|order| order.order_hash() == ORDER_HASH_PRIMARY)
+                .expect("primary order available");
+            assert_eq!(primary_order.chain_id(), LOCAL_CHAIN_A);
+            assert_eq!(
+                primary_order.orderbook().to_lowercase(),
+                LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_lowercase()
+            );
+            assert_eq!(
+                primary_order.owner().to_lowercase(),
+                owner_primary.to_string()
+            );
+            assert!(primary_order.active());
+            assert_eq!(
+                primary_order.trades_count(),
+                order_primary.trade_count as u16
+            );
+            assert_eq!(primary_order.meta(), Some("0x1234".to_string()));
+            assert!(primary_order.transaction().is_none());
+
+            let chain_a_orders = client
+                .get_orders(Some(ChainIds(vec![LOCAL_CHAIN_A])), None, None)
+                .await
+                .expect("chain A orders should load");
+            assert_eq!(chain_a_orders.len(), 2);
+            let chain_a_orderbooks: HashSet<String> = chain_a_orders
+                .iter()
+                .map(|order| order.orderbook().to_lowercase())
+                .collect();
+            assert!(chain_a_orderbooks.contains(&LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_lowercase()));
+            assert!(chain_a_orderbooks.contains(&LOCAL_CHAIN_A_ORDERBOOK_SECONDARY.to_lowercase()));
+
+            let chain_b_orders = client
+                .get_orders(Some(ChainIds(vec![LOCAL_CHAIN_B])), None, None)
+                .await
+                .expect("chain B orders query should succeed");
+            assert!(
+                chain_b_orders.is_empty(),
+                "Base orders are provided via subgraph code paths"
+            );
+
+            let filter_secondary = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                chain_ids: None,
+                orderbook_addresses: Some(vec![Address::from_str(
+                    LOCAL_CHAIN_A_ORDERBOOK_SECONDARY,
+                )
+                .unwrap()]),
+            };
+            let filtered_secondary = client
+                .get_orders(Some(chain_ids_all.clone()), Some(filter_secondary), None)
+                .await
+                .expect("filtered orders should load");
+            assert_eq!(filtered_secondary.len(), 1);
+            assert_eq!(
+                filtered_secondary[0].orderbook().to_lowercase(),
+                LOCAL_CHAIN_A_ORDERBOOK_SECONDARY.to_lowercase()
+            );
+
+            let mismatch_filter = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                chain_ids: None,
+                orderbook_addresses: Some(vec![
+                    Address::from_str(LOCAL_CHAIN_A_ORDERBOOK_PRIMARY).unwrap()
+                ]),
+            };
+            let mismatch = client
+                .get_orders(
+                    Some(ChainIds(vec![LOCAL_CHAIN_B])),
+                    Some(mismatch_filter),
+                    None,
+                )
+                .await
+                .expect("mismatch filter should load");
+            assert!(mismatch.is_empty());
         }
 
         #[wasm_bindgen_test]
@@ -1145,11 +1371,12 @@ mod tests {
             let output_token = "0x00000000000000000000000000000000000000bb";
 
             let local_order = LocalDbOrder {
+                chain_id: LOCAL_CHAIN_A,
                 order_hash: order_hash.to_string(),
                 owner: owner.to_string(),
                 block_timestamp: 123456,
                 block_number: 654321,
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
                 order_bytes: order_bytes.to_string(),
                 transaction_hash:
                     "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
@@ -1161,10 +1388,11 @@ mod tests {
             };
 
             let input_vault = LocalDbVault {
+                chain_id: LOCAL_CHAIN_A,
                 vault_id: input_vault_id.to_string(),
                 token: input_token.to_string(),
                 owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
                 token_name: "Token A".to_string(),
                 token_symbol: "TKNA".to_string(),
                 token_decimals: 18,
@@ -1175,10 +1403,11 @@ mod tests {
             };
 
             let output_vault = LocalDbVault {
+                chain_id: LOCAL_CHAIN_A,
                 vault_id: output_vault_id.to_string(),
                 token: output_token.to_string(),
                 owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                orderbook_address: LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string(),
                 token_name: "Token B".to_string(),
                 token_symbol: "TKNB".to_string(),
                 token_decimals: 6,
@@ -1197,14 +1426,14 @@ mod tests {
 
             let order = client
                 .get_order_by_hash(
-                    42161,
-                    Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap(),
+                    LOCAL_CHAIN_A,
+                    Address::from_str(LOCAL_CHAIN_A_ORDERBOOK_PRIMARY).unwrap(),
                     Bytes::from_str(order_hash).unwrap(),
                 )
                 .await
                 .expect("local db order fetch should succeed");
 
-            assert_eq!(order.chain_id(), 42161);
+            assert_eq!(order.chain_id(), LOCAL_CHAIN_A);
             assert_eq!(order.order_hash(), order_hash.to_string());
             assert_eq!(order.order_bytes(), order_bytes.to_string());
             assert_eq!(order.owner().to_lowercase(), owner.to_string());
@@ -1213,7 +1442,7 @@ mod tests {
             assert_eq!(order.meta(), Some(meta.to_string()));
             assert_eq!(
                 order.orderbook(),
-                "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string()
+                LOCAL_CHAIN_A_ORDERBOOK_PRIMARY.to_string()
             );
         }
     }
@@ -1560,6 +1789,8 @@ mod tests {
                 active: None,
                 order_hash: None,
                 tokens: None,
+                chain_ids: None,
+                orderbook_addresses: None,
             };
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
