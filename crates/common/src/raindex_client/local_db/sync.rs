@@ -1,29 +1,203 @@
-use super::token_fetch::fetch_erc20_metadata_concurrent;
 use super::{
     decode::{DecodedEvent, DecodedEventData},
     insert,
     query::{
         create_tables::REQUIRED_TABLES, fetch_erc20_tokens_by_addresses::Erc20TokenRow,
-        fetch_store_addresses::StoreAddressRow, LocalDbQuery, LocalDbQueryError,
+        fetch_last_synced_block::SyncStatusResponse, fetch_store_addresses::StoreAddressRow,
+        fetch_tables::TableResponse, LocalDbQuery, LocalDbQueryError,
     },
+    token_fetch::fetch_erc20_metadata_concurrent,
     tokens::{collect_store_addresses, collect_token_addresses},
     FetchConfig, LocalDb, LocalDbError, RaindexClient,
 };
+use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
 use reqwest::Client;
 use std::collections::BTreeSet;
 use std::{
     collections::{HashMap, HashSet},
+    future::Future,
     io::Read,
+    pin::Pin,
     str::FromStr,
 };
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
 const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/07d48a0dd5136d42a29f2b0d8950cc9d77dfb1c9/local_db.sql.gz";
 
-async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbQueryError> {
-    let tables = LocalDbQuery::fetch_all_tables(db_callback).await?;
+type DbFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, LocalDbQueryError>> + 'a>>;
+type LocalDbFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, LocalDbError>> + 'a>>;
+
+trait DatabaseBridge {
+    fn fetch_all_tables(&self) -> DbFuture<'_, Vec<TableResponse>>;
+    fn fetch_last_synced_block(&self) -> DbFuture<'_, Vec<SyncStatusResponse>>;
+    fn fetch_store_addresses(&self) -> DbFuture<'_, Vec<StoreAddressRow>>;
+    fn fetch_erc20_tokens_by_addresses(
+        &self,
+        chain_id: u32,
+        addresses: Vec<String>,
+    ) -> DbFuture<'_, Vec<Erc20TokenRow>>;
+    fn execute_query_text(&self, sql: String) -> DbFuture<'_, String>;
+}
+
+trait StatusSink {
+    fn send(&self, message: String) -> Result<(), LocalDbError>;
+}
+
+trait LocalDbApi {
+    fn latest_block_number(&self) -> LocalDbFuture<'_, u64>;
+    fn fetch_events(
+        &self,
+        contract_address: String,
+        start_block: u64,
+        end_block: u64,
+    ) -> LocalDbFuture<'_, Vec<LogEntryResponse>>;
+    fn decode_events(
+        &self,
+        events: &[LogEntryResponse],
+    ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>;
+    fn fetch_store_set_events(
+        &self,
+        store_addresses: Vec<String>,
+        start_block: u64,
+        end_block: u64,
+    ) -> LocalDbFuture<'_, Vec<LogEntryResponse>>;
+    fn fetch_token_metadata(
+        &self,
+        missing_addrs: Vec<Address>,
+    ) -> LocalDbFuture<'_, Vec<(Address, TokenInfo)>>;
+    fn decoded_events_to_sql(
+        &self,
+        events: &[DecodedEventData<DecodedEvent>],
+        end_block: u64,
+        decimals_by_token: &HashMap<Address, u8>,
+        prefix_sql: Option<&str>,
+    ) -> Result<String, LocalDbError>;
+}
+
+struct JsDatabaseBridge<'a> {
+    callback: &'a js_sys::Function,
+}
+
+impl<'a> JsDatabaseBridge<'a> {
+    fn new(callback: &'a js_sys::Function) -> Self {
+        Self { callback }
+    }
+}
+
+impl<'a> DatabaseBridge for JsDatabaseBridge<'a> {
+    fn fetch_all_tables(&self) -> DbFuture<'_, Vec<TableResponse>> {
+        Box::pin(LocalDbQuery::fetch_all_tables(self.callback))
+    }
+
+    fn fetch_last_synced_block(&self) -> DbFuture<'_, Vec<SyncStatusResponse>> {
+        Box::pin(LocalDbQuery::fetch_last_synced_block(self.callback))
+    }
+
+    fn fetch_store_addresses(&self) -> DbFuture<'_, Vec<StoreAddressRow>> {
+        Box::pin(LocalDbQuery::fetch_store_addresses(self.callback))
+    }
+
+    fn fetch_erc20_tokens_by_addresses(
+        &self,
+        chain_id: u32,
+        addresses: Vec<String>,
+    ) -> DbFuture<'_, Vec<Erc20TokenRow>> {
+        Box::pin(async move {
+            LocalDbQuery::fetch_erc20_tokens_by_addresses(self.callback, chain_id, &addresses).await
+        })
+    }
+
+    fn execute_query_text(&self, sql: String) -> DbFuture<'_, String> {
+        Box::pin(async move { LocalDbQuery::execute_query_text(self.callback, &sql).await })
+    }
+}
+
+struct JsStatusReporter<'a> {
+    callback: &'a js_sys::Function,
+}
+
+impl<'a> JsStatusReporter<'a> {
+    fn new(callback: &'a js_sys::Function) -> Self {
+        Self { callback }
+    }
+}
+
+impl<'a> StatusSink for JsStatusReporter<'a> {
+    fn send(&self, message: String) -> Result<(), LocalDbError> {
+        send_status_message(self.callback, message)
+    }
+}
+
+impl LocalDbApi for LocalDb {
+    fn latest_block_number(&self) -> LocalDbFuture<'_, u64> {
+        let client = self.rpc_client().clone();
+        Box::pin(async move {
+            client
+                .get_latest_block_number()
+                .await
+                .map_err(LocalDbError::from)
+        })
+    }
+
+    fn fetch_events(
+        &self,
+        contract_address: String,
+        start_block: u64,
+        end_block: u64,
+    ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
+        Box::pin(async move {
+            LocalDb::fetch_events(self, &contract_address, start_block, end_block).await
+        })
+    }
+
+    fn decode_events(
+        &self,
+        events: &[LogEntryResponse],
+    ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
+        LocalDb::decode_events(self, events)
+    }
+
+    fn fetch_store_set_events(
+        &self,
+        store_addresses: Vec<String>,
+        start_block: u64,
+        end_block: u64,
+    ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
+        Box::pin(async move {
+            LocalDb::fetch_store_set_events(
+                self,
+                &store_addresses,
+                start_block,
+                end_block,
+                &FetchConfig::default(),
+            )
+            .await
+        })
+    }
+
+    fn fetch_token_metadata(
+        &self,
+        missing_addrs: Vec<Address>,
+    ) -> LocalDbFuture<'_, Vec<(Address, TokenInfo)>> {
+        let rpcs = self.rpc_client().rpc_urls().to_vec();
+        Box::pin(async move { fetch_erc20_metadata_concurrent(rpcs, missing_addrs).await })
+    }
+
+    fn decoded_events_to_sql(
+        &self,
+        events: &[DecodedEventData<DecodedEvent>],
+        end_block: u64,
+        decimals_by_token: &HashMap<Address, u8>,
+        prefix_sql: Option<&str>,
+    ) -> Result<String, LocalDbError> {
+        LocalDb::decoded_events_to_sql(self, events, end_block, decimals_by_token, prefix_sql)
+    }
+}
+
+async fn check_required_tables(db: &impl DatabaseBridge) -> Result<bool, LocalDbQueryError> {
+    let tables = db.fetch_all_tables().await?;
     let existing_table_names: std::collections::HashSet<String> =
         tables.into_iter().map(|t| t.name).collect();
 
@@ -53,10 +227,8 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     Ok(decompressed)
 }
 
-pub async fn get_last_synced_block(
-    db_callback: &js_sys::Function,
-) -> Result<u64, LocalDbQueryError> {
-    let results = LocalDbQuery::fetch_last_synced_block(db_callback).await?;
+async fn get_last_synced_block(db: &impl DatabaseBridge) -> Result<u64, LocalDbQueryError> {
+    let results = db.fetch_last_synced_block().await?;
     if let Some(sync_status) = results.first() {
         Ok(sync_status.last_synced_block)
     } else {
@@ -74,6 +246,121 @@ fn send_status_message(
     Ok(())
 }
 
+async fn sync_database_with_services(
+    client: &RaindexClient,
+    db: &impl DatabaseBridge,
+    status: &impl StatusSink,
+    chain_id: u32,
+    local_db_override: Option<&dyn LocalDbApi>,
+) -> Result<(), LocalDbError> {
+    status.send("Starting database sync...".to_string())?;
+
+    let has_tables = check_required_tables(db)
+        .await
+        .map_err(LocalDbError::TableCheckFailed)?;
+
+    status.send(format!("has tables: {}", has_tables))?;
+
+    if !has_tables {
+        status.send("Initializing database tables and importing data...".to_string())?;
+        let dump_sql = download_and_decompress_dump().await?;
+        db.execute_query_text(dump_sql)
+            .await
+            .map_err(LocalDbError::from)?;
+    }
+
+    let last_synced_block = get_last_synced_block(db)
+        .await
+        .map_err(LocalDbError::SyncStatusReadFailed)?;
+    status.send(format!("Last synced block: {}", last_synced_block))?;
+
+    let orderbooks = client
+        .get_orderbooks_by_chain_id(chain_id)
+        .map_err(|e| LocalDbError::OrderbookConfigNotFound(Box::new(e)))?;
+
+    let Some(orderbook_cfg) = orderbooks.first() else {
+        return Err(LocalDbError::CustomError(format!(
+            "No orderbook configuration found for chain ID {}",
+            chain_id
+        )));
+    };
+
+    enum LocalDbHolder<'a> {
+        Borrowed(&'a dyn LocalDbApi),
+        Owned(LocalDb),
+    }
+
+    let holder = if let Some(override_db) = local_db_override {
+        LocalDbHolder::Borrowed(override_db)
+    } else {
+        LocalDbHolder::Owned(LocalDb::new_with_regular_rpcs(
+            orderbook_cfg.network.rpcs.clone(),
+        )?)
+    };
+
+    let local_db: &dyn LocalDbApi = match &holder {
+        LocalDbHolder::Borrowed(db) => *db,
+        LocalDbHolder::Owned(db) => db,
+    };
+
+    let latest_block = local_db.latest_block_number().await?;
+
+    let start_block = if last_synced_block == 0 {
+        orderbook_cfg.deployment_block
+    } else {
+        last_synced_block + 1
+    };
+
+    status.send("Fetching latest onchain events...".to_string())?;
+    let events = local_db
+        .fetch_events(orderbook_cfg.address.to_string(), start_block, latest_block)
+        .await
+        .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
+
+    status.send("Decoding fetched events...".to_string())?;
+    let mut decoded_events = local_db
+        .decode_events(&events)
+        .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
+
+    let existing_stores: Vec<StoreAddressRow> = db.fetch_store_addresses().await?;
+    let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
+
+    let store_logs = local_db
+        .fetch_store_set_events(store_addresses_vec, start_block, latest_block)
+        .await
+        .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
+
+    let mut decoded_store_events = local_db
+        .decode_events(&store_logs)
+        .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
+
+    merge_store_events(&mut decoded_events, &mut decoded_store_events);
+
+    status.send("Populating token information...".to_string())?;
+    let prep = prepare_erc20_tokens_prefix(db, local_db, chain_id, &decoded_events).await?;
+
+    status.send("Populating database...".to_string())?;
+    let prefix_sql = if prep.tokens_prefix_sql.is_empty() {
+        None
+    } else {
+        Some(prep.tokens_prefix_sql.as_str())
+    };
+
+    let sql_commands = local_db
+        .decoded_events_to_sql(
+            &decoded_events,
+            latest_block,
+            &prep.decimals_by_addr,
+            prefix_sql,
+        )
+        .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
+
+    db.execute_query_text(sql_commands).await?;
+
+    status.send("Database sync complete.".to_string())?;
+    Ok(())
+}
+
 #[wasm_export]
 impl RaindexClient {
     #[wasm_export(js_name = "syncLocalDatabase", unchecked_return_type = "void")]
@@ -86,119 +373,9 @@ impl RaindexClient {
         #[wasm_export(param_description = "The blockchain network ID to sync against")]
         chain_id: u32,
     ) -> Result<(), LocalDbError> {
-        send_status_message(&status_callback, "Starting database sync...".to_string())?;
-
-        let has_tables = check_required_tables(&db_callback)
-            .await
-            .map_err(LocalDbError::TableCheckFailed)?;
-
-        send_status_message(&status_callback, format!("has tables: {}", has_tables))?;
-
-        if !has_tables {
-            send_status_message(
-                &status_callback,
-                "Initializing database tables and importing data...".to_string(),
-            )?;
-            let dump_sql = download_and_decompress_dump().await?;
-
-            LocalDbQuery::execute_query_text(&db_callback, &dump_sql).await?;
-        }
-
-        let last_synced_block = get_last_synced_block(&db_callback)
-            .await
-            .map_err(LocalDbError::SyncStatusReadFailed)?;
-        send_status_message(
-            &status_callback,
-            format!("Last synced block: {}", last_synced_block),
-        )?;
-
-        let orderbooks = self
-            .get_orderbooks_by_chain_id(chain_id)
-            .map_err(|e| LocalDbError::OrderbookConfigNotFound(Box::new(e)))?;
-
-        let Some(orderbook_cfg) = orderbooks.first() else {
-            return Err(LocalDbError::CustomError(format!(
-                "No orderbook configuration found for chain ID {}",
-                chain_id
-            )));
-        };
-
-        let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone())?;
-
-        let latest_block = local_db.rpc_client().get_latest_block_number().await?;
-
-        let start_block = if last_synced_block == 0 {
-            orderbook_cfg.deployment_block
-        } else {
-            last_synced_block + 1
-        };
-
-        send_status_message(
-            &status_callback,
-            "Fetching latest onchain events...".to_string(),
-        )?;
-        let events = local_db
-            .fetch_events(
-                &orderbook_cfg.address.to_string(),
-                start_block,
-                latest_block,
-            )
-            .await
-            .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
-
-        send_status_message(&status_callback, "Decoding fetched events...".to_string())?;
-        let mut decoded_events = local_db
-            .decode_events(&events)
-            .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
-
-        let existing_stores: Vec<StoreAddressRow> =
-            LocalDbQuery::fetch_store_addresses(&db_callback).await?;
-        let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
-
-        let store_events = local_db
-            .fetch_store_set_events(
-                &store_addresses_vec,
-                start_block,
-                latest_block,
-                &FetchConfig::default(),
-            )
-            .await
-            .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
-
-        let mut decoded_store_events = local_db
-            .decode_events(&store_events)
-            .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
-
-        merge_store_events(&mut decoded_events, &mut decoded_store_events);
-
-        send_status_message(
-            &status_callback,
-            "Populating token information...".to_string(),
-        )?;
-        let prep =
-            prepare_erc20_tokens_prefix(&db_callback, &local_db, chain_id, &decoded_events).await?;
-
-        send_status_message(&status_callback, "Populating database...".to_string())?;
-
-        let prefix_sql = if prep.tokens_prefix_sql.is_empty() {
-            None
-        } else {
-            Some(prep.tokens_prefix_sql.as_str())
-        };
-
-        let sql_commands = local_db
-            .decoded_events_to_sql(
-                &decoded_events,
-                latest_block,
-                &prep.decimals_by_addr,
-                prefix_sql,
-            )
-            .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
-
-        LocalDbQuery::execute_query_text(&db_callback, &sql_commands).await?;
-
-        send_status_message(&status_callback, "Database sync complete.".to_string())?;
-        Ok(())
+        let db_bridge = JsDatabaseBridge::new(&db_callback);
+        let status_bridge = JsStatusReporter::new(&status_callback);
+        sync_database_with_services(self, &db_bridge, &status_bridge, chain_id, None).await
     }
 }
 
@@ -259,8 +436,8 @@ struct TokenPrepResult {
 }
 
 async fn prepare_erc20_tokens_prefix(
-    db_callback: &js_sys::Function,
-    local_db: &LocalDb,
+    db: &impl DatabaseBridge,
+    local_db: &dyn LocalDbApi,
     chain_id: u32,
     decoded_events: &[DecodedEventData<DecodedEvent>],
 ) -> Result<TokenPrepResult, LocalDbError> {
@@ -277,9 +454,9 @@ async fn prepare_erc20_tokens_prefix(
             .map(|a| format!("0x{:x}", a))
             .collect();
 
-        let existing_rows: Vec<Erc20TokenRow> =
-            LocalDbQuery::fetch_erc20_tokens_by_addresses(db_callback, chain_id, &addr_strings)
-                .await?;
+        let existing_rows: Vec<Erc20TokenRow> = db
+            .fetch_erc20_tokens_by_addresses(chain_id, addr_strings.clone())
+            .await?;
 
         let mut existing_set: HashSet<Address> = HashSet::new();
         for row in existing_rows.iter() {
@@ -295,8 +472,7 @@ async fn prepare_erc20_tokens_prefix(
             .collect();
 
         if !missing_addrs.is_empty() {
-            let rpcs = local_db.rpc_client().rpc_urls().to_vec();
-            let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs).await?;
+            let successes = local_db.fetch_token_metadata(missing_addrs).await?;
 
             tokens_prefix_sql = insert::generate_erc20_tokens_sql(chain_id, &successes);
 
@@ -345,8 +521,9 @@ mod tests {
 
             let json_data = serde_json::to_string(&table_data).unwrap();
             let callback = create_success_callback(&json_data);
+            let db_bridge = JsDatabaseBridge::new(&callback);
 
-            let result = check_required_tables(&callback).await;
+            let result = check_required_tables(&db_bridge).await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), true);
@@ -365,8 +542,9 @@ mod tests {
 
             let json_data = serde_json::to_string(&table_data).unwrap();
             let callback = create_success_callback(&json_data);
+            let db_bridge = JsDatabaseBridge::new(&callback);
 
-            let result = check_required_tables(&callback).await;
+            let result = check_required_tables(&db_bridge).await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), false);
@@ -375,8 +553,9 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_check_required_tables_empty_db() {
             let callback = create_success_callback("[]");
+            let db_bridge = JsDatabaseBridge::new(&callback);
 
-            let result = check_required_tables(&callback).await;
+            let result = check_required_tables(&db_bridge).await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), false);
@@ -385,8 +564,9 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_check_required_tables_query_fails() {
             let callback = create_success_callback("invalid_json");
+            let db_bridge = JsDatabaseBridge::new(&callback);
 
-            let result = check_required_tables(&callback).await;
+            let result = check_required_tables(&db_bridge).await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
@@ -413,8 +593,9 @@ mod tests {
 
             let json_data = serde_json::to_string(&table_data).unwrap();
             let callback = create_success_callback(&json_data);
+            let db_bridge = JsDatabaseBridge::new(&callback);
 
-            let result = check_required_tables(&callback).await;
+            let result = check_required_tables(&db_bridge).await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), true);
@@ -429,8 +610,9 @@ mod tests {
             }];
             let json_data = serde_json::to_string(&sync_data).unwrap();
             let callback = create_success_callback(&json_data);
+            let db_bridge = JsDatabaseBridge::new(&callback);
 
-            let result = get_last_synced_block(&callback).await;
+            let result = get_last_synced_block(&db_bridge).await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), 12345);
@@ -439,8 +621,9 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_get_last_synced_block_empty() {
             let callback = create_success_callback("[]");
+            let db_bridge = JsDatabaseBridge::new(&callback);
 
-            let result = get_last_synced_block(&callback).await;
+            let result = get_last_synced_block(&db_bridge).await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), 0);
@@ -449,8 +632,9 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_get_last_synced_block_query_fails() {
             let callback = create_success_callback("invalid_json");
+            let db_bridge = JsDatabaseBridge::new(&callback);
 
-            let result = get_last_synced_block(&callback).await;
+            let result = get_last_synced_block(&db_bridge).await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
@@ -500,11 +684,12 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_prepare_erc20_tokens_prefix_sql_no_tokens() {
             let db_cb = create_success_callback("[]");
+            let db = JsDatabaseBridge::new(&db_cb);
 
             let local_db = LocalDb::default();
             let decoded: Vec<DecodedEventData<DecodedEvent>> = Vec::new();
 
-            let res = prepare_erc20_tokens_prefix(&db_cb, &local_db, 1, &decoded)
+            let res = prepare_erc20_tokens_prefix(&db, &local_db, 1, &decoded)
                 .await
                 .unwrap();
             assert!(res.tokens_prefix_sql.is_empty());
@@ -595,8 +780,9 @@ mod tests {
             );
 
             let local_db = LocalDb::default();
+            let db = JsDatabaseBridge::new(&cb);
 
-            let res = prepare_erc20_tokens_prefix(&cb, &local_db, 1, &events)
+            let res = prepare_erc20_tokens_prefix(&db, &local_db, 1, &events)
                 .await
                 .unwrap();
             assert!(res.tokens_prefix_sql.is_empty());
@@ -790,10 +976,347 @@ mod tests {
         use httpmock::prelude::*;
         use rain_orderbook_test_fixtures::LocalEvm;
         use std::io::Write;
+        use std::{
+            cell::RefCell,
+            collections::HashMap,
+            rc::Rc,
+            sync::{Arc, Mutex},
+        };
         use url::Url;
 
-        use crate::raindex_client::local_db::decode::{EventType, InterpreterStoreSetEvent};
-        use alloy::primitives::FixedBytes;
+        use crate::{
+            erc20::TokenInfo,
+            raindex_client::{
+                local_db::decode::{EventType, InterpreterStoreSetEvent},
+                tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS},
+            },
+            rpc_client::LogEntryResponse,
+        };
+        use alloy::{
+            hex,
+            primitives::{Bytes, FixedBytes, U256},
+            sol_types::SolEvent,
+        };
+        use rain_orderbook_bindings::IInterpreterStoreV3::Set;
+        use rain_orderbook_bindings::IOrderBookV5::{
+            AddOrderV3, DepositV2, EvaluableV4, OrderV4, IOV2,
+        };
+
+        const ORDERBOOK_ADDRESS: &str = CHAIN_ID_1_ORDERBOOK_ADDRESS;
+
+        fn to_hex(value: u64) -> String {
+            format!("0x{:x}", value)
+        }
+
+        fn make_log_entry(
+            address: Address,
+            topic: String,
+            data: String,
+            block_number: u64,
+            block_timestamp: u64,
+            transaction_suffix: u64,
+            log_index: u64,
+        ) -> LogEntryResponse {
+            LogEntryResponse {
+                address: format!("0x{:x}", address),
+                topics: vec![topic],
+                data,
+                block_number: to_hex(block_number),
+                block_timestamp: Some(to_hex(block_timestamp)),
+                transaction_hash: format!("0x{:064x}", block_number * 100 + transaction_suffix),
+                transaction_index: "0x0".to_string(),
+                block_hash: "0x0".to_string(),
+                log_index: to_hex(log_index),
+                removed: false,
+            }
+        }
+
+        fn build_deposit_log(
+            orderbook: Address,
+            sender: Address,
+            token: Address,
+            block_number: u64,
+            log_index: u64,
+        ) -> LogEntryResponse {
+            let event = DepositV2 {
+                sender,
+                token,
+                vaultId: U256::from(1u64).into(),
+                depositAmountUint256: U256::from(1u64),
+            };
+            let encoded = format!("0x{}", hex::encode(event.encode_data()));
+            make_log_entry(
+                orderbook,
+                format!("0x{}", hex::encode(DepositV2::SIGNATURE_HASH)),
+                encoded,
+                block_number,
+                block_number + 1,
+                log_index,
+                log_index,
+            )
+        }
+
+        fn build_add_order_log(
+            orderbook: Address,
+            store_address: Address,
+            tokens: &[Address],
+            block_number: u64,
+            log_index: u64,
+        ) -> LogEntryResponse {
+            let order = OrderV4 {
+                owner: Address::from([0x45; 20]),
+                nonce: U256::from(2u64).into(),
+                evaluable: EvaluableV4 {
+                    interpreter: Address::from([0x55; 20]),
+                    store: store_address,
+                    bytecode: Bytes::from_static(b"\x01\x02"),
+                },
+                validInputs: tokens
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, token)| IOV2 {
+                        token: *token,
+                        vaultId: U256::from(idx as u64).into(),
+                    })
+                    .collect(),
+                validOutputs: vec![],
+            };
+            let event = AddOrderV3 {
+                sender: Address::from([0x66; 20]),
+                orderHash: FixedBytes::<32>::from([0x77; 32]),
+                order,
+            };
+            let encoded = format!("0x{}", hex::encode(event.encode_data()));
+            make_log_entry(
+                orderbook,
+                format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH)),
+                encoded,
+                block_number,
+                block_number + 2,
+                log_index,
+                log_index,
+            )
+        }
+
+        fn build_store_set_log(
+            store: Address,
+            namespace: [u8; 32],
+            key: [u8; 32],
+            value: [u8; 32],
+            block_number: u64,
+            log_index: u64,
+        ) -> LogEntryResponse {
+            let mut data = Vec::with_capacity(96);
+            data.extend_from_slice(&namespace);
+            data.extend_from_slice(&key);
+            data.extend_from_slice(&value);
+            make_log_entry(
+                store,
+                format!("0x{}", hex::encode(Set::SIGNATURE_HASH)),
+                format!("0x{}", hex::encode(data)),
+                block_number,
+                block_number + 3,
+                log_index,
+                log_index,
+            )
+        }
+
+        #[derive(Default)]
+        struct TestStatusSink {
+            messages: RefCell<Vec<String>>,
+        }
+
+        impl TestStatusSink {
+            fn new() -> Self {
+                Self {
+                    messages: RefCell::new(Vec::new()),
+                }
+            }
+
+            fn messages(&self) -> Vec<String> {
+                self.messages.borrow().clone()
+            }
+        }
+
+        impl StatusSink for TestStatusSink {
+            fn send(&self, message: String) -> Result<(), LocalDbError> {
+                self.messages.borrow_mut().push(message);
+                Ok(())
+            }
+        }
+
+        struct MockDatabaseBridge {
+            tables: Vec<TableResponse>,
+            sync_status: Vec<SyncStatusResponse>,
+            store_rows: Vec<StoreAddressRow>,
+            token_rows: Vec<Erc20TokenRow>,
+            executed_sql: Arc<Mutex<Vec<String>>>,
+        }
+
+        impl MockDatabaseBridge {
+            fn new(
+                tables: Vec<TableResponse>,
+                sync_status: Vec<SyncStatusResponse>,
+                store_rows: Vec<StoreAddressRow>,
+                token_rows: Vec<Erc20TokenRow>,
+            ) -> Self {
+                Self {
+                    tables,
+                    sync_status,
+                    store_rows,
+                    token_rows,
+                    executed_sql: Arc::new(Mutex::new(Vec::new())),
+                }
+            }
+
+            fn recorded_sql(&self) -> Vec<String> {
+                self.executed_sql.lock().unwrap().clone()
+            }
+        }
+
+        impl DatabaseBridge for MockDatabaseBridge {
+            fn fetch_all_tables(&self) -> DbFuture<'_, Vec<TableResponse>> {
+                let tables = self.tables.clone();
+                Box::pin(async move { Ok(tables) })
+            }
+
+            fn fetch_last_synced_block(&self) -> DbFuture<'_, Vec<SyncStatusResponse>> {
+                let rows = self.sync_status.clone();
+                Box::pin(async move { Ok(rows) })
+            }
+
+            fn fetch_store_addresses(&self) -> DbFuture<'_, Vec<StoreAddressRow>> {
+                let rows = self.store_rows.clone();
+                Box::pin(async move { Ok(rows) })
+            }
+
+            fn fetch_erc20_tokens_by_addresses(
+                &self,
+                chain_id: u32,
+                addresses: Vec<String>,
+            ) -> DbFuture<'_, Vec<Erc20TokenRow>> {
+                let rows = self.token_rows.clone();
+                Box::pin(async move {
+                    let address_set: std::collections::HashSet<String> = addresses
+                        .into_iter()
+                        .map(|a| a.to_ascii_lowercase())
+                        .collect();
+                    let out: Vec<Erc20TokenRow> = rows
+                        .into_iter()
+                        .filter(|row| row.chain_id == chain_id)
+                        .filter(|row| address_set.contains(&row.address.to_ascii_lowercase()))
+                        .collect();
+                    Ok(out)
+                })
+            }
+
+            fn execute_query_text(&self, sql: String) -> DbFuture<'_, String> {
+                let log = Arc::clone(&self.executed_sql);
+                Box::pin(async move {
+                    log.lock().unwrap().push(sql.clone());
+                    Ok(sql)
+                })
+            }
+        }
+
+        struct MockLocalDb {
+            latest_block: u64,
+            event_logs: Vec<LogEntryResponse>,
+            store_logs: Vec<LogEntryResponse>,
+            token_metadata: HashMap<Address, TokenInfo>,
+            inner: LocalDb,
+            event_types: Rc<RefCell<Vec<EventType>>>,
+        }
+
+        impl MockLocalDb {
+            fn new(
+                latest_block: u64,
+                event_logs: Vec<LogEntryResponse>,
+                store_logs: Vec<LogEntryResponse>,
+                token_metadata: HashMap<Address, TokenInfo>,
+            ) -> Self {
+                Self {
+                    latest_block,
+                    event_logs,
+                    store_logs,
+                    token_metadata,
+                    inner: LocalDb::default(),
+                    event_types: Rc::new(RefCell::new(Vec::new())),
+                }
+            }
+
+            fn event_types(&self) -> Vec<EventType> {
+                self.event_types.borrow().clone()
+            }
+        }
+
+        impl LocalDbApi for MockLocalDb {
+            fn latest_block_number(&self) -> LocalDbFuture<'_, u64> {
+                let block = self.latest_block;
+                Box::pin(async move { Ok(block) })
+            }
+
+            fn fetch_events(
+                &self,
+                _contract_address: String,
+                _start_block: u64,
+                _end_block: u64,
+            ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
+                let logs = self.event_logs.clone();
+                Box::pin(async move { Ok(logs) })
+            }
+
+            fn decode_events(
+                &self,
+                events: &[LogEntryResponse],
+            ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
+                self.inner.decode_events(events)
+            }
+
+            fn fetch_store_set_events(
+                &self,
+                _store_addresses: Vec<String>,
+                _start_block: u64,
+                _end_block: u64,
+            ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
+                let logs = self.store_logs.clone();
+                Box::pin(async move { Ok(logs) })
+            }
+
+            fn fetch_token_metadata(
+                &self,
+                missing_addrs: Vec<Address>,
+            ) -> LocalDbFuture<'_, Vec<(Address, TokenInfo)>> {
+                let map = self.token_metadata.clone();
+                Box::pin(async move {
+                    let mut out = Vec::new();
+                    for addr in missing_addrs {
+                        match map.get(&addr) {
+                            Some(info) => out.push((addr, info.clone())),
+                            None => {
+                                return Err(LocalDbError::CustomError(format!(
+                                    "Missing metadata for token 0x{:x}",
+                                    addr
+                                )))
+                            }
+                        }
+                    }
+                    Ok(out)
+                })
+            }
+
+            fn decoded_events_to_sql(
+                &self,
+                events: &[DecodedEventData<DecodedEvent>],
+                end_block: u64,
+                decimals_by_token: &HashMap<Address, u8>,
+                prefix_sql: Option<&str>,
+            ) -> Result<String, LocalDbError> {
+                *self.event_types.borrow_mut() = events.iter().map(|e| e.event_type).collect();
+                self.inner
+                    .decoded_events_to_sql(events, end_block, decimals_by_token, prefix_sql)
+            }
+        }
 
         fn make_store_set_event(
             block_number: u64,
@@ -874,6 +1397,129 @@ mod tests {
                 }
                 other => panic!("expected InterpreterStoreSet event, got {other:?}"),
             }
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_store_set_flow_generates_sql() {
+            let orderbook_addr = Address::from_str(ORDERBOOK_ADDRESS).unwrap();
+            let store_addr = Address::from([0x99; 20]);
+            let token_a = Address::from([0xaa; 20]);
+            let token_b = Address::from([0xbb; 20]);
+
+            let event_logs = vec![
+                build_deposit_log(orderbook_addr, Address::from([0x10; 20]), token_a, 12345, 0),
+                build_add_order_log(orderbook_addr, store_addr, &[token_b], 12345, 1),
+            ];
+
+            let store_logs = vec![build_store_set_log(
+                store_addr, [0x11; 32], [0x22; 32], [0x33; 32], 12346, 0,
+            )];
+
+            let mut token_metadata = HashMap::new();
+            token_metadata.insert(
+                token_a,
+                TokenInfo {
+                    decimals: 18,
+                    name: "TokenA".into(),
+                    symbol: "TKNA".into(),
+                },
+            );
+            token_metadata.insert(
+                token_b,
+                TokenInfo {
+                    decimals: 6,
+                    name: "TokenB".into(),
+                    symbol: "TKNB".into(),
+                },
+            );
+
+            let mock_local_db = MockLocalDb::new(12346, event_logs, store_logs, token_metadata);
+
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+
+            let mock_db = MockDatabaseBridge::new(tables, Vec::new(), Vec::new(), Vec::new());
+            let status_sink = TestStatusSink::new();
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result = sync_database_with_services(
+                &client,
+                &mock_db,
+                &status_sink,
+                1,
+                Some(&mock_local_db),
+            )
+            .await;
+
+            assert!(result.is_ok());
+
+            let sql_statements = mock_db.recorded_sql();
+            assert_eq!(
+                sql_statements.len(),
+                1,
+                "expected a single SQL execution, got {sql_statements:?}"
+            );
+            let sql = &sql_statements[0];
+            assert!(
+                sql.contains("INSERT INTO erc20_tokens"),
+                "expected token prefix SQL, got {sql}"
+            );
+            let sql_lower = sql.to_lowercase();
+            assert!(
+                sql_lower.contains(&format!("0x{:x}", token_a)),
+                "missing tokenA address in SQL"
+            );
+            assert!(
+                sql_lower.contains(&format!("0x{:x}", token_b)),
+                "missing tokenB address in SQL"
+            );
+            assert!(
+                sql.contains("interpreter_store_sets"),
+                "missing interpreter store set insert"
+            );
+            assert!(
+                sql_lower.contains(&format!("0x{:x}", store_addr)),
+                "missing store address in SQL"
+            );
+
+            let events = mock_local_db.event_types();
+            assert_eq!(
+                events,
+                vec![
+                    EventType::DepositV2,
+                    EventType::AddOrderV3,
+                    EventType::InterpreterStoreSet
+                ]
+            );
+
+            let messages = status_sink.messages();
+            assert_eq!(
+                messages,
+                vec![
+                    "Starting database sync...",
+                    "has tables: true",
+                    "Last synced block: 0",
+                    "Fetching latest onchain events...",
+                    "Decoding fetched events...",
+                    "Populating token information...",
+                    "Populating database...",
+                    "Database sync complete."
+                ]
+            );
         }
 
         fn create_gzipped_sql() -> Vec<u8> {
