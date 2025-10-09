@@ -987,7 +987,16 @@ mod tests {
         use crate::{
             erc20::TokenInfo,
             raindex_client::{
-                local_db::decode::{EventType, InterpreterStoreSetEvent},
+                local_db::{
+                    decode::{EventType, InterpreterStoreSetEvent},
+                    query::{
+                        create_tables::REQUIRED_TABLES,
+                        fetch_erc20_tokens_by_addresses::Erc20TokenRow,
+                        fetch_last_synced_block::SyncStatusResponse,
+                        fetch_store_addresses::StoreAddressRow, fetch_tables::TableResponse,
+                        LocalDbQueryError,
+                    },
+                },
                 tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS},
             },
             rpc_client::LogEntryResponse,
@@ -1151,6 +1160,7 @@ mod tests {
             store_rows: Vec<StoreAddressRow>,
             token_rows: Vec<Erc20TokenRow>,
             executed_sql: Arc<Mutex<Vec<String>>>,
+            execute_result: Arc<Mutex<Option<Result<String, LocalDbQueryError>>>>,
         }
 
         impl MockDatabaseBridge {
@@ -1166,11 +1176,16 @@ mod tests {
                     store_rows,
                     token_rows,
                     executed_sql: Arc::new(Mutex::new(Vec::new())),
+                    execute_result: Arc::new(Mutex::new(None)),
                 }
             }
 
             fn recorded_sql(&self) -> Vec<String> {
                 self.executed_sql.lock().unwrap().clone()
+            }
+
+            fn set_execute_result(&self, result: Result<String, LocalDbQueryError>) {
+                *self.execute_result.lock().unwrap() = Some(result);
             }
         }
 
@@ -1212,9 +1227,13 @@ mod tests {
 
             fn execute_query_text(&self, sql: String) -> DbFuture<'_, String> {
                 let log = Arc::clone(&self.executed_sql);
+                let exec_result = Arc::clone(&self.execute_result);
                 Box::pin(async move {
                     log.lock().unwrap().push(sql.clone());
-                    Ok(sql)
+                    match exec_result.lock().unwrap().take() {
+                        Some(result) => result,
+                        None => Ok(sql),
+                    }
                 })
             }
         }
@@ -1318,6 +1337,159 @@ mod tests {
             }
         }
 
+        type ResultCell<T> = RefCell<Option<Result<T, LocalDbError>>>;
+        type StoreRequest = (Vec<String>, u64, u64);
+        type StoreRequestLog = Rc<RefCell<Vec<StoreRequest>>>;
+        type TokenMetadata = Vec<(Address, TokenInfo)>;
+
+        struct StubLocalDb {
+            latest_block_result: ResultCell<u64>,
+            fetch_events_result: ResultCell<Vec<LogEntryResponse>>,
+            decode_events_result: ResultCell<Vec<DecodedEventData<DecodedEvent>>>,
+            fetch_store_events_result: ResultCell<Vec<LogEntryResponse>>,
+            fetch_token_metadata_result: ResultCell<TokenMetadata>,
+            decoded_events_to_sql_result: ResultCell<String>,
+            recorded_fetch_events: Rc<RefCell<Vec<(String, u64, u64)>>>,
+            recorded_store_requests: StoreRequestLog,
+        }
+
+        impl StubLocalDb {
+            fn new() -> Self {
+                Self {
+                    latest_block_result: RefCell::new(Some(Ok(0))),
+                    fetch_events_result: RefCell::new(Some(Ok(Vec::new()))),
+                    decode_events_result: RefCell::new(Some(Ok(Vec::new()))),
+                    fetch_store_events_result: RefCell::new(Some(Ok(Vec::new()))),
+                    fetch_token_metadata_result: RefCell::new(Some(Ok(Vec::new()))),
+                    decoded_events_to_sql_result: RefCell::new(Some(Ok(String::new()))),
+                    recorded_fetch_events: Rc::new(RefCell::new(Vec::new())),
+                    recorded_store_requests: Rc::new(RefCell::new(Vec::new())),
+                }
+            }
+
+            fn set_latest_block_result(&self, result: Result<u64, LocalDbError>) {
+                *self.latest_block_result.borrow_mut() = Some(result);
+            }
+
+            fn set_fetch_events_result(&self, result: Result<Vec<LogEntryResponse>, LocalDbError>) {
+                *self.fetch_events_result.borrow_mut() = Some(result);
+            }
+
+            fn set_decode_events_result(
+                &self,
+                result: Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>,
+            ) {
+                *self.decode_events_result.borrow_mut() = Some(result);
+            }
+
+            fn set_fetch_store_events_result(
+                &self,
+                result: Result<Vec<LogEntryResponse>, LocalDbError>,
+            ) {
+                *self.fetch_store_events_result.borrow_mut() = Some(result);
+            }
+
+            fn set_fetch_token_metadata_result(&self, result: Result<TokenMetadata, LocalDbError>) {
+                *self.fetch_token_metadata_result.borrow_mut() = Some(result);
+            }
+
+            fn set_decoded_events_to_sql_result(&self, result: Result<String, LocalDbError>) {
+                *self.decoded_events_to_sql_result.borrow_mut() = Some(result);
+            }
+
+            fn recorded_fetch_events(&self) -> Vec<(String, u64, u64)> {
+                self.recorded_fetch_events.borrow().clone()
+            }
+
+            fn recorded_store_requests(&self) -> Vec<StoreRequest> {
+                self.recorded_store_requests.borrow().clone()
+            }
+        }
+
+        impl LocalDbApi for StubLocalDb {
+            fn latest_block_number(&self) -> LocalDbFuture<'_, u64> {
+                let result = self
+                    .latest_block_result
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or(Ok(0));
+                Box::pin(async move { result })
+            }
+
+            fn fetch_events(
+                &self,
+                contract_address: String,
+                start_block: u64,
+                end_block: u64,
+            ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
+                self.recorded_fetch_events.borrow_mut().push((
+                    contract_address.clone(),
+                    start_block,
+                    end_block,
+                ));
+                let result = self
+                    .fetch_events_result
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or_else(|| Ok(Vec::new()));
+                Box::pin(async move { result })
+            }
+
+            fn decode_events(
+                &self,
+                _events: &[LogEntryResponse],
+            ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
+                self.decode_events_result
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or_else(|| Ok(Vec::new()))
+            }
+
+            fn fetch_store_set_events(
+                &self,
+                store_addresses: Vec<String>,
+                start_block: u64,
+                end_block: u64,
+            ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
+                self.recorded_store_requests.borrow_mut().push((
+                    store_addresses.clone(),
+                    start_block,
+                    end_block,
+                ));
+                let result = self
+                    .fetch_store_events_result
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or_else(|| Ok(Vec::new()));
+                Box::pin(async move { result })
+            }
+
+            fn fetch_token_metadata(
+                &self,
+                _missing_addrs: Vec<Address>,
+            ) -> LocalDbFuture<'_, Vec<(Address, TokenInfo)>> {
+                let result = self
+                    .fetch_token_metadata_result
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or_else(|| Ok(Vec::new()));
+                Box::pin(async move { result })
+            }
+
+            fn decoded_events_to_sql(
+                &self,
+                _events: &[DecodedEventData<DecodedEvent>],
+                _end_block: u64,
+                _decimals_by_token: &HashMap<Address, u8>,
+                _prefix_sql: Option<&str>,
+            ) -> Result<String, LocalDbError> {
+                self.decoded_events_to_sql_result
+                    .borrow_mut()
+                    .take()
+                    .unwrap_or_else(|| Ok(String::new()))
+            }
+        }
+
         fn make_store_set_event(
             block_number: u64,
             log_index: u64,
@@ -1337,6 +1509,62 @@ mod tests {
                 transaction_hash: format!("0x{block_number:x}{log_index:x}"),
                 log_index: format!("0x{log_index:x}"),
                 decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(store_event)),
+            }
+        }
+
+        fn make_deposit_event(token: Address) -> DecodedEventData<DecodedEvent> {
+            let deposit = DepositV2 {
+                sender: Address::from([0x01; 20]),
+                token,
+                vaultId: U256::from(1).into(),
+                depositAmountUint256: U256::from(10),
+            };
+
+            DecodedEventData {
+                event_type: EventType::DepositV2,
+                block_number: "0x10".into(),
+                block_timestamp: "0x0".into(),
+                transaction_hash: "0xabc".into(),
+                log_index: "0x0".into(),
+                decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
+            }
+        }
+
+        fn make_add_order_event(
+            store: Address,
+            tokens: Vec<Address>,
+        ) -> DecodedEventData<DecodedEvent> {
+            let order = OrderV4 {
+                owner: Address::from([0x02; 20]),
+                nonce: U256::from(1).into(),
+                evaluable: EvaluableV4 {
+                    interpreter: Address::from([0x03; 20]),
+                    store,
+                    bytecode: Bytes::from_static(b"\x00"),
+                },
+                validInputs: tokens
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, token)| IOV2 {
+                        token: *token,
+                        vaultId: U256::from(idx as u64).into(),
+                    })
+                    .collect(),
+                validOutputs: Vec::new(),
+            };
+            let add = AddOrderV3 {
+                sender: Address::from([0x04; 20]),
+                orderHash: FixedBytes::<32>::from([0x05; 32]),
+                order,
+            };
+
+            DecodedEventData {
+                event_type: EventType::AddOrderV3,
+                block_number: "0x20".into(),
+                block_timestamp: "0x0".into(),
+                transaction_hash: "0xdef".into(),
+                log_index: "0x1".into(),
+                decoded_data: DecodedEvent::AddOrderV3(Box::new(add)),
             }
         }
 
@@ -1740,6 +1968,416 @@ mod tests {
             assert!(sql.contains("Token1"));
             assert!(sql.contains("TOKEN1"));
             assert!(sql.contains("decimals"));
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_initial_sync_uses_deployment_block() {
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            let mock_db = MockDatabaseBridge::new(tables, Vec::new(), Vec::new(), Vec::new());
+            let status_sink = TestStatusSink::new();
+
+            let local_db = StubLocalDb::new();
+            local_db.set_latest_block_result(Ok(13000));
+            local_db.set_decoded_events_to_sql_result(Ok("/*SQL*/".to_string()));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:4000/sg1",
+                    "http://localhost:4000/sg2",
+                    "http://localhost:4000/rpc1",
+                    "http://localhost:4000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result =
+                sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
+                    .await;
+
+            assert!(result.is_ok());
+
+            let recorded = local_db.recorded_fetch_events();
+            assert_eq!(recorded.len(), 1);
+            assert_eq!(
+                recorded[0].1, 12345,
+                "start block should use deployment block"
+            );
+            assert_eq!(
+                recorded[0].2, 13000,
+                "end block should use latest block number"
+            );
+
+            let sql = mock_db.recorded_sql();
+            assert_eq!(sql, vec!["/*SQL*/".to_string()]);
+
+            let msgs = status_sink.messages();
+            assert!(msgs.contains(&"Last synced block: 0".to_string()));
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_resumes_from_last_synced_plus_one() {
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            let sync_status = vec![SyncStatusResponse {
+                id: 1,
+                last_synced_block: 15000,
+                updated_at: None,
+            }];
+            let mock_db = MockDatabaseBridge::new(tables, sync_status, Vec::new(), Vec::new());
+            let status_sink = TestStatusSink::new();
+
+            let local_db = StubLocalDb::new();
+            local_db.set_latest_block_result(Ok(15500));
+            local_db.set_decoded_events_to_sql_result(Ok("-- sql".to_string()));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:5000/sg1",
+                    "http://localhost:5000/sg2",
+                    "http://localhost:5000/rpc1",
+                    "http://localhost:5000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result =
+                sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
+                    .await;
+
+            assert!(result.is_ok());
+
+            let recorded = local_db.recorded_fetch_events();
+            assert_eq!(recorded.len(), 1);
+            assert_eq!(recorded[0].1, 15001);
+            assert_eq!(recorded[0].2, 15500);
+
+            let sql = mock_db.recorded_sql();
+            assert_eq!(sql, vec!["-- sql".to_string()]);
+
+            let msgs = status_sink.messages();
+            assert!(msgs.contains(&"Last synced block: 15000".to_string()));
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_propagates_fetch_events_error() {
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            let mock_db = MockDatabaseBridge::new(tables, Vec::new(), Vec::new(), Vec::new());
+            let status_sink = TestStatusSink::new();
+
+            let local_db = StubLocalDb::new();
+            local_db.set_latest_block_result(Ok(42));
+            local_db.set_fetch_events_result(Err(LocalDbError::CustomError(
+                "fetch failed".to_string(),
+            )));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:6000/sg1",
+                    "http://localhost:6000/sg2",
+                    "http://localhost:6000/rpc1",
+                    "http://localhost:6000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result =
+                sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
+                    .await;
+
+            match result {
+                Err(LocalDbError::FetchEventsFailed(err)) => match *err {
+                    LocalDbError::CustomError(message) => {
+                        assert!(
+                            message.contains("fetch failed"),
+                            "unexpected message: {message}"
+                        );
+                    }
+                    other => panic!("expected wrapped CustomError, got {other:?}"),
+                },
+                other => panic!("expected FetchEventsFailed, got {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_propagates_decode_events_error() {
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            let mock_db = MockDatabaseBridge::new(tables, Vec::new(), Vec::new(), Vec::new());
+            let status_sink = TestStatusSink::new();
+
+            let local_db = StubLocalDb::new();
+            local_db.set_latest_block_result(Ok(100));
+            let orderbook_addr = Address::from_str(ORDERBOOK_ADDRESS).unwrap();
+            let sender = Address::from([0x10; 20]);
+            let token = Address::from([0x20; 20]);
+            let log = build_deposit_log(orderbook_addr, sender, token, 100, 0);
+            local_db.set_fetch_events_result(Ok(vec![log]));
+            local_db.set_decode_events_result(Err(LocalDbError::CustomError(
+                "decode failure".to_string(),
+            )));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:6100/sg1",
+                    "http://localhost:6100/sg2",
+                    "http://localhost:6100/rpc1",
+                    "http://localhost:6100/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result =
+                sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
+                    .await;
+
+            match result {
+                Err(LocalDbError::DecodeEventsFailed(err)) => match *err {
+                    LocalDbError::CustomError(message) => {
+                        assert!(
+                            message.contains("decode failure"),
+                            "unexpected message: {message}"
+                        );
+                    }
+                    other => panic!("expected wrapped CustomError, got {other:?}"),
+                },
+                other => panic!("expected DecodeEventsFailed, got {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_propagates_store_event_fetch_error() {
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            let mock_db = MockDatabaseBridge::new(tables, Vec::new(), Vec::new(), Vec::new());
+            let status_sink = TestStatusSink::new();
+
+            let store_addr = Address::from([0x33; 20]);
+            let token = Address::from([0x44; 20]);
+            let decoded = make_add_order_event(store_addr, vec![token]);
+
+            let local_db = StubLocalDb::new();
+            local_db.set_latest_block_result(Ok(200));
+            local_db.set_decode_events_result(Ok(vec![decoded]));
+            local_db.set_fetch_store_events_result(Err(LocalDbError::CustomError(
+                "store fetch failed".to_string(),
+            )));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:6200/sg1",
+                    "http://localhost:6200/sg2",
+                    "http://localhost:6200/rpc1",
+                    "http://localhost:6200/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result =
+                sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
+                    .await;
+
+            match result {
+                Err(LocalDbError::FetchEventsFailed(err)) => match *err {
+                    LocalDbError::CustomError(message) => {
+                        assert!(
+                            message.contains("store fetch failed"),
+                            "unexpected message: {message}"
+                        );
+                    }
+                    other => panic!("expected wrapped CustomError, got {other:?}"),
+                },
+                other => panic!("expected FetchEventsFailed, got {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_propagates_token_metadata_error() {
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            let mock_db = MockDatabaseBridge::new(tables, Vec::new(), Vec::new(), Vec::new());
+            let status_sink = TestStatusSink::new();
+
+            let token = Address::from([0x55; 20]);
+            let decoded = make_deposit_event(token);
+
+            let local_db = StubLocalDb::new();
+            local_db.set_latest_block_result(Ok(300));
+            local_db.set_decode_events_result(Ok(vec![decoded]));
+            local_db.set_fetch_token_metadata_result(Err(LocalDbError::CustomError(
+                "metadata failed".to_string(),
+            )));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:6300/sg1",
+                    "http://localhost:6300/sg2",
+                    "http://localhost:6300/rpc1",
+                    "http://localhost:6300/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result =
+                sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
+                    .await;
+
+            match result {
+                Err(LocalDbError::CustomError(message)) => {
+                    assert!(
+                        message.contains("metadata failed"),
+                        "unexpected message: {message}"
+                    );
+                }
+                other => panic!("expected CustomError, got {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_propagates_sql_generation_error() {
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            let mock_db = MockDatabaseBridge::new(tables, Vec::new(), Vec::new(), Vec::new());
+            let status_sink = TestStatusSink::new();
+
+            let token = Address::from([0x66; 20]);
+            let decoded = make_deposit_event(token);
+
+            let local_db = StubLocalDb::new();
+            local_db.set_latest_block_result(Ok(400));
+            local_db.set_decode_events_result(Ok(vec![decoded]));
+            local_db.set_fetch_token_metadata_result(Ok(vec![(
+                token,
+                TokenInfo {
+                    decimals: 18,
+                    name: "TokenX".into(),
+                    symbol: "TKX".into(),
+                },
+            )]));
+            local_db.set_decoded_events_to_sql_result(Err(LocalDbError::CustomError(
+                "sql generation failed".to_string(),
+            )));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:6400/sg1",
+                    "http://localhost:6400/sg2",
+                    "http://localhost:6400/rpc1",
+                    "http://localhost:6400/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result =
+                sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
+                    .await;
+
+            match result {
+                Err(LocalDbError::SqlGenerationFailed(err)) => match *err {
+                    LocalDbError::CustomError(message) => {
+                        assert!(
+                            message.contains("sql generation failed"),
+                            "unexpected message: {message}"
+                        );
+                    }
+                    other => panic!("expected wrapped CustomError, got {other:?}"),
+                },
+                other => panic!("expected SqlGenerationFailed, got {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_sync_database_propagates_database_execution_error() {
+            let tables: Vec<TableResponse> = REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect();
+            let mock_db = MockDatabaseBridge::new(tables, Vec::new(), Vec::new(), Vec::new());
+            mock_db.set_execute_result(Err(LocalDbQueryError::DatabaseError {
+                message: "sqlite busy".to_string(),
+            }));
+            let status_sink = TestStatusSink::new();
+
+            let token = Address::from([0x77; 20]);
+            let decoded = make_deposit_event(token);
+
+            let local_db = StubLocalDb::new();
+            local_db.set_latest_block_result(Ok(500));
+            local_db.set_decode_events_result(Ok(vec![decoded]));
+            local_db.set_fetch_token_metadata_result(Ok(vec![(
+                token,
+                TokenInfo {
+                    decimals: 18,
+                    name: "TokenY".into(),
+                    symbol: "TKY".into(),
+                },
+            )]));
+            local_db.set_decoded_events_to_sql_result(Ok("INSERT".to_string()));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:6500/sg1",
+                    "http://localhost:6500/sg2",
+                    "http://localhost:6500/rpc1",
+                    "http://localhost:6500/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result =
+                sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
+                    .await;
+
+            match result {
+                Err(LocalDbError::LocalDbQueryError(LocalDbQueryError::DatabaseError {
+                    message,
+                })) => {
+                    assert!(
+                        message.contains("sqlite busy"),
+                        "unexpected message: {message}"
+                    );
+                }
+                other => panic!("expected LocalDbQueryError::DatabaseError, got {other:?}"),
+            }
         }
     }
 }
