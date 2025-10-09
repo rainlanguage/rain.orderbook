@@ -544,6 +544,7 @@ impl DotrainRegistry {
         Ok(orders)
     }
 
+    #[cfg(test)]
     fn merge_content_for_order(&self, order_key: &str) -> Result<String, DotrainRegistryError> {
         let dotrain = self
             .orders
