@@ -27,8 +27,8 @@ pub struct LocalDb {
 
 impl Default for LocalDb {
     fn default() -> Self {
-        let url = Url::parse("http://localhost:4444").expect("valid default URL");
-        let rpc_client = RpcClient::new_with_urls(vec![url]).expect("create default RPC client");
+        let url = Url::parse("foo://example.com").unwrap();
+        let rpc_client = RpcClient::new_with_urls(vec![url]).unwrap();
         Self { rpc_client }
     }
 }
