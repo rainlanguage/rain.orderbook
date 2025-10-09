@@ -1,6 +1,6 @@
 use super::*;
 
-const QUERY: &str = include_str!("query.sql");
+pub const FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Erc20TokenRow {
@@ -27,7 +27,7 @@ impl LocalDbQuery {
             .collect::<Vec<_>>()
             .join(", ");
 
-        let sql = QUERY
+        let sql = FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL
             .replace("?chain_id", &chain_id.to_string())
             .replace("?addresses_in", &in_clause);
 

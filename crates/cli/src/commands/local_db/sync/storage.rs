@@ -1,24 +1,23 @@
 use anyhow::{anyhow, Result};
 use rain_orderbook_app_settings::network::NetworkCfg;
 use rain_orderbook_common::raindex_client::local_db::{
-    query::create_tables::REQUIRED_TABLES, LocalDb,
+    query::{
+        create_tables::{CREATE_TABLES_SQL, REQUIRED_TABLES},
+        fetch_erc20_tokens_by_addresses::FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL,
+        fetch_last_synced_block::FETCH_LAST_SYNCED_BLOCK_SQL,
+        fetch_store_addresses::FETCH_STORE_ADDRESSES_SQL,
+    },
+    LocalDb,
 };
 use serde::Deserialize;
 use url::Url;
 
 use super::super::sqlite::{sqlite_execute, sqlite_has_required_tables, sqlite_query_json};
 
-pub(crate) const DEFAULT_SCHEMA_SQL: &str =
-    include_str!("../../../../../common/src/raindex_client/local_db/query/create_tables/query.sql");
-pub(crate) const SYNC_STATUS_QUERY: &str = include_str!(
-    "../../../../../common/src/raindex_client/local_db/query/fetch_last_synced_block/query.sql"
-);
-pub(crate) const ERC20_QUERY_TEMPLATE: &str = include_str!(
-    "../../../../../common/src/raindex_client/local_db/query/fetch_erc20_tokens_by_addresses/query.sql"
-);
-pub(crate) const STORE_ADDRESSES_QUERY: &str = include_str!(
-    "../../../../../common/src/raindex_client/local_db/query/fetch_store_addresses/query.sql"
-);
+pub(crate) const DEFAULT_SCHEMA_SQL: &str = CREATE_TABLES_SQL;
+pub(crate) const SYNC_STATUS_QUERY: &str = FETCH_LAST_SYNCED_BLOCK_SQL;
+pub(crate) const ERC20_QUERY_TEMPLATE: &str = FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL;
+pub(crate) const STORE_ADDRESSES_QUERY: &str = FETCH_STORE_ADDRESSES_SQL;
 
 pub(crate) fn ensure_schema(db_path: &str) -> Result<bool> {
     if sqlite_has_required_tables(db_path, REQUIRED_TABLES)? {
