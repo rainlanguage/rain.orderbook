@@ -6,7 +6,7 @@ const QUERY: &str = include_str!("query.sql");
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct SyncStatusResponse {
     #[serde(alias = "chainId")]
-    pub chain_id: u64,
+    pub chain_id: u32,
     #[serde(alias = "orderbookAddress")]
     pub orderbook_address: String,
     #[serde(alias = "lastSyncedBlock")]
@@ -20,7 +20,7 @@ impl_wasm_traits!(SyncStatusResponse);
 impl LocalDbQuery {
     pub async fn fetch_last_synced_block(
         db_callback: &js_sys::Function,
-        chain_id: u64,
+        chain_id: u32,
         orderbook_address: &str,
     ) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
         let escaped_address = orderbook_address.replace('\'', "''");
@@ -44,7 +44,7 @@ impl LocalDb {
         chain_id: u32,
         orderbook_address: String,
     ) -> Result<Vec<SyncStatusResponse>, RaindexError> {
-        LocalDbQuery::fetch_last_synced_block(&db_callback, chain_id as u64, &orderbook_address)
+        LocalDbQuery::fetch_last_synced_block(&db_callback, chain_id, &orderbook_address)
             .await
             .map_err(|e| RaindexError::LocalDbError(LocalDbError::LocalDbQueryError(e)))
     }
@@ -117,7 +117,7 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_fetch_last_synced_block_max_values() {
             let sync_data = vec![SyncStatusResponse {
-                chain_id: u64::MAX,
+                chain_id: u32::MAX,
                 orderbook_address: "0xabc".to_string(),
                 last_synced_block: u64::MAX,
                 updated_at: Some("2024-12-31T23:59:59Z".to_string()),
@@ -125,12 +125,12 @@ mod tests {
             let json_data = serde_json::to_string(&sync_data).unwrap();
             let callback = create_success_callback(&json_data);
 
-            let result = LocalDbQuery::fetch_last_synced_block(&callback, u64::MAX, "0xabc").await;
+            let result = LocalDbQuery::fetch_last_synced_block(&callback, u32::MAX, "0xabc").await;
 
             assert!(result.is_ok());
             let data = result.unwrap();
             assert_eq!(data.len(), 1);
-            assert_eq!(data[0].chain_id, u64::MAX);
+            assert_eq!(data[0].chain_id, u32::MAX);
             assert_eq!(data[0].last_synced_block, u64::MAX);
         }
     }
