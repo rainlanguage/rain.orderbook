@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS order_ios;
 DROP TABLE IF EXISTS order_events;
 DROP TABLE IF EXISTS withdrawals;
 DROP TABLE IF EXISTS deposits;
+DROP TABLE IF EXISTS raw_events;
 DROP TABLE IF EXISTS clear_v3_events;
 DROP TABLE IF EXISTS after_clear_v2_events;
 DROP TABLE IF EXISTS meta_events;

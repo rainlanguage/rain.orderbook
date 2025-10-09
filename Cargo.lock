@@ -6810,6 +6810,7 @@ dependencies = [
  "futures",
  "getrandom 0.2.16",
  "httpmock",
+ "itertools 0.14.0",
  "once_cell",
  "proptest",
  "rain-error-decoding",

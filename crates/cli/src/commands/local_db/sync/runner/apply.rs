@@ -47,39 +47,60 @@ where
     })
 }
 
+pub(super) struct PrepareSqlParams {
+    pub(super) db_path: String,
+    pub(super) metadata_rpc_urls: Vec<Url>,
+    pub(super) chain_id: u32,
+    pub(super) decoded_events: Vec<DecodedEventData<DecodedEvent>>,
+    pub(super) raw_events: Vec<LogEntryResponse>,
+    pub(super) target_block: u64,
+}
+
 pub(super) async fn prepare_sql<D, T>(
     data_source: &D,
     token_fetcher: &T,
-    db_path: &str,
-    metadata_rpc_urls: &[Url],
-    chain_id: u32,
-    decoded_events: &[DecodedEventData<DecodedEvent>],
-    target_block: u64,
+    params: PrepareSqlParams,
 ) -> Result<String>
 where
     D: SyncDataSource + Send + Sync,
     T: TokenMetadataFetcher + Send + Sync,
 {
+    let PrepareSqlParams {
+        db_path,
+        metadata_rpc_urls,
+        chain_id,
+        decoded_events,
+        raw_events,
+        target_block,
+    } = params;
+
     let metadata_rpc_slice = if metadata_rpc_urls.is_empty() {
         data_source.rpc_urls()
     } else {
-        metadata_rpc_urls
+        &metadata_rpc_urls
     };
 
+    let raw_events_sql = data_source.raw_events_to_sql(&raw_events)?;
+
     let token_prep = prepare_token_metadata(
-        db_path,
+        &db_path,
         metadata_rpc_slice,
         chain_id,
-        decoded_events,
+        &decoded_events,
         token_fetcher,
     )
     .await?;
 
+    let mut combined_prefix = raw_events_sql;
+    if !token_prep.tokens_prefix_sql.is_empty() {
+        combined_prefix.push_str(&token_prep.tokens_prefix_sql);
+    }
+
     data_source.events_to_sql(
-        decoded_events,
+        &decoded_events,
         target_block,
         &token_prep.decimals_by_addr,
-        &token_prep.tokens_prefix_sql,
+        &combined_prefix,
     )
 }
 
@@ -102,12 +123,35 @@ mod tests {
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
+    const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
+        block_number,
+        block_timestamp,
+        transaction_hash,
+        log_index,
+        address,
+        topics,
+        data,
+        raw_json
+    ) VALUES (
+        0,
+        NULL,
+        '0x0',
+        0,
+        '0x0',
+        '[]',
+        '0x',
+        '{}'
+    );
+"#;
+
     struct MockDataSource {
         sql_result: String,
         rpc_urls: Vec<Url>,
         captured_prefixes: Mutex<Vec<String>>,
         captured_events: Mutex<Vec<Vec<DecodedEventData<DecodedEvent>>>>,
         captured_decimals: Mutex<Vec<HashMap<Address, u8>>>,
+        raw_sql: String,
+        captured_raw: Mutex<Vec<Vec<LogEntryResponse>>>,
     }
 
     #[async_trait]
@@ -176,6 +220,11 @@ mod tests {
             Ok(out)
         }
 
+        fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
+            self.captured_raw.lock().unwrap().push(raw_events.to_vec());
+            Ok(self.raw_sql.clone())
+        }
+
         fn rpc_urls(&self) -> &[Url] {
             &self.rpc_urls
         }
@@ -200,6 +249,8 @@ mod tests {
             captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
+            raw_sql: String::new(),
+            captured_raw: Mutex::new(vec![]),
         };
 
         let result = fetch_events(&data_source, "0xorder", 1, 10)
@@ -217,6 +268,8 @@ mod tests {
             captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
+            raw_sql: String::new(),
+            captured_raw: Mutex::new(vec![]),
         };
 
         let decoded = decode_events(&data_source, vec![]).expect("decode events");
@@ -238,60 +291,33 @@ mod tests {
             captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
+            raw_sql: RAW_SQL_STUB.to_string(),
+            captured_raw: Mutex::new(vec![]),
         };
 
         let token_fetcher = MockFetcher { metadata: vec![] };
-        let result = prepare_sql(&data_source, &token_fetcher, &db_path_str, &[], 1, &[], 100)
-            .await
-            .expect("prepare sql");
-
-        assert!(result.contains("INSERT INTO sync"));
-    }
-
-    #[tokio::test]
-    async fn prepare_sql_uses_metadata_rpcs_if_provided() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir.path().join("sync.db");
-        let db_path_str = db_path.to_string_lossy();
-
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-
-        let data_source = MockDataSource {
-            sql_result: String::new(),
-            rpc_urls: vec![Url::parse("http://default.com").unwrap()],
-            captured_prefixes: Mutex::new(vec![]),
-            captured_events: Mutex::new(vec![]),
-            captured_decimals: Mutex::new(vec![]),
-        };
-
-        let token_fetcher = MockFetcher { metadata: vec![] };
-        prepare_sql(
+        let result = prepare_sql(
             &data_source,
             &token_fetcher,
-            &db_path_str,
-            &[Url::parse("http://override.com").unwrap()],
-            1,
-            &[],
-            100,
+            PrepareSqlParams {
+                db_path: db_path_str.to_string(),
+                metadata_rpc_urls: vec![],
+                chain_id: 1,
+                decoded_events: vec![],
+                raw_events: vec![],
+                target_block: 100,
+            },
         )
         .await
         .expect("prepare sql");
-    }
 
-    fn sample_decoded_event(token_addr: Address) -> DecodedEventData<DecodedEvent> {
-        DecodedEventData {
-            event_type: EventType::DepositV2,
-            block_number: "0x0".into(),
-            block_timestamp: "0x0".into(),
-            transaction_hash: "0x0".into(),
-            log_index: "0x0".into(),
-            decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
-                sender: Address::from([0x11; 20]),
-                token: token_addr,
-                vaultId: U256::from(0).into(),
-                depositAmountUint256: U256::from(1),
-            })),
-        }
+        assert!(result.contains("INSERT INTO sync"));
+        let prefixes = data_source.captured_prefixes.lock().unwrap();
+        assert_eq!(prefixes.len(), 1);
+        assert!(prefixes[0].starts_with("INSERT INTO raw_events"));
+        let raw = data_source.captured_raw.lock().unwrap();
+        assert_eq!(raw.len(), 1);
+        assert!(raw[0].is_empty());
     }
 
     #[tokio::test]
@@ -303,7 +329,19 @@ mod tests {
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
 
         let token_addr = Address::from([0xaa; 20]);
-        let decoded = vec![sample_decoded_event(token_addr)];
+        let decoded = vec![DecodedEventData {
+            event_type: EventType::DepositV2,
+            block_number: "0x0".into(),
+            block_timestamp: "0x0".into(),
+            transaction_hash: "0x0".into(),
+            log_index: "0x0".into(),
+            decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
+                sender: Address::from([0x11; 20]),
+                token: token_addr,
+                vaultId: U256::from(0).into(),
+                depositAmountUint256: U256::from(1),
+            })),
+        }];
 
         let token_info = TokenInfo {
             name: "Token".to_string(),
@@ -320,16 +358,34 @@ mod tests {
             captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
             captured_decimals: Mutex::new(Vec::new()),
+            raw_sql: RAW_SQL_STUB.into(),
+            captured_raw: Mutex::new(Vec::new()),
         };
+
+        let raw_events = vec![LogEntryResponse {
+            address: "0x1".into(),
+            topics: vec!["0x0".into()],
+            data: "0x".into(),
+            block_number: "0x0".into(),
+            block_timestamp: Some("0x0".into()),
+            transaction_hash: "0x0".into(),
+            transaction_index: "0x0".into(),
+            block_hash: "0x0".into(),
+            log_index: "0x0".into(),
+            removed: false,
+        }];
 
         let sql = prepare_sql(
             &data_source,
             &mock_fetcher,
-            &db_path_str,
-            data_source.rpc_urls(),
-            1,
-            &decoded,
-            42,
+            PrepareSqlParams {
+                db_path: db_path_str.to_string(),
+                metadata_rpc_urls: data_source.rpc_urls().to_vec(),
+                chain_id: 1,
+                decoded_events: decoded,
+                raw_events,
+                target_block: 42,
+            },
         )
         .await
         .unwrap();
@@ -338,7 +394,7 @@ mod tests {
 
         let prefixes = data_source.captured_prefixes.lock().unwrap();
         assert_eq!(prefixes.len(), 1);
-        assert!(!prefixes[0].is_empty());
+        assert!(prefixes[0].starts_with("INSERT INTO raw_events"));
 
         let captured_events = data_source.captured_events.lock().unwrap();
         assert_eq!(captured_events.len(), 1);
@@ -353,6 +409,10 @@ mod tests {
         let captured_decimals = data_source.captured_decimals.lock().unwrap();
         assert_eq!(captured_decimals.len(), 1);
         assert_eq!(captured_decimals[0].get(&token_addr), Some(&18));
+
+        let captured_raw = data_source.captured_raw.lock().unwrap();
+        assert_eq!(captured_raw.len(), 1);
+        assert_eq!(captured_raw[0].len(), 1);
     }
 
     #[tokio::test]
@@ -369,17 +429,22 @@ mod tests {
             captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
             captured_decimals: Mutex::new(Vec::new()),
+            raw_sql: String::new(),
+            captured_raw: Mutex::new(Vec::new()),
         };
         let mock_fetcher = MockFetcher { metadata: vec![] };
 
         let sql = prepare_sql(
             &data_source,
             &mock_fetcher,
-            &db_path_str,
-            data_source.rpc_urls(),
-            1,
-            &[],
-            75,
+            PrepareSqlParams {
+                db_path: db_path_str.to_string(),
+                metadata_rpc_urls: data_source.rpc_urls().to_vec(),
+                chain_id: 1,
+                decoded_events: vec![],
+                raw_events: vec![],
+                target_block: 75,
+            },
         )
         .await
         .unwrap();
