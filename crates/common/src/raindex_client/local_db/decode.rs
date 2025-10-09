@@ -81,6 +81,7 @@ pub struct DecodedEventData<T> {
     pub block_timestamp: String,
     pub transaction_hash: String,
     pub log_index: String,
+    pub address: Address,
     pub decoded_data: T,
 }
 
@@ -162,6 +163,7 @@ pub fn decode_events(
             } else {
                 event.log_index.clone()
             },
+            address: Address::from_str(&event.address)?,
             decoded_data,
         });
     }

@@ -17,6 +17,7 @@ use insert::{
     raw_events_to_sql as raw_events_to_sql_impl,
 };
 use query::LocalDbQueryError;
+use rain_orderbook_app_settings::remote::manifest::ManifestError;
 use std::collections::HashMap;
 use url::Url;
 
@@ -106,6 +107,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
+
+    #[error("Manifest error: {0}")]
+    ManifestError(#[from] ManifestError),
 }
 
 impl LocalDbError {
@@ -155,6 +159,9 @@ impl LocalDbError {
             LocalDbError::LocalDbQueryError(err) => format!("Database query error: {}", err),
             LocalDbError::IoError(err) => format!("I/O error: {}", err),
             LocalDbError::FromHexError(err) => format!("Hex decoding error: {}", err),
+            LocalDbError::ManifestError(err) => {
+                format!("There was a problem with the remote manifest: {}", err)
+            }
         }
     }
 }
@@ -227,23 +234,35 @@ impl LocalDb {
     pub fn decoded_events_to_sql(
         &self,
         events: &[DecodedEventData<DecodedEvent>],
+        chain_id: u32,
+        orderbook_address: Address,
         end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
         prefix_sql: Option<&str>,
     ) -> Result<String, LocalDbError> {
-        decoded_events_to_sql_impl(events, end_block, decimals_by_token, prefix_sql).map_err(
-            |err| LocalDbError::InsertError {
-                message: err.to_string(),
-            },
+        decoded_events_to_sql_impl(
+            events,
+            chain_id,
+            orderbook_address,
+            end_block,
+            decimals_by_token,
+            prefix_sql,
         )
+        .map_err(|err| LocalDbError::InsertError {
+            message: err.to_string(),
+        })
     }
 
     pub fn raw_events_to_sql(
         &self,
         raw_events: &[LogEntryResponse],
+        chain_id: u32,
+        orderbook_address: Address,
     ) -> Result<String, LocalDbError> {
-        raw_events_to_sql_impl(raw_events).map_err(|err| LocalDbError::InsertError {
-            message: err.to_string(),
+        raw_events_to_sql_impl(raw_events, chain_id, orderbook_address).map_err(|err| {
+            LocalDbError::InsertError {
+                message: err.to_string(),
+            }
         })
     }
 }
@@ -316,6 +335,7 @@ mod bool_deserialize_tests {
             block_timestamp: "0x0".to_string(),
             transaction_hash: "0x5".to_string(),
             log_index: "0x0".to_string(),
+            address: Address::ZERO,
             decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
         }
     }
@@ -330,7 +350,7 @@ mod bool_deserialize_tests {
         }
 
         let err = db
-            .decoded_events_to_sql(&[event], 42, &decimals, None)
+            .decoded_events_to_sql(&[event], 1, Address::ZERO, 42, &decimals, None)
             .unwrap_err();
         match err {
             LocalDbError::InsertError { message } => {

@@ -85,6 +85,7 @@ mod tests {
             block_timestamp: "0x0".into(),
             transaction_hash: "0x0".into(),
             log_index: "0x0".into(),
+            address: Address::ZERO,
             decoded_data: event,
         }
     }
