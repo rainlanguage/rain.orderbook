@@ -2203,6 +2203,14 @@ mod tests {
                 sync_database_with_services(&client, &mock_db, &status_sink, 1, Some(&local_db))
                     .await;
 
+            let store_requests = local_db.recorded_store_requests();
+            assert_eq!(store_requests.len(), 1);
+            assert_eq!(
+                store_requests[0].0.len(),
+                1,
+                "should request the decoded store address"
+            );
+
             match result {
                 Err(LocalDbError::FetchEventsFailed(err)) => match *err {
                     LocalDbError::CustomError(message) => {
