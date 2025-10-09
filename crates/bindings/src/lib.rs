@@ -22,6 +22,11 @@ sol!(
     ERC20, "../../out/ERC20.sol/ERC20.json"
 );
 
+sol!(
+    #![sol(all_derives = true)]
+    IInterpreterStoreV3, "../../out/IInterpreterStoreV3.sol/IInterpreterStoreV3.json"
+);
+
 pub mod provider;
 
 #[cfg(target_family = "wasm")]

@@ -5,7 +5,7 @@ use rain_orderbook_common::erc20::TokenInfo;
 use rain_orderbook_common::raindex_client::local_db::{
     decode::{DecodedEvent, DecodedEventData},
     token_fetch::fetch_erc20_metadata_concurrent,
-    LocalDb,
+    FetchConfig, LocalDb,
 };
 use rain_orderbook_common::rpc_client::LogEntryResponse;
 use std::collections::HashMap;
@@ -17,6 +17,12 @@ pub(crate) trait SyncDataSource {
     async fn fetch_events(
         &self,
         orderbook_address: &str,
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Vec<LogEntryResponse>>;
+    async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>>;
@@ -78,6 +84,23 @@ impl SyncDataSource for LocalDb {
         <LocalDb>::fetch_events(self, orderbook_address, start_block, end_block)
             .await
             .map_err(|e| anyhow!(e))
+    }
+
+    async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Vec<LogEntryResponse>> {
+        <LocalDb>::fetch_store_set_events(
+            self,
+            store_addresses,
+            start_block,
+            end_block,
+            &FetchConfig::default(),
+        )
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     fn decode_events(

@@ -1,6 +1,6 @@
 use super::*;
 
-const QUERY: &str = include_str!("query.sql");
+pub const FETCH_LAST_SYNCED_BLOCK_SQL: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -18,7 +18,11 @@ impl LocalDbQuery {
     pub async fn fetch_last_synced_block(
         db_callback: &js_sys::Function,
     ) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
-        LocalDbQuery::execute_query_json::<Vec<SyncStatusResponse>>(db_callback, QUERY).await
+        LocalDbQuery::execute_query_json::<Vec<SyncStatusResponse>>(
+            db_callback,
+            FETCH_LAST_SYNCED_BLOCK_SQL,
+        )
+        .await
     }
 }
 

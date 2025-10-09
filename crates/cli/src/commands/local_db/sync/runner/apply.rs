@@ -125,6 +125,15 @@ mod tests {
             Ok(vec![])
         }
 
+        async fn fetch_store_set_events(
+            &self,
+            _store_addresses: &[String],
+            _start_block: u64,
+            _end_block: u64,
+        ) -> Result<Vec<LogEntryResponse>> {
+            Ok(vec![])
+        }
+
         fn decode_events(
             &self,
             _events: &[LogEntryResponse],
