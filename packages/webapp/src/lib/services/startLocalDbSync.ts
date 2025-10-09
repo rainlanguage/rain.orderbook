@@ -33,32 +33,11 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 		};
 	}
 
-	const localDbClient: LocalDb = localDbClientResult.value;
-
 	let stopped = false;
 	let isSyncing = false;
 	let intervalId: ReturnType<typeof setInterval> | null = null;
 
 	dbSyncIsActive.set(true);
-
-	async function updateSyncStatus() {
-		try {
-			const statusResult = await localDbClient.getSyncStatus(queryFn);
-			if (!statusResult.error && statusResult.value && statusResult.value.length > 0) {
-				const latestStatus = statusResult.value[statusResult.value.length - 1];
-				dbSyncLastBlock.set(latestStatus.last_synced_block?.toString?.() ?? null);
-				const syncTime = latestStatus.updated_at ? new Date(latestStatus.updated_at) : new Date();
-				dbSyncLastSyncTime.set(syncTime);
-			} else if (statusResult.error) {
-				dbSyncStatus.set(
-					statusResult.error.readableMsg ?? statusResult.error.msg ?? 'Failed to fetch sync status'
-				);
-			}
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Failed to update sync status';
-			dbSyncStatus.set(message || 'Failed to update sync status');
-		}
-	}
 
 	async function performSync() {
 		if (isSyncing || stopped) return;
@@ -79,8 +58,6 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 				dbSyncStatus.set(syncResult.error.readableMsg ?? syncResult.error.msg ?? 'Sync failed');
 				return;
 			}
-
-			await updateSyncStatus();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Sync failed';
 			dbSyncStatus.set(message || 'Sync failed');
@@ -91,8 +68,9 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 	}
 
 	async function bootstrap() {
+		dbSyncLastBlock.set(null);
+		dbSyncLastSyncTime.set(null);
 		dbSyncStatus.set('Starting database sync...');
-		await updateSyncStatus();
 		await performSync();
 
 		if (!stopped) {
@@ -164,9 +142,7 @@ if (import.meta.vitest) {
 			query
 		} as unknown as SQLiteWasmDatabase;
 
-		const localDbClient = {
-			getSyncStatus: vi.fn()
-		} as unknown as LocalDb;
+		const localDbClient = {} as unknown as LocalDb;
 
 		return {
 			raindexClient,
@@ -215,13 +191,7 @@ if (import.meta.vitest) {
 		it('performs bootstrap sync and schedules periodic syncing', async () => {
 			const { raindexClient, localDb, localDbClient, deps } = createMocks();
 
-			const updatedAt = '2024-01-01T00:00:00.000Z';
 			const statusUpdates: string[] = [];
-
-			localDbClient.getSyncStatus = vi.fn().mockResolvedValue({
-				error: null,
-				value: [{ last_synced_block: 123456n, updated_at: updatedAt }]
-			});
 
 			deps.getLocalDbClient.mockReturnValue({ value: localDbClient, error: null });
 			deps.syncLocalDatabase.mockImplementation(
@@ -243,10 +213,7 @@ if (import.meta.vitest) {
 			expect(get(dbSyncIsRunning)).toBe(false);
 			expect(statusUpdates).toEqual(['Syncing...']);
 			expect(get(dbSyncStatus)).toBe('Syncing...');
-			expect(get(dbSyncLastBlock)).toBe('123456');
-			expect(get(dbSyncLastSyncTime)?.toISOString()).toBe(updatedAt);
 			expect(deps.syncLocalDatabase).toHaveBeenCalledTimes(1);
-			expect(localDbClient.getSyncStatus).toHaveBeenCalledTimes(2);
 
 			expect(vi.getTimerCount()).toBeGreaterThan(0);
 			await vi.advanceTimersByTimeAsync(10_000);
@@ -265,7 +232,6 @@ if (import.meta.vitest) {
 			const { raindexClient, localDb, localDbClient, deps } = createMocks();
 
 			deps.getLocalDbClient.mockReturnValue({ value: localDbClient, error: null });
-			localDbClient.getSyncStatus = vi.fn().mockResolvedValue({ error: null, value: [] });
 			deps.syncLocalDatabase.mockResolvedValue({
 				error: { readableMsg: 'Sync failure', msg: 'raw failure' }
 			});
@@ -277,8 +243,6 @@ if (import.meta.vitest) {
 
 			expect(get(dbSyncStatus)).toBe('Sync failure');
 			expect(get(dbSyncIsRunning)).toBe(false);
-			expect(get(dbSyncLastBlock)).toBeNull();
-			expect(localDbClient.getSyncStatus).toHaveBeenCalledTimes(1);
 			expect(deps.syncLocalDatabase).toHaveBeenCalledTimes(1);
 
 			stop();
