@@ -17,6 +17,8 @@ use query::LocalDbQueryError;
 use std::collections::HashMap;
 use url::Url;
 
+const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
+
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct LocalDb {
@@ -191,6 +193,10 @@ impl LocalDb {
 
     pub fn rpc_client(&self) -> &RpcClient {
         &self.rpc_client
+    }
+
+    pub fn check_support(chain_id: u32) -> bool {
+        SUPPORTED_LOCAL_DB_CHAINS.contains(&chain_id)
     }
 
     #[cfg(test)]

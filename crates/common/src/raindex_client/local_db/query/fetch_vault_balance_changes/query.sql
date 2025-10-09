@@ -60,4 +60,4 @@ JOIN vault_deltas vd
   ON vd.vault_id = o.vault_id
  AND vd.token    = o.token
  AND vd.owner    = o.owner
-ORDER BY vd.block_number, vd.log_index, vd.kind;
+ORDER BY vd.block_number DESC, vd.log_index DESC, vd.kind;

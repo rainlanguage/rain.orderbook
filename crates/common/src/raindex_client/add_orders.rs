@@ -3,7 +3,7 @@ use crate::raindex_client::orders::RaindexOrder;
 use alloy::primitives::Bytes;
 use futures::future::try_join_all;
 use rain_orderbook_subgraph_client::types::Id;
-use std::sync::{Arc, RwLock};
+use std::rc::Rc;
 
 #[wasm_export]
 impl RaindexClient {
@@ -59,7 +59,7 @@ impl RaindexClient {
         orderbook_address: Address,
         tx_hash: Bytes,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Arc::new(RwLock::new(self.clone()));
+        let raindex_client = Rc::new(self.clone());
         let client = self.get_orderbook_client(orderbook_address)?;
 
         let orders = client
