@@ -466,6 +466,19 @@ mod tests {
 
     #[cfg(not(target_family = "wasm"))]
     pub const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
+
+    #[cfg(target_family = "wasm")]
+    pub const LOCAL_CHAIN_A: u32 = 42161;
+    #[cfg(target_family = "wasm")]
+    pub const LOCAL_CHAIN_B: u32 = 8453;
+    #[cfg(target_family = "wasm")]
+    pub const LOCAL_CHAIN_A_ORDERBOOK_PRIMARY: &str = "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB";
+    #[cfg(target_family = "wasm")]
+    pub const LOCAL_CHAIN_A_ORDERBOOK_SECONDARY: &str =
+        "0x3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d";
+    #[cfg(target_family = "wasm")]
+    pub const LOCAL_CHAIN_B_ORDERBOOK: &str = "0x4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e";
+
     pub fn get_test_yaml(subgraph1: &str, subgraph2: &str, rpc1: &str, rpc2: &str) -> String {
         format!(
             r#"
@@ -551,19 +564,38 @@ networks:
     arbitrum:
         rpcs:
             - https://arb1.example
-        chain-id: 42161
+        chain-id: {chain_a}
         label: Arbitrum
-        network-id: 42161
+        network-id: {chain_a}
+        currency: ETH
+    base:
+        rpcs:
+            - https://base.example
+        chain-id: {chain_b}
+        label: Base
+        network-id: {chain_b}
         currency: ETH
 subgraphs:
     arbitrum: https://arb.subgraph
+    base: https://base.subgraph
 metaboards:
     arbitrum: https://arb.metaboard
+    base: https://base.metaboard
 orderbooks:
-    arbitrum-orderbook:
-        address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
+    arbitrum-orderbook-primary:
+        address: {orderbook_primary}
         network: arbitrum
         subgraph: arbitrum
+        deployment-block: 1
+    arbitrum-orderbook-secondary:
+        address: {orderbook_secondary}
+        network: arbitrum
+        subgraph: arbitrum
+        deployment-block: 1
+    base-orderbook:
+        address: {orderbook_base}
+        network: base
+        subgraph: base
         deployment-block: 1
 tokens:
     tokena:
@@ -578,14 +610,28 @@ tokens:
         decimals: 6
         label: Token B
         symbol: TKNB
+    tokenc:
+        network: base
+        address: 0x00000000000000000000000000000000000000cc
+        decimals: 18
+        label: Token C
+        symbol: TKNC
 deployers:
     arb-deployer:
         address: 0x1111111111111111111111111111111111111111
         network: arbitrum
+    base-deployer:
+        address: 0x3333333333333333333333333333333333333333
+        network: base
 accounts:
     test: 0x2222222222222222222222222222222222222222
 "#,
-            spec_version = SpecVersion::current()
+            spec_version = SpecVersion::current(),
+            chain_a = LOCAL_CHAIN_A,
+            chain_b = LOCAL_CHAIN_B,
+            orderbook_primary = LOCAL_CHAIN_A_ORDERBOOK_PRIMARY,
+            orderbook_secondary = LOCAL_CHAIN_A_ORDERBOOK_SECONDARY,
+            orderbook_base = LOCAL_CHAIN_B_ORDERBOOK,
         )
     }
 

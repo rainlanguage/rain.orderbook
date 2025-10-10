@@ -97,7 +97,11 @@ where
 
         println!("Collecting interpreter store addresses");
         let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded.decoded);
-        let existing_stores = fetch_existing_store_addresses(self.db_path)?;
+        let existing_stores = fetch_existing_store_addresses(
+            self.db_path,
+            params.chain_id,
+            params.orderbook_address,
+        )?;
         store_addresses.extend(existing_stores);
 
         if !store_addresses.is_empty() {

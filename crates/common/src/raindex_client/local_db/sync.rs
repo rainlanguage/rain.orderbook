@@ -163,8 +163,12 @@ impl RaindexClient {
             .into_iter()
             .collect();
 
-        let existing_stores: Vec<StoreAddressRow> =
-            LocalDbQuery::fetch_store_addresses(&db_callback).await?;
+        let existing_stores: Vec<StoreAddressRow> = LocalDbQuery::fetch_store_addresses(
+            &db_callback,
+            chain_id,
+            &orderbook_cfg.address.to_string(),
+        )
+        .await?;
         for row in existing_stores {
             if !row.store_address.is_empty() {
                 store_addresses.insert(row.store_address.to_ascii_lowercase());

@@ -9,13 +9,15 @@ impl LocalDbQuery {
         orderbook_address: &str,
         block_number: u64,
     ) -> Result<(), LocalDbQueryError> {
-        let escaped_address = orderbook_address.replace('\'', "''");
-        let sql = QUERY
-            .replace("?block_number", &block_number.to_string())
+        let query = QUERY
             .replace("?chain_id", &chain_id.to_string())
-            .replace("?orderbook_address", &escaped_address);
+            .replace(
+                "?orderbook_address",
+                &orderbook_address.to_ascii_lowercase(),
+            )
+            .replace("?block_number", &block_number.to_string());
 
-        LocalDbQuery::execute_query_text(db_callback, &sql)
+        LocalDbQuery::execute_query_text(db_callback, &query)
             .await
             .map(|_| ())
     }
@@ -61,6 +63,16 @@ mod tests {
             assert!(
                 !sql.contains("?block_number"),
                 "SQL should not contain placeholder ?block_number: {}",
+                sql
+            );
+            assert!(
+                !sql.contains("?chain_id"),
+                "SQL should not contain placeholder ?chain_id: {}",
+                sql
+            );
+            assert!(
+                !sql.contains("?orderbook_address"),
+                "SQL should not contain placeholder ?orderbook_address: {}",
                 sql
             );
         }

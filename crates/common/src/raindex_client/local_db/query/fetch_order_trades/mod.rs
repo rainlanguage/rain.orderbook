@@ -5,6 +5,8 @@ const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbOrderTrade {
+    #[serde(alias = "chain_id")]
+    pub chain_id: u32,
     #[serde(alias = "trade_kind")]
     pub trade_kind: String,
     #[serde(alias = "orderbook_address")]
@@ -61,6 +63,7 @@ impl LocalDbQuery {
     pub async fn fetch_order_trades(
         db_callback: &js_sys::Function,
         chain_id: u32,
+        orderbook_address: &str,
         order_hash: &str,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
@@ -68,6 +71,7 @@ impl LocalDbQuery {
         let sanitize_literal = |value: &str| value.replace('\'', "''");
 
         let order_hash = sanitize_literal(&order_hash.trim().to_lowercase());
+        let orderbook_address = sanitize_literal(&orderbook_address.trim().to_lowercase());
 
         let filter_start_timestamp = start_timestamp
             .map(|ts| format!("\nAND block_timestamp >= {}\n", ts))
@@ -78,7 +82,8 @@ impl LocalDbQuery {
 
         let sql = QUERY
             .replace("'?order_hash'", &format!("'{}'", order_hash))
-            .replace("'?chain_id'", &chain_id.to_string())
+            .replace("?chain_id", &chain_id.to_string())
+            .replace("'?orderbook_address'", &format!("'{}'", orderbook_address))
             .replace("?filter_start_timestamp", &filter_start_timestamp)
             .replace("?filter_end_timestamp", &filter_end_timestamp);
 
@@ -101,6 +106,7 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_fetch_order_trades_parses_rows() {
             let row = LocalDbOrderTrade {
+                chain_id: 42161,
                 trade_kind: "take".into(),
                 orderbook_address: "0xob".into(),
                 order_hash: "0xhash".into(),
@@ -131,7 +137,8 @@ mod tests {
             let callback =
                 create_success_callback(&serde_json::to_string(&vec![row.clone()]).unwrap());
 
-            let result = LocalDbQuery::fetch_order_trades(&callback, 1, "0xABC", None, None).await;
+            let result =
+                LocalDbQuery::fetch_order_trades(&callback, 1, "0xOB", "0xABC", None, None).await;
 
             assert!(result.is_ok());
             let rows = result.unwrap();
@@ -145,16 +152,24 @@ mod tests {
             let captured_sql = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
             let callback = create_sql_capturing_callback("[]", captured_sql.clone());
 
-            let _ =
-                LocalDbQuery::fetch_order_trades(&callback, 42161, "0xHASH", Some(100), Some(200))
-                    .await;
+            let _ = LocalDbQuery::fetch_order_trades(
+                &callback,
+                42161,
+                "0xORDERBOOK",
+                "0xHASH",
+                Some(100),
+                Some(200),
+            )
+            .await;
 
             let sql = captured_sql.borrow();
             assert!(sql.contains("'0xhash'"));
+            assert!(sql.contains("'0xorderbook'"));
             assert!(sql.contains("42161"));
             assert!(sql.contains("block_timestamp >= 100"));
             assert!(sql.contains("block_timestamp <= 200"));
             assert!(!sql.contains("?order_hash"));
+            assert!(!sql.contains("?orderbook_address"));
         }
     }
 }

@@ -43,8 +43,17 @@ pub(crate) fn fetch_last_synced(
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
 }
 
-pub(crate) fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
-    let rows: Vec<StoreAddressRow> = sqlite_query_json(db_path, STORE_ADDRESSES_QUERY)?;
+pub(crate) fn fetch_existing_store_addresses(
+    db_path: &str,
+    chain_id: u32,
+    orderbook_address: &str,
+) -> Result<Vec<String>> {
+    let escaped_address = orderbook_address.replace('\'', "''");
+    let sql = STORE_ADDRESSES_QUERY
+        .replace("?chain_id", &chain_id.to_string())
+        .replace("?orderbook_address", &escaped_address);
+
+    let rows: Vec<StoreAddressRow> = sqlite_query_json(db_path, &sql)?;
     Ok(rows
         .into_iter()
         .filter_map(|row| {
@@ -185,7 +194,8 @@ mod tests {
         );
         sqlite_execute(&db_path_str, &seed_sql).unwrap();
 
-        let stores = fetch_existing_store_addresses(&db_path_str).unwrap();
+        let stores =
+            fetch_existing_store_addresses(&db_path_str, 1, TEST_ORDERBOOK_ADDRESS).unwrap();
         assert_eq!(stores, vec!["0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);
     }
 }

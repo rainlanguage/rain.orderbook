@@ -1,5 +1,6 @@
 SELECT
   trade_kind,
+  chain_id,
   orderbook_address,
   order_hash,
   order_owner,
@@ -27,7 +28,8 @@ SELECT
 FROM (
   SELECT
     'take' AS trade_kind,
-    '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' AS orderbook_address,
+    t.chain_id,
+    t.orderbook_address,
     oe.order_hash,
     oe.order_owner,
     oe.order_nonce,
@@ -49,12 +51,11 @@ FROM (
     COALESCE(vd_in.delta, t.taker_output) AS input_delta,
     CASE
       WHEN vd_in.transaction_hash IS NOT NULL THEN (
-        SELECT COALESCE(
-          FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO_HEX()
-        )
+        SELECT COALESCE(FLOAT_SUM(vd2.delta), FLOAT_ZERO_HEX())
         FROM vault_deltas vd2
-        WHERE lower(vd2.owner) = lower(vd_in.owner)
+        WHERE vd2.chain_id = vd_in.chain_id
+          AND lower(vd2.orderbook_address) = lower(vd_in.orderbook_address)
+          AND lower(vd2.owner) = lower(vd_in.owner)
           AND lower(vd2.token) = lower(vd_in.token)
           AND vd2.vault_id = vd_in.vault_id
           AND (
@@ -67,12 +68,11 @@ FROM (
     COALESCE(vd_out.delta, FLOAT_NEGATE(t.taker_input)) AS output_delta,
     CASE
       WHEN vd_out.transaction_hash IS NOT NULL THEN (
-        SELECT COALESCE(
-          FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO_HEX()
-        )
+        SELECT COALESCE(FLOAT_SUM(vd2.delta), FLOAT_ZERO_HEX())
         FROM vault_deltas vd2
-        WHERE lower(vd2.owner) = lower(vd_out.owner)
+        WHERE vd2.chain_id = vd_out.chain_id
+          AND lower(vd2.orderbook_address) = lower(vd_out.orderbook_address)
+          AND lower(vd2.owner) = lower(vd_out.owner)
           AND lower(vd2.token) = lower(vd_out.token)
           AND vd2.vault_id = vd_out.vault_id
           AND (
@@ -83,8 +83,18 @@ FROM (
       ELSE NULL
     END AS output_running_balance
   FROM take_orders t
+  JOIN (
+    SELECT
+      ?chain_id AS chain_id,
+      lower('?orderbook_address') AS orderbook_address,
+      lower('?order_hash') AS order_hash
+  ) AS p
+    ON t.chain_id = p.chain_id
+   AND lower(t.orderbook_address) = p.orderbook_address
   JOIN order_events oe
-    ON lower(oe.order_hash) = lower('?order_hash')
+    ON oe.chain_id = t.chain_id
+   AND lower(oe.orderbook_address) = lower(t.orderbook_address)
+   AND lower(oe.order_hash) = p.order_hash
    AND oe.order_owner = t.order_owner
    AND oe.order_nonce = t.order_nonce
    AND (
@@ -94,7 +104,9 @@ FROM (
    AND NOT EXISTS (
      SELECT 1
      FROM order_events oe2
-     WHERE lower(oe2.order_hash) = lower('?order_hash')
+     WHERE oe2.chain_id = oe.chain_id
+       AND lower(oe2.orderbook_address) = lower(oe.orderbook_address)
+       AND lower(oe2.order_hash) = p.order_hash
        AND oe2.order_owner = t.order_owner
        AND oe2.order_nonce = t.order_nonce
        AND (
@@ -107,41 +119,50 @@ FROM (
        )
    )
   JOIN order_ios io_in
-    ON io_in.transaction_hash = oe.transaction_hash
+    ON io_in.chain_id = oe.chain_id
+   AND lower(io_in.orderbook_address) = lower(oe.orderbook_address)
+   AND io_in.transaction_hash = oe.transaction_hash
    AND io_in.log_index = oe.log_index
    AND io_in.io_index = t.input_io_index
    AND lower(io_in.io_type) = 'input'
   JOIN order_ios io_out
-    ON io_out.transaction_hash = oe.transaction_hash
+    ON io_out.chain_id = oe.chain_id
+   AND lower(io_out.orderbook_address) = lower(oe.orderbook_address)
+   AND io_out.transaction_hash = oe.transaction_hash
    AND io_out.log_index = oe.log_index
    AND io_out.io_index = t.output_io_index
    AND lower(io_out.io_type) = 'output'
   LEFT JOIN vault_deltas vd_in
-    ON lower(vd_in.transaction_hash) = lower(t.transaction_hash)
+    ON vd_in.chain_id = t.chain_id
+   AND lower(vd_in.orderbook_address) = lower(t.orderbook_address)
+   AND lower(vd_in.transaction_hash) = lower(t.transaction_hash)
    AND vd_in.log_index = t.log_index
    AND lower(vd_in.owner) = lower(oe.order_owner)
    AND lower(vd_in.token) = lower(io_in.token)
    AND vd_in.vault_id = io_in.vault_id
    AND vd_in.kind = 'TAKE_INPUT'
   LEFT JOIN vault_deltas vd_out
-    ON lower(vd_out.transaction_hash) = lower(t.transaction_hash)
+    ON vd_out.chain_id = t.chain_id
+   AND lower(vd_out.orderbook_address) = lower(t.orderbook_address)
+   AND lower(vd_out.transaction_hash) = lower(t.transaction_hash)
    AND vd_out.log_index = t.log_index
    AND lower(vd_out.owner) = lower(oe.order_owner)
    AND lower(vd_out.token) = lower(io_out.token)
    AND vd_out.vault_id = io_out.vault_id
    AND vd_out.kind = 'TAKE_OUTPUT'
   LEFT JOIN erc20_tokens et_in
-    ON et_in.chain_id = '?chain_id'
+    ON et_in.chain_id = t.chain_id
    AND lower(et_in.address) = lower(io_in.token)
   LEFT JOIN erc20_tokens et_out
-    ON et_out.chain_id = '?chain_id'
+    ON et_out.chain_id = t.chain_id
    AND lower(et_out.address) = lower(io_out.token)
 
   UNION ALL
 
   SELECT
     'clear' AS trade_kind,
-    '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' AS orderbook_address,
+    c.chain_id,
+    c.orderbook_address,
     oe.order_hash,
     oe.order_owner,
     oe.order_nonce,
@@ -163,12 +184,11 @@ FROM (
     COALESCE(vd_in.delta, a.alice_input) AS input_delta,
     CASE
       WHEN vd_in.transaction_hash IS NOT NULL THEN (
-        SELECT COALESCE(
-          FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO_HEX()
-        )
+        SELECT COALESCE(FLOAT_SUM(vd2.delta), FLOAT_ZERO_HEX())
         FROM vault_deltas vd2
-        WHERE lower(vd2.owner) = lower(vd_in.owner)
+        WHERE vd2.chain_id = vd_in.chain_id
+          AND lower(vd2.orderbook_address) = lower(vd_in.orderbook_address)
+          AND lower(vd2.owner) = lower(vd_in.owner)
           AND lower(vd2.token) = lower(vd_in.token)
           AND vd2.vault_id = vd_in.vault_id
           AND (
@@ -181,12 +201,11 @@ FROM (
     COALESCE(vd_out.delta, FLOAT_NEGATE(a.alice_output)) AS output_delta,
     CASE
       WHEN vd_out.transaction_hash IS NOT NULL THEN (
-        SELECT COALESCE(
-          FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO_HEX()
-        )
+        SELECT COALESCE(FLOAT_SUM(vd2.delta), FLOAT_ZERO_HEX())
         FROM vault_deltas vd2
-        WHERE lower(vd2.owner) = lower(vd_out.owner)
+        WHERE vd2.chain_id = vd_out.chain_id
+          AND lower(vd2.orderbook_address) = lower(vd_out.orderbook_address)
+          AND lower(vd2.owner) = lower(vd_out.owner)
           AND lower(vd2.token) = lower(vd_out.token)
           AND vd2.vault_id = vd_out.vault_id
           AND (
@@ -197,11 +216,23 @@ FROM (
       ELSE NULL
     END AS output_running_balance
   FROM clear_v3_events c
+  JOIN (
+    SELECT
+      ?chain_id AS chain_id,
+      lower('?orderbook_address') AS orderbook_address,
+      lower('?order_hash') AS order_hash
+  ) AS p
+    ON c.chain_id = p.chain_id
+   AND lower(c.orderbook_address) = p.orderbook_address
   JOIN after_clear_v2_events a
-    ON a.transaction_hash = c.transaction_hash
+    ON a.chain_id = c.chain_id
+   AND lower(a.orderbook_address) = lower(c.orderbook_address)
+   AND a.transaction_hash = c.transaction_hash
    AND a.log_index = c.log_index
   JOIN order_events oe
-    ON lower(oe.order_hash) = lower(c.alice_order_hash)
+    ON oe.chain_id = c.chain_id
+   AND lower(oe.orderbook_address) = lower(c.orderbook_address)
+   AND lower(oe.order_hash) = p.order_hash
    AND (
         oe.block_number < c.block_number
      OR (oe.block_number = c.block_number AND oe.log_index <= c.log_index)
@@ -209,7 +240,9 @@ FROM (
    AND NOT EXISTS (
      SELECT 1
      FROM order_events oe2
-     WHERE lower(oe2.order_hash) = lower(c.alice_order_hash)
+     WHERE oe2.chain_id = oe.chain_id
+       AND lower(oe2.orderbook_address) = lower(oe.orderbook_address)
+       AND lower(oe2.order_hash) = p.order_hash
        AND (
             oe2.block_number < c.block_number
          OR (oe2.block_number = c.block_number AND oe2.log_index <= c.log_index)
@@ -220,42 +253,51 @@ FROM (
        )
    )
   JOIN order_ios io_in
-    ON io_in.transaction_hash = oe.transaction_hash
+    ON io_in.chain_id = oe.chain_id
+   AND lower(io_in.orderbook_address) = lower(oe.orderbook_address)
+   AND io_in.transaction_hash = oe.transaction_hash
    AND io_in.log_index = oe.log_index
    AND io_in.io_index = c.alice_input_io_index
    AND lower(io_in.io_type) = 'input'
   JOIN order_ios io_out
-    ON io_out.transaction_hash = oe.transaction_hash
+    ON io_out.chain_id = oe.chain_id
+   AND lower(io_out.orderbook_address) = lower(oe.orderbook_address)
+   AND io_out.transaction_hash = oe.transaction_hash
    AND io_out.log_index = oe.log_index
    AND io_out.io_index = c.alice_output_io_index
    AND lower(io_out.io_type) = 'output'
   LEFT JOIN vault_deltas vd_in
-    ON lower(vd_in.transaction_hash) = lower(c.transaction_hash)
+    ON vd_in.chain_id = c.chain_id
+   AND lower(vd_in.orderbook_address) = lower(c.orderbook_address)
+   AND lower(vd_in.transaction_hash) = lower(c.transaction_hash)
    AND vd_in.log_index = c.log_index
    AND lower(vd_in.owner) = lower(c.alice_order_owner)
    AND lower(vd_in.token) = lower(io_in.token)
    AND vd_in.vault_id = io_in.vault_id
    AND vd_in.kind = 'CLEAR_ALICE_INPUT'
   LEFT JOIN vault_deltas vd_out
-    ON lower(vd_out.transaction_hash) = lower(c.transaction_hash)
+    ON vd_out.chain_id = c.chain_id
+   AND lower(vd_out.orderbook_address) = lower(c.orderbook_address)
+   AND lower(vd_out.transaction_hash) = lower(c.transaction_hash)
    AND vd_out.log_index = c.log_index
    AND lower(vd_out.owner) = lower(c.alice_order_owner)
    AND lower(vd_out.token) = lower(io_out.token)
    AND vd_out.vault_id = io_out.vault_id
    AND vd_out.kind = 'CLEAR_ALICE_OUTPUT'
   LEFT JOIN erc20_tokens et_in
-    ON et_in.chain_id = '?chain_id'
+    ON et_in.chain_id = c.chain_id
    AND lower(et_in.address) = lower(io_in.token)
   LEFT JOIN erc20_tokens et_out
-    ON et_out.chain_id = '?chain_id'
+    ON et_out.chain_id = c.chain_id
    AND lower(et_out.address) = lower(io_out.token)
-  WHERE lower(c.alice_order_hash) = lower('?order_hash')
+  WHERE lower(c.alice_order_hash) = p.order_hash
 
   UNION ALL
 
   SELECT
     'clear' AS trade_kind,
-    '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' AS orderbook_address,
+    c.chain_id,
+    c.orderbook_address,
     oe.order_hash,
     oe.order_owner,
     oe.order_nonce,
@@ -277,12 +319,11 @@ FROM (
     COALESCE(vd_in.delta, a.bob_input) AS input_delta,
     CASE
       WHEN vd_in.transaction_hash IS NOT NULL THEN (
-        SELECT COALESCE(
-          FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO_HEX()
-        )
+        SELECT COALESCE(FLOAT_SUM(vd2.delta), FLOAT_ZERO_HEX())
         FROM vault_deltas vd2
-        WHERE lower(vd2.owner) = lower(vd_in.owner)
+        WHERE vd2.chain_id = vd_in.chain_id
+          AND lower(vd2.orderbook_address) = lower(vd_in.orderbook_address)
+          AND lower(vd2.owner) = lower(vd_in.owner)
           AND lower(vd2.token) = lower(vd_in.token)
           AND vd2.vault_id = vd_in.vault_id
           AND (
@@ -295,12 +336,11 @@ FROM (
     COALESCE(vd_out.delta, FLOAT_NEGATE(a.bob_output)) AS output_delta,
     CASE
       WHEN vd_out.transaction_hash IS NOT NULL THEN (
-        SELECT COALESCE(
-          FLOAT_SUM(vd2.delta),
-          FLOAT_ZERO_HEX()
-        )
+        SELECT COALESCE(FLOAT_SUM(vd2.delta), FLOAT_ZERO_HEX())
         FROM vault_deltas vd2
-        WHERE lower(vd2.owner) = lower(vd_out.owner)
+        WHERE vd2.chain_id = vd_out.chain_id
+          AND lower(vd2.orderbook_address) = lower(vd_out.orderbook_address)
+          AND lower(vd2.owner) = lower(vd_out.owner)
           AND lower(vd2.token) = lower(vd_out.token)
           AND vd2.vault_id = vd_out.vault_id
           AND (
@@ -311,11 +351,23 @@ FROM (
       ELSE NULL
     END AS output_running_balance
   FROM clear_v3_events c
+  JOIN (
+    SELECT
+      ?chain_id AS chain_id,
+      lower('?orderbook_address') AS orderbook_address,
+      lower('?order_hash') AS order_hash
+  ) AS p
+    ON c.chain_id = p.chain_id
+   AND lower(c.orderbook_address) = p.orderbook_address
   JOIN after_clear_v2_events a
-    ON a.transaction_hash = c.transaction_hash
+    ON a.chain_id = c.chain_id
+   AND lower(a.orderbook_address) = lower(c.orderbook_address)
+   AND a.transaction_hash = c.transaction_hash
    AND a.log_index = c.log_index
   JOIN order_events oe
-    ON lower(oe.order_hash) = lower(c.bob_order_hash)
+    ON oe.chain_id = c.chain_id
+   AND lower(oe.orderbook_address) = lower(c.orderbook_address)
+   AND lower(oe.order_hash) = p.order_hash
    AND (
         oe.block_number < c.block_number
      OR (oe.block_number = c.block_number AND oe.log_index <= c.log_index)
@@ -323,7 +375,9 @@ FROM (
    AND NOT EXISTS (
      SELECT 1
      FROM order_events oe2
-     WHERE lower(oe2.order_hash) = lower(c.bob_order_hash)
+     WHERE oe2.chain_id = oe.chain_id
+       AND lower(oe2.orderbook_address) = lower(oe.orderbook_address)
+       AND lower(oe2.order_hash) = p.order_hash
        AND (
             oe2.block_number < c.block_number
          OR (oe2.block_number = c.block_number AND oe2.log_index <= c.log_index)
@@ -334,36 +388,44 @@ FROM (
        )
    )
   JOIN order_ios io_in
-    ON io_in.transaction_hash = oe.transaction_hash
+    ON io_in.chain_id = oe.chain_id
+   AND lower(io_in.orderbook_address) = lower(oe.orderbook_address)
+   AND io_in.transaction_hash = oe.transaction_hash
    AND io_in.log_index = oe.log_index
    AND io_in.io_index = c.bob_input_io_index
    AND lower(io_in.io_type) = 'input'
   JOIN order_ios io_out
-    ON io_out.transaction_hash = oe.transaction_hash
+    ON io_out.chain_id = oe.chain_id
+   AND lower(io_out.orderbook_address) = lower(oe.orderbook_address)
+   AND io_out.transaction_hash = oe.transaction_hash
    AND io_out.log_index = oe.log_index
    AND io_out.io_index = c.bob_output_io_index
    AND lower(io_out.io_type) = 'output'
   LEFT JOIN vault_deltas vd_in
-    ON lower(vd_in.transaction_hash) = lower(c.transaction_hash)
+    ON vd_in.chain_id = c.chain_id
+   AND lower(vd_in.orderbook_address) = lower(c.orderbook_address)
+   AND lower(vd_in.transaction_hash) = lower(c.transaction_hash)
    AND vd_in.log_index = c.log_index
    AND lower(vd_in.owner) = lower(c.bob_order_owner)
    AND lower(vd_in.token) = lower(io_in.token)
    AND vd_in.vault_id = io_in.vault_id
    AND vd_in.kind = 'CLEAR_BOB_INPUT'
   LEFT JOIN vault_deltas vd_out
-    ON lower(vd_out.transaction_hash) = lower(c.transaction_hash)
+    ON vd_out.chain_id = c.chain_id
+   AND lower(vd_out.orderbook_address) = lower(c.orderbook_address)
+   AND lower(vd_out.transaction_hash) = lower(c.transaction_hash)
    AND vd_out.log_index = c.log_index
    AND lower(vd_out.owner) = lower(c.bob_order_owner)
    AND lower(vd_out.token) = lower(io_out.token)
    AND vd_out.vault_id = io_out.vault_id
    AND vd_out.kind = 'CLEAR_BOB_OUTPUT'
   LEFT JOIN erc20_tokens et_in
-    ON et_in.chain_id = '?chain_id'
+    ON et_in.chain_id = c.chain_id
    AND lower(et_in.address) = lower(io_in.token)
   LEFT JOIN erc20_tokens et_out
-    ON et_out.chain_id = '?chain_id'
+    ON et_out.chain_id = c.chain_id
    AND lower(et_out.address) = lower(io_out.token)
-  WHERE lower(c.bob_order_hash) = lower('?order_hash')
+  WHERE lower(c.bob_order_hash) = p.order_hash
 ) AS combined_trades
 WHERE 1=1
 ?filter_start_timestamp

@@ -12,6 +12,8 @@ struct LocalDbTradeCountRow {
 impl LocalDbQuery {
     pub async fn fetch_order_trades_count(
         db_callback: &js_sys::Function,
+        chain_id: u32,
+        orderbook_address: &str,
         order_hash: &str,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
@@ -19,6 +21,7 @@ impl LocalDbQuery {
         let sanitize_literal = |value: &str| value.replace('\'', "''");
 
         let order_hash = sanitize_literal(&order_hash.trim().to_lowercase());
+        let orderbook_address = sanitize_literal(&orderbook_address.trim().to_lowercase());
 
         let filter_start_timestamp = start_timestamp
             .map(|ts| format!("\nAND block_timestamp >= {}\n", ts))
@@ -29,6 +32,8 @@ impl LocalDbQuery {
 
         let sql = QUERY
             .replace("'?order_hash'", &format!("'{}'", order_hash))
+            .replace("'?orderbook_address'", &format!("'{}'", orderbook_address))
+            .replace("?chain_id", &chain_id.to_string())
             .replace("?filter_start_timestamp", &filter_start_timestamp)
             .replace("?filter_end_timestamp", &filter_end_timestamp);
 
@@ -55,8 +60,10 @@ mod tests {
         async fn test_fetch_order_trades_count_parses_value() {
             let callback = create_success_callback("[{\"trade_count\": 7}]");
 
-            let result =
-                LocalDbQuery::fetch_order_trades_count(&callback, "0xABC", None, None).await;
+            let result = LocalDbQuery::fetch_order_trades_count(
+                &callback, 1, "0xorder", "0xABC", None, None,
+            )
+            .await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), 7);
@@ -66,8 +73,10 @@ mod tests {
         async fn test_fetch_order_trades_count_defaults_to_zero() {
             let callback = create_success_callback("[]");
 
-            let result =
-                LocalDbQuery::fetch_order_trades_count(&callback, "0xABC", None, None).await;
+            let result = LocalDbQuery::fetch_order_trades_count(
+                &callback, 1, "0xorder", "0xABC", None, None,
+            )
+            .await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), 0);
@@ -79,12 +88,22 @@ mod tests {
             let callback =
                 create_sql_capturing_callback("[{\"trade_count\":0}]", captured_sql.clone());
 
-            let _ = LocalDbQuery::fetch_order_trades_count(&callback, "0xABCDEF", Some(1), Some(2))
-                .await;
+            let _ = LocalDbQuery::fetch_order_trades_count(
+                &callback,
+                42161,
+                "0xorderbook",
+                "0xABCDEF",
+                Some(1),
+                Some(2),
+            )
+            .await;
 
             let sql = captured_sql.borrow();
             assert!(sql.contains("'0xabcdef'"));
+            assert!(sql.contains("'0xorderbook'"));
+            assert!(sql.contains("42161"));
             assert!(!sql.contains("?order_hash"));
+            assert!(!sql.contains("?orderbook_address"));
             assert!(sql.contains("block_timestamp >= 1"));
             assert!(sql.contains("block_timestamp <= 2"));
         }
