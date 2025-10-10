@@ -130,7 +130,7 @@
     - `getAllOrderDetails()` → parse order-level metadata for every merged dotrain.
     - `getOrderKeys()` → keys from `order_urls`.
     - `getDeploymentDetails(orderKey)` → deployment name/description map for a specific order.
-    - `getGui(orderKey, deploymentKey, stateCallback?)` → merge `settings + order` and produce a `DotrainOrderGui` instance.
+  - `getGui(orderKey, deploymentKey, serializedState?, stateCallback?)` → merge `settings + order`, optionally restore serialized state, and produce a `DotrainOrderGui` instance.
   - Errors: `DotrainRegistryError` covers fetch/parse/HTTP/URL issues and wraps `GuiError`. Also returns human-readable messages.
 
 - `yaml` (src/yaml/mod.rs)
@@ -186,7 +186,7 @@
   - Generate data: `generateAddOrderCalldata` or `generateDepositAndAddOrderCalldatas`; or get the full package from `getDeploymentTransactionArgs(owner)`.
   - Persist UI state: read `serializeState()`; restore later with `DotrainOrderGui.newFromState(dotrain, serialized, callback?)`.
 - Multiple orders via registry:
-  - `const registry = await DotrainRegistry.new(registryUrl)` → inspect orders/deployments → `await registry.getGui(orderKey, deploymentKey, onStateChanged?)`.
+  - `const registry = await DotrainRegistry.new(registryUrl)` → inspect orders/deployments → `await registry.getGui(orderKey, deploymentKey, serializedState?, onStateChanged?)`.
 
 **Summary**
 - `rain_orderbook_js_api` is the JS/WASM gateway for building, validating, and deploying Rain Orderbook orders from YAML+Rainlang definitions. It centralizes: YAML parsing and validation, user input state, token selection and metadata, field and deposit validation, vault ID management, transaction calldata generation (approvals, deposits, add order, multicall), registry-driven content fetching, and robust error handling—exposed as a typed, ergonomic TypeScript surface.

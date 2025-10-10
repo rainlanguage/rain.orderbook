@@ -377,7 +377,21 @@ impl DotrainRegistry {
     /// const stateCallback = (newState) => {
     ///   localStorage.setItem('gui-state', JSON.stringify(newState));
     /// };
-    /// const resultWithCallback = await registry.getGui("fixed-limit", "mainnet-deployment", stateCallback);
+    /// const resultWithCallback = await registry.getGui(
+    ///   "fixed-limit",
+    ///   "mainnet-deployment",
+    ///   undefined,
+    ///   stateCallback
+    /// );
+    ///
+    /// // Usage restoring from serialized state (with optional callback)
+    /// const savedState = localStorage.getItem('gui-state');
+    /// const resultFromState = await registry.getGui(
+    ///   "fixed-limit",
+    ///   "mainnet-deployment",
+    ///   savedState,
+    ///   stateCallback
+    /// );
     /// ```
     #[wasm_export(
         js_name = "getGui",
@@ -398,6 +412,11 @@ impl DotrainRegistry {
         )]
         deployment_key: String,
         #[wasm_export(
+            js_name = "serializedState",
+            param_description = "Optional serialized GUI state string used to restore form progress before falling back to deployment defaults"
+        )]
+        serialized_state: Option<String>,
+        #[wasm_export(
             js_name = "stateUpdateCallback",
             param_description = "Optional function called on state changes. \
             After a state change (deposit, field value, vault id, select token, etc.), the callback is called with the new state. \
@@ -406,12 +425,37 @@ impl DotrainRegistry {
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, DotrainRegistryError> {
         let merged_content = self.merge_content_for_order(&order_key)?;
-        let gui = DotrainOrderGui::new_with_deployment(
-            merged_content,
-            deployment_key,
-            state_update_callback,
-        )
-        .await?;
+        let gui_result = match serialized_state {
+            Some(serialized_state) => {
+                match DotrainOrderGui::new_from_state(
+                    merged_content.clone(),
+                    serialized_state,
+                    state_update_callback.clone(),
+                )
+                .await
+                {
+                    Ok(gui) => Ok(gui),
+                    Err(_) => {
+                        DotrainOrderGui::new_with_deployment(
+                            merged_content,
+                            deployment_key,
+                            state_update_callback.clone(),
+                        )
+                        .await
+                    }
+                }
+            }
+            None => {
+                DotrainOrderGui::new_with_deployment(
+                    merged_content,
+                    deployment_key,
+                    state_update_callback.clone(),
+                )
+                .await
+            }
+        };
+
+        let gui = gui_result.map_err(DotrainRegistryError::GuiError)?;
         Ok(gui)
     }
 }
@@ -1273,8 +1317,8 @@ _ _: 1 1;
             assert!(registry.order_urls.contains_key("second-order"));
             assert_eq!(registry.orders.len(), 2);
 
-            let gui1 = registry
-                .get_gui("first-order".to_string(), "flare".to_string(), None)
+            let mut gui1 = registry
+                .get_gui("first-order".to_string(), "flare".to_string(), None, None)
                 .await
                 .unwrap();
 
@@ -1282,12 +1326,14 @@ _ _: 1 1;
             assert_eq!(deployment_details1.name, "Flare order name");
             assert_eq!(deployment_details1.description, "Flare order description");
 
+            let default_serialized_state = gui1.serialize_state().unwrap();
+
             let merged_content1 = registry.merge_content_for_order("first-order").unwrap();
             assert!(merged_content1.contains(MOCK_SETTINGS_CONTENT));
             assert!(merged_content1.contains("_ _: 0 0;"));
 
             let gui2 = registry
-                .get_gui("second-order".to_string(), "base".to_string(), None)
+                .get_gui("second-order".to_string(), "base".to_string(), None, None)
                 .await
                 .unwrap();
 
@@ -1305,8 +1351,47 @@ _ _: 1 1;
             assert!(merged_content2.contains("_ _: 1 1;"));
             assert!(!merged_content2.contains("_ _: 0 0;"));
 
+            let mut gui_with_state = registry
+                .get_gui("first-order".to_string(), "flare".to_string(), None, None)
+                .await
+                .unwrap();
+            gui_with_state
+                .set_field_value("test-binding".to_string(), "42".to_string())
+                .unwrap();
+            let saved_state = gui_with_state.serialize_state().unwrap();
+
+            let restored_gui = registry
+                .get_gui(
+                    "first-order".to_string(),
+                    "flare".to_string(),
+                    Some(saved_state.clone()),
+                    None,
+                )
+                .await
+                .unwrap();
+            assert_eq!(restored_gui.serialize_state().unwrap(), saved_state);
+
+            let fallback_gui = registry
+                .get_gui(
+                    "first-order".to_string(),
+                    "flare".to_string(),
+                    Some("not-a-valid-state".to_string()),
+                    None,
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                fallback_gui.serialize_state().unwrap(),
+                default_serialized_state
+            );
+
             let result = registry
-                .get_gui("non-existent-order".to_string(), "flare".to_string(), None)
+                .get_gui(
+                    "non-existent-order".to_string(),
+                    "flare".to_string(),
+                    None,
+                    None,
+                )
                 .await;
             assert!(result.is_err());
             match result.err().unwrap() {

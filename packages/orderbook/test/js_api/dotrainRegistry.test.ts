@@ -292,32 +292,53 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 			);
 		});
 
-		it('should create GUI for valid order and deployment', async () => {
-			const gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null));
+                it('should create GUI for valid order and deployment', async () => {
+                        const gui = extractWasmEncodedData(
+                                await registry.getGui('fixed-limit', 'flare', null, null)
+                        );
 
-			const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
+                        const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
 
-			assert.strictEqual(currentDeployment.name, 'Flare order name');
-			assert.strictEqual(currentDeployment.description, 'Flare order description');
-		});
+                        assert.strictEqual(currentDeployment.name, 'Flare order name');
+                        assert.strictEqual(currentDeployment.description, 'Flare order description');
+                });
 
-		it('should create GUI with state update callback', async () => {
-			const stateCallback = () => {};
+                it('should create GUI with state update callback', async () => {
+                        const stateCallback = () => {};
 
-			const gui = extractWasmEncodedData(
-				await registry.getGui('fixed-limit', 'base', stateCallback)
-			);
+                        const gui = extractWasmEncodedData(
+                                await registry.getGui('fixed-limit', 'base', null, stateCallback)
+                        );
 
-			const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
+                        const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
 
-			assert.strictEqual(currentDeployment.name, 'Base order name');
-			assert.strictEqual(currentDeployment.description, 'Base order description');
-		});
+                        assert.strictEqual(currentDeployment.name, 'Base order name');
+                        assert.strictEqual(currentDeployment.description, 'Base order description');
+                });
 
-		it('should handle GUI creation for non-existent order', async () => {
-			const result = await registry.getGui('non-existent', 'flare', null);
-			assert(result.error);
-			assert(result.error.readableMsg.includes("order key 'non-existent' was not found"));
-		});
-	});
+                it('should restore GUI from serialized state when provided', async () => {
+                        let gui = extractWasmEncodedData(
+                                await registry.getGui('fixed-limit', 'flare', null, null)
+                        );
+
+                        gui.setFieldValue('test-binding', '42');
+                        const serializedState = extractWasmEncodedData<string>(gui.serializeState());
+
+                        gui = extractWasmEncodedData(
+                                await registry.getGui('fixed-limit', 'flare', serializedState, null)
+                        );
+
+                        const fieldValue = extractWasmEncodedData<{ value: string }>(
+                                gui.getFieldValue('test-binding')
+                        );
+
+                        assert.strictEqual(fieldValue.value, '42');
+                });
+
+                it('should handle GUI creation for non-existent order', async () => {
+                        const result = await registry.getGui('non-existent', 'flare', null, null);
+                        assert(result.error);
+                        assert(result.error.readableMsg.includes("order key 'non-existent' was not found"));
+                });
+        });
 });
