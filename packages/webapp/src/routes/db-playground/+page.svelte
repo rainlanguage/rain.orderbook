@@ -33,6 +33,11 @@
 		await init();
 		db = SQLiteWasmDatabase.new();
 
+		if (db && !db.error && db.value) {
+			const queryFn = db.value.query.bind(db.value);
+			raindexClient.setDbCallback(queryFn);
+		}
+
 		// Populate last sync info on load
 		await updateSyncStatus();
 
@@ -182,48 +187,64 @@
 		}
 	}
 
-	// Fetch all orders using local DB via raindexClient
+	// Fetch all orders using raindexClient
 	async function fetchAllOrders() {
-		if (!db?.value) {
-			error = 'Database not initialized';
-			return;
-		}
-
 		isLoading = true;
 		error = '';
 		queryResults = null;
 
 		try {
-			const queryFn = db.value.query.bind(db.value);
-			const result = await raindexClient.getOrdersLocalDb(42161, queryFn);
+			const result = await raindexClient.getOrders([42161], null, 1);
 			if (result.error) {
-				error = result.error.msg;
+				error = result.error.readableMsg ?? result.error.msg;
 				return;
 			}
-			for (let order of result.value) {
+
+			for (const order of result.value) {
 				// eslint-disable-next-line no-console
 				console.log('Order active:', order.active);
 				// eslint-disable-next-line no-console
 				console.log('Order hash:', order.orderHash);
+				// eslint-disable-next-line no-console
+				console.log('Order bytes:', order.orderBytes);
 
-				for (let input of order.inputsList.items) {
+				for (const input of order.inputsList.items) {
 					// eslint-disable-next-line no-console
 					console.log('Input vault id: ', input.vaultId);
 					// eslint-disable-next-line no-console
-					console.log('Input token: ', input.token.address);
+					console.log(
+						`Token: ${input.token.symbol} (${input.token.address}) - ${input.token.decimals}`
+					);
 					// eslint-disable-next-line no-console
 					console.log('Balance: ', input.balance.format().value);
+					// eslint-disable-next-line no-console
+					console.log('Orders as input:', input.ordersAsInput);
 					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
 
-				for (let output of order.outputsList.items) {
+				for (const output of order.outputsList.items) {
 					// eslint-disable-next-line no-console
 					console.log('Output vault id: ', output.vaultId);
 					// eslint-disable-next-line no-console
-					console.log('Output token: ', output.token.address);
+					console.log(
+						`Token: ${output.token.symbol} (${output.token.address}) - ${output.token.decimals}`
+					);
 					// eslint-disable-next-line no-console
 					console.log('Balance: ', output.balance.format().value);
+					// eslint-disable-next-line no-console
+					console.log('\n');
+				}
+
+				for (const vault of order.vaultsList.items) {
+					// eslint-disable-next-line no-console
+					console.log('Input/Output vault id: ', vault.vaultId);
+					// eslint-disable-next-line no-console
+					console.log(
+						`Token: ${vault.token.symbol} (${vault.token.address}) - ${vault.token.decimals}`
+					);
+					// eslint-disable-next-line no-console
+					console.log('Balance: ', vault.balance.format().value);
 					// eslint-disable-next-line no-console
 					console.log('\n');
 				}
@@ -233,8 +254,8 @@
 				// eslint-disable-next-line no-console
 				console.log('\n\n');
 			}
-		} catch (e) {
-			error = e instanceof Error ? e.message : String(e);
+		} catch (err) {
+			error = err instanceof Error ? err.message : String(err);
 		} finally {
 			isLoading = false;
 		}
