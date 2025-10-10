@@ -2,7 +2,7 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix";
+    rainix.url = "github:rainlanguage/rainix?rev=f2a4edac01a17368ffdbae9fb42a110139acebde";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -12,7 +12,6 @@
       let pkgs = rainix.pkgs.${system};
       in rec {
         packages = rec {
-
           tauri-release-env = rainix.tauri-release-env.${system};
 
           raindex-prelude = rainix.mkTask.${system} {
