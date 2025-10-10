@@ -60,10 +60,6 @@ mod tests {
                     table_name
                 );
             }
-
-            assert!(sql.contains(
-                "INSERT OR IGNORE INTO sync_status (id, last_synced_block) VALUES (1, 0)"
-            ));
         }
     }
 }

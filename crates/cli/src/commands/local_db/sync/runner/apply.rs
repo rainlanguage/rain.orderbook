@@ -1,6 +1,8 @@
-use anyhow::Result;
+use alloy::primitives::Address;
+use anyhow::{anyhow, Result};
 use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::rpc_client::LogEntryResponse;
+use std::str::FromStr;
 use url::Url;
 
 use super::super::data_source::{SyncDataSource, TokenMetadataFetcher};
@@ -54,6 +56,7 @@ pub(super) async fn prepare_sql<D, T>(
     db_path: &str,
     metadata_rpc_urls: &[Url],
     chain_id: u32,
+    orderbook_address: &str,
     decoded_events: &[DecodedEventData<DecodedEvent>],
     raw_events: &[LogEntryResponse],
     target_block: u64,
@@ -68,7 +71,10 @@ where
         metadata_rpc_urls
     };
 
-    let raw_events_sql = data_source.raw_events_to_sql(raw_events)?;
+    let orderbook_address = Address::from_str(orderbook_address)
+        .map_err(|e| anyhow!("Invalid orderbook address: {}", e))?;
+
+    let raw_events_sql = data_source.raw_events_to_sql(raw_events, chain_id, orderbook_address)?;
 
     let token_prep = prepare_token_metadata(
         db_path,
@@ -86,6 +92,8 @@ where
 
     data_source.events_to_sql(
         decoded_events,
+        chain_id,
+        orderbook_address,
         target_block,
         &token_prep.decimals_by_addr,
         &combined_prefix,
@@ -111,7 +119,7 @@ mod tests {
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
-    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES (0, NULL, '0x0', 0, '0x0', '[]', '0x', '{}');\n";
+    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) VALUES (1, '0x0000000000000000000000000000000000000abc', '0x0', 0, 0, NULL, '0x0', '[]', '0x', '{}');\n";
 
     struct MockDataSource {
         sql_result: String,
@@ -157,6 +165,8 @@ mod tests {
         fn events_to_sql(
             &self,
             decoded_events: &[DecodedEventData<DecodedEvent>],
+            chain_id: u32,
+            orderbook_address: Address,
             end_block: u64,
             decimals_by_token: &HashMap<Address, u8>,
             prefix_sql: &str,
@@ -173,6 +183,8 @@ mod tests {
                 .lock()
                 .unwrap()
                 .push(decimals_by_token.clone());
+            let _ = chain_id;
+            let _ = orderbook_address;
 
             let mut out = String::new();
             if !prefix_sql.is_empty() {
@@ -189,8 +201,15 @@ mod tests {
             Ok(out)
         }
 
-        fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
+        fn raw_events_to_sql(
+            &self,
+            raw_events: &[LogEntryResponse],
+            chain_id: u32,
+            orderbook_address: Address,
+        ) -> Result<String> {
             self.captured_raw.lock().unwrap().push(raw_events.to_vec());
+            let _ = chain_id;
+            let _ = orderbook_address;
             Ok(self.raw_sql.clone())
         }
 
@@ -271,6 +290,7 @@ mod tests {
             &db_path_str,
             &[],
             1,
+            "0x0000000000000000000000000000000000000000",
             &[],
             &[],
             100,
@@ -302,6 +322,7 @@ mod tests {
             block_timestamp: "0x0".into(),
             transaction_hash: "0x0".into(),
             log_index: "0x0".into(),
+            address: Address::from([0xbb; 20]),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),
                 token: token_addr,
@@ -348,6 +369,7 @@ mod tests {
             &db_path_str,
             data_source.rpc_urls(),
             1,
+            "0x0000000000000000000000000000000000000000",
             &decoded,
             &raw_events,
             42,
@@ -405,6 +427,7 @@ mod tests {
             &db_path_str,
             data_source.rpc_urls(),
             1,
+            "0x0000000000000000000000000000000000000000",
             &[],
             &[],
             75,

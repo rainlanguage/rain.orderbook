@@ -38,7 +38,7 @@ pub(super) async fn compute_sync_window<D>(
 where
     D: SyncDataSource + Send + Sync,
 {
-    let last_synced_block = fetch_last_synced(db_path)?;
+    let last_synced_block = fetch_last_synced(db_path, params.chain_id, params.orderbook_address)?;
 
     let mut start_block = params
         .start_block
@@ -141,6 +141,8 @@ mod tests {
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
+    const TEST_ORDERBOOK_ADDRESS: &str = "0x0000000000000000000000000000000000000abc";
+
     struct MockDataSource {
         latest_block: u64,
         rpc_urls: Vec<Url>,
@@ -180,6 +182,8 @@ mod tests {
         fn events_to_sql(
             &self,
             _decoded_events: &[DecodedEventData<DecodedEvent>],
+            _chain_id: u32,
+            _orderbook_address: Address,
             _end_block: u64,
             _decimals_by_token: &HashMap<Address, u8>,
             _prefix_sql: &str,
@@ -187,7 +191,12 @@ mod tests {
             Ok(String::new())
         }
 
-        fn raw_events_to_sql(&self, _: &[LogEntryResponse]) -> Result<String> {
+        fn raw_events_to_sql(
+            &self,
+            _: &[LogEntryResponse],
+            _chain_id: u32,
+            _orderbook_address: Address,
+        ) -> Result<String> {
             Ok(String::new())
         }
 
@@ -199,7 +208,7 @@ mod tests {
     fn params() -> SyncParams<'static> {
         SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: TEST_ORDERBOOK_ADDRESS,
             deployment_block: 50,
             start_block: None,
             end_block: None,
@@ -235,11 +244,10 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
         // simulate previous sync
-        sqlite_execute(
-            &db_path_str,
-            "UPDATE sync_status SET last_synced_block = 80, updated_at = CURRENT_TIMESTAMP WHERE id = 1;",
-        )
-        .unwrap();
+        let seed_sql = format!(
+            "INSERT INTO sync_status (chain_id, orderbook_address, last_synced_block) VALUES (1, '{TEST_ORDERBOOK_ADDRESS}', 80) ON CONFLICT(chain_id, orderbook_address) DO UPDATE SET last_synced_block = excluded.last_synced_block, updated_at = CURRENT_TIMESTAMP;"
+        );
+        sqlite_execute(&db_path_str, &seed_sql).unwrap();
 
         let data_source = MockDataSource {
             latest_block: 120,

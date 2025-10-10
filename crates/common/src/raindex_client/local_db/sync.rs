@@ -55,8 +55,11 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
 
 pub async fn get_last_synced_block(
     db_callback: &js_sys::Function,
+    chain_id: u32,
+    orderbook_address: &str,
 ) -> Result<u64, LocalDbQueryError> {
-    let results = LocalDbQuery::fetch_last_synced_block(db_callback).await?;
+    let results =
+        LocalDbQuery::fetch_last_synced_block(db_callback, chain_id, orderbook_address).await?;
     if let Some(sync_status) = results.first() {
         Ok(sync_status.last_synced_block)
     } else {
@@ -104,14 +107,6 @@ impl RaindexClient {
             LocalDbQuery::execute_query_text(&db_callback, &dump_sql).await?;
         }
 
-        let last_synced_block = get_last_synced_block(&db_callback)
-            .await
-            .map_err(LocalDbError::SyncStatusReadFailed)?;
-        send_status_message(
-            &status_callback,
-            format!("Last synced block: {}", last_synced_block),
-        )?;
-
         let orderbooks = self
             .get_orderbooks_by_chain_id(chain_id)
             .map_err(|e| LocalDbError::OrderbookConfigNotFound(Box::new(e)))?;
@@ -122,6 +117,15 @@ impl RaindexClient {
                 chain_id
             )));
         };
+
+        let last_synced_block =
+            get_last_synced_block(&db_callback, chain_id, &orderbook_cfg.address.to_string())
+                .await
+                .map_err(LocalDbError::SyncStatusReadFailed)?;
+        send_status_message(
+            &status_callback,
+            format!("Last synced block: {}", last_synced_block),
+        )?;
 
         let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone())?;
 
@@ -188,7 +192,7 @@ impl RaindexClient {
         sort_events_by_block_and_log(&mut decoded_events);
 
         let raw_events_sql = local_db
-            .raw_events_to_sql(&raw_events)
+            .raw_events_to_sql(&raw_events, chain_id, orderbook_cfg.address)
             .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
 
         send_status_message(
@@ -212,6 +216,8 @@ impl RaindexClient {
         let sql_commands = local_db
             .decoded_events_to_sql(
                 &decoded_events,
+                chain_id,
+                orderbook_cfg.address,
                 latest_block,
                 &decimals_by_addr,
                 if combined_prefix_sql.is_empty() {
@@ -421,14 +427,15 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_get_last_synced_block_exists() {
             let sync_data = vec![SyncStatusResponse {
-                id: 1,
+                chain_id: 1,
+                orderbook_address: "0xabc".to_string(),
                 last_synced_block: 12345,
                 updated_at: Some("2024-01-01T00:00:00Z".to_string()),
             }];
             let json_data = serde_json::to_string(&sync_data).unwrap();
             let callback = create_success_callback(&json_data);
 
-            let result = get_last_synced_block(&callback).await;
+            let result = get_last_synced_block(&callback, 1, "0xabc").await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), 12345);
@@ -438,7 +445,7 @@ mod tests {
         async fn test_get_last_synced_block_empty() {
             let callback = create_success_callback("[]");
 
-            let result = get_last_synced_block(&callback).await;
+            let result = get_last_synced_block(&callback, 1, "0xabc").await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), 0);
@@ -448,7 +455,7 @@ mod tests {
         async fn test_get_last_synced_block_query_fails() {
             let callback = create_success_callback("invalid_json");
 
-            let result = get_last_synced_block(&callback).await;
+            let result = get_last_synced_block(&callback, 1, "0xabc").await;
 
             assert!(result.is_err());
             match result.unwrap_err() {
@@ -525,6 +532,7 @@ mod tests {
                 block_timestamp: "0x0".into(),
                 transaction_hash: "0x0".into(),
                 log_index: "0x0".into(),
+                address: Address::from([0x33; 20]),
                 decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
             });
 
@@ -542,6 +550,7 @@ mod tests {
                 block_timestamp: "0x0".into(),
                 transaction_hash: "0x1".into(),
                 log_index: "0x1".into(),
+                address: Address::from([0x44; 20]),
                 decoded_data: DecodedEvent::WithdrawV2(Box::new(withdraw)),
             });
 
@@ -688,10 +697,12 @@ mod tests {
             }
             // We emit status messages before failing on the chain lookup
             let msgs = captured.borrow();
-            assert!(msgs.len() >= 3);
+            assert!(msgs.len() >= 2);
             assert_eq!(msgs[0], "Starting database sync...");
             assert_eq!(msgs[1], "has tables: true");
-            assert_eq!(msgs[2], "Last synced block: 0");
+            if msgs.len() >= 3 {
+                assert_eq!(msgs[2], "Last synced block: 0");
+            }
         }
 
         #[wasm_bindgen_test]
@@ -747,7 +758,8 @@ mod tests {
             let tables_json = make_tables_json();
             // Return a non-zero last synced for variety
             let last_synced = vec![SyncStatusResponse {
-                id: 1,
+                chain_id: 1,
+                orderbook_address: "0xabc".to_string(),
                 last_synced_block: 123,
                 updated_at: Some("2024-01-01T00:00:00Z".to_string()),
             }];
@@ -773,10 +785,12 @@ mod tests {
             }
 
             let msgs = captured.borrow();
-            assert!(msgs.len() >= 3);
+            assert!(msgs.len() >= 2);
             assert_eq!(msgs[0], "Starting database sync...");
             assert_eq!(msgs[1], "has tables: true");
-            assert_eq!(msgs[2], "Last synced block: 123");
+            if msgs.len() >= 3 {
+                assert_eq!(msgs[2], "Last synced block: 123");
+            }
         }
     }
 

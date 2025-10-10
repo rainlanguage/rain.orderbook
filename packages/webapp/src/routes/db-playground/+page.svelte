@@ -20,12 +20,7 @@
 
 	// Auto-sync state variables
 	let autoSyncEnabled = false;
-	let lastSyncedBlock: string | null = null;
-	let lastSyncTime: Date | null = null;
 	let autoSyncInterval: ReturnType<typeof setInterval> | null = null;
-
-	// Whether a sync operation is actively running
-	let isSyncing = false;
 
 	let showCustomQuery = false;
 
@@ -37,9 +32,6 @@
 			const queryFn = db.value.query.bind(db.value);
 			raindexClient.setDbCallback(queryFn);
 		}
-
-		// Populate last sync info on load
-		await updateSyncStatus();
 
 		// Auto-start syncing after db is initialized
 		if (db && !db.error && db.value) {
@@ -117,34 +109,10 @@
 
 		// Initial sync
 		await performAutoSync();
-		// Get current sync status
-		await updateSyncStatus();
-
 		// Set up interval for every 5 seconds
 		autoSyncInterval = setInterval(async () => {
 			await performAutoSync();
 		}, 5000);
-	}
-
-	async function updateSyncStatus() {
-		if (!db?.value) return;
-
-		try {
-			error = '';
-			const queryFn = db.value.query.bind(db.value);
-			const statusResult = await localDbClient.getSyncStatus(queryFn);
-
-			if (!statusResult.error && statusResult.value) {
-				const statusArray = statusResult.value;
-				if (statusArray && statusArray.length > 0) {
-					const latestStatus = statusArray[statusArray.length - 1];
-					lastSyncedBlock = latestStatus.last_synced_block.toString();
-					lastSyncTime = latestStatus.updated_at ? new Date(latestStatus.updated_at) : new Date();
-				}
-			}
-		} catch (err) {
-			error = err instanceof Error ? err.message : String(err);
-		}
 	}
 
 	function stopAutoSync() {
@@ -159,7 +127,6 @@
 		if (!db?.value || isLoading) return;
 
 		try {
-			isSyncing = true;
 			const queryFn = db.value.query.bind(db.value);
 
 			// Sync database and capture status updates
@@ -178,12 +145,8 @@
 			}
 
 			error = '';
-			// Update sync status display
-			await updateSyncStatus();
 		} catch (err) {
 			error = err instanceof Error ? err.message : String(err);
-		} finally {
-			isSyncing = false;
 		}
 	}
 
@@ -292,31 +255,22 @@
 							Database Operations
 						</h3>
 						<div class="flex items-center gap-3">
-							{#if autoSyncEnabled || lastSyncedBlock}
-								<div class="text-right text-sm">
-									<div class="flex items-center text-blue-700 dark:text-blue-300">
-										{#if autoSyncEnabled}
-											<div class="mr-2 h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-											<span class="font-medium">Auto-Sync Active</span>
-										{:else}
-											<div class="mr-2 h-2 w-2 rounded-full bg-gray-400"></div>
-											<span class="font-medium text-gray-500">Auto-Sync Stopped</span>
-										{/if}
-									</div>
-									{#if isSyncing && syncStatus}
-										<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-											Status: {syncStatus}
-										</div>
-									{:else if lastSyncedBlock}
-										<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-											Last sync: block {lastSyncedBlock}
-											{#if lastSyncTime}
-												at {lastSyncTime.toLocaleString()}
-											{/if}
-										</div>
+							<div class="text-right text-sm">
+								<div class="flex items-center text-blue-700 dark:text-blue-300">
+									{#if autoSyncEnabled}
+										<div class="mr-2 h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+										<span class="font-medium">Auto-Sync Active</span>
+									{:else}
+										<div class="mr-2 h-2 w-2 rounded-full bg-gray-400"></div>
+										<span class="font-medium text-gray-500">Auto-Sync Stopped</span>
 									{/if}
 								</div>
-							{/if}
+								{#if syncStatus}
+									<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+										Status: {syncStatus}
+									</div>
+								{/if}
+							</div>
 							<button
 								on:click={() => {
 									if (autoSyncEnabled) {

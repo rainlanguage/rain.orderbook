@@ -26,6 +26,9 @@ pub struct DecodedEventsToSql {
     #[arg(long, help = "Chain ID for erc20_tokens upserts")]
     pub chain_id: u32,
 
+    #[arg(long, help = "Orderbook contract address for SQL context")]
+    pub orderbook_address: String,
+
     #[arg(
         long,
         help = "Path to tokens.json providing metadata (decimals) for deposits when tokens are present"
@@ -36,6 +39,9 @@ pub struct DecodedEventsToSql {
 impl DecodedEventsToSql {
     pub async fn execute(self) -> Result<()> {
         println!("Generating SQL statements...");
+
+        let orderbook_address = Address::from_str(&self.orderbook_address)
+            .with_context(|| format!("Invalid orderbook address: {}", self.orderbook_address))?;
 
         let file = File::open(&self.input_file)
             .with_context(|| format!("Failed to open input file: {:?}", self.input_file))?;
@@ -83,9 +89,15 @@ impl DecodedEventsToSql {
             }
         }
 
-        let sql_statements =
-            decoded_events_to_sql(&decoded_events, self.end_block, &decimals_by_token, None)
-                .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
+        let sql_statements = decoded_events_to_sql(
+            &decoded_events,
+            self.chain_id,
+            orderbook_address,
+            self.end_block,
+            &decimals_by_token,
+            None,
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
 
         let output_path = self.output_file.map(PathBuf::from).unwrap_or_else(|| {
             let input_path = Path::new(&self.input_file);
@@ -112,7 +124,7 @@ struct TokensFileEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address as AlloyAddress, U256};
+    use alloy::primitives::U256;
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
@@ -127,6 +139,7 @@ mod tests {
             block_timestamp: "0x2".to_string(),
             transaction_hash: "0xabc".to_string(),
             log_index: "0x0".to_string(),
+            address: Address::ZERO,
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x0".to_string(),
                 note: "test".to_string(),
@@ -148,6 +161,7 @@ mod tests {
             output_file: Some(output_file.to_string_lossy().to_string()),
             end_block: 1000,
             chain_id: 1,
+            orderbook_address: "0x0000000000000000000000000000000000000000".to_string(),
             tokens_file: None,
         };
 
@@ -174,6 +188,7 @@ mod tests {
             output_file: None,
             end_block: 2000,
             chain_id: 1,
+            orderbook_address: "0x0000000000000000000000000000000000000000".to_string(),
             tokens_file: None,
         };
 
@@ -193,6 +208,7 @@ mod tests {
             output_file: None,
             end_block: 1000,
             chain_id: 1,
+            orderbook_address: "0x0000000000000000000000000000000000000000".to_string(),
             tokens_file: None,
         };
 
@@ -212,6 +228,7 @@ mod tests {
             output_file: None,
             end_block: 1000,
             chain_id: 1,
+            orderbook_address: "0x0000000000000000000000000000000000000000".to_string(),
             tokens_file: None,
         };
 
@@ -227,8 +244,7 @@ mod tests {
         let input_file = temp_dir.path().join("decoded.json");
         let output_file = temp_dir.path().join("events.sql");
 
-        let token_addr =
-            AlloyAddress::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+        let token_addr = Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
 
         // Build a decoded DepositV2 event requiring decimals
         let decoded = vec![DecodedEventData {
@@ -237,9 +253,9 @@ mod tests {
             block_timestamp: "0x64b8c123".into(),
             transaction_hash: "0x111".into(),
             log_index: "0x0".into(),
+            address: Address::from_str("0x00000000000000000000000000000000000000bb").unwrap(),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
-                sender: AlloyAddress::from_str("0x0000000000000000000000000000000000000001")
-                    .unwrap(),
+                sender: Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
                 token: token_addr,
                 vaultId: U256::from(1).into(),
                 depositAmountUint256: U256::from_str("1000000000000000000").unwrap(),
@@ -260,6 +276,7 @@ mod tests {
             output_file: Some(output_file.to_string_lossy().to_string()),
             end_block: 1000,
             chain_id: 1,
+            orderbook_address: "0x00000000000000000000000000000000000000bb".to_string(),
             tokens_file: Some(tokens_path.to_string_lossy().to_string()),
         };
 
