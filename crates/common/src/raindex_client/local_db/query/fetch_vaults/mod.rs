@@ -81,8 +81,7 @@ impl LocalDbQuery {
             format!("\nAND lower(o.token) IN ({})\n", token_values.join(", "))
         };
 
-        const BALANCE_EXPR: &str = r"#
-COALESCE((
+        const BALANCE_EXPR: &str = r"#COALESCE((
     SELECT FLOAT_SUM(vd.delta)
     FROM vault_deltas vd
     WHERE vd.owner    = o.owner

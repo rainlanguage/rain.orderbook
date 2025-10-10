@@ -536,9 +536,7 @@ accounts:
         callback: js_sys::Function,
     ) -> RaindexClient {
         let mut client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
-        client
-            .set_local_db_callback(callback)
-            .expect("setting db callback should succeed");
+        client.set_local_db_callback(callback).unwrap();
         client
     }
 

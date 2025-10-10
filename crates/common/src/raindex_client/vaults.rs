@@ -15,8 +15,9 @@ use crate::{
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
+use alloy::hex::encode_prefixed;
 use alloy::primitives::{Address, Bytes, B256, U256};
-use alloy::{primitives::keccak256, sol_types::SolCall};
+use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
@@ -38,14 +39,6 @@ use std::{rc::Rc, str::FromStr};
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
-
-fn to_even_length_hex(value: U256) -> String {
-    let mut hex = format!("{:x}", value);
-    if hex.len() % 2 != 0 {
-        hex.insert(0, '0');
-    }
-    format!("0x{}", hex)
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -314,7 +307,7 @@ impl RaindexVault {
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         if LocalDb::check_support(self.chain_id) {
             if let Some(db_cb) = self.raindex_client.local_db_callback() {
-                let vault_id_hex = to_even_length_hex(self.vault_id);
+                let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
                 let token_address = self.token.address.to_string();
                 let local_changes = LocalDbQuery::fetch_vault_balance_changes(
                     &db_cb,
@@ -324,11 +317,10 @@ impl RaindexVault {
                 .await?;
 
                 if !local_changes.is_empty() {
-                    let mut result = Vec::with_capacity(local_changes.len());
-                    for change in local_changes {
-                        result.push(RaindexVaultBalanceChange::try_from_local_db(self, change)?);
-                    }
-                    return Ok(result);
+                    return local_changes
+                        .into_iter()
+                        .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
+                        .collect::<Result<Vec<_>, _>>();
                 }
             }
         }
@@ -588,16 +580,22 @@ impl_wasm_traits!(RaindexVaultBalanceChangeType);
 impl TryFrom<String> for RaindexVaultBalanceChangeType {
     type Error = RaindexError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.starts_with("CLEAR_") {
+            return Ok(RaindexVaultBalanceChangeType::ClearBounty);
+        }
         match value.as_str() {
-            "Deposit" => Ok(RaindexVaultBalanceChangeType::Deposit),
-            "Withdrawal" => Ok(RaindexVaultBalanceChangeType::Withdrawal),
-            "TradeVaultBalanceChange" => Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange),
-            "ClearBounty" => Ok(RaindexVaultBalanceChangeType::ClearBounty),
-            "Unknown" => Ok(RaindexVaultBalanceChangeType::Unknown),
+            "Deposit" | "DEPOSIT" => Ok(RaindexVaultBalanceChangeType::Deposit),
+            "Withdrawal" | "WITHDRAWAL" => Ok(RaindexVaultBalanceChangeType::Withdrawal),
+            "TradeVaultBalanceChange" | "TAKE_INPUT" | "TAKE_OUTPUT" => {
+                Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange)
+            }
+            "ClearBounty" | "CLEARBounty" => Ok(RaindexVaultBalanceChangeType::ClearBounty),
+            "Unknown" | "UNKNOWN" => Ok(RaindexVaultBalanceChangeType::Unknown),
             _ => Err(RaindexError::InvalidVaultBalanceChangeType(value)),
         }
     }
 }
+impl RaindexVaultBalanceChangeType {}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -813,13 +811,7 @@ impl RaindexVaultBalanceChange {
             change.block_timestamp,
         )?;
 
-        let change_type = match change.change_type.trim().to_uppercase().as_str() {
-            "DEPOSIT" => RaindexVaultBalanceChangeType::Deposit,
-            "WITHDRAW" | "WITHDRAWAL" => RaindexVaultBalanceChangeType::Withdrawal,
-            "TAKE_INPUT" | "TAKE_OUTPUT" => RaindexVaultBalanceChangeType::TradeVaultBalanceChange,
-            change if change.starts_with("CLEAR_") => RaindexVaultBalanceChangeType::ClearBounty,
-            _ => RaindexVaultBalanceChangeType::Unknown,
-        };
+        let change_type = RaindexVaultBalanceChangeType::try_from(change.change_type)?;
 
         Ok(Self {
             r#type: change_type,
@@ -1522,22 +1514,21 @@ impl RaindexVault {
         let balance = Float::from_hex(&vault.balance)?;
         let formatted_balance = balance.format()?;
 
-        let mut id = Vec::with_capacity(
-            vault.orderbook_address.len()
-                + vault.owner.len()
-                + vault.token.len()
-                + vault.vault_id.len(),
-        );
-        id.extend_from_slice(vault.orderbook_address.as_bytes());
-        id.extend_from_slice(vault.owner.as_bytes());
-        id.extend_from_slice(vault.token.as_bytes());
-        id.extend_from_slice(vault.vault_id.as_bytes());
+        let id: Vec<u8> = vault
+            .orderbook_address
+            .as_bytes()
+            .iter()
+            .chain(vault.owner.as_bytes())
+            .chain(vault.token.as_bytes())
+            .chain(vault.vault_id.as_bytes())
+            .copied()
+            .collect();
 
         Ok(Self {
             raindex_client,
             chain_id,
             vault_type,
-            id: Bytes::from(keccak256(&id).as_slice().to_vec()),
+            id: Bytes::from(id),
             owner: Address::from_str(&vault.owner)?,
             vault_id: U256::from_str(&vault.vault_id)?,
             balance,
