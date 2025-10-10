@@ -5,7 +5,7 @@ const QUERY: &str = include_str!("query.sql");
 impl LocalDbQuery {
     pub async fn update_last_synced_block(
         db_callback: &js_sys::Function,
-        chain_id: u64,
+        chain_id: u32,
         orderbook_address: &str,
         block_number: u64,
     ) -> Result<(), LocalDbQueryError> {

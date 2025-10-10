@@ -1,12 +1,6 @@
 import type { RaindexClient, LocalDb } from '@rainlanguage/orderbook';
 import type { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
-import {
-	dbSyncIsActive,
-	dbSyncIsRunning,
-	dbSyncLastBlock,
-	dbSyncLastSyncTime,
-	dbSyncStatus
-} from '$lib/stores/dbSync';
+import { dbSyncIsActive, dbSyncIsRunning, dbSyncStatus } from '$lib/stores/dbSync';
 import { get } from 'svelte/store';
 
 interface StartLocalDbSyncOptions {
@@ -36,7 +30,6 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 	let stopped = false;
 	let isSyncing = false;
 	let intervalId: ReturnType<typeof setInterval> | null = null;
-
 	dbSyncIsActive.set(true);
 
 	async function performSync() {
@@ -68,8 +61,6 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 	}
 
 	async function bootstrap() {
-		dbSyncLastBlock.set(null);
-		dbSyncLastSyncTime.set(null);
 		dbSyncStatus.set('Starting database sync...');
 		await performSync();
 
@@ -115,8 +106,6 @@ if (import.meta.vitest) {
 
 	const resetStores = () => {
 		dbSyncStatus.set('');
-		dbSyncLastBlock.set(null);
-		dbSyncLastSyncTime.set(null);
 		dbSyncIsActive.set(false);
 		dbSyncIsRunning.set(false);
 	};
