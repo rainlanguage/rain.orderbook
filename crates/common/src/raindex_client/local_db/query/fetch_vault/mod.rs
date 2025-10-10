@@ -11,22 +11,30 @@ pub struct LocalDbVault {
     pub owner: String,
     #[serde(alias = "orderbookAddress")]
     pub orderbook_address: String,
+    #[serde(alias = "tokenName")]
+    pub token_name: String,
+    #[serde(alias = "tokenSymbol")]
+    pub token_symbol: String,
+    #[serde(alias = "tokenDecimals")]
+    pub token_decimals: u8,
     pub balance: String,
-    #[serde(alias = "inputOrderHashes")]
-    pub input_order_hashes: Option<String>,
-    #[serde(alias = "outputOrderHashes")]
-    pub output_order_hashes: Option<String>,
+    #[serde(alias = "inputOrders")]
+    pub input_orders: Option<String>,
+    #[serde(alias = "outputOrders")]
+    pub output_orders: Option<String>,
 }
 
 impl LocalDbQuery {
     pub async fn fetch_vault(
         db_callback: &js_sys::Function,
+        chain_id: u32,
         vault_id: &str,
         token: &str,
     ) -> Result<Option<LocalDbVault>, LocalDbQueryError> {
         let sql = QUERY
             .replace("'?vault_id'", &format!("'{}'", vault_id))
-            .replace("'?token'", &format!("'{}'", token));
+            .replace("'?token'", &format!("'{}'", token))
+            .replace("'?chain_id'", &format!("'{}'", chain_id));
 
         let rows = LocalDbQuery::execute_query_json::<Vec<LocalDbVault>>(db_callback, &sql).await?;
         Ok(rows.into_iter().next())
@@ -54,12 +62,13 @@ impl LocalDbQuery {
     // Given an IO string, fetch corresponding vaults in order
     pub async fn fetch_vaults_for_io_string(
         db_callback: &js_sys::Function,
+        chain_id: u32,
         io: &Option<String>,
     ) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
         let ios = Self::parse_io_indexed_pairs(io);
         let mut vaults = Vec::with_capacity(ios.len());
         for (_, vault_id, token) in ios.iter() {
-            if let Some(v) = Self::fetch_vault(db_callback, vault_id, token).await? {
+            if let Some(v) = Self::fetch_vault(db_callback, chain_id, vault_id, token).await? {
                 vaults.push(v);
             }
         }
@@ -88,16 +97,20 @@ mod tests {
                 token: "0xaaa".into(),
                 owner: "0x1111111111111111111111111111111111111111".into(),
                 orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                token_name: "Token A".into(),
+                token_symbol: "TA".into(),
+                token_decimals: 6,
                 balance: "0x10".into(),
-                input_order_hashes: Some(
-                    "0xabc0000000000000000000000000000000000000000000000000000000000001".into(),
+                input_orders: Some(
+                    "0x01:0xabc0000000000000000000000000000000000000000000000000000000000001:1"
+                        .into(),
                 ),
-                output_order_hashes: None,
+                output_orders: None,
             };
             let json_data = serde_json::to_string(&vec![vault.clone()]).unwrap();
             let callback = create_success_callback(&json_data);
 
-            let result = LocalDbQuery::fetch_vault(&callback, "0x01", "0xaaa").await;
+            let result = LocalDbQuery::fetch_vault(&callback, 1, "0x01", "0xaaa").await;
             assert!(result.is_ok());
             let data = result.unwrap();
             assert!(data.is_some());
@@ -106,9 +119,12 @@ mod tests {
             assert_eq!(data.token, vault.token);
             assert_eq!(data.owner, vault.owner);
             assert_eq!(data.orderbook_address, vault.orderbook_address);
+            assert_eq!(data.token_name, vault.token_name);
+            assert_eq!(data.token_symbol, vault.token_symbol);
+            assert_eq!(data.token_decimals, vault.token_decimals);
             assert_eq!(data.balance, vault.balance);
-            assert_eq!(data.input_order_hashes, vault.input_order_hashes);
-            assert_eq!(data.output_order_hashes, vault.output_order_hashes);
+            assert_eq!(data.input_orders, vault.input_orders);
+            assert_eq!(data.output_orders, vault.output_orders);
         }
 
         #[wasm_bindgen_test]
@@ -117,13 +133,15 @@ mod tests {
             // Provide empty result array
             let callback = create_sql_capturing_callback("[]", captured.clone());
 
-            let _ = LocalDbQuery::fetch_vault(&callback, "0xdead", "0xbeef").await;
+            let _ = LocalDbQuery::fetch_vault(&callback, 137, "0xdead", "0xbeef").await;
 
             let sql = captured.borrow();
             assert!(sql.contains("'0xdead'"));
             assert!(sql.contains("'0xbeef'"));
+            assert!(sql.contains("137"));
             assert!(!sql.contains("?vault_id"));
             assert!(!sql.contains("?token"));
+            assert!(!sql.contains("?chain_id"));
         }
 
         #[wasm_bindgen_test]
@@ -146,16 +164,19 @@ mod tests {
                 token: "0xT".into(),
                 owner: "0xOwner".into(),
                 orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                token_name: "Token X".into(),
+                token_symbol: "TX".into(),
+                token_decimals: 18,
                 balance: "0x10".into(),
-                input_order_hashes: Some("0xabc".into()),
-                output_order_hashes: None,
+                input_orders: Some("0x01:0xabc:1".into()),
+                output_orders: None,
             };
             let json_data = serde_json::to_string(&vec![sample.clone()]).unwrap();
             let callback =
                 crate::raindex_client::local_db::query::tests::create_success_callback(&json_data);
 
             let io = Some("1:0x01:0xaaa,0:0x02:0xbbb".into());
-            let result = LocalDbQuery::fetch_vaults_for_io_string(&callback, &io).await;
+            let result = LocalDbQuery::fetch_vaults_for_io_string(&callback, 1, &io).await;
             assert!(result.is_ok());
             let list = result.unwrap();
             assert_eq!(list.len(), 2);
