@@ -226,7 +226,7 @@ mod tests {
         let result = TokenVaultFlattened::try_from(sg_vault);
         let flattened = result.unwrap();
 
-        assert_eq!(flattened.balance_display, "9.87650000000000000000001e4");
+        assert_eq!(flattened.balance_display, "98765.0000000000000000001");
         assert_eq!(flattened.balance, SgBytes(balance_str.to_string()));
     }
 }
