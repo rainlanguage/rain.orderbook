@@ -10,7 +10,8 @@ export async function handleGuiInitialization(
 		const stateResult = await DotrainOrderGui.newFromState(
 			dotrain,
 			stateFromUrl,
-			pushGuiStateToUrlHistory
+			pushGuiStateToUrlHistory,
+			undefined
 		);
 
 		if (!stateResult.error) {
@@ -21,7 +22,8 @@ export async function handleGuiInitialization(
 		const deploymentResult = await DotrainOrderGui.newWithDeployment(
 			dotrain,
 			deploymentKey,
-			pushGuiStateToUrlHistory
+			pushGuiStateToUrlHistory,
+			undefined
 		);
 
 		if (deploymentResult.error)
@@ -35,7 +37,8 @@ export async function handleGuiInitialization(
 		const result = await DotrainOrderGui.newWithDeployment(
 			dotrain,
 			deploymentKey,
-			pushGuiStateToUrlHistory
+			pushGuiStateToUrlHistory,
+			undefined
 		);
 
 		if (result.error)

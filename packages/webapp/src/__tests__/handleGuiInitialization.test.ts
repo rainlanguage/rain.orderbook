@@ -30,7 +30,8 @@ describe('handleGuiInitialization', () => {
 		expect(DotrainOrderGui.newFromState).toHaveBeenCalledWith(
 			mockDotrain,
 			'validStateUrl',
-			pushGuiStateToUrlHistory
+			pushGuiStateToUrlHistory,
+			undefined
 		);
 		expect(DotrainOrderGui.newWithDeployment).not.toHaveBeenCalled();
 	});
@@ -50,7 +51,8 @@ describe('handleGuiInitialization', () => {
 		expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
 			mockDotrain,
 			mockDeploymentKey,
-			pushGuiStateToUrlHistory
+			pushGuiStateToUrlHistory,
+			undefined
 		);
 	});
 
@@ -66,7 +68,8 @@ describe('handleGuiInitialization', () => {
 		expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
 			mockDotrain,
 			mockDeploymentKey,
-			pushGuiStateToUrlHistory
+			pushGuiStateToUrlHistory,
+			undefined
 		);
 	});
 
