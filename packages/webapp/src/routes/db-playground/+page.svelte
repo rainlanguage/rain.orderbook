@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
-	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from 'sqlite-web';
+	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from '@rainlanguage/sqlite-web';
 	import { type LocalDb } from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
@@ -31,7 +31,7 @@
 
 	onMount(async () => {
 		await init();
-		db = SQLiteWasmDatabase.new();
+		db = SQLiteWasmDatabase.new('rainlanguage_orderbook_webapp');
 
 		if (db && !db.error && db.value) {
 			const queryFn = db.value.query.bind(db.value);

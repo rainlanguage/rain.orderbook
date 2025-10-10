@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
 import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
-import init, { SQLiteWasmDatabase } from 'sqlite-web';
+import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import { REMOTE_SETTINGS_URL } from '$lib/constants';
 
 export interface LayoutData {
@@ -54,7 +54,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let localDb: SQLiteWasmDatabase | null = null;
 	try {
 		await init();
-		const localDbRes = SQLiteWasmDatabase.new();
+		const localDbRes = SQLiteWasmDatabase.new('worker.db');
 		if (localDbRes.error) {
 			return {
 				errorMessage: 'Error initializing local database: ' + localDbRes.error.readableMsg,

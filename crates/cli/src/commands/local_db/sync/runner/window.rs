@@ -130,16 +130,16 @@ impl EndClamp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::local_db::sqlite::sqlite_execute;
-    use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
     use alloy::primitives::Address;
     use async_trait::async_trait;
     use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
     use rain_orderbook_common::rpc_client::LogEntryResponse;
+    use std::collections::HashMap;
     use tempfile::TempDir;
     use url::Url;
 
-    use crate::commands::local_db::sync::data_source::SyncDataSource;
+    use crate::commands::local_db::sqlite::sqlite_execute;
+    use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
     struct MockDataSource {
         latest_block: u64,
@@ -152,29 +152,44 @@ mod tests {
             Ok(self.latest_block)
         }
 
-        async fn fetch_events(&self, _: &str, _: u64, _: u64) -> Result<Vec<LogEntryResponse>> {
+        async fn fetch_events(
+            &self,
+            _orderbook_address: &str,
+            _start_block: u64,
+            _end_block: u64,
+        ) -> Result<Vec<LogEntryResponse>> {
             Ok(vec![])
         }
 
         fn decode_events(
             &self,
-            _: &[LogEntryResponse],
+            _events: &[LogEntryResponse],
         ) -> Result<Vec<DecodedEventData<DecodedEvent>>> {
             Ok(vec![])
         }
 
         fn events_to_sql(
             &self,
-            _: &[DecodedEventData<DecodedEvent>],
-            _: u64,
-            _: &std::collections::HashMap<Address, u8>,
-            _: &str,
+            _decoded_events: &[DecodedEventData<DecodedEvent>],
+            _end_block: u64,
+            _decimals_by_token: &HashMap<Address, u8>,
+            _prefix_sql: &str,
         ) -> Result<String> {
             Ok(String::new())
         }
 
         fn rpc_urls(&self) -> &[Url] {
             &self.rpc_urls
+        }
+    }
+
+    fn params() -> SyncParams<'static> {
+        SyncParams {
+            chain_id: 1,
+            orderbook_address: "0xorder",
+            deployment_block: 50,
+            start_block: None,
+            end_block: None,
         }
     }
 
@@ -186,27 +201,97 @@ mod tests {
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
 
         let data_source = MockDataSource {
-            latest_block: 10,
-            rpc_urls: Vec::new(),
+            latest_block: 100,
+            rpc_urls: vec![Url::parse("http://rpc").unwrap()],
         };
-        let params = SyncParams {
-            chain_id: 1,
-            orderbook_address: "0xfeed",
-            deployment_block: 5,
-            start_block: None,
-            end_block: None,
+
+        let window = compute_sync_window(&db_path_str, &data_source, &params())
+            .await
+            .unwrap();
+
+        assert_eq!(window.start_block, 50);
+        assert_eq!(window.target_block, 100);
+        assert!(window.start_adjustment.is_none());
+        assert!(window.end_clamp.is_none());
+    }
+
+    #[tokio::test]
+    async fn adjusts_when_start_before_last_synced() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("window.db");
+        let db_path_str = db_path.to_string_lossy();
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        // simulate previous sync
+        sqlite_execute(
+            &db_path_str,
+            "UPDATE sync_status SET last_synced_block = 80, updated_at = CURRENT_TIMESTAMP WHERE id = 1;",
+        )
+        .unwrap();
+
+        let data_source = MockDataSource {
+            latest_block: 120,
+            rpc_urls: vec![Url::parse("http://rpc").unwrap()],
         };
+
+        let mut params = params();
+        params.start_block = Some(75);
 
         let window = compute_sync_window(&db_path_str, &data_source, &params)
             .await
             .unwrap();
-        assert_eq!(window.start_block, 5);
-        assert_eq!(window.last_synced_block, 0);
+
+        assert_eq!(window.start_block, 81);
+        assert!(window.start_adjustment.is_some());
+    }
+
+    #[tokio::test]
+    async fn clamps_end_block() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("window.db");
+        let db_path_str = db_path.to_string_lossy();
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+
+        let data_source = MockDataSource {
+            latest_block: 90,
+            rpc_urls: vec![Url::parse("http://rpc").unwrap()],
+        };
+
+        let mut params = params();
+        params.end_block = Some(100);
+
+        let window = compute_sync_window(&db_path_str, &data_source, &params)
+            .await
+            .unwrap();
+
+        assert_eq!(window.target_block, 90);
+        assert!(window.end_clamp.is_some());
+    }
+
+    #[tokio::test]
+    async fn noop_when_start_exceeds_target() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("window.db");
+        let db_path_str = db_path.to_string_lossy();
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+
+        let data_source = MockDataSource {
+            latest_block: 60,
+            rpc_urls: vec![Url::parse("http://rpc").unwrap()],
+        };
+
+        let mut params = params();
+        params.start_block = Some(70);
+
+        let window = compute_sync_window(&db_path_str, &data_source, &params)
+            .await
+            .unwrap();
+
+        assert!(window.noop);
     }
 
     #[test]
-    fn default_start_block_matches_previous_behavior() {
-        assert_eq!(default_start_block(0, 123), 123);
-        assert_eq!(default_start_block(10, 5), 11);
+    fn default_start_block_behaviour() {
+        assert_eq!(default_start_block(0, 42), 42);
+        assert_eq!(default_start_block(99, 10), 100);
     }
 }

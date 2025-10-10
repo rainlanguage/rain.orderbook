@@ -124,47 +124,109 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::Address;
+    use alloy::primitives::{Address, U256};
     use async_trait::async_trait;
+    use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
-    use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
+    use rain_orderbook_common::raindex_client::local_db::decode::{
+        DecodedEvent, DecodedEventData, EventType,
+    };
     use rain_orderbook_common::rpc_client::LogEntryResponse;
-    use url::Url;
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+    use tempfile::TempDir;
 
-    struct DummyDataSource {
-        rpc_urls: Vec<Url>,
+    use crate::commands::local_db::sqlite::{sqlite_execute, sqlite_query_json};
+    use crate::commands::local_db::sync::storage::{
+        SyncStatusRow, DEFAULT_SCHEMA_SQL, SYNC_STATUS_QUERY,
+    };
+
+    struct TestFetcher {
+        metadata: Vec<(Address, TokenInfo)>,
+        calls: Mutex<Vec<Vec<Address>>>,
     }
 
     #[async_trait]
-    impl SyncDataSource for DummyDataSource {
+    impl TokenMetadataFetcher for TestFetcher {
+        async fn fetch(
+            &self,
+            _: &[Url],
+            missing: Vec<Address>,
+        ) -> Result<Vec<(Address, TokenInfo)>> {
+            self.calls.lock().unwrap().push(missing.clone());
+            Ok(self.metadata.clone())
+        }
+    }
+
+    struct TestDataSource {
+        latest_block: u64,
+        rpc_urls: Vec<Url>,
+        fetch_logs: Vec<LogEntryResponse>,
+        decoded_events: Vec<DecodedEventData<DecodedEvent>>,
+        sql_result: String,
+        fetch_calls: Mutex<Vec<(String, u64, u64)>>,
+        sql_calls: Mutex<Vec<(usize, u64)>>,
+        prefixes: Mutex<Vec<String>>,
+        decimals: Mutex<Vec<HashMap<Address, u8>>>,
+    }
+
+    #[async_trait]
+    impl SyncDataSource for TestDataSource {
         async fn latest_block(&self) -> Result<u64> {
-            Ok(0)
+            Ok(self.latest_block)
         }
 
         async fn fetch_events(
             &self,
-            _orderbook_address: &str,
-            _start_block: u64,
-            _end_block: u64,
+            orderbook_address: &str,
+            start_block: u64,
+            end_block: u64,
         ) -> Result<Vec<LogEntryResponse>> {
-            Ok(vec![])
+            self.fetch_calls.lock().unwrap().push((
+                orderbook_address.to_string(),
+                start_block,
+                end_block,
+            ));
+            Ok(self.fetch_logs.clone())
         }
 
         fn decode_events(
             &self,
             _events: &[LogEntryResponse],
         ) -> Result<Vec<DecodedEventData<DecodedEvent>>> {
-            Ok(vec![])
+            Ok(self.decoded_events.clone())
         }
 
         fn events_to_sql(
             &self,
-            _decoded_events: &[DecodedEventData<DecodedEvent>],
-            _end_block: u64,
-            _decimals_by_token: &std::collections::HashMap<Address, u8>,
-            _prefix_sql: &str,
+            decoded_events: &[DecodedEventData<DecodedEvent>],
+            end_block: u64,
+            decimals_by_token: &HashMap<Address, u8>,
+            prefix_sql: &str,
         ) -> Result<String> {
-            Ok(String::new())
+            self.sql_calls
+                .lock()
+                .unwrap()
+                .push((decoded_events.len(), end_block));
+            self.prefixes.lock().unwrap().push(prefix_sql.to_string());
+            self.decimals
+                .lock()
+                .unwrap()
+                .push(decimals_by_token.clone());
+
+            let mut out = String::new();
+            if !prefix_sql.is_empty() {
+                out.push_str(prefix_sql);
+                if !prefix_sql.ends_with('\n') {
+                    out.push('\n');
+                }
+            }
+            out.push_str(
+                &self
+                    .sql_result
+                    .replace("?end_block", &end_block.to_string()),
+            );
+            Ok(out)
         }
 
         fn rpc_urls(&self) -> &[Url] {
@@ -172,44 +234,142 @@ mod tests {
         }
     }
 
-    struct DummyFetcher;
-
-    #[async_trait]
-    impl TokenMetadataFetcher for DummyFetcher {
-        async fn fetch(
-            &self,
-            _rpcs: &[Url],
-            _missing: Vec<Address>,
-        ) -> Result<Vec<(Address, TokenInfo)>> {
-            Ok(vec![])
+    fn sample_decoded_event(token: Address) -> DecodedEventData<DecodedEvent> {
+        DecodedEventData {
+            event_type: EventType::DepositV2,
+            block_number: "0x1".into(),
+            block_timestamp: "0x0".into(),
+            transaction_hash: "0xabc".into(),
+            log_index: "0x0".into(),
+            decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
+                sender: Address::from([0x11; 20]),
+                token,
+                vaultId: U256::from(1).into(),
+                depositAmountUint256: U256::from(5),
+            })),
         }
     }
 
-    #[test]
-    fn metadata_rpcs_prefers_override_urls() {
-        let source = DummyDataSource {
-            rpc_urls: vec![Url::parse("https://source.example").unwrap()],
+    fn sample_log() -> LogEntryResponse {
+        LogEntryResponse {
+            address: "0xfeed".into(),
+            topics: vec!["0x0".into()],
+            data: "0x".into(),
+            block_number: "0x1".into(),
+            block_timestamp: Some("0x0".into()),
+            transaction_hash: "0xabc".into(),
+            transaction_index: "0x0".into(),
+            block_hash: "0x123".into(),
+            log_index: "0x0".into(),
+            removed: false,
+        }
+    }
+
+    #[tokio::test]
+    async fn run_executes_full_flow() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("sync.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+
+        let token_addr = Address::from([0xaa; 20]);
+        let decoded_events = vec![sample_decoded_event(token_addr)];
+
+        let data_source = TestDataSource {
+            latest_block: 200,
+            rpc_urls: vec![Url::parse("http://event.rpc").unwrap()],
+            fetch_logs: vec![sample_log()],
+            decoded_events: decoded_events.clone(),
+            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            fetch_calls: Mutex::new(vec![]),
+            sql_calls: Mutex::new(vec![]),
+            prefixes: Mutex::new(vec![]),
+            decimals: Mutex::new(vec![]),
         };
-        let override_url = Url::parse("https://override.example").unwrap();
+
+        let token_info = TokenInfo {
+            name: "Token".into(),
+            symbol: "TKN".into(),
+            decimals: 18,
+        };
+        let fetcher = TestFetcher {
+            metadata: vec![(token_addr, token_info)],
+            calls: Mutex::new(vec![]),
+        };
+
         let runner = SyncRunner::new(
-            "db.sqlite",
-            &source,
-            vec![override_url.clone()],
-            &DummyFetcher,
+            &db_path_str,
+            &data_source,
+            vec![Url::parse("http://metadata.rpc").unwrap()],
+            &fetcher,
         );
 
-        let urls = runner.metadata_rpcs();
-        assert_eq!(urls.len(), 1);
-        assert_eq!(urls[0], override_url);
+        let params = SyncParams {
+            chain_id: 1,
+            orderbook_address: "0xorder",
+            deployment_block: 150,
+            start_block: None,
+            end_block: Some(190),
+        };
+
+        runner.run(&params).await.unwrap();
+
+        let fetch_calls = data_source.fetch_calls.lock().unwrap();
+        assert_eq!(fetch_calls.len(), 1);
+        assert_eq!(fetch_calls[0], ("0xorder".into(), 150, 190));
+
+        let sql_calls = data_source.sql_calls.lock().unwrap();
+        assert_eq!(sql_calls.len(), 1);
+        assert_eq!(sql_calls[0], (decoded_events.len(), 190));
+
+        let prefixes = data_source.prefixes.lock().unwrap();
+        assert_eq!(prefixes.len(), 1);
+
+        let decimals = data_source.decimals.lock().unwrap();
+        assert_eq!(decimals.len(), 1);
+        assert_eq!(decimals[0].get(&token_addr), Some(&18));
+
+        let fetcher_calls = fetcher.calls.lock().unwrap();
+        assert_eq!(fetcher_calls.len(), 1);
+        assert_eq!(fetcher_calls[0], vec![token_addr]);
+
+        let sync_rows: Vec<SyncStatusRow> =
+            sqlite_query_json(&db_path_str, SYNC_STATUS_QUERY).unwrap();
+        assert_eq!(sync_rows[0].last_synced_block, 190);
     }
 
     #[test]
-    fn metadata_rpcs_falls_back_to_source_urls() {
-        let source = DummyDataSource {
-            rpc_urls: vec![Url::parse("https://fallback.example").unwrap()],
+    fn metadata_rpcs_falls_back_to_data_source() {
+        let data_source = TestDataSource {
+            latest_block: 0,
+            rpc_urls: vec![Url::parse("http://event.rpc").unwrap()],
+            fetch_logs: vec![],
+            decoded_events: vec![],
+            sql_result: String::new(),
+            fetch_calls: Mutex::new(vec![]),
+            sql_calls: Mutex::new(vec![]),
+            prefixes: Mutex::new(vec![]),
+            decimals: Mutex::new(vec![]),
         };
-        let runner = SyncRunner::new("db.sqlite", &source, Vec::new(), &DummyFetcher);
+        let fetcher = TestFetcher {
+            metadata: vec![],
+            calls: Mutex::new(vec![]),
+        };
 
-        assert_eq!(runner.metadata_rpcs(), source.rpc_urls());
+        let runner = SyncRunner::new("/tmp/db", &data_source, vec![], &fetcher);
+        assert_eq!(runner.metadata_rpcs(), data_source.rpc_urls());
+
+        let override_runner = SyncRunner::new(
+            "/tmp/db",
+            &data_source,
+            vec![Url::parse("http://override").unwrap()],
+            &fetcher,
+        );
+        assert_eq!(override_runner.metadata_rpcs().len(), 1);
+        assert_eq!(
+            override_runner.metadata_rpcs()[0].as_str(),
+            "http://override/"
+        );
     }
 }

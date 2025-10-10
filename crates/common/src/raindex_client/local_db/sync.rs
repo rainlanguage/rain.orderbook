@@ -19,7 +19,7 @@ use std::{
 };
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
-const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/ca1247390fc95e62fcc7eeab07cef92aa8097b0c/local_db.sql.gz";
+const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/07d48a0dd5136d42a29f2b0d8950cc9d77dfb1c9/local_db.sql.gz";
 
 async fn check_required_tables(db_callback: &js_sys::Function) -> Result<bool, LocalDbQueryError> {
     let tables = LocalDbQuery::fetch_all_tables(db_callback).await?;
