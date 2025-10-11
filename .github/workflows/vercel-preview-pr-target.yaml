@@ -52,7 +52,7 @@ jobs:
             keep-outputs = true
       - run: ./prep-all.sh
         env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: test       
+          PUBLIC_WALLETCONNECT_PROJECT_ID: test
 
       - run: nix develop .#webapp-shell -c npm run build
         working-directory: packages/webapp
