@@ -93,6 +93,8 @@ jobs:
           gc-max-store-size-linux: 10G
 
       - run: ./pointers.sh
+        env:
+          NIXPKGS_ALLOW_INSECURE: 1
 
       - name: Generate ephemeral deployment key
         run: |
