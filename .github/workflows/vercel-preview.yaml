@@ -30,6 +30,7 @@ jobs:
       contents: read
     env:
       COMMIT_SHA: ${{ github.sha }}
+      NIXPKGS_ALLOW_INSECURE: 1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
