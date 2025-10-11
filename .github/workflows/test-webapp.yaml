@@ -43,6 +43,7 @@ jobs:
       - run: ./prep-all.sh
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+          NIXPKGS_ALLOW_INSECURE: 1
 
       - run: nix develop -c npm run svelte-lint-format-check -w @rainlanguage/webapp
         env:
