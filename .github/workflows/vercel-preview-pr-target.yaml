@@ -35,7 +35,6 @@ jobs:
       contents: read
     env:
       COMMIT_SHA: ${{ github.sha }}
-      NIXPKGS_ALLOW_INSECURE: 1
     environment: vercel-preview
     steps:
       - name: Checkout PR head
@@ -54,6 +53,7 @@ jobs:
       - run: ./prep-all.sh
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: test
+          NIXPKGS_ALLOW_INSECURE: 1
 
       - run: nix develop .#webapp-shell -c npm run build
         working-directory: packages/webapp
