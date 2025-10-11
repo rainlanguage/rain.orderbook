@@ -35,6 +35,7 @@ jobs:
       contents: read
     env:
       COMMIT_SHA: ${{ github.sha }}
+      NIXPKGS_ALLOW_INSECURE: 1
     environment: vercel-preview
     steps:
       - name: Checkout PR head
