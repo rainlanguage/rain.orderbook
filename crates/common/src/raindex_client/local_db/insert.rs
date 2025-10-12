@@ -1,10 +1,11 @@
 use super::decode::{DecodedEvent, DecodedEventData, InterpreterStoreSetEvent};
-use crate::erc20::TokenInfo;
+use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
 use alloy::sol_types::SolValue;
 use alloy::{
     hex,
     primitives::{keccak256, Address, FixedBytes, U256},
 };
+use itertools::Itertools;
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{
     AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3, WithdrawV2,
@@ -32,6 +33,8 @@ pub enum InsertError {
     FloatConversion(String),
     #[error("Missing decimals for token {token}")]
     MissingTokenDecimals { token: String },
+    #[error("Failed to serialize raw event payload: {0}")]
+    RawEventSerialization(String),
 }
 
 fn encode_u256_prefixed(value: &U256) -> String {
@@ -163,6 +166,79 @@ pub fn decoded_events_to_sql(
     ));
 
     sql.push_str("\nCOMMIT;\n");
+
+    Ok(sql)
+}
+
+pub fn raw_events_to_sql(raw_events: &[LogEntryResponse]) -> Result<String, InsertError> {
+    struct RawEventRow<'a> {
+        block_number: u64,
+        log_index: u64,
+        block_timestamp: Option<u64>,
+        event: &'a LogEntryResponse,
+        topics_json: String,
+        raw_json: String,
+    }
+
+    let rows = raw_events
+        .iter()
+        .map(|event| {
+            let block_number = hex_to_decimal(&event.block_number)?;
+            let log_index = hex_to_decimal(&event.log_index)?;
+            let block_timestamp = event
+                .block_timestamp
+                .as_deref()
+                .map(hex_to_decimal)
+                .transpose()?;
+            let topics_json = serde_json::to_string(&event.topics)
+                .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
+            let raw_json = serde_json::to_string(&event)
+                .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
+            Ok(RawEventRow {
+                block_number,
+                log_index,
+                block_timestamp,
+                event,
+                topics_json,
+                raw_json,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let sql = rows
+        .iter()
+        .sorted_by(|a, b| {
+            a.block_number
+                .cmp(&b.block_number)
+                .then_with(|| a.log_index.cmp(&b.log_index))
+        })
+        .map(|row| {
+            let timestamp_sql = row
+                .block_timestamp
+                .map_or_else(|| "NULL".to_string(), |ts| ts.to_string());
+            format!(
+                r#"INSERT INTO raw_events (
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    address,
+    topics,
+    data,
+    raw_json
+) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');
+"#,
+                row.block_number,
+                timestamp_sql,
+                escape_sql_text(&row.event.transaction_hash),
+                row.log_index,
+                escape_sql_text(&row.event.address),
+                escape_sql_text(&row.topics_json),
+                escape_sql_text(&row.event.data),
+                escape_sql_text(&row.raw_json),
+            )
+        })
+        .collect::<String>();
 
     Ok(sql)
 }
@@ -779,11 +855,16 @@ fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
     })
 }
 
+fn escape_sql_text(value: &str) -> String {
+    value.replace('\'', "''")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
     use crate::raindex_client::local_db::LocalDb;
+    use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use rain_orderbook_bindings::IOrderBookV5::{
@@ -1195,5 +1276,77 @@ mod tests {
             .unwrap();
         let expected = format!("BEGIN TRANSACTION;\n\n{}", prefix);
         assert!(prefixed.starts_with(&expected));
+    }
+
+    #[test]
+    fn test_raw_events_sql_sorted_and_handles_null_timestamp() {
+        let events = vec![
+            LogEntryResponse {
+                address: "0x2222222222222222222222222222222222222222".to_string(),
+                topics: vec!["0x01".to_string(), "0x02".to_string()],
+                data: "0xdeadbeef".to_string(),
+                block_number: "0x2".to_string(),
+                block_timestamp: Some("0x64b8c125".to_string()),
+                transaction_hash: "0xbbb".to_string(),
+                transaction_index: "0x0".to_string(),
+                block_hash: "0x0".to_string(),
+                log_index: "0x1".to_string(),
+                removed: false,
+            },
+            LogEntryResponse {
+                address: "0x1111111111111111111111111111111111111111".to_string(),
+                topics: vec!["0x01".to_string()],
+                data: "0xbead".to_string(),
+                block_number: "0x1".to_string(),
+                block_timestamp: Some("0x64b8c124".to_string()),
+                transaction_hash: "0xaaa".to_string(),
+                transaction_index: "0x0".to_string(),
+                block_hash: "0x0".to_string(),
+                log_index: "0x0".to_string(),
+                removed: false,
+            },
+            LogEntryResponse {
+                address: "0x3333333333333333333333333333333333333333".to_string(),
+                topics: vec!["0x01".to_string()],
+                data: "0xfeed".to_string(),
+                block_number: "0x3".to_string(),
+                block_timestamp: None,
+                transaction_hash: "0xccc".to_string(),
+                transaction_index: "0x0".to_string(),
+                block_hash: "0x0".to_string(),
+                log_index: "0x0".to_string(),
+                removed: false,
+            },
+        ];
+
+        let sql = raw_events_to_sql(&events).unwrap();
+        assert!(sql.contains("INSERT INTO raw_events"));
+
+        let first_pos = sql.find("0xaaa").unwrap();
+        let second_pos = sql.find("0xbbb").unwrap();
+        let third_pos = sql.find("0xccc").unwrap();
+        assert!(first_pos < second_pos && second_pos < third_pos);
+
+        assert!(sql.contains("VALUES (3, NULL,"));
+        assert!(sql.contains("[\"0x01\",\"0x02\"]"));
+    }
+
+    #[test]
+    fn test_raw_events_sql_invalid_hex() {
+        let events = vec![LogEntryResponse {
+            address: "0x1111111111111111111111111111111111111111".to_string(),
+            topics: vec!["0x01".to_string()],
+            data: "0xbead".to_string(),
+            block_number: "not-hex".to_string(),
+            block_timestamp: Some("0x0".to_string()),
+            transaction_hash: "0xaaa".to_string(),
+            transaction_index: "0x0".to_string(),
+            block_hash: "0x0".to_string(),
+            log_index: "0x0".to_string(),
+            removed: false,
+        }];
+
+        let result = raw_events_to_sql(&events);
+        assert!(matches!(result, Err(InsertError::HexParseError { .. })));
     }
 }

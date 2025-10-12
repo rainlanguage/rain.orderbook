@@ -37,7 +37,14 @@ pub(crate) fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String
     let rows: Vec<StoreAddressRow> = sqlite_query_json(db_path, STORE_ADDRESSES_QUERY)?;
     Ok(rows
         .into_iter()
-        .map(|row| row.store_address.to_ascii_lowercase())
+        .filter_map(|row| {
+            let trimmed = row.store_address.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_ascii_lowercase())
+            }
+        })
         .collect())
 }
 
@@ -155,13 +162,38 @@ mod tests {
     }
 
     #[test]
-    fn fetch_existing_store_addresses_defaults_to_empty() {
+    fn fetch_existing_store_addresses_returns_lowercase() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("stores.db");
         let db_path_str = db_path.to_string_lossy();
 
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        sqlite_execute(
+            &db_path_str,
+            r#"INSERT INTO interpreter_store_sets (
+                store_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                namespace,
+                key,
+                value
+            ) VALUES (
+                '0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD',
+                '0x1',
+                0,
+                1,
+                0,
+                '0x0',
+                '0x0',
+                '0x0'
+            );
+"#,
+        )
+        .unwrap();
+
         let stores = fetch_existing_store_addresses(&db_path_str).unwrap();
-        assert!(stores.is_empty());
+        assert_eq!(stores, vec!["0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);
     }
 }
