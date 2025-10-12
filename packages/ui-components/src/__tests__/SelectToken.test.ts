@@ -84,6 +84,14 @@ describe('SelectToken', () => {
 		expect(getByText('Select a token...')).toBeInTheDocument();
 	});
 
+	it('shows selected token name in dropdown when state is prepopulated', async () => {
+		render(SelectToken, mockProps);
+
+		await waitFor(async () => {
+			expect(await screen.findByText('Ethereum (ETH)')).toBeInTheDocument();
+		});
+	});
+
 	it('calls setSelectToken and updates token info when input changes', async () => {
 		const user = userEvent.setup();
 		const mockGuiWithNoToken = {
