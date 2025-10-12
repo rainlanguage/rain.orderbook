@@ -289,7 +289,10 @@
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs
-            ++ [ pkgs.clang-tools pkgs.libsoup_2_4 ];
+            ++ [ pkgs.clang-tools pkgs.libsoup_2_4 ]
+            ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+              pkgs.webkitgtk_4_0
+            ]);
           nativeBuildInputs =
             rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
