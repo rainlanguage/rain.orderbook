@@ -1,4 +1,4 @@
-use super::decode::{DecodedEvent, DecodedEventData};
+use super::decode::{DecodedEvent, DecodedEventData, InterpreterStoreSetEvent};
 use crate::erc20::TokenInfo;
 use alloy::sol_types::SolValue;
 use alloy::{
@@ -144,6 +144,10 @@ pub fn decoded_events_to_sql(
                 let context = event_context(event)?;
                 sql.push_str(&generate_meta_sql(&context, decoded.as_ref())?);
             }
+            DecodedEvent::InterpreterStoreSet(decoded) => {
+                let context = event_context(event)?;
+                sql.push_str(&generate_store_set_sql(&context, decoded.as_ref())?);
+            }
             DecodedEvent::Unknown(decoded) => {
                 eprintln!(
                     "Warning: Unknown event type for transaction {}: {}",
@@ -263,7 +267,7 @@ fn generate_deposit_sql(
     '{deposit_amount}',
     '{deposit_amount_uint256}'
 );
-"#,
+"#
     ))
 }
 
@@ -306,7 +310,7 @@ fn generate_withdraw_sql(
     '{withdraw_amount}',
     '{withdraw_amount_uint256}'
 );
-"#,
+"#
     ))
 }
 
@@ -349,7 +353,7 @@ fn generate_add_order_sql(
     '{order_nonce}',
     '{order_bytes}'
 );
-"#,
+"#
     ));
 
     let ios_sql = generate_order_ios_sql(context, &decoded.order);
@@ -399,7 +403,7 @@ fn generate_remove_order_sql(
     '{order_nonce}',
     '{order_bytes}'
 );
-"#,
+"#
     ));
 
     let ios_sql = generate_order_ios_sql(context, &decoded.order);
@@ -456,7 +460,7 @@ fn generate_take_order_sql(
     '{taker_input}',
     '{taker_output}'
 );
-"#,
+"#
     ));
 
     for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
@@ -478,7 +482,7 @@ fn generate_take_order_sql(
     {context_index},
     '{context_value}'
 );
-"#,
+"#
         ));
 
         for (value_index, value) in signed_context.context.iter().enumerate() {
@@ -497,7 +501,7 @@ fn generate_take_order_sql(
     {value_index},
     '{value_hex}'
 );
-"#,
+"#
             ));
         }
     }
@@ -604,7 +608,7 @@ fn generate_clear_v3_sql(
     '{bob_input_vault_id_hex}',
     '{bob_output_vault_id_hex}'
 );
-"#,
+"#
     ))
 }
 
@@ -644,7 +648,7 @@ fn generate_after_clear_sql(
     '{bob_input}',
     '{bob_output}'
 );
-"#,
+"#
     ))
 }
 
@@ -678,8 +682,52 @@ fn generate_meta_sql(
     '{subject}',
     '{meta}'
 );
-"#,
+"#
     ))
+}
+
+fn generate_store_set_sql(
+    context: &EventContext<'_>,
+    decoded: &InterpreterStoreSetEvent,
+) -> Result<String, InsertError> {
+    let mut sql = String::new();
+    sql.push_str(&format!(
+        r#"INSERT INTO interpreter_store_sets (
+            store_address,
+            block_number,
+            block_timestamp,
+            transaction_hash,
+            log_index,
+            namespace,
+            key,
+            value
+        ) VALUES (
+            '{}',
+            {},
+            {},
+            '{}',
+            {},
+            '{}',
+            '{}',
+            '{}'
+        ) ON CONFLICT(transaction_hash, log_index) DO UPDATE SET
+            store_address = excluded.store_address,
+            block_number = excluded.block_number,
+            block_timestamp = excluded.block_timestamp,
+            namespace = excluded.namespace,
+            key = excluded.key,
+            value = excluded.value;
+"#,
+        hex::encode_prefixed(decoded.store_address),
+        context.block_number,
+        context.block_timestamp,
+        context.transaction_hash,
+        context.log_index,
+        hex::encode_prefixed(decoded.namespace),
+        hex::encode_prefixed(decoded.key),
+        hex::encode_prefixed(decoded.value)
+    ));
+    Ok(sql)
 }
 
 fn generate_order_ios_sql(context: &EventContext<'_>, order: &OrderV4) -> String {
@@ -736,6 +784,7 @@ mod tests {
     use super::*;
     use crate::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
     use crate::raindex_client::local_db::LocalDb;
+    use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use rain_orderbook_bindings::IOrderBookV5::{
         ClearConfigV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
@@ -871,6 +920,24 @@ mod tests {
         )
     }
 
+    fn sample_store_set_event() -> DecodedEventData<DecodedEvent> {
+        let store = InterpreterStoreSetEvent {
+            store_address: Address::from([0x30; 20]),
+            namespace: FixedBytes::<32>::from([0xaa; 32]),
+            key: FixedBytes::<32>::from([0xbb; 32]),
+            value: FixedBytes::<32>::from([0xcc; 32]),
+        };
+
+        build_event(
+            EventType::InterpreterStoreSet,
+            "0x200",
+            "0x300",
+            "0xfeed",
+            "0x4",
+            DecodedEvent::InterpreterStoreSet(Box::new(store)),
+        )
+    }
+
     fn sample_deposit_event() -> DecodedEventData<DecodedEvent> {
         let deposit = DepositV2 {
             sender: Address::from([0x0d; 20]),
@@ -887,6 +954,29 @@ mod tests {
             "0x3",
             DecodedEvent::DepositV2(Box::new(deposit)),
         )
+    }
+
+    #[test]
+    fn store_set_sql_generation() {
+        let event = sample_store_set_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::InterpreterStoreSet(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
+
+        let sql = generate_store_set_sql(&context, decoded.as_ref()).unwrap();
+        let expected = format!(
+            "INSERT INTO interpreter_store_sets (\n            store_address,\n            block_number,\n            block_timestamp,\n            transaction_hash,\n            log_index,\n            namespace,\n            key,\n            value\n        ) VALUES (\n            '{}',\n            {},\n            {},\n            '{}',\n            {},\n            '{}',\n            '{}',\n            '{}'\n        ) ON CONFLICT(transaction_hash, log_index) DO UPDATE SET\n            store_address = excluded.store_address,\n            block_number = excluded.block_number,\n            block_timestamp = excluded.block_timestamp,\n            namespace = excluded.namespace,\n            key = excluded.key,\n            value = excluded.value;\n",
+            hex::encode_prefixed(decoded.store_address),
+            context.block_number,
+            context.block_timestamp,
+            context.transaction_hash,
+            context.log_index,
+            hex::encode_prefixed(decoded.namespace),
+            hex::encode_prefixed(decoded.key),
+            hex::encode_prefixed(decoded.value)
+        );
+        assert_eq!(sql, expected);
     }
 
     #[test]
