@@ -183,6 +183,92 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn fetch_events_counts_results() {
+        let data_source = MockDataSource {
+            sql_result: String::new(),
+            rpc_urls: vec![],
+            captured_prefixes: Mutex::new(vec![]),
+            captured_events: Mutex::new(vec![]),
+            captured_decimals: Mutex::new(vec![]),
+        };
+
+        let result = fetch_events(&data_source, "0xorder", 1, 10)
+            .await
+            .expect("fetch events");
+        assert_eq!(result.events.len(), 0);
+        assert_eq!(result.raw_count, 0);
+    }
+
+    #[tokio::test]
+    async fn decode_events_counts_results() {
+        let data_source = MockDataSource {
+            sql_result: String::new(),
+            rpc_urls: vec![],
+            captured_prefixes: Mutex::new(vec![]),
+            captured_events: Mutex::new(vec![]),
+            captured_decimals: Mutex::new(vec![]),
+        };
+
+        let decoded = decode_events(&data_source, vec![]).expect("decode events");
+        assert_eq!(decoded.decoded.len(), 0);
+        assert_eq!(decoded.decoded_count, 0);
+    }
+
+    #[tokio::test]
+    async fn prepare_sql_generates_sql_with_prefix() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("sync.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+
+        let data_source = MockDataSource {
+            sql_result: "INSERT INTO sync(last_synced_block) VALUES(?end_block)".to_string(),
+            rpc_urls: vec![Url::parse("http://example.com").unwrap()],
+            captured_prefixes: Mutex::new(vec![]),
+            captured_events: Mutex::new(vec![]),
+            captured_decimals: Mutex::new(vec![]),
+        };
+
+        let token_fetcher = MockFetcher { metadata: vec![] };
+        let result = prepare_sql(&data_source, &token_fetcher, &db_path_str, &[], 1, &[], 100)
+            .await
+            .expect("prepare sql");
+
+        assert!(result.contains("INSERT INTO sync"));
+    }
+
+    #[tokio::test]
+    async fn prepare_sql_uses_metadata_rpcs_if_provided() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("sync.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+
+        let data_source = MockDataSource {
+            sql_result: String::new(),
+            rpc_urls: vec![Url::parse("http://default.com").unwrap()],
+            captured_prefixes: Mutex::new(vec![]),
+            captured_events: Mutex::new(vec![]),
+            captured_decimals: Mutex::new(vec![]),
+        };
+
+        let token_fetcher = MockFetcher { metadata: vec![] };
+        prepare_sql(
+            &data_source,
+            &token_fetcher,
+            &db_path_str,
+            &[Url::parse("http://override.com").unwrap()],
+            1,
+            &[],
+            100,
+        )
+        .await
+        .expect("prepare sql");
+    }
+
     fn sample_decoded_event(token_addr: Address) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: EventType::DepositV2,
