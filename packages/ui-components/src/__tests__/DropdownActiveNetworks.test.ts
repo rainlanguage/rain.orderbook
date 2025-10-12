@@ -77,4 +77,17 @@ describe('DropdownActiveNetworks', () => {
 			expect(get(selectedChainIdsStore)).toEqual([1, 2, 14]);
 		});
 	});
+
+	test('removes chain ids that are not present in settings', async () => {
+		selectedChainIdsStore = writable([1, 999]);
+		render(DropdownActiveNetworks, {
+			props: {
+				selectedChainIds: selectedChainIdsStore
+			}
+		});
+
+		await waitFor(() => {
+			expect(get(selectedChainIdsStore)).toEqual([1]);
+		});
+	});
 });
