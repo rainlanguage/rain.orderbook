@@ -992,12 +992,17 @@ impl RaindexOrder {
         };
 
         for meta_bytes in metabytes {
-            let documents = RainMetaDocumentV1Item::cbor_decode(&meta_bytes)?;
+            let documents = match RainMetaDocumentV1Item::cbor_decode(&meta_bytes) {
+                Ok(documents) => documents,
+                Err(_) => continue,
+            };
+
             for document in documents {
                 if document.magic == KnownMagic::DotrainSourceV1 {
-                    let source = DotrainSourceV1::try_from(document)?;
-                    self.parsed_meta.push(ParsedMeta::DotrainSourceV1(source));
-                    return Ok(());
+                    if let Ok(source) = DotrainSourceV1::try_from(document) {
+                        self.parsed_meta.push(ParsedMeta::DotrainSourceV1(source));
+                        return Ok(());
+                    }
                 }
             }
         }
