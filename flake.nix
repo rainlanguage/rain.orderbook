@@ -2,7 +2,7 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix";
+    rainix.url = "github:rainlanguage/rainix?rev=a6ec108595ef128e4975799a9acd6d01ef1cce91";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -289,10 +289,7 @@
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs
-            ++ [ pkgs.clang-tools pkgs.libsoup_2_4 ]
-            ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
-              pkgs.webkitgtk_4_0
-            ]);
+            ++ [ pkgs.clang-tools pkgs.libsoup_2_4 ];
           nativeBuildInputs =
             rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
