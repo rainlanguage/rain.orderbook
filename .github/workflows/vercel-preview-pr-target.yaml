@@ -45,11 +45,10 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - uses: nixbuild/nix-quick-install-action@v30
+      - uses: DeterminateSystems/nix-installer-action@main
         with:
-          nix_conf: |
-            keep-env-derivations = true
-            keep-outputs = true
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
       - run: ./prep-all.sh
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: test
