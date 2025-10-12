@@ -943,12 +943,8 @@ impl RaindexOrder {
             parsed_meta: order
                 .meta
                 .as_ref()
-                .map(|meta| {
-                    ParsedMeta::parse_from_bytes(
-                        &decode(&meta.0).map_err(rain_metadata::Error::DecodeHexStringError)?,
-                    )
-                })
-                .transpose()?
+                .and_then(|meta| decode(&meta.0).ok())
+                .and_then(|bytes| ParsedMeta::parse_from_bytes(&bytes).ok())
                 .unwrap_or_default(),
             rainlang,
             transaction,
