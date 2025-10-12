@@ -1041,6 +1041,11 @@ impl RaindexClient {
 
         let mut vaults: Vec<RaindexVault> = Vec::new();
 
+        if !local_ids.is_empty() && !sg_ids.is_empty() {
+            let vaults = self.get_vaults_sg(None, filters, page).await?;
+            return Ok(RaindexVaultsList::new(vaults));
+        }
+
         if !local_ids.is_empty() {
             let locals = futures::future::try_join_all(
                 local_ids

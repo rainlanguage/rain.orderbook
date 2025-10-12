@@ -578,6 +578,10 @@ impl RaindexClient {
 
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
+        if local_ids.is_empty() && sg_ids.is_empty() {
+            return self.get_orders_sg(None, filters, page).await;
+        }
+
         if !local_ids.is_empty() {
             let locals = futures::future::try_join_all(
                 local_ids
