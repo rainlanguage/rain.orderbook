@@ -250,7 +250,15 @@ pub fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)])
     }
 
     let mut sql = String::new();
-    sql.push_str("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES ");
+    sql.push_str(
+        r#"INSERT INTO erc20_tokens (
+    chain_id,
+    address,
+    name,
+    symbol,
+    decimals
+) VALUES "#,
+    );
 
     let mut first = true;
     for (addr, info) in tokens.iter() {
@@ -303,38 +311,39 @@ fn generate_deposit_sql(
     let deposit_amount_float = Float::from_fixed_decimal(decoded.depositAmountUint256, decimals)
         .map_err(|err| InsertError::FloatConversion(err.to_string()))?;
 
+    let block_number = context.block_number;
+    let block_timestamp = context.block_timestamp;
+    let transaction_hash = context.transaction_hash;
+    let log_index = context.log_index;
+    let sender = hex::encode_prefixed(decoded.sender);
+    let token = hex::encode_prefixed(decoded.token);
+    let vault_id = hex::encode_prefixed(decoded.vaultId);
+    let deposit_amount = deposit_amount_float.as_hex();
+    let deposit_amount_uint256 = encode_u256_prefixed(&decoded.depositAmountUint256);
+
     Ok(format!(
         r#"INSERT INTO deposits (
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            sender,
-            token,
-            vault_id,
-            deposit_amount,
-            deposit_amount_uint256
-        ) VALUES (
-            {},
-            {},
-            '{}',
-            {},
-            '{}',
-            '{}',
-            '{}',
-            '{}',
-            '{}'
-        );
-"#,
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.sender),
-        hex::encode_prefixed(decoded.token),
-        hex::encode_prefixed(decoded.vaultId),
-        deposit_amount_float.as_hex(),
-        encode_u256_prefixed(&decoded.depositAmountUint256)
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    sender,
+    token,
+    vault_id,
+    deposit_amount,
+    deposit_amount_uint256
+) VALUES (
+    {block_number},
+    {block_timestamp},
+    '{transaction_hash}',
+    {log_index},
+    '{sender}',
+    '{token}',
+    '{vault_id}',
+    '{deposit_amount}',
+    '{deposit_amount_uint256}'
+);
+"#
     ))
 }
 
@@ -342,41 +351,42 @@ fn generate_withdraw_sql(
     context: &EventContext<'_>,
     decoded: &WithdrawV2,
 ) -> Result<String, InsertError> {
+    let block_number = context.block_number;
+    let block_timestamp = context.block_timestamp;
+    let transaction_hash = context.transaction_hash;
+    let log_index = context.log_index;
+    let sender = hex::encode_prefixed(decoded.sender);
+    let token = hex::encode_prefixed(decoded.token);
+    let vault_id = hex::encode_prefixed(decoded.vaultId);
+    let target_amount = hex::encode_prefixed(decoded.targetAmount);
+    let withdraw_amount = hex::encode_prefixed(decoded.withdrawAmount);
+    let withdraw_amount_uint256 = encode_u256_prefixed(&decoded.withdrawAmountUint256);
+
     Ok(format!(
         r#"INSERT INTO withdrawals (
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            sender,
-            token,
-            vault_id,
-            target_amount,
-            withdraw_amount,
-            withdraw_amount_uint256
-        ) VALUES (
-            {},
-            {},
-            '{}',
-            {},
-            '{}',
-            '{}',
-            '{}',
-            '{}',
-            '{}',
-            '{}'
-        );
-"#,
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.sender),
-        hex::encode_prefixed(decoded.token),
-        hex::encode_prefixed(decoded.vaultId),
-        hex::encode_prefixed(decoded.targetAmount),
-        hex::encode_prefixed(decoded.withdrawAmount),
-        encode_u256_prefixed(&decoded.withdrawAmountUint256)
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    sender,
+    token,
+    vault_id,
+    target_amount,
+    withdraw_amount,
+    withdraw_amount_uint256
+) VALUES (
+    {block_number},
+    {block_timestamp},
+    '{transaction_hash}',
+    {log_index},
+    '{sender}',
+    '{token}',
+    '{vault_id}',
+    '{target_amount}',
+    '{withdraw_amount}',
+    '{withdraw_amount_uint256}'
+);
+"#
     ))
 }
 
@@ -386,41 +396,40 @@ fn generate_add_order_sql(
 ) -> Result<String, InsertError> {
     let mut sql = String::new();
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
+    let block_number = context.block_number;
+    let block_timestamp = context.block_timestamp;
+    let transaction_hash = context.transaction_hash;
+    let log_index = context.log_index;
+    let sender = hex::encode_prefixed(decoded.sender);
+    let order_hash = hex::encode_prefixed(decoded.orderHash);
+    let order_owner = hex::encode_prefixed(decoded.order.owner);
+    let order_nonce = hex::encode_prefixed(decoded.order.nonce);
 
     sql.push_str(&format!(
         r#"INSERT INTO order_events (
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            event_type,
-            sender,
-            order_hash,
-            order_owner,
-            order_nonce,
-            order_bytes
-        ) VALUES (
-            {},
-            {},
-            '{}',
-            {},
-            'AddOrderV3',
-            '{}',
-            '{}',
-            '{}',
-            '{}',
-            '{}'
-        );
-"#,
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.sender),
-        hex::encode_prefixed(decoded.orderHash),
-        hex::encode_prefixed(decoded.order.owner),
-        hex::encode_prefixed(decoded.order.nonce),
-        order_bytes
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    event_type,
+    sender,
+    order_hash,
+    order_owner,
+    order_nonce,
+    order_bytes
+) VALUES (
+    {block_number},
+    {block_timestamp},
+    '{transaction_hash}',
+    {log_index},
+    'AddOrderV3',
+    '{sender}',
+    '{order_hash}',
+    '{order_owner}',
+    '{order_nonce}',
+    '{order_bytes}'
+);
+"#
     ));
 
     let ios_sql = generate_order_ios_sql(context, &decoded.order);
@@ -437,41 +446,40 @@ fn generate_remove_order_sql(
 ) -> Result<String, InsertError> {
     let mut sql = String::new();
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
+    let block_number = context.block_number;
+    let block_timestamp = context.block_timestamp;
+    let transaction_hash = context.transaction_hash;
+    let log_index = context.log_index;
+    let sender = hex::encode_prefixed(decoded.sender);
+    let order_hash = hex::encode_prefixed(decoded.orderHash);
+    let order_owner = hex::encode_prefixed(decoded.order.owner);
+    let order_nonce = hex::encode_prefixed(decoded.order.nonce);
 
     sql.push_str(&format!(
         r#"INSERT INTO order_events (
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            event_type,
-            sender,
-            order_hash,
-            order_owner,
-            order_nonce,
-            order_bytes
-        ) VALUES (
-            {},
-            {},
-            '{}',
-            {},
-            'RemoveOrderV3',
-            '{}',
-            '{}',
-            '{}',
-            '{}',
-            '{}'
-        );
-"#,
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.sender),
-        hex::encode_prefixed(decoded.orderHash),
-        hex::encode_prefixed(decoded.order.owner),
-        hex::encode_prefixed(decoded.order.nonce),
-        order_bytes
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    event_type,
+    sender,
+    order_hash,
+    order_owner,
+    order_nonce,
+    order_bytes
+) VALUES (
+    {block_number},
+    {block_timestamp},
+    '{transaction_hash}',
+    {log_index},
+    'RemoveOrderV3',
+    '{sender}',
+    '{order_hash}',
+    '{order_owner}',
+    '{order_nonce}',
+    '{order_bytes}'
+);
+"#
     ));
 
     let ios_sql = generate_order_ios_sql(context, &decoded.order);
@@ -490,45 +498,45 @@ fn generate_take_order_sql(
     let output_io_index_u64 = u256_to_u64(&decoded.config.outputIOIndex, "outputIOIndex")?;
 
     let mut sql = String::new();
+    let block_number = context.block_number;
+    let block_timestamp = context.block_timestamp;
+    let transaction_hash = context.transaction_hash;
+    let log_index = context.log_index;
+    let sender = hex::encode_prefixed(decoded.sender);
+    let order_owner = hex::encode_prefixed(decoded.config.order.owner);
+    let order_nonce = hex::encode_prefixed(decoded.config.order.nonce);
+    let taker_input = hex::encode_prefixed(decoded.input);
+    let taker_output = hex::encode_prefixed(decoded.output);
+    let input_io_index = input_io_index_u64;
+    let output_io_index = output_io_index_u64;
 
     sql.push_str(&format!(
         r#"INSERT INTO take_orders (
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            sender,
-            order_owner,
-            order_nonce,
-            input_io_index,
-            output_io_index,
-            taker_input,
-            taker_output
-        ) VALUES (
-            {},
-            {},
-            '{}',
-            {},
-            '{}',
-            '{}',
-            '{}',
-            {},
-            {},
-            '{}',
-            '{}'
-        );
-"#,
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.sender),
-        hex::encode_prefixed(decoded.config.order.owner),
-        hex::encode_prefixed(decoded.config.order.nonce),
-        input_io_index_u64,
-        output_io_index_u64,
-        hex::encode_prefixed(decoded.input),
-        hex::encode_prefixed(decoded.output)
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    sender,
+    order_owner,
+    order_nonce,
+    input_io_index,
+    output_io_index,
+    taker_input,
+    taker_output
+) VALUES (
+    {block_number},
+    {block_timestamp},
+    '{transaction_hash}',
+    {log_index},
+    '{sender}',
+    '{order_owner}',
+    '{order_nonce}',
+    {input_io_index},
+    {output_io_index},
+    '{taker_input}',
+    '{taker_output}'
+);
+"#
     ));
 
     for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
@@ -540,41 +548,36 @@ fn generate_take_order_sql(
 
         sql.push_str(&format!(
             r#"INSERT INTO take_order_contexts (
-                transaction_hash,
-                log_index,
-                context_index,
-                context_value
-            ) VALUES (
-                '{}',
-                {},
-                {},
-                '{}'
-            );
-"#,
-            context.transaction_hash, context.log_index, context_index, context_value
+    transaction_hash,
+    log_index,
+    context_index,
+    context_value
+) VALUES (
+    '{transaction_hash}',
+    {log_index},
+    {context_index},
+    '{context_value}'
+);
+"#
         ));
 
         for (value_index, value) in signed_context.context.iter().enumerate() {
+            let value_hex = hex::encode_prefixed(value);
             sql.push_str(&format!(
                 r#"INSERT INTO context_values (
-                    transaction_hash,
-                    log_index,
-                    context_index,
-                    value_index,
-                    value
-                ) VALUES (
-                    '{}',
-                    {},
-                    {},
-                    {},
-                    '{}'
-                );
-"#,
-                context.transaction_hash,
-                context.log_index,
-                context_index,
-                value_index,
-                hex::encode_prefixed(value)
+    transaction_hash,
+    log_index,
+    context_index,
+    value_index,
+    value
+) VALUES (
+    '{transaction_hash}',
+    {log_index},
+    {context_index},
+    {value_index},
+    '{value_hex}'
+);
+"#
             ));
         }
     }
@@ -621,69 +624,67 @@ fn generate_clear_v3_sql(
 
     let alice_order_hash = compute_order_hash(&decoded.alice);
     let bob_order_hash = compute_order_hash(&decoded.bob);
+    let block_number = context.block_number;
+    let block_timestamp = context.block_timestamp;
+    let transaction_hash = context.transaction_hash;
+    let log_index = context.log_index;
+    let sender = hex::encode_prefixed(decoded.sender);
+    let alice_order_owner = hex::encode_prefixed(decoded.alice.owner);
+    let alice_input_io_index = alice_input_io_index_u64;
+    let alice_output_io_index = alice_output_io_index_u64;
+    let alice_bounty_vault_id = hex::encode_prefixed(decoded.clearConfig.aliceBountyVaultId);
+    let alice_input_vault_id_hex = hex::encode_prefixed(alice_input_vault_id);
+    let alice_output_vault_id_hex = hex::encode_prefixed(alice_output_vault_id);
+    let bob_order_owner = hex::encode_prefixed(decoded.bob.owner);
+    let bob_input_io_index = bob_input_io_index_u64;
+    let bob_output_io_index = bob_output_io_index_u64;
+    let bob_bounty_vault_id = hex::encode_prefixed(decoded.clearConfig.bobBountyVaultId);
+    let bob_input_vault_id_hex = hex::encode_prefixed(bob_input_vault_id);
+    let bob_output_vault_id_hex = hex::encode_prefixed(bob_output_vault_id);
 
     Ok(format!(
         r#"INSERT INTO clear_v3_events (
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            sender,
-            alice_order_hash,
-            alice_order_owner,
-            alice_input_io_index,
-            alice_output_io_index,
-            alice_bounty_vault_id,
-            alice_input_vault_id,
-            alice_output_vault_id,
-            bob_order_hash,
-            bob_order_owner,
-            bob_input_io_index,
-            bob_output_io_index,
-            bob_bounty_vault_id,
-            bob_input_vault_id,
-            bob_output_vault_id
-        ) VALUES (
-            {},
-            {},
-            '{}',
-            {},
-            '{}',
-            '{}',
-            '{}',
-            {},
-            {},
-            '{}',
-            '{}',
-            '{}',
-            '{}',
-            '{}',
-            {},
-            {},
-            '{}',
-            '{}',
-            '{}'
-        );
-"#,
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.sender),
-        alice_order_hash,
-        hex::encode_prefixed(decoded.alice.owner),
-        alice_input_io_index_u64,
-        alice_output_io_index_u64,
-        hex::encode_prefixed(decoded.clearConfig.aliceBountyVaultId),
-        hex::encode_prefixed(alice_input_vault_id),
-        hex::encode_prefixed(alice_output_vault_id),
-        bob_order_hash,
-        hex::encode_prefixed(decoded.bob.owner),
-        bob_input_io_index_u64,
-        bob_output_io_index_u64,
-        hex::encode_prefixed(decoded.clearConfig.bobBountyVaultId),
-        hex::encode_prefixed(bob_input_vault_id),
-        hex::encode_prefixed(bob_output_vault_id)
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    sender,
+    alice_order_hash,
+    alice_order_owner,
+    alice_input_io_index,
+    alice_output_io_index,
+    alice_bounty_vault_id,
+    alice_input_vault_id,
+    alice_output_vault_id,
+    bob_order_hash,
+    bob_order_owner,
+    bob_input_io_index,
+    bob_output_io_index,
+    bob_bounty_vault_id,
+    bob_input_vault_id,
+    bob_output_vault_id
+) VALUES (
+    {block_number},
+    {block_timestamp},
+    '{transaction_hash}',
+    {log_index},
+    '{sender}',
+    '{alice_order_hash}',
+    '{alice_order_owner}',
+    {alice_input_io_index},
+    {alice_output_io_index},
+    '{alice_bounty_vault_id}',
+    '{alice_input_vault_id_hex}',
+    '{alice_output_vault_id_hex}',
+    '{bob_order_hash}',
+    '{bob_order_owner}',
+    {bob_input_io_index},
+    {bob_output_io_index},
+    '{bob_bounty_vault_id}',
+    '{bob_input_vault_id_hex}',
+    '{bob_output_vault_id_hex}'
+);
+"#
     ))
 }
 
@@ -691,38 +692,39 @@ fn generate_after_clear_sql(
     context: &EventContext<'_>,
     decoded: &AfterClearV2,
 ) -> Result<String, InsertError> {
+    let block_number = context.block_number;
+    let block_timestamp = context.block_timestamp;
+    let transaction_hash = context.transaction_hash;
+    let log_index = context.log_index;
+    let sender = hex::encode_prefixed(decoded.sender);
+    let alice_input = hex::encode_prefixed(decoded.clearStateChange.aliceInput);
+    let alice_output = hex::encode_prefixed(decoded.clearStateChange.aliceOutput);
+    let bob_input = hex::encode_prefixed(decoded.clearStateChange.bobInput);
+    let bob_output = hex::encode_prefixed(decoded.clearStateChange.bobOutput);
+
     Ok(format!(
         r#"INSERT INTO after_clear_v2_events (
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            sender,
-            alice_input,
-            alice_output,
-            bob_input,
-            bob_output
-        ) VALUES (
-            {},
-            {},
-            '{}',
-            {},
-            '{}',
-            '{}',
-            '{}',
-            '{}',
-            '{}'
-        );
-"#,
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.sender),
-        hex::encode_prefixed(decoded.clearStateChange.aliceInput),
-        hex::encode_prefixed(decoded.clearStateChange.aliceOutput),
-        hex::encode_prefixed(decoded.clearStateChange.bobInput),
-        hex::encode_prefixed(decoded.clearStateChange.bobOutput)
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    sender,
+    alice_input,
+    alice_output,
+    bob_input,
+    bob_output
+) VALUES (
+    {block_number},
+    {block_timestamp},
+    '{transaction_hash}',
+    {log_index},
+    '{sender}',
+    '{alice_input}',
+    '{alice_output}',
+    '{bob_input}',
+    '{bob_output}'
+);
+"#
     ))
 }
 
@@ -730,32 +732,33 @@ fn generate_meta_sql(
     context: &EventContext<'_>,
     decoded: &MetaV1_2,
 ) -> Result<String, InsertError> {
+    let block_number = context.block_number;
+    let block_timestamp = context.block_timestamp;
+    let transaction_hash = context.transaction_hash;
+    let log_index = context.log_index;
+    let sender = hex::encode_prefixed(decoded.sender);
+    let subject = hex::encode_prefixed(decoded.subject);
+    let meta = hex::encode_prefixed(&decoded.meta);
+
     Ok(format!(
         r#"INSERT INTO meta_events (
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            sender,
-            subject,
-            meta
-        ) VALUES (
-            {},
-            {},
-            '{}',
-            {},
-            '{}',
-            '{}',
-            '{}'
-        );
-"#,
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.sender),
-        hex::encode_prefixed(decoded.subject),
-        hex::encode_prefixed(&decoded.meta)
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    sender,
+    subject,
+    meta
+) VALUES (
+    {block_number},
+    {block_timestamp},
+    '{transaction_hash}',
+    {log_index},
+    '{sender}',
+    '{subject}',
+    '{meta}'
+);
+"#
     ))
 }
 
@@ -834,16 +837,14 @@ fn generate_order_ios_sql(context: &EventContext<'_>, order: &OrderV4) -> String
 
     format!(
         r#"INSERT INTO order_ios (
-            transaction_hash,
-            log_index,
-            io_index,
-            io_type,
-            token,
-            vault_id
-        ) VALUES
-            {};
-"#,
-        rows.join(",\n            ")
+    transaction_hash,
+    log_index,
+    io_index,
+    io_type,
+    token,
+    vault_id
+) VALUES {};\n"#,
+        rows.join(", ")
     )
 }
 

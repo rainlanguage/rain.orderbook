@@ -1,5 +1,7 @@
+use alloy::hex;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
+use itertools::Itertools;
 use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::raindex_client::local_db::insert::generate_erc20_tokens_sql;
 use rain_orderbook_common::raindex_client::local_db::tokens::collect_token_addresses;
@@ -25,8 +27,7 @@ where
     T: TokenMetadataFetcher + Send + Sync,
 {
     let address_set = collect_token_addresses(decoded_events);
-    let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
-    all_token_addrs.sort();
+    let all_token_addrs: Vec<Address> = address_set.into_iter().sorted().collect();
 
     if all_token_addrs.is_empty() {
         return Ok(TokenPrepResult {
@@ -37,7 +38,7 @@ where
 
     let addr_strings: Vec<String> = all_token_addrs
         .iter()
-        .map(|a| format!("0x{:x}", a))
+        .map(|a| hex::encode_prefixed(*a))
         .collect();
     let existing_rows = fetch_existing_tokens(db_path, chain_id, &addr_strings)?;
 
