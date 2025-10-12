@@ -13,7 +13,7 @@ use crate::{
     },
 };
 use alloy::hex::{decode, encode};
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{keccak256, Address, Bytes, U256};
 use csv::{ReaderBuilder, Terminator};
 use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
 use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
@@ -1053,11 +1053,16 @@ impl RaindexOrder {
             .as_ref()
             .and_then(|meta| meta.try_decode_rainlangsource().ok());
 
+        let id = [
+            order.orderbook_address.as_bytes(),
+            order.order_hash.as_bytes(),
+        ]
+        .concat();
+
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
             chain_id,
-            // TODO: Needs updating
-            id: Bytes::from_str("0x01")?,
+            id: Bytes::from(keccak256(&id).as_slice().to_vec()),
             order_bytes: Bytes::from_str(&order.order_bytes)?,
             order_hash: Bytes::from_str(&order.order_hash)?,
             owner: Address::from_str(&order.owner)?,

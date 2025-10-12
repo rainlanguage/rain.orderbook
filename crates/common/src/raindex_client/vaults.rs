@@ -708,6 +708,20 @@ impl RaindexVaultBalanceChange {
     }
 }
 
+#[derive(Clone)]
+pub(crate) struct LocalTradeTokenInfo {
+    pub address: String,
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub decimals: Option<u8>,
+}
+
+#[derive(Clone)]
+pub(crate) struct LocalTradeBalanceInfo {
+    pub delta: String,
+    pub running_balance: Option<String>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct RaindexVaultAllowance(#[tsify(type = "string")] U256);
 impl_wasm_traits!(RaindexVaultAllowance);
@@ -812,6 +826,58 @@ impl RaindexVaultBalanceChange {
             timestamp: U256::from(change.block_timestamp),
             transaction,
             orderbook: vault.orderbook,
+        })
+    }
+
+    pub(crate) fn try_from_local_trade_side(
+        chain_id: u32,
+        orderbook: Address,
+        transaction: &RaindexTransaction,
+        vault_id: &str,
+        token: LocalTradeTokenInfo,
+        balance: LocalTradeBalanceInfo,
+        block_timestamp: u64,
+    ) -> Result<Self, RaindexError> {
+        let amount = Float::from_hex(&balance.delta)?;
+        let new_balance = match balance.running_balance.as_ref() {
+            Some(balance) => Float::from_hex(balance)?,
+            None => amount,
+        };
+        let old_balance = (new_balance - amount)?;
+
+        let formatted_amount = amount.format()?;
+        let formatted_new_balance = new_balance.format()?;
+        let formatted_old_balance = old_balance.format()?;
+
+        let LocalTradeTokenInfo {
+            address,
+            name,
+            symbol,
+            decimals,
+        } = token;
+        let decimals = decimals.unwrap_or(18);
+        let token = RaindexVaultToken {
+            chain_id,
+            id: address.to_lowercase(),
+            address: Address::from_str(&address)?,
+            name,
+            symbol,
+            decimals,
+        };
+
+        Ok(Self {
+            r#type: RaindexVaultBalanceChangeType::TradeVaultBalanceChange,
+            vault_id: U256::from_str(vault_id)?,
+            token,
+            amount,
+            formatted_amount,
+            new_balance,
+            formatted_new_balance,
+            old_balance,
+            formatted_old_balance,
+            timestamp: U256::from(block_timestamp),
+            transaction: transaction.clone(),
+            orderbook,
         })
     }
 }
@@ -1816,6 +1882,136 @@ mod tests {
         };
         use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
+
+        #[test]
+        fn test_try_from_local_trade_side_with_running_balance() {
+            let chain_id = 42161;
+            let orderbook =
+                Address::from_str("0x0000000000000000000000000000000000000001").unwrap();
+            let transaction = RaindexTransaction::from_local_parts(
+                "0xdeadbeef",
+                "0x0000000000000000000000000000000000000002",
+                123,
+                456,
+            )
+            .unwrap();
+
+            let amount = Float::parse("1".to_string()).unwrap();
+            let amount_hex = amount.as_hex();
+            let new_balance = Float::parse("5".to_string()).unwrap();
+            let new_balance_hex = new_balance.as_hex();
+            let expected_old_balance = Float::parse("4".to_string()).unwrap();
+
+            let change = RaindexVaultBalanceChange::try_from_local_trade_side(
+                chain_id,
+                orderbook,
+                &transaction,
+                "0x10",
+                LocalTradeTokenInfo {
+                    address: "0x0000000000000000000000000000000000000003".to_string(),
+                    name: Some("Token In".to_string()),
+                    symbol: Some("TIN".to_string()),
+                    decimals: Some(6),
+                },
+                LocalTradeBalanceInfo {
+                    delta: amount_hex.clone(),
+                    running_balance: Some(new_balance_hex.clone()),
+                },
+                789,
+            )
+            .unwrap();
+
+            assert_eq!(
+                change.r#type(),
+                RaindexVaultBalanceChangeType::TradeVaultBalanceChange
+            );
+            assert_eq!(change.vault_id(), U256::from_str("0x10").unwrap());
+            assert!(change.amount().eq(amount).unwrap());
+            assert!(change.new_balance().eq(new_balance).unwrap());
+            assert_eq!(change.formatted_amount(), amount.format().unwrap());
+            assert_eq!(
+                change.formatted_new_balance(),
+                new_balance.format().unwrap()
+            );
+            assert_eq!(
+                change.formatted_old_balance(),
+                expected_old_balance.format().unwrap()
+            );
+            assert_eq!(change.timestamp(), U256::from(789));
+            assert_eq!(change.orderbook(), orderbook);
+            assert_eq!(change.transaction().id(), transaction.id());
+
+            let token = change.token();
+            assert_eq!(token.chain_id(), chain_id);
+            assert_eq!(
+                token.address(),
+                Address::from_str("0x0000000000000000000000000000000000000003").unwrap()
+            );
+            assert_eq!(token.decimals(), 6);
+            assert_eq!(token.name(), Some("Token In".to_string()));
+            assert_eq!(token.symbol(), Some("TIN".to_string()));
+            assert_eq!(
+                token.id(),
+                "0x0000000000000000000000000000000000000003".to_string()
+            );
+        }
+
+        #[test]
+        fn test_try_from_local_trade_side_defaults() {
+            let chain_id = 1;
+            let orderbook =
+                Address::from_str("0x0000000000000000000000000000000000000004").unwrap();
+            let transaction = RaindexTransaction::from_local_parts(
+                "0xfeedface",
+                "0x0000000000000000000000000000000000000005",
+                111,
+                222,
+            )
+            .unwrap();
+
+            let amount = Float::parse("2".to_string()).unwrap();
+            let amount_hex = amount.as_hex();
+            let zero = Float::parse("0".to_string()).unwrap();
+
+            let change = RaindexVaultBalanceChange::try_from_local_trade_side(
+                chain_id,
+                orderbook,
+                &transaction,
+                "0x20",
+                LocalTradeTokenInfo {
+                    address: "0x0000000000000000000000000000000000000006".to_string(),
+                    name: None,
+                    symbol: None,
+                    decimals: None,
+                },
+                LocalTradeBalanceInfo {
+                    delta: amount_hex.clone(),
+                    running_balance: None,
+                },
+                333,
+            )
+            .unwrap();
+
+            assert!(change.amount().eq(amount).unwrap());
+            assert!(change.new_balance().eq(amount).unwrap());
+            assert!(change.old_balance().eq(zero).unwrap());
+            assert_eq!(change.formatted_amount(), amount.format().unwrap());
+            assert_eq!(change.formatted_new_balance(), amount.format().unwrap());
+            assert_eq!(change.formatted_old_balance(), zero.format().unwrap());
+
+            let token = change.token();
+            assert_eq!(token.decimals(), 18);
+            assert!(token.name().is_none());
+            assert!(token.symbol().is_none());
+            assert_eq!(
+                token.address(),
+                Address::from_str("0x0000000000000000000000000000000000000006").unwrap()
+            );
+            assert_eq!(
+                token.id(),
+                "0x0000000000000000000000000000000000000006".to_string()
+            );
+        }
 
         #[tokio::test]
         async fn test_try_from_local_db_maps_token_metadata() {
