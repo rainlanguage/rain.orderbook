@@ -5,7 +5,6 @@ const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct LocalDbTradeCountRow {
-    #[serde(alias = "trade_count")]
     trade_count: u64,
 }
 
