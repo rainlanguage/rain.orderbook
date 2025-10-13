@@ -18,13 +18,13 @@ pub(crate) trait SyncDataSource {
     async fn latest_block(&self) -> Result<u64>;
     async fn fetch_events(
         &self,
-        orderbook_address: &str,
+        orderbook_address: Address,
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>>;
     async fn fetch_store_set_events(
         &self,
-        store_addresses: &[String],
+        store_addresses: &[Address],
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>>;
@@ -80,7 +80,7 @@ impl SyncDataSource for LocalDb {
 
     async fn fetch_events(
         &self,
-        orderbook_address: &str,
+        orderbook_address: Address,
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
@@ -91,13 +91,14 @@ impl SyncDataSource for LocalDb {
 
     async fn fetch_store_set_events(
         &self,
-        store_addresses: &[String],
+        store_addresses: &[Address],
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
+        let parsed_addresses: Vec<Address> = store_addresses.to_vec();
         <LocalDb>::fetch_store_set_events(
             self,
-            store_addresses,
+            parsed_addresses.as_slice(),
             start_block,
             end_block,
             &FetchConfig::default(),

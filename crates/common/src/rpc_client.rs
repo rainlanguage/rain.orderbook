@@ -1,3 +1,4 @@
+use alloy::primitives::{Address, Bytes};
 use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
 use alloy::transports::TransportError;
@@ -49,16 +50,79 @@ pub struct BlockResponse {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LogEntryResponse {
-    pub address: String,
-    pub topics: Vec<String>,
-    pub data: String,
-    pub block_number: String,
-    pub block_timestamp: Option<String>,
-    pub transaction_hash: String,
+    pub address: Address,
+    pub topics: Vec<Bytes>,
+    pub data: Bytes,
+    #[serde(with = "serde_hex_u64")]
+    pub block_number: u64,
+    #[serde(with = "serde_opt_hex_u64")]
+    pub block_timestamp: Option<u64>,
+    pub transaction_hash: Bytes,
     pub transaction_index: String,
-    pub block_hash: String,
+    pub block_hash: Bytes,
     pub log_index: String,
     pub removed: bool,
+}
+
+fn parse_hex_u64(input: &str) -> Result<u64, String> {
+    let trimmed = input.trim();
+    if let Some(hex_digits) = trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"))
+    {
+        if hex_digits.is_empty() {
+            return Err("hex string is empty".to_string());
+        }
+        u64::from_str_radix(hex_digits, 16).map_err(|err| format!("invalid hex {input}: {err}"))
+    } else {
+        trimmed
+            .parse::<u64>()
+            .map_err(|err| format!("invalid number {input}: {err}"))
+    }
+}
+
+mod serde_hex_u64 {
+    use super::parse_hex_u64;
+    use serde::{de::Error as DeError, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("0x{:x}", value))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<u64, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        parse_hex_u64(&s).map_err(DeError::custom)
+    }
+}
+
+mod serde_opt_hex_u64 {
+    use super::parse_hex_u64;
+    use serde::{de::Error as DeError, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(value: &Option<u64>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(inner) => serializer.serialize_some(&format!("0x{:x}", inner)),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt = Option::<String>::deserialize(deserializer)?;
+        opt.map(|value| parse_hex_u64(&value).map_err(DeError::custom))
+            .transpose()
+    }
 }
 
 impl std::fmt::Debug for RpcClient {
@@ -298,14 +362,14 @@ mod tests {
 
     fn sample_log_entry(block_number: &str) -> serde_json::Value {
         json!({
-            "address": "0x123",
-            "topics": ["0xabc"],
+            "address": "0x0000000000000000000000000000000000000123",
+            "topics": ["0x0abc"],
             "data": "0xdeadbeef",
             "blockNumber": block_number,
             "blockTimestamp": "0x5",
-            "transactionHash": "0xtransaction",
+            "transactionHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
             "transactionIndex": "0x0",
-            "blockHash": "0xblock",
+            "blockHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
             "logIndex": "0x0",
             "removed": false
         })
@@ -438,7 +502,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(logs.len(), 1);
-        assert_eq!(logs[0].block_number, "0x64");
+        assert_eq!(logs[0].block_number, 0x64);
 
         mock.assert();
     }

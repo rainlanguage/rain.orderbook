@@ -243,6 +243,19 @@ impl RaindexOrder {
         self.raindex_client.get_rpc_urls_for_chain(self.chain_id)
     }
 
+    #[wasm_export(skip)]
+    pub fn order_hash_bytes(&self) -> Result<Bytes, RaindexError> {
+        #[cfg(target_family = "wasm")]
+        {
+            Bytes::from_str(&self.order_hash())
+                .map_err(|e| RaindexError::JsError(e.to_string().into()))
+        }
+        #[cfg(not(target_family = "wasm"))]
+        {
+            Ok(self.order_hash.clone())
+        }
+    }
+
     // /// Retrieves volume data for all vaults associated with this order over a specified time period
     // ///
     // /// Queries historical volume information across all vaults that belong to this order,
@@ -694,8 +707,6 @@ impl RaindexClient {
             ));
         }
 
-        let order_hash_hex = order_hash.to_string();
-
         if LocalDb::check_support(chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
                 if let Some(order) = self
@@ -703,7 +714,7 @@ impl RaindexClient {
                         &db_cb,
                         chain_id,
                         orderbook_address,
-                        &order_hash_hex,
+                        order_hash.clone(),
                     )
                     .await?
                 {
@@ -714,7 +725,9 @@ impl RaindexClient {
 
         let raindex_client = Rc::new(self.clone());
         let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
-        let order = client.order_detail_by_hash(SgBytes(order_hash_hex)).await?;
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
         let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
         Ok(order)
     }
@@ -724,10 +737,10 @@ impl RaindexClient {
         db_callback: &js_sys::Function,
         chain_id: u32,
         orderbook_address: Address,
-        order_hash: &str,
+        order_hash: Bytes,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let fetch_args = FetchOrdersArgs {
-            order_hash: Some(order_hash.to_string()),
+            order_hash: Some(order_hash),
             ..FetchOrdersArgs::default()
         };
 

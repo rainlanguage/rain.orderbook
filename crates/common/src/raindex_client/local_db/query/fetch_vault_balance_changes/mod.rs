@@ -1,5 +1,8 @@
 use super::*;
-use alloy::primitives::{Bytes, U256};
+use alloy::{
+    hex::encode_prefixed,
+    primitives::{Address, Bytes, B256, U256},
+};
 use rain_math_float::Float;
 use serde::{Deserialize, Serialize};
 
@@ -28,17 +31,15 @@ pub struct LocalDbVaultBalanceChange {
 impl LocalDbQuery {
     pub async fn fetch_vault_balance_changes(
         db_callback: &js_sys::Function,
-        vault_id: &str,
-        token: &str,
+        vault_id: U256,
+        token: Address,
     ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
-        let sanitize_literal = |value: &str| value.replace('\'', "''");
-
-        let vault_id = sanitize_literal(&vault_id.trim().to_lowercase());
-        let token = sanitize_literal(&token.trim().to_lowercase());
+        let vault_id_literal = format!("'{}'", encode_prefixed(B256::from(vault_id)));
+        let token_literal = format!("'{}'", token.to_string().to_lowercase());
 
         let sql = QUERY
-            .replace("'?vault_id'", &format!("'{}'", vault_id))
-            .replace("'?token'", &format!("'{}'", token));
+            .replace("'?vault_id'", &vault_id_literal)
+            .replace("'?token'", &token_literal);
 
         LocalDbQuery::execute_query_json::<Vec<LocalDbVaultBalanceChange>>(db_callback, &sql).await
     }
@@ -46,6 +47,7 @@ impl LocalDbQuery {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
 
     #[cfg(target_family = "wasm")]
@@ -93,7 +95,7 @@ mod tests {
             let callback =
                 create_success_callback(&serde_json::to_string(&vec![change.clone()]).unwrap());
 
-            let result = LocalDbQuery::fetch_vault_balance_changes(&callback, "0xVAULT", "0xTOKEN")
+            let result = LocalDbQuery::fetch_vault_balance_changes(&callback, vault_id, token)
                 .await
                 .expect("query should succeed");
 
@@ -107,11 +109,17 @@ mod tests {
             let captured_sql = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
             let callback = create_sql_capturing_callback("[]", captured_sql.clone());
 
-            let _ = LocalDbQuery::fetch_vault_balance_changes(&callback, "0xABC", "0xDEF").await;
+            let _ = LocalDbQuery::fetch_vault_balance_changes(
+                &callback,
+                U256::from(0xabc_u64),
+                Address::from_str("0xdef0000000000000000000000000000000000000").unwrap(),
+            )
+            .await;
 
             let sql = captured_sql.borrow();
-            assert!(sql.contains("'0xabc'"));
-            assert!(sql.contains("'0xdef'"));
+            assert!(sql
+                .contains("'0x0000000000000000000000000000000000000000000000000000000000000abc'"));
+            assert!(sql.contains("'0xdef0000000000000000000000000000000000000'"));
             assert!(!sql.contains("?vault_id"));
             assert!(!sql.contains("?token"));
             assert!(sql.contains("ORDER BY vd.block_number DESC"));

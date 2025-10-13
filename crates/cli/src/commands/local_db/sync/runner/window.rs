@@ -33,7 +33,7 @@ pub(super) struct EndClamp {
 pub(super) async fn compute_sync_window<D>(
     db_path: &str,
     data_source: &D,
-    params: &SyncParams<'_>,
+    params: &SyncParams,
 ) -> Result<SyncWindow>
 where
     D: SyncDataSource + Send + Sync,
@@ -154,7 +154,7 @@ mod tests {
 
         async fn fetch_events(
             &self,
-            _orderbook_address: &str,
+            _orderbook_address: Address,
             _start_block: u64,
             _end_block: u64,
         ) -> Result<Vec<LogEntryResponse>> {
@@ -163,7 +163,7 @@ mod tests {
 
         async fn fetch_store_set_events(
             &self,
-            _store_addresses: &[String],
+            _store_addresses: &[Address],
             _start_block: u64,
             _end_block: u64,
         ) -> Result<Vec<LogEntryResponse>> {
@@ -196,10 +196,10 @@ mod tests {
         }
     }
 
-    fn params() -> SyncParams<'static> {
+    fn params() -> SyncParams {
         SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: Address::from([0x11; 20]),
             deployment_block: 50,
             start_block: None,
             end_block: None,

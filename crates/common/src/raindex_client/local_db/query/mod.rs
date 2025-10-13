@@ -202,6 +202,7 @@ pub mod serde_u256 {
 
 #[cfg(test)]
 pub mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
 
     #[cfg(target_family = "wasm")]

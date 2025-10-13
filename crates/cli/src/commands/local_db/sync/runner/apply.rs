@@ -1,3 +1,4 @@
+use alloy::primitives::Address;
 use anyhow::Result;
 use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::rpc_client::LogEntryResponse;
@@ -18,7 +19,7 @@ pub(super) struct DecodedEvents {
 
 pub(super) async fn fetch_events<D>(
     data_source: &D,
-    orderbook_address: &str,
+    orderbook_address: Address,
     start_block: u64,
     target_block: u64,
 ) -> Result<FetchResult>
@@ -107,7 +108,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
+    use alloy::primitives::{Address, Bytes, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
@@ -116,6 +117,7 @@ mod tests {
     };
     use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::collections::HashMap;
+    use std::str::FromStr;
     use std::sync::Mutex;
     use tempfile::TempDir;
     use url::Url;
@@ -162,7 +164,7 @@ mod tests {
 
         async fn fetch_events(
             &self,
-            _orderbook_address: &str,
+            _orderbook_address: Address,
             _start_block: u64,
             _end_block: u64,
         ) -> Result<Vec<LogEntryResponse>> {
@@ -171,7 +173,7 @@ mod tests {
 
         async fn fetch_store_set_events(
             &self,
-            _store_addresses: &[String],
+            _store_addresses: &[Address],
             _start_block: u64,
             _end_block: u64,
         ) -> Result<Vec<LogEntryResponse>> {
@@ -253,9 +255,14 @@ mod tests {
             captured_raw: Mutex::new(vec![]),
         };
 
-        let result = fetch_events(&data_source, "0xorder", 1, 10)
-            .await
-            .expect("fetch events");
+        let result = fetch_events(
+            &data_source,
+            Address::from_str("0x0000000000000000000000000000000000000abc").unwrap(),
+            1,
+            10,
+        )
+        .await
+        .expect("fetch events");
         assert_eq!(result.events.len(), 0);
         assert_eq!(result.raw_count, 0);
     }
@@ -331,9 +338,9 @@ mod tests {
         let token_addr = Address::from([0xaa; 20]);
         let decoded = vec![DecodedEventData {
             event_type: EventType::DepositV2,
-            block_number: "0x0".into(),
-            block_timestamp: "0x0".into(),
-            transaction_hash: "0x0".into(),
+            block_number: 0,
+            block_timestamp: 0,
+            transaction_hash: Bytes::from(vec![0u8; 32]),
             log_index: "0x0".into(),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),
@@ -363,14 +370,14 @@ mod tests {
         };
 
         let raw_events = vec![LogEntryResponse {
-            address: "0x1".into(),
-            topics: vec!["0x0".into()],
-            data: "0x".into(),
-            block_number: "0x0".into(),
-            block_timestamp: Some("0x0".into()),
-            transaction_hash: "0x0".into(),
+            address: Address::from([0x01; 20]),
+            topics: vec![Bytes::from(vec![0u8; 32])],
+            data: Bytes::new(),
+            block_number: 0,
+            block_timestamp: Some(0),
+            transaction_hash: Bytes::from(vec![0x02; 32]),
             transaction_index: "0x0".into(),
-            block_hash: "0x0".into(),
+            block_hash: Bytes::from(vec![0x03; 32]),
             log_index: "0x0".into(),
             removed: false,
         }];

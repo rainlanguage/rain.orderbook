@@ -105,16 +105,17 @@ mod tests {
             order,
         };
 
-        let data = format!("0x{}", hex::encode(event.encode_data()));
+        let data = Bytes::from(event.encode_data());
+        let signature_topic = Bytes::copy_from_slice(AddOrderV3::SIGNATURE_HASH.as_slice());
         LogEntryResponse {
-            address: "0x0000000000000000000000000000000000000000".to_string(),
-            topics: vec![format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))],
+            address: Address::ZERO,
+            topics: vec![signature_topic],
             data,
-            block_number: format!("0x{:x}", log_index + 1),
-            block_timestamp: Some(format!("0x{:x}", log_index + 2)),
-            transaction_hash: format!("0x{}", hex::encode([sender_byte; 32])),
+            block_number: log_index + 1,
+            block_timestamp: Some(log_index + 2),
+            transaction_hash: Bytes::from(vec![sender_byte; 32]),
             transaction_index: "0x0".to_string(),
-            block_hash: format!("0x{}", hex::encode([sender_byte + 2; 32])),
+            block_hash: Bytes::from(vec![sender_byte + 2; 32]),
             log_index: format!("0x{:x}", log_index),
             removed: false,
         }

@@ -52,13 +52,11 @@ impl LocalDbQuery {
     pub async fn fetch_order_trades(
         db_callback: &js_sys::Function,
         chain_id: u32,
-        order_hash: &str,
+        order_hash: Bytes,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<Vec<LocalDbOrderTrade>, LocalDbQueryError> {
-        let sanitize_literal = |value: &str| value.replace('\'', "''");
-
-        let order_hash = sanitize_literal(&order_hash.trim().to_lowercase());
+        let order_hash_literal = format!("'{}'", order_hash);
 
         let filter_start_timestamp = start_timestamp
             .map(|ts| format!("\nAND block_timestamp >= {}\n", ts))
@@ -68,7 +66,7 @@ impl LocalDbQuery {
             .unwrap_or_default();
 
         let sql = QUERY
-            .replace("'?order_hash'", &format!("'{}'", order_hash))
+            .replace("'?order_hash'", &order_hash_literal)
             .replace("'?chain_id'", &chain_id.to_string())
             .replace("?filter_start_timestamp", &filter_start_timestamp)
             .replace("?filter_end_timestamp", &filter_end_timestamp);
@@ -79,6 +77,7 @@ impl LocalDbQuery {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
 
     #[cfg(target_family = "wasm")]
@@ -127,7 +126,7 @@ mod tests {
             let row = LocalDbOrderTrade {
                 trade_kind: "take".into(),
                 orderbook_address,
-                order_hash,
+                order_hash: order_hash.clone(),
                 order_owner,
                 order_nonce,
                 transaction_hash,
@@ -157,7 +156,9 @@ mod tests {
             let callback =
                 create_success_callback(&serde_json::to_string(&vec![row.clone()]).unwrap());
 
-            let result = LocalDbQuery::fetch_order_trades(&callback, 1, "0xABC", None, None).await;
+            let result =
+                LocalDbQuery::fetch_order_trades(&callback, 1, order_hash.clone(), None, None)
+                    .await;
 
             assert!(result.is_ok());
             let rows = result.unwrap();
@@ -171,12 +172,18 @@ mod tests {
             let captured_sql = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
             let callback = create_sql_capturing_callback("[]", captured_sql.clone());
 
-            let _ =
-                LocalDbQuery::fetch_order_trades(&callback, 42161, "0xHASH", Some(100), Some(200))
-                    .await;
+            let order_hash = Bytes::from_str("0xdeadbeef").unwrap();
+            let _ = LocalDbQuery::fetch_order_trades(
+                &callback,
+                42161,
+                order_hash.clone(),
+                Some(100),
+                Some(200),
+            )
+            .await;
 
             let sql = captured_sql.borrow();
-            assert!(sql.contains("'0xhash'"));
+            assert!(sql.contains("'0xdeadbeef'"));
             assert!(sql.contains("42161"));
             assert!(sql.contains("block_timestamp >= 100"));
             assert!(sql.contains("block_timestamp <= 200"));

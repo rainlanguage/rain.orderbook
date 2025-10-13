@@ -4,7 +4,8 @@ pub const FETCH_STORE_ADDRESSES_SQL: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StoreAddressRow {
-    pub store_address: String,
+    #[serde(with = "serde_address")]
+    pub store_address: Address,
 }
 
 impl LocalDbQuery {
@@ -21,22 +22,27 @@ impl LocalDbQuery {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
 
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
         use crate::raindex_client::local_db::query::tests::create_success_callback;
+        use alloy::primitives::Address;
+        use std::str::FromStr;
         use wasm_bindgen_test::*;
 
         #[wasm_bindgen_test]
         async fn test_fetch_store_addresses() {
             let rows = vec![
                 StoreAddressRow {
-                    store_address: "0x1111111111111111111111111111111111111111".to_string(),
+                    store_address: Address::from_str("0x1111111111111111111111111111111111111111")
+                        .unwrap(),
                 },
                 StoreAddressRow {
-                    store_address: "0x2222222222222222222222222222222222222222".to_string(),
+                    store_address: Address::from_str("0x2222222222222222222222222222222222222222")
+                        .unwrap(),
                 },
             ];
             let json_data = serde_json::to_string(&rows).unwrap();

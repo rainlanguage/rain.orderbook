@@ -17,6 +17,7 @@ impl LocalDbQuery {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
 
     #[cfg(target_family = "wasm")]

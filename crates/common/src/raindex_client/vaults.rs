@@ -15,7 +15,6 @@ use crate::{
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use alloy::hex::encode_prefixed;
 use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
@@ -307,12 +306,10 @@ impl RaindexVault {
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         if LocalDb::check_support(self.chain_id) {
             if let Some(db_cb) = self.raindex_client.local_db_callback() {
-                let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
-                let token_address = self.token.address.to_string();
                 let local_changes = LocalDbQuery::fetch_vault_balance_changes(
                     &db_cb,
-                    &vault_id_hex,
-                    &token_address,
+                    self.vault_id,
+                    self.token.address,
                 )
                 .await?;
 

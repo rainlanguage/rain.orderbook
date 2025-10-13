@@ -6,28 +6,16 @@ const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Default)]
 pub struct FetchVaultsArgs {
-    pub owners: Vec<String>,
-    pub tokens: Vec<String>,
+    pub owners: Vec<Address>,
+    pub tokens: Vec<Address>,
     pub hide_zero_balance: bool,
 }
 
 impl From<GetVaultsFilters> for FetchVaultsArgs {
     fn from(filters: GetVaultsFilters) -> Self {
-        let owners = filters
-            .owners
-            .into_iter()
-            .map(|owner| owner.to_string().to_lowercase())
-            .collect();
-        let tokens = filters
-            .tokens
-            .unwrap_or_default()
-            .into_iter()
-            .map(|token| token.to_string().to_lowercase())
-            .collect();
-
         FetchVaultsArgs {
-            owners,
-            tokens,
+            owners: filters.owners,
+            tokens: filters.tokens.unwrap_or_default(),
             hide_zero_balance: filters.hide_zero_balance,
         }
     }
@@ -45,17 +33,11 @@ impl LocalDbQuery {
             hide_zero_balance,
         } = args;
 
-        let sanitize_literal = |value: &str| value.replace('\'', "''");
-
         let owner_values: Vec<String> = owners
             .into_iter()
-            .filter_map(|owner| {
-                let trimmed = owner.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!("'{}'", sanitize_literal(trimmed)))
-                }
+            .map(|owner| {
+                let owner_lower = owner.to_string().to_lowercase();
+                format!("'{}'", owner_lower)
             })
             .collect();
         let filter_owners = if owner_values.is_empty() {
@@ -66,13 +48,9 @@ impl LocalDbQuery {
 
         let token_values: Vec<String> = tokens
             .into_iter()
-            .filter_map(|token| {
-                let trimmed = token.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!("'{}'", sanitize_literal(trimmed)))
-                }
+            .map(|token| {
+                let token_lower = token.to_string().to_lowercase();
+                format!("'{}'", token_lower)
             })
             .collect();
         let filter_tokens = if token_values.is_empty() {
@@ -108,6 +86,7 @@ impl LocalDbQuery {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
 
     #[cfg(target_family = "wasm")]

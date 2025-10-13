@@ -1,3 +1,4 @@
+use alloy::primitives::Address;
 use anyhow::Result;
 use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
 use url::Url;
@@ -16,7 +17,7 @@ use self::{
 };
 
 use rain_orderbook_common::raindex_client::local_db::tokens::collect_store_addresses;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, str::FromStr};
 
 mod apply;
 mod window;
@@ -28,9 +29,9 @@ pub(crate) struct SyncRunner<'a, D, T> {
     token_fetcher: &'a T,
 }
 
-pub(crate) struct SyncParams<'a> {
+pub(crate) struct SyncParams {
     pub(crate) chain_id: u32,
-    pub(crate) orderbook_address: &'a str,
+    pub(crate) orderbook_address: Address,
     pub(crate) deployment_block: u64,
     pub(crate) start_block: Option<u64>,
     pub(crate) end_block: Option<u64>,
@@ -55,7 +56,7 @@ where
         }
     }
 
-    pub(crate) async fn run(&self, params: &SyncParams<'_>) -> Result<()> {
+    pub(crate) async fn run(&self, params: &SyncParams) -> Result<()> {
         let schema_applied = ensure_schema(self.db_path)?;
         if schema_applied {
             println!("Database schema initialized at {}", self.db_path);
@@ -107,26 +108,39 @@ where
 
         if !store_addresses.is_empty() {
             let store_list: Vec<String> = store_addresses.into_iter().collect();
-            println!(
-                "Fetching interpreter store Set events for {} store(s)",
-                store_list.len()
-            );
-            let store_events = self
-                .data_source
-                .fetch_store_set_events(&store_list, window.start_block, window.target_block)
-                .await?;
-            println!(
-                "Fetched {} interpreter store Set events",
-                store_events.len()
-            );
+            let parsed_store_addresses: Vec<Address> = store_list
+                .iter()
+                .filter_map(|value| Address::from_str(value).ok())
+                .collect();
 
-            if !store_events.is_empty() {
-                raw_events.extend(store_events.iter().cloned());
-                let mut decoded_store = self.data_source.decode_events(&store_events)?;
-                decoded_events.append(&mut decoded_store);
-                sort_events_by_block_and_log(&mut decoded_events);
-                decoded_count = decoded_events.len();
-                println!("Decoded {} total events", decoded_count);
+            if parsed_store_addresses.is_empty() {
+                println!("Skipping interpreter store Set fetch; no addresses parsed successfully");
+            } else {
+                println!(
+                    "Fetching interpreter store Set events for {} store(s)",
+                    store_list.len()
+                );
+                let store_events = self
+                    .data_source
+                    .fetch_store_set_events(
+                        &parsed_store_addresses,
+                        window.start_block,
+                        window.target_block,
+                    )
+                    .await?;
+                println!(
+                    "Fetched {} interpreter store Set events",
+                    store_events.len()
+                );
+
+                if !store_events.is_empty() {
+                    raw_events.extend(store_events.iter().cloned());
+                    let mut decoded_store = self.data_source.decode_events(&store_events)?;
+                    decoded_events.append(&mut decoded_store);
+                    sort_events_by_block_and_log(&mut decoded_events);
+                    decoded_count = decoded_events.len();
+                    println!("Decoded {} total events", decoded_count);
+                }
             }
         }
 
@@ -167,15 +181,13 @@ where
 
 fn sort_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
     events.sort_by(|a, b| {
-        let block_a = parse_block_number(&a.block_number);
-        let block_b = parse_block_number(&b.block_number);
-        block_a
-            .cmp(&block_b)
-            .then_with(|| parse_block_number(&a.log_index).cmp(&parse_block_number(&b.log_index)))
+        a.block_number
+            .cmp(&b.block_number)
+            .then_with(|| parse_hex_field(&a.log_index).cmp(&parse_hex_field(&b.log_index)))
     });
 }
 
-fn parse_block_number(value: &str) -> u64 {
+fn parse_hex_field(value: &str) -> u64 {
     let trimmed = value.trim();
     if let Some(hex) = trimmed
         .strip_prefix("0x")
@@ -190,7 +202,7 @@ fn parse_block_number(value: &str) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, FixedBytes, U256};
+    use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
@@ -251,7 +263,7 @@ mod tests {
         decode_responses: Mutex<Vec<Vec<DecodedEventData<DecodedEvent>>>>,
         sql_result: String,
         fetch_calls: Mutex<Vec<(String, u64, u64)>>,
-        fetch_store_calls: Mutex<Vec<(Vec<String>, u64, u64)>>,
+        fetch_store_calls: Mutex<Vec<(Vec<Address>, u64, u64)>>,
         sql_calls: Mutex<Vec<(usize, u64)>>,
         prefixes: Mutex<Vec<String>>,
         decimals: Mutex<Vec<HashMap<Address, u8>>>,
@@ -267,12 +279,12 @@ mod tests {
 
         async fn fetch_events(
             &self,
-            orderbook_address: &str,
+            orderbook_address: Address,
             start_block: u64,
             end_block: u64,
         ) -> Result<Vec<LogEntryResponse>> {
             self.fetch_calls.lock().unwrap().push((
-                orderbook_address.to_string(),
+                format!("0x{:x}", orderbook_address),
                 start_block,
                 end_block,
             ));
@@ -281,7 +293,7 @@ mod tests {
 
         async fn fetch_store_set_events(
             &self,
-            store_addresses: &[String],
+            store_addresses: &[Address],
             start_block: u64,
             end_block: u64,
         ) -> Result<Vec<LogEntryResponse>> {
@@ -349,9 +361,9 @@ mod tests {
     fn sample_decoded_event(token: Address) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: EventType::DepositV2,
-            block_number: "0x1".into(),
-            block_timestamp: "0x0".into(),
-            transaction_hash: "0xabc".into(),
+            block_number: 0x1,
+            block_timestamp: 0,
+            transaction_hash: Bytes::from(vec![0xab; 32]),
             log_index: "0x0".into(),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),
@@ -365,9 +377,9 @@ mod tests {
     fn sample_store_decoded_event(store: Address) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: EventType::InterpreterStoreSet,
-            block_number: "0x2".into(),
-            block_timestamp: "0x0".into(),
-            transaction_hash: "0xstore".into(),
+            block_number: 0x2,
+            block_timestamp: 0,
+            transaction_hash: Bytes::from(vec![0xcd; 32]),
             log_index: "0x1".into(),
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
                 store_address: store,
@@ -380,14 +392,14 @@ mod tests {
 
     fn sample_log() -> LogEntryResponse {
         LogEntryResponse {
-            address: "0xfeed".into(),
-            topics: vec!["0x0".into()],
-            data: "0x".into(),
-            block_number: "0x1".into(),
-            block_timestamp: Some("0x0".into()),
-            transaction_hash: "0xabc".into(),
+            address: Address::from([0xfe; 20]),
+            topics: vec![Bytes::from(vec![0u8; 32])],
+            data: Bytes::new(),
+            block_number: 0x1,
+            block_timestamp: Some(0),
+            transaction_hash: Bytes::from(vec![0xab; 32]),
             transaction_index: "0x0".into(),
-            block_hash: "0x123".into(),
+            block_hash: Bytes::from(vec![0x12, 0x34, 0x56]),
             log_index: "0x0".into(),
             removed: false,
         }
@@ -395,14 +407,14 @@ mod tests {
 
     fn sample_store_log() -> LogEntryResponse {
         LogEntryResponse {
-            address: "0xdead".into(),
-            topics: vec!["0x0".into()],
-            data: "0x".into(),
-            block_number: "0x2".into(),
-            block_timestamp: Some("0x0".into()),
-            transaction_hash: "0xstore".into(),
+            address: Address::from([0xde; 20]),
+            topics: vec![Bytes::from(vec![0u8; 32])],
+            data: Bytes::new(),
+            block_number: 0x2,
+            block_timestamp: Some(0),
+            transaction_hash: Bytes::from(vec![0xcd; 32]),
             transaction_index: "0x0".into(),
-            block_hash: "0x456".into(),
+            block_hash: Bytes::from(vec![0x45, 0x67]),
             log_index: "0x1".into(),
             removed: false,
         }
@@ -449,7 +461,7 @@ mod tests {
 
         let params = SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: Address::from([0x44; 20]),
             deployment_block: 150,
             start_block: None,
             end_block: Some(160),
@@ -461,8 +473,13 @@ mod tests {
         assert_eq!(store_calls.len(), 1);
         assert_eq!(store_calls[0].1, 150);
         assert_eq!(store_calls[0].2, 160);
+        let recorded_addresses: Vec<String> = store_calls[0]
+            .0
+            .iter()
+            .map(|addr| format!("0x{:x}", addr))
+            .collect();
         assert_eq!(
-            store_calls[0].0,
+            recorded_addresses,
             vec!["0x1111111111111111111111111111111111111111".to_string()]
         );
 
@@ -570,7 +587,7 @@ mod tests {
 
         let params = SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: Address::from([0x55; 20]),
             deployment_block: 180,
             start_block: None,
             end_block: Some(185),
@@ -582,8 +599,6 @@ mod tests {
         assert_eq!(store_calls.len(), 1);
         assert_eq!(store_calls[0].1, 180);
         assert_eq!(store_calls[0].2, 185);
-        assert!(store_calls[0]
-            .0
-            .contains(&"0x2222222222222222222222222222222222222222".to_string()));
+        assert!(store_calls[0].0.contains(&Address::from([0x22; 20])));
     }
 }

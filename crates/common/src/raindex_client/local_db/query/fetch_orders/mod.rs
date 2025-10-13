@@ -1,6 +1,7 @@
 use super::*;
 use crate::raindex_client::local_db::bool_from_int_or_bool;
 use crate::raindex_client::orders::GetOrdersFilters;
+use alloy::primitives::Bytes;
 
 const QUERY: &str = include_str!("query.sql");
 
@@ -15,9 +16,9 @@ pub enum FetchOrdersActiveFilter {
 #[derive(Debug, Clone)]
 pub struct FetchOrdersArgs {
     pub filter: FetchOrdersActiveFilter,
-    pub owners: Vec<String>,
-    pub order_hash: Option<String>,
-    pub tokens: Vec<String>,
+    pub owners: Vec<Address>,
+    pub order_hash: Option<Bytes>,
+    pub tokens: Vec<Address>,
 }
 
 impl Default for FetchOrdersArgs {
@@ -39,26 +40,11 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
             None => FetchOrdersActiveFilter::All,
         };
 
-        let owners = filters
-            .owners
-            .into_iter()
-            .map(|owner| owner.to_string().to_lowercase())
-            .collect();
-
-        let order_hash = filters.order_hash.map(|hash| hash.to_string());
-
-        let tokens = filters
-            .tokens
-            .unwrap_or_default()
-            .into_iter()
-            .map(|token| token.to_string().to_lowercase())
-            .collect();
-
         FetchOrdersArgs {
             filter,
-            owners,
-            order_hash,
-            tokens,
+            owners: filters.owners,
+            order_hash: filters.order_hash,
+            tokens: filters.tokens.unwrap_or_default(),
         }
     }
 }
@@ -105,17 +91,11 @@ impl LocalDbQuery {
             FetchOrdersActiveFilter::Inactive => "inactive",
         };
 
-        let sanitize_literal = |value: &str| value.replace('\'', "''");
-
         let owner_values: Vec<String> = owners
             .into_iter()
-            .filter_map(|owner| {
-                let trimmed = owner.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!("'{}'", sanitize_literal(&trimmed.to_lowercase())))
-                }
+            .map(|owner| {
+                let owner_lower = owner.to_string().to_lowercase();
+                format!("'{}'", owner_lower)
             })
             .collect();
         let filter_owners = if owner_values.is_empty() {
@@ -129,27 +109,22 @@ impl LocalDbQuery {
 
         let filter_order_hash = order_hash
             .and_then(|hash| {
-                let trimmed = hash.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!(
-                        "\nAND lower(COALESCE(la.order_hash, l.order_hash)) = lower('{}')\n",
-                        sanitize_literal(trimmed)
-                    ))
+                if hash.is_empty() {
+                    return None;
                 }
+
+                Some(format!(
+                    "\nAND lower(COALESCE(la.order_hash, l.order_hash)) = lower('{}')\n",
+                    hash
+                ))
             })
             .unwrap_or_default();
 
         let token_values: Vec<String> = tokens
             .into_iter()
-            .filter_map(|token| {
-                let trimmed = token.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!("'{}'", sanitize_literal(&trimmed.to_lowercase())))
-                }
+            .map(|token| {
+                let token_lower = token.to_string().to_lowercase();
+                format!("'{}'", token_lower)
             })
             .collect();
         let filter_tokens = if token_values.is_empty() {
@@ -205,15 +180,20 @@ mod tests {
             assert!(matches!(args.filter, FetchOrdersActiveFilter::Active));
             assert_eq!(
                 args.owners,
-                vec!["0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()]
+                vec![Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap()]
             );
             assert_eq!(
-                args.order_hash.as_deref(),
-                Some("0xabc0000000000000000000000000000000000000000000000000000000000001")
+                args.order_hash,
+                Some(
+                    Bytes::from_str(
+                        "0xabc0000000000000000000000000000000000000000000000000000000000001"
+                    )
+                    .unwrap()
+                )
             );
             assert_eq!(
                 args.tokens,
-                vec!["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string()]
+                vec![Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap()]
             );
         }
 
@@ -241,8 +221,10 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
+        use alloy::primitives::{Address, Bytes};
         use std::cell::RefCell;
         use std::rc::Rc;
+        use std::str::FromStr;
         use wasm_bindgen_test::*;
 
         #[wasm_bindgen_test]
@@ -433,8 +415,8 @@ mod tests {
             let args = FetchOrdersArgs {
                 filter: FetchOrdersActiveFilter::All,
                 owners: vec![
-                    "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".into(),
-                    "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB".into(),
+                    Address::from_str("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap(),
+                    Address::from_str("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB").unwrap(),
                 ],
                 order_hash: None,
                 tokens: vec![],
@@ -458,7 +440,7 @@ mod tests {
             let args = FetchOrdersArgs {
                 filter: FetchOrdersActiveFilter::All,
                 owners: vec![],
-                order_hash: Some("0xabc123".into()),
+                order_hash: Some(Bytes::from_str("0xabc123").unwrap()),
                 tokens: vec![],
             };
 
@@ -484,8 +466,8 @@ mod tests {
                 owners: vec![],
                 order_hash: None,
                 tokens: vec![
-                    "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".into(),
-                    "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB".into(),
+                    Address::from_str("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap(),
+                    Address::from_str("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB").unwrap(),
                 ],
             };
 

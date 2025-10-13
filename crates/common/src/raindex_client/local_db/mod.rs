@@ -258,7 +258,7 @@ impl RaindexClient {
 #[cfg(test)]
 mod bool_deserialize_tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
+    use alloy::primitives::{Address, Bytes, U256};
     use alloy::sol_types::SolEvent;
     use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, DepositV2};
     use std::collections::HashMap;
@@ -269,14 +269,16 @@ mod bool_deserialize_tests {
 
     fn sample_log_entry_with_invalid_data() -> LogEntryResponse {
         LogEntryResponse {
-            address: "0x1111111111111111111111111111111111111111".to_string(),
-            topics: vec![AddOrderV3::SIGNATURE_HASH.to_string()],
-            data: "0xnothex".to_string(),
-            block_number: "0x1".to_string(),
-            block_timestamp: Some("0x2".to_string()),
-            transaction_hash: "0x3".to_string(),
+            address: Address::from([0x11; 20]),
+            topics: vec![Bytes::copy_from_slice(
+                AddOrderV3::SIGNATURE_HASH.as_slice(),
+            )],
+            data: Bytes::from(vec![0xde, 0xad]),
+            block_number: 1,
+            block_timestamp: Some(2),
+            transaction_hash: Bytes::from(vec![0u8; 32]),
             transaction_index: "0x0".to_string(),
-            block_hash: "0x4".to_string(),
+            block_hash: Bytes::from(vec![0u8; 32]),
             log_index: "0x0".to_string(),
             removed: false,
         }
@@ -290,17 +292,13 @@ mod bool_deserialize_tests {
         let err = db.decode_events(&[event]).unwrap_err();
         match err {
             LocalDbError::DecodeError { message } => {
-                assert!(
-                    message.to_lowercase().contains("hex"),
-                    "unexpected message: {}",
-                    message
-                );
+                assert!(!message.is_empty(), "unexpected empty message: {message:?}");
             }
             other => panic!("expected LocalDbError::DecodeError, got {other:?}"),
         }
     }
 
-    fn deposit_event_with_invalid_block() -> DecodedEventData<DecodedEvent> {
+    fn deposit_event_with_invalid_field() -> DecodedEventData<DecodedEvent> {
         let deposit = DepositV2 {
             sender: Address::from([0u8; 20]),
             token: Address::from([1u8; 20]),
@@ -310,10 +308,10 @@ mod bool_deserialize_tests {
 
         DecodedEventData {
             event_type: decode::EventType::DepositV2,
-            block_number: "not-hex".to_string(),
-            block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x5".to_string(),
-            log_index: "0x0".to_string(),
+            block_number: 1,
+            block_timestamp: 0,
+            transaction_hash: Bytes::from(vec![0x05; 32]),
+            log_index: "not-hex".to_string(),
             decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
         }
     }
@@ -321,7 +319,7 @@ mod bool_deserialize_tests {
     #[test]
     fn decoded_events_to_sql_maps_insert_errors() {
         let db = make_local_db();
-        let event = deposit_event_with_invalid_block();
+        let event = deposit_event_with_invalid_field();
         let mut decimals = HashMap::new();
         if let DecodedEvent::DepositV2(deposit) = &event.decoded_data {
             decimals.insert(deposit.token, 18);

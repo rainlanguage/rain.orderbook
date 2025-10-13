@@ -1,3 +1,4 @@
+use alloy::primitives::Address;
 use anyhow::Result;
 use clap::Parser;
 use rain_orderbook_common::raindex_client::local_db::{LocalDb, LocalDbError};
@@ -5,13 +6,14 @@ use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClientError};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 #[async_trait::async_trait]
 pub trait EventClient {
     async fn get_latest_block_number(&self) -> Result<u64, RpcClientError>;
     async fn fetch(
         &self,
-        address: &str,
+        address: Address,
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError>;
@@ -25,7 +27,7 @@ impl EventClient for LocalDb {
 
     async fn fetch(
         &self,
-        address: &str,
+        address: Address,
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
@@ -64,7 +66,11 @@ impl FetchEvents {
         };
 
         let all_events = client
-            .fetch(&self.orderbook_address, self.start_block, end_block)
+            .fetch(
+                Address::from_str(&self.orderbook_address)?,
+                self.start_block,
+                end_block,
+            )
             .await
             .map_err(|e| anyhow::anyhow!("Failed to fetch events: {}", e))?;
 
@@ -97,18 +103,21 @@ impl FetchEvents {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::Bytes;
     use tempfile::{NamedTempFile, TempDir};
 
-    fn sample_event(block_number: &str) -> LogEntryResponse {
+    const TEST_ORDERBOOK_ADDRESS: &str = "0x0000000000000000000000000000000000000123";
+
+    fn sample_event(block_number: u64) -> LogEntryResponse {
         LogEntryResponse {
-            address: "0x123".to_string(),
-            topics: vec!["0xabc".to_string()],
-            data: "0xdeadbeef".to_string(),
-            block_number: block_number.to_string(),
-            block_timestamp: Some("0x0".to_string()),
-            transaction_hash: "0xtransaction".to_string(),
+            address: Address::from([0x12; 20]),
+            topics: vec![Bytes::from(vec![0u8; 32])],
+            data: Bytes::from(vec![0xde, 0xad, 0xbe, 0xef]),
+            block_number,
+            block_timestamp: Some(0),
+            transaction_hash: Bytes::from(vec![0xaa; 32]),
             transaction_index: "0x0".to_string(),
-            block_hash: "0xblock".to_string(),
+            block_hash: Bytes::from(vec![0xbb; 32]),
             log_index: "0x0".to_string(),
             removed: false,
         }
@@ -184,7 +193,7 @@ mod tests {
 
         async fn fetch(
             &self,
-            _address: &str,
+            _address: Address,
             _start_block: u64,
             _end_block: u64,
         ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
@@ -208,11 +217,11 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: Some(200),
-            orderbook_address: "0x123".to_string(),
+            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
             output_file: Some(temp_path.clone()),
         };
 
-        let mock_client = MockEventClient::new().with_events(vec![sample_event("0x64")]);
+        let mock_client = MockEventClient::new().with_events(vec![sample_event(0x64)]);
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
@@ -232,13 +241,13 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: None,
-            orderbook_address: "0x123".to_string(),
+            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
             output_file: Some(temp_path.clone()),
         };
 
         let mock_client = MockEventClient::new()
             .with_latest_block(500)
-            .with_events(vec![sample_event("0x1f4")]);
+            .with_events(vec![sample_event(0x1f4)]);
 
         let result = fetch_events.execute_with_client(mock_client).await;
         assert!(result.is_ok());
@@ -255,7 +264,7 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: None,
-            orderbook_address: "0x123".to_string(),
+            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
             output_file: Some("test_output.json".to_string()),
         };
 
@@ -277,7 +286,7 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: Some(200),
-            orderbook_address: "0x123".to_string(),
+            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
             output_file: Some("test_output.json".to_string()),
         };
 
@@ -305,7 +314,7 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: Some(200),
-            orderbook_address: "0x123".to_string(),
+            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
             output_file: None,
         };
 

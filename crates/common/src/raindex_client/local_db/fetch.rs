@@ -1,6 +1,9 @@
 use super::{LocalDb, LocalDbError};
 use crate::rpc_client::{LogEntryResponse, RpcClientError};
-use alloy::{primitives::U256, sol_types::SolEvent};
+use alloy::{
+    primitives::{Address, U256},
+    sol_types::SolEvent,
+};
 use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::{
@@ -37,7 +40,7 @@ impl Default for FetchConfig {
 impl LocalDb {
     pub async fn fetch_events(
         &self,
-        contract_address: &str,
+        contract_address: Address,
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
@@ -52,7 +55,7 @@ impl LocalDb {
 
     pub async fn fetch_events_with_config(
         &self,
-        contract_address: &str,
+        contract_address: Address,
         start_block: u64,
         end_block: u64,
         config: &FetchConfig,
@@ -132,7 +135,7 @@ impl LocalDb {
 
     pub async fn fetch_store_set_events(
         &self,
-        store_addresses: &[String],
+        store_addresses: &[Address],
         start_block: u64,
         end_block: u64,
         config: &FetchConfig,
@@ -164,36 +167,36 @@ impl LocalDb {
         &self,
         block_numbers: Vec<u64>,
         config: &FetchConfig,
-    ) -> Result<HashMap<u64, String>, LocalDbError> {
+    ) -> Result<HashMap<u64, u64>, LocalDbError> {
         if block_numbers.is_empty() {
             return Ok(HashMap::new());
         }
 
         let concurrency = config.max_concurrent_blocks.max(1);
         let client = self.rpc_client().clone();
-        let results: Vec<Result<(u64, String), LocalDbError>> =
-            futures::stream::iter(block_numbers)
-                .map(|block_number| {
-                    let client = client.clone();
-                    let max_attempts = config.max_retry_attempts;
-                    async move {
-                        let block_response = retry_with_attempts(
-                            || client.get_block_by_number(block_number),
-                            max_attempts,
-                        )
-                        .await?;
+        let results: Vec<Result<(u64, u64), LocalDbError>> = futures::stream::iter(block_numbers)
+            .map(|block_number| {
+                let client = client.clone();
+                let max_attempts = config.max_retry_attempts;
+                async move {
+                    let block_response = retry_with_attempts(
+                        || client.get_block_by_number(block_number),
+                        max_attempts,
+                    )
+                    .await?;
 
-                        let block_data =
-                            block_response.ok_or_else(|| LocalDbError::MissingField {
-                                field: "result".to_string(),
-                            })?;
+                    let block_data = block_response.ok_or_else(|| LocalDbError::MissingField {
+                        field: "result".to_string(),
+                    })?;
 
-                        Ok((block_number, block_data.timestamp))
-                    }
-                })
-                .buffer_unordered(concurrency)
-                .collect()
-                .await;
+                    let timestamp = parse_block_number_str(&block_data.timestamp)?;
+
+                    Ok((block_number, timestamp))
+                }
+            })
+            .buffer_unordered(concurrency)
+            .collect()
+            .await;
 
         results.into_iter().collect()
     }
@@ -206,12 +209,10 @@ impl LocalDb {
         let mut missing_blocks = HashSet::new();
 
         for event in events.iter() {
-            let has_timestamp = event.block_timestamp.as_ref().is_some();
+            let has_timestamp = event.block_timestamp.is_some();
 
             if !has_timestamp {
-                if let Ok(block_number) = extract_block_number_from_entry(event) {
-                    missing_blocks.insert(block_number);
-                }
+                missing_blocks.insert(event.block_number);
             }
         }
 
@@ -223,28 +224,26 @@ impl LocalDb {
         let timestamps = self.fetch_block_timestamps(block_numbers, config).await?;
 
         for event in events.iter_mut() {
-            let has_timestamp = event.block_timestamp.as_ref().is_some();
+            let has_timestamp = event.block_timestamp.is_some();
 
             if has_timestamp {
                 continue;
             }
 
-            if let Ok(block_number) = extract_block_number_from_entry(event) {
-                if let Some(timestamp) = timestamps.get(&block_number) {
-                    event.block_timestamp = Some(timestamp.clone());
-                }
+            if let Some(timestamp) = timestamps.get(&event.block_number) {
+                event.block_timestamp = Some(*timestamp);
             }
         }
 
         Ok(())
     }
 
-    fn dedupe_addresses(store_addresses: &[String]) -> Vec<String> {
+    fn dedupe_addresses(store_addresses: &[Address]) -> Vec<String> {
         let mut dedup = HashSet::new();
         store_addresses
             .iter()
             .filter_map(|addr| {
-                let lower = addr.to_ascii_lowercase();
+                let lower = format!("{:#x}", addr).to_ascii_lowercase();
                 if dedup.insert(lower.clone()) {
                     Some(lower)
                 } else {
@@ -391,7 +390,7 @@ where
 }
 
 fn extract_block_number_from_entry(event: &LogEntryResponse) -> Result<u64, LocalDbError> {
-    parse_block_number_str(&event.block_number)
+    Ok(event.block_number)
 }
 
 fn parse_block_number_str(block_number_str: &str) -> Result<u64, LocalDbError> {
@@ -424,6 +423,7 @@ mod tests {
     mod tokio_tests {
         use super::*;
         use alloy::hex;
+        use alloy::primitives::{Address, Bytes};
         use httpmock::prelude::*;
         use serde_json::json;
         use std::str::FromStr;
@@ -431,14 +431,16 @@ mod tests {
 
         fn make_log_entry_basic(block_number: &str, timestamp: Option<&str>) -> LogEntryResponse {
             LogEntryResponse {
-                address: "0x123".to_string(),
-                topics: vec!["0xabc".to_string()],
-                data: "0xdeadbeef".to_string(),
-                block_number: block_number.to_string(),
-                block_timestamp: timestamp.map(|ts| ts.to_string()),
-                transaction_hash: "0xtransaction".to_string(),
+                address: Address::from([0x12; 20]),
+                topics: vec![Bytes::copy_from_slice(
+                    AddOrderV3::SIGNATURE_HASH.as_slice(),
+                )],
+                data: Bytes::from(vec![0xde, 0xad, 0xbe, 0xef]),
+                block_number: parse_block_number_str(block_number).unwrap(),
+                block_timestamp: timestamp.map(|ts| parse_block_number_str(ts).unwrap()),
+                transaction_hash: Bytes::from(vec![0u8; 32]),
                 transaction_index: "0x0".to_string(),
-                block_hash: "0xblock".to_string(),
+                block_hash: Bytes::from(vec![0u8; 32]),
                 log_index: "0x0".to_string(),
                 removed: false,
             }
@@ -483,33 +485,42 @@ mod tests {
             let server = MockServer::start();
             let url = Url::from_str(&server.url("/")).unwrap();
 
+            let contract_address = Address::from([0xab; 20]);
+            let contract_address_hex = contract_address.to_string();
+            let transaction_hash_one = format!("0x{}", "11".repeat(32));
+            let transaction_hash_two = format!("0x{}", "22".repeat(32));
+            let block_hash_one = format!("0x{}", "aa".repeat(32));
+            let block_hash_two = format!("0x{}", "bb".repeat(32));
+
             let response_body = json!({
                 "jsonrpc": "2.0",
                 "id": 1,
                 "result": [
                     {
-                        "address": "0xabc",
+                        "address": contract_address_hex.clone(),
                         "topics": [
                             format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
                         ],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x2",
-                        "transactionHash": "0x2",
+                        "blockTimestamp": "0x65",
+                        "transactionHash": transaction_hash_two.clone(),
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
+                        "blockHash": block_hash_two.clone(),
                         "logIndex": "0x1",
                         "removed": false
                     },
                     {
-                        "address": "0xabc",
+                        "address": contract_address_hex.clone(),
                         "topics": [
                             format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
                         ],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x1",
-                        "transactionHash": "0x1",
+                        "blockTimestamp": "0x64",
+                        "transactionHash": transaction_hash_one.clone(),
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
+                        "blockHash": block_hash_one.clone(),
                         "logIndex": "0x0",
                         "removed": false
                     }
@@ -551,7 +562,7 @@ mod tests {
 
             let events = db
                 .fetch_events_with_config(
-                    "0xabc",
+                    contract_address,
                     1,
                     2,
                     &FetchConfig {
@@ -565,17 +576,18 @@ mod tests {
                 .unwrap();
 
             assert_eq!(events.len(), 2);
-            assert_eq!(events[0].block_number, "0x1");
-            assert_eq!(events[1].block_number, "0x2");
-            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x64"));
-            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x65"));
+            assert_eq!(events[0].block_number, 1);
+            assert_eq!(events[1].block_number, 2);
+            assert_eq!(events[0].block_timestamp, Some(0x64));
+            assert_eq!(events[1].block_timestamp, Some(0x65));
         }
 
         #[tokio::test]
         async fn fetch_store_set_events_returns_empty_for_no_addresses() {
             let db = LocalDb::default();
+            let addresses: [Address; 0] = [];
             let events = db
-                .fetch_store_set_events(&[], 0, 10, &FetchConfig::default())
+                .fetch_store_set_events(&addresses, 0, 10, &FetchConfig::default())
                 .await
                 .unwrap();
             assert!(events.is_empty());
@@ -586,31 +598,41 @@ mod tests {
             let server = MockServer::start();
             let url = Url::from_str(&server.url("/")).unwrap();
 
+            let store_address_hex = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let store_address_lower = Address::from_str(store_address_hex).unwrap();
+            let store_address_upper =
+                Address::from_str("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap();
+
+            let transaction_hash_first = format!("0x{}", "33".repeat(32));
+            let transaction_hash_second = format!("0x{}", "44".repeat(32));
+            let block_hash_first = format!("0x{}", "cc".repeat(32));
+            let block_hash_second = format!("0x{}", "dd".repeat(32));
+
             let logs_response = json!({
                 "jsonrpc": "2.0",
                 "id": 1,
                 "result": [
                     {
-                        "address": "0xstore",
+                        "address": store_address_hex,
                         "topics": [Set::SIGNATURE_HASH.to_string()],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x2",
                         "blockTimestamp": "0x65",
-                        "transactionHash": "0x2",
+                        "transactionHash": transaction_hash_second.clone(),
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
+                        "blockHash": block_hash_second.clone(),
                         "logIndex": "0x1",
                         "removed": false
                     },
                     {
-                        "address": "0xstore",
+                        "address": store_address_hex,
                         "topics": [Set::SIGNATURE_HASH.to_string()],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x1",
                         "blockTimestamp": "0x64",
-                        "transactionHash": "0x1",
+                        "transactionHash": transaction_hash_first.clone(),
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
+                        "blockHash": block_hash_first.clone(),
                         "logIndex": "0x0",
                         "removed": false
                     }
@@ -621,7 +643,7 @@ mod tests {
                 when.method(POST)
                     .path("/")
                     .body_contains("\"eth_getLogs\"")
-                    .body_contains("\"0xstore\"");
+                    .body_contains(format!("\"{store_address_hex}\""));
                 then.status(200)
                     .header("content-type", "application/json")
                     .body(logs_response.to_string());
@@ -633,9 +655,9 @@ mod tests {
             let events = db
                 .fetch_store_set_events(
                     &[
-                        "0xStore".to_string(),
-                        "0xstore".to_string(),
-                        "0xSTORE".to_string(),
+                        store_address_lower,
+                        store_address_upper,
+                        store_address_lower,
                     ],
                     1,
                     2,
@@ -650,20 +672,21 @@ mod tests {
                 .unwrap();
 
             assert_eq!(events.len(), 2);
-            assert_eq!(events[0].block_number, "0x1");
+            assert_eq!(events[0].block_number, 1);
             assert_eq!(events[0].log_index, "0x0");
-            assert_eq!(events[1].block_number, "0x2");
+            assert_eq!(events[1].block_number, 2);
             assert_eq!(events[1].log_index, "0x1");
-            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x64"));
-            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x65"));
+            assert_eq!(events[0].block_timestamp, Some(0x64));
+            assert_eq!(events[1].block_timestamp, Some(0x65));
             assert_eq!(log_mock.hits(), 1);
         }
 
         #[tokio::test]
         async fn fetch_store_set_events_returns_empty_for_inverted_range() {
             let db = LocalDb::default();
+            let addr = Address::from([0x11; 20]);
             let events = db
-                .fetch_store_set_events(&["0xstore".to_string()], 10, 1, &FetchConfig::default())
+                .fetch_store_set_events(&[addr], 10, 1, &FetchConfig::default())
                 .await
                 .unwrap();
             assert!(events.is_empty());
@@ -698,8 +721,8 @@ mod tests {
                 .await
                 .unwrap();
 
-            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x10"));
-            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x20"));
+            assert_eq!(events[0].block_timestamp, Some(0x10));
+            assert_eq!(events[1].block_timestamp, Some(0x20));
         }
     }
 }

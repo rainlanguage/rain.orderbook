@@ -20,6 +20,7 @@ use std::{
     future::Future,
     io::Read,
     pin::Pin,
+    str::FromStr,
 };
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
@@ -48,7 +49,7 @@ trait LocalDbApi {
     fn latest_block_number(&self) -> LocalDbFuture<'_, u64>;
     fn fetch_events(
         &self,
-        contract_address: String,
+        contract_address: Address,
         start_block: u64,
         end_block: u64,
     ) -> LocalDbFuture<'_, Vec<LogEntryResponse>>;
@@ -58,7 +59,7 @@ trait LocalDbApi {
     ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>;
     fn fetch_store_set_events(
         &self,
-        store_addresses: Vec<String>,
+        store_addresses: Vec<Address>,
         start_block: u64,
         end_block: u64,
     ) -> LocalDbFuture<'_, Vec<LogEntryResponse>>;
@@ -142,12 +143,12 @@ impl LocalDbApi for LocalDb {
 
     fn fetch_events(
         &self,
-        contract_address: String,
+        contract_address: Address,
         start_block: u64,
         end_block: u64,
     ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
         Box::pin(async move {
-            LocalDb::fetch_events(self, &contract_address, start_block, end_block).await
+            LocalDb::fetch_events(self, contract_address, start_block, end_block).await
         })
     }
 
@@ -160,7 +161,7 @@ impl LocalDbApi for LocalDb {
 
     fn fetch_store_set_events(
         &self,
-        store_addresses: Vec<String>,
+        store_addresses: Vec<Address>,
         start_block: u64,
         end_block: u64,
     ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
@@ -312,7 +313,7 @@ async fn sync_database_with_services(
 
     status.send("Fetching latest onchain events...".to_string())?;
     let events = local_db
-        .fetch_events(orderbook_cfg.address.to_string(), start_block, latest_block)
+        .fetch_events(orderbook_cfg.address, start_block, latest_block)
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
@@ -323,9 +324,13 @@ async fn sync_database_with_services(
 
     let existing_stores: Vec<StoreAddressRow> = db.fetch_store_addresses().await?;
     let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
+    let store_addresses: Vec<Address> = store_addresses_vec
+        .iter()
+        .filter_map(|addr| Address::from_str(addr).ok())
+        .collect();
 
     let store_logs = local_db
-        .fetch_store_set_events(store_addresses_vec, start_block, latest_block)
+        .fetch_store_set_events(store_addresses, start_block, latest_block)
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
@@ -380,15 +385,13 @@ impl RaindexClient {
 
 fn sort_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
     events.sort_by(|a, b| {
-        let block_a = parse_block_number(&a.block_number);
-        let block_b = parse_block_number(&b.block_number);
-        block_a
-            .cmp(&block_b)
-            .then_with(|| parse_block_number(&a.log_index).cmp(&parse_block_number(&b.log_index)))
+        a.block_number
+            .cmp(&b.block_number)
+            .then_with(|| parse_hex_field(&a.log_index).cmp(&parse_hex_field(&b.log_index)))
     });
 }
 
-fn parse_block_number(value: &str) -> u64 {
+fn parse_hex_field(value: &str) -> u64 {
     let trimmed = value.trim();
     if let Some(hex) = trimmed
         .strip_prefix("0x")
@@ -409,8 +412,9 @@ fn collect_all_store_addresses(
         .collect();
 
     for row in existing_stores {
-        if !row.store_address.is_empty() {
-            store_addresses.insert(row.store_address.to_ascii_lowercase());
+        if row.store_address != Address::ZERO {
+            let formatted = format!("{:#x}", row.store_address);
+            store_addresses.insert(formatted.to_ascii_lowercase());
         }
     }
 
@@ -498,7 +502,7 @@ mod tests {
             fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
         };
         use crate::raindex_client::RaindexError;
-        use alloy::primitives::{Address, U256};
+        use alloy::primitives::{Address, Bytes, U256};
         use rain_orderbook_app_settings::yaml::YamlError;
         use rain_orderbook_bindings::IOrderBookV5::{DepositV2, WithdrawV2};
         use std::cell::RefCell;
@@ -705,9 +709,9 @@ mod tests {
             };
             events.push(DecodedEventData {
                 event_type: EventType::DepositV2,
-                block_number: "0x0".into(),
-                block_timestamp: "0x0".into(),
-                transaction_hash: "0x0".into(),
+                block_number: 0,
+                block_timestamp: 0,
+                transaction_hash: Bytes::from(vec![0u8; 32]),
                 log_index: "0x0".into(),
                 decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
             });
@@ -722,9 +726,9 @@ mod tests {
             };
             events.push(DecodedEventData {
                 event_type: EventType::WithdrawV2,
-                block_number: "0x0".into(),
-                block_timestamp: "0x0".into(),
-                transaction_hash: "0x1".into(),
+                block_number: 0,
+                block_timestamp: 0,
+                transaction_hash: Bytes::from(vec![1u8; 32]),
                 log_index: "0x1".into(),
                 decoded_data: DecodedEvent::WithdrawV2(Box::new(withdraw)),
             });
@@ -1002,7 +1006,6 @@ mod tests {
             rpc_client::LogEntryResponse,
         };
         use alloy::{
-            hex,
             primitives::{Bytes, FixedBytes, U256},
             sol_types::SolEvent,
         };
@@ -1013,29 +1016,34 @@ mod tests {
 
         const ORDERBOOK_ADDRESS: &str = CHAIN_ID_1_ORDERBOOK_ADDRESS;
 
-        fn to_hex(value: u64) -> String {
-            format!("0x{:x}", value)
+        fn make_transaction_hash(block_number: u64, transaction_suffix: u64) -> Bytes {
+            let value = block_number
+                .saturating_mul(100)
+                .saturating_add(transaction_suffix);
+            let mut bytes = vec![0u8; 32];
+            bytes[24..].copy_from_slice(&value.to_be_bytes());
+            Bytes::from(bytes)
         }
 
         fn make_log_entry(
             address: Address,
-            topic: String,
-            data: String,
+            topic: Bytes,
+            data: Bytes,
             block_number: u64,
             block_timestamp: u64,
             transaction_suffix: u64,
             log_index: u64,
         ) -> LogEntryResponse {
             LogEntryResponse {
-                address: format!("0x{:x}", address),
+                address,
                 topics: vec![topic],
                 data,
-                block_number: to_hex(block_number),
-                block_timestamp: Some(to_hex(block_timestamp)),
-                transaction_hash: format!("0x{:064x}", block_number * 100 + transaction_suffix),
-                transaction_index: "0x0".to_string(),
-                block_hash: "0x0".to_string(),
-                log_index: to_hex(log_index),
+                block_number,
+                block_timestamp: Some(block_timestamp),
+                transaction_hash: make_transaction_hash(block_number, transaction_suffix),
+                transaction_index: format!("0x{transaction_suffix:x}"),
+                block_hash: Bytes::from(vec![0u8; 32]),
+                log_index: format!("0x{log_index:x}"),
                 removed: false,
             }
         }
@@ -1053,10 +1061,11 @@ mod tests {
                 vaultId: U256::from(1u64).into(),
                 depositAmountUint256: U256::from(1u64),
             };
-            let encoded = format!("0x{}", hex::encode(event.encode_data()));
+            let topic = Bytes::copy_from_slice(DepositV2::SIGNATURE_HASH.as_slice());
+            let encoded = Bytes::from(event.encode_data());
             make_log_entry(
                 orderbook,
-                format!("0x{}", hex::encode(DepositV2::SIGNATURE_HASH)),
+                topic,
                 encoded,
                 block_number,
                 block_number + 1,
@@ -1095,10 +1104,11 @@ mod tests {
                 orderHash: FixedBytes::<32>::from([0x77; 32]),
                 order,
             };
-            let encoded = format!("0x{}", hex::encode(event.encode_data()));
+            let topic = Bytes::copy_from_slice(AddOrderV3::SIGNATURE_HASH.as_slice());
+            let encoded = Bytes::from(event.encode_data());
             make_log_entry(
                 orderbook,
-                format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH)),
+                topic,
                 encoded,
                 block_number,
                 block_number + 2,
@@ -1119,10 +1129,11 @@ mod tests {
             data.extend_from_slice(&namespace);
             data.extend_from_slice(&key);
             data.extend_from_slice(&value);
+            let topic = Bytes::copy_from_slice(Set::SIGNATURE_HASH.as_slice());
             make_log_entry(
                 store,
-                format!("0x{}", hex::encode(Set::SIGNATURE_HASH)),
-                format!("0x{}", hex::encode(data)),
+                topic,
+                Bytes::from(data),
                 block_number,
                 block_number + 3,
                 log_index,
@@ -1277,7 +1288,7 @@ mod tests {
 
             fn fetch_events(
                 &self,
-                _contract_address: String,
+                _contract_address: Address,
                 _start_block: u64,
                 _end_block: u64,
             ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
@@ -1294,7 +1305,7 @@ mod tests {
 
             fn fetch_store_set_events(
                 &self,
-                _store_addresses: Vec<String>,
+                _store_addresses: Vec<Address>,
                 _start_block: u64,
                 _end_block: u64,
             ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
@@ -1338,7 +1349,7 @@ mod tests {
         }
 
         type ResultCell<T> = RefCell<Option<Result<T, LocalDbError>>>;
-        type StoreRequest = (Vec<String>, u64, u64);
+        type StoreRequest = (Vec<Address>, u64, u64);
         type StoreRequestLog = Rc<RefCell<Vec<StoreRequest>>>;
         type TokenMetadata = Vec<(Address, TokenInfo)>;
 
@@ -1349,7 +1360,7 @@ mod tests {
             fetch_store_events_result: ResultCell<Vec<LogEntryResponse>>,
             fetch_token_metadata_result: ResultCell<TokenMetadata>,
             decoded_events_to_sql_result: ResultCell<String>,
-            recorded_fetch_events: Rc<RefCell<Vec<(String, u64, u64)>>>,
+            recorded_fetch_events: Rc<RefCell<Vec<(Address, u64, u64)>>>,
             recorded_store_requests: StoreRequestLog,
         }
 
@@ -1397,7 +1408,7 @@ mod tests {
                 *self.decoded_events_to_sql_result.borrow_mut() = Some(result);
             }
 
-            fn recorded_fetch_events(&self) -> Vec<(String, u64, u64)> {
+            fn recorded_fetch_events(&self) -> Vec<(Address, u64, u64)> {
                 self.recorded_fetch_events.borrow().clone()
             }
 
@@ -1418,15 +1429,12 @@ mod tests {
 
             fn fetch_events(
                 &self,
-                contract_address: String,
+                contract_address: Address,
                 start_block: u64,
                 end_block: u64,
             ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
-                self.recorded_fetch_events.borrow_mut().push((
-                    contract_address.clone(),
-                    start_block,
-                    end_block,
-                ));
+                let mut recorded = self.recorded_fetch_events.borrow_mut();
+                recorded.push((contract_address, start_block, end_block));
                 let result = self
                     .fetch_events_result
                     .borrow_mut()
@@ -1447,7 +1455,7 @@ mod tests {
 
             fn fetch_store_set_events(
                 &self,
-                store_addresses: Vec<String>,
+                store_addresses: Vec<Address>,
                 start_block: u64,
                 end_block: u64,
             ) -> LocalDbFuture<'_, Vec<LogEntryResponse>> {
@@ -1504,9 +1512,9 @@ mod tests {
 
             DecodedEventData {
                 event_type: EventType::InterpreterStoreSet,
-                block_number: format!("0x{block_number:x}"),
-                block_timestamp: "0x0".into(),
-                transaction_hash: format!("0x{block_number:x}{log_index:x}"),
+                block_number,
+                block_timestamp: 0,
+                transaction_hash: make_transaction_hash(block_number, log_index),
                 log_index: format!("0x{log_index:x}"),
                 decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(store_event)),
             }
@@ -1522,9 +1530,9 @@ mod tests {
 
             DecodedEventData {
                 event_type: EventType::DepositV2,
-                block_number: "0x10".into(),
-                block_timestamp: "0x0".into(),
-                transaction_hash: "0xabc".into(),
+                block_number: 0x10,
+                block_timestamp: 0,
+                transaction_hash: make_transaction_hash(0x10, 0),
                 log_index: "0x0".into(),
                 decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
             }
@@ -1560,9 +1568,9 @@ mod tests {
 
             DecodedEventData {
                 event_type: EventType::AddOrderV3,
-                block_number: "0x20".into(),
-                block_timestamp: "0x0".into(),
-                transaction_hash: "0xdef".into(),
+                block_number: 0x20,
+                block_timestamp: 0,
+                transaction_hash: make_transaction_hash(0x20, 1),
                 log_index: "0x1".into(),
                 decoded_data: DecodedEvent::AddOrderV3(Box::new(add)),
             }
@@ -1577,13 +1585,13 @@ mod tests {
 
             let existing = vec![
                 StoreAddressRow {
-                    store_address: "0x2222222222222222222222222222222222222222".to_string(),
+                    store_address: Address::from([0x22; 20]),
                 },
                 StoreAddressRow {
-                    store_address: "0X3333333333333333333333333333333333333333".to_string(),
+                    store_address: Address::from([0x33; 20]),
                 },
                 StoreAddressRow {
-                    store_address: "".to_string(),
+                    store_address: Address::ZERO,
                 },
             ];
 
@@ -1617,7 +1625,7 @@ mod tests {
 
             assert!(store_events.is_empty(), "store events drained after merge");
             assert_eq!(base_events.len(), 3);
-            assert_eq!(base_events[0].block_number, "0x8");
+            assert_eq!(base_events[0].block_number, 8);
             assert_eq!(base_events[0].log_index, "0x2");
             match &base_events[0].decoded_data {
                 DecodedEvent::InterpreterStoreSet(store_event) => {
