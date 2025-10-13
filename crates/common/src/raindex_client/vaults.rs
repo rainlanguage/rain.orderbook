@@ -1499,44 +1499,55 @@ impl RaindexVault {
         vault: local_db::query::fetch_vault::LocalDbVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
-        let balance = Float::from_hex(&vault.balance)?;
+        let local_db::query::fetch_vault::LocalDbVault {
+            vault_id,
+            token,
+            owner,
+            orderbook_address,
+            token_name,
+            token_symbol,
+            token_decimals,
+            balance,
+            input_orders,
+            output_orders,
+        } = vault;
+
         let formatted_balance = balance.format()?;
 
-        let id: Vec<u8> = vault
-            .orderbook_address
-            .as_bytes()
-            .iter()
-            .chain(vault.owner.as_bytes())
-            .chain(vault.token.as_bytes())
-            .chain(vault.vault_id.as_bytes())
-            .copied()
-            .collect();
+        let vault_id_bytes = vault_id.to_be_bytes::<32>();
+        let id = [
+            orderbook_address.as_slice(),
+            owner.as_slice(),
+            token.as_slice(),
+            vault_id_bytes.as_slice(),
+        ]
+        .concat();
 
         Ok(Self {
             raindex_client,
             chain_id,
             vault_type,
             id: Bytes::from(id),
-            owner: Address::from_str(&vault.owner)?,
-            vault_id: U256::from_str(&vault.vault_id)?,
+            owner,
+            vault_id,
             balance,
             formatted_balance,
             token: RaindexVaultToken {
                 chain_id,
-                id: Bytes::copy_from_slice(vault.token.as_bytes()),
-                address: Address::from_str(&vault.token)?,
-                name: Some(vault.token_name),
-                symbol: Some(vault.token_symbol),
-                decimals: vault.token_decimals,
+                id: Bytes::copy_from_slice(token.as_slice()),
+                address: token,
+                name: Some(token_name),
+                symbol: Some(token_symbol),
+                decimals: token_decimals,
             },
-            orderbook: Address::from_str(&vault.orderbook_address)?,
+            orderbook: orderbook_address,
             orders_as_inputs: RaindexOrderAsIO::try_from_local_db_orders_csv(
                 "inputOrders",
-                &vault.input_orders,
+                &input_orders,
             )?,
             orders_as_outputs: RaindexOrderAsIO::try_from_local_db_orders_csv(
                 "outputOrders",
-                &vault.output_orders,
+                &output_orders,
             )?,
         })
     }
@@ -1587,7 +1598,7 @@ mod tests {
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
-        use alloy::primitives::{Address, Bytes};
+        use alloy::primitives::{Address, Bytes, U256};
         use rain_math_float::Float;
         use serde_json;
         use std::cell::RefCell;
@@ -1653,20 +1664,21 @@ mod tests {
         }
 
         fn make_local_vault(
-            vault_id: &str,
-            token: &str,
-            owner: &str,
+            vault_id: U256,
+            token: Address,
+            owner: Address,
             balance: Float,
         ) -> LocalDbVault {
             LocalDbVault {
-                vault_id: vault_id.to_string(),
-                token: token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                vault_id,
+                token,
+                owner,
+                orderbook_address: Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB")
+                    .unwrap(),
                 token_name: "Token".to_string(),
                 token_symbol: "TKN".to_string(),
                 token_decimals: 18,
-                balance: balance.as_hex(),
+                balance,
                 input_orders: None,
                 output_orders: None,
             }
@@ -1674,10 +1686,14 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_path() {
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let token = "0x00000000000000000000000000000000000000aa";
-            let vault =
-                make_local_vault("0x01", token, owner, Float::parse("1".to_string()).unwrap());
+            let owner = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+            let token = Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+            let vault = make_local_vault(
+                U256::from(1),
+                token.clone(),
+                owner.clone(),
+                Float::parse("1".into()).unwrap(),
+            );
 
             let callback = make_local_db_vaults_callback(vec![vault]);
 
@@ -1686,8 +1702,8 @@ mod tests {
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
 
-            let expected_owner = Address::from_str(owner).unwrap();
-            let expected_token = Address::from_str(token).unwrap();
+            let expected_owner = owner.clone();
+            let expected_token = token.clone();
             let expected_orderbook =
                 Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
 
@@ -1712,17 +1728,21 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vault_local_db_path() {
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let token = "0x00000000000000000000000000000000000000aa";
-            let local_vault =
-                make_local_vault("0x02", token, owner, Float::parse("5".to_string()).unwrap());
+            let owner = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+            let token = Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+            let local_vault = make_local_vault(
+                U256::from(2),
+                token.clone(),
+                owner.clone(),
+                Float::parse("5".into()).unwrap(),
+            );
 
             let callback = make_local_db_vaults_callback(vec![local_vault.clone()]);
 
             let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
 
-            let expected_owner = Address::from_str(owner).unwrap();
-            let expected_token = Address::from_str(token).unwrap();
+            let expected_owner = owner.clone();
+            let expected_token = token.clone();
 
             let rc_client = Rc::new(client.clone());
             let derived_vault =
@@ -1751,24 +1771,27 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_balance_changes_local_db_path() {
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let token = "0x00000000000000000000000000000000000000aa";
-            let local_vault =
-                make_local_vault("0x02", token, owner, Float::parse("5".to_string()).unwrap());
+            let owner = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+            let token = Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+            let local_vault = make_local_vault(
+                U256::from(2),
+                token.clone(),
+                owner.clone(),
+                Float::parse("5".into()).unwrap(),
+            );
 
-            let amount = Float::parse("1".to_string()).unwrap();
-            let running_balance = Float::parse("5".to_string()).unwrap();
+            let amount = Float::parse("1".into()).unwrap();
+            let running_balance = Float::parse("5".into()).unwrap();
 
             let balance_change = LocalDbVaultBalanceChange {
                 transaction_hash: Bytes::from_str("0xdeadbeef").unwrap(),
                 log_index: 1,
                 block_number: 1234,
                 block_timestamp: 5678,
-                owner: Address::from_str(owner).unwrap(),
+                owner: owner.clone(),
                 change_type: "DEPOSIT".to_string(),
-                token: Address::from_str(token).unwrap(),
-                vault_id: U256::from_str_radix(local_vault.vault_id.trim_start_matches("0x"), 16)
-                    .unwrap(),
+                token: token.clone(),
+                vault_id: local_vault.vault_id,
                 delta: amount.clone(),
                 running_balance: running_balance.clone(),
             };
@@ -1807,18 +1830,22 @@ mod tests {
             assert_eq!(change.formatted_old_balance(), "4");
             let change_tx_id = Bytes::from_str(&change.transaction().id()).unwrap();
             assert_eq!(change_tx_id, Bytes::from_str("0xdeadbeef").unwrap());
+            let change_token = Address::from_str(&change.token().address()).unwrap();
+            assert_eq!(change_token, token);
         }
 
         #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_filters() {
-            let owner_kept = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let token_kept = "0x00000000000000000000000000000000000000aa";
+            let owner_kept =
+                Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+            let token_kept =
+                Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
 
             let keep_vault = make_local_vault(
-                "0x01",
-                token_kept,
-                owner_kept,
-                Float::parse("2".to_string()).unwrap(),
+                U256::from(1),
+                token_kept.clone(),
+                owner_kept.clone(),
+                Float::parse("2".into()).unwrap(),
             );
             let captured_sql = Rc::new(RefCell::new(String::new()));
             let json = serde_json::to_string(&vec![keep_vault]).unwrap();
@@ -1829,13 +1856,13 @@ mod tests {
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
 
-            let expected_owner = Address::from_str(owner_kept).unwrap();
-            let expected_token = Address::from_str(token_kept).unwrap();
+            let expected_owner = owner_kept.clone();
+            let expected_token = token_kept.clone();
 
             let filters = GetVaultsFilters {
-                owners: vec![Address::from_str(owner_kept).unwrap()],
+                owners: vec![owner_kept.clone()],
                 hide_zero_balance: true,
-                tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+                tokens: Some(vec![token_kept.clone()]),
             };
 
             let vaults = client
@@ -1854,12 +1881,16 @@ mod tests {
             assert_eq!(vault.formatted_balance(), "2".to_string());
 
             let sql = captured_sql.borrow();
-            assert!(
-                sql.contains("lower(o.owner) IN ('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')")
-            );
-            assert!(
-                sql.contains("lower(o.token) IN ('0x00000000000000000000000000000000000000aa')")
-            );
+            let owner_hex = owner_kept.to_string();
+            let token_hex = token_kept.to_string();
+            assert!(sql.contains(&format!(
+                "lower(o.owner) IN ('{}')",
+                owner_hex.to_lowercase()
+            )));
+            assert!(sql.contains(&format!(
+                "lower(o.token) IN ('{}')",
+                token_hex.to_lowercase()
+            )));
             assert!(sql.contains("AND NOT FLOAT_IS_ZERO("));
         }
     }
@@ -2025,14 +2056,14 @@ mod tests {
             .unwrap();
 
             let local_vault = LocalDbVault {
-                vault_id: "0x01".to_string(),
-                token: "0x0000000000000000000000000000000000000000".to_string(),
-                owner: "0x0000000000000000000000000000000000000000".to_string(),
-                orderbook_address: CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                vault_id: U256::from(1),
+                token: Address::ZERO,
+                owner: Address::ZERO,
+                orderbook_address: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                 token_name: "Test Token".to_string(),
                 token_symbol: "TST".to_string(),
                 token_decimals: 6,
-                balance: Float::parse("0".to_string()).unwrap().as_hex(),
+                balance: Float::parse("0".into()).unwrap(),
                 input_orders: None,
                 output_orders: None,
             };

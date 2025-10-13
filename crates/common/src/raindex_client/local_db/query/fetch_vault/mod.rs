@@ -1,26 +1,25 @@
 use super::*;
+use alloy::primitives::{Address, U256};
+use rain_math_float::Float;
 
 const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-
 pub struct LocalDbVault {
-    #[serde(alias = "vaultId")]
-    pub vault_id: String,
-    pub token: String,
-    pub owner: String,
-    #[serde(alias = "orderbookAddress")]
-    pub orderbook_address: String,
-    #[serde(alias = "tokenName")]
+    #[serde(with = "serde_u256")]
+    pub vault_id: U256,
+    #[serde(with = "serde_address")]
+    pub token: Address,
+    #[serde(with = "serde_address")]
+    pub owner: Address,
+    #[serde(with = "serde_address")]
+    pub orderbook_address: Address,
     pub token_name: String,
-    #[serde(alias = "tokenSymbol")]
     pub token_symbol: String,
-    #[serde(alias = "tokenDecimals")]
     pub token_decimals: u8,
-    pub balance: String,
-    #[serde(alias = "inputOrders")]
+    #[serde(with = "serde_float")]
+    pub balance: Float,
     pub input_orders: Option<String>,
-    #[serde(alias = "outputOrders")]
     pub output_orders: Option<String>,
 }
 
@@ -86,25 +85,26 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
+        use alloy::primitives::{Address, U256};
+        use rain_math_float::Float;
         use std::cell::RefCell;
         use std::rc::Rc;
+        use std::str::FromStr;
         use wasm_bindgen_test::*;
 
         #[wasm_bindgen_test]
         async fn test_fetch_vault_parses_data() {
             let vault = LocalDbVault {
-                vault_id: "0x01".into(),
-                token: "0xaaa".into(),
-                owner: "0x1111111111111111111111111111111111111111".into(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                vault_id: U256::from(1),
+                token: Address::from_str("0x00000000000000000000000000000000000000aa").unwrap(),
+                owner: Address::from_str("0x0000000000000000000000000000000000001111").unwrap(),
+                orderbook_address: Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB")
+                    .unwrap(),
                 token_name: "Token A".into(),
                 token_symbol: "TA".into(),
                 token_decimals: 6,
-                balance: "0x10".into(),
-                input_orders: Some(
-                    "0x01:0xabc0000000000000000000000000000000000000000000000000000000000001:1"
-                        .into(),
-                ),
+                balance: Float::parse("16".into()).unwrap(),
+                input_orders: Some("0:0xabc0000000000000000000000000000000000000:1".to_string()),
                 output_orders: None,
             };
             let json_data = serde_json::to_string(&vec![vault.clone()]).unwrap();
@@ -122,7 +122,10 @@ mod tests {
             assert_eq!(data.token_name, vault.token_name);
             assert_eq!(data.token_symbol, vault.token_symbol);
             assert_eq!(data.token_decimals, vault.token_decimals);
-            assert_eq!(data.balance, vault.balance);
+            assert_eq!(
+                data.balance.format().unwrap(),
+                vault.balance.format().unwrap()
+            );
             assert_eq!(data.input_orders, vault.input_orders);
             assert_eq!(data.output_orders, vault.output_orders);
         }
@@ -160,15 +163,16 @@ mod tests {
         #[wasm_bindgen_test]
         async fn test_fetch_vaults_for_io_string_collects_multiple() {
             let sample = LocalDbVault {
-                vault_id: "0xV".into(),
-                token: "0xT".into(),
-                owner: "0xOwner".into(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                vault_id: U256::from(42),
+                token: Address::from_str("0x00000000000000000000000000000000000000bb").unwrap(),
+                owner: Address::from_str("0x00000000000000000000000000000000000000cc").unwrap(),
+                orderbook_address: Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB")
+                    .unwrap(),
                 token_name: "Token X".into(),
                 token_symbol: "TX".into(),
                 token_decimals: 18,
-                balance: "0x10".into(),
-                input_orders: Some("0x01:0xabc:1".into()),
+                balance: Float::parse("10".into()).unwrap(),
+                input_orders: Some("0:0xabc0000000000000000000000000000000000000:1".to_string()),
                 output_orders: None,
             };
             let json_data = serde_json::to_string(&vec![sample.clone()]).unwrap();
@@ -182,7 +186,10 @@ mod tests {
             assert_eq!(list.len(), 2);
             // both entries equal the sample because the callback returns the same row
             assert_eq!(list[0].orderbook_address, sample.orderbook_address);
-            assert_eq!(list[1].balance, sample.balance);
+            assert_eq!(
+                list[1].balance.format().unwrap(),
+                sample.balance.format().unwrap()
+            );
         }
     }
 }

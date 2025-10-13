@@ -116,7 +116,8 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
-        use alloy::primitives::Address;
+        use alloy::primitives::{Address, U256};
+        use rain_math_float::Float;
         use std::cell::RefCell;
         use std::rc::Rc;
         use std::str::FromStr;
@@ -126,14 +127,17 @@ mod tests {
         async fn test_fetch_vaults_parses_data() {
             let vaults = vec![
                 LocalDbVault {
-                    vault_id: "0x01".into(),
-                    token: "0xaaa".into(),
-                    owner: "0x1111111111111111111111111111111111111111".into(),
-                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                    vault_id: U256::from(1),
+                    token: Address::from_str("0x0000000000000000000000000000000000000aaa").unwrap(),
+                    owner: Address::from_str("0x1111111111111111111111111111111111111111").unwrap(),
+                    orderbook_address: Address::from_str(
+                        "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                    )
+                    .unwrap(),
                     token_name: "Token A".into(),
                     token_symbol: "TA".into(),
                     token_decimals: 18,
-                    balance: "0x10".into(),
+                    balance: Float::parse("16".into()).unwrap(),
                     input_orders: Some(
                         "0x01:0xabc0000000000000000000000000000000000000000000000000000000000001:1"
                             .into(),
@@ -144,14 +148,17 @@ mod tests {
                     ),
                 },
                 LocalDbVault {
-                    vault_id: "0x02".into(),
-                    token: "0xbbb".into(),
-                    owner: "0x2222222222222222222222222222222222222222".into(),
-                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                    vault_id: U256::from(2),
+                    token: Address::from_str("0x0000000000000000000000000000000000000bbb").unwrap(),
+                    owner: Address::from_str("0x2222222222222222222222222222222222222222").unwrap(),
+                    orderbook_address: Address::from_str(
+                        "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                    )
+                    .unwrap(),
                     token_name: "Token B".into(),
                     token_symbol: "TB".into(),
                     token_decimals: 6,
-                    balance: "0x0".into(),
+                    balance: Float::parse("0".into()).unwrap(),
                     input_orders: None,
                     output_orders: None,
                 },
@@ -170,7 +177,10 @@ mod tests {
             assert_eq!(data[0].token_name, vaults[0].token_name);
             assert_eq!(data[0].token_symbol, vaults[0].token_symbol);
             assert_eq!(data[0].token_decimals, vaults[0].token_decimals);
-            assert_eq!(data[0].balance, vaults[0].balance);
+            assert_eq!(
+                data[0].balance.format().unwrap(),
+                vaults[0].balance.format().unwrap()
+            );
             assert_eq!(data[0].input_orders, vaults[0].input_orders);
             assert_eq!(data[0].output_orders, vaults[0].output_orders);
         }

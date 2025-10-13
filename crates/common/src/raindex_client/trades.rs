@@ -461,27 +461,27 @@ mod test_helpers {
             };
 
             let input_vault_row = LocalDbVault {
-                vault_id: INPUT_VAULT_ID.to_string(),
-                token: INPUT_TOKEN.to_string(),
-                owner: OWNER.to_string(),
-                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
+                vault_id: input_vault_id,
+                token: input_token_address,
+                owner: owner_address.clone(),
+                orderbook_address: orderbook_address.clone(),
                 token_name: "Token A".to_string(),
                 token_symbol: "TKNA".to_string(),
                 token_decimals: 18,
-                balance: INPUT_RUNNING_HEX.to_string(),
+                balance: input_running,
                 input_orders: Some(format!("0x01:{}:0", ORDER_HASH)),
                 output_orders: None,
             };
 
             let output_vault_row = LocalDbVault {
-                vault_id: OUTPUT_VAULT_ID.to_string(),
-                token: OUTPUT_TOKEN.to_string(),
-                owner: OWNER.to_string(),
-                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
+                vault_id: output_vault_id,
+                token: output_token_address.clone(),
+                owner: owner_address.clone(),
+                orderbook_address: orderbook_address.clone(),
                 token_name: "Token B".to_string(),
                 token_symbol: "TKNB".to_string(),
                 token_decimals: 6,
-                balance: OUTPUT_RUNNING_HEX.to_string(),
+                balance: output_running,
                 input_orders: None,
                 output_orders: Some(format!("0x01:{}:0", ORDER_HASH)),
             };
