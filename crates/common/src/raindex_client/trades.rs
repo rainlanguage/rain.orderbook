@@ -305,58 +305,57 @@ impl RaindexTrade {
         chain_id: u32,
         trade: LocalDbOrderTrade,
     ) -> Result<Self, RaindexError> {
-        let orderbook = Address::from_str(&trade.orderbook_address)?;
         let transaction = RaindexTransaction::from_local_parts(
-            &trade.transaction_hash,
-            &trade.transaction_sender,
+            trade.transaction_hash,
+            trade.transaction_sender,
             trade.block_number,
             trade.block_timestamp,
         )?;
 
         let input_change = RaindexVaultBalanceChange::try_from_local_trade_side(
             chain_id,
-            orderbook,
+            trade.orderbook_address,
             &transaction,
-            &trade.input_vault_id,
+            trade.input_vault_id,
             LocalTradeTokenInfo {
-                address: trade.input_token.clone(),
+                address: trade.input_token,
                 name: trade.input_token_name.clone(),
                 symbol: trade.input_token_symbol.clone(),
                 decimals: trade.input_token_decimals,
             },
             LocalTradeBalanceInfo {
-                delta: trade.input_delta.clone(),
-                running_balance: trade.input_running_balance.clone(),
+                delta: trade.input_delta,
+                running_balance: trade.input_running_balance,
             },
             trade.block_timestamp,
         )?;
 
         let output_change = RaindexVaultBalanceChange::try_from_local_trade_side(
             chain_id,
-            orderbook,
+            trade.orderbook_address,
             &transaction,
-            &trade.output_vault_id,
+            trade.output_vault_id,
             LocalTradeTokenInfo {
-                address: trade.output_token.clone(),
+                address: trade.output_token,
                 name: trade.output_token_name.clone(),
                 symbol: trade.output_token_symbol.clone(),
                 decimals: trade.output_token_decimals,
             },
             LocalTradeBalanceInfo {
-                delta: trade.output_delta.clone(),
-                running_balance: trade.output_running_balance.clone(),
+                delta: trade.output_delta,
+                running_balance: trade.output_running_balance,
             },
             trade.block_timestamp,
         )?;
 
         Ok(RaindexTrade {
-            id: Bytes::from_str(&trade.trade_id)?,
-            order_hash: Bytes::from_str(&trade.order_hash)?,
+            id: trade.trade_id,
+            order_hash: trade.order_hash,
             transaction,
             input_vault_balance_change: input_change,
             output_vault_balance_change: output_change,
             timestamp: U256::from(trade.block_timestamp),
-            orderbook,
+            orderbook: trade.orderbook_address,
         })
     }
 }
@@ -378,7 +377,8 @@ mod test_helpers {
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
-        use alloy::primitives::{Address, Bytes};
+        use alloy::primitives::{Address, Bytes, U256};
+        use rain_math_float::Float;
         use rain_orderbook_subgraph_client::utils::float::{F1, F2, F3, NEG2};
         use serde_json::{self, json};
         use std::str::FromStr;
@@ -420,12 +420,29 @@ mod test_helpers {
             const OUTPUT_RUNNING_HEX: &str =
                 "0x0000000000000000000000000000000000000000000000000000000000000001";
 
-            let trade_id = format!(
+            let orderbook_address = Address::from_str(ORDERBOOK_ADDRESS).unwrap();
+            let order_hash_bytes = Bytes::from_str(ORDER_HASH).unwrap();
+            let owner_address = Address::from_str(OWNER).unwrap();
+            let transaction_sender =
+                Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
+            let input_token_address = Address::from_str(INPUT_TOKEN).unwrap();
+            let output_token_address = Address::from_str(OUTPUT_TOKEN).unwrap();
+            let input_vault_id =
+                U256::from_str_radix(INPUT_VAULT_ID.trim_start_matches("0x"), 16).unwrap();
+            let output_vault_id =
+                U256::from_str_radix(OUTPUT_VAULT_ID.trim_start_matches("0x"), 16).unwrap();
+            let input_delta = Float::from_hex(INPUT_DELTA_HEX).unwrap();
+            let input_running = Float::from_hex(INPUT_RUNNING_HEX).unwrap();
+            let output_delta = Float::from_hex(OUTPUT_DELTA_HEX).unwrap();
+            let output_running = Float::from_hex(OUTPUT_RUNNING_HEX).unwrap();
+
+            let trade_id_hex = format!(
                 "0x{}{:016x}",
                 tx_hash.trim_start_matches("0x"),
                 trade_log_index
             )
             .to_lowercase();
+            let trade_id_bytes = Bytes::from_str(&trade_id_hex).unwrap();
 
             let order = LocalDbOrder {
                 order_hash: ORDER_HASH.to_string(),
@@ -443,7 +460,7 @@ mod test_helpers {
                 meta: Some("0x1234".to_string()),
             };
 
-            let input_vault = LocalDbVault {
+            let input_vault_row = LocalDbVault {
                 vault_id: INPUT_VAULT_ID.to_string(),
                 token: INPUT_TOKEN.to_string(),
                 owner: OWNER.to_string(),
@@ -456,7 +473,7 @@ mod test_helpers {
                 output_orders: None,
             };
 
-            let output_vault = LocalDbVault {
+            let output_vault_row = LocalDbVault {
                 vault_id: OUTPUT_VAULT_ID.to_string(),
                 token: OUTPUT_TOKEN.to_string(),
                 owner: OWNER.to_string(),
@@ -471,36 +488,36 @@ mod test_helpers {
 
             let trade = LocalDbOrderTrade {
                 trade_kind: "take".into(),
-                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
-                order_hash: ORDER_HASH.to_string(),
-                order_owner: OWNER.to_string(),
-                order_nonce: "0".into(),
-                transaction_hash: tx_hash.to_string(),
+                orderbook_address,
+                order_hash: order_hash_bytes.clone(),
+                order_owner: owner_address,
+                order_nonce: Bytes::from_str("0x00").unwrap(),
+                transaction_hash: Bytes::from_str(tx_hash).unwrap(),
                 log_index: trade_log_index,
                 block_number: 123_460,
                 block_timestamp: 1_700_000_000,
-                transaction_sender: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
-                input_vault_id: INPUT_VAULT_ID.to_string(),
-                input_token: INPUT_TOKEN.to_string(),
+                transaction_sender,
+                input_vault_id,
+                input_token: input_token_address,
                 input_token_name: Some("Token A".into()),
                 input_token_symbol: Some("TKNA".into()),
                 input_token_decimals: Some(18),
-                input_delta: INPUT_DELTA_HEX.into(),
-                input_running_balance: Some(INPUT_RUNNING_HEX.into()),
-                output_vault_id: OUTPUT_VAULT_ID.to_string(),
-                output_token: OUTPUT_TOKEN.to_string(),
+                input_delta,
+                input_running_balance: Some(input_running),
+                output_vault_id,
+                output_token: output_token_address,
                 output_token_name: Some("Token B".into()),
                 output_token_symbol: Some("TKNB".into()),
                 output_token_decimals: Some(6),
-                output_delta: OUTPUT_DELTA_HEX.into(),
-                output_running_balance: Some(OUTPUT_RUNNING_HEX.into()),
-                trade_id,
+                output_delta,
+                output_running_balance: Some(output_running),
+                trade_id: trade_id_bytes.clone(),
             };
 
             LocalTradeFixture {
                 order,
-                input_vault,
-                output_vault,
+                input_vault: input_vault_row,
+                output_vault: output_vault_row,
                 trade,
                 orderbook_address: ORDERBOOK_ADDRESS.to_string(),
                 order_hash: ORDER_HASH.to_string(),
@@ -608,7 +625,6 @@ mod test_helpers {
             let trade_log_index = 1u64;
             let tx_hash = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             let fixture = build_local_trade_fixture(tx_hash, trade_log_index, 4);
-            let trade_id = fixture.trade.trade_id.clone();
 
             let callback = make_local_db_trades_callback(
                 vec![fixture.order.clone()],
@@ -632,19 +648,21 @@ mod test_helpers {
             assert_eq!(trades.len(), 1);
 
             let trade = trades.first().unwrap();
-            assert_eq!(trade.id(), trade_id);
-            assert_eq!(trade.order_hash(), fixture.order_hash);
+            let trade_id_bytes = Bytes::from_str(&trade.id()).unwrap();
+            assert_eq!(trade_id_bytes, fixture.trade.trade_id.clone());
+            let order_hash_bytes = Bytes::from_str(&trade.order_hash()).unwrap();
+            assert_eq!(order_hash_bytes, fixture.trade.order_hash.clone());
+            let orderbook_address = Address::from_str(&trade.orderbook()).unwrap();
             assert_eq!(
-                trade.orderbook().to_lowercase(),
-                fixture.orderbook_address.to_lowercase()
+                orderbook_address,
+                Address::from_str(&fixture.orderbook_address).unwrap()
             );
 
             let transaction = trade.transaction();
-            assert_eq!(transaction.id(), tx_hash.to_string());
-            assert_eq!(
-                transaction.from().to_lowercase(),
-                fixture.trade.transaction_sender.to_lowercase()
-            );
+            let transaction_id = Bytes::from_str(&transaction.id()).unwrap();
+            assert_eq!(transaction_id, Bytes::from_str(tx_hash).unwrap());
+            let transaction_from = Address::from_str(&transaction.from()).unwrap();
+            assert_eq!(transaction_from, fixture.trade.transaction_sender);
             let block_number = transaction
                 .block_number()
                 .unwrap()
@@ -679,9 +697,10 @@ mod test_helpers {
                 input_change.token().symbol(),
                 fixture.trade.input_token_symbol.clone()
             );
+            let input_token_address = Address::from_str(&input_change.token().address()).unwrap();
             assert_eq!(
-                input_change.token().address().to_lowercase(),
-                fixture.input_token.to_lowercase()
+                input_token_address,
+                Address::from_str(&fixture.input_token).unwrap()
             );
 
             let output_change = trade.output_vault_balance_change();
@@ -692,9 +711,10 @@ mod test_helpers {
                 output_change.token().symbol(),
                 fixture.trade.output_token_symbol.clone()
             );
+            let output_token_address = Address::from_str(&output_change.token().address()).unwrap();
             assert_eq!(
-                output_change.token().address().to_lowercase(),
-                fixture.output_token.to_lowercase()
+                output_token_address,
+                Address::from_str(&fixture.output_token).unwrap()
             );
         }
 
@@ -1106,7 +1126,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.output_vault_balance_change().token().id(),
-                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
+                Bytes::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
             );
             assert_eq!(
                 trade1.output_vault_balance_change().token().address(),
@@ -1166,7 +1186,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.input_vault_balance_change().token().id(),
-                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+                Bytes::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
             );
             assert_eq!(
                 trade1.input_vault_balance_change().token().address(),
@@ -1288,7 +1308,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.output_vault_balance_change().token().id(),
-                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
+                Bytes::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
             );
             assert_eq!(
                 trade.output_vault_balance_change().token().address(),
@@ -1344,7 +1364,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.input_vault_balance_change().token().id(),
-                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+                Bytes::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
             );
             assert_eq!(
                 trade.input_vault_balance_change().token().address(),

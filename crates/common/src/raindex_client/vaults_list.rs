@@ -261,7 +261,7 @@ mod tests {
               "vaultId": "0x10",
               "balance": "0x0000000000000000000000000000000000000000000000000000000000000000",
               "token": {
-                "id": "token1",
+                "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 "name": "Token 1",
                 "symbol": "TKN1",
@@ -283,7 +283,7 @@ mod tests {
                 "vaultId": "0x20",
                 "balance": "0x0000000000000000000000000000000000000000000000000000000000000020",
                 "token": {
-                    "id": "token2",
+                    "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                     "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                     "name": "Token 2",
                     "symbol": "TKN2",

@@ -1,60 +1,51 @@
 use super::*;
+use alloy::primitives::{Bytes, U256};
+use rain_math_float::Float;
 use serde::{Deserialize, Serialize};
 
 const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbOrderTrade {
-    #[serde(alias = "trade_kind")]
     pub trade_kind: String,
-    #[serde(alias = "orderbook_address")]
-    pub orderbook_address: String,
-    #[serde(alias = "order_hash")]
-    pub order_hash: String,
-    #[serde(alias = "order_owner")]
-    pub order_owner: String,
-    #[serde(alias = "order_nonce")]
-    pub order_nonce: String,
-    #[serde(alias = "transaction_hash")]
-    pub transaction_hash: String,
-    #[serde(alias = "log_index")]
+    #[serde(with = "serde_address")]
+    pub orderbook_address: Address,
+    #[serde(with = "serde_bytes")]
+    pub order_hash: Bytes,
+    #[serde(with = "serde_address")]
+    pub order_owner: Address,
+    #[serde(with = "serde_bytes")]
+    pub order_nonce: Bytes,
+    #[serde(with = "serde_bytes")]
+    pub transaction_hash: Bytes,
     pub log_index: u64,
-    #[serde(alias = "block_number")]
     pub block_number: u64,
-    #[serde(alias = "block_timestamp")]
     pub block_timestamp: u64,
-    #[serde(alias = "transaction_sender")]
-    pub transaction_sender: String,
-    #[serde(alias = "input_vault_id")]
-    pub input_vault_id: String,
-    #[serde(alias = "input_token")]
-    pub input_token: String,
-    #[serde(alias = "input_token_name")]
+    #[serde(with = "serde_address")]
+    pub transaction_sender: Address,
+    #[serde(with = "serde_u256")]
+    pub input_vault_id: U256,
+    #[serde(with = "serde_address")]
+    pub input_token: Address,
     pub input_token_name: Option<String>,
-    #[serde(alias = "input_token_symbol")]
     pub input_token_symbol: Option<String>,
-    #[serde(alias = "input_token_decimals")]
     pub input_token_decimals: Option<u8>,
-    #[serde(alias = "input_delta")]
-    pub input_delta: String,
-    #[serde(alias = "input_running_balance")]
-    pub input_running_balance: Option<String>,
-    #[serde(alias = "output_vault_id")]
-    pub output_vault_id: String,
-    #[serde(alias = "output_token")]
-    pub output_token: String,
-    #[serde(alias = "output_token_name")]
+    #[serde(with = "serde_float")]
+    pub input_delta: Float,
+    #[serde(with = "serde_option_float")]
+    pub input_running_balance: Option<Float>,
+    #[serde(with = "serde_u256")]
+    pub output_vault_id: U256,
+    #[serde(with = "serde_address")]
+    pub output_token: Address,
     pub output_token_name: Option<String>,
-    #[serde(alias = "output_token_symbol")]
     pub output_token_symbol: Option<String>,
-    #[serde(alias = "output_token_decimals")]
     pub output_token_decimals: Option<u8>,
-    #[serde(alias = "output_delta")]
-    pub output_delta: String,
-    #[serde(alias = "output_running_balance")]
-    pub output_running_balance: Option<String>,
-    #[serde(alias = "trade_id")]
-    pub trade_id: String,
+    #[serde(with = "serde_float")]
+    pub output_delta: Float,
+    #[serde(with = "serde_option_float")]
+    pub output_running_balance: Option<Float>,
+    pub trade_id: Bytes,
 }
 
 impl LocalDbQuery {
@@ -96,36 +87,71 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
+        use alloy::primitives::{Address, Bytes, U256};
+        use rain_math_float::Float;
+        use std::str::FromStr;
         use wasm_bindgen_test::wasm_bindgen_test;
 
         #[wasm_bindgen_test]
         async fn test_fetch_order_trades_parses_rows() {
+            let orderbook_address =
+                Address::from_str("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb").unwrap();
+            let order_owner =
+                Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+            let transaction_sender =
+                Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
+            let order_hash = Bytes::from_str(
+                "0x0000000000000000000000000000000000000000000000000000000000000abc",
+            )
+            .unwrap();
+            let order_nonce = Bytes::from_str("0x01").unwrap();
+            let transaction_hash = Bytes::from_str("0xdeadbeef").unwrap();
+            let trade_id = Bytes::from_str("0xfeedface").unwrap();
+            let input_delta = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000001",
+            )
+            .unwrap();
+            let input_running_balance = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000010",
+            )
+            .unwrap();
+            let output_delta = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000002",
+            )
+            .unwrap();
+            let output_running_balance = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000020",
+            )
+            .unwrap();
+
             let row = LocalDbOrderTrade {
                 trade_kind: "take".into(),
-                orderbook_address: "0xob".into(),
-                order_hash: "0xhash".into(),
-                order_owner: "0xowner".into(),
-                order_nonce: "1".into(),
-                transaction_hash: "0xtx".into(),
+                orderbook_address,
+                order_hash,
+                order_owner,
+                order_nonce,
+                transaction_hash,
                 log_index: 1,
                 block_number: 10,
                 block_timestamp: 1000,
-                transaction_sender: "0xsender".into(),
-                input_vault_id: "1".into(),
-                input_token: "0xinput".into(),
+                transaction_sender,
+                input_vault_id: U256::from(1_u64),
+                input_token: Address::from_str("0x00000000000000000000000000000000000000aa")
+                    .unwrap(),
                 input_token_name: Some("Token In".into()),
                 input_token_symbol: Some("TIN".into()),
                 input_token_decimals: Some(18),
-                input_delta: "0x1".into(),
-                input_running_balance: Some("0x10".into()),
-                output_vault_id: "2".into(),
-                output_token: "0xoutput".into(),
+                input_delta,
+                input_running_balance: Some(input_running_balance),
+                output_vault_id: U256::from(2_u64),
+                output_token: Address::from_str("0x00000000000000000000000000000000000000bb")
+                    .unwrap(),
                 output_token_name: Some("Token Out".into()),
                 output_token_symbol: Some("TOUT".into()),
                 output_token_decimals: Some(6),
-                output_delta: "0x2".into(),
-                output_running_balance: Some("0x20".into()),
-                trade_id: "0xdead".into(),
+                output_delta,
+                output_running_balance: Some(output_running_balance),
+                trade_id,
             };
 
             let callback =

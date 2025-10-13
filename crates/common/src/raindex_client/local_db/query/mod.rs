@@ -108,7 +108,8 @@ pub mod serde_address {
 
 pub mod serde_bytes {
     use alloy::{hex::encode_prefixed, primitives::Bytes};
-    use serde::{Deserialize, Deserializer, Serializer};
+    use serde::{de::Error as DeError, Deserialize, Deserializer, Serializer};
+    use std::str::FromStr;
 
     pub fn serialize<S>(value: &Bytes, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -122,7 +123,7 @@ pub mod serde_bytes {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(Bytes::copy_from_slice(s.as_bytes()))
+        Bytes::from_str(&s).map_err(DeError::custom)
     }
 }
 

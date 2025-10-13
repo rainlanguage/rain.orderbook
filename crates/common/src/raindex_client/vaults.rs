@@ -214,7 +214,7 @@ impl AccountBalance {
 #[wasm_bindgen]
 pub struct RaindexVaultToken {
     chain_id: u32,
-    id: String,
+    id: Bytes,
     address: Address,
     name: Option<String>,
     symbol: Option<String>,
@@ -228,9 +228,9 @@ impl RaindexVaultToken {
     pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
     pub fn id(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn address(&self) -> String {
@@ -255,7 +255,7 @@ impl RaindexVaultToken {
     pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
-    pub fn id(&self) -> String {
+    pub fn id(&self) -> Bytes {
         self.id.clone()
     }
     pub fn address(&self) -> Address {
@@ -710,7 +710,7 @@ impl RaindexVaultBalanceChange {
 
 #[derive(Clone)]
 pub(crate) struct LocalTradeTokenInfo {
-    pub address: String,
+    pub address: Address,
     pub name: Option<String>,
     pub symbol: Option<String>,
     pub decimals: Option<u8>,
@@ -718,8 +718,8 @@ pub(crate) struct LocalTradeTokenInfo {
 
 #[derive(Clone)]
 pub(crate) struct LocalTradeBalanceInfo {
-    pub delta: String,
-    pub running_balance: Option<String>,
+    pub delta: Float,
+    pub running_balance: Option<Float>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -795,18 +795,11 @@ impl RaindexVaultBalanceChange {
         vault: &RaindexVault,
         change: LocalDbVaultBalanceChange,
     ) -> Result<Self, RaindexError> {
-        let amount = Float::from_hex(&change.delta)?;
-        let new_balance = Float::from_hex(&change.running_balance)?;
-        let old_balance = (new_balance - amount)?;
+        let old_balance = (change.running_balance - change.delta)?;
 
-        let formatted_amount = amount.format()?;
-        let formatted_new_balance = new_balance.format()?;
-        let formatted_old_balance = old_balance.format()?;
-
-        let from_address = Address::from_str(&change.owner).unwrap_or(vault.owner);
         let transaction = RaindexTransaction::from_local_parts(
-            &change.transaction_hash,
-            &from_address.to_string(),
+            change.transaction_hash,
+            change.owner,
             change.block_number,
             change.block_timestamp,
         )?;
@@ -817,12 +810,12 @@ impl RaindexVaultBalanceChange {
             r#type: change_type,
             vault_id: vault.vault_id,
             token: vault.token.clone(),
-            amount,
-            formatted_amount,
-            new_balance,
-            formatted_new_balance,
+            amount: change.delta,
+            formatted_amount: change.delta.format()?,
+            new_balance: change.running_balance,
+            formatted_new_balance: change.running_balance.format()?,
             old_balance,
-            formatted_old_balance,
+            formatted_old_balance: old_balance.format()?,
             timestamp: U256::from(change.block_timestamp),
             transaction,
             orderbook: vault.orderbook,
@@ -833,21 +826,16 @@ impl RaindexVaultBalanceChange {
         chain_id: u32,
         orderbook: Address,
         transaction: &RaindexTransaction,
-        vault_id: &str,
+        vault_id: U256,
         token: LocalTradeTokenInfo,
         balance: LocalTradeBalanceInfo,
         block_timestamp: u64,
     ) -> Result<Self, RaindexError> {
-        let amount = Float::from_hex(&balance.delta)?;
         let new_balance = match balance.running_balance.as_ref() {
-            Some(balance) => Float::from_hex(balance)?,
-            None => amount,
+            Some(balance) => *balance,
+            None => balance.delta,
         };
-        let old_balance = (new_balance - amount)?;
-
-        let formatted_amount = amount.format()?;
-        let formatted_new_balance = new_balance.format()?;
-        let formatted_old_balance = old_balance.format()?;
+        let old_balance = (new_balance - balance.delta)?;
 
         let LocalTradeTokenInfo {
             address,
@@ -858,8 +846,8 @@ impl RaindexVaultBalanceChange {
         let decimals = decimals.unwrap_or(18);
         let token = RaindexVaultToken {
             chain_id,
-            id: address.to_lowercase(),
-            address: Address::from_str(&address)?,
+            id: Bytes::copy_from_slice(address.as_slice()),
+            address,
             name,
             symbol,
             decimals,
@@ -867,14 +855,14 @@ impl RaindexVaultBalanceChange {
 
         Ok(Self {
             r#type: RaindexVaultBalanceChangeType::TradeVaultBalanceChange,
-            vault_id: U256::from_str(vault_id)?,
+            vault_id,
             token,
-            amount,
-            formatted_amount,
+            amount: balance.delta,
+            formatted_amount: balance.delta.format()?,
             new_balance,
-            formatted_new_balance,
+            formatted_new_balance: new_balance.format()?,
             old_balance,
-            formatted_old_balance,
+            formatted_old_balance: old_balance.format()?,
             timestamp: U256::from(block_timestamp),
             transaction: transaction.clone(),
             orderbook,
@@ -1535,7 +1523,7 @@ impl RaindexVault {
             formatted_balance,
             token: RaindexVaultToken {
                 chain_id,
-                id: vault.token.clone(),
+                id: Bytes::copy_from_slice(vault.token.as_bytes()),
                 address: Address::from_str(&vault.token)?,
                 name: Some(vault.token_name),
                 symbol: Some(vault.token_symbol),
@@ -1564,7 +1552,7 @@ impl RaindexVaultToken {
             .parse::<u8>()?;
         Ok(Self {
             chain_id,
-            id: erc20.id.0,
+            id: Bytes::from_str(&erc20.id.0)?,
             address,
             name: erc20.name,
             symbol: erc20.symbol,
@@ -1576,7 +1564,7 @@ impl TryFrom<RaindexVaultToken> for SgErc20 {
     type Error = RaindexError;
     fn try_from(token: RaindexVaultToken) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: SgBytes(token.id),
+            id: SgBytes(token.id.to_string()),
             address: SgBytes(token.address.to_string()),
             name: token.name,
             symbol: token.symbol,
@@ -1698,6 +1686,11 @@ mod tests {
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
 
+            let expected_owner = Address::from_str(owner).unwrap();
+            let expected_token = Address::from_str(token).unwrap();
+            let expected_orderbook =
+                Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
+
             let vaults = client
                 .get_vaults(Some(ChainIds(vec![42161])), None, None)
                 .await
@@ -1707,14 +1700,14 @@ mod tests {
             assert_eq!(items.len(), 1);
             let result_vault = &items[0];
             assert_eq!(result_vault.chain_id(), 42161);
-            assert_eq!(result_vault.owner().to_lowercase(), owner.to_string());
-            assert_eq!(
-                result_vault.orderbook().to_lowercase(),
-                "0x2f209e5b67a33b8fe96e28f24628df6da301c8eb".to_string()
-            );
+            let vault_owner = Address::from_str(&result_vault.owner()).unwrap();
+            assert_eq!(vault_owner, expected_owner);
+            let vault_orderbook = Address::from_str(&result_vault.orderbook()).unwrap();
+            assert_eq!(vault_orderbook, expected_orderbook);
             assert_eq!(result_vault.formatted_balance(), "1".to_string());
             let token_meta = result_vault.token();
-            assert_eq!(token_meta.address().to_lowercase(), token.to_string());
+            let token_address = Address::from_str(&token_meta.address()).unwrap();
+            assert_eq!(token_address, expected_token);
         }
 
         #[wasm_bindgen_test]
@@ -1728,6 +1721,9 @@ mod tests {
 
             let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
 
+            let expected_owner = Address::from_str(owner).unwrap();
+            let expected_token = Address::from_str(token).unwrap();
+
             let rc_client = Rc::new(client.clone());
             let derived_vault =
                 RaindexVault::try_from_local_db(Rc::clone(&rc_client), 42161, local_vault, None)
@@ -1739,18 +1735,18 @@ mod tests {
             let orderbook =
                 Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
             let retrieved = client
-                .get_vault(42161, orderbook, vault_id_bytes)
+                .get_vault(42161, orderbook, vault_id_bytes.clone())
                 .await
                 .expect("local vault retrieval should succeed");
 
             assert_eq!(retrieved.chain_id(), 42161);
-            assert_eq!(retrieved.owner().to_lowercase(), owner.to_string());
+            let retrieved_owner = Address::from_str(&retrieved.owner()).unwrap();
+            assert_eq!(retrieved_owner, expected_owner);
             assert_eq!(retrieved.formatted_balance(), "5".to_string());
-            assert_eq!(
-                retrieved.token().address().to_lowercase(),
-                token.to_string()
-            );
-            assert_eq!(retrieved.id(), vault_id_hex);
+            let retrieved_token = Address::from_str(&retrieved.token().address()).unwrap();
+            assert_eq!(retrieved_token, expected_token);
+            let retrieved_id = Bytes::from_str(&retrieved.id()).unwrap();
+            assert_eq!(retrieved_id, vault_id_bytes);
         }
 
         #[wasm_bindgen_test]
@@ -1764,16 +1760,17 @@ mod tests {
             let running_balance = Float::parse("5".to_string()).unwrap();
 
             let balance_change = LocalDbVaultBalanceChange {
-                transaction_hash: "0xdeadbeef".to_string(),
+                transaction_hash: Bytes::from_str("0xdeadbeef").unwrap(),
                 log_index: 1,
                 block_number: 1234,
                 block_timestamp: 5678,
-                owner: owner.to_string(),
+                owner: Address::from_str(owner).unwrap(),
                 change_type: "DEPOSIT".to_string(),
-                token: token.to_string(),
-                vault_id: local_vault.vault_id.clone(),
-                delta: amount.as_hex(),
-                running_balance: running_balance.as_hex(),
+                token: Address::from_str(token).unwrap(),
+                vault_id: U256::from_str_radix(local_vault.vault_id.trim_start_matches("0x"), 16)
+                    .unwrap(),
+                delta: amount.clone(),
+                running_balance: running_balance.clone(),
             };
 
             let callback = make_local_db_vaults_with_balance_changes_callback(
@@ -1808,7 +1805,8 @@ mod tests {
             assert_eq!(change.formatted_amount(), "1");
             assert_eq!(change.formatted_new_balance(), "5");
             assert_eq!(change.formatted_old_balance(), "4");
-            assert_eq!(change.transaction().id(), "0xdeadbeef");
+            let change_tx_id = Bytes::from_str(&change.transaction().id()).unwrap();
+            assert_eq!(change_tx_id, Bytes::from_str("0xdeadbeef").unwrap());
         }
 
         #[wasm_bindgen_test]
@@ -1831,6 +1829,9 @@ mod tests {
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
 
+            let expected_owner = Address::from_str(owner_kept).unwrap();
+            let expected_token = Address::from_str(token_kept).unwrap();
+
             let filters = GetVaultsFilters {
                 owners: vec![Address::from_str(owner_kept).unwrap()],
                 hide_zero_balance: true,
@@ -1845,9 +1846,11 @@ mod tests {
             let items = vaults.items();
             assert_eq!(items.len(), 1);
             let vault = &items[0];
-            assert_eq!(vault.owner().to_lowercase(), owner_kept.to_string());
+            let vault_owner = Address::from_str(&vault.owner()).unwrap();
+            assert_eq!(vault_owner, expected_owner);
             let token_meta = vault.token();
-            assert_eq!(token_meta.address().to_lowercase(), token_kept.to_string());
+            let token_address = Address::from_str(&token_meta.address()).unwrap();
+            assert_eq!(token_address, expected_token);
             assert_eq!(vault.formatted_balance(), "2".to_string());
 
             let sql = captured_sql.borrow();
@@ -1884,33 +1887,32 @@ mod tests {
             let orderbook =
                 Address::from_str("0x0000000000000000000000000000000000000001").unwrap();
             let transaction = RaindexTransaction::from_local_parts(
-                "0xdeadbeef",
-                "0x0000000000000000000000000000000000000002",
+                Bytes::from_str("0xdeadbeef").unwrap(),
+                Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
                 123,
                 456,
             )
             .unwrap();
 
             let amount = Float::parse("1".to_string()).unwrap();
-            let amount_hex = amount.as_hex();
             let new_balance = Float::parse("5".to_string()).unwrap();
-            let new_balance_hex = new_balance.as_hex();
             let expected_old_balance = Float::parse("4".to_string()).unwrap();
 
             let change = RaindexVaultBalanceChange::try_from_local_trade_side(
                 chain_id,
                 orderbook,
                 &transaction,
-                "0x10",
+                U256::from_str("0x10").unwrap(),
                 LocalTradeTokenInfo {
-                    address: "0x0000000000000000000000000000000000000003".to_string(),
+                    address: Address::from_str("0x0000000000000000000000000000000000000003")
+                        .unwrap(),
                     name: Some("Token In".to_string()),
                     symbol: Some("TIN".to_string()),
                     decimals: Some(6),
                 },
                 LocalTradeBalanceInfo {
-                    delta: amount_hex.clone(),
-                    running_balance: Some(new_balance_hex.clone()),
+                    delta: amount,
+                    running_balance: Some(new_balance),
                 },
                 789,
             )
@@ -1947,7 +1949,7 @@ mod tests {
             assert_eq!(token.symbol(), Some("TIN".to_string()));
             assert_eq!(
                 token.id(),
-                "0x0000000000000000000000000000000000000003".to_string()
+                Bytes::from_str("0x0000000000000000000000000000000000000003").unwrap()
             );
         }
 
@@ -1957,30 +1959,30 @@ mod tests {
             let orderbook =
                 Address::from_str("0x0000000000000000000000000000000000000004").unwrap();
             let transaction = RaindexTransaction::from_local_parts(
-                "0xfeedface",
-                "0x0000000000000000000000000000000000000005",
+                Bytes::from_str("0xfeedface").unwrap(),
+                Address::from_str("0x0000000000000000000000000000000000000005").unwrap(),
                 111,
                 222,
             )
             .unwrap();
 
             let amount = Float::parse("2".to_string()).unwrap();
-            let amount_hex = amount.as_hex();
             let zero = Float::parse("0".to_string()).unwrap();
 
             let change = RaindexVaultBalanceChange::try_from_local_trade_side(
                 chain_id,
                 orderbook,
                 &transaction,
-                "0x20",
+                U256::from_str("0x20").unwrap(),
                 LocalTradeTokenInfo {
-                    address: "0x0000000000000000000000000000000000000006".to_string(),
+                    address: Address::from_str("0x0000000000000000000000000000000000000006")
+                        .unwrap(),
                     name: None,
                     symbol: None,
                     decimals: None,
                 },
                 LocalTradeBalanceInfo {
-                    delta: amount_hex.clone(),
+                    delta: amount,
                     running_balance: None,
                 },
                 333,
@@ -2004,7 +2006,7 @@ mod tests {
             );
             assert_eq!(
                 token.id(),
-                "0x0000000000000000000000000000000000000006".to_string()
+                Bytes::from_str("0x0000000000000000000000000000000000000006").unwrap()
             );
         }
 
@@ -2055,7 +2057,7 @@ mod tests {
               "vaultId": "0x0123",
               "balance": F1,
               "token": {
-                "id": "token1",
+                "id": "0xbef1",
                 "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 "name": "Token 1",
                 "symbol": "TKN1",
@@ -2077,7 +2079,7 @@ mod tests {
                 "vaultId": "0x0234",
                 "balance": F2,
                 "token": {
-                    "id": "token2",
+                    "id": "0xbef2",
                     "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                     "name": "Token 2",
                     "symbol": "TKN2",
@@ -2141,7 +2143,7 @@ mod tests {
             assert_eq!(vault1.vault_id, U256::from_str("0x0123").unwrap());
             assert!(vault1.balance.eq(F1).unwrap());
             assert_eq!(vault1.formatted_balance, "1");
-            assert_eq!(vault1.token.id, "token1");
+            assert_eq!(vault1.token.id, Bytes::from_str("0xbef1").unwrap());
             assert_eq!(
                 vault1.orderbook,
                 Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap()
@@ -2157,7 +2159,7 @@ mod tests {
             assert_eq!(vault2.vault_id, U256::from_str("0x0234").unwrap());
             assert!(vault2.balance.eq(F2).unwrap());
             assert_eq!(vault2.formatted_balance, "2");
-            assert_eq!(vault2.token.id, "token2");
+            assert_eq!(vault2.token.id, Bytes::from_str("0xbef2").unwrap());
             assert_eq!(
                 vault2.orderbook,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -2212,7 +2214,7 @@ mod tests {
             );
             assert_eq!(vault.formatted_balance, "1");
 
-            assert_eq!(vault.token.id, "token1");
+            assert_eq!(vault.token.id, Bytes::from_str("0xbef1").unwrap());
             assert_eq!(
                 vault.orderbook,
                 Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap()
@@ -2372,7 +2374,7 @@ mod tests {
             assert_eq!(result[0].vault_id, U256::from_str("1").unwrap());
             assert_eq!(
                 result[0].token.id,
-                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+                Bytes::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
             );
             assert_eq!(
                 result[0].token.address,
@@ -2415,7 +2417,7 @@ mod tests {
                 "vaultId": "0x30",
                 "balance": F1_5,
                 "token": {
-                    "id": "token_usdc",
+                    "id": "0xa0b86a33e6c3a0e4e8c7b6c6b0c2f6a3b7e8d9e0",
                     "address": "0xa0b86a33e6c3a0e4e8c7b6c6b0c2f6a3b7e8d9e0",
                     "name": "USD Coin",
                     "symbol": "USDC",
@@ -3013,7 +3015,7 @@ mod tests {
                     "data": {
                         "erc20S": [
                             {
-                                "id": "token1",
+                                "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                 "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                 "name": "Token 1",
                                 "symbol": "TKN1",
@@ -3030,7 +3032,7 @@ mod tests {
                     "data": {
                         "erc20S": [
                             {
-                                "id": "token2",
+                                "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783f",
                                 "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783f",
                                 "name": "Token 2",
                                 "symbol": "TKN2",
@@ -3067,7 +3069,7 @@ mod tests {
                     "data": {
                         "erc20S": [
                             {
-                                "id": "token1",
+                                "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                 "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                 "name": "Token 1",
                                 "symbol": "TKN1",
@@ -3096,7 +3098,10 @@ mod tests {
                 .unwrap();
 
             assert_eq!(result.len(), 1);
-            assert_eq!(result[0].id(), "token1");
+            assert_eq!(
+                result[0].id(),
+                Bytes::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+            );
             assert_eq!(result[0].chain_id(), 1);
         }
 

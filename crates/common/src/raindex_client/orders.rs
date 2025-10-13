@@ -1720,7 +1720,7 @@ mod tests {
             assert_eq!(order2_outputs.vault_id(), U256::from(0));
             assert_eq!(
                 order2_outputs.token().id(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Bytes::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(
                 order2_outputs.token().address(),
@@ -1747,7 +1747,7 @@ mod tests {
             assert_eq!(order2_inputs.vault_id(), U256::from(0));
             assert_eq!(
                 order2_inputs.token().id(),
-                "0x0000000000000000000000000000000000000000".to_string()
+                Bytes::from_str("0x0000000000000000000000000000000000000000").unwrap()
             );
             assert_eq!(
                 order2_inputs.token().address(),

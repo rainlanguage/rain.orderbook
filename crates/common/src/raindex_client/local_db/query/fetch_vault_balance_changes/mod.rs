@@ -1,27 +1,28 @@
 use super::*;
+use alloy::primitives::{Bytes, U256};
+use rain_math_float::Float;
 use serde::{Deserialize, Serialize};
 
 const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbVaultBalanceChange {
-    #[serde(alias = "transaction_hash")]
-    pub transaction_hash: String,
-    #[serde(alias = "log_index")]
+    #[serde(with = "serde_bytes")]
+    pub transaction_hash: Bytes,
     pub log_index: u64,
-    #[serde(alias = "block_number")]
     pub block_number: u64,
-    #[serde(alias = "block_timestamp")]
     pub block_timestamp: u64,
-    pub owner: String,
-    #[serde(alias = "change_type")]
+    #[serde(with = "serde_address")]
+    pub owner: Address,
     pub change_type: String,
-    pub token: String,
-    #[serde(alias = "vault_id")]
-    pub vault_id: String,
-    pub delta: String,
-    #[serde(alias = "running_balance")]
-    pub running_balance: String,
+    #[serde(with = "serde_address")]
+    pub token: Address,
+    #[serde(with = "serde_u256")]
+    pub vault_id: U256,
+    #[serde(with = "serde_float")]
+    pub delta: Float,
+    #[serde(with = "serde_float")]
+    pub running_balance: Float,
 }
 
 impl LocalDbQuery {
@@ -53,21 +54,40 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
+        use alloy::primitives::{Address, Bytes, U256};
+        use rain_math_float::Float;
+        use std::str::FromStr;
         use wasm_bindgen_test::wasm_bindgen_test;
 
         #[wasm_bindgen_test]
         async fn test_fetch_vault_balance_changes_parses_data() {
+            let transaction_hash = Bytes::from_str(
+                "0x0000000000000000000000000000000000000000000000000000000000000abc",
+            )
+            .unwrap();
+            let owner = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+            let token = Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
+            let vault_id = U256::from(0x10_u64);
+            let delta = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000001",
+            )
+            .unwrap();
+            let running_balance = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000002",
+            )
+            .unwrap();
+
             let change = LocalDbVaultBalanceChange {
-                transaction_hash: "0xabc".into(),
+                transaction_hash: transaction_hash.clone(),
                 log_index: 2,
                 block_number: 42,
                 block_timestamp: 1_700_000,
-                owner: "0xowner".into(),
+                owner,
                 change_type: "DEPOSIT".into(),
-                token: "0xtoken".into(),
-                vault_id: "0xvault".into(),
-                delta: "0x01".into(),
-                running_balance: "0x02".into(),
+                token,
+                vault_id,
+                delta,
+                running_balance,
             };
 
             let callback =
