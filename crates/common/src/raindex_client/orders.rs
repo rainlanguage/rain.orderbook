@@ -12,6 +12,7 @@ use crate::{
     },
 };
 use alloy::primitives::{keccak256, Address, Bytes, U256};
+use csv::{ReaderBuilder, Terminator};
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -24,7 +25,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClient,
     SgPaginationArgs,
 };
-use std::{collections::HashSet, rc::Rc, str::FromStr};
+use std::{collections::HashSet, io::Cursor, rc::Rc, str::FromStr};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
@@ -393,47 +394,61 @@ impl RaindexOrderAsIO {
         csv: &Option<String>,
     ) -> Result<Vec<RaindexOrderAsIO>, RaindexError> {
         let mut result = Vec::new();
-        if let Some(s) = csv {
-            if s.is_empty() {
-                return Ok(result);
+        let Some(csv_str) = csv.as_ref() else {
+            return Ok(result);
+        };
+        if csv_str.is_empty() {
+            return Ok(result);
+        }
+
+        let mut reader = ReaderBuilder::new()
+            .has_headers(false)
+            .delimiter(b':')
+            .terminator(Terminator::Any(b','))
+            .from_reader(Cursor::new(csv_str.as_bytes()));
+
+        for record in reader.records() {
+            let record = record.map_err(|err| {
+                RaindexError::JsError(format!(
+                    "Invalid {} entry: failed to parse record ({err})",
+                    field_name
+                ))
+            })?;
+            let mut fields = record.iter();
+            let _id_str = fields.next().ok_or(RaindexError::JsError(format!(
+                "Invalid {} entry: missing id",
+                field_name
+            )))?;
+            let hash_str = fields.next().ok_or(RaindexError::JsError(format!(
+                "Invalid {} entry: missing order hash",
+                field_name
+            )))?;
+            let active_str = fields.next().ok_or(RaindexError::JsError(format!(
+                "Invalid {} entry: missing active flag",
+                field_name
+            )))?;
+            if fields.next().is_some() {
+                return Err(RaindexError::JsError(format!(
+                    "Invalid {} entry: too many fields",
+                    field_name
+                )));
             }
-            for part in s.split(',') {
-                let mut segs = part.split(':');
-                let _id_str = segs.next().ok_or(RaindexError::JsError(format!(
-                    "Invalid {} entry: missing id",
-                    field_name
-                )))?;
-                let hash_str = segs.next().ok_or(RaindexError::JsError(format!(
-                    "Invalid {} entry: missing order hash",
-                    field_name
-                )))?;
-                let active_str = segs.next().ok_or(RaindexError::JsError(format!(
-                    "Invalid {} entry: missing active flag",
-                    field_name
-                )))?;
-                if segs.next().is_some() {
+            let order_hash = Bytes::from_str(hash_str)?;
+            let active = match active_str {
+                "1" => true,
+                "0" => false,
+                _ => {
                     return Err(RaindexError::JsError(format!(
-                        "Invalid {} entry: too many fields",
-                        field_name
-                    )));
+                        "Invalid active flag in {}: {}",
+                        field_name, active_str
+                    )))
                 }
-                let order_hash = Bytes::from_str(hash_str)?;
-                let active = match active_str {
-                    "1" => true,
-                    "0" => false,
-                    _ => {
-                        return Err(RaindexError::JsError(format!(
-                            "Invalid active flag in {}: {}",
-                            field_name, active_str
-                        )))
-                    }
-                };
-                result.push(RaindexOrderAsIO {
-                    id: Bytes::from_str("0x01")?,
-                    order_hash,
-                    active,
-                });
-            }
+            };
+            result.push(RaindexOrderAsIO {
+                id: Bytes::from_str("0x01")?,
+                order_hash,
+                active,
+            });
         }
         Ok(result)
     }
@@ -900,9 +915,11 @@ impl RaindexOrder {
             .as_ref()
             .and_then(|meta| meta.try_decode_rainlangsource().ok());
 
-        let mut id = Vec::with_capacity(order.orderbook_address.len() + order.order_hash.len());
-        id.extend_from_slice(order.orderbook_address.as_bytes());
-        id.extend_from_slice(order.order_hash.as_bytes());
+        let id = [
+            order.orderbook_address.as_bytes(),
+            order.order_hash.as_bytes(),
+        ]
+        .concat();
 
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
@@ -1236,6 +1253,44 @@ mod tests {
             },
         };
         use serde_json::{json, Value};
+        use std::str::FromStr;
+
+        #[test]
+        fn try_from_local_db_orders_csv_parses_records() {
+            let csv = Some(
+                "0xdeadbeef:0xabc0000000000000000000000000000000000000000000000000000000000001:1,\
+                 0xdeadbeee:0xabc0000000000000000000000000000000000000000000000000000000000002:0"
+                    .to_string(),
+            );
+            let parsed =
+                RaindexOrderAsIO::try_from_local_db_orders_csv("inputOrders", &csv).unwrap();
+            assert_eq!(parsed.len(), 2);
+            assert_eq!(
+                parsed[0].order_hash,
+                Bytes::from_str(
+                    "0xabc0000000000000000000000000000000000000000000000000000000000001"
+                )
+                .unwrap()
+            );
+            assert!(parsed[0].active);
+            assert!(!parsed[1].active);
+        }
+
+        #[test]
+        fn try_from_local_db_orders_csv_rejects_invalid_active_flag() {
+            let csv = Some(
+                "0xdeadbeef:0xabc0000000000000000000000000000000000000000000000000000000000001:maybe"
+                    .to_string(),
+            );
+            let err =
+                RaindexOrderAsIO::try_from_local_db_orders_csv("testField", &csv).unwrap_err();
+            match err {
+                RaindexError::JsError(msg) => {
+                    assert!(msg.contains("Invalid active flag in testField: maybe"))
+                }
+                _ => panic!("expected JsError"),
+            }
+        }
 
         fn get_order1_json() -> Value {
             json!(                        {

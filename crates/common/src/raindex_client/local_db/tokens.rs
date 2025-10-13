@@ -6,31 +6,23 @@ use std::collections::BTreeSet;
 pub fn collect_token_addresses(
     decoded_events: &[DecodedEventData<DecodedEvent>],
 ) -> BTreeSet<Address> {
-    let mut out = BTreeSet::new();
-
-    for event in decoded_events {
-        match &event.decoded_data {
-            DecodedEvent::DepositV2(deposit) => {
-                out.insert(deposit.token);
-            }
-            DecodedEvent::WithdrawV2(withdraw) => {
-                out.insert(withdraw.token);
-            }
-            DecodedEvent::AddOrderV3(add) => {
-                collect_order_tokens(&add.order, &mut out);
-            }
-            DecodedEvent::RemoveOrderV3(remove) => {
-                collect_order_tokens(&remove.order, &mut out);
-            }
+    decoded_events
+        .iter()
+        .filter_map(|event| match &event.decoded_data {
+            DecodedEvent::DepositV2(deposit) => Some(vec![deposit.token]),
+            DecodedEvent::WithdrawV2(withdraw) => Some(vec![withdraw.token]),
+            DecodedEvent::AddOrderV3(add) => Some(order_tokens_vec(&add.order)),
+            DecodedEvent::RemoveOrderV3(remove) => Some(order_tokens_vec(&remove.order)),
+            DecodedEvent::TakeOrderV3(take) => Some(order_tokens_vec(&take.config.order)),
             DecodedEvent::ClearV3(clear) => {
-                collect_order_tokens(&clear.alice, &mut out);
-                collect_order_tokens(&clear.bob, &mut out);
+                let mut tokens = order_tokens_vec(&clear.alice);
+                tokens.extend(order_tokens_vec(&clear.bob));
+                Some(tokens)
             }
-            _ => {}
-        }
-    }
-
-    out
+            _ => None,
+        })
+        .flatten()
+        .collect()
 }
 
 pub fn collect_store_addresses(
@@ -59,13 +51,13 @@ pub fn collect_store_addresses(
     out
 }
 
-fn collect_order_tokens(order: &OrderV4, out: &mut BTreeSet<Address>) {
-    for input in &order.validInputs {
-        out.insert(input.token);
-    }
-    for output in &order.validOutputs {
-        out.insert(output.token);
-    }
+fn order_tokens_vec(order: &OrderV4) -> Vec<Address> {
+    order
+        .validInputs
+        .iter()
+        .map(|input| input.token)
+        .chain(order.validOutputs.iter().map(|output| output.token))
+        .collect()
 }
 
 #[cfg(test)]

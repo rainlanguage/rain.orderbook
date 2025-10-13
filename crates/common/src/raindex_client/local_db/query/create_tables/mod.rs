@@ -1,6 +1,6 @@
 use super::*;
 
-const QUERY: &str = include_str!("query.sql");
+pub const CREATE_TABLES_SQL: &str = include_str!("query.sql");
 
 pub const REQUIRED_TABLES: &[&str] = &[
     "sync_status",
@@ -21,7 +21,7 @@ pub const REQUIRED_TABLES: &[&str] = &[
 
 impl LocalDbQuery {
     pub async fn create_tables(db_callback: &js_sys::Function) -> Result<(), LocalDbQueryError> {
-        LocalDbQuery::execute_query_text(db_callback, QUERY)
+        LocalDbQuery::execute_query_text(db_callback, CREATE_TABLES_SQL)
             .await
             .map(|_| ())
     }

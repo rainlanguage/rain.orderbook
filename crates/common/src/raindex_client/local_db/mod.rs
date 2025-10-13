@@ -21,8 +21,6 @@ use std::collections::HashMap;
 use url::Url;
 
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
-pub const RAINTERPRETER_STORE_SET_TOPIC: &str =
-    "0xb0f9cbf5897504bdbdda49a4011cf35a8b4601d541d310d044e9001328f4befc";
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
@@ -32,8 +30,8 @@ pub struct LocalDb {
 
 impl Default for LocalDb {
     fn default() -> Self {
-        let url = Url::parse("http://localhost:4444").expect("valid default URL");
-        let rpc_client = RpcClient::new_with_urls(vec![url]).expect("create default RPC client");
+        let url = Url::parse("foo://example.com").unwrap();
+        let rpc_client = RpcClient::new_with_urls(vec![url]).unwrap();
         Self { rpc_client }
     }
 }

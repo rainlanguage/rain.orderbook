@@ -1,9 +1,10 @@
-use super::{LocalDb, LocalDbError, RAINTERPRETER_STORE_SET_TOPIC};
+use super::{LocalDb, LocalDbError};
 use crate::rpc_client::{LogEntryResponse, RpcClientError};
 use alloy::{primitives::U256, sol_types::SolEvent};
 use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::{
+    IInterpreterStoreV3::Set,
     IOrderBookV5::{
         AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     },
@@ -136,86 +137,24 @@ impl LocalDb {
         end_block: u64,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        if store_addresses.is_empty() {
+        if store_addresses.is_empty() || start_block > end_block {
             return Ok(Vec::new());
         }
 
-        let unique_addresses: Vec<String> = {
-            let mut dedup = HashSet::new();
-            store_addresses
-                .iter()
-                .filter_map(|addr| {
-                    let lower = addr.to_ascii_lowercase();
-                    if dedup.insert(lower.clone()) {
-                        Some(lower)
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        };
-
+        let unique_addresses = Self::dedupe_addresses(store_addresses);
         if unique_addresses.is_empty() {
             return Ok(Vec::new());
         }
 
-        let mut jobs = Vec::new();
-        let chunk_size = config.chunk_size.max(1);
-        let chunk_span = chunk_size.saturating_sub(1);
-        for address in unique_addresses.into_iter() {
-            let mut current_block = start_block;
-            while current_block <= end_block {
-                let to_block = current_block.saturating_add(chunk_span).min(end_block);
-                jobs.push((address.clone(), current_block, to_block));
-                current_block = to_block.saturating_add(1);
-                if to_block == u64::MAX {
-                    break;
-                }
-            }
+        let jobs = Self::build_store_jobs(&unique_addresses, start_block, end_block, config);
+        if jobs.is_empty() {
+            return Ok(Vec::new());
         }
 
-        let topics = Some(vec![Some(vec![RAINTERPRETER_STORE_SET_TOPIC.to_string()])]);
-        let concurrency = config.max_concurrent_requests.max(1);
-        let client = self.rpc_client().clone();
-        let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(jobs)
-            .map(|(address, from_block, to_block)| {
-                let topics = topics.clone();
-                let client = client.clone();
-                let max_attempts = config.max_retry_attempts;
+        let topics = Self::store_set_topics();
+        let mut events = self.fetch_logs_for_jobs(jobs, topics, config).await?;
 
-                async move {
-                    let from_block_hex = format!("0x{:x}", from_block);
-                    let to_block_hex = format!("0x{:x}", to_block);
-
-                    let response = retry_with_attempts(
-                        || {
-                            client.get_logs(
-                                &from_block_hex,
-                                &to_block_hex,
-                                &address,
-                                topics.clone(),
-                            )
-                        },
-                        max_attempts,
-                    )
-                    .await?;
-
-                    Ok::<_, LocalDbError>(response)
-                }
-            })
-            .buffer_unordered(concurrency)
-            .try_collect()
-            .await?;
-
-        let mut events: Vec<LogEntryResponse> = results.into_iter().flatten().collect();
-        events.sort_by(|a, b| {
-            let block_a = extract_block_number_from_entry(a).unwrap_or(0);
-            let block_b = extract_block_number_from_entry(b).unwrap_or(0);
-            let log_a = parse_block_number_str(&a.log_index).unwrap_or(0);
-            let log_b = parse_block_number_str(&b.log_index).unwrap_or(0);
-            block_a.cmp(&block_b).then_with(|| log_a.cmp(&log_b))
-        });
-
+        Self::sort_events_by_block_and_log(&mut events);
         self.backfill_missing_timestamps(&mut events, config)
             .await?;
         Ok(events)
@@ -299,9 +238,125 @@ impl LocalDb {
 
         Ok(())
     }
+
+    fn dedupe_addresses(store_addresses: &[String]) -> Vec<String> {
+        let mut dedup = HashSet::new();
+        store_addresses
+            .iter()
+            .filter_map(|addr| {
+                let lower = addr.to_ascii_lowercase();
+                if dedup.insert(lower.clone()) {
+                    Some(lower)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    fn build_store_jobs(
+        addresses: &[String],
+        start_block: u64,
+        end_block: u64,
+        config: &FetchConfig,
+    ) -> Vec<StoreLogFetchJob> {
+        if start_block > end_block {
+            return Vec::new();
+        }
+
+        let chunk_size = config.chunk_size.max(1);
+        let chunk_span = chunk_size.saturating_sub(1);
+        let mut jobs = Vec::new();
+
+        for address in addresses {
+            let mut current_block = start_block;
+            while current_block <= end_block {
+                let to_block = current_block.saturating_add(chunk_span).min(end_block);
+                jobs.push(StoreLogFetchJob {
+                    address: address.clone(),
+                    from_block: current_block,
+                    to_block,
+                });
+
+                if to_block == end_block || to_block == u64::MAX {
+                    break;
+                }
+
+                current_block = to_block.saturating_add(1);
+            }
+        }
+
+        jobs
+    }
+
+    fn store_set_topics() -> Option<Vec<Option<Vec<String>>>> {
+        Some(vec![Some(vec![Set::SIGNATURE_HASH.to_string()])])
+    }
+
+    async fn fetch_logs_for_jobs(
+        &self,
+        jobs: Vec<StoreLogFetchJob>,
+        topics: Option<Vec<Option<Vec<String>>>>,
+        config: &FetchConfig,
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+        if jobs.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let concurrency = config.max_concurrent_requests.max(1);
+        let client = self.rpc_client().clone();
+        let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(jobs)
+            .map(|job| {
+                let topics = topics.clone();
+                let client = client.clone();
+                let max_attempts = config.max_retry_attempts;
+
+                async move {
+                    let from_block_hex = format!("0x{:x}", job.from_block);
+                    let to_block_hex = format!("0x{:x}", job.to_block);
+
+                    let response = retry_with_attempts(
+                        || {
+                            client.get_logs(
+                                &from_block_hex,
+                                &to_block_hex,
+                                &job.address,
+                                topics.clone(),
+                            )
+                        },
+                        max_attempts,
+                    )
+                    .await?;
+
+                    Ok::<_, LocalDbError>(response)
+                }
+            })
+            .buffer_unordered(concurrency)
+            .try_collect()
+            .await?;
+
+        Ok(results.into_iter().flatten().collect())
+    }
+
+    fn sort_events_by_block_and_log(events: &mut [LogEntryResponse]) {
+        events.sort_by(|a, b| {
+            let block_a = extract_block_number_from_entry(a).unwrap_or(0);
+            let block_b = extract_block_number_from_entry(b).unwrap_or(0);
+            let log_a = parse_block_number_str(&a.log_index).unwrap_or(0);
+            let log_b = parse_block_number_str(&b.log_index).unwrap_or(0);
+            block_a.cmp(&block_b).then_with(|| log_a.cmp(&log_b))
+        });
+    }
 }
 
 const RETRY_DELAY_MILLIS: u64 = 100;
+
+#[derive(Clone)]
+struct StoreLogFetchJob {
+    address: String,
+    from_block: u64,
+    to_block: u64,
+}
 
 async fn retry_with_attempts<T, F, Fut>(
     operation: F,
@@ -521,6 +576,94 @@ mod tests {
             let db = LocalDb::default();
             let events = db
                 .fetch_store_set_events(&[], 0, 10, &FetchConfig::default())
+                .await
+                .unwrap();
+            assert!(events.is_empty());
+        }
+
+        #[tokio::test]
+        async fn fetch_store_set_events_handles_duplicates_and_sorts() {
+            let server = MockServer::start();
+            let url = Url::from_str(&server.url("/")).unwrap();
+
+            let logs_response = json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": [
+                    {
+                        "address": "0xstore",
+                        "topics": [Set::SIGNATURE_HASH.to_string()],
+                        "data": "0xdeadbeef",
+                        "blockNumber": "0x2",
+                        "blockTimestamp": "0x65",
+                        "transactionHash": "0x2",
+                        "transactionIndex": "0x0",
+                        "blockHash": "0x0",
+                        "logIndex": "0x1",
+                        "removed": false
+                    },
+                    {
+                        "address": "0xstore",
+                        "topics": [Set::SIGNATURE_HASH.to_string()],
+                        "data": "0xdeadbeef",
+                        "blockNumber": "0x1",
+                        "blockTimestamp": "0x64",
+                        "transactionHash": "0x1",
+                        "transactionIndex": "0x0",
+                        "blockHash": "0x0",
+                        "logIndex": "0x0",
+                        "removed": false
+                    }
+                ]
+            });
+
+            let log_mock = server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .body_contains("\"eth_getLogs\"")
+                    .body_contains("\"0xstore\"");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(logs_response.to_string());
+            });
+
+            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
+            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
+
+            let events = db
+                .fetch_store_set_events(
+                    &[
+                        "0xStore".to_string(),
+                        "0xstore".to_string(),
+                        "0xSTORE".to_string(),
+                    ],
+                    1,
+                    2,
+                    &FetchConfig {
+                        chunk_size: 1000,
+                        max_concurrent_requests: 1,
+                        max_concurrent_blocks: 1,
+                        max_retry_attempts: 1,
+                    },
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(events.len(), 2);
+            assert_eq!(events[0].block_number, "0x1");
+            assert_eq!(events[0].log_index, "0x0");
+            assert_eq!(events[1].block_number, "0x2");
+            assert_eq!(events[1].log_index, "0x1");
+            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x64"));
+            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x65"));
+            assert_eq!(log_mock.hits(), 1);
+        }
+
+        #[tokio::test]
+        async fn fetch_store_set_events_returns_empty_for_inverted_range() {
+            let db = LocalDb::default();
+            let events = db
+                .fetch_store_set_events(&["0xstore".to_string()], 10, 1, &FetchConfig::default())
                 .await
                 .unwrap();
             assert!(events.is_empty());

@@ -9,7 +9,9 @@ use super::{
 };
 
 use self::{
-    apply::{decode_events, fetch_events, prepare_sql, FetchResult},
+    apply::{
+        decode_events, fetch_events, prepare_sql, DecodedEvents, FetchResult, PrepareSqlParams,
+    },
     window::compute_sync_window,
 };
 
@@ -92,11 +94,14 @@ where
         let mut raw_events = events.clone();
 
         println!("Decoding events");
-        let mut decoded = decode_events(self.data_source, events)?;
-        println!("Decoded {} events", decoded.decoded_count);
+        let DecodedEvents {
+            decoded: mut decoded_events,
+            mut decoded_count,
+        } = decode_events(self.data_source, events)?;
+        println!("Decoded {} events", decoded_count);
 
         println!("Collecting interpreter store addresses");
-        let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded.decoded);
+        let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded_events);
         let existing_stores = fetch_existing_store_addresses(self.db_path)?;
         store_addresses.extend(existing_stores);
 
@@ -118,10 +123,10 @@ where
             if !store_events.is_empty() {
                 raw_events.extend(store_events.iter().cloned());
                 let mut decoded_store = self.data_source.decode_events(&store_events)?;
-                decoded.decoded.append(&mut decoded_store);
-                sort_events_by_block_and_log(&mut decoded.decoded);
-                decoded.decoded_count = decoded.decoded.len();
-                println!("Decoded {} total events", decoded.decoded_count);
+                decoded_events.append(&mut decoded_store);
+                sort_events_by_block_and_log(&mut decoded_events);
+                decoded_count = decoded_events.len();
+                println!("Decoded {} total events", decoded_count);
             }
         }
 
@@ -129,16 +134,18 @@ where
         let sql = prepare_sql(
             self.data_source,
             self.token_fetcher,
-            self.db_path,
-            self.metadata_rpcs(),
-            params.chain_id,
-            &decoded.decoded,
-            &raw_events,
-            window.target_block,
+            PrepareSqlParams {
+                db_path: self.db_path.to_string(),
+                metadata_rpc_urls: self.metadata_rpcs().to_vec(),
+                chain_id: params.chain_id,
+                decoded_events,
+                raw_events,
+                target_block: window.target_block,
+            },
         )
         .await?;
 
-        println!("Generating SQL for {} events", decoded.decoded_count);
+        println!("Generating SQL for {} events", decoded_count);
         println!("Applying SQL to {}", self.db_path);
         sqlite_execute(self.db_path, &sql)?;
 
@@ -198,7 +205,26 @@ mod tests {
     use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
-    const RAW_SQL_STUB: &str = "INSERT INTO raw_events (block_number, block_timestamp, transaction_hash, log_index, address, topics, data, raw_json) VALUES (0, NULL, '0x0', 0, '0x0', '[]', '0x', '{}');\n";
+    const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
+        block_number,
+        block_timestamp,
+        transaction_hash,
+        log_index,
+        address,
+        topics,
+        data,
+        raw_json
+    ) VALUES (
+        0,
+        NULL,
+        '0x0',
+        0,
+        '0x0',
+        '[]',
+        '0x',
+        '{}'
+    );
+"#;
 
     struct TestFetcher {
         metadata: Vec<(Address, TokenInfo)>,
@@ -496,7 +522,26 @@ mod tests {
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
         sqlite_execute(
             &db_path_str,
-            "INSERT INTO interpreter_store_sets (store_address, transaction_hash, log_index, block_number, block_timestamp, namespace, key, value) VALUES ('0x2222222222222222222222222222222222222222', '0x1', 0, 1, 0, '0x0', '0x0', '0x0');",
+            r#"INSERT INTO interpreter_store_sets (
+                store_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                namespace,
+                key,
+                value
+            ) VALUES (
+                '0x2222222222222222222222222222222222222222',
+                '0x1',
+                0,
+                1,
+                0,
+                '0x0',
+                '0x0',
+                '0x0'
+            );
+"#,
         )
         .unwrap();
 

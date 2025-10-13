@@ -1,6 +1,6 @@
 use super::*;
 
-const QUERY: &str = include_str!("query.sql");
+pub const FETCH_STORE_ADDRESSES_SQL: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StoreAddressRow {
@@ -11,7 +11,11 @@ impl LocalDbQuery {
     pub async fn fetch_store_addresses(
         db_callback: &js_sys::Function,
     ) -> Result<Vec<StoreAddressRow>, LocalDbQueryError> {
-        LocalDbQuery::execute_query_json::<Vec<StoreAddressRow>>(db_callback, QUERY).await
+        LocalDbQuery::execute_query_json::<Vec<StoreAddressRow>>(
+            db_callback,
+            FETCH_STORE_ADDRESSES_SQL,
+        )
+        .await
     }
 }
 
