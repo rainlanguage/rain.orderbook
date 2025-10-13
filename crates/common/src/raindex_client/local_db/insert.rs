@@ -3,7 +3,7 @@ use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
 use alloy::sol_types::SolValue;
 use alloy::{
     hex,
-    primitives::{keccak256, Address, FixedBytes, U256},
+    primitives::{keccak256, Address, Bytes, FixedBytes, U256},
 };
 use itertools::Itertools;
 use rain_math_float::Float;
@@ -76,7 +76,7 @@ fn vault_id_by_index<'a>(
 struct EventContext {
     block_number: u64,
     block_timestamp: u64,
-    transaction_hash: String,
+    transaction_hash: Bytes,
     log_index: u64,
 }
 
@@ -84,7 +84,7 @@ fn event_context(event: &DecodedEventData<DecodedEvent>) -> Result<EventContext,
     Ok(EventContext {
         block_number: event.block_number,
         block_timestamp: event.block_timestamp,
-        transaction_hash: hex::encode_prefixed(event.transaction_hash.as_ref()),
+        transaction_hash: event.transaction_hash.clone(),
         log_index: hex_to_decimal(&event.log_index)?,
     })
 }
@@ -150,9 +150,10 @@ pub fn decoded_events_to_sql(
                 sql.push_str(&generate_store_set_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::Unknown(decoded) => {
+                let transaction_hash = hex::encode_prefixed(event.transaction_hash.as_ref());
                 eprintln!(
                     "Warning: Unknown event type for transaction {}: {}",
-                    event.transaction_hash, decoded.note
+                    transaction_hash, decoded.note
                 );
             }
         }
@@ -307,7 +308,7 @@ fn generate_deposit_sql(
 
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let token = hex::encode_prefixed(decoded.token);
@@ -347,7 +348,7 @@ fn generate_withdraw_sql(
 ) -> Result<String, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let token = hex::encode_prefixed(decoded.token);
@@ -392,7 +393,7 @@ fn generate_add_order_sql(
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_hash = hex::encode_prefixed(decoded.orderHash);
@@ -442,7 +443,7 @@ fn generate_remove_order_sql(
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_hash = hex::encode_prefixed(decoded.orderHash);
@@ -494,7 +495,7 @@ fn generate_take_order_sql(
     let mut sql = String::new();
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_owner = hex::encode_prefixed(decoded.config.order.owner);
@@ -617,7 +618,7 @@ fn generate_clear_v3_sql(context: &EventContext, decoded: &ClearV3) -> Result<St
     let bob_order_hash = compute_order_hash(&decoded.bob);
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let alice_order_owner = hex::encode_prefixed(decoded.alice.owner);
@@ -685,7 +686,7 @@ fn generate_after_clear_sql(
 ) -> Result<String, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let alice_input = hex::encode_prefixed(decoded.clearStateChange.aliceInput);
@@ -722,7 +723,7 @@ fn generate_after_clear_sql(
 fn generate_meta_sql(context: &EventContext, decoded: &MetaV1_2) -> Result<String, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let subject = hex::encode_prefixed(decoded.subject);
@@ -755,7 +756,7 @@ fn generate_store_set_sql(
     decoded: &InterpreterStoreSetEvent,
 ) -> Result<String, InsertError> {
     let mut sql = String::new();
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
     sql.push_str(&format!(
         r#"INSERT INTO interpreter_store_sets (
             store_address,
@@ -797,7 +798,7 @@ fn generate_store_set_sql(
 
 fn generate_order_ios_sql(context: &EventContext, order: &OrderV4) -> String {
     let mut rows = Vec::new();
-    let transaction_hash = &context.transaction_hash;
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
 
     for (index, input) in order.validInputs.iter().enumerate() {
         rows.push(format!(
@@ -1043,12 +1044,13 @@ mod tests {
         };
 
         let sql = generate_store_set_sql(&context, decoded.as_ref()).unwrap();
+        let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
         let expected = format!(
             "INSERT INTO interpreter_store_sets (\n            store_address,\n            block_number,\n            block_timestamp,\n            transaction_hash,\n            log_index,\n            namespace,\n            key,\n            value\n        ) VALUES (\n            '{}',\n            {},\n            {},\n            '{}',\n            {},\n            '{}',\n            '{}',\n            '{}'\n        ) ON CONFLICT(transaction_hash, log_index) DO UPDATE SET\n            store_address = excluded.store_address,\n            block_number = excluded.block_number,\n            block_timestamp = excluded.block_timestamp,\n            namespace = excluded.namespace,\n            key = excluded.key,\n            value = excluded.value;\n",
             hex::encode_prefixed(decoded.store_address),
             context.block_number,
             context.block_timestamp,
-            context.transaction_hash,
+            transaction_hash,
             context.log_index,
             hex::encode_prefixed(decoded.namespace),
             hex::encode_prefixed(decoded.key),

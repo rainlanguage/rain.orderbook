@@ -20,7 +20,7 @@ pub struct LocalDbVaultBalanceChange {
     pub change_type: String,
     #[serde(with = "serde_address")]
     pub token: Address,
-    #[serde(with = "serde_u256")]
+    #[serde(with = "serde_b256")]
     pub vault_id: U256,
     #[serde(with = "serde_float")]
     pub delta: Float,
@@ -35,7 +35,7 @@ impl LocalDbQuery {
         token: Address,
     ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
         let vault_id_literal = format!("'{}'", encode_prefixed(B256::from(vault_id)));
-        let token_literal = format!("'{}'", token.to_string().to_lowercase());
+        let token_literal = format!("'{:#x}'", token);
 
         let sql = QUERY
             .replace("'?vault_id'", &vault_id_literal)
@@ -56,7 +56,10 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
-        use alloy::primitives::{Address, Bytes, U256};
+        use alloy::{
+            hex::encode_prefixed,
+            primitives::{Address, Bytes, B256, U256},
+        };
         use rain_math_float::Float;
         use std::str::FromStr;
         use wasm_bindgen_test::wasm_bindgen_test;
@@ -92,8 +95,13 @@ mod tests {
                 running_balance,
             };
 
-            let callback =
-                create_success_callback(&serde_json::to_string(&vec![change.clone()]).unwrap());
+            let serialized = serde_json::to_string(&vec![change.clone()]).unwrap();
+            let expected_vault_id = encode_prefixed(B256::from(vault_id));
+            assert!(
+                serialized.contains(&format!(r#""vault_id":"{}""#, expected_vault_id)),
+                "vault_id should be hex-prefixed in JSON: {serialized}"
+            );
+            let callback = create_success_callback(&serialized);
 
             let result = LocalDbQuery::fetch_vault_balance_changes(&callback, vault_id, token)
                 .await

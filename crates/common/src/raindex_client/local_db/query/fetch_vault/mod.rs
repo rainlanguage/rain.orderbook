@@ -6,7 +6,7 @@ const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbVault {
-    #[serde(with = "serde_u256")]
+    #[serde(with = "serde_b256")]
     pub vault_id: U256,
     #[serde(with = "serde_address")]
     pub token: Address,
@@ -86,7 +86,10 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
-        use alloy::primitives::{Address, U256};
+        use alloy::{
+            hex::encode_prefixed,
+            primitives::{Address, B256, U256},
+        };
         use rain_math_float::Float;
         use std::cell::RefCell;
         use std::rc::Rc;
@@ -109,6 +112,11 @@ mod tests {
                 output_orders: None,
             };
             let json_data = serde_json::to_string(&vec![vault.clone()]).unwrap();
+            let expected_vault_id = encode_prefixed(B256::from(vault.vault_id));
+            assert!(
+                json_data.contains(&format!(r#""vault_id":"{}""#, expected_vault_id)),
+                "vault_id should be hex-prefixed in JSON: {json_data}"
+            );
             let callback = create_success_callback(&json_data);
 
             let result = LocalDbQuery::fetch_vault(&callback, 1, "0x01", "0xaaa").await;

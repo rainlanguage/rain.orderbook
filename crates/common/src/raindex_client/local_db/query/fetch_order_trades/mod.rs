@@ -23,7 +23,7 @@ pub struct LocalDbOrderTrade {
     pub block_timestamp: u64,
     #[serde(with = "serde_address")]
     pub transaction_sender: Address,
-    #[serde(with = "serde_u256")]
+    #[serde(with = "serde_b256")]
     pub input_vault_id: U256,
     #[serde(with = "serde_address")]
     pub input_token: Address,
@@ -34,7 +34,7 @@ pub struct LocalDbOrderTrade {
     pub input_delta: Float,
     #[serde(with = "serde_option_float")]
     pub input_running_balance: Option<Float>,
-    #[serde(with = "serde_u256")]
+    #[serde(with = "serde_b256")]
     pub output_vault_id: U256,
     #[serde(with = "serde_address")]
     pub output_token: Address,
@@ -45,6 +45,7 @@ pub struct LocalDbOrderTrade {
     pub output_delta: Float,
     #[serde(with = "serde_option_float")]
     pub output_running_balance: Option<Float>,
+    #[serde(with = "serde_bytes")]
     pub trade_id: Bytes,
 }
 
@@ -86,7 +87,10 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
-        use alloy::primitives::{Address, Bytes, U256};
+        use alloy::{
+            hex::encode_prefixed,
+            primitives::{Address, Bytes, B256, U256},
+        };
         use rain_math_float::Float;
         use std::str::FromStr;
         use wasm_bindgen_test::wasm_bindgen_test;
@@ -153,8 +157,24 @@ mod tests {
                 trade_id,
             };
 
-            let callback =
-                create_success_callback(&serde_json::to_string(&vec![row.clone()]).unwrap());
+            let serialized = serde_json::to_string(&vec![row.clone()]).unwrap();
+            let expected_input_vault_id = encode_prefixed(B256::from(row.input_vault_id));
+            let expected_output_vault_id = encode_prefixed(B256::from(row.output_vault_id));
+            assert!(
+                serialized.contains(&format!(
+                    r#""input_vault_id":"{}""#,
+                    expected_input_vault_id
+                )),
+                "input_vault_id should be hex-prefixed in JSON: {serialized}"
+            );
+            assert!(
+                serialized.contains(&format!(
+                    r#""output_vault_id":"{}""#,
+                    expected_output_vault_id
+                )),
+                "output_vault_id should be hex-prefixed in JSON: {serialized}"
+            );
+            let callback = create_success_callback(&serialized);
 
             let result =
                 LocalDbQuery::fetch_order_trades(&callback, 1, order_hash.clone(), None, None)

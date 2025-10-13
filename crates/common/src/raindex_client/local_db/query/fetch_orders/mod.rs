@@ -93,10 +93,7 @@ impl LocalDbQuery {
 
         let owner_values: Vec<String> = owners
             .into_iter()
-            .map(|owner| {
-                let owner_lower = owner.to_string().to_lowercase();
-                format!("'{}'", owner_lower)
-            })
+            .map(|owner| format!("'{owner:#x}'"))
             .collect();
         let filter_owners = if owner_values.is_empty() {
             String::new()
@@ -122,10 +119,7 @@ impl LocalDbQuery {
 
         let token_values: Vec<String> = tokens
             .into_iter()
-            .map(|token| {
-                let token_lower = token.to_string().to_lowercase();
-                format!("'{}'", token_lower)
-            })
+            .map(|token| format!("'{token:#x}'"))
             .collect();
         let filter_tokens = if token_values.is_empty() {
             String::new()

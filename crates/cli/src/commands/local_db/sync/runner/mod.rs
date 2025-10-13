@@ -118,7 +118,7 @@ where
             } else {
                 println!(
                     "Fetching interpreter store Set events for {} store(s)",
-                    store_list.len()
+                    parsed_store_addresses.len()
                 );
                 let store_events = self
                     .data_source

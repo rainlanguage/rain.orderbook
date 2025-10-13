@@ -104,6 +104,50 @@ pub mod serde_address {
         let s = String::deserialize(deserializer)?;
         Address::from_str(&s).map_err(Error::custom)
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use serde::{Deserialize, Serialize};
+
+        #[derive(Debug, Serialize, Deserialize, PartialEq)]
+        struct Wrapper {
+            #[serde(with = "super")]
+            addr: Address,
+        }
+
+        #[test]
+        fn serialize_address_to_prefixed_hex() {
+            let wrapper = Wrapper {
+                addr: Address::from_str("0x123400000000000000000000000000000000abcd").unwrap(),
+            };
+            let json = serde_json::to_string(&wrapper).expect("serialize succeeds");
+            assert!(json.contains(&encode_prefixed(wrapper.addr)));
+        }
+
+        #[test]
+        fn deserialize_prefixed_hex_into_address() {
+            let encoded = encode_prefixed(
+                Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
+            );
+            let json = format!(r#"{{"addr":"{}"}}"#, encoded);
+            let wrapper: Wrapper = serde_json::from_str(&json).expect("deserialize succeeds");
+            assert_eq!(
+                wrapper.addr,
+                Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+            );
+        }
+
+        #[test]
+        fn deserialize_rejects_invalid_hex() {
+            let json = r#"{"addr":"0xzz"}"#;
+            let err = serde_json::from_str::<Wrapper>(json).expect_err("must fail");
+            assert!(
+                err.to_string().to_lowercase().contains("invalid"),
+                "unexpected error: {err}"
+            );
+        }
+    }
 }
 
 pub mod serde_bytes {
@@ -124,6 +168,47 @@ pub mod serde_bytes {
     {
         let s = String::deserialize(deserializer)?;
         Bytes::from_str(&s).map_err(DeError::custom)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use serde::{Deserialize, Serialize};
+
+        #[derive(Debug, Serialize, Deserialize, PartialEq)]
+        struct Wrapper {
+            #[serde(with = "super")]
+            data: Bytes,
+        }
+
+        #[test]
+        fn serialize_bytes_to_prefixed_hex() {
+            let wrapper = Wrapper {
+                data: Bytes::from_str("0xdeadbeef").unwrap(),
+            };
+            let json = serde_json::to_string(&wrapper).expect("serialize succeeds");
+            assert_eq!(
+                json,
+                format!(r#"{{"data":"{}"}}"#, encode_prefixed(&wrapper.data))
+            );
+        }
+
+        #[test]
+        fn deserialize_prefixed_hex_into_bytes() {
+            let json = r#"{"data":"0x0102"}"#;
+            let wrapper: Wrapper = serde_json::from_str(json).expect("deserialize succeeds");
+            assert_eq!(wrapper.data, Bytes::from_str("0x0102").unwrap());
+        }
+
+        #[test]
+        fn deserialize_rejects_invalid_hex() {
+            let json = r#"{"data":"0x1g"}"#;
+            let err = serde_json::from_str::<Wrapper>(json).expect_err("must fail");
+            assert!(
+                err.to_string().to_lowercase().contains("invalid"),
+                "unexpected error: {err}"
+            );
+        }
     }
 }
 
@@ -146,6 +231,44 @@ pub mod serde_float {
     {
         let s = String::deserialize(deserializer)?;
         Float::parse(s).map_err(DeError::custom)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::Float;
+        use serde::{Deserialize, Serialize};
+
+        #[derive(Debug, Serialize, Deserialize)]
+        struct Wrapper {
+            #[serde(with = "super")]
+            value: Float,
+        }
+
+        #[test]
+        fn serialize_float_uses_formatted_string() {
+            let float = Float::parse("42.5".into()).unwrap();
+            let wrapper = Wrapper { value: float };
+            let json = serde_json::to_string(&wrapper).expect("serialize succeeds");
+            assert!(json.contains("\"42.5\""));
+        }
+
+        #[test]
+        fn deserialize_parses_float_string() {
+            let json = r#"{"value":"1.25"}"#;
+            let wrapper: Wrapper = serde_json::from_str(json).expect("deserialize succeeds");
+            assert_eq!(wrapper.value.format().unwrap(), "1.25");
+        }
+
+        #[test]
+        fn deserialize_invalid_float_errors() {
+            let json = r#"{"value":"not-a-number"}"#;
+            let err = serde_json::from_str::<Wrapper>(json).expect_err("must fail");
+            assert!(
+                err.to_string()
+                    .contains("Decimal Float error selector"),
+                "unexpected error: {err}"
+            );
+        }
     }
 }
 
@@ -177,10 +300,54 @@ pub mod serde_option_float {
             .map(|s| Float::parse(s).map_err(DeError::custom))
             .transpose()
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::Float;
+        use serde::{Deserialize, Serialize};
+
+        #[derive(Debug, Serialize, Deserialize)]
+        struct Wrapper {
+            #[serde(with = "super")]
+            value: Option<Float>,
+        }
+
+        #[test]
+        fn serialize_some_float() {
+            let float = Float::parse("0.75".into()).unwrap();
+            let wrapper = Wrapper { value: Some(float) };
+            let json = serde_json::to_string(&wrapper).expect("serialize succeeds");
+            assert!(json.contains("\"0.75\""));
+        }
+
+        #[test]
+        fn serialize_none_float() {
+            let wrapper = Wrapper { value: None };
+            let json = serde_json::to_string(&wrapper).expect("serialize succeeds");
+            assert_eq!(json, r#"{"value":null}"#);
+        }
+
+        #[test]
+        fn deserialize_some_float() {
+            let json = r#"{"value":"123.0001"}"#;
+            let wrapper: Wrapper = serde_json::from_str(json).expect("deserialize succeeds");
+            assert_eq!(wrapper.value.unwrap().format().unwrap(), "123.0001");
+        }
+
+        #[test]
+        fn deserialize_none_float() {
+            let json = r#"{"value":null}"#;
+            let wrapper: Wrapper = serde_json::from_str(json).expect("deserialize succeeds");
+            assert!(wrapper.value.is_none());
+        }
+    }
 }
 
-pub mod serde_u256 {
-    use alloy::primitives::U256;
+pub mod serde_b256 {
+    use alloy::{
+        hex::encode_prefixed,
+        primitives::{B256, U256},
+    };
     use serde::{de::Error, Deserialize, Deserializer, Serializer};
     use std::str::FromStr;
 
@@ -188,7 +355,7 @@ pub mod serde_u256 {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&value.to_string())
+        serializer.serialize_str(&encode_prefixed(B256::from(*value)))
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<U256, D::Error>
@@ -196,7 +363,66 @@ pub mod serde_u256 {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        U256::from_str(&s).map_err(Error::custom)
+        if !s.starts_with("0x") {
+            return Err(Error::custom("expected 0x-prefixed hex string"));
+        }
+
+        let b256 =
+            B256::from_str(&s).map_err(|e| Error::custom(format!("invalid hex string: {e}")))?;
+
+        Ok(U256::from_be_slice(b256.as_slice()))
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use alloy::{
+            hex::encode_prefixed,
+            primitives::{B256, U256},
+        };
+        use serde::{Deserialize, Serialize};
+        use std::str::FromStr;
+
+        #[derive(Debug, Serialize, Deserialize, PartialEq)]
+        struct Wrapper {
+            #[serde(with = "super")]
+            value: U256,
+        }
+
+        #[test]
+        fn serialize_u256_to_prefixed_hex() {
+            let wrapper = Wrapper {
+                value: U256::from_str(
+                    "0x01020000000000000000000000000000000000000000000000000000000000ff",
+                )
+                .unwrap(),
+            };
+            let json = serde_json::to_string(&wrapper).expect("serialization succeeds");
+            assert_eq!(
+                json,
+                format!(
+                    r#"{{"value":"{}"}}"#,
+                    encode_prefixed(B256::from(wrapper.value))
+                )
+            );
+        }
+
+        #[test]
+        fn deserialize_prefixed_hex_into_u256() {
+            let encoded = encode_prefixed(B256::from(U256::from(42_u32)));
+            let json = format!(r#"{{"value":"{}"}}"#, encoded);
+            let wrapper: Wrapper = serde_json::from_str(&json).expect("deserialization succeeds");
+            assert_eq!(wrapper.value, U256::from(42_u32));
+        }
+
+        #[test]
+        fn deserialize_rejects_missing_prefix() {
+            let json = r#"{"value":"1234"}"#;
+            let err = serde_json::from_str::<Wrapper>(json).expect_err("must fail");
+            assert!(
+                err.to_string().contains("0x-prefixed"),
+                "unexpected error: {err}"
+            );
+        }
     }
 }
 

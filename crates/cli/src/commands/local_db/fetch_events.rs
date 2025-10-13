@@ -6,7 +6,6 @@ use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClientError};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 #[async_trait::async_trait]
 pub trait EventClient {
@@ -47,7 +46,7 @@ pub struct FetchEvents {
     #[clap(long)]
     pub end_block: Option<u64>,
     #[clap(long)]
-    pub orderbook_address: String,
+    pub orderbook_address: Address,
     #[clap(long)]
     pub output_file: Option<String>,
 }
@@ -66,11 +65,7 @@ impl FetchEvents {
         };
 
         let all_events = client
-            .fetch(
-                Address::from_str(&self.orderbook_address)?,
-                self.start_block,
-                end_block,
-            )
+            .fetch(self.orderbook_address, self.start_block, end_block)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to fetch events: {}", e))?;
 
@@ -104,9 +99,14 @@ impl FetchEvents {
 mod tests {
     use super::*;
     use alloy::primitives::Bytes;
+    use std::str::FromStr;
     use tempfile::{NamedTempFile, TempDir};
 
     const TEST_ORDERBOOK_ADDRESS: &str = "0x0000000000000000000000000000000000000123";
+
+    fn test_orderbook_address() -> Address {
+        Address::from_str(TEST_ORDERBOOK_ADDRESS).unwrap()
+    }
 
     fn sample_event(block_number: u64) -> LogEntryResponse {
         LogEntryResponse {
@@ -217,7 +217,7 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: Some(200),
-            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
+            orderbook_address: test_orderbook_address(),
             output_file: Some(temp_path.clone()),
         };
 
@@ -241,7 +241,7 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: None,
-            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
+            orderbook_address: test_orderbook_address(),
             output_file: Some(temp_path.clone()),
         };
 
@@ -264,7 +264,7 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: None,
-            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
+            orderbook_address: test_orderbook_address(),
             output_file: Some("test_output.json".to_string()),
         };
 
@@ -286,7 +286,7 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: Some(200),
-            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
+            orderbook_address: test_orderbook_address(),
             output_file: Some("test_output.json".to_string()),
         };
 
@@ -314,7 +314,7 @@ mod tests {
             chain_id: 1,
             start_block: 100,
             end_block: Some(200),
-            orderbook_address: TEST_ORDERBOOK_ADDRESS.to_string(),
+            orderbook_address: test_orderbook_address(),
             output_file: None,
         };
 

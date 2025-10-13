@@ -245,15 +245,7 @@ impl RaindexOrder {
 
     #[wasm_export(skip)]
     pub fn order_hash_bytes(&self) -> Result<Bytes, RaindexError> {
-        #[cfg(target_family = "wasm")]
-        {
-            Bytes::from_str(&self.order_hash())
-                .map_err(|e| RaindexError::JsError(e.to_string().into()))
-        }
-        #[cfg(not(target_family = "wasm"))]
-        {
-            Ok(self.order_hash.clone())
-        }
+        Ok(self.order_hash.clone())
     }
 
     // /// Retrieves volume data for all vaults associated with this order over a specified time period
