@@ -85,6 +85,69 @@ impl LocalDbQuery {
     }
 }
 
+pub mod serde_address {
+    use alloy::{hex::encode_prefixed, primitives::Address};
+    use serde::{de::Error, Deserialize, Deserializer, Serializer};
+    use std::str::FromStr;
+
+    pub fn serialize<S>(value: &Address, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&encode_prefixed(value))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Address, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Address::from_str(&s).map_err(Error::custom)
+    }
+}
+
+pub mod serde_bytes {
+    use alloy::{hex::encode_prefixed, primitives::Bytes};
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(value: &Bytes, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&encode_prefixed(value))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Bytes, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Bytes::copy_from_slice(s.as_bytes()))
+    }
+}
+
+pub mod serde_float {
+    use rain_math_float::Float;
+    use serde::{
+        de::Error as DeError, ser::Error as SerError, Deserialize, Deserializer, Serializer,
+    };
+
+    pub fn serialize<S>(value: &Float, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&value.format().map_err(SerError::custom)?)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Float, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Float::parse(s).map_err(DeError::custom)?)
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
