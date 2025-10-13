@@ -13,6 +13,27 @@ Notes
 - Run commands from the repo root. If your default `cargo run` package is not the CLI, add `-p rain_orderbook_cli`.
 - Paths below reference this folder. Adjust to your local paths as needed.
 
+## Incremental Sync (fetch, decode, insert)
+
+`local-db sync` is now a single command that mirrors the browser sync logic. It accepts the Rain settings YAML directly, resolves the primary orderbook for the given chain, and then updates your SQLite database by fetching the missing on-chain events, decoding them, preparing any missing token metadata, and applying the combined SQL transaction.
+
+Example:
+
+```bash
+cargo run -p rain_orderbook_cli -- local-db sync \
+  --db-path "./data/orderbook.db" \
+  --chain-id 42161 \
+  --settings-yaml "..." \
+  --api-token hyper-token \
+  --start-block 352866209 \
+  --end-block 352999999
+```
+
+Key behaviour:
+- The command parses the provided settings YAML to discover the orderbook deployment. No manual `--orderbook-address`, `--deployment-block`, or user-supplied RPC URLs are required.
+- HyperRPC log fetching uses the provided `--api-token`; ERC-20 metadata reads reuse the network RPCs declared in settings. Start/end blocks are optional—when omitted the runner resumes from the last synced block and stops at the chain head.
+- When the DB is empty the schema is created automatically, `sync_status` is advanced to the synced block, and existing token metadata is reused while missing addresses trigger live fetches.
+
 ## Fetch Events
 
 Fetch OrderBook events from a chain and write them to a JSON file.
@@ -101,6 +122,8 @@ cargo run local-db dump \
 ```
 
 This produces `local_db_<end_block>.db`, `local_db_<end_block>.sql`, and `local_db_<end_block>.sql.gz` in this folder by default.
+
+All SQL view definitions in `crates/common/src/raindex_client/local_db/views` are loaded automatically before the dump so the exported schema includes them.
 
 ## Tips
 - Recommended pipeline: Fetch Events → Decode → Tokens (tokens-fetch, tokens-to-sql) → Events (decoded-events-to-sql with --tokens-file) → Dump.

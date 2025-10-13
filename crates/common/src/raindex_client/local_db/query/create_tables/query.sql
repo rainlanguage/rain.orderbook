@@ -7,6 +7,20 @@ CREATE TABLE IF NOT EXISTS sync_status (
 );
 INSERT OR IGNORE INTO sync_status (id, last_synced_block) VALUES (1, 0);
 
+CREATE TABLE raw_events (
+    transaction_hash TEXT NOT NULL,
+    log_index INTEGER NOT NULL,
+    block_number INTEGER NOT NULL,
+    block_timestamp INTEGER,
+    address TEXT NOT NULL,
+    topics TEXT NOT NULL,
+    data TEXT NOT NULL,
+    raw_json TEXT NOT NULL,
+    PRIMARY KEY (transaction_hash, log_index)
+);
+CREATE INDEX idx_raw_events_block ON raw_events(block_number, log_index);
+CREATE INDEX idx_raw_events_address ON raw_events(address);
+
 CREATE TABLE deposits (
     transaction_hash TEXT NOT NULL,
     log_index INTEGER NOT NULL,
@@ -40,6 +54,8 @@ CREATE TABLE order_events (
     block_number INTEGER NOT NULL,
     block_timestamp INTEGER NOT NULL,
     sender TEXT NOT NULL,
+    interpreter_address TEXT NOT NULL,
+    store_address TEXT NOT NULL,
     order_hash TEXT NOT NULL,
     event_type TEXT NOT NULL,
     order_owner TEXT NOT NULL,
@@ -150,6 +166,7 @@ CREATE INDEX idx_withdrawals_token ON withdrawals(token);
 CREATE INDEX idx_order_events_hash ON order_events(order_hash);
 CREATE INDEX idx_order_events_owner ON order_events(order_owner);
 CREATE INDEX idx_order_events_block ON order_events(block_number);
+CREATE INDEX idx_order_events_store ON order_events(store_address);
 
 CREATE INDEX idx_order_ios_token ON order_ios(token);
 
@@ -174,5 +191,20 @@ CREATE TABLE erc20_tokens (
     decimals INTEGER NOT NULL,
     PRIMARY KEY (chain_id, address)
 );
+
+CREATE TABLE interpreter_store_sets (
+    store_address TEXT NOT NULL,
+    transaction_hash TEXT NOT NULL,
+    log_index INTEGER NOT NULL,
+    block_number INTEGER NOT NULL,
+    block_timestamp INTEGER NOT NULL,
+    namespace TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    PRIMARY KEY (transaction_hash, log_index)
+);
+CREATE INDEX idx_store_sets_store ON interpreter_store_sets(store_address);
+CREATE INDEX idx_store_sets_block ON interpreter_store_sets(block_number);
+CREATE INDEX idx_store_sets_namespace ON interpreter_store_sets(namespace);
 
 COMMIT;
