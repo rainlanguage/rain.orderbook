@@ -1,10 +1,9 @@
-use super::{LocalDb, LocalDbError};
+use super::{retry::retry_with_backoff, LocalDb, LocalDbError};
 use crate::rpc_client::{LogEntryResponse, RpcClientError};
 use alloy::{
     primitives::{Address, U256},
     sol_types::SolEvent,
 };
-use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::{
     IInterpreterStoreV3::Set,
@@ -13,10 +12,7 @@ use rain_orderbook_bindings::{
     },
     OrderBook::MetaV1_2,
 };
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct FetchConfig {
@@ -98,16 +94,25 @@ impl LocalDb {
                     let from_block_hex = format!("0x{:x}", from_block);
                     let to_block_hex = format!("0x{:x}", to_block);
 
-                    let response = retry_with_attempts(
-                        || {
-                            client.get_logs(
-                                &from_block_hex,
-                                &to_block_hex,
-                                &contract_address,
-                                topics.clone(),
-                            )
+                    let response = retry_with_backoff(
+                        || async {
+                            client
+                                .get_logs(
+                                    &from_block_hex,
+                                    &to_block_hex,
+                                    &contract_address,
+                                    topics.clone(),
+                                )
+                                .await
+                                .map_err(|err| match err {
+                                    RpcClientError::JsonSerialization(err) => {
+                                        LocalDbError::JsonParse(err)
+                                    }
+                                    other => LocalDbError::Rpc(other),
+                                })
                         },
                         max_attempts,
+                        |error| matches!(error, LocalDbError::Rpc(_)),
                     )
                     .await?;
 
@@ -179,9 +184,19 @@ impl LocalDb {
                 let client = client.clone();
                 let max_attempts = config.max_retry_attempts;
                 async move {
-                    let block_response = retry_with_attempts(
-                        || client.get_block_by_number(block_number),
+                    let block_response = retry_with_backoff(
+                        || async {
+                            client.get_block_by_number(block_number).await.map_err(
+                                |err| match err {
+                                    RpcClientError::JsonSerialization(err) => {
+                                        LocalDbError::JsonParse(err)
+                                    }
+                                    other => LocalDbError::Rpc(other),
+                                },
+                            )
+                        },
                         max_attempts,
+                        |error| matches!(error, LocalDbError::Rpc(_)),
                     )
                     .await?;
 
@@ -314,16 +329,25 @@ impl LocalDb {
                     let from_block_hex = format!("0x{:x}", job.from_block);
                     let to_block_hex = format!("0x{:x}", job.to_block);
 
-                    let response = retry_with_attempts(
-                        || {
-                            client.get_logs(
-                                &from_block_hex,
-                                &to_block_hex,
-                                &job.address,
-                                topics.clone(),
-                            )
+                    let response = retry_with_backoff(
+                        || async {
+                            client
+                                .get_logs(
+                                    &from_block_hex,
+                                    &to_block_hex,
+                                    &job.address,
+                                    topics.clone(),
+                                )
+                                .await
+                                .map_err(|err| match err {
+                                    RpcClientError::JsonSerialization(err) => {
+                                        LocalDbError::JsonParse(err)
+                                    }
+                                    other => LocalDbError::Rpc(other),
+                                })
                         },
                         max_attempts,
+                        |error| matches!(error, LocalDbError::Rpc(_)),
                     )
                     .await?;
 
@@ -348,45 +372,11 @@ impl LocalDb {
     }
 }
 
-const RETRY_DELAY_MILLIS: u64 = 100;
-
 #[derive(Clone)]
 struct StoreLogFetchJob {
     address: String,
     from_block: u64,
     to_block: u64,
-}
-
-async fn retry_with_attempts<T, F, Fut>(
-    operation: F,
-    max_attempts: usize,
-) -> Result<T, LocalDbError>
-where
-    F: Fn() -> Fut,
-    Fut: std::future::Future<Output = Result<T, RpcClientError>>,
-{
-    if max_attempts == 0 {
-        return Err(LocalDbError::Config {
-            message: "max_attempts must be > 0".to_string(),
-        });
-    }
-
-    let backoff = ConstantBuilder::default()
-        .with_delay(Duration::from_millis(RETRY_DELAY_MILLIS))
-        .with_max_times(max_attempts.saturating_sub(1));
-
-    let retryable = || async {
-        match operation().await {
-            Ok(result) => Ok(result),
-            Err(RpcClientError::JsonSerialization(err)) => Err(LocalDbError::JsonParse(err)),
-            Err(err) => Err(LocalDbError::Rpc(err)),
-        }
-    };
-
-    retryable
-        .retry(&backoff)
-        .when(|error: &LocalDbError| matches!(error, LocalDbError::Rpc(_)))
-        .await
 }
 
 fn extract_block_number_from_entry(event: &LogEntryResponse) -> Result<u64, LocalDbError> {

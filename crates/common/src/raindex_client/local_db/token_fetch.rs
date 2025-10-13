@@ -1,44 +1,51 @@
+use super::{retry::retry_with_backoff, FetchConfig, LocalDbError};
 use crate::erc20::{TokenInfo, ERC20};
-use crate::raindex_client::local_db::LocalDbError;
 use alloy::primitives::Address;
 use futures::StreamExt;
-use std::time::Duration;
+
+const TOKEN_CONCURRENCY: usize = 16;
 
 pub async fn fetch_erc20_metadata_concurrent(
     rpcs: Vec<url::Url>,
     missing_addrs: Vec<Address>,
 ) -> Result<Vec<(Address, TokenInfo)>, LocalDbError> {
-    const MAX_TOKEN_RETRY_ATTEMPTS: u32 = 3;
-    const TOKEN_RETRY_DELAY_MS: u64 = 500;
-    const TOKEN_CONCURRENCY: usize = 16;
+    let max_attempts = FetchConfig::default().max_retry_attempts;
 
     async fn fetch_with_retries(
         rpcs: Vec<url::Url>,
         addr: Address,
+        max_attempts: usize,
     ) -> Result<(Address, TokenInfo), LocalDbError> {
-        let erc20 = ERC20::new(rpcs.clone(), addr);
-        let mut attempt: u32 = 0;
-        loop {
-            match erc20.token_info(None).await {
-                Ok(info) => return Ok((addr, info)),
-                Err(e) => {
-                    attempt += 1;
-                    if attempt >= MAX_TOKEN_RETRY_ATTEMPTS {
-                        return Err(LocalDbError::CustomError(format!(
-                            "Failed to fetch token info for 0x{:x} after {} attempts: {}",
-                            addr, MAX_TOKEN_RETRY_ATTEMPTS, e
-                        )));
-                    }
-                    tokio::time::sleep(Duration::from_millis(TOKEN_RETRY_DELAY_MS)).await;
+        let erc20 = ERC20::new(rpcs, addr);
+
+        let fetch_result = retry_with_backoff(
+            || {
+                let erc20 = erc20.clone();
+                async move {
+                    erc20
+                        .token_info(None)
+                        .await
+                        .map(|info| (addr, info))
+                        .map_err(|err| LocalDbError::CustomError(err.to_string()))
                 }
-            }
-        }
+            },
+            max_attempts,
+            |_error| true,
+        )
+        .await;
+
+        fetch_result.map_err(|err| {
+            LocalDbError::CustomError(format!(
+                "Failed to fetch token info for 0x{:x} after {} attempts: {}",
+                addr, max_attempts, err
+            ))
+        })
     }
 
     let results: Vec<Result<(Address, TokenInfo), LocalDbError>> =
         futures::stream::iter(missing_addrs.into_iter().map(|addr| {
             let rpcs = rpcs.clone();
-            async move { fetch_with_retries(rpcs, addr).await }
+            async move { fetch_with_retries(rpcs, addr, max_attempts).await }
         }))
         .buffer_unordered(TOKEN_CONCURRENCY)
         .collect()

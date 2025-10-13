@@ -2,6 +2,7 @@ pub mod decode;
 pub mod fetch;
 pub mod insert;
 pub mod query;
+mod retry;
 pub mod sync;
 pub mod token_fetch;
 pub mod tokens;
