@@ -20,7 +20,6 @@ use std::{
     future::Future,
     io::Read,
     pin::Pin,
-    str::FromStr,
 };
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
@@ -460,10 +459,8 @@ async fn prepare_erc20_tokens_prefix(
 
         let mut existing_set: HashSet<Address> = HashSet::new();
         for row in existing_rows.iter() {
-            if let Ok(addr) = Address::from_str(&row.address) {
-                decimals_by_addr.insert(addr, row.decimals);
-                existing_set.insert(addr);
-            }
+            decimals_by_addr.insert(row.address, row.decimals);
+            existing_set.insert(row.address);
         }
 
         let missing_addrs: Vec<Address> = all_token_addrs
@@ -736,14 +733,16 @@ mod tests {
             let rows = vec![
                 Erc20TokenRow {
                     chain_id: 1,
-                    address: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                    address: Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                        .unwrap(),
                     name: "A".into(),
                     symbol: "AA".into(),
                     decimals: 18,
                 },
                 Erc20TokenRow {
                     chain_id: 1,
-                    address: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                    address: Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+                        .unwrap(),
                     name: "B".into(),
                     symbol: "BB".into(),
                     decimals: 6,
@@ -976,6 +975,7 @@ mod tests {
         use httpmock::prelude::*;
         use rain_orderbook_test_fixtures::LocalEvm;
         use std::io::Write;
+        use std::str::FromStr;
         use std::{
             cell::RefCell,
             collections::HashMap,
@@ -1212,14 +1212,14 @@ mod tests {
             ) -> DbFuture<'_, Vec<Erc20TokenRow>> {
                 let rows = self.token_rows.clone();
                 Box::pin(async move {
-                    let address_set: std::collections::HashSet<String> = addresses
+                    let address_set: std::collections::HashSet<Address> = addresses
                         .into_iter()
-                        .map(|a| a.to_ascii_lowercase())
+                        .filter_map(|a| Address::from_str(&a).ok())
                         .collect();
                     let out: Vec<Erc20TokenRow> = rows
                         .into_iter()
                         .filter(|row| row.chain_id == chain_id)
-                        .filter(|row| address_set.contains(&row.address.to_ascii_lowercase()))
+                        .filter(|row| address_set.contains(&row.address))
                         .collect();
                     Ok(out)
                 })

@@ -1,11 +1,13 @@
 use super::*;
+use alloy::primitives::Address;
 
 pub const FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Erc20TokenRow {
     pub chain_id: u32,
-    pub address: String,
+    #[serde(with = "serde_address")]
+    pub address: Address,
     pub name: String,
     pub symbol: String,
     pub decimals: u8,
@@ -45,6 +47,7 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
+        use alloy::primitives::Address;
         use std::cell::RefCell;
         use std::rc::Rc;
         use wasm_bindgen_test::*;
@@ -78,14 +81,14 @@ mod tests {
             let rows = vec![
                 Erc20TokenRow {
                     chain_id: 1,
-                    address: "0x01".into(),
+                    address: Address::from([0x01; 20]),
                     name: "A".into(),
                     symbol: "AA".into(),
                     decimals: 18,
                 },
                 Erc20TokenRow {
                     chain_id: 1,
-                    address: "0x02".into(),
+                    address: Address::from([0x02; 20]),
                     name: "Bee".into(),
                     symbol: "B".into(),
                     decimals: 6,
