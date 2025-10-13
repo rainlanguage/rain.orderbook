@@ -144,7 +144,58 @@ pub mod serde_float {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(Float::parse(s).map_err(DeError::custom)?)
+        Float::parse(s).map_err(DeError::custom)
+    }
+}
+
+pub mod serde_option_float {
+    use rain_math_float::Float;
+    use serde::{
+        de::Error as DeError, ser::Error as SerError, Deserialize, Deserializer, Serializer,
+    };
+
+    pub fn serialize<S>(value: &Option<Float>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(float) => {
+                let formatted = float.format().map_err(SerError::custom)?;
+                serializer.serialize_some(&formatted)
+            }
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Float>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let maybe_str = Option::<String>::deserialize(deserializer)?;
+        maybe_str
+            .map(|s| Float::parse(s).map_err(DeError::custom))
+            .transpose()
+    }
+}
+
+pub mod serde_u256 {
+    use alloy::primitives::U256;
+    use serde::{de::Error, Deserialize, Deserializer, Serializer};
+    use std::str::FromStr;
+
+    pub fn serialize<S>(value: &U256, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&value.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<U256, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        U256::from_str(&s).map_err(Error::custom)
     }
 }
 
