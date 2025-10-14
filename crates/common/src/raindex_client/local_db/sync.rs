@@ -437,38 +437,6 @@ impl RaindexClient {
         let db_callback = Rc::new(db_callback);
         let status_callback = status_callback.map(Rc::new);
 
-        let initial_result = if let Some(status_cb) = status_callback.as_ref() {
-            let db_bridge = JsDatabaseBridge::new(db_callback.as_ref());
-            let status_bridge = JsStatusReporter::new(status_cb.as_ref());
-            sync_database_with_services(
-                &client,
-                &db_bridge,
-                &status_bridge,
-                DEFAULT_SYNC_CHAIN_ID,
-                None,
-            )
-            .await
-        } else {
-            let db_bridge = JsDatabaseBridge::new(db_callback.as_ref());
-            let status_bridge = NoopStatusReporter;
-            sync_database_with_services(
-                &client,
-                &db_bridge,
-                &status_bridge,
-                DEFAULT_SYNC_CHAIN_ID,
-                None,
-            )
-            .await
-        };
-
-        if let Err(err) = initial_result {
-            if let Some(status_cb) = status_callback.as_ref() {
-                let status_bridge = JsStatusReporter::new(status_cb.as_ref());
-                let _ = status_bridge.send(error_status_from_local_db_error(&err));
-            }
-            return Err(err);
-        }
-
         spawn_local(async move {
             loop {
                 if let Some(status_cb) = status_callback.as_ref() {
