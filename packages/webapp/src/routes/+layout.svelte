@@ -21,18 +21,18 @@
 	import { startLocalDbSync } from '$lib/services/startLocalDbSync';
 	import { onMount } from 'svelte';
 
-const { errorMessage, localDb, raindexClient } = $page.data;
+	const { errorMessage, localDb, raindexClient } = $page.data;
 
-// Query client for caching
-const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			staleTime: Infinity
+	// Query client for caching
+	const queryClient = new QueryClient({
+		defaultOptions: {
+			queries: {
+				staleTime: Infinity
+			}
 		}
-	}
-});
+	});
 
-let walletInitError: string | null = null;
+	let walletInitError: string | null = null;
 
 	onMount(() => {
 		if (!browser || !raindexClient || !localDb) return;
@@ -43,11 +43,11 @@ let walletInitError: string | null = null;
 		});
 	});
 
-$: if (browser && window.navigator) {
-	initWallet().then((error) => {
-		walletInitError = error;
-	});
-}
+	$: if (browser && window.navigator) {
+		initWallet().then((error) => {
+			walletInitError = error;
+		});
+	}
 </script>
 
 {#if walletInitError}

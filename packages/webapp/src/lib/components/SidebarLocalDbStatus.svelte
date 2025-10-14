@@ -57,28 +57,34 @@
 >
 	<div class="flex items-center justify-between">
 		<div class="flex flex-col">
-			<span class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400"
+			<span
+				class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400"
 				>Local Index</span
 			>
 		</div>
-	<span
-		class={`inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-semibold uppercase tracking-wide ${$indicatorBadge.badgeClass}`}
-	>
-		<span class={`size-1.5 rounded-full ${$indicatorBadge.dotClass}`}></span>
-		<span class="truncate max-w-[8rem]">{$indicatorBadge.displayLabel}</span>
-	</span>
+		<span
+			class={`inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-semibold uppercase tracking-wide ${$indicatorBadge.badgeClass}`}
+		>
+			<span class={`size-1.5 rounded-full ${$indicatorBadge.dotClass}`}></span>
+			<span class="max-w-[8rem] truncate">{$indicatorBadge.displayLabel}</span>
+		</span>
 	</div>
 
 	{#if $indicatorBadge.variant === 'error'}
-		<p class="rounded-md bg-red-500/10 px-2 py-1 text-[11px] text-red-500 dark:bg-red-500/15 dark:text-red-300">
+		<p
+			class="rounded-md bg-red-500/10 px-2 py-1 text-[11px] text-red-500 dark:bg-red-500/15 dark:text-red-300"
+		>
 			Sync loop reported an error. Latest message shown below.
 		</p>
 	{/if}
 
 	<div>
 		{#if $latestEntry}
-			<div class="flex gap-2 rounded-md border border-gray-200/80 bg-white/70 px-2 py-[6px] dark:border-gray-700/70 dark:bg-gray-900/60">
-				<span class="mt-[1px] shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500"
+			<div
+				class="flex gap-2 rounded-md border border-gray-200/80 bg-white/70 px-2 py-[6px] dark:border-gray-700/70 dark:bg-gray-900/60"
+			>
+				<span
+					class="mt-[1px] shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500"
 					>{$latestEntry.formattedTime}</span
 				>
 				<p
@@ -89,7 +95,9 @@
 				</p>
 			</div>
 		{:else}
-			<p class="rounded-md bg-gray-100/70 px-2 py-2 text-[11px] text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
+			<p
+				class="rounded-md bg-gray-100/70 px-2 py-2 text-[11px] text-gray-500 dark:bg-gray-800/60 dark:text-gray-400"
+			>
 				Status updates will appear here once the local indexer runs.
 			</p>
 		{/if}

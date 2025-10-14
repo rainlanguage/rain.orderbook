@@ -40,11 +40,8 @@ describe('localDbStatus store', () => {
 	});
 
 	it('classifies error messages appropriately', async () => {
-		const {
-			localDbStatusIndicator,
-			recordLocalDbStatus,
-			setLocalDbSyncEnabled
-		} = await loadStoreModule();
+		const { localDbStatusIndicator, recordLocalDbStatus, setLocalDbSyncEnabled } =
+			await loadStoreModule();
 
 		setLocalDbSyncEnabled(true);
 		recordLocalDbStatus('Error syncing database');
@@ -56,11 +53,8 @@ describe('localDbStatus store', () => {
 	});
 
 	it('records explicit errors via recordLocalDbError', async () => {
-		const {
-			localDbStatusIndicator,
-			recordLocalDbError,
-			setLocalDbSyncEnabled
-		} = await loadStoreModule();
+		const { localDbStatusIndicator, recordLocalDbError, setLocalDbSyncEnabled } =
+			await loadStoreModule();
 
 		setLocalDbSyncEnabled(true);
 		recordLocalDbError('Rate limited');
@@ -72,11 +66,8 @@ describe('localDbStatus store', () => {
 	});
 
 	it('allows overriding status level explicitly', async () => {
-		const {
-			localDbStatusIndicator,
-			recordLocalDbStatus,
-			setLocalDbSyncEnabled
-		} = await loadStoreModule();
+		const { localDbStatusIndicator, recordLocalDbStatus, setLocalDbSyncEnabled } =
+			await loadStoreModule();
 
 		setLocalDbSyncEnabled(true);
 		recordLocalDbStatus('Unexpected condition occurred', 'error');

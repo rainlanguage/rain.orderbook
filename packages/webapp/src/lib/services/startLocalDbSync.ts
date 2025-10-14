@@ -29,11 +29,11 @@ export function startLocalDbSync({
 
 		if (result.error) {
 			const message =
-				(result.error.readableMsg && result.error.readableMsg.trim().length > 0
+				result.error.readableMsg && result.error.readableMsg.trim().length > 0
 					? result.error.readableMsg
 					: typeof result.error.msg === 'string'
 						? result.error.msg
-						: 'Local DB sync failed.');
+						: 'Local DB sync failed.';
 			recordLocalDbError(message);
 			statusErrorHandled = true;
 			return;
@@ -43,7 +43,7 @@ export function startLocalDbSync({
 		if (!message) return;
 
 		recordLocalDbStatus(message);
- 		statusErrorHandled = false;
+		statusErrorHandled = false;
 
 		if (onStatusUpdate) {
 			onStatusUpdate(message);
@@ -121,10 +121,10 @@ if (import.meta.vitest) {
 			expect(syncLocalDatabase).toHaveBeenCalledTimes(1);
 			expect(setLocalDbSyncEnabledMock).toHaveBeenCalledWith(true);
 
-		const statusFn = syncLocalDatabase.mock.calls[0][0] as (
-			status: WasmEncodedResult<string>
-		) => void;
-		statusFn({ value: 'Syncing...' });
+			const statusFn = syncLocalDatabase.mock.calls[0][0] as (
+				status: WasmEncodedResult<string>
+			) => void;
+			statusFn({ value: 'Syncing...', error: undefined });
 			expect(recordLocalDbStatusMock).toHaveBeenCalledWith('Syncing...');
 		});
 
@@ -145,10 +145,10 @@ if (import.meta.vitest) {
 
 			startLocalDbSync({ raindexClient, localDb, onStatusUpdate });
 
-		const statusFn = syncLocalDatabase.mock.calls[0][0] as (
-			status: WasmEncodedResult<string>
-		) => void;
-		statusFn({ value: 'Done' });
+			const statusFn = syncLocalDatabase.mock.calls[0][0] as (
+				status: WasmEncodedResult<string>
+			) => void;
+			statusFn({ value: 'Done', error: undefined });
 
 			expect(onStatusUpdate).toHaveBeenCalledWith('Done');
 			expect(recordLocalDbStatusMock).toHaveBeenCalledWith('Done');
@@ -173,21 +173,25 @@ if (import.meta.vitest) {
 			const statusFn = syncLocalDatabase.mock.calls[0][0] as (
 				status: WasmEncodedResult<string>
 			) => void;
-		statusFn({
-			error: {
-				readableMsg: 'Rate limited',
-				msg: '429'
-			}
-		});
+			statusFn({
+				value: undefined,
+				error: {
+					readableMsg: 'Rate limited',
+					msg: '429'
+				}
+			});
 
 			expect(recordLocalDbErrorMock).toHaveBeenCalledWith('Rate limited');
 		});
 
 		it('records an error when sync resolves with error payload', async () => {
 			const setDbCallback = vi.fn();
-			const syncLocalDatabase = vi
-				.fn()
-				.mockReturnValue(Promise.resolve({ error: { readableMsg: 'Boom' } }));
+			const syncLocalDatabase = vi.fn().mockReturnValue(
+				Promise.resolve({
+					value: undefined,
+					error: { readableMsg: 'Boom' }
+				})
+			);
 			const query = vi.fn();
 
 			const raindexClient = {

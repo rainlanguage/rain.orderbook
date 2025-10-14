@@ -3,11 +3,11 @@
 	import { page } from '$app/stores';
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
-import init, { SQLiteWasmDatabase, type WasmEncodedResult } from '@rainlanguage/sqlite-web';
-import {
- type LocalDb,
- type WasmEncodedResult as OrderbookWasmEncodedResult
-} from '@rainlanguage/orderbook';
+	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from '@rainlanguage/sqlite-web';
+	import {
+		type LocalDb,
+		type WasmEncodedResult as OrderbookWasmEncodedResult
+	} from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
 	let localDbClient = raindexClient.getLocalDbClient(42161).value as LocalDb;
@@ -166,25 +166,25 @@ import {
 			const queryFn = db.value.query.bind(db.value);
 
 			// Sync database and capture status updates
-const syncResult = await raindexClient.syncLocalDatabaseOnce(
-			queryFn,
-			(status: OrderbookWasmEncodedResult<string>) => {
-				if (status.error) {
-					syncStatus = status.error.readableMsg || status.error.msg;
-					return;
-				}
+			const syncResult = await raindexClient.syncLocalDatabaseOnce(
+				queryFn,
+				(status: OrderbookWasmEncodedResult<string>) => {
+					if (status.error) {
+						syncStatus = status.error.readableMsg || status.error.msg;
+						return;
+					}
 
-				if (status.value) {
-					syncStatus = status.value;
-				}
-			},
-			42161
-		);
+					if (status.value) {
+						syncStatus = status.value;
+					}
+				},
+				42161
+			);
 
-		if (syncResult.error) {
-			error = syncResult.error.readableMsg ?? syncResult.error.msg;
-			return;
-		}
+			if (syncResult.error) {
+				error = syncResult.error.readableMsg ?? syncResult.error.msg;
+				return;
+			}
 
 			error = '';
 			// Update sync status display

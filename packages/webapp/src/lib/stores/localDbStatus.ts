@@ -35,9 +35,7 @@ const latestEntry = writable<LocalDbStatusEntry | null>(null);
 const syncEnabled = writable<boolean>(false);
 export const localDbLatestEntry = derived(latestEntry, ($entry) => $entry);
 
-export const localDbStatusIndicator = derived(
-	[latestEntry, syncEnabled],
-	([$entry, $enabled]) => {
+export const localDbStatusIndicator = derived([latestEntry, syncEnabled], ([$entry, $enabled]) => {
 	if (!$enabled) {
 		return {
 			variant: 'idle' as const,
@@ -52,19 +50,14 @@ export const localDbStatusIndicator = derived(
 		};
 	}
 
-		const variant =
-			$entry.level === 'error'
-				? 'error'
-				: $entry.level === 'success'
-					? 'success'
-					: 'info';
+	const variant =
+		$entry.level === 'error' ? 'error' : $entry.level === 'success' ? 'success' : 'info';
 
 	return {
 		variant,
 		label: $entry.message
 	};
-	}
-);
+});
 
 export function recordLocalDbStatus(message: string, levelOverride?: LocalDbStatusLevel): void {
 	const entry: LocalDbStatusEntry = {
