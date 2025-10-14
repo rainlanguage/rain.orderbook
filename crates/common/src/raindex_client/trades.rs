@@ -452,6 +452,9 @@ mod test_helpers {
                 orderbook_address: ORDERBOOK_ADDRESS.to_string(),
                 order_bytes: "0x00000000000000000000000000000000000000000000000000000000000000ff"
                     .to_string(),
+                interpreter_address: "0x00000000000000000000000000000000000000aa".to_string(),
+                store_address: "0x00000000000000000000000000000000000000bb".to_string(),
+                interpreter_bytecode: "0x010203".to_string(),
                 transaction_hash: tx_hash.to_string(),
                 inputs: Some(format!("0:{}:{}", INPUT_VAULT_ID, INPUT_TOKEN)),
                 outputs: Some(format!("0:{}:{}", OUTPUT_VAULT_ID, OUTPUT_TOKEN)),

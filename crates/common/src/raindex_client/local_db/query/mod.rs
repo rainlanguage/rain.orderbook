@@ -264,8 +264,7 @@ pub mod serde_float {
             let json = r#"{"value":"not-a-number"}"#;
             let err = serde_json::from_str::<Wrapper>(json).expect_err("must fail");
             assert!(
-                err.to_string()
-                    .contains("Decimal Float error selector"),
+                err.to_string().contains("Decimal Float error selector"),
                 "unexpected error: {err}"
             );
         }
