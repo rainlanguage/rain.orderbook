@@ -13,18 +13,23 @@ use super::{
 use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
+use gloo_timers::future::TimeoutFuture;
 use reqwest::Client;
-use std::collections::BTreeSet;
 use std::{
+    collections::BTreeSet,
     collections::{HashMap, HashSet},
     future::Future,
     io::Read,
     pin::Pin,
+    rc::Rc,
     str::FromStr,
 };
+use wasm_bindgen_futures::spawn_local;
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
 const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/3d6deafeaa52525d56d89641c0cb3c997923ad21/local_db.sql.gz";
+const SYNC_INTERVAL_MS: u32 = 10_000;
+const DEFAULT_SYNC_CHAIN_ID: u32 = super::SUPPORTED_LOCAL_DB_CHAINS[0];
 
 type DbFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, LocalDbQueryError>> + 'a>>;
 type LocalDbFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, LocalDbError>> + 'a>>;
@@ -127,6 +132,14 @@ impl<'a> JsStatusReporter<'a> {
 impl<'a> StatusSink for JsStatusReporter<'a> {
     fn send(&self, message: String) -> Result<(), LocalDbError> {
         send_status_message(self.callback, message)
+    }
+}
+
+struct NoopStatusReporter;
+
+impl StatusSink for NoopStatusReporter {
+    fn send(&self, _: String) -> Result<(), LocalDbError> {
+        Ok(())
     }
 }
 
@@ -365,6 +378,57 @@ async fn sync_database_with_services(
 impl RaindexClient {
     #[wasm_export(js_name = "syncLocalDatabase", unchecked_return_type = "void")]
     pub async fn sync_database(
+        &self,
+        #[wasm_export(
+            param_description = "Optional JavaScript function called with status updates"
+        )]
+        status_callback: Option<js_sys::Function>,
+    ) -> Result<(), LocalDbError> {
+        let Some(db_callback) = self.local_db_callback.clone() else {
+            return Err(LocalDbError::CustomError(
+                "Local DB callback is not set".to_string(),
+            ));
+        };
+
+        let client = self.clone();
+        let db_callback = Rc::new(db_callback);
+        let status_callback = status_callback.map(Rc::new);
+
+        spawn_local(async move {
+            loop {
+                if let Some(status_cb) = status_callback.as_ref() {
+                    let db_bridge = JsDatabaseBridge::new(&*db_callback);
+                    let status_bridge = JsStatusReporter::new(&**status_cb);
+                    let _ = sync_database_with_services(
+                        &client,
+                        &db_bridge,
+                        &status_bridge,
+                        DEFAULT_SYNC_CHAIN_ID,
+                        None,
+                    )
+                    .await;
+                } else {
+                    let db_bridge = JsDatabaseBridge::new(&*db_callback);
+                    let status_bridge = NoopStatusReporter;
+                    let _ = sync_database_with_services(
+                        &client,
+                        &db_bridge,
+                        &status_bridge,
+                        DEFAULT_SYNC_CHAIN_ID,
+                        None,
+                    )
+                    .await;
+                }
+
+                TimeoutFuture::new(SYNC_INTERVAL_MS).await;
+            }
+        });
+
+        Ok(())
+    }
+
+    #[wasm_export(js_name = "syncLocalDatabaseOnce", unchecked_return_type = "void")]
+    pub async fn sync_database_once(
         &self,
         #[wasm_export(param_description = "JavaScript function to execute database queries")]
         db_callback: js_sys::Function,

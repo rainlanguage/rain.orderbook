@@ -19,42 +19,35 @@
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 	import { startLocalDbSync } from '$lib/services/startLocalDbSync';
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 
-	const { errorMessage, localDb, raindexClient } = $page.data;
+const { errorMessage, localDb, raindexClient } = $page.data;
 
-	// Query client for caching
-	const queryClient = new QueryClient({
-		defaultOptions: {
-			queries: {
-				staleTime: Infinity
-			}
+// Query client for caching
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			staleTime: Infinity
 		}
-	});
-
-	let walletInitError: string | null = null;
-	let stopDbSync: (() => void) | undefined;
-
-	onMount(() => {
-		if (!browser || !raindexClient || !localDb) return;
-
-		stopDbSync = startLocalDbSync({
-			raindexClient,
-			localDb,
-			chainId: 42161,
-			intervalMs: 5_000
-		});
-	});
-
-	onDestroy(() => {
-		stopDbSync?.();
-	});
-
-	$: if (browser && window.navigator) {
-		initWallet().then((error) => {
-			walletInitError = error;
-		});
 	}
+});
+
+let walletInitError: string | null = null;
+
+onMount(() => {
+	if (!browser || !raindexClient || !localDb) return;
+
+	startLocalDbSync({
+		raindexClient,
+		localDb
+	});
+});
+
+$: if (browser && window.navigator) {
+	initWallet().then((error) => {
+		walletInitError = error;
+	});
+}
 </script>
 
 {#if walletInitError}

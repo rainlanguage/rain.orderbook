@@ -65,6 +65,8 @@ tokio = { workspace = true, features = [
 serde-wasm-bindgen = "0.4"
 getrandom = { workspace = true }
 wasm-bindgen-test = "0.3"
+gloo-timers = { version = "0.3", features = ["futures"] }
+wasm-bindgen-futures = "0.4"
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"

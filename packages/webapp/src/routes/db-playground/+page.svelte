@@ -15,7 +15,7 @@
 	let isLoading = false;
 	let error = '';
 
-	// Sync status message from raindexClient.syncLocalDatabase callback
+	// Sync status message from raindexClient.syncLocalDatabaseOnce callback
 	let syncStatus: string = '';
 
 	// Auto-sync state variables
@@ -163,7 +163,7 @@
 			const queryFn = db.value.query.bind(db.value);
 
 			// Sync database and capture status updates
-			const syncResult = await raindexClient.syncLocalDatabase(
+			const syncResult = await raindexClient.syncLocalDatabaseOnce(
 				queryFn,
 				(status: string) => {
 					// Update the UI with latest status message
