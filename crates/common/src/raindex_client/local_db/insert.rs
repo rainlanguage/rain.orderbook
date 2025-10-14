@@ -73,6 +73,13 @@ fn vault_id_by_index<'a>(
         })
 }
 
+fn order_evaluable_metadata(order: &OrderV4) -> (String, String, String) {
+    let interpreter_address = hex::encode_prefixed(order.evaluable.interpreter);
+    let store_address = hex::encode_prefixed(order.evaluable.store);
+    let interpreter_bytecode = hex::encode_prefixed(order.evaluable.bytecode.as_ref());
+    (interpreter_address, store_address, interpreter_bytecode)
+}
+
 struct EventContext {
     block_number: u64,
     block_timestamp: u64,
@@ -391,6 +398,8 @@ fn generate_add_order_sql(
 ) -> Result<String, InsertError> {
     let mut sql = String::new();
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
+    let (interpreter_address, store_address, interpreter_bytecode) =
+        order_evaluable_metadata(&decoded.order);
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
@@ -408,6 +417,9 @@ fn generate_add_order_sql(
     log_index,
     event_type,
     sender,
+    interpreter_address,
+    store_address,
+    interpreter_bytecode,
     order_hash,
     order_owner,
     order_nonce,
@@ -419,6 +431,9 @@ fn generate_add_order_sql(
     {log_index},
     'AddOrderV3',
     '{sender}',
+    '{interpreter_address}',
+    '{store_address}',
+    '{interpreter_bytecode}',
     '{order_hash}',
     '{order_owner}',
     '{order_nonce}',
@@ -441,6 +456,8 @@ fn generate_remove_order_sql(
 ) -> Result<String, InsertError> {
     let mut sql = String::new();
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
+    let (interpreter_address, store_address, interpreter_bytecode) =
+        order_evaluable_metadata(&decoded.order);
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
@@ -458,6 +475,9 @@ fn generate_remove_order_sql(
     log_index,
     event_type,
     sender,
+    interpreter_address,
+    store_address,
+    interpreter_bytecode,
     order_hash,
     order_owner,
     order_nonce,
@@ -469,6 +489,9 @@ fn generate_remove_order_sql(
     {log_index},
     'RemoveOrderV3',
     '{sender}',
+    '{interpreter_address}',
+    '{store_address}',
+    '{interpreter_bytecode}',
     '{order_hash}',
     '{order_owner}',
     '{order_nonce}',
@@ -1085,6 +1108,14 @@ mod tests {
         assert!(sql.contains("order_bytes"));
         let expected_bytes = hex::encode_prefixed(decoded.order.abi_encode());
         assert!(sql.contains(&expected_bytes));
+        assert!(sql.contains("interpreter_address"));
+        assert!(sql.contains("interpreter_bytecode"));
+        let expected_interpreter = hex::encode_prefixed(decoded.order.evaluable.interpreter);
+        let expected_store = hex::encode_prefixed(decoded.order.evaluable.store);
+        let expected_bytecode = hex::encode_prefixed(decoded.order.evaluable.bytecode.as_ref());
+        assert!(sql.contains(&expected_interpreter));
+        assert!(sql.contains(&expected_store));
+        assert!(sql.contains(&expected_bytecode));
     }
 
     #[test]

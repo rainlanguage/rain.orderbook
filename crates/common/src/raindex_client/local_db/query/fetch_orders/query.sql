@@ -5,6 +5,9 @@ fa.block_timestamp AS block_timestamp,
 fa.block_number AS block_number,
 '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB' AS orderbook_address,
 la.order_bytes AS order_bytes,
+COALESCE(la.interpreter_address, l.interpreter_address) AS interpreter_address,
+COALESCE(la.store_address, l.store_address) AS store_address,
+COALESCE(la.interpreter_bytecode, l.interpreter_bytecode) AS interpreter_bytecode,
 GROUP_CONCAT(CASE WHEN ios.io_type = 'input' THEN ios.io_index || ':' || ios.vault_id || ':' || ios.token END) AS inputs,
 GROUP_CONCAT(CASE WHEN ios.io_type = 'output' THEN ios.io_index || ':' || ios.vault_id || ':' || ios.token END) AS outputs,
 (
@@ -26,7 +29,7 @@ la.transaction_hash AS transaction_hash,
 ) AS meta
 FROM order_events l
 LEFT JOIN (
-SELECT e1.order_owner, e1.order_nonce, e1.transaction_hash, e1.log_index, e1.order_hash, e1.order_bytes
+SELECT e1.order_owner, e1.order_nonce, e1.transaction_hash, e1.log_index, e1.order_hash, e1.order_bytes, e1.interpreter_address, e1.store_address, e1.interpreter_bytecode
 FROM order_events e1
 WHERE e1.event_type = 'AddOrderV3'
     AND NOT EXISTS (
@@ -78,5 +81,8 @@ fa.block_timestamp,
 fa.block_number,
 l.order_nonce,
 l.event_type,
-la.transaction_hash
+la.transaction_hash,
+la.interpreter_address,
+la.store_address,
+la.interpreter_bytecode
 ORDER BY fa.block_timestamp DESC;

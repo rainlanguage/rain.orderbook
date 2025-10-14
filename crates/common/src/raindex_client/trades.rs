@@ -454,6 +454,13 @@ mod test_helpers {
                     "0x00000000000000000000000000000000000000000000000000000000000000ff",
                 )
                 .unwrap(),
+                interpreter_address: Address::from_str(
+                    "0x00000000000000000000000000000000000000aa",
+                )
+                .unwrap(),
+                store_address: Address::from_str("0x00000000000000000000000000000000000000bb")
+                    .unwrap(),
+                interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
                 transaction_hash: Bytes::from_str(tx_hash).unwrap(),
                 inputs: Some(format!("0:{}:{}", INPUT_VAULT_ID, INPUT_TOKEN)),
                 outputs: Some(format!("0:{}:{}", OUTPUT_VAULT_ID, OUTPUT_TOKEN)),

@@ -1084,7 +1084,14 @@ mod tests {
                 block_timestamp: 123456,
                 block_number: 654321,
                 orderbook_address: orderbook_address.clone(),
-                order_bytes: order_bytes_bytes,
+                order_bytes: order_bytes_bytes.clone(),
+                interpreter_address: Address::from_str(
+                    "0x00000000000000000000000000000000000000aa",
+                )
+                .unwrap(),
+                store_address: Address::from_str("0x00000000000000000000000000000000000000bb")
+                    .unwrap(),
+                interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
                 transaction_hash: transaction_hash_bytes.clone(),
                 inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),
                 outputs: Some(format!("0:{}:{}", output_vault_id, output_token)),
@@ -1223,7 +1230,14 @@ mod tests {
                 block_timestamp: 123456,
                 block_number: 654321,
                 orderbook_address: orderbook_address.clone(),
-                order_bytes: order_bytes_bytes,
+                order_bytes: order_bytes_bytes.clone(),
+                interpreter_address: Address::from_str(
+                    "0x00000000000000000000000000000000000000aa",
+                )
+                .unwrap(),
+                store_address: Address::from_str("0x00000000000000000000000000000000000000bb")
+                    .unwrap(),
+                interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
                 transaction_hash: transaction_hash_bytes.clone(),
                 inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),
                 outputs: Some(format!("0:{}:{}", output_vault_id, output_token)),

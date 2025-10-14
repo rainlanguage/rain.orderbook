@@ -56,6 +56,7 @@ CREATE TABLE order_events (
     sender TEXT NOT NULL,
     interpreter_address TEXT NOT NULL,
     store_address TEXT NOT NULL,
+    interpreter_bytecode TEXT NOT NULL,
     order_hash TEXT NOT NULL,
     event_type TEXT NOT NULL,
     order_owner TEXT NOT NULL,

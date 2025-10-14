@@ -1,7 +1,7 @@
 use super::*;
 use crate::raindex_client::local_db::bool_from_int_or_bool;
 use crate::raindex_client::orders::GetOrdersFilters;
-use alloy::primitives::Bytes;
+use alloy::primitives::{Address, Bytes};
 
 const QUERY: &str = include_str!("query.sql");
 
@@ -63,6 +63,12 @@ pub struct LocalDbOrder {
     pub orderbook_address: Address,
     #[serde(alias = "orderBytes", with = "serde_bytes")]
     pub order_bytes: Bytes,
+    #[serde(alias = "interpreterAddress", with = "serde_address")]
+    pub interpreter_address: Address,
+    #[serde(alias = "storeAddress", with = "serde_address")]
+    pub store_address: Address,
+    #[serde(alias = "interpreterBytecode", with = "serde_bytes")]
+    pub interpreter_bytecode: Bytes,
     #[serde(alias = "transactionHash", with = "serde_bytes")]
     pub transaction_hash: Bytes,
     pub inputs: Option<String>,
@@ -239,6 +245,13 @@ mod tests {
                     )
                     .unwrap(),
                     order_bytes: Bytes::from_str("0xdeadbeef").unwrap(),
+                    interpreter_address: Address::from_str(
+                        "0x3333333333333333333333333333333333333333",
+                    )
+                    .unwrap(),
+                    store_address: Address::from_str("0x4444444444444444444444444444444444444444")
+                        .unwrap(),
+                    interpreter_bytecode: Bytes::from_str("0x01020304").unwrap(),
                     transaction_hash: Bytes::from_str(
                         "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                     )
@@ -262,6 +275,13 @@ mod tests {
                     )
                     .unwrap(),
                     order_bytes: Bytes::from_str("0x00").unwrap(),
+                    interpreter_address: Address::from_str(
+                        "0x5555555555555555555555555555555555555555",
+                    )
+                    .unwrap(),
+                    store_address: Address::from_str("0x6666666666666666666666666666666666666666")
+                        .unwrap(),
+                    interpreter_bytecode: Bytes::from_str("0x05060708").unwrap(),
                     transaction_hash: Bytes::from_str(
                         "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                     )
@@ -286,6 +306,9 @@ mod tests {
             assert_eq!(data[0].block_number, orders[0].block_number);
             assert_eq!(data[0].orderbook_address, orders[0].orderbook_address);
             assert_eq!(data[0].order_bytes, orders[0].order_bytes);
+            assert_eq!(data[0].interpreter_address, orders[0].interpreter_address);
+            assert_eq!(data[0].store_address, orders[0].store_address);
+            assert_eq!(data[0].interpreter_bytecode, orders[0].interpreter_bytecode);
             assert_eq!(data[0].transaction_hash, orders[0].transaction_hash);
             assert_eq!(data[0].inputs, orders[0].inputs);
             assert_eq!(data[0].outputs, orders[0].outputs);
