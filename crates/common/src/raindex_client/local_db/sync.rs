@@ -13,6 +13,7 @@ use super::{
 use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
+#[cfg(target_family = "wasm")]
 use gloo_timers::future::TimeoutFuture;
 use reqwest::Client;
 use std::{
@@ -47,7 +48,7 @@ trait DatabaseBridge {
 }
 
 trait StatusSink {
-    fn send(&self, message: String) -> Result<(), LocalDbError>;
+    fn send(&self, payload: WasmEncodedResult<String>) -> Result<(), LocalDbError>;
 }
 
 trait LocalDbApi {
@@ -130,15 +131,15 @@ impl<'a> JsStatusReporter<'a> {
 }
 
 impl<'a> StatusSink for JsStatusReporter<'a> {
-    fn send(&self, message: String) -> Result<(), LocalDbError> {
-        send_status_message(self.callback, message)
+    fn send(&self, payload: WasmEncodedResult<String>) -> Result<(), LocalDbError> {
+        send_status_message(self.callback, payload)
     }
 }
 
 struct NoopStatusReporter;
 
 impl StatusSink for NoopStatusReporter {
-    fn send(&self, _: String) -> Result<(), LocalDbError> {
+    fn send(&self, _: WasmEncodedResult<String>) -> Result<(), LocalDbError> {
         Ok(())
     }
 }
@@ -251,12 +252,49 @@ async fn get_last_synced_block(db: &impl DatabaseBridge) -> Result<u64, LocalDbQ
 
 fn send_status_message(
     status_callback: &js_sys::Function,
-    message: String,
+    payload: WasmEncodedResult<String>,
 ) -> Result<(), LocalDbError> {
+    let value = serde_wasm_bindgen::to_value(&payload).map_err(|e| {
+        LocalDbError::CustomError(format!("Failed to encode status payload: {:?}", e))
+    })?;
     status_callback
-        .call1(&JsValue::NULL, &JsValue::from_str(&message))
+        .call1(&JsValue::NULL, &value)
         .map_err(|e| LocalDbError::CustomError(format!("JavaScript callback error: {:?}", e)))?;
     Ok(())
+}
+
+fn success_status(message: impl Into<String>) -> WasmEncodedResult<String> {
+    WasmEncodedResult::Success::<String> {
+        value: message.into(),
+        error: None,
+    }
+}
+
+fn error_status_with_messages(
+    msg: impl Into<String>,
+    readable: impl Into<String>,
+) -> WasmEncodedResult<String> {
+    WasmEncodedResult::Err::<String> {
+        value: None,
+        error: WasmEncodedError {
+            msg: msg.into(),
+            readable_msg: readable.into(),
+        },
+    }
+}
+
+fn error_status_from_local_db_error(err: &LocalDbError) -> WasmEncodedResult<String> {
+    error_status_with_messages(err.to_string(), err.to_readable_msg())
+}
+
+#[cfg(target_family = "wasm")]
+async fn wait_for_interval() {
+    TimeoutFuture::new(SYNC_INTERVAL_MS).await;
+}
+
+#[cfg(not(target_family = "wasm"))]
+async fn wait_for_interval() {
+    // In non-wasm targets (tests), we don't need to delay.
 }
 
 async fn sync_database_with_services(
@@ -266,16 +304,18 @@ async fn sync_database_with_services(
     chain_id: u32,
     local_db_override: Option<&dyn LocalDbApi>,
 ) -> Result<(), LocalDbError> {
-    status.send("Starting database sync...".to_string())?;
+    status.send(success_status("Starting database sync..."))?;
 
     let has_tables = check_required_tables(db)
         .await
         .map_err(LocalDbError::TableCheckFailed)?;
 
-    status.send(format!("has tables: {}", has_tables))?;
+    status.send(success_status(format!("has tables: {}", has_tables)))?;
 
     if !has_tables {
-        status.send("Initializing database tables and importing data...".to_string())?;
+        status.send(success_status(
+            "Initializing database tables and importing data...",
+        ))?;
         let dump_sql = download_and_decompress_dump().await?;
         db.execute_query_text(dump_sql)
             .await
@@ -285,7 +325,10 @@ async fn sync_database_with_services(
     let last_synced_block = get_last_synced_block(db)
         .await
         .map_err(LocalDbError::SyncStatusReadFailed)?;
-    status.send(format!("Last synced block: {}", last_synced_block))?;
+    status.send(success_status(format!(
+        "Last synced block: {}",
+        last_synced_block
+    )))?;
 
     let orderbooks = client
         .get_orderbooks_by_chain_id(chain_id)
@@ -324,13 +367,13 @@ async fn sync_database_with_services(
         last_synced_block + 1
     };
 
-    status.send("Fetching latest onchain events...".to_string())?;
+    status.send(success_status("Fetching latest onchain events..."))?;
     let events = local_db
         .fetch_events(orderbook_cfg.address.to_string(), start_block, latest_block)
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
-    status.send("Decoding fetched events...".to_string())?;
+    status.send(success_status("Decoding fetched events..."))?;
     let mut decoded_events = local_db
         .decode_events(&events)
         .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
@@ -349,10 +392,10 @@ async fn sync_database_with_services(
 
     merge_store_events(&mut decoded_events, &mut decoded_store_events);
 
-    status.send("Populating token information...".to_string())?;
+    status.send(success_status("Populating token information..."))?;
     let prep = prepare_erc20_tokens_prefix(db, local_db, chain_id, &decoded_events).await?;
 
-    status.send("Populating database...".to_string())?;
+    status.send(success_status("Populating database..."))?;
     let prefix_sql = if prep.tokens_prefix_sql.is_empty() {
         None
     } else {
@@ -370,7 +413,7 @@ async fn sync_database_with_services(
 
     db.execute_query_text(sql_commands).await?;
 
-    status.send("Database sync complete.".to_string())?;
+    status.send(success_status("Database sync complete."))?;
     Ok(())
 }
 
@@ -394,21 +437,56 @@ impl RaindexClient {
         let db_callback = Rc::new(db_callback);
         let status_callback = status_callback.map(Rc::new);
 
+        let initial_result = if let Some(status_cb) = status_callback.as_ref() {
+            let db_bridge = JsDatabaseBridge::new(db_callback.as_ref());
+            let status_bridge = JsStatusReporter::new(status_cb.as_ref());
+            sync_database_with_services(
+                &client,
+                &db_bridge,
+                &status_bridge,
+                DEFAULT_SYNC_CHAIN_ID,
+                None,
+            )
+            .await
+        } else {
+            let db_bridge = JsDatabaseBridge::new(db_callback.as_ref());
+            let status_bridge = NoopStatusReporter;
+            sync_database_with_services(
+                &client,
+                &db_bridge,
+                &status_bridge,
+                DEFAULT_SYNC_CHAIN_ID,
+                None,
+            )
+            .await
+        };
+
+        if let Err(err) = initial_result {
+            if let Some(status_cb) = status_callback.as_ref() {
+                let status_bridge = JsStatusReporter::new(status_cb.as_ref());
+                let _ = status_bridge.send(error_status_from_local_db_error(&err));
+            }
+            return Err(err);
+        }
+
         spawn_local(async move {
             loop {
                 if let Some(status_cb) = status_callback.as_ref() {
-                    let db_bridge = JsDatabaseBridge::new(&*db_callback);
-                    let status_bridge = JsStatusReporter::new(&**status_cb);
-                    let _ = sync_database_with_services(
+                    let db_bridge = JsDatabaseBridge::new(db_callback.as_ref());
+                    let status_bridge = JsStatusReporter::new(status_cb.as_ref());
+                    if let Err(err) = sync_database_with_services(
                         &client,
                         &db_bridge,
                         &status_bridge,
                         DEFAULT_SYNC_CHAIN_ID,
                         None,
                     )
-                    .await;
+                    .await
+                    {
+                        let _ = status_bridge.send(error_status_from_local_db_error(&err));
+                    }
                 } else {
-                    let db_bridge = JsDatabaseBridge::new(&*db_callback);
+                    let db_bridge = JsDatabaseBridge::new(db_callback.as_ref());
                     let status_bridge = NoopStatusReporter;
                     let _ = sync_database_with_services(
                         &client,
@@ -420,7 +498,7 @@ impl RaindexClient {
                     .await;
                 }
 
-                TimeoutFuture::new(SYNC_INTERVAL_MS).await;
+                wait_for_interval().await;
             }
         });
 
@@ -712,7 +790,7 @@ mod tests {
             let callback = js_sys::Function::new_no_args("return true;");
             let message = "Test status message".to_string();
 
-            let result = send_status_message(&callback, message);
+            let result = send_status_message(&callback, success_status(message));
 
             assert!(result.is_ok());
         }
@@ -722,7 +800,7 @@ mod tests {
             let callback = js_sys::Function::new_no_args("throw new Error('Callback failed');");
             let message = "Test status message".to_string();
 
-            let result = send_status_message(&callback, message);
+            let result = send_status_message(&callback, success_status(message));
 
             assert!(result.is_err());
             match result {
@@ -733,14 +811,21 @@ mod tests {
             }
         }
 
-        fn create_status_collector() -> (js_sys::Function, Rc<RefCell<Vec<String>>>) {
-            let captured = Rc::new(RefCell::new(Vec::<String>::new()));
+        fn create_status_collector() -> (
+            js_sys::Function,
+            Rc<RefCell<Vec<WasmEncodedResult<String>>>>,
+        ) {
+            let captured = Rc::new(RefCell::new(Vec::<WasmEncodedResult<String>>::new()));
             let captured_clone = captured.clone();
 
-            let callback = Closure::wrap(Box::new(move |msg: String| -> JsValue {
-                captured_clone.borrow_mut().push(msg);
+            let callback = Closure::wrap(Box::new(move |value: JsValue| -> JsValue {
+                if let Ok(payload) =
+                    serde_wasm_bindgen::from_value::<WasmEncodedResult<String>>(value)
+                {
+                    captured_clone.borrow_mut().push(payload);
+                }
                 JsValue::TRUE
-            }) as Box<dyn Fn(String) -> JsValue>);
+            }) as Box<dyn Fn(JsValue) -> JsValue>);
 
             (callback.into_js_value().dyn_into().unwrap(), captured)
         }
@@ -925,7 +1010,7 @@ mod tests {
 
             let missing_chain_id = 999_999u32;
             let result = client
-                .sync_database(db_callback, status_callback, missing_chain_id)
+                .sync_database_once(db_callback, status_callback, missing_chain_id)
                 .await;
 
             assert!(result.is_err());
@@ -939,11 +1024,18 @@ mod tests {
                 other => panic!("Expected OrderbookConfigNotFound, got {other:?}"),
             }
             // We emit status messages before failing on the chain lookup
-            let msgs = captured.borrow();
-            assert!(msgs.len() >= 3);
-            assert_eq!(msgs[0], "Starting database sync...");
-            assert_eq!(msgs[1], "has tables: true");
-            assert_eq!(msgs[2], "Last synced block: 0");
+            let payloads = captured.borrow();
+            let success_msgs: Vec<_> = payloads
+                .iter()
+                .filter_map(|payload| match payload {
+                    WasmEncodedResult::Success { value, .. } => Some(value.clone()),
+                    _ => None,
+                })
+                .collect();
+            assert!(success_msgs.len() >= 3);
+            assert_eq!(success_msgs[0], "Starting database sync...");
+            assert_eq!(success_msgs[1], "has tables: true");
+            assert_eq!(success_msgs[2], "Last synced block: 0");
         }
 
         #[wasm_bindgen_test]
@@ -966,7 +1058,9 @@ mod tests {
             let (status_callback, captured) = create_status_collector();
 
             // Chain ID for mainnet in test YAML
-            let result = client.sync_database(db_callback, status_callback, 1).await;
+            let result = client
+                .sync_database_once(db_callback, status_callback, 1)
+                .await;
 
             // Should eventually fail when attempting to reach the mocked RPC endpoint
             assert!(result.is_err());
@@ -975,12 +1069,19 @@ mod tests {
                 other => panic!("Expected Rpc error, got {other:?}"),
             }
 
-            let msgs = captured.borrow();
+            let payloads = captured.borrow();
+            let success_msgs: Vec<_> = payloads
+                .iter()
+                .filter_map(|payload| match payload {
+                    WasmEncodedResult::Success { value, .. } => Some(value.clone()),
+                    _ => None,
+                })
+                .collect();
             // Check key status messages in order of occurrence
-            assert!(msgs.len() >= 3);
-            assert_eq!(msgs[0], "Starting database sync...");
-            assert_eq!(msgs[1], "has tables: true");
-            assert_eq!(msgs[2], "Last synced block: 0");
+            assert!(success_msgs.len() >= 3);
+            assert_eq!(success_msgs[0], "Starting database sync...");
+            assert_eq!(success_msgs[1], "has tables: true");
+            assert_eq!(success_msgs[2], "Last synced block: 0");
         }
 
         #[wasm_bindgen_test]
@@ -1010,7 +1111,7 @@ mod tests {
             // Chain ID not present in the test YAML
             let missing_chain_id = 999_999u32;
             let result = client
-                .sync_database(db_callback, status_callback, missing_chain_id)
+                .sync_database_once(db_callback, status_callback, missing_chain_id)
                 .await;
 
             assert!(result.is_err());
@@ -1024,11 +1125,18 @@ mod tests {
                 other => panic!("Expected OrderbookConfigNotFound, got {other:?}"),
             }
 
-            let msgs = captured.borrow();
-            assert!(msgs.len() >= 3);
-            assert_eq!(msgs[0], "Starting database sync...");
-            assert_eq!(msgs[1], "has tables: true");
-            assert_eq!(msgs[2], "Last synced block: 123");
+            let payloads = captured.borrow();
+            let success_msgs: Vec<_> = payloads
+                .iter()
+                .filter_map(|payload| match payload {
+                    WasmEncodedResult::Success { value, .. } => Some(value.clone()),
+                    _ => None,
+                })
+                .collect();
+            assert!(success_msgs.len() >= 3);
+            assert_eq!(success_msgs[0], "Starting database sync...");
+            assert_eq!(success_msgs[1], "has tables: true");
+            assert_eq!(success_msgs[2], "Last synced block: 123");
         }
     }
 
@@ -1197,23 +1305,36 @@ mod tests {
         #[derive(Default)]
         struct TestStatusSink {
             messages: RefCell<Vec<String>>,
+            errors: RefCell<Vec<String>>,
         }
 
         impl TestStatusSink {
             fn new() -> Self {
                 Self {
                     messages: RefCell::new(Vec::new()),
+                    errors: RefCell::new(Vec::new()),
                 }
             }
 
             fn messages(&self) -> Vec<String> {
                 self.messages.borrow().clone()
             }
+
+            fn errors(&self) -> Vec<String> {
+                self.errors.borrow().clone()
+            }
         }
 
         impl StatusSink for TestStatusSink {
-            fn send(&self, message: String) -> Result<(), LocalDbError> {
-                self.messages.borrow_mut().push(message);
+            fn send(&self, payload: WasmEncodedResult<String>) -> Result<(), LocalDbError> {
+                match payload {
+                    WasmEncodedResult::Success { value, .. } => {
+                        self.messages.borrow_mut().push(value);
+                    }
+                    WasmEncodedResult::Err { error, .. } => {
+                        self.errors.borrow_mut().push(error.readable_msg);
+                    }
+                }
                 Ok(())
             }
         }
@@ -1812,6 +1933,7 @@ mod tests {
                     "Database sync complete."
                 ]
             );
+            assert!(status_sink.errors().is_empty());
         }
 
         fn create_gzipped_sql() -> Vec<u8> {
@@ -2082,6 +2204,7 @@ mod tests {
 
             let msgs = status_sink.messages();
             assert!(msgs.contains(&"Last synced block: 0".to_string()));
+            assert!(status_sink.errors().is_empty());
         }
 
         #[tokio::test]
@@ -2131,6 +2254,7 @@ mod tests {
 
             let msgs = status_sink.messages();
             assert!(msgs.contains(&"Last synced block: 15000".to_string()));
+            assert!(status_sink.errors().is_empty());
         }
 
         #[tokio::test]
