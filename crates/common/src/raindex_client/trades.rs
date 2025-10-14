@@ -445,22 +445,28 @@ mod test_helpers {
             let trade_id_bytes = Bytes::from_str(&trade_id_hex).unwrap();
 
             let order = LocalDbOrder {
-                order_hash: ORDER_HASH.to_string(),
-                owner: OWNER.to_string(),
+                order_hash: order_hash_bytes.clone(),
+                owner: owner_address.clone(),
                 block_timestamp: 1_700_000_010,
                 block_number: 123_456,
-                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
-                order_bytes: "0x00000000000000000000000000000000000000000000000000000000000000ff"
-                    .to_string(),
-                interpreter_address: "0x00000000000000000000000000000000000000aa".to_string(),
-                store_address: "0x00000000000000000000000000000000000000bb".to_string(),
+                orderbook_address: orderbook_address.clone(),
+                order_bytes: Bytes::from_str(
+                    "0x00000000000000000000000000000000000000000000000000000000000000ff",
+                )
+                .unwrap(),
+                interpreter_address: Address::from_str(
+                    "0x00000000000000000000000000000000000000aa",
+                )
+                .unwrap(),
+                store_address: Address::from_str("0x00000000000000000000000000000000000000bb")
+                    .unwrap(),
                 interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
-                transaction_hash: tx_hash.to_string(),
+                transaction_hash: Bytes::from_str(tx_hash).unwrap(),
                 inputs: Some(format!("0:{}:{}", INPUT_VAULT_ID, INPUT_TOKEN)),
                 outputs: Some(format!("0:{}:{}", OUTPUT_VAULT_ID, OUTPUT_TOKEN)),
                 trade_count,
                 active: true,
-                meta: Some("0x1234".to_string()),
+                meta: Some(Bytes::from_str("0x1234").unwrap()),
             };
 
             let input_vault_row = LocalDbVault {

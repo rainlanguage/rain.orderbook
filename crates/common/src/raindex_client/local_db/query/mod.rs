@@ -212,6 +212,90 @@ pub mod serde_bytes {
     }
 }
 
+pub mod serde_option_bytes {
+    use alloy::{hex::encode_prefixed, primitives::Bytes};
+    use serde::{de::Error as DeError, Deserialize, Deserializer, Serializer};
+    use std::str::FromStr;
+
+    pub fn serialize<S>(value: &Option<Bytes>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(bytes) => serializer.serialize_some(&encode_prefixed(bytes)),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Bytes>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let maybe_str = Option::<String>::deserialize(deserializer)?;
+        maybe_str
+            .map(|s| Bytes::from_str(&s).map_err(DeError::custom))
+            .transpose()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use serde::{Deserialize, Serialize};
+
+        #[derive(Debug, Serialize, Deserialize, PartialEq)]
+        struct Wrapper {
+            #[serde(with = "super")]
+            data: Option<Bytes>,
+        }
+
+        #[test]
+        fn serialize_some_bytes_to_prefixed_hex() {
+            let wrapper = Wrapper {
+                data: Some(Bytes::from_str("0xdeadbeef").unwrap()),
+            };
+            let json = serde_json::to_string(&wrapper).expect("serialize succeeds");
+            assert_eq!(
+                json,
+                format!(
+                    r#"{{"data":"{}"}}"#,
+                    encode_prefixed(wrapper.data.as_ref().unwrap())
+                )
+            );
+        }
+
+        #[test]
+        fn serialize_none_bytes() {
+            let wrapper = Wrapper { data: None };
+            let json = serde_json::to_string(&wrapper).expect("serialize succeeds");
+            assert_eq!(json, r#"{"data":null}"#);
+        }
+
+        #[test]
+        fn deserialize_prefixed_hex_into_some_bytes() {
+            let json = r#"{"data":"0x0102"}"#;
+            let wrapper: Wrapper = serde_json::from_str(json).expect("deserialize succeeds");
+            assert_eq!(wrapper.data, Some(Bytes::from_str("0x0102").unwrap()));
+        }
+
+        #[test]
+        fn deserialize_null_into_none_bytes() {
+            let json = r#"{"data":null}"#;
+            let wrapper: Wrapper = serde_json::from_str(json).expect("deserialize succeeds");
+            assert!(wrapper.data.is_none());
+        }
+
+        #[test]
+        fn deserialize_rejects_invalid_hex() {
+            let json = r#"{"data":"0x1g"}"#;
+            let err = serde_json::from_str::<Wrapper>(json).expect_err("must fail");
+            assert!(
+                err.to_string().to_lowercase().contains("invalid"),
+                "unexpected error: {err}"
+            );
+        }
+    }
+}
+
 pub mod serde_float {
     use rain_math_float::Float;
     use serde::{

@@ -740,8 +740,7 @@ impl RaindexClient {
         let raindex_client = Rc::new(self.clone());
 
         for local_db_order in local_db_orders {
-            let local_orderbook_address = Address::from_str(&local_db_order.orderbook_address)?;
-            if local_orderbook_address != orderbook_address {
+            if local_db_order.orderbook_address != orderbook_address {
                 continue;
             }
 
@@ -918,21 +917,18 @@ impl RaindexOrder {
         let rainlang = order
             .meta
             .as_ref()
-            .and_then(|meta| meta.try_decode_rainlangsource().ok());
+            .and_then(|meta| meta.to_string().try_decode_rainlangsource().ok());
 
-        let id = [
-            order.orderbook_address.as_bytes(),
-            order.order_hash.as_bytes(),
-        ]
-        .concat();
+        let mut id = order.orderbook_address.to_vec();
+        id.extend_from_slice(order.order_hash.as_ref());
 
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
             chain_id,
             id: Bytes::from(keccak256(&id).as_slice().to_vec()),
-            order_bytes: Bytes::from_str(&order.order_bytes)?,
-            order_hash: Bytes::from_str(&order.order_hash)?,
-            owner: Address::from_str(&order.owner)?,
+            order_bytes: order.order_bytes.clone(),
+            order_hash: order.order_hash.clone(),
+            owner: order.owner,
             inputs: inputs
                 .iter()
                 .map(|v| {
@@ -955,10 +951,10 @@ impl RaindexOrder {
                     )
                 })
                 .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
-            orderbook: Address::from_str(&order.orderbook_address)?,
+            orderbook: order.orderbook_address,
             active: order.active,
             timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
-            meta: order.meta.map(|meta| Bytes::from_str(&meta)).transpose()?,
+            meta: order.meta.clone(),
             rainlang,
             transaction: None,
             trades_count: order.trade_count as u16,
@@ -1065,6 +1061,10 @@ mod tests {
             let owner_address = Address::from_str(owner).unwrap();
             let input_token_address = Address::from_str(input_token).unwrap();
             let output_token_address = Address::from_str(output_token).unwrap();
+            let order_hash_bytes = Bytes::from_str(order_hash).unwrap();
+            let order_bytes_bytes = Bytes::from_str(order_bytes).unwrap();
+            let transaction_hash_bytes = Bytes::from_str(transaction_hash).unwrap();
+            let meta_bytes = Bytes::from_str(meta).unwrap();
             let input_vault_id_u256 =
                 U256::from_str_radix(input_vault_id.trim_start_matches("0x"), 16).unwrap();
             let output_vault_id_u256 =
@@ -1079,21 +1079,25 @@ mod tests {
             .unwrap();
 
             let local_order = LocalDbOrder {
-                order_hash: order_hash.to_string(),
-                owner: owner.to_string(),
+                order_hash: order_hash_bytes.clone(),
+                owner: owner_address.clone(),
                 block_timestamp: 123456,
                 block_number: 654321,
-                orderbook_address: orderbook_address.to_string(),
-                order_bytes: order_bytes.to_string(),
-                interpreter_address: "0x00000000000000000000000000000000000000aa".to_string(),
-                store_address: "0x00000000000000000000000000000000000000bb".to_string(),
+                orderbook_address: orderbook_address.clone(),
+                order_bytes: order_bytes_bytes.clone(),
+                interpreter_address: Address::from_str(
+                    "0x00000000000000000000000000000000000000aa",
+                )
+                .unwrap(),
+                store_address: Address::from_str("0x00000000000000000000000000000000000000bb")
+                    .unwrap(),
                 interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
-                transaction_hash: transaction_hash.to_string(),
+                transaction_hash: transaction_hash_bytes.clone(),
                 inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),
                 outputs: Some(format!("0:{}:{}", output_vault_id, output_token)),
                 trade_count: 7,
                 active: true,
-                meta: Some(meta.to_string()),
+                meta: Some(meta_bytes.clone()),
             };
 
             let input_vault = LocalDbVault {
@@ -1200,6 +1204,13 @@ mod tests {
             let owner_address = Address::from_str(owner).unwrap();
             let input_token_address = Address::from_str(input_token).unwrap();
             let output_token_address = Address::from_str(output_token).unwrap();
+            let order_hash_bytes = Bytes::from_str(order_hash).unwrap();
+            let order_bytes_bytes = Bytes::from_str(order_bytes).unwrap();
+            let transaction_hash_bytes = Bytes::from_str(
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            )
+            .unwrap();
+            let meta_bytes = Bytes::from_str(meta).unwrap();
             let input_vault_id_u256 =
                 U256::from_str_radix(input_vault_id.trim_start_matches("0x"), 16).unwrap();
             let output_vault_id_u256 =
@@ -1214,22 +1225,25 @@ mod tests {
             .unwrap();
 
             let local_order = LocalDbOrder {
-                order_hash: order_hash.to_string(),
-                owner: owner.to_string(),
+                order_hash: order_hash_bytes.clone(),
+                owner: owner_address.clone(),
                 block_timestamp: 123456,
                 block_number: 654321,
-                orderbook_address: orderbook_address.to_string(),
-                order_bytes: order_bytes.to_string(),
-                interpreter_address: "0x00000000000000000000000000000000000000aa".to_string(),
-                store_address: "0x00000000000000000000000000000000000000bb".to_string(),
+                orderbook_address: orderbook_address.clone(),
+                order_bytes: order_bytes_bytes.clone(),
+                interpreter_address: Address::from_str(
+                    "0x00000000000000000000000000000000000000aa",
+                )
+                .unwrap(),
+                store_address: Address::from_str("0x00000000000000000000000000000000000000bb")
+                    .unwrap(),
                 interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
-                transaction_hash:
-                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                transaction_hash: transaction_hash_bytes.clone(),
                 inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),
                 outputs: Some(format!("0:{}:{}", output_vault_id, output_token)),
                 trade_count: 3,
                 active: true,
-                meta: Some(meta.to_string()),
+                meta: Some(meta_bytes.clone()),
             };
 
             let input_vault = LocalDbVault {

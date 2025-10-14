@@ -1,7 +1,7 @@
 use super::*;
 use crate::raindex_client::local_db::bool_from_int_or_bool;
 use crate::raindex_client::orders::GetOrdersFilters;
-use alloy::primitives::Bytes;
+use alloy::primitives::{Address, Bytes};
 
 const QUERY: &str = include_str!("query.sql");
 
@@ -51,32 +51,34 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbOrder {
-    #[serde(alias = "orderHash")]
-    pub order_hash: String,
-    pub owner: String,
+    #[serde(alias = "orderHash", with = "serde_bytes")]
+    pub order_hash: Bytes,
+    #[serde(with = "serde_address")]
+    pub owner: Address,
     #[serde(alias = "blockTimestamp")]
     pub block_timestamp: u64,
     #[serde(alias = "blockNumber")]
     pub block_number: u64,
-    #[serde(alias = "orderbookAddress")]
-    pub orderbook_address: String,
-    #[serde(alias = "orderBytes")]
-    pub order_bytes: String,
-    #[serde(alias = "interpreterAddress")]
-    pub interpreter_address: String,
-    #[serde(alias = "storeAddress")]
-    pub store_address: String,
+    #[serde(alias = "orderbookAddress", with = "serde_address")]
+    pub orderbook_address: Address,
+    #[serde(alias = "orderBytes", with = "serde_bytes")]
+    pub order_bytes: Bytes,
+    #[serde(alias = "interpreterAddress", with = "serde_address")]
+    pub interpreter_address: Address,
+    #[serde(alias = "storeAddress", with = "serde_address")]
+    pub store_address: Address,
     #[serde(alias = "interpreterBytecode", with = "serde_bytes")]
     pub interpreter_bytecode: Bytes,
-    #[serde(alias = "transactionHash")]
-    pub transaction_hash: String,
+    #[serde(alias = "transactionHash", with = "serde_bytes")]
+    pub transaction_hash: Bytes,
     pub inputs: Option<String>,
     pub outputs: Option<String>,
     #[serde(alias = "tradeCount")]
     pub trade_count: u64,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub active: bool,
-    pub meta: Option<String>,
+    #[serde(with = "serde_option_bytes")]
+    pub meta: Option<Bytes>,
 }
 
 impl LocalDbQuery {
@@ -231,37 +233,59 @@ mod tests {
         async fn test_fetch_orders_parses_data() {
             let orders = vec![
                 LocalDbOrder {
-                    order_hash:
-                        "0xabc0000000000000000000000000000000000000000000000000000000000001".into(),
-                    owner: "0x1111111111111111111111111111111111111111".into(),
+                    order_hash: Bytes::from_str(
+                        "0xabc0000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                    owner: Address::from_str("0x1111111111111111111111111111111111111111").unwrap(),
                     block_timestamp: 1000,
                     block_number: 123,
-                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
-                    order_bytes: "0xdeadbeef".into(),
-                    interpreter_address: "0x3333333333333333333333333333333333333333".into(),
-                    store_address: "0x4444444444444444444444444444444444444444".into(),
+                    orderbook_address: Address::from_str(
+                        "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                    )
+                    .unwrap(),
+                    order_bytes: Bytes::from_str("0xdeadbeef").unwrap(),
+                    interpreter_address: Address::from_str(
+                        "0x3333333333333333333333333333333333333333",
+                    )
+                    .unwrap(),
+                    store_address: Address::from_str("0x4444444444444444444444444444444444444444")
+                        .unwrap(),
                     interpreter_bytecode: Bytes::from_str("0x01020304").unwrap(),
-                    transaction_hash:
-                        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                    transaction_hash: Bytes::from_str(
+                        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    )
+                    .unwrap(),
                     inputs: Some("1:0xaaa,2:0xbbb".into()),
                     outputs: Some("3:0xccc".into()),
                     trade_count: 2,
                     active: true,
-                    meta: Some("0x010203".into()),
+                    meta: Some(Bytes::from_str("0x010203").unwrap()),
                 },
                 LocalDbOrder {
-                    order_hash:
-                        "0xabc0000000000000000000000000000000000000000000000000000000000002".into(),
-                    owner: "0x2222222222222222222222222222222222222222".into(),
+                    order_hash: Bytes::from_str(
+                        "0xabc0000000000000000000000000000000000000000000000000000000000002",
+                    )
+                    .unwrap(),
+                    owner: Address::from_str("0x2222222222222222222222222222222222222222").unwrap(),
                     block_timestamp: 2000,
                     block_number: 456,
-                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
-                    order_bytes: "0x00".into(),
-                    interpreter_address: "0x5555555555555555555555555555555555555555".into(),
-                    store_address: "0x6666666666666666666666666666666666666666".into(),
+                    orderbook_address: Address::from_str(
+                        "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                    )
+                    .unwrap(),
+                    order_bytes: Bytes::from_str("0x00").unwrap(),
+                    interpreter_address: Address::from_str(
+                        "0x5555555555555555555555555555555555555555",
+                    )
+                    .unwrap(),
+                    store_address: Address::from_str("0x6666666666666666666666666666666666666666")
+                        .unwrap(),
                     interpreter_bytecode: Bytes::from_str("0x05060708").unwrap(),
-                    transaction_hash:
-                        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                    transaction_hash: Bytes::from_str(
+                        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    )
+                    .unwrap(),
                     inputs: None,
                     outputs: None,
                     trade_count: 0,
