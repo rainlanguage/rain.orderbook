@@ -454,7 +454,7 @@ mod test_helpers {
                     .to_string(),
                 interpreter_address: "0x00000000000000000000000000000000000000aa".to_string(),
                 store_address: "0x00000000000000000000000000000000000000bb".to_string(),
-                interpreter_bytecode: "0x010203".to_string(),
+                interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
                 transaction_hash: tx_hash.to_string(),
                 inputs: Some(format!("0:{}:{}", INPUT_VAULT_ID, INPUT_TOKEN)),
                 outputs: Some(format!("0:{}:{}", OUTPUT_VAULT_ID, OUTPUT_TOKEN)),

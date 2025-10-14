@@ -1087,7 +1087,7 @@ mod tests {
                 order_bytes: order_bytes.to_string(),
                 interpreter_address: "0x00000000000000000000000000000000000000aa".to_string(),
                 store_address: "0x00000000000000000000000000000000000000bb".to_string(),
-                interpreter_bytecode: "0x010203".to_string(),
+                interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
                 transaction_hash: transaction_hash.to_string(),
                 inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),
                 outputs: Some(format!("0:{}:{}", output_vault_id, output_token)),
@@ -1222,7 +1222,7 @@ mod tests {
                 order_bytes: order_bytes.to_string(),
                 interpreter_address: "0x00000000000000000000000000000000000000aa".to_string(),
                 store_address: "0x00000000000000000000000000000000000000bb".to_string(),
-                interpreter_bytecode: "0x010203".to_string(),
+                interpreter_bytecode: Bytes::from_str("0x010203").unwrap(),
                 transaction_hash:
                     "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
                 inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),

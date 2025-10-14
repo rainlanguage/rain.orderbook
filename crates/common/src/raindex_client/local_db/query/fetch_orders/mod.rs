@@ -66,8 +66,8 @@ pub struct LocalDbOrder {
     pub interpreter_address: String,
     #[serde(alias = "storeAddress")]
     pub store_address: String,
-    #[serde(alias = "interpreterBytecode")]
-    pub interpreter_bytecode: String,
+    #[serde(alias = "interpreterBytecode", with = "serde_bytes")]
+    pub interpreter_bytecode: Bytes,
     #[serde(alias = "transactionHash")]
     pub transaction_hash: String,
     pub inputs: Option<String>,
@@ -240,7 +240,7 @@ mod tests {
                     order_bytes: "0xdeadbeef".into(),
                     interpreter_address: "0x3333333333333333333333333333333333333333".into(),
                     store_address: "0x4444444444444444444444444444444444444444".into(),
-                    interpreter_bytecode: "0x01020304".into(),
+                    interpreter_bytecode: Bytes::from_str("0x01020304").unwrap(),
                     transaction_hash:
                         "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
                     inputs: Some("1:0xaaa,2:0xbbb".into()),
@@ -259,7 +259,7 @@ mod tests {
                     order_bytes: "0x00".into(),
                     interpreter_address: "0x5555555555555555555555555555555555555555".into(),
                     store_address: "0x6666666666666666666666666666666666666666".into(),
-                    interpreter_bytecode: "0x05060708".into(),
+                    interpreter_bytecode: Bytes::from_str("0x05060708").unwrap(),
                     transaction_hash:
                         "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
                     inputs: None,
