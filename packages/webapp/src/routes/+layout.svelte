@@ -34,14 +34,14 @@ const queryClient = new QueryClient({
 
 let walletInitError: string | null = null;
 
-onMount(() => {
-	if (!browser || !raindexClient || !localDb) return;
+	onMount(() => {
+		if (!browser || !raindexClient || !localDb) return;
 
-	startLocalDbSync({
-		raindexClient,
-		localDb
+		startLocalDbSync({
+			raindexClient,
+			localDb
+		});
 	});
-});
 
 $: if (browser && window.navigator) {
 	initWallet().then((error) => {
