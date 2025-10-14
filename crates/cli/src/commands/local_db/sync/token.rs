@@ -84,7 +84,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, Bytes, U256};
+    use alloy::primitives::{Address, B256, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
@@ -124,7 +124,7 @@ mod tests {
             event_type: EventType::DepositV2,
             block_number: 0,
             block_timestamp: 0,
-            transaction_hash: Bytes::from(vec![0u8; 32]),
+            transaction_hash: B256::from([0u8; 32]),
             log_index: "0x0".into(),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),

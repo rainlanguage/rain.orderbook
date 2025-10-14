@@ -88,7 +88,7 @@ mod tests {
         };
         use alloy::{
             hex::encode_prefixed,
-            primitives::{Address, B256, U256},
+            primitives::{address, Address, B256, U256},
         };
         use rain_math_float::Float;
         use std::cell::RefCell;
@@ -100,10 +100,9 @@ mod tests {
         async fn test_fetch_vault_parses_data() {
             let vault = LocalDbVault {
                 vault_id: U256::from(1),
-                token: Address::from_str("0x00000000000000000000000000000000000000aa").unwrap(),
-                owner: Address::from_str("0x0000000000000000000000000000000000001111").unwrap(),
-                orderbook_address: Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB")
-                    .unwrap(),
+                token: address!("0x00000000000000000000000000000000000000aa"),
+                owner: address!("0x0000000000000000000000000000000000001111"),
+                orderbook_address: address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"),
                 token_name: "Token A".into(),
                 token_symbol: "TA".into(),
                 token_decimals: 6,

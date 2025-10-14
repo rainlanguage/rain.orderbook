@@ -1,9 +1,10 @@
 use super::decode::{DecodedEvent, DecodedEventData, InterpreterStoreSetEvent};
 use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
+use alloy::primitives::B256;
 use alloy::sol_types::SolValue;
 use alloy::{
     hex,
-    primitives::{keccak256, Address, Bytes, FixedBytes, U256},
+    primitives::{keccak256, Address, FixedBytes, U256},
 };
 use itertools::Itertools;
 use rain_math_float::Float;
@@ -76,7 +77,7 @@ fn vault_id_by_index<'a>(
 struct EventContext {
     block_number: u64,
     block_timestamp: u64,
-    transaction_hash: Bytes,
+    transaction_hash: B256,
     log_index: u64,
 }
 
@@ -84,7 +85,7 @@ fn event_context(event: &DecodedEventData<DecodedEvent>) -> Result<EventContext,
     Ok(EventContext {
         block_number: event.block_number,
         block_timestamp: event.block_timestamp,
-        transaction_hash: event.transaction_hash.clone(),
+        transaction_hash: event.transaction_hash,
         log_index: hex_to_decimal(&event.log_index)?,
     })
 }
@@ -150,7 +151,7 @@ pub fn decoded_events_to_sql(
                 sql.push_str(&generate_store_set_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::Unknown(decoded) => {
-                let transaction_hash = hex::encode_prefixed(event.transaction_hash.as_ref());
+                let transaction_hash = hex::encode_prefixed(event.transaction_hash);
                 eprintln!(
                     "Warning: Unknown event type for transaction {}: {}",
                     transaction_hash, decoded.note
@@ -225,7 +226,7 @@ pub fn raw_events_to_sql(raw_events: &[LogEntryResponse]) -> Result<String, Inse
 "#,
                 row.block_number,
                 timestamp_sql,
-                escape_sql_text(&hex::encode_prefixed(row.event.transaction_hash.as_ref())),
+                escape_sql_text(&hex::encode_prefixed(row.event.transaction_hash)),
                 row.log_index,
                 escape_sql_text(&format!("{:#x}", row.event.address)),
                 escape_sql_text(&row.topics_json),
@@ -308,7 +309,7 @@ fn generate_deposit_sql(
 
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let token = hex::encode_prefixed(decoded.token);
@@ -348,7 +349,7 @@ fn generate_withdraw_sql(
 ) -> Result<String, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let token = hex::encode_prefixed(decoded.token);
@@ -393,7 +394,7 @@ fn generate_add_order_sql(
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_hash = hex::encode_prefixed(decoded.orderHash);
@@ -443,7 +444,7 @@ fn generate_remove_order_sql(
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_hash = hex::encode_prefixed(decoded.orderHash);
@@ -495,7 +496,7 @@ fn generate_take_order_sql(
     let mut sql = String::new();
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_owner = hex::encode_prefixed(decoded.config.order.owner);
@@ -618,7 +619,7 @@ fn generate_clear_v3_sql(context: &EventContext, decoded: &ClearV3) -> Result<St
     let bob_order_hash = compute_order_hash(&decoded.bob);
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let alice_order_owner = hex::encode_prefixed(decoded.alice.owner);
@@ -686,7 +687,7 @@ fn generate_after_clear_sql(
 ) -> Result<String, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let alice_input = hex::encode_prefixed(decoded.clearStateChange.aliceInput);
@@ -723,7 +724,7 @@ fn generate_after_clear_sql(
 fn generate_meta_sql(context: &EventContext, decoded: &MetaV1_2) -> Result<String, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let subject = hex::encode_prefixed(decoded.subject);
@@ -756,7 +757,7 @@ fn generate_store_set_sql(
     decoded: &InterpreterStoreSetEvent,
 ) -> Result<String, InsertError> {
     let mut sql = String::new();
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
     sql.push_str(&format!(
         r#"INSERT INTO interpreter_store_sets (
             store_address,
@@ -798,7 +799,7 @@ fn generate_store_set_sql(
 
 fn generate_order_ios_sql(context: &EventContext, order: &OrderV4) -> String {
     let mut rows = Vec::new();
-    let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+    let transaction_hash = hex::encode_prefixed(context.transaction_hash);
 
     for (index, input) in order.validInputs.iter().enumerate() {
         rows.push(format!(
@@ -857,7 +858,7 @@ mod tests {
     use crate::raindex_client::local_db::LocalDb;
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
-    use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{fixed_bytes, Address, Bytes, FixedBytes, U256};
     use rain_orderbook_bindings::IOrderBookV5::{
         ClearConfigV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
     };
@@ -868,7 +869,7 @@ mod tests {
         event_type: EventType,
         block_number: u64,
         block_timestamp: u64,
-        transaction_hash: Bytes,
+        transaction_hash: B256,
         log_index: &str,
         decoded: DecodedEvent,
     ) -> DecodedEventData<DecodedEvent> {
@@ -908,12 +909,6 @@ mod tests {
         }
     }
 
-    fn tx_bytes(value: u64) -> Bytes {
-        let mut bytes = vec![0u8; 32];
-        bytes[24..].copy_from_slice(&value.to_be_bytes());
-        Bytes::from(bytes)
-    }
-
     fn sample_add_event() -> DecodedEventData<DecodedEvent> {
         let add = AddOrderV3 {
             sender: Address::from([0x07; 20]),
@@ -925,7 +920,7 @@ mod tests {
             EventType::AddOrderV3,
             0x100,
             0x200,
-            tx_bytes(0xaaa),
+            fixed_bytes!("0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"),
             "0x1",
             DecodedEvent::AddOrderV3(Box::new(add)),
         )
@@ -966,7 +961,7 @@ mod tests {
             EventType::ClearV3,
             0x100,
             0x200,
-            tx_bytes(0xabc),
+            fixed_bytes!("0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"),
             "0x1",
             DecodedEvent::ClearV3(Box::new(clear)),
         )
@@ -993,7 +988,7 @@ mod tests {
             EventType::TakeOrderV3,
             0x101,
             0x201,
-            tx_bytes(0xdef),
+            fixed_bytes!("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"),
             "0x2",
             DecodedEvent::TakeOrderV3(Box::new(take)),
         )
@@ -1011,7 +1006,7 @@ mod tests {
             EventType::InterpreterStoreSet,
             0x200,
             0x300,
-            tx_bytes(0xfeed),
+            fixed_bytes!("0xfeedfacefeedfacefeedfacefeedfacefeedfacefeedfacefeedfacefeedface"),
             "0x4",
             DecodedEvent::InterpreterStoreSet(Box::new(store)),
         )
@@ -1029,7 +1024,7 @@ mod tests {
             EventType::DepositV2,
             0x102,
             0x202,
-            tx_bytes(0x123),
+            fixed_bytes!("0x0000000000000000000000000000000000000000000000000000000000000fa0"),
             "0x3",
             DecodedEvent::DepositV2(Box::new(deposit)),
         )
@@ -1044,7 +1039,7 @@ mod tests {
         };
 
         let sql = generate_store_set_sql(&context, decoded.as_ref()).unwrap();
-        let transaction_hash = hex::encode_prefixed(context.transaction_hash.as_ref());
+        let transaction_hash = hex::encode_prefixed(context.transaction_hash);
         let expected = format!(
             "INSERT INTO interpreter_store_sets (\n            store_address,\n            block_number,\n            block_timestamp,\n            transaction_hash,\n            log_index,\n            namespace,\n            key,\n            value\n        ) VALUES (\n            '{}',\n            {},\n            {},\n            '{}',\n            {},\n            '{}',\n            '{}',\n            '{}'\n        ) ON CONFLICT(transaction_hash, log_index) DO UPDATE SET\n            store_address = excluded.store_address,\n            block_number = excluded.block_number,\n            block_timestamp = excluded.block_timestamp,\n            namespace = excluded.namespace,\n            key = excluded.key,\n            value = excluded.value;\n",
             hex::encode_prefixed(decoded.store_address),
@@ -1145,7 +1140,7 @@ mod tests {
             EventType::Unknown,
             0x0,
             0x0,
-            tx_bytes(0xbeef),
+            fixed_bytes!("0xbeefb00fb00fb00fb00fb00fb00fb00fb00fb00fb00fb00fb00fb00fb00fb00f"),
             "0x0",
             DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0xdead".into(),
@@ -1287,6 +1282,10 @@ mod tests {
             Bytes::from_str(value).unwrap()
         }
 
+        fn tx(byte: u8) -> B256 {
+            B256::from([byte; 32])
+        }
+
         let events = vec![
             LogEntryResponse {
                 address: addr("0x2222222222222222222222222222222222222222"),
@@ -1294,7 +1293,7 @@ mod tests {
                 data: bytes("0xdeadbeef"),
                 block_number: 0x2,
                 block_timestamp: Some(0x64b8c125),
-                transaction_hash: bytes("0x0bbb"),
+                transaction_hash: tx(0xbb),
                 transaction_index: "0x0".to_string(),
                 block_hash: bytes("0x00"),
                 log_index: "0x1".to_string(),
@@ -1306,7 +1305,7 @@ mod tests {
                 data: bytes("0xbead"),
                 block_number: 0x1,
                 block_timestamp: Some(0x64b8c124),
-                transaction_hash: bytes("0x0aaa"),
+                transaction_hash: tx(0xaa),
                 transaction_index: "0x0".to_string(),
                 block_hash: bytes("0x00"),
                 log_index: "0x0".to_string(),
@@ -1318,7 +1317,7 @@ mod tests {
                 data: bytes("0xfeed"),
                 block_number: 0x3,
                 block_timestamp: None,
-                transaction_hash: bytes("0x0ccc"),
+                transaction_hash: tx(0xcc),
                 transaction_index: "0x0".to_string(),
                 block_hash: bytes("0x00"),
                 log_index: "0x0".to_string(),
@@ -1329,9 +1328,9 @@ mod tests {
         let sql = raw_events_to_sql(&events).unwrap();
         assert!(sql.contains("INSERT INTO raw_events"));
 
-        let first_pos = sql.find("0x0aaa").unwrap();
-        let second_pos = sql.find("0x0bbb").unwrap();
-        let third_pos = sql.find("0x0ccc").unwrap();
+        let first_pos = sql.find("0xaaaaaaaa").unwrap();
+        let second_pos = sql.find("0xbbbbbbbb").unwrap();
+        let third_pos = sql.find("0xcccccccc").unwrap();
         assert!(first_pos < second_pos && second_pos < third_pos);
 
         assert!(sql.contains("VALUES (3, NULL,"));
@@ -1346,7 +1345,7 @@ mod tests {
             data: Bytes::from_str("0xbead").unwrap(),
             block_number: 1,
             block_timestamp: Some(0),
-            transaction_hash: Bytes::from_str("0x0aaa").unwrap(),
+            transaction_hash: B256::from([0xaa; 32]),
             transaction_index: "0x0".to_string(),
             block_hash: Bytes::from_str("0x00").unwrap(),
             log_index: "not-hex".to_string(),

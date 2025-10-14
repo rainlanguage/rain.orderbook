@@ -1583,8 +1583,8 @@ impl TryFrom<RaindexVaultToken> for SgErc20 {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
+    use alloy::primitives::address;
 
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
@@ -1670,8 +1670,7 @@ mod tests {
                 vault_id,
                 token,
                 owner,
-                orderbook_address: Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB")
-                    .unwrap(),
+                orderbook_address: address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"),
                 token_name: "Token".to_string(),
                 token_symbol: "TKN".to_string(),
                 token_decimals: 18,
@@ -1683,8 +1682,8 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_path() {
-            let owner = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
-            let token = Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let token = address!("0x00000000000000000000000000000000000000aa");
             let vault = make_local_vault(
                 U256::from(1),
                 token.clone(),
@@ -1701,8 +1700,7 @@ mod tests {
 
             let expected_owner = owner.clone();
             let expected_token = token.clone();
-            let expected_orderbook =
-                Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
+            let expected_orderbook = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
 
             let vaults = client
                 .get_vaults(Some(ChainIds(vec![42161])), None, None)
@@ -1725,8 +1723,8 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vault_local_db_path() {
-            let owner = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
-            let token = Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let token = address!("0x00000000000000000000000000000000000000aa");
             let local_vault = make_local_vault(
                 U256::from(2),
                 token.clone(),
@@ -1749,8 +1747,7 @@ mod tests {
             let vault_id_hex = derived_vault.id();
             let vault_id_bytes = Bytes::from_str(&vault_id_hex).expect("valid vault id");
 
-            let orderbook =
-                Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
+            let orderbook = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
             let retrieved = client
                 .get_vault(42161, orderbook, vault_id_bytes.clone())
                 .await
@@ -1768,8 +1765,8 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_balance_changes_local_db_path() {
-            let owner = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
-            let token = Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let token = address!("0x00000000000000000000000000000000000000aa");
             let local_vault = make_local_vault(
                 U256::from(2),
                 token.clone(),
@@ -1807,8 +1804,7 @@ mod tests {
 
             let vault_id_bytes = Bytes::from_str(&derived_vault.id()).expect("valid vault id");
 
-            let orderbook =
-                Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
+            let orderbook = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
             let vault = client
                 .get_vault(42161, orderbook, vault_id_bytes)
                 .await
@@ -1833,10 +1829,8 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_filters() {
-            let owner_kept =
-                Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
-            let token_kept =
-                Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+            let owner_kept = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let token_kept = address!("0x00000000000000000000000000000000000000aa");
 
             let keep_vault = make_local_vault(
                 U256::from(1),
@@ -1912,11 +1906,10 @@ mod tests {
         #[test]
         fn test_try_from_local_trade_side_with_running_balance() {
             let chain_id = 42161;
-            let orderbook =
-                Address::from_str("0x0000000000000000000000000000000000000001").unwrap();
+            let orderbook = address!("0x0000000000000000000000000000000000000001");
             let transaction = RaindexTransaction::from_local_parts(
                 Bytes::from_str("0xdeadbeef").unwrap(),
-                Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+                address!("0x0000000000000000000000000000000000000002"),
                 123,
                 456,
             )
@@ -1932,8 +1925,7 @@ mod tests {
                 &transaction,
                 U256::from_str("0x10").unwrap(),
                 LocalTradeTokenInfo {
-                    address: Address::from_str("0x0000000000000000000000000000000000000003")
-                        .unwrap(),
+                    address: address!("0x0000000000000000000000000000000000000003"),
                     name: Some("Token In".to_string()),
                     symbol: Some("TIN".to_string()),
                     decimals: Some(6),
@@ -1970,7 +1962,7 @@ mod tests {
             assert_eq!(token.chain_id(), chain_id);
             assert_eq!(
                 token.address(),
-                Address::from_str("0x0000000000000000000000000000000000000003").unwrap()
+                address!("0x0000000000000000000000000000000000000003")
             );
             assert_eq!(token.decimals(), 6);
             assert_eq!(token.name(), Some("Token In".to_string()));
@@ -1984,11 +1976,10 @@ mod tests {
         #[test]
         fn test_try_from_local_trade_side_defaults() {
             let chain_id = 1;
-            let orderbook =
-                Address::from_str("0x0000000000000000000000000000000000000004").unwrap();
+            let orderbook = address!("0x0000000000000000000000000000000000000004");
             let transaction = RaindexTransaction::from_local_parts(
                 Bytes::from_str("0xfeedface").unwrap(),
-                Address::from_str("0x0000000000000000000000000000000000000005").unwrap(),
+                address!("0x0000000000000000000000000000000000000005"),
                 111,
                 222,
             )
@@ -2003,8 +1994,7 @@ mod tests {
                 &transaction,
                 U256::from_str("0x20").unwrap(),
                 LocalTradeTokenInfo {
-                    address: Address::from_str("0x0000000000000000000000000000000000000006")
-                        .unwrap(),
+                    address: address!("0x0000000000000000000000000000000000000006"),
                     name: None,
                     symbol: None,
                     decimals: None,
@@ -2030,7 +2020,7 @@ mod tests {
             assert!(token.symbol().is_none());
             assert_eq!(
                 token.address(),
-                Address::from_str("0x0000000000000000000000000000000000000006").unwrap()
+                address!("0x0000000000000000000000000000000000000006")
             );
             assert_eq!(
                 token.id(),
@@ -2166,7 +2156,7 @@ mod tests {
             assert_eq!(vault1.id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 vault1.owner,
-                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
+                address!("0x0000000000000000000000000000000000000000")
             );
             assert_eq!(vault1.vault_id, U256::from_str("0x0123").unwrap());
             assert!(vault1.balance.eq(F1).unwrap());
@@ -2182,7 +2172,7 @@ mod tests {
             assert_eq!(vault2.id, Bytes::from_str("0x0234").unwrap());
             assert_eq!(
                 vault2.owner,
-                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
+                address!("0x0000000000000000000000000000000000000000")
             );
             assert_eq!(vault2.vault_id, U256::from_str("0x0234").unwrap());
             assert!(vault2.balance.eq(F2).unwrap());
@@ -2190,7 +2180,7 @@ mod tests {
             assert_eq!(vault2.token.id, Bytes::from_str("0xbef2").unwrap());
             assert_eq!(
                 vault2.orderbook,
-                Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
+                address!("0x0000000000000000000000000000000000000000")
             );
         }
 
@@ -2406,7 +2396,7 @@ mod tests {
             );
             assert_eq!(
                 result[0].token.address,
-                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+                address!("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
             );
             assert_eq!(result[0].token.name, Some("Wrapped Flare".to_string()));
             assert_eq!(result[0].token.symbol, Some("WFLR".to_string()));
@@ -2427,13 +2417,13 @@ mod tests {
             );
             assert_eq!(
                 result[0].transaction.from(),
-                Address::from_str("0x7177b9d00bB5dbcaaF069CC63190902763783b09").unwrap()
+                address!("0x7177b9d00bB5dbcaaF069CC63190902763783b09")
             );
             assert_eq!(result[0].transaction.block_number(), U256::from(34407047));
             assert_eq!(result[0].transaction.timestamp(), U256::from(1734054063));
             assert_eq!(
                 result[0].orderbook,
-                Address::from_str("0xcee8cd002f151a536394e564b84076c41bbbcd4d").unwrap()
+                address!("0xcee8cd002f151a536394e564b84076c41bbbcd4d")
             );
         }
 
@@ -2730,8 +2720,7 @@ mod tests {
                 result,
                 Bytes::copy_from_slice(
                     &deposit3Call {
-                        token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
-                            .unwrap(),
+                        token: address!("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
                         depositAmount: Float::parse("500".to_string()).unwrap().get_inner(),
                         tasks: vec![],
@@ -2793,8 +2782,7 @@ mod tests {
                 result,
                 Bytes::copy_from_slice(
                     &withdraw3Call {
-                        token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
-                            .unwrap(),
+                        token: address!("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
                         targetAmount: amount.get_inner(),
                         tasks: vec![],
@@ -2964,10 +2952,7 @@ mod tests {
             let filters = GetVaultsFilters {
                 owners: vec![],
                 hide_zero_balance: false,
-                tokens: Some(vec![Address::from_str(
-                    "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
-                )
-                .unwrap()]),
+                tokens: Some(vec![address!("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")]),
             };
 
             let result = raindex_client
@@ -2980,7 +2965,7 @@ mod tests {
             assert_eq!(result[0].id, Bytes::from_str("0x0123").unwrap());
             assert_eq!(
                 result[0].token.address,
-                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+                address!("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
             );
         }
 
@@ -3020,8 +3005,8 @@ mod tests {
                 owners: vec![],
                 hide_zero_balance: false,
                 tokens: Some(vec![
-                    Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
-                    Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
+                    address!("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"),
+                    address!("0x12e605bc104e93b45e1ad99f9e555f659051c2bb"),
                 ]),
             };
 

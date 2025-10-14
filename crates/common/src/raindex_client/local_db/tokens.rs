@@ -64,7 +64,7 @@ fn order_tokens_vec(order: &OrderV4) -> Vec<Address> {
 mod tests {
     use super::super::decode::InterpreterStoreSetEvent;
     use super::*;
-    use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{Address, Bytes, FixedBytes, B256, U256};
     use rain_orderbook_bindings::IOrderBookV5::{
         AddOrderV3, DepositV2, OrderV4, RemoveOrderV3, SignedContextV1, TakeOrderConfigV4,
         TakeOrderV3, WithdrawV2, IOV2,
@@ -75,7 +75,7 @@ mod tests {
             event_type: super::super::decode::EventType::Unknown,
             block_number: 0,
             block_timestamp: 0,
-            transaction_hash: Bytes::from(vec![0u8; 32]),
+            transaction_hash: B256::from([0u8; 32]),
             log_index: "0x0".into(),
             decoded_data: event,
         }

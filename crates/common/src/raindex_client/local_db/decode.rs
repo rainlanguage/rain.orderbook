@@ -57,7 +57,7 @@ pub struct DecodedEventData<T> {
     pub event_type: EventType,
     pub block_number: u64,
     pub block_timestamp: u64,
-    pub transaction_hash: Bytes,
+    pub transaction_hash: B256,
     pub log_index: String,
     pub decoded_data: T,
 }
@@ -127,7 +127,7 @@ pub fn decode_events(
             event_type,
             block_number: event.block_number,
             block_timestamp: event.block_timestamp.unwrap_or_default(),
-            transaction_hash: event.transaction_hash.clone(),
+            transaction_hash: event.transaction_hash,
             log_index: if event.log_index.is_empty() {
                 "0x0".to_string()
             } else {
@@ -202,7 +202,7 @@ fn decode_store_set_event(
 mod test_helpers {
     use super::*;
     use crate::rpc_client::LogEntryResponse;
-    use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{fixed_bytes, Address, Bytes, FixedBytes, B256, U256};
     use rain_orderbook_bindings::{
         IOrderBookV5::{
             AddOrderV3, AfterClearV2, ClearConfigV2, ClearStateChangeV2, ClearV3, DepositV2,
@@ -248,7 +248,7 @@ mod test_helpers {
         data: Bytes,
         block_number: u64,
         block_timestamp: Option<u64>,
-        transaction_hash: Bytes,
+        transaction_hash: B256,
         log_index: &str,
     ) -> LogEntryResponse {
         LogEntryResponse {
@@ -296,9 +296,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x123456"),
             Some(hex_to_u64("0x64b8c123")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
             "0x0",
         )
     }
@@ -320,9 +318,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x123456"),
             Some(hex_to_u64("0x64b8c123")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
             "0x0",
         )
     }
@@ -355,9 +351,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x123457"),
             Some(hex_to_u64("0x64b8c124")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567891",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567891"),
             "0x1",
         )
     }
@@ -385,9 +379,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x123458"),
             Some(hex_to_u64("0x64b8c125")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892"),
             "0x2",
         )
     }
@@ -411,9 +403,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x123459"),
             Some(hex_to_u64("0x64b8c126")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893"),
             "0x3",
         )
     }
@@ -435,9 +425,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x12345a"),
             Some(hex_to_u64("0x64b8c127")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894"),
             "0x4",
         )
     }
@@ -457,9 +445,7 @@ mod test_helpers {
             Bytes::from(data),
             hex_to_u64("0x12345c"),
             Some(hex_to_u64("0x64b8c129")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896"),
             "0x6",
         );
         entry.address = Address::from_str("0x0123456789abcdef0123456789abcdef01234567").unwrap();
@@ -508,9 +494,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x12345b"),
             Some(hex_to_u64("0x64b8c128")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567895",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567895"),
             "0x5",
         )
     }
@@ -535,9 +519,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x12345c"),
             Some(hex_to_u64("0x64b8c129")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896"),
             "0x6",
         )
     }
@@ -563,9 +545,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             hex_to_u64("0x12345d"),
             Some(hex_to_u64("0x64b8c12a")),
-            bytes_from_hex_str(
-                "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567897",
-            ),
+            fixed_bytes!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567897"),
             "0x7",
         )
     }
@@ -865,7 +845,7 @@ mod test_helpers {
         let mut minimal_event = create_add_order_v3_event_data();
         minimal_event.block_number = 0;
         minimal_event.block_timestamp = None;
-        minimal_event.transaction_hash = Bytes::new();
+        minimal_event.transaction_hash = B256::ZERO;
         minimal_event.log_index.clear();
 
         let decoded_events = decode_events_vec(vec![minimal_event]);
@@ -875,7 +855,7 @@ mod test_helpers {
         assert_eq!(decoded_event.event_type, EventType::AddOrderV3);
         assert_eq!(decoded_event.block_number, 0);
         assert_eq!(decoded_event.block_timestamp, 0);
-        assert!(decoded_event.transaction_hash.is_empty());
+        assert_eq!(decoded_event.transaction_hash, B256::ZERO);
         assert_eq!(decoded_event.log_index, "0x0");
     }
 

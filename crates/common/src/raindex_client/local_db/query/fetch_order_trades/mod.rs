@@ -89,7 +89,7 @@ mod tests {
         };
         use alloy::{
             hex::encode_prefixed,
-            primitives::{Address, Bytes, B256, U256},
+            primitives::{address, Address, Bytes, B256, U256},
         };
         use rain_math_float::Float;
         use std::str::FromStr;
@@ -97,12 +97,9 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_fetch_order_trades_parses_rows() {
-            let orderbook_address =
-                Address::from_str("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb").unwrap();
-            let order_owner =
-                Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
-            let transaction_sender =
-                Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
+            let orderbook_address = address!("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb");
+            let order_owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let transaction_sender = address!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
             let order_hash = Bytes::from_str(
                 "0x0000000000000000000000000000000000000000000000000000000000000abc",
             )

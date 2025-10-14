@@ -112,7 +112,7 @@ struct TokensFileEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address as AlloyAddress, Bytes, U256};
+    use alloy::primitives::{Address as AlloyAddress, B256, U256};
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
@@ -125,7 +125,7 @@ mod tests {
             event_type: EventType::Unknown,
             block_number: 0x1,
             block_timestamp: 0x2,
-            transaction_hash: Bytes::from(vec![0xab; 32]),
+            transaction_hash: B256::from([0xab; 32]),
             log_index: "0x0".to_string(),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x0".to_string(),
@@ -235,7 +235,7 @@ mod tests {
             event_type: EventType::DepositV2,
             block_number: 0x3e8,
             block_timestamp: 0x64b8c123,
-            transaction_hash: Bytes::from(vec![0x11; 32]),
+            transaction_hash: B256::from([0x11; 32]),
             log_index: "0x0".into(),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: AlloyAddress::from_str("0x0000000000000000000000000000000000000001")

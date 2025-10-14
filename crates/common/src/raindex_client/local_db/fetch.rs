@@ -423,7 +423,7 @@ mod tests {
     mod tokio_tests {
         use super::*;
         use alloy::hex;
-        use alloy::primitives::{Address, Bytes};
+        use alloy::primitives::{fixed_bytes, Address, Bytes};
         use httpmock::prelude::*;
         use serde_json::json;
         use std::str::FromStr;
@@ -438,7 +438,9 @@ mod tests {
                 data: Bytes::from(vec![0xde, 0xad, 0xbe, 0xef]),
                 block_number: parse_block_number_str(block_number).unwrap(),
                 block_timestamp: timestamp.map(|ts| parse_block_number_str(ts).unwrap()),
-                transaction_hash: Bytes::from(vec![0u8; 32]),
+                transaction_hash: fixed_bytes!(
+                    "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+                ),
                 transaction_index: "0x0".to_string(),
                 block_hash: Bytes::from(vec![0u8; 32]),
                 log_index: "0x0".to_string(),

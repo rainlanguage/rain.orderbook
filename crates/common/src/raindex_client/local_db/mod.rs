@@ -258,7 +258,7 @@ impl RaindexClient {
 #[cfg(test)]
 mod bool_deserialize_tests {
     use super::*;
-    use alloy::primitives::{Address, Bytes, U256};
+    use alloy::primitives::{Address, Bytes, B256, U256};
     use alloy::sol_types::SolEvent;
     use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, DepositV2};
     use std::collections::HashMap;
@@ -276,7 +276,7 @@ mod bool_deserialize_tests {
             data: Bytes::from(vec![0xde, 0xad]),
             block_number: 1,
             block_timestamp: Some(2),
-            transaction_hash: Bytes::from(vec![0u8; 32]),
+            transaction_hash: B256::from([0u8; 32]),
             transaction_index: "0x0".to_string(),
             block_hash: Bytes::from(vec![0u8; 32]),
             log_index: "0x0".to_string(),
@@ -310,7 +310,7 @@ mod bool_deserialize_tests {
             event_type: decode::EventType::DepositV2,
             block_number: 1,
             block_timestamp: 0,
-            transaction_hash: Bytes::from(vec![0x05; 32]),
+            transaction_hash: B256::from([0x05; 32]),
             log_index: "not-hex".to_string(),
             decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
         }

@@ -59,7 +59,7 @@ mod tests {
     use super::*;
     use alloy::{
         hex,
-        primitives::{Address, Bytes, FixedBytes, U256},
+        primitives::{Address, Bytes, FixedBytes, B256, U256},
         sol_types::SolEvent,
     };
     use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
@@ -113,7 +113,7 @@ mod tests {
             data,
             block_number: log_index + 1,
             block_timestamp: Some(log_index + 2),
-            transaction_hash: Bytes::from(vec![sender_byte; 32]),
+            transaction_hash: B256::from([sender_byte; 32]),
             transaction_index: "0x0".to_string(),
             block_hash: Bytes::from(vec![sender_byte + 2; 32]),
             log_index: format!("0x{:x}", log_index),

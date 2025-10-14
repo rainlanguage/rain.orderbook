@@ -98,7 +98,7 @@ impl FetchEvents {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::Bytes;
+    use alloy::primitives::{Bytes, B256};
     use std::str::FromStr;
     use tempfile::{NamedTempFile, TempDir};
 
@@ -115,7 +115,7 @@ mod tests {
             data: Bytes::from(vec![0xde, 0xad, 0xbe, 0xef]),
             block_number,
             block_timestamp: Some(0),
-            transaction_hash: Bytes::from(vec![0xaa; 32]),
+            transaction_hash: B256::from([0xaa; 32]),
             transaction_index: "0x0".to_string(),
             block_hash: Bytes::from(vec![0xbb; 32]),
             log_index: "0x0".to_string(),

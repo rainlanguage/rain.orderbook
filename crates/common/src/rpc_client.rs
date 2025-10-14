@@ -1,4 +1,4 @@
-use alloy::primitives::{Address, Bytes};
+use alloy::primitives::{Address, Bytes, B256};
 use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
 use alloy::transports::TransportError;
@@ -57,7 +57,7 @@ pub struct LogEntryResponse {
     pub block_number: u64,
     #[serde(with = "serde_opt_hex_u64")]
     pub block_timestamp: Option<u64>,
-    pub transaction_hash: Bytes,
+    pub transaction_hash: B256,
     pub transaction_index: String,
     pub block_hash: Bytes,
     pub log_index: String,

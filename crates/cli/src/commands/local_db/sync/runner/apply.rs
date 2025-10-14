@@ -108,7 +108,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, Bytes, U256};
+    use alloy::primitives::{address, Address, Bytes, B256, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
@@ -117,7 +117,6 @@ mod tests {
     };
     use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::collections::HashMap;
-    use std::str::FromStr;
     use std::sync::Mutex;
     use tempfile::TempDir;
     use url::Url;
@@ -257,7 +256,7 @@ mod tests {
 
         let result = fetch_events(
             &data_source,
-            Address::from_str("0x0000000000000000000000000000000000000abc").unwrap(),
+            address!("0x0000000000000000000000000000000000000abc"),
             1,
             10,
         )
@@ -340,7 +339,7 @@ mod tests {
             event_type: EventType::DepositV2,
             block_number: 0,
             block_timestamp: 0,
-            transaction_hash: Bytes::from(vec![0u8; 32]),
+            transaction_hash: B256::from([0u8; 32]),
             log_index: "0x0".into(),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),
@@ -375,7 +374,7 @@ mod tests {
             data: Bytes::new(),
             block_number: 0,
             block_timestamp: Some(0),
-            transaction_hash: Bytes::from(vec![0x02; 32]),
+            transaction_hash: B256::from([0x02; 32]),
             transaction_index: "0x0".into(),
             block_hash: Bytes::from(vec![0x03; 32]),
             log_index: "0x0".into(),

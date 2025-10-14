@@ -502,7 +502,7 @@ mod tests {
             fetch_tables::TableResponse, tests::create_success_callback, LocalDbQueryError,
         };
         use crate::raindex_client::RaindexError;
-        use alloy::primitives::{Address, Bytes, U256};
+        use alloy::primitives::{Address, U256};
         use rain_orderbook_app_settings::yaml::YamlError;
         use rain_orderbook_bindings::IOrderBookV5::{DepositV2, WithdrawV2};
         use std::cell::RefCell;
@@ -711,7 +711,7 @@ mod tests {
                 event_type: EventType::DepositV2,
                 block_number: 0,
                 block_timestamp: 0,
-                transaction_hash: Bytes::from(vec![0u8; 32]),
+                transaction_hash: alloy::primitives::B256::from([0u8; 32]),
                 log_index: "0x0".into(),
                 decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
             });
@@ -728,7 +728,7 @@ mod tests {
                 event_type: EventType::WithdrawV2,
                 block_number: 0,
                 block_timestamp: 0,
-                transaction_hash: Bytes::from(vec![1u8; 32]),
+                transaction_hash: alloy::primitives::B256::from([1u8; 32]),
                 log_index: "0x1".into(),
                 decoded_data: DecodedEvent::WithdrawV2(Box::new(withdraw)),
             });
@@ -1006,7 +1006,7 @@ mod tests {
             rpc_client::LogEntryResponse,
         };
         use alloy::{
-            primitives::{Bytes, FixedBytes, U256},
+            primitives::{Bytes, FixedBytes, B256, U256},
             sol_types::SolEvent,
         };
         use rain_orderbook_bindings::IInterpreterStoreV3::Set;
@@ -1016,13 +1016,13 @@ mod tests {
 
         const ORDERBOOK_ADDRESS: &str = CHAIN_ID_1_ORDERBOOK_ADDRESS;
 
-        fn make_transaction_hash(block_number: u64, transaction_suffix: u64) -> Bytes {
+        fn make_transaction_hash(block_number: u64, transaction_suffix: u64) -> B256 {
             let value = block_number
                 .saturating_mul(100)
                 .saturating_add(transaction_suffix);
-            let mut bytes = vec![0u8; 32];
+            let mut bytes = [0u8; 32];
             bytes[24..].copy_from_slice(&value.to_be_bytes());
-            Bytes::from(bytes)
+            B256::from(bytes)
         }
 
         fn make_log_entry(
