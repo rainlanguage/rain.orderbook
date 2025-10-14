@@ -8,24 +8,17 @@ const QUERY: &str = include_str!("query.sql");
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbOrderTrade {
     pub trade_kind: String,
-    #[serde(with = "serde_address")]
     pub orderbook_address: Address,
-    #[serde(with = "serde_bytes")]
     pub order_hash: Bytes,
-    #[serde(with = "serde_address")]
     pub order_owner: Address,
-    #[serde(with = "serde_bytes")]
     pub order_nonce: Bytes,
-    #[serde(with = "serde_bytes")]
     pub transaction_hash: Bytes,
     pub log_index: u64,
     pub block_number: u64,
     pub block_timestamp: u64,
-    #[serde(with = "serde_address")]
     pub transaction_sender: Address,
     #[serde(with = "serde_b256")]
     pub input_vault_id: U256,
-    #[serde(with = "serde_address")]
     pub input_token: Address,
     pub input_token_name: Option<String>,
     pub input_token_symbol: Option<String>,
@@ -36,7 +29,6 @@ pub struct LocalDbOrderTrade {
     pub input_running_balance: Option<Float>,
     #[serde(with = "serde_b256")]
     pub output_vault_id: U256,
-    #[serde(with = "serde_address")]
     pub output_token: Address,
     pub output_token_name: Option<String>,
     pub output_token_symbol: Option<String>,
@@ -45,7 +37,6 @@ pub struct LocalDbOrderTrade {
     pub output_delta: Float,
     #[serde(with = "serde_option_float")]
     pub output_running_balance: Option<Float>,
-    #[serde(with = "serde_bytes")]
     pub trade_id: Bytes,
 }
 

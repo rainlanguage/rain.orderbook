@@ -51,19 +51,18 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbOrder {
-    #[serde(alias = "orderHash", with = "serde_bytes")]
+    #[serde(alias = "orderHash")]
     pub order_hash: Bytes,
-    #[serde(with = "serde_address")]
     pub owner: Address,
     #[serde(alias = "blockTimestamp")]
     pub block_timestamp: u64,
     #[serde(alias = "blockNumber")]
     pub block_number: u64,
-    #[serde(alias = "orderbookAddress", with = "serde_address")]
+    #[serde(alias = "orderbookAddress")]
     pub orderbook_address: Address,
-    #[serde(alias = "orderBytes", with = "serde_bytes")]
+    #[serde(alias = "orderBytes")]
     pub order_bytes: Bytes,
-    #[serde(alias = "transactionHash", with = "serde_bytes")]
+    #[serde(alias = "transactionHash")]
     pub transaction_hash: Bytes,
     pub inputs: Option<String>,
     pub outputs: Option<String>,
@@ -71,7 +70,6 @@ pub struct LocalDbOrder {
     pub trade_count: u64,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub active: bool,
-    #[serde(with = "serde_option_bytes")]
     pub meta: Option<Bytes>,
 }
 

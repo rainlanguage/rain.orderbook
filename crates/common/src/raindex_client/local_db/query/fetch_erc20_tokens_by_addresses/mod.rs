@@ -6,7 +6,6 @@ pub const FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL: &str = include_str!("query.sql");
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Erc20TokenRow {
     pub chain_id: u32,
-    #[serde(with = "serde_address")]
     pub address: Address,
     pub name: String,
     pub symbol: String,

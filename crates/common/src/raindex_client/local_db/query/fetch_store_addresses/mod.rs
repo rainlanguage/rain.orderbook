@@ -4,7 +4,6 @@ pub const FETCH_STORE_ADDRESSES_SQL: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StoreAddressRow {
-    #[serde(with = "serde_address")]
     pub store_address: Address,
 }
 

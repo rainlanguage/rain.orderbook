@@ -8,11 +8,8 @@ const QUERY: &str = include_str!("query.sql");
 pub struct LocalDbVault {
     #[serde(with = "serde_b256")]
     pub vault_id: U256,
-    #[serde(with = "serde_address")]
     pub token: Address,
-    #[serde(with = "serde_address")]
     pub owner: Address,
-    #[serde(with = "serde_address")]
     pub orderbook_address: Address,
     pub token_name: String,
     pub token_symbol: String,

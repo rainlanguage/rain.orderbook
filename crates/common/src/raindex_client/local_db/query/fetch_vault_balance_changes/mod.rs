@@ -10,15 +10,12 @@ const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbVaultBalanceChange {
-    #[serde(with = "serde_bytes")]
     pub transaction_hash: Bytes,
     pub log_index: u64,
     pub block_number: u64,
     pub block_timestamp: u64,
-    #[serde(with = "serde_address")]
     pub owner: Address,
     pub change_type: String,
-    #[serde(with = "serde_address")]
     pub token: Address,
     #[serde(with = "serde_b256")]
     pub vault_id: U256,
