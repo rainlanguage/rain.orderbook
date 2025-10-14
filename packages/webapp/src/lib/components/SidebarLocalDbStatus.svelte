@@ -60,14 +60,13 @@
 			<span class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400"
 				>Local Index</span
 			>
-			<span class="text-[11px] text-gray-500 dark:text-gray-400">{$localDbStatusIndicator.label}</span>
 		</div>
-		<span
-			class={`inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-semibold uppercase tracking-wide ${$indicatorBadge.badgeClass}`}
-		>
-			<span class={`size-1.5 rounded-full ${$indicatorBadge.dotClass}`}></span>
-			{$indicatorBadge.displayLabel}
-		</span>
+	<span
+		class={`inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-semibold uppercase tracking-wide ${$indicatorBadge.badgeClass}`}
+	>
+		<span class={`size-1.5 rounded-full ${$indicatorBadge.dotClass}`}></span>
+		<span class="truncate max-w-[8rem]">{$indicatorBadge.displayLabel}</span>
+	</span>
 	</div>
 
 	{#if $indicatorBadge.variant === 'error'}
@@ -82,7 +81,10 @@
 				<span class="mt-[1px] shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500"
 					>{$latestEntry.formattedTime}</span
 				>
-				<p class="line-clamp-3 text-[11px] leading-snug text-gray-600 dark:text-gray-200">
+				<p
+					title={$latestEntry.message}
+					class="line-clamp-3 text-[11px] leading-snug text-gray-600 dark:text-gray-200"
+				>
 					{$latestEntry.message}
 				</p>
 			</div>

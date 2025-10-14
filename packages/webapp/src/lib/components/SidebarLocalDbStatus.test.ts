@@ -29,30 +29,30 @@ describe('SidebarLocalDbStatus', () => {
 
 		store.recordLocalDbStatus('Database sync complete.');
 
-	const { default: SidebarLocalDbStatus } = await import('./SidebarLocalDbStatus.svelte');
-	const view = render(SidebarLocalDbStatus);
+		const { default: SidebarLocalDbStatus } = await import('./SidebarLocalDbStatus.svelte');
+		render(SidebarLocalDbStatus);
 
-	const messages = view.getAllByText('Database sync complete.');
-	expect(messages).toHaveLength(2);
-	messages.forEach((message) => {
-		expect(message).toBeVisible();
-	});
-	expect(screen.getByText('Active')).toBeInTheDocument();
+		const entries = screen.getAllByText('Database sync complete.');
+		expect(entries).toHaveLength(1);
+		expect(entries[0]).toBeVisible();
+		expect(entries[0]).toHaveAttribute('title', 'Database sync complete.');
+		const badge = screen.getByText('Active');
+		expect(badge).toBeVisible();
 	});
 
 	it('uses error badge when the latest message contains an error', async () => {
-	const store = await loadStoreModule();
-	store.setLocalDbSyncEnabled(true);
-	store.recordLocalDbError('Error syncing database');
+		const store = await loadStoreModule();
+		store.setLocalDbSyncEnabled(true);
+		store.recordLocalDbError('Error syncing database');
 
-	const { default: SidebarLocalDbStatus } = await import('./SidebarLocalDbStatus.svelte');
-	const view = render(SidebarLocalDbStatus);
+		const { default: SidebarLocalDbStatus } = await import('./SidebarLocalDbStatus.svelte');
+		render(SidebarLocalDbStatus);
 
-	const messages = view.getAllByText('Error syncing database');
-	expect(messages).toHaveLength(2);
-	messages.forEach((message) => {
-		expect(message).toBeVisible();
-	});
-	expect(screen.getByText('Error')).toBeInTheDocument();
+		const messages = screen.getAllByText('Error syncing database');
+		expect(messages).toHaveLength(1);
+		expect(messages[0]).toBeVisible();
+		expect(messages[0]).toHaveAttribute('title', 'Error syncing database');
+		const badge = screen.getByText('Error');
+		expect(badge).toBeVisible();
 	});
 });
