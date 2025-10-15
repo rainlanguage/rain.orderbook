@@ -27,7 +27,7 @@
 	import { useGui } from '$lib/hooks/useGui';
 	import { fade } from 'svelte/transition';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
-import { useRegistry } from '$lib/providers/registry/useRegistry';
+	import { useRegistry } from '$lib/providers/registry/useRegistry';
 	import type { Account } from '$lib/types/account';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 	import type { TokenBalance } from '$lib/types/tokenBalance';
@@ -61,8 +61,8 @@ import { useRegistry } from '$lib/providers/registry/useRegistry';
 	let tokenBalances: Map<string, TokenBalance> = new Map();
 
 	const gui = useGui();
-const raindexClient = useRaindexClient();
-const { registryUrl } = useRegistry();
+	const raindexClient = useRaindexClient();
+	const { registryUrl } = useRegistry();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -121,7 +121,7 @@ const { registryUrl } = useRegistry();
 		}
 	}
 
-async function _handleShareChoices() {
+	async function _handleShareChoices() {
 		await handleShareChoices(gui, $registryUrl ?? '');
 	}
 

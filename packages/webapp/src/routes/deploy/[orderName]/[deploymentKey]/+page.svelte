@@ -16,14 +16,13 @@
 		RaindexClient,
 		type NameAndDescriptionCfg
 	} from '@rainlanguage/orderbook';
-	import { onMount } from 'svelte';
 	import { handleAddOrder } from '$lib/services/handleAddOrder';
 	import { handleTransactionConfirmationModal } from '$lib/services/modal';
-    import { pushGuiStateToUrlHistory } from '$lib/services/handleUpdateGuiState';
+	import { pushGuiStateToUrlHistory } from '$lib/services/handleUpdateGuiState';
 
 	const { orderName } = $page.params as { orderName: string };
 	const { deploymentKey } = $page.params as { deploymentKey: string };
-	const stateFromUrl = $page.url.searchParams?.get('state') || '';
+	const stateFromUrl = $page.url.searchParams?.get('state');
 
 	const { account } = useAccount();
 	const { manager } = useTransactions();
@@ -60,7 +59,12 @@
 
 	$: if ($registry && orderName && deploymentKey) {
 		(async () => {
-			const result = await $registry.getGui(orderName, deploymentKey, pushGuiStateToUrlHistory);
+			const result = await $registry.getGui(
+				orderName,
+				deploymentKey,
+				stateFromUrl,
+				pushGuiStateToUrlHistory
+			);
 			if (result.error) {
 				getGuiError = result.error.readableMsg ?? result.error.msg ?? 'Failed to build GUI';
 				gui = null;
