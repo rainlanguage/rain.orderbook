@@ -1,13 +1,15 @@
 use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use rain_orderbook_common::erc20::TokenInfo;
-use rain_orderbook_common::raindex_client::local_db::{
-    decode::{DecodedEvent, DecodedEventData},
-    token_fetch::fetch_erc20_metadata_concurrent,
-    LocalDb,
+use rain_orderbook_common::{
+    erc20::TokenInfo,
+    raindex_client::local_db::{
+        decode::{DecodedEvent, DecodedEventData},
+        token_fetch::fetch_erc20_metadata_concurrent,
+        FetchConfig, LocalDb,
+    },
+    rpc_client::LogEntryResponse,
 };
-use rain_orderbook_common::rpc_client::LogEntryResponse;
 use std::collections::HashMap;
 use url::Url;
 
@@ -17,6 +19,12 @@ pub(crate) trait SyncDataSource {
     async fn fetch_events(
         &self,
         orderbook_address: &str,
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Vec<LogEntryResponse>>;
+    async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>>;
@@ -31,6 +39,7 @@ pub(crate) trait SyncDataSource {
         decimals_by_token: &HashMap<Address, u8>,
         prefix_sql: &str,
     ) -> Result<String>;
+    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String>;
     fn rpc_urls(&self) -> &[Url];
 }
 
@@ -80,6 +89,23 @@ impl SyncDataSource for LocalDb {
             .map_err(|e| anyhow!(e))
     }
 
+    async fn fetch_store_set_events(
+        &self,
+        store_addresses: &[String],
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Vec<LogEntryResponse>> {
+        <LocalDb>::fetch_store_set_events(
+            self,
+            store_addresses,
+            start_block,
+            end_block,
+            &FetchConfig::default(),
+        )
+        .await
+        .map_err(|e| anyhow!(e))
+    }
+
     fn decode_events(
         &self,
         events: &[LogEntryResponse],
@@ -102,6 +128,11 @@ impl SyncDataSource for LocalDb {
 
         <LocalDb>::decoded_events_to_sql(self, decoded_events, end_block, decimals_by_token, prefix)
             .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
+    }
+
+    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
+        <LocalDb>::raw_events_to_sql(self, raw_events)
+            .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 
     fn rpc_urls(&self) -> &[Url] {

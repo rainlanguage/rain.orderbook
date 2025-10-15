@@ -161,6 +161,15 @@ mod tests {
             Ok(vec![])
         }
 
+        async fn fetch_store_set_events(
+            &self,
+            _store_addresses: &[String],
+            _start_block: u64,
+            _end_block: u64,
+        ) -> Result<Vec<LogEntryResponse>> {
+            Ok(vec![])
+        }
+
         fn decode_events(
             &self,
             _events: &[LogEntryResponse],
@@ -175,6 +184,10 @@ mod tests {
             _decimals_by_token: &HashMap<Address, u8>,
             _prefix_sql: &str,
         ) -> Result<String> {
+            Ok(String::new())
+        }
+
+        fn raw_events_to_sql(&self, _: &[LogEntryResponse]) -> Result<String> {
             Ok(String::new())
         }
 

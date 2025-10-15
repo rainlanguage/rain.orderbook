@@ -1,21 +1,23 @@
 use anyhow::{anyhow, Result};
 use rain_orderbook_app_settings::network::NetworkCfg;
 use rain_orderbook_common::raindex_client::local_db::{
-    query::create_tables::REQUIRED_TABLES, LocalDb,
+    query::{
+        create_tables::{CREATE_TABLES_SQL, REQUIRED_TABLES},
+        fetch_erc20_tokens_by_addresses::FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL,
+        fetch_last_synced_block::FETCH_LAST_SYNCED_BLOCK_SQL,
+        fetch_store_addresses::FETCH_STORE_ADDRESSES_SQL,
+    },
+    LocalDb,
 };
 use serde::Deserialize;
 use url::Url;
 
 use super::super::sqlite::{sqlite_execute, sqlite_has_required_tables, sqlite_query_json};
 
-pub(crate) const DEFAULT_SCHEMA_SQL: &str =
-    include_str!("../../../../../common/src/raindex_client/local_db/query/create_tables/query.sql");
-pub(crate) const SYNC_STATUS_QUERY: &str = include_str!(
-    "../../../../../common/src/raindex_client/local_db/query/fetch_last_synced_block/query.sql"
-);
-pub(crate) const ERC20_QUERY_TEMPLATE: &str = include_str!(
-    "../../../../../common/src/raindex_client/local_db/query/fetch_erc20_tokens_by_addresses/query.sql"
-);
+pub(crate) const DEFAULT_SCHEMA_SQL: &str = CREATE_TABLES_SQL;
+pub(crate) const SYNC_STATUS_QUERY: &str = FETCH_LAST_SYNCED_BLOCK_SQL;
+pub(crate) const ERC20_QUERY_TEMPLATE: &str = FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL;
+pub(crate) const STORE_ADDRESSES_QUERY: &str = FETCH_STORE_ADDRESSES_SQL;
 
 pub(crate) fn ensure_schema(db_path: &str) -> Result<bool> {
     if sqlite_has_required_tables(db_path, REQUIRED_TABLES)? {
@@ -29,6 +31,21 @@ pub(crate) fn ensure_schema(db_path: &str) -> Result<bool> {
 pub(crate) fn fetch_last_synced(db_path: &str) -> Result<u64> {
     let rows: Vec<SyncStatusRow> = sqlite_query_json(db_path, SYNC_STATUS_QUERY)?;
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
+}
+
+pub(crate) fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
+    let rows: Vec<StoreAddressRow> = sqlite_query_json(db_path, STORE_ADDRESSES_QUERY)?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|row| {
+            let trimmed = row.store_address.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_ascii_lowercase())
+            }
+        })
+        .collect())
 }
 
 pub(crate) fn build_local_db_from_network(
@@ -90,6 +107,11 @@ pub(crate) struct Erc20TokenRow {
     pub(crate) decimals: u8,
 }
 
+#[derive(Debug, Deserialize)]
+struct StoreAddressRow {
+    store_address: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,5 +159,41 @@ mod tests {
         sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
         let value = fetch_last_synced(&db_path_str).unwrap();
         assert_eq!(value, 0);
+    }
+
+    #[test]
+    fn fetch_existing_store_addresses_returns_lowercase() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("stores.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        sqlite_execute(
+            &db_path_str,
+            r#"INSERT INTO interpreter_store_sets (
+                store_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                namespace,
+                key,
+                value
+            ) VALUES (
+                '0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD',
+                '0x1',
+                0,
+                1,
+                0,
+                '0x0',
+                '0x0',
+                '0x0'
+            );
+"#,
+        )
+        .unwrap();
+
+        let stores = fetch_existing_store_addresses(&db_path_str).unwrap();
+        assert_eq!(stores, vec!["0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);
     }
 }
