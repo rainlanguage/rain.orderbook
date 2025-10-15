@@ -32,9 +32,13 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
-        let dotrain_bytes = bincode::serialize(&dotrain)?;
-        let hash = Sha256::digest(dotrain_bytes);
+    fn get_dotrain_hash(
+        dotrain: String,
+        additional_configs: Option<Vec<String>>,
+    ) -> Result<String, GuiError> {
+        let payload = (dotrain, additional_configs.unwrap_or_default());
+        let bytes = bincode::serialize(&payload)?;
+        let hash = Sha256::digest(bytes);
         Ok(URL_SAFE.encode(hash))
     }
 
@@ -179,7 +183,10 @@ impl DotrainOrderGui {
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
-            dotrain_hash: DotrainOrderGui::get_dotrain_hash(self.dotrain_order.dotrain()?)?,
+            dotrain_hash: DotrainOrderGui::get_dotrain_hash(
+                self.dotrain_order.dotrain()?,
+                (!self.additional_configs.is_empty()).then(|| self.additional_configs.clone()),
+            )?,
             selected_deployment: self.selected_deployment.clone(),
         };
         let bytes = bincode::serialize(&state)?;
@@ -223,6 +230,11 @@ impl DotrainOrderGui {
         #[wasm_export(param_description = "Previously serialized state string")] serialized: String,
         #[wasm_export(param_description = "Optional callback for future state changes")]
         state_update_callback: Option<js_sys::Function>,
+        #[wasm_export(
+            js_name = "additionalConfigs",
+            param_description = "Optional additional YAML configuration strings to merge with the dotrain frontmatter"
+        )]
+        additional_configs: Option<Vec<String>>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
@@ -230,13 +242,18 @@ impl DotrainOrderGui {
         let mut bytes = Vec::new();
         decoder.read_to_end(&mut bytes)?;
 
-        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(dotrain.clone())?;
+        let additional_configs = additional_configs.unwrap_or_default();
+        let additional_configs_option =
+            (!additional_configs.is_empty()).then(|| additional_configs.clone());
+        let original_dotrain_hash =
+            DotrainOrderGui::get_dotrain_hash(dotrain.clone(), additional_configs_option.clone())?;
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
 
         if original_dotrain_hash != state.dotrain_hash {
             return Err(GuiError::DotrainMismatch);
         }
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let dotrain_order =
+            DotrainOrder::create(dotrain.clone(), additional_configs_option.clone()).await?;
 
         let field_values = state
             .field_values
@@ -255,6 +272,7 @@ impl DotrainOrderGui {
             field_values,
             deposits,
             selected_deployment: state.selected_deployment.clone(),
+            additional_configs,
             state_update_callback,
         };
 
@@ -413,7 +431,7 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTWvCQBDN2tJS6EkKPRX6A7okm9XqCj14CE0RKgUpXnWzGsm6G5P1-0_4kyU6GzE4h3lv9r2dGabmnOMJcDxT0UxNMXFs3AESz6uafAQPnlMySx4AjU6Eore63XZeV89Q5XousBJmrbPE_nsDjI1JO64rNR_JWOem0_baTTdLOV5mcl84UJGRHR0Mwheg9cb_5lBJqI4eQR4UO7xTdG_r3i-tOZe42pWUAwhjqKr6peoz9gGUJnLXa03CYcvwUNM-_v5ZRIu80dzGAc8-Axb2ycrviuSv-_VqLyGk4AafmuJIpFJv50KZI9yAnizIAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21Q22rCQBDN2tJS6JMU-lToB3RJdpNSI_TBB4k3FEG8PMa4aMhmN8b1_hN-skRnIwbnYc6ZPWdnhikZ13gDnIZiFoo5JoaOJ0BiWUUTRfBgGTnT5AVQyYgJ-1G3x8776h2qlYwZFkxtZRrpf1-AC6WSqmlyGfh8IVeqWrEqv2aaBHid8mPmQFlGenR90PgAWnaGu1MhoTJ6BXmQ7fBto2ddt7t2ybjF3a4kH0BcFxVVmqvUdX-AepRPpptapzXZia0nRn983Ajryy52FAnoshk7Xt8_kKjnO_-f-hKMs0DhS1M8YwmX-5gJdQa-0NaiyAEAAA==";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
@@ -454,9 +472,10 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_new_from_state() {
-        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
-            .await
-            .unwrap();
+        let gui =
+            DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None, None)
+                .await
+                .unwrap();
 
         assert!(gui.is_select_token_set("token3".to_string()).unwrap());
         assert_eq!(gui.get_deposits().unwrap()[0].amount, "100");
@@ -499,6 +518,7 @@ mod tests {
             dotrain.to_string(),
             SERIALIZED_STATE.to_string(),
             None,
+            None,
         )
         .await
         .unwrap_err();
@@ -533,6 +553,7 @@ mod tests {
             get_yaml(),
             "some-deployment".to_string(),
             Some(callback_js.clone()),
+            None,
         )
         .await
         .unwrap();
