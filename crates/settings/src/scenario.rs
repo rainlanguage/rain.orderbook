@@ -11,8 +11,8 @@ use thiserror::Error;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_object};
 use yaml::{
-    context::Context, default_document, optional_hash, optional_string, require_hash,
-    require_string, FieldErrorKind, YamlError, YamlParsableHash,
+    context::Context, default_document, default_documents, optional_hash, optional_string,
+    require_hash, require_string, FieldErrorKind, YamlError, YamlParsableHash,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -21,6 +21,8 @@ use yaml::{
 pub struct ScenarioCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
+    #[serde(skip, default = "default_documents")]
+    pub documents: Arc<Vec<Arc<RwLock<StrictYaml>>>>,
     pub key: String,
     #[cfg_attr(
         target_family = "wasm",
@@ -180,6 +182,7 @@ impl ScenarioCfg {
             key.clone(),
             ScenarioCfg {
                 document: current_document.clone(),
+                documents: Arc::new(documents.clone()),
                 key: key.clone(),
                 bindings: bindings.clone(),
                 runs,
@@ -344,7 +347,7 @@ impl ScenarioCfg {
             }
         }
 
-        Self::parse_from_yaml(vec![self.document.clone()], &self.key, None)
+        Self::parse_from_yaml(self.documents.as_ref().clone(), &self.key, None)
     }
 }
 
@@ -405,7 +408,8 @@ impl YamlParsableHash for ScenarioCfg {
 impl Default for ScenarioCfg {
     fn default() -> Self {
         Self {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            document: default_document(),
+            documents: default_documents(),
             key: String::new(),
             bindings: HashMap::new(),
             runs: None,
