@@ -1,29 +1,83 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { readable, writable, type Writable } from 'svelte/store';
+
+const mockUseRegistry = vi.fn();
+
+vi.mock('$lib/providers/registry/useRegistry', () => ({
+	useRegistry: () => mockUseRegistry()
+}));
+
 import DeploymentsSection from '../lib/components/deployment/DeploymentsSection.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 describe('DeploymentsSection', () => {
+	type DeploymentResult = {
+		value?: Map<
+			string,
+			{
+				name: string;
+				description: string;
+				short_description?: string;
+			}
+		>;
+		error?: { msg?: string; readableMsg?: string };
+	};
+
+	type MockRegistry = {
+		getDeploymentDetails: Mock<[string], DeploymentResult>;
+	};
+
+	let registryStore: Writable<MockRegistry | null>;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
+		registryStore = writable<MockRegistry | null>(null);
+
+		mockUseRegistry.mockReturnValue({
+			registry: registryStore,
+			loading: writable(false),
+			error: writable<string | null>(null),
+			setRegistryUrl: vi.fn(),
+			registryUrl: writable(''),
+			isCustomRegistry: readable(false),
+			appendRegistryToHref: vi.fn((href: string) => href)
+		});
 	});
 
+	const setRegistry = (registry: MockRegistry) => {
+		registryStore.set(registry);
+	};
+
 	it('should render deployments when promise resolves', async () => {
-		// Create a promise that we can control
-		const mockDeployments = new Map([
+		const mockDeployments = new Map<string, { name: string; description: string }>([
 			[
 				'key1',
-				{ name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
+				{
+					name: 'Deployment 1',
+					description: 'Description 1'
+				}
 			],
-			['key2', { name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }]
+			[
+				'key2',
+				{
+					name: 'Deployment 2',
+					description: 'Description 2'
+				}
+			]
 		]);
-		(DotrainOrderGui.getDeploymentDetails as Mock).mockResolvedValue({ value: mockDeployments });
+
+		const getDeploymentDetails = vi.fn().mockReturnValue({ value: mockDeployments });
+
+		setRegistry({ getDeploymentDetails });
 
 		render(DeploymentsSection, {
 			props: {
-				dotrain: 'test-dotrain',
 				orderName: 'Test Strategy'
 			}
+		});
+
+		await waitFor(() => {
+			expect(getDeploymentDetails).toHaveBeenCalledWith('Test Strategy');
 		});
 
 		await waitFor(() => {
@@ -34,33 +88,47 @@ describe('DeploymentsSection', () => {
 
 	it('should handle error when fetching deployments fails', async () => {
 		const testErrorMessage = 'Test error message';
-		(DotrainOrderGui.getDeploymentDetails as Mock).mockReturnValue({
+		const getDeploymentDetails = vi.fn().mockReturnValue({
 			error: { msg: testErrorMessage }
 		});
 
+		setRegistry({ getDeploymentDetails });
+
 		render(DeploymentsSection, {
 			props: {
-				dotrain: 'test-dotrain',
 				orderName: 'Test Strategy'
 			}
 		});
 
+		await waitFor(() => {
+			expect(getDeploymentDetails).toHaveBeenCalledWith('Test Strategy');
+		});
+
+		expect(await screen.findByText('Error loading deployments:')).toBeInTheDocument();
 		const errorMessage = await screen.findByText(testErrorMessage);
 		expect(errorMessage).toBeInTheDocument();
 	});
 
-	it('should fetch deployments when dotrain prop changes', async () => {
+	it('should fetch deployments when orderName prop changes', async () => {
+		const getDeploymentDetails = vi.fn().mockReturnValue({ value: new Map() });
+		setRegistry({ getDeploymentDetails });
+
 		const { rerender } = render(DeploymentsSection, {
 			props: {
-				dotrain: '',
-				orderName: 'Test Strategy'
+				orderName: 'Initial Strategy'
 			}
 		});
 
-		expect(DotrainOrderGui.getDeploymentDetails).toHaveBeenCalledTimes(1);
+		await waitFor(() => {
+			expect(getDeploymentDetails).toHaveBeenCalledWith('Initial Strategy');
+		});
 
-		await rerender({ dotrain: 'new-dotrain', orderName: 'Test Strategy' });
+		await rerender({ orderName: 'Updated Strategy' });
 
-		expect(DotrainOrderGui.getDeploymentDetails).toHaveBeenCalledWith('new-dotrain');
+		await waitFor(() => {
+			expect(getDeploymentDetails).toHaveBeenCalledWith('Updated Strategy');
+		});
+
+		expect(getDeploymentDetails).toHaveBeenCalledTimes(2);
 	});
 });
