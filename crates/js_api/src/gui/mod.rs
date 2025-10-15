@@ -1314,7 +1314,10 @@ _ _: 0 0;
             .expect("frontmatter should contain networks section");
 
         let base_dotrain = format!("{base_frontmatter}---\n{rainlang}");
-        let additional_config = format!("networks:\n{remaining_frontmatter}");
+        let additional_config = format!(
+            "version: {}\nnetworks:\n{remaining_frontmatter}",
+            SpecVersion::current()
+        );
 
         (base_dotrain, additional_config)
     }
@@ -1387,7 +1390,7 @@ _ _: 0 0;
     async fn test_new_with_deployment_additional_configs() {
         let (base_dotrain, additional_config) = split_dotrain_for_additional_configs();
 
-        let mut gui = DotrainOrderGui::new_with_deployment(
+        let gui = DotrainOrderGui::new_with_deployment(
             base_dotrain,
             "some-deployment".to_string(),
             None,
