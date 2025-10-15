@@ -637,28 +637,32 @@ impl RaindexClient {
             .flat_map(|(chain_id, args)| args.iter().map(move |arg| (arg.name.clone(), *chain_id)))
             .collect();
 
-        let mut raindex_orders = Vec::with_capacity(orders.len());
-
-        for SgOrderWithSubgraphName {
-            order: sg_order,
-            subgraph_name,
-        } in orders
-        {
-            let chain_id = subgraph_to_chain.get(&subgraph_name).copied().ok_or(
-                RaindexError::SubgraphNotFound(
-                    subgraph_name.clone(),
-                    sg_order.order_hash.0.clone(),
-                ),
-            )?;
-            let mut order = RaindexOrder::try_from_sg_order(
-                Rc::clone(&raindex_client),
-                chain_id,
-                sg_order,
-                None,
-            )?;
-            order.fetch_dotrain_source().await?;
-            raindex_orders.push(order);
-        }
+        let order_futures = orders.into_iter().map(
+            |SgOrderWithSubgraphName {
+                 order: sg_order,
+                 subgraph_name,
+             }| {
+                let raindex_client = Rc::clone(&raindex_client);
+                let subgraph_to_chain = &subgraph_to_chain;
+                async move {
+                    let chain_id = subgraph_to_chain.get(&subgraph_name).copied().ok_or(
+                        RaindexError::SubgraphNotFound(
+                            subgraph_name.clone(),
+                            sg_order.order_hash.0.clone(),
+                        ),
+                    )?;
+                    let mut order = RaindexOrder::try_from_sg_order(
+                        Rc::clone(&raindex_client),
+                        chain_id,
+                        sg_order,
+                        None,
+                    )?;
+                    order.fetch_dotrain_source().await?;
+                    Ok::<_, RaindexError>(order)
+                }
+            },
+        );
+        let raindex_orders = futures::future::try_join_all(order_futures).await?;
 
         Ok(raindex_orders)
     }
