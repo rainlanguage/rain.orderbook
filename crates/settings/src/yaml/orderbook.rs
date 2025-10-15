@@ -1,4 +1,5 @@
 use super::{cache::Cache, ValidationConfig, *};
+use crate::local_db_manifest::LocalDbManifestUrl;
 use crate::{
     accounts::AccountCfg, metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg,
     remote_tokens::RemoteTokensCfg, sentry::Sentry, spec_version::SpecVersion,
@@ -14,6 +15,7 @@ use std::{
     fmt,
     sync::{Arc, RwLock},
 };
+use url::Url;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -349,6 +351,24 @@ impl OrderbookYaml {
         res.transpose()
     }
 
+    pub fn get_local_db_manifest_url(&self) -> Result<Option<Url>, YamlError> {
+        let raw_value = LocalDbManifestUrl::parse_from_yaml_optional(self.documents[0].clone())?;
+
+        match raw_value {
+            Some(value) => {
+                let url = Url::parse(&value).map_err(|error| YamlError::Field {
+                    kind: FieldErrorKind::InvalidValue {
+                        field: "local-db-manifest-url".to_string(),
+                        reason: error.to_string(),
+                    },
+                    location: "root".to_string(),
+                })?;
+                Ok(Some(url))
+            }
+            None => Ok(None),
+        }
+    }
+
     pub fn get_spec_version(&self) -> Result<String, YamlError> {
         let value = SpecVersion::parse_from_yaml(self.documents[0].clone())?;
         Ok(value)
@@ -425,6 +445,7 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::yaml::FieldErrorKind;
     use alloy::primitives::Address;
     use std::str::FromStr;
     use url::Url;
@@ -612,6 +633,46 @@ mod tests {
         assert_eq!(
             ob_yaml.get_account("user").unwrap().address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
+        );
+    }
+
+    #[test]
+    fn local_db_manifest_url_returns_some() {
+        let yaml = r#"
+local-db-manifest-url: https://example.com/local_db.sql.gz
+"#;
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default())
+                .expect("yaml parses");
+
+        let url = ob_yaml
+            .get_local_db_manifest_url()
+            .expect("url parsed")
+            .expect("url present");
+        assert_eq!(url.as_str(), "https://example.com/local_db.sql.gz");
+    }
+
+    #[test]
+    fn local_db_manifest_url_invalid() {
+        let yaml = r#"
+local-db-manifest-url: "::invalid::"
+"#;
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default())
+                .expect("yaml parses");
+
+        let err = ob_yaml
+            .get_local_db_manifest_url()
+            .expect_err("should error");
+        assert_eq!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "local-db-manifest-url".to_string(),
+                    reason: "relative URL without a base".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
     }
 

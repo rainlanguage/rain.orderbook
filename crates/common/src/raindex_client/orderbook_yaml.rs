@@ -3,6 +3,7 @@ use rain_orderbook_app_settings::{
     accounts::AccountCfg, network::NetworkCfg, orderbook::OrderbookCfg,
 };
 use std::collections::{HashMap, HashSet};
+use url::Url;
 
 #[wasm_export]
 impl RaindexClient {
@@ -149,6 +150,22 @@ impl RaindexClient {
         Ok(sentry.unwrap_or(false))
     }
 
+    /// Retrieves the configured local database manifest URL, if present
+    ///
+    /// Returns the URL that should be used when downloading the local database
+    /// schema dump. `undefined` indicates the configuration omits this field.
+    #[wasm_export(
+        js_name = "getLocalDbManifestUrl",
+        return_description = "Returns the configured URL for the local DB manifest, or undefined when not provided.",
+        unchecked_return_type = "string | undefined"
+    )]
+    pub fn get_local_db_manifest_url_wasm(&self) -> Result<Option<String>, RaindexError> {
+        Ok(self
+            .orderbook_yaml
+            .get_local_db_manifest_url()?
+            .map(|url| url.to_string()))
+    }
+
     /// Retrieves all accounts from the orderbook YAML configuration
     ///
     /// Returns a map of account configurations where the keys are account names
@@ -179,6 +196,10 @@ impl RaindexClient {
 impl RaindexClient {
     pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, RaindexError> {
         Ok(self.orderbook_yaml.get_orderbook_by_address(address)?)
+    }
+
+    pub fn get_local_db_manifest_url(&self) -> Result<Option<Url>, RaindexError> {
+        Ok(self.orderbook_yaml.get_local_db_manifest_url()?)
     }
 }
 

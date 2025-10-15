@@ -22,9 +22,8 @@ use std::{
     pin::Pin,
     str::FromStr,
 };
+use url::Url;
 use wasm_bindgen_utils::{prelude::*, wasm_export};
-
-const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/3d6deafeaa52525d56d89641c0cb3c997923ad21/local_db.sql.gz";
 
 type DbFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, LocalDbQueryError>> + 'a>>;
 type LocalDbFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, LocalDbError>> + 'a>>;
@@ -208,15 +207,14 @@ async fn check_required_tables(db: &impl DatabaseBridge) -> Result<bool, LocalDb
     Ok(has_all_tables)
 }
 
-async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
+async fn download_and_decompress_dump(manifest_url: &Url) -> Result<String, LocalDbError> {
     let client = Client::new();
-    let response = client.get(DUMP_URL).send().await?;
+    let response = client.get(manifest_url.as_str()).send().await?;
 
     if !response.status().is_success() {
-        return Err(LocalDbError::CustomError(format!(
-            "Failed to download dump, status: {}",
-            response.status()
-        )));
+        return Err(LocalDbError::HttpStatus {
+            status: response.status().as_u16(),
+        });
     }
     let response = response.bytes().await?.to_vec();
 
@@ -255,6 +253,15 @@ async fn sync_database_with_services(
 ) -> Result<(), LocalDbError> {
     status.send("Starting database sync...".to_string())?;
 
+    let manifest_url = client
+        .get_local_db_manifest_url()
+        .map_err(|error| LocalDbError::Config {
+            message: format!("Failed to load local-db-manifest-url: {}", error),
+        })?
+        .ok_or_else(|| LocalDbError::Config {
+            message: "Missing required field 'local-db-manifest-url' in orderbook YAML".to_string(),
+        })?;
+
     let has_tables = check_required_tables(db)
         .await
         .map_err(LocalDbError::TableCheckFailed)?;
@@ -263,7 +270,7 @@ async fn sync_database_with_services(
 
     if !has_tables {
         status.send("Initializing database tables and importing data...".to_string())?;
-        let dump_sql = download_and_decompress_dump().await?;
+        let dump_sql = download_and_decompress_dump(&manifest_url).await?;
         db.execute_query_text(dump_sql)
             .await
             .map_err(LocalDbError::from)?;
@@ -880,6 +887,46 @@ mod tests {
             assert_eq!(msgs[0], "Starting database sync...");
             assert_eq!(msgs[1], "has tables: true");
             assert_eq!(msgs[2], "Last synced block: 0");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_sync_missing_manifest_url() {
+            let yaml_with_manifest = crate::raindex_client::tests::get_test_yaml(
+                "http://localhost:3000/sg1",
+                "http://localhost:3000/sg2",
+                "http://localhost:3000/rpc1",
+                "http://localhost:3000/rpc2",
+            );
+            let yaml_without_manifest = yaml_with_manifest.replace(
+                "local-db-manifest-url: https://example.com/local_db.sql.gz\n",
+                "",
+            );
+
+            let client = RaindexClient::new(vec![yaml_without_manifest], None).unwrap();
+
+            let tables_json = make_tables_json();
+            let db_callback = create_dispatching_db_callback(&tables_json, "[]");
+            let (status_callback, captured) = create_status_collector();
+
+            let err = client
+                .sync_database(db_callback, status_callback, 1)
+                .await
+                .expect_err("expected configuration error");
+
+            match err {
+                LocalDbError::Config { message } => {
+                    assert!(
+                        message.contains("local-db-manifest-url"),
+                        "unexpected message: {message}"
+                    );
+                }
+                other => panic!("expected LocalDbError::Config, got {other:?}"),
+            }
+
+            // We fail before sending extra status updates beyond the initial message
+            let msgs = captured.borrow();
+            assert_eq!(msgs.len(), 1);
+            assert_eq!(msgs[0], "Starting database sync...");
         }
 
         #[wasm_bindgen_test]
