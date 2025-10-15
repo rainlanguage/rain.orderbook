@@ -40,14 +40,6 @@ impl DeploymentCfg {
                 {
                     return require_string(deployment_yaml, Some("order"), None);
                 }
-            } else {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "deployments".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root".to_string(),
-                });
             }
         }
         Err(YamlError::Field {

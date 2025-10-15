@@ -410,18 +410,12 @@ impl OrderCfg {
                                         },
                                     ));
                                 }
+                            } else {
+                                network_key = Some(key);
                             }
                         }
                     }
                 }
-            } else {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "orders".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root".to_string(),
-                });
             }
         }
 

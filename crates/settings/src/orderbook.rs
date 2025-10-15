@@ -60,14 +60,6 @@ impl OrderbookCfg {
                     return require_string(orderbook_yaml, Some("network"), None)
                         .or_else(|_| Ok(orderbook_key.to_string()));
                 }
-            } else {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "orderbooks".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root".to_string(),
-                });
             }
         }
         Err(YamlError::Field {
