@@ -1073,6 +1073,7 @@ mod tests {
         };
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            documents: Arc::new(Vec::new()),
             key: "scenario1".into(),
             bindings: HashMap::new(),
             deployer: mock_deployer(),
