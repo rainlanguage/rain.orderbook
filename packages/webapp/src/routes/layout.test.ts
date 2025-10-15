@@ -41,7 +41,9 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 		cachedWritableStore: vi.fn(),
 		WalletProvider: MockComponent,
 		ToastProvider: MockComponent,
-		FixedBottomTransaction: MockComponent
+		FixedBottomTransaction: MockComponent,
+		RaindexClientProvider: MockComponent,
+		RegistryProvider: MockComponent
 	};
 });
 
