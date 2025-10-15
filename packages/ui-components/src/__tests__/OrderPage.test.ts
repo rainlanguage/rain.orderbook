@@ -1,39 +1,94 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
+import { writable, type Writable } from 'svelte/store';
 import OrderPage from '../lib/components/deployment/OrderPage.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
-import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook';
 
-// Mock fetch
+type RegistryResult = {
+	value?: Map<string, NameAndDescriptionCfg>;
+	error?: { msg?: string; readableMsg?: string };
+};
+
+type MockRegistry = {
+	getAllOrderDetails: () => RegistryResult;
+};
+
+type MockRegistryContext = {
+	registry: Writable<MockRegistry | null>;
+	loading: Writable<boolean>;
+	error: Writable<string | null>;
+	registryUrl: Writable<string>;
+	isCustomRegistry: Writable<boolean>;
+	setRegistryUrl: (url: string) => void;
+	appendRegistryToHref: (href: string) => string;
+};
+
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
+
+const createMockRegistryContext = (): MockRegistryContext => {
+	const registry = writable<MockRegistry | null>(null);
+	const loading = writable(false);
+	const providerError = writable<string | null>(null);
+	const registryUrl = writable('');
+	const isCustomRegistry = writable(false);
+	const setRegistryUrl = vi.fn();
+	const appendRegistryToHref = vi.fn((href: string) => href);
+
+	return {
+		registry,
+		loading,
+		error: providerError,
+		registryUrl,
+		isCustomRegistry,
+		setRegistryUrl,
+		appendRegistryToHref
+	};
+};
+
+let mockRegistryContext: MockRegistryContext = createMockRegistryContext();
+
+vi.mock('$lib/providers/registry/useRegistry', () => ({
+	useRegistry: () => mockRegistryContext
+}));
 
 vi.mock('../lib/components/deployment/DeploymentsSection.svelte', async () => {
 	const MockDeploymentsSection = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return { default: MockDeploymentsSection };
 });
 
+const createRegistryWithDetails = (orderName: string, details: NameAndDescriptionCfg): MockRegistry => {
+	return {
+		getAllOrderDetails: () => ({
+			value: new Map([[orderName, details]])
+		})
+	};
+};
+
+const createRegistryWithError = (errorMessage: string): MockRegistry => ({
+	getAllOrderDetails: () => ({
+		error: { msg: errorMessage }
+	})
+});
+
 describe('OrderPage', () => {
 	beforeEach(() => {
+		mockRegistryContext = createMockRegistryContext();
 		vi.clearAllMocks();
-		vi.resetAllMocks();
+		mockFetch.mockReset();
 	});
 
-	it('renders order details successfully with rawDotrain', async () => {
-		const mockDotrain = 'mock dotrain content';
-		const mockOrderDetails = {
-			value: {
+	it('renders order details when registry returns data', async () => {
+		const orderName = 'TestOrder';
+		mockRegistryContext.registry.set(
+			createRegistryWithDetails(orderName, {
 				name: 'Test Order',
 				description: 'Test Description',
 				short_description: 'Test Short Description'
-			}
-		};
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
+			})
+		);
 
-		render(OrderPage, {
-			props: {
-				dotrain: mockDotrain
-			}
-		});
+		render(OrderPage, { props: { orderName } });
 
 		await waitFor(() => {
 			expect(screen.getByText('Test Order')).toBeInTheDocument();
@@ -41,109 +96,64 @@ describe('OrderPage', () => {
 		});
 	});
 
-	it('renders order details successfully from fetch', async () => {
-		const mockDotrain = 'mock dotrain content';
-		const mockOrderDetails = {
-			value: {
-				name: 'Test Order',
-				description: 'Test Description',
-				short_description: 'Test Short Description'
-			}
-		};
+	it('displays provider error message when registry fails to initialize', async () => {
+		mockRegistryContext.error.set('Provider failure');
 
-		mockFetch.mockResolvedValueOnce({
-			text: () => Promise.resolve(mockDotrain)
-		});
-
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
-
-		render(OrderPage, {
-			props: {
-				orderName: 'TestOrder',
-				dotrain: mockDotrain
-			}
-		});
+		render(OrderPage, { props: { orderName: 'AnyOrder' } });
 
 		await waitFor(() => {
-			expect(screen.getByText('Test Order')).toBeInTheDocument();
-			expect(screen.getByText('Test Description')).toBeInTheDocument();
+			expect(
+				screen.getByText('Failed to initialize registry: Provider failure')
+			).toBeInTheDocument();
 		});
 	});
 
-	it('displays error message when order details fail', async () => {
-		const mockDotrain = 'mock dotrain content';
+	it('displays error message when registry returns an error response', async () => {
+		const orderName = 'TestOrder';
+		mockRegistryContext.registry.set(createRegistryWithError('Failed to get order details'));
 
-		// Mock fetch response
-		mockFetch.mockResolvedValueOnce({
-			text: () => Promise.resolve(mockDotrain)
-		});
-
-		// Mock DotrainOrderGui methods
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce({
-			error: {
-				msg: 'Failed to get order details'
-			}
-		});
-
-		render(OrderPage, {
-			props: {
-				orderName: 'TestOrder',
-				dotrain: mockDotrain
-			}
-		});
+		render(OrderPage, { props: { orderName } });
 
 		await waitFor(() => {
 			expect(screen.getByText('Error: Failed to get order details')).toBeInTheDocument();
 		});
 	});
 
-	it('handles markdown fetch failure', async () => {
-		const mockDotrain = 'mock dotrain content';
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce({
-			value: {
+	it('handles markdown fetch failure by showing an error message', async () => {
+		const orderName = 'TestOrder';
+		mockRegistryContext.registry.set(
+			createRegistryWithDetails(orderName, {
 				name: 'Test Order',
 				description: 'https://example.com/description.md',
 				short_description: 'Test Short Description'
-			}
-		});
-		// Mock fetch to reject
+			})
+		);
+
 		mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
-		render(OrderPage, {
-			props: {
-				orderName: 'TestOrder',
-				dotrain: mockDotrain
-			}
-		});
+		render(OrderPage, { props: { orderName } });
 
 		await waitFor(() => {
 			expect(screen.getByText('Failed to fetch markdown')).toBeInTheDocument();
 		});
 	});
 
-	it('renders markdown if description is a markdown url', async () => {
-		const mockDotrain = 'mock dotrain content';
-		const mockOrderDetails = {
-			value: {
+	it('renders markdown when description is a markdown URL', async () => {
+		const orderName = 'TestOrder';
+		mockRegistryContext.registry.set(
+			createRegistryWithDetails(orderName, {
 				name: 'Test Order',
 				description: 'https://example.com/description.md',
 				short_description: 'Test Short Description'
-			}
-		};
+			})
+		);
 
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			text: () => Promise.resolve('mock markdown content')
 		});
 
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
-
-		render(OrderPage, {
-			props: {
-				orderName: 'TestOrder',
-				dotrain: mockDotrain
-			}
-		});
+		render(OrderPage, { props: { orderName } });
 
 		await waitFor(() => {
 			expect(screen.getByText('Test Order')).toBeInTheDocument();
@@ -152,29 +162,22 @@ describe('OrderPage', () => {
 		});
 	});
 
-	it('falls back to plain text when markdown fetch fails', async () => {
-		const mockDotrain = 'mock dotrain content';
-		const mockOrderDetails = {
-			value: {
+	it('falls back to plain text when markdown fetch response is not ok', async () => {
+		const orderName = 'TestOrder';
+		mockRegistryContext.registry.set(
+			createRegistryWithDetails(orderName, {
 				name: 'Test Order',
 				description: 'https://example.com/description.md',
 				short_description: 'Test Short Description'
-			}
-		};
+			})
+		);
 
 		mockFetch.mockResolvedValueOnce({
 			ok: false,
 			statusText: 'Not Found'
 		});
 
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
-
-		render(OrderPage, {
-			props: {
-				orderName: 'TestOrder',
-				dotrain: mockDotrain
-			}
-		});
+		render(OrderPage, { props: { orderName } });
 
 		await waitFor(() => {
 			expect(screen.getByText('Test Order')).toBeInTheDocument();
