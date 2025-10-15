@@ -61,6 +61,7 @@ wasm-bindgen-utils = { git = "https://github.com/rainlanguage/rain.wasm", rev = 
 tempfile = "3.20.0"
 eyre = "0.6.12"
 tower = "0.5.2"
+getrandom = { version = "0.2", features = ["js"] }
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"

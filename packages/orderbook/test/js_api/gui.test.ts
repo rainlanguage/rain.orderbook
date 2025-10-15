@@ -137,7 +137,7 @@ gui:
 `;
 
 const dotrain = `
-version: 2
+version: 3
 networks:
     some-network:
         rpcs:
@@ -161,6 +161,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -215,7 +216,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 2
+version: 3
 networks:
     some-network:
         rpcs:
@@ -239,6 +240,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -286,7 +288,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 2
+version: 3
 networks:
     some-network:
         rpcs:
@@ -310,6 +312,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 scenarios:
     some-scenario:
@@ -342,7 +345,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
-version: 2
+version: 3
 gui:
   name: Test
   description: Fixed limit order
@@ -394,10 +397,12 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: remote-network
         subgraph: some-sg
+        deployment-block: 12345
     other-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
+        deployment-block: 12345
 using-tokens-from:
   - http://localhost:8085/remote-tokens
 tokens:
@@ -963,7 +968,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QwUrEMBBtqiiIBxGvguDV2DS0Wpf1uLAqVoQgXrvduC3NJt00dVn9CI9e_YHFL_Dqze8Rb1KcuBZ3DnmTeW-SN4Ocn9gENLwyeJDLYS5HCGrE2fjL3iei5i5U1iyjCi59x8YqYEgOj1oS-itZAfQJQcseo-2bNVipMceSm6nShe3bBcyMKTueJ1SaiExVphORKPR0meJai8dGgZoT2a97rL8D6VP3c77_0Z2_PYevX7cuPXl_SdE2WgeaNR72KLJjM-o6i2gvAVlbPvo304I7gCTqqYer4iLHl0lwM7g-m-E4PjZ5oRPRrxWbBOd3Qcz4RE1Hp1vQo0zGNR7yUqjZmEvzDRNe8SnFAQAA';
+			'H4sIAAAAAAAA_21QsU7DMBDNBQQSYkCIFQmJFRPHUqpSlYUKEamMiUjHNjWkqmsbxy2lfAQjKz9Q8QWsbHwPYkMRZ0oEN_id772z3x1437GNaHlpyWAkhyN5A1ij3tZvdtYXU-5jZcMxasxl6LlYR4zocaMmYT-SNcSQUvjvMVa_OYOlmnAiub1TZuz69hELa3UrCITK-6JQpW01aTMKjM7J1IiHSgHVCe7r8yTew_Sx_bE8fG8vX5-il8_MZydvzznswibSSeXhgIEbO2G-t4r6EsDZCuHPTCvuCBNCzUUcLrpJNu-Fl0pfDW67nc4s42zRI6WaX8eFznXjLE3T0x3sUbbghgy5Fup-wqX9AlyGsB3FAQAA';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1142,7 +1147,7 @@ ${dotrain}`;
 
 			let dotrain2 = `
       ${guiConfig2}
-      
+
       ${dotrain}
       `;
 			const result = await DotrainOrderGui.newWithDeployment(dotrain2, 'other-deployment');
@@ -1610,7 +1615,7 @@ ${dotrainWithoutVaultIds}`;
 
 			let testDotrain = `
           ${guiConfig2}
-          
+
           ${dotrainWithoutVaultIds}
           `;
 			let guiResult = await DotrainOrderGui.newWithDeployment(
@@ -2042,7 +2047,7 @@ ${dotrainWithoutVaultIds}`;
 					'0x1234567890abcdef1234567890abcdef12345678'
 				)
 			);
-			assert.equal(result.balance, BigInt(1000));
+			assert.equal(result.balance.toFixedDecimal(18).value, BigInt(1000));
 			assert.equal(result.formattedBalance, '0.000000000000001');
 		});
 	});

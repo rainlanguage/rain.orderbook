@@ -11,6 +11,7 @@ pub mod rainlang;
 pub mod remove_order;
 #[cfg(not(target_family = "wasm"))]
 pub mod replays;
+pub mod rpc_client;
 pub mod subgraph;
 pub mod transaction;
 pub mod types;

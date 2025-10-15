@@ -377,7 +377,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-vault-before() ",
-                depositAmount.toDecimalString(),
+                depositAmount.toDecimalString(9),
                 ") \"vault before\");"
             )
         );
@@ -385,7 +385,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-vault-after() ",
-                depositAmount.sub(withdrawAmount).toDecimalString(),
+                depositAmount.sub(withdrawAmount).toDecimalString(9),
                 ") \"balance after\");"
             )
         );
@@ -394,7 +394,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-target-amount() ",
-                LibFormatDecimalFloat.toDecimalString(targetAmount),
+                targetAmount.toDecimalString(9),
                 ") \"target amount\");"
             )
         );

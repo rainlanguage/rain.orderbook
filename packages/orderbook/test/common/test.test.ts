@@ -4,7 +4,7 @@ import { assert } from 'chai';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const dotrain = `
-version: 2
+version: 3
 networks:
     some-network:
         rpcs:
@@ -26,6 +26,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -90,6 +91,7 @@ _ _: 0 0;
 
 	it('should compose scenario to rainlang with config', async () => {
 		const config = `
+version: 3
 scenarios:
     config-scenario:
         network: some-network

@@ -11,7 +11,8 @@
 		type OrderIOCfg,
 		DotrainOrderGui,
 		RaindexClient,
-		AccountBalance
+		AccountBalance,
+		Float
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
@@ -129,7 +130,7 @@ async function _handleShareChoices() {
 
 		const balances = tokenBalances;
 		balances.set(tokenInfo.key, {
-			value: { balance: BigInt(0), formattedBalance: '0' } as AccountBalance,
+			value: { balance: Float.parse('0').value, formattedBalance: '0' } as AccountBalance,
 			loading: true,
 			error: ''
 		});
@@ -140,7 +141,7 @@ async function _handleShareChoices() {
 		);
 		if (error) {
 			balances.set(tokenInfo.key, {
-				value: { balance: BigInt(0), formattedBalance: '0' } as AccountBalance,
+				value: { balance: Float.parse('0').value, formattedBalance: '0' } as AccountBalance,
 				loading: false,
 				error: error.readableMsg
 			});
