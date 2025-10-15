@@ -11,6 +11,7 @@ import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import type { Account } from '$lib/types/account';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+import { useRegistry } from '$lib/providers/registry/useRegistry';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: vi.fn()
@@ -28,6 +29,10 @@ vi.mock('$lib/hooks/useRaindexClient', () => ({
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
+}));
+
+vi.mock('$lib/providers/registry/useRegistry', () => ({
+	useRegistry: vi.fn()
 }));
 
 type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -160,6 +165,16 @@ describe('DeploymentSteps', () => {
 		vi.mocked(useAccount).mockReturnValue({
 			account: writable(null),
 			matchesAccount: vi.fn()
+		});
+
+		vi.mocked(useRegistry).mockReturnValue({
+			registry: writable(null),
+			registryUrl: writable(''),
+			loading: writable(false),
+			error: writable(null),
+			isCustomRegistry: readable(false),
+			setRegistryUrl: vi.fn<(url: string) => void>(),
+			appendRegistryToHref: (href: string) => href
 		});
 	});
 
