@@ -4,6 +4,7 @@ pub mod chart;
 pub mod deployer;
 pub mod deployment;
 pub mod gui;
+pub mod local_db_manifest;
 pub mod metaboard;
 pub mod network;
 pub mod order;
