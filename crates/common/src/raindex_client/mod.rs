@@ -491,6 +491,7 @@ subgraphs:
 metaboards:
     mainnet: https://api.thegraph.com/subgraphs/name/xyz
     polygon: https://api.thegraph.com/subgraphs/name/polygon
+local-db-manifest-url: https://example.com/local_db.sql.gz
 orderbooks:
     mainnet-orderbook:
         address: 0x1234567890123456789012345678901234567890
