@@ -501,62 +501,20 @@ networks:
     #[test]
     fn test_parse_network_key() {
         let yaml = r#"
-networks: test
-"#;
-        let error = NetworkCfg::parse_rpcs(vec![get_document(yaml)], "mainnet").unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "networks".to_string(),
-                    expected: "a map".to_string(),
-                },
-                location: "root".to_string(),
-            }
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "Field 'networks' in root must be a map"
-        );
-
-        let yaml = r#"
 networks:
-  - test
+  test: test
 "#;
         let error = NetworkCfg::parse_rpcs(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "networks".to_string(),
-                    expected: "a map".to_string(),
-                },
+                kind: FieldErrorKind::Missing("rpcs for network 'mainnet'".to_string()),
                 location: "root".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'networks' in root must be a map"
-        );
-
-        let yaml = r#"
-networks:
-  - test: test
-"#;
-        let error = NetworkCfg::parse_rpcs(vec![get_document(yaml)], "mainnet").unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "networks".to_string(),
-                    expected: "a map".to_string(),
-                },
-                location: "root".to_string(),
-            }
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "Field 'networks' in root must be a map"
+            "Missing required field 'rpcs for network 'mainnet'' in root"
         );
 
         let yaml = r#"

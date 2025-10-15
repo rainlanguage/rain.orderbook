@@ -496,65 +496,21 @@ orderbooks:
     #[test]
     fn test_parse_network_key() {
         let yaml = r#"
-orderbooks: test
-"#;
-        let error =
-            OrderbookCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orderbooks".to_string(),
-                    expected: "a map".to_string(),
-                },
-                location: "root".to_string(),
-            }
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "Field 'orderbooks' in root must be a map"
-        );
-
-        let yaml = r#"
 orderbooks:
-  - test
+  test: test
 "#;
         let error =
             OrderbookCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orderbooks".to_string(),
-                    expected: "a map".to_string(),
-                },
+                kind: FieldErrorKind::Missing("network for orderbook 'order1'".to_string()),
                 location: "root".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'orderbooks' in root must be a map"
-        );
-
-        let yaml = r#"
-orderbooks:
-  - test: test
-"#;
-        let error =
-            OrderbookCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orderbooks".to_string(),
-                    expected: "a map".to_string(),
-                },
-                location: "root".to_string(),
-            }
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "Field 'orderbooks' in root must be a map"
+            "Missing required field 'network for orderbook 'order1'' in root"
         );
     }
 

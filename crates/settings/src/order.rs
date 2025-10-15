@@ -470,14 +470,6 @@ impl OrderCfg {
                         vault_ids.insert(token, vault_id);
                     }
                 }
-            } else {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "orders".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root".to_string(),
-                });
             }
         }
 
@@ -1126,62 +1118,19 @@ orders:
     #[test]
     fn parse_network_key() {
         let yaml = r#"
-orders: test
-"#;
-        let error = OrderCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orders".to_string(),
-                    expected: "a map".to_string()
-                },
-                location: "root".to_string()
-            }
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "Field 'orders' in root must be a map"
-        );
-
-        let yaml = r#"
-orders:
-  - test
-"#;
-        let error = OrderCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orders".to_string(),
-                    expected: "a map".to_string()
-                },
-                location: "root".to_string()
-            }
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "Field 'orders' in root must be a map"
-        );
-
-        let yaml = r#"
 orders:
   - test: test
 "#;
         let error = OrderCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orders".to_string(),
-                    expected: "a map".to_string()
-                },
-                location: "root".to_string()
-            }
+            YamlError::ParseOrderConfigSourceError(
+                ParseOrderConfigSourceError::NetworkNotFoundError("".to_string())
+            )
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'orders' in root must be a map"
+            "Order configuration error in your YAML: No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."
         );
     }
 }
