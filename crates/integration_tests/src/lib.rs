@@ -93,7 +93,7 @@ amount price: get("amount") 52;
             .dotrain_yaml()
             .get_deployment("some-key")
             .unwrap();
-        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
             .await
             .unwrap()
             .try_into_call(vec![local_evm.url()])
@@ -205,7 +205,7 @@ amount price: get("amount") 52;
             .dotrain_yaml()
             .get_deployment("some-key")
             .unwrap();
-        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
             .await
             .unwrap()
             .try_into_call(vec![local_evm.url()])

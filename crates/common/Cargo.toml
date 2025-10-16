@@ -45,6 +45,7 @@ wasm-bindgen-utils = { workspace = true }
 eyre.workspace = true
 rain-math-float.workspace = true
 tower.workspace = true
+getrandom = { workspace = true }
 backon = "0.4.4"
 flate2 = "1.0.34"
 itertools = { workspace = true }

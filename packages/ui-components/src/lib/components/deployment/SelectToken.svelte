@@ -30,6 +30,9 @@
 				throw new Error(result.error.msg);
 			}
 			tokenInfo = result.value;
+			if (selectionMode === 'dropdown') {
+				selectedToken = result.value;
+			}
 			if (result.value.address) {
 				inputValue = result.value.address;
 				onSelectTokenSelect(token.key);
@@ -90,6 +93,9 @@
 				throw new Error(result.error.msg);
 			}
 			tokenInfo = result.value;
+			if (selectionMode === 'dropdown') {
+				selectedToken = result.value;
+			}
 			error = '';
 		} catch {
 			return (error = 'No token exists at this address.');

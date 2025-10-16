@@ -76,7 +76,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: orderDetailQuery = createQuery<RaindexOrder>({
-		queryKey: [orderHash, QKEY_ORDER + orderHash],
+		queryKey: [orderHash, QKEY_ORDER],
 		queryFn: async () => {
 			const result = await raindexClient.getOrderByHash(chainId, orderbookAddress, orderHash);
 			if (result.error) throw new Error(result.error.readableMsg);
@@ -255,16 +255,39 @@
 			contentClass="mt-4"
 			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4 list-none"
 		>
-			<TabItem title="Rainlang source">
+			{#if data.dotrainSource}
+				<TabItem title="Dotrain">
+					<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
+						<CodeMirrorRainlang
+							rainlangText={data.dotrainSource}
+							codeMirrorTheme={$codeMirrorTheme}
+							{codeMirrorDisabled}
+							{codeMirrorStyles}
+						></CodeMirrorRainlang>
+					</div>
+				</TabItem>
+			{/if}
+			<TabItem title="On-chain Rainlang">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
 					<CodeMirrorRainlang
-						order={data}
+						rainlangText={data.rainlang}
 						codeMirrorTheme={$codeMirrorTheme}
 						{codeMirrorDisabled}
 						{codeMirrorStyles}
 					></CodeMirrorRainlang>
 				</div>
 			</TabItem>
+			{#if data.dotrainGuiState}
+				<TabItem title="Gui State">
+					<div class="mb-4">
+						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+							<pre class="text-sm" data-testid="gui-state-json">
+							    {JSON.stringify(JSON.parse(data.dotrainGuiState), null, 2)}
+							</pre>
+						</div>
+					</div>
+				</TabItem>
+			{/if}
 			<TabItem open title="Trades">
 				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcs} />
 			</TabItem>

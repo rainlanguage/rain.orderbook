@@ -9,13 +9,16 @@
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 
 	let dropdownOptions: Record<string, string> = {};
+	let validChainIds: number[] = [];
 	$: {
 		const uniqueChainIds = raindexClient.getUniqueChainIds();
 		if (uniqueChainIds.error) {
 			dropdownOptions = {};
+			validChainIds = [];
 		} else {
+			validChainIds = uniqueChainIds.value;
 			dropdownOptions = Object.fromEntries(
-				uniqueChainIds.value.map((chainId) => [
+				validChainIds.map((chainId) => [
 					String(chainId),
 					getNetworkName(chainId) ?? `Chain ${chainId}`
 				])
@@ -23,8 +26,17 @@
 		}
 	}
 
+	$: {
+		const filtered = $selectedChainIds.filter((chainId) => validChainIds.includes(chainId));
+		if (filtered.length !== $selectedChainIds.length) {
+			selectedChainIds.set(filtered);
+		}
+	}
+
 	function handleStatusChange(event: CustomEvent<Record<string, string>>) {
-		const chainIds = Object.keys(event.detail).map(Number);
+		const chainIds = Object.keys(event.detail)
+			.map(Number)
+			.filter((chainId) => validChainIds.includes(chainId));
 		selectedChainIds.set(chainIds);
 	}
 
