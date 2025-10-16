@@ -23,10 +23,7 @@ pub use rain_interpreter_eval::trace::{RainEvalResult, RainEvalResults, TraceSea
 use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs};
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
-use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::dotrain::DotrainYamlValidation;
-use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
-use rain_orderbook_app_settings::yaml::orderbook::OrderbookYamlValidation;
 use rain_orderbook_app_settings::{
     order::OrderIOCfg,
     yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
@@ -130,20 +127,7 @@ impl FuzzRunnerContext {
             .unwrap_or("")
             .to_string();
 
-        let frontmatter_source = vec![frontmatter.clone()];
-        let frontmatter_orderbook_yaml = OrderbookYaml::new(
-            frontmatter_source.clone(),
-            OrderbookYamlValidation::default(),
-        )?;
-        let spec_version = frontmatter_orderbook_yaml.get_spec_version()?;
-        if !SpecVersion::is_current(&spec_version) {
-            return Err(FuzzRunnerError::SpecVersionMismatch(
-                SpecVersion::current().to_string(),
-                spec_version.to_string(),
-            ));
-        }
-
-        let mut sources = frontmatter_source;
+        let mut sources = vec![frontmatter.clone()];
         if let Some(settings) = settings {
             sources.push(settings);
         }
@@ -741,7 +725,7 @@ impl FuzzRunner {
 mod tests {
     use super::*;
     use alloy::providers::{ext::AnvilApi, Provider};
-    use rain_orderbook_app_settings::yaml::FieldErrorKind;
+    use rain_orderbook_app_settings::{spec_version::SpecVersion, yaml::FieldErrorKind};
     use rain_orderbook_test_fixtures::LocalEvm;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
