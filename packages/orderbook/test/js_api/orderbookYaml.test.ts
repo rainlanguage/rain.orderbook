@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { OrderbookYaml, OrderbookCfg, WasmEncodedResult } from '../../dist/cjs';
 
 const YAML_WITHOUT_ORDERBOOK = `
+version: 3
+
 networks:
     some-network:
         rpcs:
