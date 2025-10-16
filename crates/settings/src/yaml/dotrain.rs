@@ -38,6 +38,9 @@ impl DotrainYamlValidation {
     }
 }
 impl ValidationConfig for DotrainYamlValidation {
+    fn should_validate_version(&self) -> bool {
+        false
+    }
     fn should_validate_networks(&self) -> bool {
         false
     }

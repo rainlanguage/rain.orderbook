@@ -29,6 +29,7 @@ impl_wasm_traits!(OrderbookYaml);
 
 #[derive(Debug, Clone, Default)]
 pub struct OrderbookYamlValidation {
+    pub version: bool,
     pub networks: bool,
     pub remote_networks: bool,
     pub tokens: bool,
@@ -41,6 +42,7 @@ pub struct OrderbookYamlValidation {
 impl OrderbookYamlValidation {
     pub fn full() -> Self {
         OrderbookYamlValidation {
+            version: true,
             networks: true,
             remote_networks: true,
             tokens: true,
@@ -53,6 +55,9 @@ impl OrderbookYamlValidation {
     }
 }
 impl ValidationConfig for OrderbookYamlValidation {
+    fn should_validate_version(&self) -> bool {
+        self.version
+    }
     fn should_validate_networks(&self) -> bool {
         self.networks
     }
@@ -105,6 +110,22 @@ impl YamlParsable for OrderbookYaml {
             documents.push(document);
         }
 
+        if validate.should_validate_version() {
+            let version = SpecVersion::parse_from_yaml(documents.clone())?;
+            if !SpecVersion::is_current(&version) {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidValue {
+                        field: "version".to_string(),
+                        reason: format!(
+                            "spec version mismatch: expected '{}', found '{}'",
+                            SpecVersion::current(),
+                            version
+                        ),
+                    },
+                    location: "root".to_string(),
+                });
+            }
+        }
         if validate.should_validate_networks() {
             NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
         }

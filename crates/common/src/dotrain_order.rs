@@ -304,16 +304,13 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
-        let mut orderbook_yaml =
-            OrderbookYaml::new(sources.clone(), OrderbookYamlValidation::default())?;
-        let spec_version = orderbook_yaml.get_spec_version()?;
-        if !SpecVersion::is_current(&spec_version) {
-            return Err(DotrainOrderError::SpecVersionMismatch(
-                SpecVersion::current().to_string(),
-                spec_version.to_string(),
-            ));
-        }
-
+        let mut orderbook_yaml = OrderbookYaml::new(
+            sources.clone(),
+            OrderbookYamlValidation {
+                version: true,
+                ..OrderbookYamlValidation::default()
+            },
+        )?;
         let mut dotrain_yaml = DotrainYaml::new(sources.clone(), DotrainYamlValidation::default())?;
 
         let remote_networks =
@@ -1403,13 +1400,12 @@ _ _: 0 0;
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            DotrainOrderError::SpecVersionMismatch(
-                ref expected,
-                ref got
-            ) if expected == &SpecVersion::current() && got == "2"
-        ));
+        assert!(
+            matches!(err, DotrainOrderError::YamlError(YamlError::Field {
+            kind: FieldErrorKind::InvalidValue { field, .. },
+            location,
+        }) if field == "version" && location == "root")
+        );
     }
 
     #[tokio::test]

@@ -24,6 +24,8 @@ use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs};
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
 use rain_orderbook_app_settings::yaml::dotrain::DotrainYamlValidation;
+use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
+use rain_orderbook_app_settings::yaml::orderbook::OrderbookYamlValidation;
 use rain_orderbook_app_settings::{
     order::OrderIOCfg,
     yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
@@ -132,6 +134,13 @@ impl FuzzRunnerContext {
             sources.push(settings);
         }
 
+        let _ = OrderbookYaml::new(
+            sources.clone(),
+            OrderbookYamlValidation {
+                version: true,
+                ..OrderbookYamlValidation::default()
+            },
+        )?;
         let dotrain_yaml = DotrainYaml::new(sources, DotrainYamlValidation::default())?;
 
         Ok(FuzzRunnerContext {
@@ -791,11 +800,10 @@ b: fuzzed;
 #handle-add-order
 :;"#;
         let err = FuzzRunnerContext::new(dotrain, None, None).unwrap_err();
-        assert!(matches!(
-            err,
-            FuzzRunnerError::SpecVersionMismatch(ref expected, ref actual)
-                if expected == "3" && actual == "2"
-        ));
+        assert!(matches!(err, FuzzRunnerError::YamlError(YamlError::Field {
+            kind: FieldErrorKind::InvalidValue { field, .. },
+            location,
+        }) if field == "version" && location == "root"));
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
