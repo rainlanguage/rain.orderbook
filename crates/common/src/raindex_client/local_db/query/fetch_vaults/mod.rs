@@ -6,28 +6,16 @@ const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Default)]
 pub struct FetchVaultsArgs {
-    pub owners: Vec<String>,
-    pub tokens: Vec<String>,
+    pub owners: Vec<Address>,
+    pub tokens: Vec<Address>,
     pub hide_zero_balance: bool,
 }
 
 impl From<GetVaultsFilters> for FetchVaultsArgs {
     fn from(filters: GetVaultsFilters) -> Self {
-        let owners = filters
-            .owners
-            .into_iter()
-            .map(|owner| owner.to_string().to_lowercase())
-            .collect();
-        let tokens = filters
-            .tokens
-            .unwrap_or_default()
-            .into_iter()
-            .map(|token| token.to_string().to_lowercase())
-            .collect();
-
         FetchVaultsArgs {
-            owners,
-            tokens,
+            owners: filters.owners,
+            tokens: filters.tokens.unwrap_or_default(),
             hide_zero_balance: filters.hide_zero_balance,
         }
     }
@@ -45,17 +33,11 @@ impl LocalDbQuery {
             hide_zero_balance,
         } = args;
 
-        let sanitize_literal = |value: &str| value.replace('\'', "''");
-
         let owner_values: Vec<String> = owners
             .into_iter()
-            .filter_map(|owner| {
-                let trimmed = owner.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!("'{}'", sanitize_literal(trimmed)))
-                }
+            .map(|owner| {
+                let owner_lower = owner.to_string().to_lowercase();
+                format!("'{}'", owner_lower)
             })
             .collect();
         let filter_owners = if owner_values.is_empty() {
@@ -66,13 +48,9 @@ impl LocalDbQuery {
 
         let token_values: Vec<String> = tokens
             .into_iter()
-            .filter_map(|token| {
-                let trimmed = token.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!("'{}'", sanitize_literal(trimmed)))
-                }
+            .map(|token| {
+                let token_lower = token.to_string().to_lowercase();
+                format!("'{}'", token_lower)
             })
             .collect();
         let filter_tokens = if token_values.is_empty() {
@@ -108,6 +86,7 @@ impl LocalDbQuery {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
 
     #[cfg(target_family = "wasm")]
@@ -116,7 +95,8 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
-        use alloy::primitives::Address;
+        use alloy::primitives::{Address, U256};
+        use rain_math_float::Float;
         use std::cell::RefCell;
         use std::rc::Rc;
         use std::str::FromStr;
@@ -126,14 +106,17 @@ mod tests {
         async fn test_fetch_vaults_parses_data() {
             let vaults = vec![
                 LocalDbVault {
-                    vault_id: "0x01".into(),
-                    token: "0xaaa".into(),
-                    owner: "0x1111111111111111111111111111111111111111".into(),
-                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                    vault_id: U256::from(1),
+                    token: Address::from_str("0x0000000000000000000000000000000000000aaa").unwrap(),
+                    owner: Address::from_str("0x1111111111111111111111111111111111111111").unwrap(),
+                    orderbook_address: Address::from_str(
+                        "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                    )
+                    .unwrap(),
                     token_name: "Token A".into(),
                     token_symbol: "TA".into(),
                     token_decimals: 18,
-                    balance: "0x10".into(),
+                    balance: Float::parse("16".into()).unwrap(),
                     input_orders: Some(
                         "0x01:0xabc0000000000000000000000000000000000000000000000000000000000001:1"
                             .into(),
@@ -144,14 +127,17 @@ mod tests {
                     ),
                 },
                 LocalDbVault {
-                    vault_id: "0x02".into(),
-                    token: "0xbbb".into(),
-                    owner: "0x2222222222222222222222222222222222222222".into(),
-                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
+                    vault_id: U256::from(2),
+                    token: Address::from_str("0x0000000000000000000000000000000000000bbb").unwrap(),
+                    owner: Address::from_str("0x2222222222222222222222222222222222222222").unwrap(),
+                    orderbook_address: Address::from_str(
+                        "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                    )
+                    .unwrap(),
                     token_name: "Token B".into(),
                     token_symbol: "TB".into(),
                     token_decimals: 6,
-                    balance: "0x0".into(),
+                    balance: Float::parse("0".into()).unwrap(),
                     input_orders: None,
                     output_orders: None,
                 },
@@ -170,7 +156,10 @@ mod tests {
             assert_eq!(data[0].token_name, vaults[0].token_name);
             assert_eq!(data[0].token_symbol, vaults[0].token_symbol);
             assert_eq!(data[0].token_decimals, vaults[0].token_decimals);
-            assert_eq!(data[0].balance, vaults[0].balance);
+            assert_eq!(
+                data[0].balance.format().unwrap(),
+                vaults[0].balance.format().unwrap()
+            );
             assert_eq!(data[0].input_orders, vaults[0].input_orders);
             assert_eq!(data[0].output_orders, vaults[0].output_orders);
         }

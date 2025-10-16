@@ -1,73 +1,54 @@
 use super::*;
+use alloy::primitives::{Bytes, U256};
+use rain_math_float::Float;
 use serde::{Deserialize, Serialize};
 
 const QUERY: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbOrderTrade {
-    #[serde(alias = "trade_kind")]
     pub trade_kind: String,
-    #[serde(alias = "orderbook_address")]
-    pub orderbook_address: String,
-    #[serde(alias = "order_hash")]
-    pub order_hash: String,
-    #[serde(alias = "order_owner")]
-    pub order_owner: String,
-    #[serde(alias = "order_nonce")]
-    pub order_nonce: String,
-    #[serde(alias = "transaction_hash")]
-    pub transaction_hash: String,
-    #[serde(alias = "log_index")]
+    pub orderbook_address: Address,
+    pub order_hash: Bytes,
+    pub order_owner: Address,
+    pub order_nonce: Bytes,
+    pub transaction_hash: Bytes,
     pub log_index: u64,
-    #[serde(alias = "block_number")]
     pub block_number: u64,
-    #[serde(alias = "block_timestamp")]
     pub block_timestamp: u64,
-    #[serde(alias = "transaction_sender")]
-    pub transaction_sender: String,
-    #[serde(alias = "input_vault_id")]
-    pub input_vault_id: String,
-    #[serde(alias = "input_token")]
-    pub input_token: String,
-    #[serde(alias = "input_token_name")]
+    pub transaction_sender: Address,
+    #[serde(with = "serde_b256")]
+    pub input_vault_id: U256,
+    pub input_token: Address,
     pub input_token_name: Option<String>,
-    #[serde(alias = "input_token_symbol")]
     pub input_token_symbol: Option<String>,
-    #[serde(alias = "input_token_decimals")]
     pub input_token_decimals: Option<u8>,
-    #[serde(alias = "input_delta")]
-    pub input_delta: String,
-    #[serde(alias = "input_running_balance")]
-    pub input_running_balance: Option<String>,
-    #[serde(alias = "output_vault_id")]
-    pub output_vault_id: String,
-    #[serde(alias = "output_token")]
-    pub output_token: String,
-    #[serde(alias = "output_token_name")]
+    #[serde(with = "serde_float")]
+    pub input_delta: Float,
+    #[serde(with = "serde_option_float")]
+    pub input_running_balance: Option<Float>,
+    #[serde(with = "serde_b256")]
+    pub output_vault_id: U256,
+    pub output_token: Address,
     pub output_token_name: Option<String>,
-    #[serde(alias = "output_token_symbol")]
     pub output_token_symbol: Option<String>,
-    #[serde(alias = "output_token_decimals")]
     pub output_token_decimals: Option<u8>,
-    #[serde(alias = "output_delta")]
-    pub output_delta: String,
-    #[serde(alias = "output_running_balance")]
-    pub output_running_balance: Option<String>,
-    #[serde(alias = "trade_id")]
-    pub trade_id: String,
+    #[serde(with = "serde_float")]
+    pub output_delta: Float,
+    #[serde(with = "serde_option_float")]
+    pub output_running_balance: Option<Float>,
+    pub trade_id: Bytes,
 }
 
 impl LocalDbQuery {
     pub async fn fetch_order_trades(
         db_callback: &js_sys::Function,
         chain_id: u32,
-        order_hash: &str,
+        order_hash: Bytes,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<Vec<LocalDbOrderTrade>, LocalDbQueryError> {
-        let sanitize_literal = |value: &str| value.replace('\'', "''");
-
-        let order_hash = sanitize_literal(&order_hash.trim().to_lowercase());
+        let order_hash_literal = format!("'{}'", order_hash);
 
         let filter_start_timestamp = start_timestamp
             .map(|ts| format!("\nAND block_timestamp >= {}\n", ts))
@@ -77,7 +58,7 @@ impl LocalDbQuery {
             .unwrap_or_default();
 
         let sql = QUERY
-            .replace("'?order_hash'", &format!("'{}'", order_hash))
+            .replace("'?order_hash'", &order_hash_literal)
             .replace("'?chain_id'", &chain_id.to_string())
             .replace("?filter_start_timestamp", &filter_start_timestamp)
             .replace("?filter_end_timestamp", &filter_end_timestamp);
@@ -88,6 +69,7 @@ impl LocalDbQuery {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
 
     #[cfg(target_family = "wasm")]
@@ -96,42 +78,95 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
+        use alloy::{
+            hex::encode_prefixed,
+            primitives::{address, Address, Bytes, B256, U256},
+        };
+        use rain_math_float::Float;
+        use std::str::FromStr;
         use wasm_bindgen_test::wasm_bindgen_test;
 
         #[wasm_bindgen_test]
         async fn test_fetch_order_trades_parses_rows() {
+            let orderbook_address = address!("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb");
+            let order_owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let transaction_sender = address!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+            let order_hash = Bytes::from_str(
+                "0x0000000000000000000000000000000000000000000000000000000000000abc",
+            )
+            .unwrap();
+            let order_nonce = Bytes::from_str("0x01").unwrap();
+            let transaction_hash = Bytes::from_str("0xdeadbeef").unwrap();
+            let trade_id = Bytes::from_str("0xfeedface").unwrap();
+            let input_delta = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000001",
+            )
+            .unwrap();
+            let input_running_balance = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000010",
+            )
+            .unwrap();
+            let output_delta = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000002",
+            )
+            .unwrap();
+            let output_running_balance = Float::from_hex(
+                "0x0000000000000000000000000000000000000000000000000000000000000020",
+            )
+            .unwrap();
+
             let row = LocalDbOrderTrade {
                 trade_kind: "take".into(),
-                orderbook_address: "0xob".into(),
-                order_hash: "0xhash".into(),
-                order_owner: "0xowner".into(),
-                order_nonce: "1".into(),
-                transaction_hash: "0xtx".into(),
+                orderbook_address,
+                order_hash: order_hash.clone(),
+                order_owner,
+                order_nonce,
+                transaction_hash,
                 log_index: 1,
                 block_number: 10,
                 block_timestamp: 1000,
-                transaction_sender: "0xsender".into(),
-                input_vault_id: "1".into(),
-                input_token: "0xinput".into(),
+                transaction_sender,
+                input_vault_id: U256::from(1_u64),
+                input_token: Address::from_str("0x00000000000000000000000000000000000000aa")
+                    .unwrap(),
                 input_token_name: Some("Token In".into()),
                 input_token_symbol: Some("TIN".into()),
                 input_token_decimals: Some(18),
-                input_delta: "0x1".into(),
-                input_running_balance: Some("0x10".into()),
-                output_vault_id: "2".into(),
-                output_token: "0xoutput".into(),
+                input_delta,
+                input_running_balance: Some(input_running_balance),
+                output_vault_id: U256::from(2_u64),
+                output_token: Address::from_str("0x00000000000000000000000000000000000000bb")
+                    .unwrap(),
                 output_token_name: Some("Token Out".into()),
                 output_token_symbol: Some("TOUT".into()),
                 output_token_decimals: Some(6),
-                output_delta: "0x2".into(),
-                output_running_balance: Some("0x20".into()),
-                trade_id: "0xdead".into(),
+                output_delta,
+                output_running_balance: Some(output_running_balance),
+                trade_id,
             };
 
-            let callback =
-                create_success_callback(&serde_json::to_string(&vec![row.clone()]).unwrap());
+            let serialized = serde_json::to_string(&vec![row.clone()]).unwrap();
+            let expected_input_vault_id = encode_prefixed(B256::from(row.input_vault_id));
+            let expected_output_vault_id = encode_prefixed(B256::from(row.output_vault_id));
+            assert!(
+                serialized.contains(&format!(
+                    r#""input_vault_id":"{}""#,
+                    expected_input_vault_id
+                )),
+                "input_vault_id should be hex-prefixed in JSON: {serialized}"
+            );
+            assert!(
+                serialized.contains(&format!(
+                    r#""output_vault_id":"{}""#,
+                    expected_output_vault_id
+                )),
+                "output_vault_id should be hex-prefixed in JSON: {serialized}"
+            );
+            let callback = create_success_callback(&serialized);
 
-            let result = LocalDbQuery::fetch_order_trades(&callback, 1, "0xABC", None, None).await;
+            let result =
+                LocalDbQuery::fetch_order_trades(&callback, 1, order_hash.clone(), None, None)
+                    .await;
 
             assert!(result.is_ok());
             let rows = result.unwrap();
@@ -145,12 +180,18 @@ mod tests {
             let captured_sql = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
             let callback = create_sql_capturing_callback("[]", captured_sql.clone());
 
-            let _ =
-                LocalDbQuery::fetch_order_trades(&callback, 42161, "0xHASH", Some(100), Some(200))
-                    .await;
+            let order_hash = Bytes::from_str("0xdeadbeef").unwrap();
+            let _ = LocalDbQuery::fetch_order_trades(
+                &callback,
+                42161,
+                order_hash.clone(),
+                Some(100),
+                Some(200),
+            )
+            .await;
 
             let sql = captured_sql.borrow();
-            assert!(sql.contains("'0xhash'"));
+            assert!(sql.contains("'0xdeadbeef'"));
             assert!(sql.contains("42161"));
             assert!(sql.contains("block_timestamp >= 100"));
             assert!(sql.contains("block_timestamp <= 200"));

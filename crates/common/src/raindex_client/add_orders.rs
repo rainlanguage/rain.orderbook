@@ -284,7 +284,7 @@ mod tests {
             assert!(output.balance().eq(F10).unwrap());
             assert_eq!(
                 output.token().id(),
-                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb".to_string()
+                Bytes::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
             );
             assert_eq!(
                 output.token().address(),
@@ -338,7 +338,7 @@ mod tests {
             assert!(input.balance().eq(F0_5).unwrap());
             assert_eq!(
                 input.token().id(),
-                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string()
+                Bytes::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
             );
             assert_eq!(
                 input.token().address(),

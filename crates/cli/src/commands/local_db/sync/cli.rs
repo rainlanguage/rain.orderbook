@@ -47,18 +47,19 @@ impl SyncLocalDb {
         } = self;
 
         let primary_orderbook = load_primary_orderbook_from_settings(chain_id, &settings_yaml)?;
-        let orderbook_address = hex::encode_prefixed(primary_orderbook.address);
+        let orderbook_address = primary_orderbook.address;
+        let orderbook_address_hex = hex::encode_prefixed(orderbook_address);
         let deployment_block = primary_orderbook.deployment_block;
 
         if let Some(label) = &primary_orderbook.label {
             println!(
                 "Using orderbook {} ({}) from provided settings YAML",
-                orderbook_address, label
+                orderbook_address_hex, label
             );
         } else {
             println!(
                 "Using orderbook {} from provided settings YAML",
-                orderbook_address
+                orderbook_address_hex
             );
         }
 
@@ -68,7 +69,7 @@ impl SyncLocalDb {
         let runner = SyncRunner::new(&db_path, &local_db, metadata_rpc_urls, &token_fetcher);
         let params = SyncParams {
             chain_id,
-            orderbook_address: &orderbook_address,
+            orderbook_address,
             deployment_block,
             start_block,
             end_block,

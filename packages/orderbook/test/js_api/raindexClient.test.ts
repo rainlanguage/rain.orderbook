@@ -1848,14 +1848,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		it('should get all vault tokens', async function () {
 			const tokens1 = [
 				{
-					id: 'token1',
+					id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
 					address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
 					name: 'Token 1',
 					symbol: 'TKN1',
 					decimals: '18'
 				},
 				{
-					id: 'token2',
+					id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
 					address: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
 					name: 'Token 2',
 					symbol: 'TKN2',
@@ -1865,7 +1865,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const tokens2 = [
 				{
-					id: 'token3',
+					id: '0x3333333333333333333333333333333333333333',
 					address: '0x3333333333333333333333333333333333333333',
 					name: 'Token 3',
 					symbol: 'TKN3',
@@ -1885,20 +1885,20 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			assert.equal(result.length, 3);
 
-			assert.equal(result[0].id, 'token1');
+			assert.equal(result[0].id, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
 			assert.equal(result[0].symbol, 'TKN1');
 			assert.equal(result[0].name, 'Token 1');
 			assert.equal(result[0].chainId, 1);
 			assert.equal(result[0].address, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
 			assert.equal(result[0].decimals, BigInt(18));
 
-			assert.equal(result[1].id, 'token2');
+			assert.equal(result[1].id, '0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
 			assert.equal(result[1].symbol, 'TKN2');
 			assert.equal(result[1].name, 'Token 2');
 			assert.equal(result[1].chainId, 1);
 			assert.equal(result[1].address, '0x12e605bc104e93b45e1ad99f9e555f659051c2bb');
 
-			assert.equal(result[2].id, 'token3');
+			assert.equal(result[2].id, '0x3333333333333333333333333333333333333333');
 			assert.equal(result[2].symbol, 'TKN3');
 			assert.equal(result[2].name, 'Token 3');
 			assert.equal(result[2].chainId, 2);
@@ -1909,7 +1909,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		it('should get all vault tokens with chain filter', async function () {
 			const tokens1 = [
 				{
-					id: 'token1',
+					id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
 					address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
 					name: 'Token 1',
 					symbol: 'TKN1',
@@ -1926,7 +1926,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			// Should have only 1 token from chain 1
 			assert.equal(result.length, 1);
-			assert.equal(result[0].id, 'token1');
+			assert.equal(result[0].id, '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d');
 			assert.equal(result[0].chainId, 1);
 		});
 

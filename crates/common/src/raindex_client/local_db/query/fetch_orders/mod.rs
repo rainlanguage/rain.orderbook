@@ -1,6 +1,7 @@
 use super::*;
 use crate::raindex_client::local_db::bool_from_int_or_bool;
 use crate::raindex_client::orders::GetOrdersFilters;
+use alloy::primitives::Bytes;
 
 const QUERY: &str = include_str!("query.sql");
 
@@ -15,9 +16,9 @@ pub enum FetchOrdersActiveFilter {
 #[derive(Debug, Clone)]
 pub struct FetchOrdersArgs {
     pub filter: FetchOrdersActiveFilter,
-    pub owners: Vec<String>,
-    pub order_hash: Option<String>,
-    pub tokens: Vec<String>,
+    pub owners: Vec<Address>,
+    pub order_hash: Option<Bytes>,
+    pub tokens: Vec<Address>,
 }
 
 impl Default for FetchOrdersArgs {
@@ -39,26 +40,11 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
             None => FetchOrdersActiveFilter::All,
         };
 
-        let owners = filters
-            .owners
-            .into_iter()
-            .map(|owner| owner.to_string().to_lowercase())
-            .collect();
-
-        let order_hash = filters.order_hash.map(|hash| hash.to_string());
-
-        let tokens = filters
-            .tokens
-            .unwrap_or_default()
-            .into_iter()
-            .map(|token| token.to_string().to_lowercase())
-            .collect();
-
         FetchOrdersArgs {
             filter,
-            owners,
-            order_hash,
-            tokens,
+            owners: filters.owners,
+            order_hash: filters.order_hash,
+            tokens: filters.tokens.unwrap_or_default(),
         }
     }
 }
@@ -66,25 +52,25 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalDbOrder {
     #[serde(alias = "orderHash")]
-    pub order_hash: String,
-    pub owner: String,
+    pub order_hash: Bytes,
+    pub owner: Address,
     #[serde(alias = "blockTimestamp")]
     pub block_timestamp: u64,
     #[serde(alias = "blockNumber")]
     pub block_number: u64,
     #[serde(alias = "orderbookAddress")]
-    pub orderbook_address: String,
+    pub orderbook_address: Address,
     #[serde(alias = "orderBytes")]
-    pub order_bytes: String,
+    pub order_bytes: Bytes,
     #[serde(alias = "transactionHash")]
-    pub transaction_hash: String,
+    pub transaction_hash: Bytes,
     pub inputs: Option<String>,
     pub outputs: Option<String>,
     #[serde(alias = "tradeCount")]
     pub trade_count: u64,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub active: bool,
-    pub meta: Option<String>,
+    pub meta: Option<Bytes>,
 }
 
 impl LocalDbQuery {
@@ -105,18 +91,9 @@ impl LocalDbQuery {
             FetchOrdersActiveFilter::Inactive => "inactive",
         };
 
-        let sanitize_literal = |value: &str| value.replace('\'', "''");
-
         let owner_values: Vec<String> = owners
             .into_iter()
-            .filter_map(|owner| {
-                let trimmed = owner.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!("'{}'", sanitize_literal(&trimmed.to_lowercase())))
-                }
-            })
+            .map(|owner| format!("'{owner:#x}'"))
             .collect();
         let filter_owners = if owner_values.is_empty() {
             String::new()
@@ -129,28 +106,20 @@ impl LocalDbQuery {
 
         let filter_order_hash = order_hash
             .and_then(|hash| {
-                let trimmed = hash.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!(
-                        "\nAND lower(COALESCE(la.order_hash, l.order_hash)) = lower('{}')\n",
-                        sanitize_literal(trimmed)
-                    ))
+                if hash.is_empty() {
+                    return None;
                 }
+
+                Some(format!(
+                    "\nAND lower(COALESCE(la.order_hash, l.order_hash)) = lower('{}')\n",
+                    hash
+                ))
             })
             .unwrap_or_default();
 
         let token_values: Vec<String> = tokens
             .into_iter()
-            .filter_map(|token| {
-                let trimmed = token.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(format!("'{}'", sanitize_literal(&trimmed.to_lowercase())))
-                }
-            })
+            .map(|token| format!("'{token:#x}'"))
             .collect();
         let filter_tokens = if token_values.is_empty() {
             String::new()
@@ -205,15 +174,20 @@ mod tests {
             assert!(matches!(args.filter, FetchOrdersActiveFilter::Active));
             assert_eq!(
                 args.owners,
-                vec!["0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()]
+                vec![Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap()]
             );
             assert_eq!(
-                args.order_hash.as_deref(),
-                Some("0xabc0000000000000000000000000000000000000000000000000000000000001")
+                args.order_hash,
+                Some(
+                    Bytes::from_str(
+                        "0xabc0000000000000000000000000000000000000000000000000000000000001"
+                    )
+                    .unwrap()
+                )
             );
             assert_eq!(
                 args.tokens,
-                vec!["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string()]
+                vec![Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap()]
             );
         }
 
@@ -241,39 +215,55 @@ mod tests {
         use crate::raindex_client::local_db::query::tests::{
             create_sql_capturing_callback, create_success_callback,
         };
+        use alloy::primitives::{Address, Bytes};
         use std::cell::RefCell;
         use std::rc::Rc;
+        use std::str::FromStr;
         use wasm_bindgen_test::*;
 
         #[wasm_bindgen_test]
         async fn test_fetch_orders_parses_data() {
             let orders = vec![
                 LocalDbOrder {
-                    order_hash:
-                        "0xabc0000000000000000000000000000000000000000000000000000000000001".into(),
-                    owner: "0x1111111111111111111111111111111111111111".into(),
+                    order_hash: Bytes::from_str(
+                        "0xabc0000000000000000000000000000000000000000000000000000000000001",
+                    )
+                    .unwrap(),
+                    owner: Address::from_str("0x1111111111111111111111111111111111111111").unwrap(),
                     block_timestamp: 1000,
                     block_number: 123,
-                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
-                    order_bytes: "0xdeadbeef".into(),
-                    transaction_hash:
-                        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                    orderbook_address: Address::from_str(
+                        "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                    )
+                    .unwrap(),
+                    order_bytes: Bytes::from_str("0xdeadbeef").unwrap(),
+                    transaction_hash: Bytes::from_str(
+                        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    )
+                    .unwrap(),
                     inputs: Some("1:0xaaa,2:0xbbb".into()),
                     outputs: Some("3:0xccc".into()),
                     trade_count: 2,
                     active: true,
-                    meta: Some("0x010203".into()),
+                    meta: Some(Bytes::from_str("0x010203").unwrap()),
                 },
                 LocalDbOrder {
-                    order_hash:
-                        "0xabc0000000000000000000000000000000000000000000000000000000000002".into(),
-                    owner: "0x2222222222222222222222222222222222222222".into(),
+                    order_hash: Bytes::from_str(
+                        "0xabc0000000000000000000000000000000000000000000000000000000000002",
+                    )
+                    .unwrap(),
+                    owner: Address::from_str("0x2222222222222222222222222222222222222222").unwrap(),
                     block_timestamp: 2000,
                     block_number: 456,
-                    orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".into(),
-                    order_bytes: "0x00".into(),
-                    transaction_hash:
-                        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                    orderbook_address: Address::from_str(
+                        "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB",
+                    )
+                    .unwrap(),
+                    order_bytes: Bytes::from_str("0x00").unwrap(),
+                    transaction_hash: Bytes::from_str(
+                        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    )
+                    .unwrap(),
                     inputs: None,
                     outputs: None,
                     trade_count: 0,
@@ -433,8 +423,8 @@ mod tests {
             let args = FetchOrdersArgs {
                 filter: FetchOrdersActiveFilter::All,
                 owners: vec![
-                    "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".into(),
-                    "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB".into(),
+                    Address::from_str("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap(),
+                    Address::from_str("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB").unwrap(),
                 ],
                 order_hash: None,
                 tokens: vec![],
@@ -458,7 +448,7 @@ mod tests {
             let args = FetchOrdersArgs {
                 filter: FetchOrdersActiveFilter::All,
                 owners: vec![],
-                order_hash: Some("0xabc123".into()),
+                order_hash: Some(Bytes::from_str("0xabc123").unwrap()),
                 tokens: vec![],
             };
 
@@ -484,8 +474,8 @@ mod tests {
                 owners: vec![],
                 order_hash: None,
                 tokens: vec![
-                    "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".into(),
-                    "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB".into(),
+                    Address::from_str("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap(),
+                    Address::from_str("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB").unwrap(),
                 ],
             };
 
