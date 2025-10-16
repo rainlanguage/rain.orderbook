@@ -19,7 +19,7 @@
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 	import { startLocalDbSync } from '$lib/services/startLocalDbSync';
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 
 	const { errorMessage, localDb, raindexClient } = $page.data;
 
@@ -33,21 +33,14 @@
 	});
 
 	let walletInitError: string | null = null;
-	let stopDbSync: (() => void) | undefined;
 
 	onMount(() => {
 		if (!browser || !raindexClient || !localDb) return;
 
-		stopDbSync = startLocalDbSync({
+		startLocalDbSync({
 			raindexClient,
-			localDb,
-			chainId: 42161,
-			intervalMs: 5_000
+			localDb
 		});
-	});
-
-	onDestroy(() => {
-		stopDbSync?.();
 	});
 
 	$: if (browser && window.navigator) {

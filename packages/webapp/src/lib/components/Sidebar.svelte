@@ -27,6 +27,7 @@
 
 	import { onMount } from 'svelte';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
+	import SidebarLocalDbStatus from '$lib/components/SidebarLocalDbStatus.svelte';
 	export let colorTheme;
 	export let page;
 
@@ -144,6 +145,11 @@
 			</SidebarGroup>
 			<SidebarGroup border class="flex justify-start" ulClass="list-none">
 				<ButtonDarkMode {colorTheme} />
+			</SidebarGroup>
+			<SidebarGroup border ulClass="list-none">
+				<li class="list-none">
+					<SidebarLocalDbStatus />
+				</li>
 			</SidebarGroup>
 			<SidebarGroup border class="min-h-0 flex-1 overflow-hidden" ulClass="list-none h-full">
 				<TransactionList />

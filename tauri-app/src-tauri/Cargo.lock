@@ -8955,6 +8955,7 @@ dependencies = [
  "flate2",
  "futures",
  "getrandom 0.2.16",
+ "gloo-timers",
  "itertools 0.14.0",
  "once_cell",
  "proptest",
@@ -8983,6 +8984,7 @@ dependencies = [
  "tower",
  "tracing",
  "url",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]

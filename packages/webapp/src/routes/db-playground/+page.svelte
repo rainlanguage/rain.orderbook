@@ -4,7 +4,10 @@
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from '@rainlanguage/sqlite-web';
-	import { type LocalDb } from '@rainlanguage/orderbook';
+	import {
+		type LocalDb,
+		type WasmEncodedResult as OrderbookWasmEncodedResult
+	} from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
 	let localDbClient = raindexClient.getLocalDbClient(42161).value as LocalDb;
@@ -15,7 +18,7 @@
 	let isLoading = false;
 	let error = '';
 
-	// Sync status message from raindexClient.syncLocalDatabase callback
+	// Sync status message from raindexClient.syncLocalDatabaseOnce callback
 	let syncStatus: string = '';
 
 	// Auto-sync state variables
@@ -163,17 +166,23 @@
 			const queryFn = db.value.query.bind(db.value);
 
 			// Sync database and capture status updates
-			const syncResult = await raindexClient.syncLocalDatabase(
+			const syncResult = await raindexClient.syncLocalDatabaseOnce(
 				queryFn,
-				(status: string) => {
-					// Update the UI with latest status message
-					syncStatus = status;
+				(status: OrderbookWasmEncodedResult<string>) => {
+					if (status.error) {
+						syncStatus = status.error.readableMsg || status.error.msg;
+						return;
+					}
+
+					if (status.value) {
+						syncStatus = status.value;
+					}
 				},
 				42161
 			);
 
 			if (syncResult.error) {
-				error = syncResult.error.msg;
+				error = syncResult.error.readableMsg ?? syncResult.error.msg;
 				return;
 			}
 
