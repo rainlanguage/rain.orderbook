@@ -1,17 +1,19 @@
-use crate::hyper_rpc::LogEntryResponse;
+use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
-    primitives::B256,
+    primitives::{Address, FixedBytes, B256},
     sol_types::{abi::token::WordToken, SolEvent},
 };
-use core::convert::TryFrom;
+use core::convert::{TryFrom, TryInto};
 use rain_orderbook_bindings::{
+    IInterpreterStoreV3::Set,
     IOrderBookV5::{
         AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     },
     OrderBook::MetaV1_2,
 };
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecodeError {
@@ -31,6 +33,7 @@ pub enum EventType {
     ClearV3,
     AfterClearV2,
     MetaV1_2,
+    InterpreterStoreSet,
     Unknown,
 }
 
@@ -61,6 +64,9 @@ impl EventType {
             if bytes == MetaV1_2::SIGNATURE_HASH.as_slice() {
                 return Self::MetaV1_2;
             }
+            if bytes == Set::SIGNATURE_HASH.as_slice() {
+                return Self::InterpreterStoreSet;
+            }
         }
 
         Self::Unknown
@@ -89,6 +95,7 @@ pub enum DecodedEvent {
     ClearV3(Box<ClearV3>),
     AfterClearV2(Box<AfterClearV2>),
     MetaV1_2(Box<MetaV1_2>),
+    InterpreterStoreSet(Box<InterpreterStoreSetEvent>),
     Unknown(UnknownEventDecoded),
 }
 
@@ -129,6 +136,9 @@ pub fn decode_events(
             EventType::MetaV1_2 => {
                 DecodedEvent::MetaV1_2(Box::new(decode_event::<MetaV1_2>(event)?))
             }
+            EventType::InterpreterStoreSet => {
+                DecodedEvent::InterpreterStoreSet(Box::new(decode_store_set_event(event)?))
+            }
             EventType::Unknown => DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: event.data.clone(),
                 note: "Unknown event type - could not decode".to_string(),
@@ -165,6 +175,14 @@ pub struct UnknownEventDecoded {
     pub note: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InterpreterStoreSetEvent {
+    pub store_address: Address,
+    pub namespace: FixedBytes<32>,
+    pub key: FixedBytes<32>,
+    pub value: FixedBytes<32>,
+}
+
 fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError> {
     let topics = event
         .topics
@@ -180,10 +198,42 @@ fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError>
     E::decode_raw_log(topics, &data).map_err(|err| DecodeError::AbiDecode(err.to_string()))
 }
 
+fn decode_store_set_event(
+    event: &LogEntryResponse,
+) -> Result<InterpreterStoreSetEvent, DecodeError> {
+    let data = hex::decode(event.data.trim_start_matches("0x")).map_err(DecodeError::HexDecode)?;
+    if data.len() < 96 {
+        return Err(DecodeError::AbiDecode(
+            "Set event data is too short".to_string(),
+        ));
+    }
+
+    let namespace_bytes: [u8; 32] = data[0..32]
+        .try_into()
+        .map_err(|_| DecodeError::AbiDecode("Invalid namespace length".to_string()))?;
+    let key_bytes: [u8; 32] = data[32..64]
+        .try_into()
+        .map_err(|_| DecodeError::AbiDecode("Invalid key length".to_string()))?;
+    let value_bytes: [u8; 32] = data[64..96]
+        .try_into()
+        .map_err(|_| DecodeError::AbiDecode("Invalid value length".to_string()))?;
+
+    let store_address = Address::from_str(&event.address).map_err(|err| {
+        DecodeError::AbiDecode(format!("Invalid store address {}: {}", event.address, err))
+    })?;
+
+    Ok(InterpreterStoreSetEvent {
+        store_address,
+        namespace: FixedBytes::from(namespace_bytes),
+        key: FixedBytes::from(key_bytes),
+        value: FixedBytes::from(value_bytes),
+    })
+}
+
 #[cfg(test)]
 mod test_helpers {
     use super::*;
-    use crate::hyper_rpc::LogEntryResponse;
+    use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use rain_orderbook_bindings::{
@@ -404,6 +454,29 @@ mod test_helpers {
         )
     }
 
+    fn create_store_set_log() -> LogEntryResponse {
+        let namespace = [0x33u8; 32];
+        let key = [0x44u8; 32];
+        let value = [0x55u8; 32];
+
+        let mut data = Vec::with_capacity(96);
+        data.extend_from_slice(&namespace);
+        data.extend_from_slice(&key);
+        data.extend_from_slice(&value);
+
+        let encoded = format!("0x{}", hex::encode(data));
+        let mut entry = new_log_entry(
+            Set::SIGNATURE_HASH.to_string(),
+            encoded,
+            "0x12345c",
+            Some("0x64b8c129"),
+            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
+            "0x6",
+        );
+        entry.address = "0x0123456789abcdef0123456789abcdef01234567".to_string();
+        entry
+    }
+
     fn create_clear_v3_event_data() -> LogEntryResponse {
         let sender = Address::from([17u8; 20]);
         let alice_order = create_sample_order_v4();
@@ -615,6 +688,29 @@ mod test_helpers {
 
         let expected_order = create_sample_order_v4();
         assert_eq!(remove_order.order, expected_order);
+    }
+
+    #[test]
+    fn test_set_decode() {
+        let log_entry = create_store_set_log();
+        let decoded = decode_events(&[log_entry]).unwrap();
+
+        assert_eq!(decoded.len(), 1);
+        let event = &decoded[0];
+        assert_eq!(event.event_type, EventType::InterpreterStoreSet);
+
+        match &event.decoded_data {
+            DecodedEvent::InterpreterStoreSet(data) => {
+                assert_eq!(
+                    data.store_address,
+                    Address::from_str("0x0123456789abcdef0123456789abcdef01234567").unwrap()
+                );
+                assert_eq!(data.namespace, FixedBytes::<32>::from([0x33u8; 32]));
+                assert_eq!(data.key, FixedBytes::<32>::from([0x44u8; 32]));
+                assert_eq!(data.value, FixedBytes::<32>::from([0x55u8; 32]));
+            }
+            other => panic!("expected InterpreterStoreSet, got {other:?}"),
+        }
     }
 
     #[test]

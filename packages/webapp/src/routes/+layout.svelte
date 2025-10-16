@@ -11,14 +11,17 @@
 		ToastProvider,
 		WalletProvider,
 		FixedBottomTransaction,
-		RaindexClientProvider
+		RaindexClientProvider,
+		LocalDbProvider
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
+	import { startLocalDbSync } from '$lib/services/startLocalDbSync';
+	import { onDestroy, onMount } from 'svelte';
 
-	const { errorMessage, raindexClient } = $page.data;
+	const { errorMessage, localDb, raindexClient } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -30,6 +33,22 @@
 	});
 
 	let walletInitError: string | null = null;
+	let stopDbSync: (() => void) | undefined;
+
+	onMount(() => {
+		if (!browser || !raindexClient || !localDb) return;
+
+		stopDbSync = startLocalDbSync({
+			raindexClient,
+			localDb,
+			chainId: 42161,
+			intervalMs: 5_000
+		});
+	});
+
+	onDestroy(() => {
+		stopDbSync?.();
+	});
 
 	$: if (browser && window.navigator) {
 		initWallet().then((error) => {
@@ -56,17 +75,21 @@
 					{:else if errorMessage}
 						<ErrorPage />
 					{:else}
-						<RaindexClientProvider {raindexClient}>
-							<div
-								data-testid="layout-container"
-								class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-							>
-								<Sidebar {colorTheme} page={$page} />
-								<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-									<slot />
-								</main>
-							</div>
-						</RaindexClientProvider>
+						<LocalDbProvider {localDb}>
+							<RaindexClientProvider {raindexClient}>
+								<div
+									data-testid="layout-container"
+									class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+								>
+									<Sidebar {colorTheme} page={$page} />
+									<main
+										class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8"
+									>
+										<slot />
+									</main>
+								</div>
+							</RaindexClientProvider>
+						</LocalDbProvider>
 					{/if}
 					<FixedBottomTransaction />
 				</LoadingWrapper>

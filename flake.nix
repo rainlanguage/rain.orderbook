@@ -45,7 +45,7 @@
             name = "tauri-rs-test";
             body = ''
               set -euxo pipefail
-              cd tauri-app/src-tauri 
+              cd tauri-app/src-tauri
               cargo test
             '';
           };
@@ -89,6 +89,32 @@
             '';
           };
 
+          rainix-ob-cli-artifact = rainix.mkTask.${system} {
+            name = "rainix-ob-cli-artifact";
+            body = ''
+              set -euxo pipefail
+
+              OUTPUT_DIR=crates/cli/bin
+              ARCHIVE_NAME=rain-orderbook-cli.tar.gz
+              BINARY_NAME=rain-orderbook-cli
+
+              TARGET_TRIPLE=x86_64-unknown-linux-gnu
+
+              cargo build --release -p rain_orderbook_cli --target "$TARGET_TRIPLE"
+
+              mkdir -p "$OUTPUT_DIR"
+              rm -f "$OUTPUT_DIR/$ARCHIVE_NAME"
+
+              cp "target/$TARGET_TRIPLE/release/rain_orderbook_cli" "$OUTPUT_DIR/$BINARY_NAME"
+              chmod 755 "$OUTPUT_DIR/$BINARY_NAME"
+              strip "$OUTPUT_DIR/$BINARY_NAME" || true
+
+              tar -C "$OUTPUT_DIR" -czf "$OUTPUT_DIR/$ARCHIVE_NAME" "$BINARY_NAME"
+
+              rm -f "$OUTPUT_DIR/$BINARY_NAME"
+            '';
+          };
+
           ob-tauri-before-release = rainix.mkTask.${system} {
             name = "ob-tauri-before-release";
             body = ''
@@ -116,7 +142,7 @@
               # Create env file with working defaults
               ENV_FILE=".env"
               ENV_EXAMPLE_FILE=".env.example"
-              cp $ENV_EXAMPLE_FILE $ENV_FILE  
+              cp $ENV_EXAMPLE_FILE $ENV_FILE
 
               # Update the existing WALLETCONNECT_PROJECT_ID line
               sed -i "s/^VITE_WALLETCONNECT_PROJECT_ID=.*/VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID}/" $ENV_FILE
@@ -269,6 +295,7 @@
             packages.test-js-bindings
             rain.defaultPackage.${system}
             packages.ob-ui-components-prelude
+            packages.rainix-ob-cli-artifact
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
