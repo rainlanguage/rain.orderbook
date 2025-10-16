@@ -29,7 +29,7 @@ import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.s
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
 import {IOrderBookV5OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV5OrderTaker.sol";
-import {LibTOFUTokenDecimals, TOFUTokenDecimals} from "../lib/LibTOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 
 /// Thrown when "before arb" wants inputs that we don't have.
 error NonZeroBeforeArbInputs(uint256 inputs);
@@ -46,8 +46,6 @@ abstract contract OrderBookV5ArbOrderTaker is
     OrderBookV5ArbCommon
 {
     using SafeERC20 for IERC20;
-
-    mapping(address token => TOFUTokenDecimals tofuTokenDecimals) internal sTOFUTokenDecimals;
 
     constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbCommon(config) {}
 
@@ -81,9 +79,9 @@ abstract contract OrderBookV5ArbOrderTaker is
         LibOrderBookArb.finalizeArb(
             task,
             ordersInputToken,
-            LibTOFUTokenDecimals.safeDecimalsForToken(sTOFUTokenDecimals, ordersInputToken),
+            LibTOFUTokenDecimals.safeDecimalsForToken(ordersInputToken),
             ordersOutputToken,
-            LibTOFUTokenDecimals.safeDecimalsForToken(sTOFUTokenDecimals, ordersOutputToken)
+            LibTOFUTokenDecimals.safeDecimalsForToken(ordersOutputToken)
         );
     }
 

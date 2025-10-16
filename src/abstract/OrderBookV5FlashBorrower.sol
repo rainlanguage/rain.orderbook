@@ -26,7 +26,7 @@ import {OrderBookV5ArbConfig, OrderBookV5ArbCommon} from "./OrderBookV5ArbCommon
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
-import {LibTOFUTokenDecimals, TOFUTokenDecimals} from "../lib/LibTOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the initiator is not the order book.
@@ -72,8 +72,6 @@ error SwapFailed();
 abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV5ArbCommon {
     using Address for address;
     using SafeERC20 for IERC20;
-
-    mapping(address token => TOFUTokenDecimals tofuTokenDecimals) internal sTOFUTokenDecimals;
 
     constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbCommon(config) {}
 
@@ -160,8 +158,8 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
 
-        uint8 inputDecimals = LibTOFUTokenDecimals.safeDecimalsForToken(sTOFUTokenDecimals, ordersInputToken);
-        uint8 outputDecimals = LibTOFUTokenDecimals.safeDecimalsForToken(sTOFUTokenDecimals, ordersOutputToken);
+        uint8 inputDecimals = LibTOFUTokenDecimals.safeDecimalsForToken(ordersInputToken);
+        uint8 outputDecimals = LibTOFUTokenDecimals.safeDecimalsForToken(ordersOutputToken);
 
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.

@@ -12,7 +12,6 @@
       let pkgs = rainix.pkgs.${system};
       in rec {
         packages = rec {
-
           tauri-release-env = rainix.tauri-release-env.${system};
 
           raindex-prelude = rainix.mkTask.${system} {
@@ -317,7 +316,7 @@
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs
-            ++ [ pkgs.clang-tools ];
+            ++ [ pkgs.clang-tools pkgs.libsoup_2_4 ];
           nativeBuildInputs =
             rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
@@ -328,5 +327,4 @@
             rainix.devShells.${system}.default.nativeBuildInputs;
         };
       });
-
 }

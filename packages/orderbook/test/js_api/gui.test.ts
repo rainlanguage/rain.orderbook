@@ -2048,7 +2048,7 @@ ${dotrainWithoutVaultIds}`;
 				)
 			);
 			assert.equal(result.balance.toFixedDecimal(18).value, BigInt(1000));
-			assert.equal(result.formattedBalance, '0.000000000000001');
+			assert.equal(result.formattedBalance, '1e-15');
 		});
 	});
 

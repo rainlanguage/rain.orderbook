@@ -26,6 +26,7 @@ import {RainterpreterParser} from "rain.interpreter/concrete/RainterpreterParser
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
 
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV5Stub {
     IInterpreterV4 internal immutable iInterpreter;
@@ -38,6 +39,10 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV5Stub {
     OrderBookSubParser internal immutable iSubParser;
 
     constructor() {
+        // Put the TOFU decimals contract in place so that any calls to it
+        // succeed. This is because we don't have zoltu here.
+        vm.etch(address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT), type(TOFUTokenDecimals).runtimeCode);
+
         iInterpreter = IInterpreterV4(new Rainterpreter());
         iStore = IInterpreterStoreV3(new RainterpreterStore());
         iParser = new RainterpreterParser();
