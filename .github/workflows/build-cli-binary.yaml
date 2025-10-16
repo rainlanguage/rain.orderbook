@@ -44,21 +44,17 @@ jobs:
       - name: Build CLI tarball
         run: nix develop -c rainix-ob-cli-artifact
 
-      - name: Configure Git
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-
-      - name: Commit and push updated tarball
+      - name: Create GitHub release
+        id: create_release
+        uses: ncipollo/release-action@v1
         env:
-          COMMIT_MESSAGE: "refresh orderbook cli"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git add crates/cli/bin/rain-orderbook-cli.tar.gz
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-
-          git commit -m "$COMMIT_MESSAGE"
-          git push origin HEAD:${{ github.ref_name }}
+        with:
+          tag: cli-${{ github.sha }}
+          name: Rain Orderbook CLI ${{ github.sha }}
+          body: |
+            Rain Orderbook CLI binary built from commit ${{ github.sha }}.
+          prerelease: true
+          generateReleaseNotes: true
+          artifacts: crates/cli/bin/rain-orderbook-cli.tar.gz
+          artifactContentType: application/gzip
