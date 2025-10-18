@@ -90,7 +90,7 @@ pub mod tests {
         use wasm_bindgen_test::*;
         use wasm_bindgen_utils::prelude::serde_wasm_bindgen;
         use wasm_bindgen_utils::prelude::JsValue;
-        use wasm_bindgen_utils::result::{WasmEncodedError, WasmEncodedResult};
+        use wasm_bindgen_utils::result::WasmEncodedResult;
 
         #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
         struct TestData {
