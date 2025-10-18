@@ -9,6 +9,21 @@ impl LocalDbQuery {
     }
 }
 
+#[wasm_export]
+impl LocalDb {
+    /// Clears all local database tables using the provided JS query callback.
+    #[wasm_export(js_name = "clearTables", unchecked_return_type = "void")]
+    pub async fn clear_tables_wasm(
+        &self,
+        #[wasm_export(param_description = "JavaScript function to execute database queries")]
+        db_callback: js_sys::Function,
+    ) -> Result<(), LocalDbError> {
+        LocalDbQuery::clear_tables(&db_callback)
+            .await
+            .map_err(LocalDbError::from)
+    }
+}
+
 #[cfg(all(test, target_family = "wasm"))]
 mod wasm_tests {
     use super::*;
