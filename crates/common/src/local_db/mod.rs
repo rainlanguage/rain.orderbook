@@ -28,6 +28,7 @@ pub struct LocalDb {
     rpc_client: RpcClient,
 }
 
+#[cfg(test)]
 impl Default for LocalDb {
     fn default() -> Self {
         let url = Url::parse("foo://example.com").unwrap();

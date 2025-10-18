@@ -1,9 +1,9 @@
-use super::local_db::LocalDb;
 use super::*;
 use crate::local_db::query::{
     fetch_orders::{FetchOrdersArgs, LocalDbOrder},
     fetch_vault::LocalDbVault,
 };
+use crate::local_db::LocalDb;
 use crate::raindex_client::local_db::query::LocalDbQuery;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{

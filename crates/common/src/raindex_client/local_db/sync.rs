@@ -76,7 +76,19 @@ impl RaindexClient {
     ) -> Result<(), LocalDbError> {
         let db_bridge = JsDatabaseBridge::new(&db_callback);
         let status_bridge = JsStatusReporter::new(&status_callback);
-        sync_database_with_services(self, &db_bridge, &status_bridge, chain_id).await
+        let orderbooks =
+            self.get_orderbooks_by_chain_id(chain_id)
+                .map_err(|e| LocalDbError::Config {
+                    message: format!("Failed to load orderbook configuration: {e}"),
+                })?;
+
+        let Some(orderbook_cfg) = orderbooks.first() else {
+            return Err(LocalDbError::Config {
+                message: format!("No orderbook configuration found for chain ID {chain_id}"),
+            });
+        };
+
+        sync_database_with_services(orderbook_cfg, &db_bridge, &status_bridge).await
     }
 }
 

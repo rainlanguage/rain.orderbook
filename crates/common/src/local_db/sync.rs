@@ -14,10 +14,10 @@ use super::{
     tokens::{collect_store_addresses, collect_token_addresses},
     FetchConfig, LocalDb, LocalDbError,
 };
-use crate::raindex_client::RaindexClient;
 use alloy::primitives::Address;
 use async_trait::async_trait;
 use flate2::read::GzDecoder;
+use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use reqwest::Client;
 use std::collections::BTreeSet;
 use std::{
@@ -42,10 +42,9 @@ pub trait StatusSink {
 }
 
 pub async fn sync_database_with_services<D: Database, S: StatusSink>(
-    client: &RaindexClient,
+    orderbook_cfg: &OrderbookCfg,
     db: &D,
     status: &S,
-    chain_id: u32,
 ) -> Result<(), LocalDbError> {
     status.send("Starting database sync...".to_string())?;
 
@@ -65,19 +64,7 @@ pub async fn sync_database_with_services<D: Database, S: StatusSink>(
         .map_err(LocalDbError::SyncStatusReadFailed)?;
     status.send(format!("Last synced block: {}", last_synced_block))?;
 
-    let orderbooks =
-        client
-            .get_orderbooks_by_chain_id(chain_id)
-            .map_err(|e| LocalDbError::Config {
-                message: format!("Failed to load orderbook configuration: {e}"),
-            })?;
-
-    let Some(orderbook_cfg) = orderbooks.first() else {
-        return Err(LocalDbError::Config {
-            message: format!("No orderbook configuration found for chain ID {chain_id}"),
-        });
-    };
-
+    let chain_id = orderbook_cfg.network.chain_id;
     let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone())?;
 
     let latest_block = local_db
