@@ -115,4 +115,3 @@ mod tests {
         assert!(serde_json::from_str::<Wrap>("{\"b\": \"maybe\"}").is_err());
     }
 }
-
