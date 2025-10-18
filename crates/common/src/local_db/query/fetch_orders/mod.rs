@@ -1,4 +1,4 @@
-use crate::local_db::bool_from_int_or_bool;
+use crate::utils::serde::bool_from_int_or_bool;
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
