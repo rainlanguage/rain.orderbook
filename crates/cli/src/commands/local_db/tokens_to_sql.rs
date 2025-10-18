@@ -2,7 +2,7 @@ use alloy::primitives::Address;
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use rain_orderbook_common::erc20::TokenInfo;
-use rain_orderbook_common::raindex_client::local_db::insert::generate_erc20_tokens_sql;
+use rain_orderbook_common::local_db::insert::generate_erc20_tokens_sql;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::str::FromStr;

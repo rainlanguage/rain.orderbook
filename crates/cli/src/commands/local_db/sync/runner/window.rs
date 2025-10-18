@@ -132,7 +132,7 @@ mod tests {
     use super::*;
     use alloy::primitives::Address;
     use async_trait::async_trait;
-    use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
+    use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
     use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::collections::HashMap;
     use tempfile::TempDir;

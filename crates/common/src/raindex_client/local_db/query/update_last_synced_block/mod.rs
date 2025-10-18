@@ -1,61 +1,35 @@
 use super::*;
-
-const QUERY: &str = include_str!("query.sql");
+use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_query;
 
 impl LocalDbQuery {
     pub async fn update_last_synced_block(
         db_callback: &js_sys::Function,
         block_number: u64,
     ) -> Result<(), LocalDbQueryError> {
-        LocalDbQuery::execute_query_text(
-            db_callback,
-            &QUERY.replace("?block_number", &block_number.to_string()),
-        )
-        .await
-        .map(|_| ())
+        let sql = build_update_last_synced_block_query(block_number);
+        LocalDbQuery::execute_query_text(db_callback, &sql)
+            .await
+            .map(|_| ())
     }
 }
 
-#[cfg(test)]
-mod tests {
+#[cfg(all(test, target_family = "wasm"))]
+mod wasm_tests {
     use super::*;
+    use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use wasm_bindgen_test::*;
 
-    #[cfg(target_family = "wasm")]
-    mod wasm_tests {
-        use super::*;
-        use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
-        use std::cell::RefCell;
-        use std::rc::Rc;
-        use wasm_bindgen_test::*;
+    #[wasm_bindgen_test]
+    async fn wrapper_uses_builder_sql_exactly() {
+        let expected_sql = build_update_last_synced_block_query(999);
+        let store = Rc::new(RefCell::new(String::new()));
+        let callback = create_sql_capturing_callback("OK", store.clone());
 
-        #[wasm_bindgen_test]
-        async fn test_update_last_synced_block() {
-            let captured_sql = Rc::new(RefCell::new(String::new()));
-            let callback = create_sql_capturing_callback("null", captured_sql.clone());
-            let test_block_number = 54321u64;
-
-            let result = LocalDbQuery::update_last_synced_block(&callback, test_block_number).await;
-
-            assert!(result.is_ok());
-
-            let sql = captured_sql.borrow();
-            assert!(sql.contains("UPDATE sync_status"));
-            assert!(sql.contains("SET last_synced_block ="));
-            assert!(sql.contains("WHERE id = 1"));
-            assert!(sql.contains("updated_at = CURRENT_TIMESTAMP"));
-
-            assert!(
-                sql.contains(&test_block_number.to_string()),
-                "SQL should contain the block number {}: {}",
-                test_block_number,
-                sql
-            );
-
-            assert!(
-                !sql.contains("?block_number"),
-                "SQL should not contain placeholder ?block_number: {}",
-                sql
-            );
-        }
+        let res = LocalDbQuery::update_last_synced_block(&callback, 999).await;
+        assert!(res.is_ok());
+        let captured = store.borrow().clone();
+        assert_eq!(captured, expected_sql);
     }
 }

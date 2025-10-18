@@ -1,8 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use rain_orderbook_common::{
-    raindex_client::local_db::decode::decode_events, rpc_client::LogEntryResponse,
-};
+use rain_orderbook_common::{local_db::decode::decode_events, rpc_client::LogEntryResponse};
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};

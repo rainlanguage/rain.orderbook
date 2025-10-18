@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
+use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::rpc_client::LogEntryResponse;
 use url::Url;
 
@@ -111,9 +111,7 @@ mod tests {
     use async_trait::async_trait;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
-    use rain_orderbook_common::raindex_client::local_db::decode::{
-        DecodedEvent, DecodedEventData, EventType,
-    };
+    use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData, EventType};
     use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::collections::HashMap;
     use std::sync::Mutex;

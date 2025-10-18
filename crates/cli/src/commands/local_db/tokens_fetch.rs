@@ -1,9 +1,9 @@
 use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
-use rain_orderbook_common::raindex_client::local_db::token_fetch::fetch_erc20_metadata_concurrent;
-use rain_orderbook_common::raindex_client::local_db::tokens::collect_token_addresses;
+use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
+use rain_orderbook_common::local_db::token_fetch::fetch_erc20_metadata_concurrent;
+use rain_orderbook_common::local_db::tokens::collect_token_addresses;
 use serde::Serialize;
 use std::fs;
 use url::Url;
@@ -88,9 +88,7 @@ mod tests {
     use super::*;
     use alloy::primitives::{Address as AlloyAddress, U256};
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
-    use rain_orderbook_common::raindex_client::local_db::decode::{
-        DecodedEvent, DecodedEventData, EventType,
-    };
+    use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData, EventType};
     use rain_orderbook_test_fixtures::LocalEvm;
     use tempfile::TempDir;
 

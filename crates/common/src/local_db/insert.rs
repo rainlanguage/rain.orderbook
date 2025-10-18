@@ -862,8 +862,8 @@ fn escape_sql_text(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
-    use crate::raindex_client::local_db::LocalDb;
+    use crate::local_db::decode::{EventType, UnknownEventDecoded};
+    use crate::local_db::LocalDb;
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};

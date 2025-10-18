@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use rain_orderbook_common::{
     erc20::TokenInfo,
-    raindex_client::local_db::{
+    local_db::{
         decode::{DecodedEvent, DecodedEventData},
         token_fetch::fetch_erc20_metadata_concurrent,
         FetchConfig, LocalDb,

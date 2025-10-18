@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::raindex_client::local_db::{LocalDb, LocalDbError};
+use rain_orderbook_common::local_db::{LocalDb, LocalDbError};
 use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClientError};
 use std::fs::File;
 use std::io::Write;

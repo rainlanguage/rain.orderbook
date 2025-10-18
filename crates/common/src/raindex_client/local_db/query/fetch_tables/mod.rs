@@ -1,103 +1,51 @@
 use super::*;
-
-const QUERY: &str = include_str!("query.sql");
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TableResponse {
-    pub name: String,
-}
+use crate::local_db::query::fetch_tables::{fetch_tables_sql, TableResponse};
 
 impl LocalDbQuery {
     pub async fn fetch_all_tables(
         db_callback: &js_sys::Function,
     ) -> Result<Vec<TableResponse>, LocalDbQueryError> {
-        LocalDbQuery::execute_query_json::<Vec<TableResponse>>(db_callback, QUERY).await
+        LocalDbQuery::execute_query_json(db_callback, fetch_tables_sql()).await
     }
 }
 
-#[cfg(test)]
-mod tests {
+#[cfg(all(test, target_family = "wasm"))]
+mod wasm_tests {
     use super::*;
+    use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use wasm_bindgen::prelude::Closure;
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_test::*;
 
-    #[cfg(target_family = "wasm")]
-    mod wasm_tests {
-        use super::*;
-        use crate::raindex_client::local_db::query::tests::create_success_callback;
-        use wasm_bindgen_test::*;
+    #[wasm_bindgen_test]
+    async fn wrapper_uses_raw_sql_exactly() {
+        let expected_sql = fetch_tables_sql();
+        let store = Rc::new(RefCell::new(String::new()));
+        let callback = create_sql_capturing_callback("[]", store.clone());
 
-        #[wasm_bindgen_test]
-        async fn test_fetch_all_tables() {
-            let table_data = vec![
-                TableResponse {
-                    name: "sync_status".to_string(),
-                },
-                TableResponse {
-                    name: "deposits".to_string(),
-                },
-            ];
-            let json_data = serde_json::to_string(&table_data).unwrap();
-            let callback = create_success_callback(&json_data);
+        let res = LocalDbQuery::fetch_all_tables(&callback).await;
+        assert!(res.is_ok());
 
-            let result = LocalDbQuery::fetch_all_tables(&callback).await;
+        let captured = store.borrow().clone();
+        assert_eq!(captured, expected_sql);
+    }
 
-            assert!(result.is_ok());
-            let data = result.unwrap();
-            assert_eq!(data.len(), 2);
-            assert_eq!(data[0].name, "sync_status");
-            assert_eq!(data[1].name, "deposits");
-        }
+    #[wasm_bindgen_test]
+    async fn invalid_response_yields_invalid_response_error() {
+        // Return a raw JsValue string instead of WasmEncodedResult
+        let store = Rc::new(RefCell::new(String::new()));
+        let store_clone = store.clone();
+        let closure = Closure::wrap(Box::new(move |sql: String| -> wasm_bindgen::JsValue {
+            *store_clone.borrow_mut() = sql;
+            wasm_bindgen::JsValue::from_str("not-a-wrapper")
+        })
+            as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
+        let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
+        closure.forget();
 
-        #[wasm_bindgen_test]
-        async fn test_fetch_all_tables_empty() {
-            let callback = create_success_callback("[]");
-
-            let result = LocalDbQuery::fetch_all_tables(&callback).await;
-
-            assert!(result.is_ok());
-            let data = result.unwrap();
-            assert_eq!(data.len(), 0);
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_fetch_all_tables_single() {
-            let table_data = vec![TableResponse {
-                name: "sqlite_master".to_string(),
-            }];
-            let json_data = serde_json::to_string(&table_data).unwrap();
-            let callback = create_success_callback(&json_data);
-
-            let result = LocalDbQuery::fetch_all_tables(&callback).await;
-
-            assert!(result.is_ok());
-            let data = result.unwrap();
-            assert_eq!(data.len(), 1);
-            assert_eq!(data[0].name, "sqlite_master");
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_fetch_all_tables_special_names() {
-            let table_data = vec![
-                TableResponse {
-                    name: "table_with_numbers_123".to_string(),
-                },
-                TableResponse {
-                    name: "table_with_underscores".to_string(),
-                },
-                TableResponse {
-                    name: "UPPERCASE_TABLE".to_string(),
-                },
-            ];
-            let json_data = serde_json::to_string(&table_data).unwrap();
-            let callback = create_success_callback(&json_data);
-
-            let result = LocalDbQuery::fetch_all_tables(&callback).await;
-
-            assert!(result.is_ok());
-            let data = result.unwrap();
-            assert_eq!(data.len(), 3);
-            assert!(data.iter().any(|t| t.name == "table_with_numbers_123"));
-            assert!(data.iter().any(|t| t.name == "table_with_underscores"));
-            assert!(data.iter().any(|t| t.name == "UPPERCASE_TABLE"));
-        }
+        let res = LocalDbQuery::fetch_all_tables(&callback).await;
+        assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
     }
 }

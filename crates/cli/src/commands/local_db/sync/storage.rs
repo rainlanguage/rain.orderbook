@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use rain_orderbook_app_settings::network::NetworkCfg;
-use rain_orderbook_common::raindex_client::local_db::{
+use rain_orderbook_common::local_db::{
     query::{
         create_tables::{CREATE_TABLES_SQL, REQUIRED_TABLES},
         fetch_erc20_tokens_by_addresses::FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL,

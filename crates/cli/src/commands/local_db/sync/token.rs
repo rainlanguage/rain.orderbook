@@ -2,9 +2,9 @@ use alloy::hex;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use itertools::Itertools;
-use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
-use rain_orderbook_common::raindex_client::local_db::insert::generate_erc20_tokens_sql;
-use rain_orderbook_common::raindex_client::local_db::tokens::collect_token_addresses;
+use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
+use rain_orderbook_common::local_db::insert::generate_erc20_tokens_sql;
+use rain_orderbook_common::local_db::tokens::collect_token_addresses;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use url::Url;
@@ -88,9 +88,7 @@ mod tests {
     use async_trait::async_trait;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
-    use rain_orderbook_common::raindex_client::local_db::decode::{
-        DecodedEvent, DecodedEventData, EventType,
-    };
+    use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData, EventType};
     use tempfile::TempDir;
     use url::Url;
 

@@ -400,16 +400,22 @@ fn parse_block_number_str(block_number_str: &str) -> Result<u64, LocalDbError> {
         .or_else(|| block_number_str.strip_prefix("0X"))
     {
         if hex_digits.is_empty() {
-            return Err(LocalDbError::invalid_block_number(
-                block_number_str,
-                alloy::primitives::ruint::ParseError::InvalidDigit('\0'),
-            ));
+            return Err(LocalDbError::InvalidBlockNumber {
+                value: block_number_str.to_string(),
+                source: alloy::primitives::ruint::ParseError::InvalidDigit('\0'),
+            });
         }
-        U256::from_str_radix(hex_digits, 16)
-            .map_err(|e| LocalDbError::invalid_block_number(block_number_str, e))?
+        U256::from_str_radix(hex_digits, 16).map_err(|e| LocalDbError::InvalidBlockNumber {
+            value: block_number_str.to_string(),
+            source: e,
+        })?
     } else {
-        U256::from_str_radix(block_number_str, 10)
-            .map_err(|e| LocalDbError::invalid_block_number(block_number_str, e))?
+        U256::from_str_radix(block_number_str, 10).map_err(|e| {
+            LocalDbError::InvalidBlockNumber {
+                value: block_number_str.to_string(),
+                source: e,
+            }
+        })?
     };
 
     Ok(block_u256.to::<u64>())

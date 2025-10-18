@@ -1,3 +1,4 @@
+use crate::local_db::{query::LocalDbQueryError, LocalDbError};
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -10,7 +11,6 @@ use alloy::{
         Address, ParseSignedError,
     },
 };
-use local_db::{query::LocalDbQueryError, LocalDbError};
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
@@ -211,7 +211,10 @@ impl RaindexClient {
         Ok(network.rpcs.clone())
     }
 
-    fn get_orderbooks_by_chain_id(&self, chain_id: u32) -> Result<Vec<OrderbookCfg>, RaindexError> {
+    pub(crate) fn get_orderbooks_by_chain_id(
+        &self,
+        chain_id: u32,
+    ) -> Result<Vec<OrderbookCfg>, RaindexError> {
         let orderbooks = self.orderbook_yaml.get_orderbooks_by_chain_id(chain_id)?;
         Ok(orderbooks)
     }
