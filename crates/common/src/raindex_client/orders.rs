@@ -1,8 +1,10 @@
-use super::local_db::query::fetch_orders::{FetchOrdersArgs, LocalDbOrder};
-use super::local_db::query::fetch_vault::LocalDbVault;
-use super::local_db::query::LocalDbQuery;
 use super::local_db::LocalDb;
 use super::*;
+use crate::local_db::query::{
+    fetch_orders::{FetchOrdersArgs, LocalDbOrder},
+    fetch_vault::LocalDbVault,
+};
+use crate::raindex_client::local_db::query::LocalDbQuery;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -957,7 +959,10 @@ impl RaindexOrder {
             orderbook: Address::from_str(&order.orderbook_address)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
-            meta: order.meta.map(|meta| Bytes::from_str(&meta)).transpose()?,
+            meta: order
+                .meta
+                .map(|meta| Bytes::from_str(meta.as_str()))
+                .transpose()?,
             rainlang,
             transaction: None,
             trades_count: order.trade_count as u16,
@@ -972,9 +977,7 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::raindex_client::local_db::query::{
-            fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault,
-        };
+        use crate::local_db::query::{fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault};
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };

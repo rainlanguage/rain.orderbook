@@ -1,11 +1,11 @@
 use super::*;
-use crate::raindex_client::local_db::{
+use crate::local_db::{
     query::{
         fetch_vault_balance_changes::LocalDbVaultBalanceChange, fetch_vaults::FetchVaultsArgs,
-        LocalDbQuery,
     },
     LocalDb,
 };
+use crate::raindex_client::local_db::query::LocalDbQuery;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
@@ -1194,7 +1194,7 @@ impl RaindexClient {
     ) -> Result<Vec<RaindexVault>, RaindexError> {
         let fetch_args = filters
             .clone()
-            .map(FetchVaultsArgs::from)
+            .map(FetchVaultsArgs::from_filters)
             .unwrap_or_default();
 
         let local_vaults = LocalDbQuery::fetch_vaults(db_callback, chain_id, fetch_args).await?;
@@ -1513,7 +1513,7 @@ impl RaindexVault {
     pub fn try_from_local_db(
         raindex_client: Rc<RaindexClient>,
         chain_id: u32,
-        vault: local_db::query::fetch_vault::LocalDbVault,
+        vault: crate::local_db::query::fetch_vault::LocalDbVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
         let balance = Float::from_hex(&vault.balance)?;
@@ -1598,8 +1598,8 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::raindex_client::local_db::query::fetch_vault::LocalDbVault;
-        use crate::raindex_client::local_db::query::fetch_vault_balance_changes::LocalDbVaultBalanceChange;
+        use crate::local_db::query::fetch_vault::LocalDbVault;
+        use crate::local_db::query::fetch_vault_balance_changes::LocalDbVaultBalanceChange;
         use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
@@ -1869,7 +1869,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::local_db::query::fetch_vault::LocalDbVault;
+        use crate::local_db::query::fetch_vault::LocalDbVault;
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
         use alloy::hex::encode_prefixed;
