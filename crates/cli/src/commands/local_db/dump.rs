@@ -91,7 +91,8 @@ fn resolve_view_sql_files() -> Result<Vec<String>> {
 }
 
 fn default_views_dir() -> PathBuf {
-    PathBuf::from("../common/src/raindex_client/local_db/views")
+    // Views moved under common/src/local_db/views in the common crate
+    PathBuf::from("../common/src/local_db/views")
 }
 
 fn collect_sql_files(dir: &Path) -> Result<Vec<String>> {
