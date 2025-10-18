@@ -14,7 +14,10 @@ impl LocalDbQuery {
 #[wasm_export]
 impl LocalDb {
     /// Returns the sync status rows from the local DB (via provided JS query callback)
-    #[wasm_export(js_name = "getSyncStatus")]
+    #[wasm_export(
+        js_name = "getSyncStatus",
+        unchecked_return_type = "SyncStatusResponse[]"
+    )]
     pub async fn get_sync_status(
         &self,
         #[wasm_export(param_description = "JavaScript function to execute database queries")]
