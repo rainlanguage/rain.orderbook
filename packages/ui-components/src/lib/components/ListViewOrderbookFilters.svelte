@@ -27,8 +27,10 @@
 	export let selectedTokens: Address[];
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 
-	$: isVaultsPage = $page.url.pathname === '/vaults';
-	$: isOrdersPage = $page.url.pathname === '/orders';
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	$: isVaultsPage = ($page.url.pathname as any) === '/vaults';
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	$: isOrdersPage = ($page.url.pathname as any) === '/orders';
 
 	const { account } = useAccount();
 	const raindexClient = useRaindexClient();

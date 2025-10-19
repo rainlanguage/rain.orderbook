@@ -9,9 +9,9 @@ import { init as initOrderbookPackage } from '@rainlanguage/orderbook/esm';
 // have raindex webapp specific orderbook pkg build (see orderbook pkg build script),
 // this can be reverted once safari supports top-level await in multiple modules
 export const init: ClientInit = async () => {
-    await initOrderbookPackage();
+	await initOrderbookPackage();
 };
 
 export const handleError: HandleClientError = ({ error, event }) => {
-    console.error('Client hook error:', error, event);
+	console.error('Client hook error:', error, event);
 };
