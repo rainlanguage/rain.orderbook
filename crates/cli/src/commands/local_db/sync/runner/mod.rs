@@ -2,11 +2,12 @@ use anyhow::Result;
 use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
 use url::Url;
 
-use super::super::sqlite::sqlite_execute;
 use super::{
     data_source::{SyncDataSource, TokenMetadataFetcher},
     storage::{ensure_schema, fetch_existing_store_addresses},
 };
+use crate::commands::local_db::executor::SqliteCliExecutor;
+use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
 
 use self::{
     apply::{
@@ -56,7 +57,7 @@ where
     }
 
     pub(crate) async fn run(&self, params: &SyncParams<'_>) -> Result<()> {
-        let schema_applied = ensure_schema(self.db_path)?;
+        let schema_applied = ensure_schema(self.db_path).await?;
         if schema_applied {
             println!("Database schema initialized at {}", self.db_path);
         }
@@ -102,7 +103,7 @@ where
 
         println!("Collecting interpreter store addresses");
         let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded_events);
-        let existing_stores = fetch_existing_store_addresses(self.db_path)?;
+        let existing_stores = fetch_existing_store_addresses(self.db_path).await?;
         store_addresses.extend(existing_stores);
 
         if !store_addresses.is_empty() {
@@ -147,7 +148,10 @@ where
 
         println!("Generating SQL for {} events", decoded_count);
         println!("Applying SQL to {}", self.db_path);
-        sqlite_execute(self.db_path, &sql)?;
+        let exec = SqliteCliExecutor::new(self.db_path);
+        exec.query_text(&sql)
+            .await
+            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
         println!(
             "Sync complete. last_synced_block is now {}",
@@ -202,7 +206,6 @@ mod tests {
     use std::sync::Mutex;
     use tempfile::TempDir;
 
-    use crate::commands::local_db::sqlite::sqlite_execute;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
     const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
@@ -414,7 +417,8 @@ mod tests {
         let db_path = temp_dir.path().join("sync.db");
         let db_path_str = db_path.to_string_lossy();
 
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
 
         let base_event = sample_store_decoded_event(Address::from([0x11; 20]));
         let store_event = sample_store_decoded_event(Address::from([0x55; 20]));
@@ -519,9 +523,9 @@ mod tests {
         let db_path = temp_dir.path().join("stores.db");
         let db_path_str = db_path.to_string_lossy();
 
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        sqlite_execute(
-            &db_path_str,
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(
             r#"INSERT INTO interpreter_store_sets (
                 store_address,
                 transaction_hash,
@@ -543,6 +547,7 @@ mod tests {
             );
 "#,
         )
+        .await
         .unwrap();
 
         let decoded = vec![sample_decoded_event(Address::from([0xaa; 20]))];
