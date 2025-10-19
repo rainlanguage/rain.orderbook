@@ -12,7 +12,7 @@ pub mod fetch_vault_balance_changes;
 pub mod fetch_vaults;
 pub mod update_last_synced_block;
 
-use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 use thiserror::Error;
 
 /// Backend-neutral error representing failures when executing SQL against the
@@ -48,8 +48,8 @@ impl LocalDbQueryError {
     }
 }
 
-/// Helper trait for types that can be deserialized from JSON text emitted by the
-/// local database backend.
-pub trait FromDbJson: for<'de> Deserialize<'de> + Serialize {}
+/// Helper trait for types that can be deserialized from DB JSON emitted by the
+/// local database backend. Implementors must be deserializable from JSON.
+pub trait FromDbJson: DeserializeOwned {}
 
-impl<T> FromDbJson for T where T: for<'de> Deserialize<'de> + Serialize {}
+impl<T> FromDbJson for T where T: DeserializeOwned {}

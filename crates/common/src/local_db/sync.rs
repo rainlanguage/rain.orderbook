@@ -32,7 +32,7 @@ pub const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.
 pub trait Database {
     async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
     where
-        T: FromDbJson + Send;
+        T: FromDbJson;
 
     async fn query_text(&self, sql: &str) -> Result<String, LocalDbQueryError>;
 }
@@ -280,23 +280,29 @@ async fn prepare_erc20_tokens_prefix(
 
 fn sort_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
     events.sort_by(|a, b| {
-        let block_a = parse_block_number(&a.block_number);
-        let block_b = parse_block_number(&b.block_number);
-        block_a
-            .cmp(&block_b)
-            .then_with(|| parse_block_number(&a.log_index).cmp(&parse_block_number(&b.log_index)))
+        let block_a = parse_u64_hex_or_dec(&a.block_number)
+            .unwrap_or_else(|e| panic!("failed to parse block_number '{}': {}", a.block_number, e));
+        let block_b = parse_u64_hex_or_dec(&b.block_number)
+            .unwrap_or_else(|e| panic!("failed to parse block_number '{}': {}", b.block_number, e));
+        block_a.cmp(&block_b).then_with(|| {
+            let log_a = parse_u64_hex_or_dec(&a.log_index)
+                .unwrap_or_else(|e| panic!("failed to parse log_index '{}': {}", a.log_index, e));
+            let log_b = parse_u64_hex_or_dec(&b.log_index)
+                .unwrap_or_else(|e| panic!("failed to parse log_index '{}': {}", b.log_index, e));
+            log_a.cmp(&log_b)
+        })
     });
 }
 
-fn parse_block_number(value: &str) -> u64 {
+fn parse_u64_hex_or_dec(value: &str) -> Result<u64, std::num::ParseIntError> {
     let trimmed = value.trim();
     if let Some(hex) = trimmed
         .strip_prefix("0x")
         .or_else(|| trimmed.strip_prefix("0X"))
     {
-        u64::from_str_radix(hex, 16).unwrap_or(0)
+        u64::from_str_radix(hex, 16)
     } else {
-        trimmed.parse::<u64>().unwrap_or(0)
+        trimmed.parse::<u64>()
     }
 }
 
@@ -345,7 +351,7 @@ mod tests {
     impl Database for MockDb {
         async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
         where
-            T: FromDbJson + Send,
+            T: FromDbJson,
         {
             if self.err_on.contains(sql) {
                 return Err(LocalDbQueryError::database("forced error"));
@@ -470,12 +476,12 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_block_number_variants() {
-        assert_eq!(parse_block_number("0x0"), 0);
-        assert_eq!(parse_block_number("0x1a"), 26);
-        assert_eq!(parse_block_number("26"), 26);
-        assert_eq!(parse_block_number("garbage"), 0);
-        assert_eq!(parse_block_number("  0x2A  "), 42);
+    fn test_parse_u64_hex_or_dec_variants() {
+        assert_eq!(parse_u64_hex_or_dec("0x0").unwrap(), 0);
+        assert_eq!(parse_u64_hex_or_dec("0x1a").unwrap(), 26);
+        assert_eq!(parse_u64_hex_or_dec("26").unwrap(), 26);
+        assert!(parse_u64_hex_or_dec("garbage").is_err());
+        assert_eq!(parse_u64_hex_or_dec("  0x2A  ").unwrap(), 42);
     }
 
     #[test]

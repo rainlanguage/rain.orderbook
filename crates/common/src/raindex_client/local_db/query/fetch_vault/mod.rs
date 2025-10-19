@@ -11,13 +11,8 @@ impl LocalDbQuery {
         token: &str,
     ) -> Result<Option<LocalDbVault>, LocalDbQueryError> {
         let sql = build_fetch_vault_query(chain_id, vault_id, token);
-        let mut rows: Vec<LocalDbVault> =
-            LocalDbQuery::execute_query_json(db_callback, &sql).await?;
-        Ok(rows.pop())
-    }
-
-    pub fn parse_io_indexed_pairs(io: &Option<String>) -> Vec<(usize, String, String)> {
-        parse_io_indexed_pairs(io)
+        let rows: Vec<LocalDbVault> = LocalDbQuery::execute_query_json(db_callback, &sql).await?;
+        Ok(rows.into_iter().next())
     }
 
     pub async fn fetch_vaults_for_io_string(

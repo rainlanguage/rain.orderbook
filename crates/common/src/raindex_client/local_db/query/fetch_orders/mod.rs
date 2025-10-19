@@ -120,10 +120,10 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("not-json", store.clone());
 
         let res = LocalDbQuery::fetch_orders(&callback, args).await;
-        assert!(res.is_err());
-        let err = res.err().unwrap();
-        let msg = err.to_string();
-        assert!(msg.contains("Deserialization failed"));
+        assert!(matches!(
+            res,
+            Err(LocalDbQueryError::Deserialization { .. })
+        ));
 
         // Still should have executed with expected SQL
         assert_eq!(store.borrow().clone(), expected_sql);

@@ -60,7 +60,7 @@ impl LocalDbQuery {
         sql: &str,
     ) -> Result<T, LocalDbQueryError>
     where
-        T: FromDbJson + Send,
+        T: FromDbJson,
     {
         let value = Self::execute_query_raw(callback, sql).await?;
         serde_json::from_str(&value)

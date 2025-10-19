@@ -20,7 +20,7 @@ impl<'a> JsDatabaseBridge<'a> {
 impl<'a> Database for JsDatabaseBridge<'a> {
     async fn query_json<T>(&self, sql: &str) -> Result<T, crate::local_db::query::LocalDbQueryError>
     where
-        T: crate::local_db::query::FromDbJson + Send,
+        T: crate::local_db::query::FromDbJson,
     {
         LocalDbQuery::execute_query_json(self.callback, sql).await
     }
@@ -53,12 +53,12 @@ fn send_status_message(
     status_callback: &js_sys::Function,
     message: String,
 ) -> Result<(), LocalDbError> {
-    status_callback
-        .call1(
-            &wasm_bindgen::JsValue::NULL,
-            &wasm_bindgen::JsValue::from_str(&message),
-        )
-        .map_err(|e| LocalDbError::CustomError(format!("JavaScript callback error: {:?}", e)))?;
+    // Call the JS status callback but intentionally swallow any errors so
+    // that status reporting never aborts the sync process.
+    let _ = status_callback.call1(
+        &wasm_bindgen::JsValue::NULL,
+        &wasm_bindgen::JsValue::from_str(&message),
+    );
     Ok(())
 }
 
@@ -96,7 +96,6 @@ impl RaindexClient {
 mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
-        use crate::local_db::LocalDbError;
         use crate::raindex_client::local_db::sync::send_status_message;
         use wasm_bindgen_test::*;
         use wasm_bindgen_utils::prelude::js_sys;
@@ -114,13 +113,8 @@ mod tests {
             let callback = js_sys::Function::new_no_args("throw new Error('Callback failed');");
             let message = "Test status message".to_string();
             let result = send_status_message(&callback, message);
-            assert!(result.is_err());
-            match result {
-                Err(LocalDbError::CustomError(msg)) => {
-                    assert!(msg.contains("JavaScript callback error"));
-                }
-                _ => panic!("Expected CustomError from JavaScript callback failure"),
-            }
+            // Errors from the JS callback are swallowed; should not propagate.
+            assert!(result.is_ok());
         }
     }
 }
