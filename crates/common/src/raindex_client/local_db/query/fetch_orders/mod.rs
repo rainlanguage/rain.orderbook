@@ -2,6 +2,7 @@ use super::*;
 use crate::local_db::query::fetch_orders::{
     build_fetch_orders_query, FetchOrdersActiveFilter, FetchOrdersArgs, LocalDbOrder,
 };
+use crate::local_db::query::LocalDbQueryExecutor;
 use crate::raindex_client::orders::GetOrdersFilters;
 
 impl From<GetOrdersFilters> for FetchOrdersArgs {
@@ -37,19 +38,20 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
 }
 
 impl LocalDbQuery {
-    pub async fn fetch_orders(
-        db_callback: &js_sys::Function,
+    pub async fn fetch_orders<E: LocalDbQueryExecutor + ?Sized>(
+        exec: &E,
         args: FetchOrdersArgs,
     ) -> Result<Vec<LocalDbOrder>, LocalDbQueryError> {
         let sql = build_fetch_orders_query(&args);
-        LocalDbQuery::execute_query_json(db_callback, &sql).await
+        exec.query_json(&sql).await
     }
 }
 
 #[cfg(all(test, target_family = "wasm"))]
 mod wasm_tests {
     use super::*;
-    use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
+    use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
+    use crate::raindex_client::local_db::executor::JsCallbackExecutor;
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen::prelude::Closure;
@@ -71,9 +73,10 @@ mod wasm_tests {
 
         let store = Rc::new(RefCell::new(String::new()));
         let callback = create_sql_capturing_callback("[]", store.clone());
+        let exec = JsCallbackExecutor::new(&callback);
 
         // Act
-        let res = LocalDbQuery::fetch_orders(&callback, args).await;
+        let res = LocalDbQuery::fetch_orders(&exec, args).await;
 
         // Assert
         assert!(res.is_ok());
@@ -102,7 +105,8 @@ mod wasm_tests {
         closure.forget();
 
         let args = FetchOrdersArgs::default();
-        let res = LocalDbQuery::fetch_orders(&callback, args).await;
+        let exec = JsCallbackExecutor::new(&callback);
+        let res = LocalDbQuery::fetch_orders(&exec, args).await;
         assert!(res.is_err());
         let err = res.err().unwrap();
         let msg = err.to_string();
@@ -119,7 +123,8 @@ mod wasm_tests {
         let store = Rc::new(RefCell::new(String::new()));
         let callback = create_sql_capturing_callback("not-json", store.clone());
 
-        let res = LocalDbQuery::fetch_orders(&callback, args).await;
+        let exec = JsCallbackExecutor::new(&callback);
+        let res = LocalDbQuery::fetch_orders(&exec, args).await;
         assert!(matches!(
             res,
             Err(LocalDbQueryError::Deserialization { .. })
@@ -143,7 +148,8 @@ mod wasm_tests {
         closure.forget();
 
         let args = FetchOrdersArgs::default();
-        let res = LocalDbQuery::fetch_orders(&callback, args).await;
+        let exec = JsCallbackExecutor::new(&callback);
+        let res = LocalDbQuery::fetch_orders(&exec, args).await;
         assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
     }
 }

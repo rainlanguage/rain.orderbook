@@ -1,6 +1,7 @@
 use super::*;
 use crate::local_db::query::fetch_vault::LocalDbVault;
 use crate::local_db::query::fetch_vaults::{build_fetch_vaults_query, FetchVaultsArgs};
+use crate::local_db::query::LocalDbQueryExecutor;
 use crate::raindex_client::vaults::GetVaultsFilters;
 
 impl FetchVaultsArgs {
@@ -32,20 +33,21 @@ impl From<GetVaultsFilters> for FetchVaultsArgs {
 }
 
 impl LocalDbQuery {
-    pub async fn fetch_vaults(
-        db_callback: &js_sys::Function,
+    pub async fn fetch_vaults<E: LocalDbQueryExecutor + ?Sized>(
+        exec: &E,
         chain_id: u32,
         args: FetchVaultsArgs,
     ) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
         let sql = build_fetch_vaults_query(chain_id, &args);
-        LocalDbQuery::execute_query_json(db_callback, &sql).await
+        exec.query_json(&sql).await
     }
 }
 
 #[cfg(all(test, target_family = "wasm"))]
 mod wasm_tests {
     use super::*;
-    use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
+    use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
+    use crate::raindex_client::local_db::executor::JsCallbackExecutor;
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen_test::*;
@@ -61,8 +63,9 @@ mod wasm_tests {
 
         let store = Rc::new(RefCell::new(String::new()));
         let callback = create_sql_capturing_callback("[]", store.clone());
+        let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::fetch_vaults(&callback, 137, args).await;
+        let res = LocalDbQuery::fetch_vaults(&exec, 137, args).await;
         assert!(res.is_ok());
 
         let captured = store.borrow().clone();

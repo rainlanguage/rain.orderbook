@@ -1,22 +1,22 @@
 use super::*;
 use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_query;
+use crate::local_db::query::LocalDbQueryExecutor;
 
 impl LocalDbQuery {
-    pub async fn update_last_synced_block(
-        db_callback: &js_sys::Function,
+    pub async fn update_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
+        exec: &E,
         block_number: u64,
     ) -> Result<(), LocalDbQueryError> {
         let sql = build_update_last_synced_block_query(block_number);
-        LocalDbQuery::execute_query_text(db_callback, &sql)
-            .await
-            .map(|_| ())
+        exec.query_text(&sql).await.map(|_| ())
     }
 }
 
 #[cfg(all(test, target_family = "wasm"))]
 mod wasm_tests {
     use super::*;
-    use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
+    use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
+    use crate::raindex_client::local_db::executor::JsCallbackExecutor;
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen::prelude::Closure;
@@ -28,8 +28,9 @@ mod wasm_tests {
         let expected_sql = build_update_last_synced_block_query(999);
         let store = Rc::new(RefCell::new(String::new()));
         let callback = create_sql_capturing_callback("OK", store.clone());
+        let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::update_last_synced_block(&callback, 999).await;
+        let res = LocalDbQuery::update_last_synced_block(&exec, 999).await;
         assert!(res.is_ok());
         let captured = store.borrow().clone();
         assert_eq!(captured, expected_sql);
@@ -48,7 +49,8 @@ mod wasm_tests {
         let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
 
-        let res = LocalDbQuery::update_last_synced_block(&callback, 999).await;
+        let exec = JsCallbackExecutor::new(&callback);
+        let res = LocalDbQuery::update_last_synced_block(&exec, 999).await;
         assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
     }
 }

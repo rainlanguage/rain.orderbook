@@ -1,5 +1,6 @@
 use crate::local_db::{LocalDb, LocalDbError};
 
+pub mod executor;
 pub mod query;
 pub mod sync;
 
