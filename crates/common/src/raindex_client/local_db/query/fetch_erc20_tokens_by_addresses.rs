@@ -1,18 +1,15 @@
-use super::*;
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::{build_fetch_query, Erc20TokenRow};
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
-impl LocalDbQuery {
-    pub async fn fetch_erc20_tokens_by_addresses<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-        chain_id: u32,
-        addresses: &[String],
-    ) -> Result<Vec<Erc20TokenRow>, LocalDbQueryError> {
-        if let Some(sql) = build_fetch_query(chain_id, addresses) {
-            exec.query_json(&sql).await
-        } else {
-            Ok(vec![])
-        }
+pub async fn fetch_erc20_tokens_by_addresses<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+    chain_id: u32,
+    addresses: &[String],
+) -> Result<Vec<Erc20TokenRow>, LocalDbQueryError> {
+    if let Some(sql) = build_fetch_query(chain_id, addresses) {
+        exec.query_json(&sql).await
+    } else {
+        Ok(vec![])
     }
 }
 
@@ -30,7 +27,7 @@ mod wasm_tests {
         let store = Rc::new(RefCell::new(String::new()));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
-        let res = LocalDbQuery::fetch_erc20_tokens_by_addresses(&exec, 1, &[]).await;
+        let res = super::fetch_erc20_tokens_by_addresses(&exec, 1, &[]).await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_empty());
         assert!(store.borrow().is_empty());
@@ -45,7 +42,7 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::fetch_erc20_tokens_by_addresses(&exec, 10, &addrs).await;
+        let res = super::fetch_erc20_tokens_by_addresses(&exec, 10, &addrs).await;
         assert!(res.is_ok());
 
         let captured = store.borrow().clone();

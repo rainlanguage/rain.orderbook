@@ -1,16 +1,11 @@
-use super::*;
-use crate::local_db::query::create_tables::create_tables_sql;
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_sql, StoreAddressRow};
+use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
-impl LocalDbQuery {
-    pub async fn create_tables<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-    ) -> Result<(), LocalDbQueryError> {
-        exec.query_text(create_tables_sql()).await.map(|_| ())
-    }
+pub async fn fetch_store_addresses<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+) -> Result<Vec<StoreAddressRow>, LocalDbQueryError> {
+    exec.query_json(fetch_store_addresses_sql()).await
 }
-
-pub use crate::local_db::query::create_tables::REQUIRED_TABLES;
 
 #[cfg(all(test, target_family = "wasm"))]
 mod wasm_tests {
@@ -23,11 +18,11 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_raw_sql_exactly() {
-        let expected_sql = create_tables_sql();
+        let expected_sql = fetch_store_addresses_sql();
         let store = Rc::new(RefCell::new(String::new()));
-        let callback = create_sql_capturing_callback("OK", store.clone());
+        let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
-        let res = LocalDbQuery::create_tables(&exec).await;
+        let res = super::fetch_store_addresses(&exec).await;
         assert!(res.is_ok());
         assert_eq!(store.borrow().clone(), expected_sql);
     }

@@ -1,13 +1,10 @@
-use super::*;
 use crate::local_db::query::fetch_tables::{fetch_tables_sql, TableResponse};
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
-impl LocalDbQuery {
-    pub async fn fetch_all_tables<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-    ) -> Result<Vec<TableResponse>, LocalDbQueryError> {
-        exec.query_json(fetch_tables_sql()).await
-    }
+pub async fn fetch_all_tables<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+) -> Result<Vec<TableResponse>, LocalDbQueryError> {
+    exec.query_json(fetch_tables_sql()).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]
@@ -17,9 +14,9 @@ mod wasm_tests {
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
     use std::cell::RefCell;
     use std::rc::Rc;
-    use wasm_bindgen::prelude::Closure;
     use wasm_bindgen::JsCast;
     use wasm_bindgen_test::*;
+    use wasm_bindgen_utils::prelude::*;
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_raw_sql_exactly() {
@@ -28,7 +25,7 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::fetch_all_tables(&exec).await;
+        let res = super::fetch_all_tables(&exec).await;
         assert!(res.is_ok());
 
         let captured = store.borrow().clone();
@@ -49,7 +46,7 @@ mod wasm_tests {
         closure.forget();
 
         let exec = JsCallbackExecutor::new(&callback);
-        let res = LocalDbQuery::fetch_all_tables(&exec).await;
+        let res = super::fetch_all_tables(&exec).await;
         assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
     }
 }

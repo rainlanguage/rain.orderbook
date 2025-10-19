@@ -1,15 +1,12 @@
-use super::*;
 use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_query;
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
-impl LocalDbQuery {
-    pub async fn update_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-        block_number: u64,
-    ) -> Result<(), LocalDbQueryError> {
-        let sql = build_update_last_synced_block_query(block_number);
-        exec.query_text(&sql).await.map(|_| ())
-    }
+pub async fn update_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+    block_number: u64,
+) -> Result<(), LocalDbQueryError> {
+    let sql = build_update_last_synced_block_query(block_number);
+    exec.query_text(&sql).await.map(|_| ())
 }
 
 #[cfg(all(test, target_family = "wasm"))]
@@ -22,6 +19,7 @@ mod wasm_tests {
     use wasm_bindgen::prelude::Closure;
     use wasm_bindgen::JsCast;
     use wasm_bindgen_test::*;
+    use wasm_bindgen_utils::prelude::*;
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
@@ -30,7 +28,7 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("OK", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::update_last_synced_block(&exec, 999).await;
+        let res = super::update_last_synced_block(&exec, 999).await;
         assert!(res.is_ok());
         let captured = store.borrow().clone();
         assert_eq!(captured, expected_sql);
@@ -50,7 +48,7 @@ mod wasm_tests {
         closure.forget();
 
         let exec = JsCallbackExecutor::new(&callback);
-        let res = LocalDbQuery::update_last_synced_block(&exec, 999).await;
+        let res = super::update_last_synced_block(&exec, 999).await;
         assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
     }
 }

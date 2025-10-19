@@ -11,8 +11,3 @@ pub mod fetch_vault;
 pub mod fetch_vault_balance_changes;
 pub mod fetch_vaults;
 pub mod update_last_synced_block;
-
-use super::*;
-use crate::local_db::{query::LocalDbQueryError, LocalDb, LocalDbError};
-
-pub struct LocalDbQuery;

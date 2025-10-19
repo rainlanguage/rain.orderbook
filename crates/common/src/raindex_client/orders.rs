@@ -7,7 +7,7 @@ use crate::local_db::query::{
 };
 use crate::local_db::LocalDb;
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
-use crate::raindex_client::local_db::query::LocalDbQuery;
+use crate::raindex_client::local_db::query::fetch_vault::fetch_vaults_for_io_string;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -610,18 +610,10 @@ impl RaindexClient {
         let local_db_orders = fetch_orders(&executor, fetch_args).await?;
 
         for local_db_order in &local_db_orders {
-            let input_vaults = LocalDbQuery::fetch_vaults_for_io_string(
-                &executor,
-                chain_id,
-                &local_db_order.inputs,
-            )
-            .await?;
-            let output_vaults = LocalDbQuery::fetch_vaults_for_io_string(
-                &executor,
-                chain_id,
-                &local_db_order.outputs,
-            )
-            .await?;
+            let input_vaults =
+                fetch_vaults_for_io_string(&executor, chain_id, &local_db_order.inputs).await?;
+            let output_vaults =
+                fetch_vaults_for_io_string(&executor, chain_id, &local_db_order.outputs).await?;
 
             let order = RaindexOrder::try_from_local_db(
                 raindex_client.clone(),
@@ -735,7 +727,7 @@ impl RaindexClient {
             ..FetchOrdersArgs::default()
         };
 
-        let local_db_orders = fetch_orders(&executor, fetch_args).await?;
+        let local_db_orders = fetch_orders(executor, fetch_args).await?;
         let raindex_client = Rc::new(self.clone());
 
         for local_db_order in local_db_orders {
@@ -744,18 +736,10 @@ impl RaindexClient {
                 continue;
             }
 
-            let input_vaults = LocalDbQuery::fetch_vaults_for_io_string(
-                executor,
-                chain_id,
-                &local_db_order.inputs,
-            )
-            .await?;
-            let output_vaults = LocalDbQuery::fetch_vaults_for_io_string(
-                executor,
-                chain_id,
-                &local_db_order.outputs,
-            )
-            .await?;
+            let input_vaults =
+                fetch_vaults_for_io_string(executor, chain_id, &local_db_order.inputs).await?;
+            let output_vaults =
+                fetch_vaults_for_io_string(executor, chain_id, &local_db_order.outputs).await?;
 
             let order = RaindexOrder::try_from_local_db(
                 Rc::clone(&raindex_client),

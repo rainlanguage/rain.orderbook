@@ -1,16 +1,14 @@
-use super::*;
 use crate::local_db::query::fetch_last_synced_block::{
     fetch_last_synced_block_sql, SyncStatusResponse,
 };
-use crate::local_db::query::LocalDbQueryExecutor;
-use crate::raindex_client::local_db::executor::JsCallbackExecutor;
+use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use crate::local_db::{LocalDb, LocalDbError};
+use wasm_bindgen_utils::{prelude::*, wasm_export};
 
-impl LocalDbQuery {
-    pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-    ) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
-        exec.query_json(fetch_last_synced_block_sql()).await
-    }
+pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
+    exec.query_json(fetch_last_synced_block_sql()).await
 }
 
 #[wasm_export]
@@ -25,8 +23,8 @@ impl LocalDb {
         #[wasm_export(param_description = "JavaScript function to execute database queries")]
         db_callback: js_sys::Function,
     ) -> Result<Vec<SyncStatusResponse>, LocalDbError> {
-        let exec = JsCallbackExecutor::new(&db_callback);
-        LocalDbQuery::fetch_last_synced_block(&exec)
+        let exec = crate::raindex_client::local_db::executor::JsCallbackExecutor::new(&db_callback);
+        fetch_last_synced_block(&exec)
             .await
             .map_err(LocalDbError::from)
     }
@@ -47,7 +45,7 @@ mod wasm_tests {
         let store = Rc::new(RefCell::new(String::new()));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
-        let res = LocalDbQuery::fetch_last_synced_block(&exec).await;
+        let res = super::fetch_last_synced_block(&exec).await;
         assert!(res.is_ok());
         assert_eq!(store.borrow().clone(), expected_sql);
     }

@@ -1,35 +1,32 @@
-use super::*;
 use crate::local_db::query::fetch_vault::{
     build_fetch_vault_query, parse_io_indexed_pairs, LocalDbVault,
 };
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
-impl LocalDbQuery {
-    pub async fn fetch_vault<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-        chain_id: u32,
-        vault_id: &str,
-        token: &str,
-    ) -> Result<Option<LocalDbVault>, LocalDbQueryError> {
-        let sql = build_fetch_vault_query(chain_id, vault_id, token);
-        let rows: Vec<LocalDbVault> = exec.query_json(&sql).await?;
-        Ok(rows.into_iter().next())
-    }
+pub async fn fetch_vault<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+    chain_id: u32,
+    vault_id: &str,
+    token: &str,
+) -> Result<Option<LocalDbVault>, LocalDbQueryError> {
+    let sql = build_fetch_vault_query(chain_id, vault_id, token);
+    let rows: Vec<LocalDbVault> = exec.query_json(&sql).await?;
+    Ok(rows.into_iter().next())
+}
 
-    pub async fn fetch_vaults_for_io_string<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-        chain_id: u32,
-        io: &Option<String>,
-    ) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
-        let ios = parse_io_indexed_pairs(io);
-        let mut vaults = Vec::with_capacity(ios.len());
-        for (_, vault_id, token) in ios.iter() {
-            if let Some(v) = LocalDbQuery::fetch_vault(exec, chain_id, vault_id, token).await? {
-                vaults.push(v);
-            }
+pub async fn fetch_vaults_for_io_string<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+    chain_id: u32,
+    io: &Option<String>,
+) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
+    let ios = parse_io_indexed_pairs(io);
+    let mut vaults = Vec::with_capacity(ios.len());
+    for (_, vault_id, token) in ios.iter() {
+        if let Some(v) = fetch_vault(exec, chain_id, vault_id, token).await? {
+            vaults.push(v);
         }
-        Ok(vaults)
     }
+    Ok(vaults)
 }
 
 #[cfg(all(test, target_family = "wasm"))]
@@ -42,7 +39,8 @@ mod wasm_tests {
     use wasm_bindgen::prelude::Closure;
     use wasm_bindgen::JsCast;
     use wasm_bindgen_test::*;
-    use wasm_bindgen_utils::{prelude::serde_wasm_bindgen::to_value, result::WasmEncodedResult};
+    use wasm_bindgen_utils::prelude::serde_wasm_bindgen::to_value;
+    use wasm_bindgen_utils::prelude::*;
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_and_none_on_empty() {
@@ -55,7 +53,7 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::fetch_vault(&exec, chain_id, vault_id, token).await;
+        let res = super::fetch_vault(&exec, chain_id, vault_id, token).await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_none());
 
@@ -71,13 +69,13 @@ mod wasm_tests {
         let expected_sql = build_fetch_vault_query(chain_id, vault_id, token);
 
         // Single row JSON for LocalDbVault
-        let row_json = r#"[{"vaultId":"v","token":"t","owner":"o","orderbookAddress":"ob","tokenName":"N","tokenSymbol":"S","tokenDecimals":18,"balance":"0x0","inputOrders":null,"outputOrders":null}]"#;
+        let row_json = r#"[{"vaultId":"1","token":"t","owner":"o","orderbookAddress":"ob","tokenName":"N","tokenSymbol":"S","tokenDecimals":18,"balance":"0x0","inputOrders":null,"outputOrders":null}]"#;
 
         let store = Rc::new(RefCell::new(String::new()));
         let callback = create_sql_capturing_callback(row_json, store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::fetch_vault(&exec, chain_id, vault_id, token).await;
+        let res = super::fetch_vault(&exec, chain_id, vault_id, token).await;
         assert!(res.is_ok());
         let row = res.unwrap();
         assert!(row.is_some());
@@ -92,13 +90,13 @@ mod wasm_tests {
 
         // None -> no calls, empty vec
         let none: Option<String> = None;
-        let res = LocalDbQuery::fetch_vaults_for_io_string(&exec, 1, &none).await;
+        let res = super::fetch_vaults_for_io_string(&exec, 1, &none).await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_empty());
 
         // Empty -> also no valid ios, empty vec
         let empty = Some(String::new());
-        let res = LocalDbQuery::fetch_vaults_for_io_string(&exec, 1, &empty).await;
+        let res = super::fetch_vaults_for_io_string(&exec, 1, &empty).await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_empty());
     }
@@ -129,7 +127,7 @@ mod wasm_tests {
 
         // Act
         let exec = JsCallbackExecutor::new(&callback);
-        let res = LocalDbQuery::fetch_vaults_for_io_string(&exec, chain_id, &io).await;
+        let res = super::fetch_vaults_for_io_string(&exec, chain_id, &io).await;
         assert!(res.is_ok());
         let vaults = res.unwrap();
         assert_eq!(vaults.len(), 2);

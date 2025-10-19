@@ -1,20 +1,17 @@
-use super::*;
 use crate::local_db::query::fetch_order_trades_count::{
     build_fetch_trade_count_query, extract_trade_count, LocalDbTradeCountRow,
 };
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
-impl LocalDbQuery {
-    pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-        order_hash: &str,
-        start_timestamp: Option<u64>,
-        end_timestamp: Option<u64>,
-    ) -> Result<u64, LocalDbQueryError> {
-        let sql = build_fetch_trade_count_query(order_hash, start_timestamp, end_timestamp);
-        let rows: Vec<LocalDbTradeCountRow> = exec.query_json(&sql).await?;
-        Ok(extract_trade_count(&rows))
-    }
+pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+    order_hash: &str,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> Result<u64, LocalDbQueryError> {
+    let sql = build_fetch_trade_count_query(order_hash, start_timestamp, end_timestamp);
+    let rows: Vec<LocalDbTradeCountRow> = exec.query_json(&sql).await?;
+    Ok(extract_trade_count(&rows))
 }
 
 #[cfg(all(test, target_family = "wasm"))]
@@ -40,7 +37,7 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback(response, store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::fetch_order_trades_count(&exec, order_hash, start, end).await;
+        let res = super::fetch_order_trades_count(&exec, order_hash, start, end).await;
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), 5);
 
@@ -53,7 +50,7 @@ mod wasm_tests {
         let store = Rc::new(RefCell::new(String::new()));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
-        let res = LocalDbQuery::fetch_order_trades_count(&exec, "hash", None, None).await;
+        let res = super::fetch_order_trades_count(&exec, "hash", None, None).await;
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), 0);
     }

@@ -1,7 +1,4 @@
-use super::{
-    local_db::{executor::JsCallbackExecutor, query::LocalDbQuery},
-    *,
-};
+use super::{local_db::executor::JsCallbackExecutor, *};
 use crate::local_db::{
     query::{
         fetch_vault_balance_changes::LocalDbVaultBalanceChange, fetch_vaults::FetchVaultsArgs,
@@ -9,6 +6,8 @@ use crate::local_db::{
     },
     LocalDb,
 };
+use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
+use crate::raindex_client::local_db::query::fetch_vaults::fetch_vaults;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
@@ -314,8 +313,7 @@ impl RaindexVault {
                 let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
                 let token_address = self.token.address.to_string();
                 let local_changes =
-                    LocalDbQuery::fetch_vault_balance_changes(&exec, &vault_id_hex, &token_address)
-                        .await?;
+                    fetch_vault_balance_changes(&exec, &vault_id_hex, &token_address).await?;
 
                 if !local_changes.is_empty() {
                     return local_changes
@@ -1197,7 +1195,7 @@ impl RaindexClient {
             .map(FetchVaultsArgs::from_filters)
             .unwrap_or_default();
 
-        let local_vaults = LocalDbQuery::fetch_vaults(&executor, chain_id, fetch_args).await?;
+        let local_vaults = fetch_vaults(&executor, chain_id, fetch_args).await?;
         let mut vaults = Vec::new();
         let raindex_client = Rc::new(self.clone());
 
@@ -1371,7 +1369,7 @@ impl RaindexClient {
             ..FetchVaultsArgs::default()
         };
 
-        let local_vaults = LocalDbQuery::fetch_vaults(executor, chain_id, fetch_args).await?;
+        let local_vaults = fetch_vaults(executor, chain_id, fetch_args).await?;
         let raindex_client = Rc::new(self.clone());
 
         let requested_id = vault_id.to_string().to_lowercase();

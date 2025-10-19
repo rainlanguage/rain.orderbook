@@ -1,21 +1,17 @@
-use super::*;
 use crate::local_db::query::fetch_order_trades::{
     build_fetch_order_trades_query, LocalDbOrderTrade,
 };
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
-impl LocalDbQuery {
-    pub async fn fetch_order_trades<E: LocalDbQueryExecutor + ?Sized>(
-        exec: &E,
-        chain_id: u32,
-        order_hash: &str,
-        start_timestamp: Option<u64>,
-        end_timestamp: Option<u64>,
-    ) -> Result<Vec<LocalDbOrderTrade>, LocalDbQueryError> {
-        let sql =
-            build_fetch_order_trades_query(chain_id, order_hash, start_timestamp, end_timestamp);
-        exec.query_json(&sql).await
-    }
+pub async fn fetch_order_trades<E: LocalDbQueryExecutor + ?Sized>(
+    exec: &E,
+    chain_id: u32,
+    order_hash: &str,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> Result<Vec<LocalDbOrderTrade>, LocalDbQueryError> {
+    let sql = build_fetch_order_trades_query(chain_id, order_hash, start_timestamp, end_timestamp);
+    exec.query_json(&sql).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]
@@ -40,7 +36,7 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = LocalDbQuery::fetch_order_trades(&exec, chain_id, order_hash, start, end).await;
+        let res = super::fetch_order_trades(&exec, chain_id, order_hash, start, end).await;
         assert!(res.is_ok());
 
         let captured = store.borrow().clone();
