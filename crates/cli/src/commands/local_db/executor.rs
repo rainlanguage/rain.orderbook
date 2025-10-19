@@ -22,7 +22,7 @@ impl LocalDbQueryExecutor for SqliteCliExecutor {
         let mut child = Command::new("sqlite3")
             .arg(self.db_path.as_os_str())
             .stdin(Stdio::piped())
-            .stdout(Stdio::null())
+            .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| LocalDbQueryError::database(format!("Failed to spawn sqlite3: {e}")))?;
@@ -46,7 +46,9 @@ impl LocalDbQueryExecutor for SqliteCliExecutor {
                 output.status, stderr
             )));
         }
-        Ok(String::new())
+        let stdout =
+            String::from_utf8(output.stdout).map_err(|_| LocalDbQueryError::invalid_response())?;
+        Ok(stdout)
     }
 
     async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
