@@ -1,4 +1,4 @@
-import type { ServerInit } from '@sveltejs/kit';
+import type { ClientInit } from '@sveltejs/kit';
 import type { HandleClientError } from '@sveltejs/kit';
 import { init as initOrderbookPackage } from '@rainlanguage/orderbook/esm';
 
@@ -9,7 +9,7 @@ import { init as initOrderbookPackage } from '@rainlanguage/orderbook/esm';
 // itself, we initialize it here in the webapp init hook, and for this we will
 // have raindex webapp specific orderbook pkg build (see orderbook pkg build script),
 // this can be reverted once safari supports top-level await in multiple modules
-export const init: ServerInit = async () => {
+export const init: ClientInit = async () => {
     await initOrderbookPackage();
 };
 
