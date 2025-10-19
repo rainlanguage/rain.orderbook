@@ -76,7 +76,7 @@ pub async fn sync_database_with_services<D: Database, S: StatusSink>(
     let start_block = if last_synced_block == 0 {
         orderbook_cfg.deployment_block
     } else {
-        last_synced_block + 1
+        last_synced_block.saturating_add(1)
     };
 
     status.send("Fetching latest onchain events...".to_string())?;
