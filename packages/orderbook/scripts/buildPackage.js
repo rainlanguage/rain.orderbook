@@ -2,7 +2,7 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 
 const packagePrefix = 'rain_orderbook_';
-const [package, isTauriBuild = false] = process.argv.slice(2);
+const [package, buildType = ''] = process.argv.slice(2);
 
 // generate node/web bindgens
 execSync(
@@ -44,6 +44,9 @@ dts = dts.replace(
 );
 dts = '/* this file is auto-generated, do not modify */\n' + dts;
 fs.writeFileSync(`./dist/cjs/index.d.ts`, dts);
+if (buildType === 'webapp') {
+	dts += `\nexport function init(): Promise<void>;`
+}
 fs.writeFileSync(`./dist/esm/index.d.ts`, dts);
 
 // prepare cjs
@@ -66,7 +69,8 @@ fs.writeFileSync(`./dist/cjs/index.js`, cjs);
 let esm = fs.readFileSync(`./temp/web/${package}/${package}.js`, {
 	encoding: 'utf-8'
 });
-if (isTauriBuild) {
+if (buildType === 'tauri') {
+	// for tauri we need sync init (tauri v1 doesn't support top level await)
 	esm = esm.replace(
 	`export { initSync };
 export default __wbg_init;`,
@@ -75,7 +79,24 @@ import wasmB64 from '../esm/orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');
 initSync(bytes);`
 );
+} else if (buildType === 'webapp') {
+	// for webapp we need async init export, so that the webapp client hook
+	// can call it during its initialization phase and await it, this is because
+	// of safari issue with top level await imports on multiple module.
+	// once safari bug is resolved this can be reverted to top level await again
+	esm = esm.replace(
+	`export { initSync };
+export default __wbg_init;`,
+	`import { Buffer } from 'buffer';
+import wasmB64 from '../esm/orderbook_wbg.json';
+const bytes = Buffer.from(wasmB64.wasm, 'base64');\n
+/** Initialize the Orderbook pkg WebAssembly module */
+export async function init() {
+	await __wbg_init(bytes);
+}`
+);
 } else {
+	// default case with top level await for node and modern esm bundlers
 	esm = esm.replace(
 	`export { initSync };
 export default __wbg_init;`,

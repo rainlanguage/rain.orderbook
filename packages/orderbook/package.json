@@ -33,6 +33,7 @@
         "prepublish": "node ./scripts/setup",
         "build": "npm run rm-dist && npm run rm-temp && node ./scripts/build",
         "build-tauri": "npm run rm-dist && npm run rm-temp && node ./scripts/build tauri",
+        "build-webapp": "npm run rm-dist && npm run rm-temp && node ./scripts/build webapp",
         "build-wasm": "cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests",
         "rm-dist": "rimraf ./dist",
         "rm-temp": "rimraf ./temp",

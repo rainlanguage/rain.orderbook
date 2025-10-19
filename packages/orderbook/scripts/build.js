@@ -1,16 +1,16 @@
 const fs = require("fs");
 const { execSync } = require("child_process");
 
-const [isTauriBuild = false] = process.argv.slice(2);
+const [buildType = ''] = process.argv.slice(2);
 
 // create root esm.js and cjs.js files with their .d.ts
 fs.writeFileSync(
   "./cjs.js",
   '"use strict";\n\nmodule.exports = require("./dist/cjs/index");\n'
 );
-fs.writeFileSync("./cjs.d.ts", 'export * from "./dist/types/index";\n');
+fs.writeFileSync("./cjs.d.ts", 'export * from "./dist/cjs/index";\n');
 fs.writeFileSync("./esm.js", 'export * from "./dist/esm/index";\n');
-fs.writeFileSync("./esm.d.ts", 'export * from "./dist/types/index";\n');
+fs.writeFileSync("./esm.d.ts", 'export * from "./dist/esm/index";\n');
 
 // create dist dir
 fs.mkdirSync("./dist/cjs", { recursive: true });
@@ -24,7 +24,7 @@ execSync("npm run build-wasm");
 // names to the list below
 const packages = ["js_api"];
 for (const package of packages) {
-  execSync(`node ./scripts/buildPackage ${package} ${isTauriBuild ? 'true' : ''}`);
+  execSync(`node ./scripts/buildPackage ${package} ${buildType}`);
 }
 
 // rm temp folder
