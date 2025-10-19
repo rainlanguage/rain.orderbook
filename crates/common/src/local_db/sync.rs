@@ -8,14 +8,13 @@ use super::{
         fetch_store_addresses::{fetch_store_addresses_sql, StoreAddressRow},
         fetch_tables::{fetch_tables_sql, TableResponse},
         update_last_synced_block::build_update_last_synced_block_query,
-        FromDbJson, LocalDbQueryError,
+        LocalDbQueryError,
     },
     token_fetch::fetch_erc20_metadata_concurrent,
     tokens::{collect_store_addresses, collect_token_addresses},
     FetchConfig, LocalDb, LocalDbError,
 };
 use alloy::primitives::Address;
-use async_trait::async_trait;
 use flate2::read::GzDecoder;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use reqwest::Client;
@@ -28,20 +27,13 @@ use std::{
 
 pub const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/3d6deafeaa52525d56d89641c0cb3c997923ad21/local_db.sql.gz";
 
-#[async_trait(?Send)]
-pub trait Database {
-    async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
-    where
-        T: FromDbJson;
-
-    async fn query_text(&self, sql: &str) -> Result<String, LocalDbQueryError>;
-}
+use crate::local_db::query::LocalDbQueryExecutor;
 
 pub trait StatusSink {
     fn send(&self, message: String) -> Result<(), LocalDbError>;
 }
 
-pub async fn sync_database_with_services<D: Database, S: StatusSink>(
+pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>(
     orderbook_cfg: &OrderbookCfg,
     db: &D,
     status: &S,
@@ -148,7 +140,7 @@ pub async fn sync_database_with_services<D: Database, S: StatusSink>(
     Ok(())
 }
 
-async fn check_required_tables(db: &impl Database) -> Result<bool, LocalDbQueryError> {
+async fn check_required_tables(db: &impl LocalDbQueryExecutor) -> Result<bool, LocalDbQueryError> {
     let tables: Vec<TableResponse> = db.query_json(fetch_tables_sql()).await?;
     let existing_table_names: HashSet<String> = tables
         .into_iter()
@@ -181,7 +173,7 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     Ok(decompressed)
 }
 
-async fn get_last_synced_block(db: &impl Database) -> Result<u64, LocalDbQueryError> {
+async fn get_last_synced_block(db: &impl LocalDbQueryExecutor) -> Result<u64, LocalDbQueryError> {
     let results: Vec<SyncStatusResponse> = db.query_json(fetch_last_synced_block_sql()).await?;
     Ok(results.first().map(|r| r.last_synced_block).unwrap_or(0))
 }
@@ -223,7 +215,7 @@ struct TokenPrepResult {
 }
 
 async fn prepare_erc20_tokens_prefix(
-    db: &impl Database,
+    db: &impl LocalDbQueryExecutor,
     local_db: &LocalDb,
     chain_id: u32,
     decoded_events: &[DecodedEventData<DecodedEvent>],
@@ -327,6 +319,7 @@ fn parse_u64_hex_or_dec(value: &str) -> Result<u64, std::num::ParseIntError> {
 mod tests {
     use super::*;
     use crate::local_db::decode::{DecodedEvent, DecodedEventData, EventType, UnknownEventDecoded};
+    use crate::local_db::query::FromDbJson;
     use crate::local_db::query::{
         create_tables::REQUIRED_TABLES,
         fetch_last_synced_block::{fetch_last_synced_block_sql, SyncStatusResponse},
@@ -365,7 +358,7 @@ mod tests {
     }
 
     #[async_trait(?Send)]
-    impl Database for MockDb {
+    impl LocalDbQueryExecutor for MockDb {
         async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
         where
             T: FromDbJson,
