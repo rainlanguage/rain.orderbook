@@ -13,5 +13,6 @@ export const init: ClientInit = async () => {
 };
 
 export const handleError: HandleClientError = ({ error, event }) => {
+	// eslint-disable-next-line no-console
 	console.error('Client hook error:', error, event);
 };
