@@ -114,7 +114,7 @@ pub async fn sync_database_with_services<D: Database, S: StatusSink>(
         .decode_events(&store_logs)
         .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
 
-    merge_store_events(&mut decoded_events, &mut decoded_store_events);
+    merge_store_events(&mut decoded_events, &mut decoded_store_events)?;
 
     status.send("Populating token information...".to_string())?;
     let prep = prepare_erc20_tokens_prefix(db, &local_db, chain_id, &decoded_events).await?;
@@ -207,13 +207,14 @@ fn collect_all_store_addresses(
 fn merge_store_events(
     decoded_events: &mut Vec<DecodedEventData<DecodedEvent>>,
     store_events: &mut Vec<DecodedEventData<DecodedEvent>>,
-) {
+) -> Result<(), LocalDbError> {
     if store_events.is_empty() {
-        return;
+        return Ok(());
     }
 
     decoded_events.append(store_events);
-    sort_events_by_block_and_log(decoded_events);
+    sort_events_by_block_and_log(decoded_events)?;
+    Ok(())
 }
 
 struct TokenPrepResult {
@@ -278,20 +279,36 @@ async fn prepare_erc20_tokens_prefix(
     })
 }
 
-fn sort_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
-    events.sort_by(|a, b| {
-        let block_a = parse_u64_hex_or_dec(&a.block_number)
-            .unwrap_or_else(|e| panic!("failed to parse block_number '{}': {}", a.block_number, e));
-        let block_b = parse_u64_hex_or_dec(&b.block_number)
-            .unwrap_or_else(|e| panic!("failed to parse block_number '{}': {}", b.block_number, e));
-        block_a.cmp(&block_b).then_with(|| {
-            let log_a = parse_u64_hex_or_dec(&a.log_index)
-                .unwrap_or_else(|e| panic!("failed to parse log_index '{}': {}", a.log_index, e));
-            let log_b = parse_u64_hex_or_dec(&b.log_index)
-                .unwrap_or_else(|e| panic!("failed to parse log_index '{}': {}", b.log_index, e));
-            log_a.cmp(&log_b)
-        })
-    });
+fn sort_events_by_block_and_log(
+    events: &mut [DecodedEventData<DecodedEvent>],
+) -> Result<(), LocalDbError> {
+    // Parse indices and associated numeric keys once, avoiding unwraps.
+    let mut keyed_indices: Vec<(usize, u64, u64)> = Vec::with_capacity(events.len());
+    for (idx, e) in events.iter().enumerate() {
+        let block = parse_u64_hex_or_dec(&e.block_number).map_err(|err| {
+            LocalDbError::CustomError(format!(
+                "failed to parse block_number '{}': {}",
+                e.block_number, err
+            ))
+        })?;
+        let log = parse_u64_hex_or_dec(&e.log_index).map_err(|err| {
+            LocalDbError::CustomError(format!(
+                "failed to parse log_index '{}': {}",
+                e.log_index, err
+            ))
+        })?;
+        keyed_indices.push((idx, block, log));
+    }
+
+    keyed_indices.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.2.cmp(&b.2)));
+
+    // Reorder events according to the sorted indices; Clone is available.
+    let original = events.to_vec();
+    for (pos, (idx, _, _)) in keyed_indices.into_iter().enumerate() {
+        events[pos] = original[idx].clone();
+    }
+
+    Ok(())
 }
 
 fn parse_u64_hex_or_dec(value: &str) -> Result<u64, std::num::ParseIntError> {
@@ -521,7 +538,7 @@ mod tests {
                 }),
             },
         ];
-        sort_events_by_block_and_log(&mut events);
+        sort_events_by_block_and_log(&mut events).unwrap();
         assert_eq!(events[0].transaction_hash, "0x3");
         assert_eq!(events[1].transaction_hash, "0x2");
         assert_eq!(events[2].transaction_hash, "0x1");
@@ -565,11 +582,109 @@ mod tests {
             }),
         }];
 
-        merge_store_events(&mut decoded, &mut store);
+        merge_store_events(&mut decoded, &mut store).unwrap();
         assert_eq!(decoded.len(), 3);
         assert_eq!(decoded[0].transaction_hash, "0xC");
         assert_eq!(decoded[1].transaction_hash, "0xB");
         assert_eq!(decoded[2].transaction_hash, "0xA");
+    }
+
+    #[test]
+    fn test_sort_events_by_block_and_log_returns_error_on_bad_block() {
+        let mut events = vec![
+            DecodedEventData {
+                event_type: EventType::Unknown,
+                block_number: "0xZZ".to_string(),
+                block_timestamp: "0x0".to_string(),
+                transaction_hash: "0x1".to_string(),
+                log_index: "0x0".to_string(),
+                decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                    raw_data: "0x".to_string(),
+                    note: "".to_string(),
+                }),
+            },
+        ];
+        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
+        match err {
+            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_sort_events_by_block_and_log_returns_error_on_bad_log_index() {
+        let mut events = vec![
+            DecodedEventData {
+                event_type: EventType::Unknown,
+                block_number: "0x1".to_string(),
+                block_timestamp: "0x0".to_string(),
+                transaction_hash: "0x1".to_string(),
+                log_index: "not-a-number".to_string(),
+                decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                    raw_data: "0x".to_string(),
+                    note: "".to_string(),
+                }),
+            },
+        ];
+        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
+        match err {
+            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse log_index")),
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_sort_events_by_block_and_log_returns_error_on_bad_decimal_block() {
+        let mut events = vec![
+            DecodedEventData {
+                event_type: EventType::Unknown,
+                block_number: "123x".to_string(),
+                block_timestamp: "0x0".to_string(),
+                transaction_hash: "0x1".to_string(),
+                log_index: "0x0".to_string(),
+                decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                    raw_data: "0x".to_string(),
+                    note: "".to_string(),
+                }),
+            },
+        ];
+        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
+        match err {
+            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_merge_store_events_propagates_parse_error() {
+        let mut decoded = vec![DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: "0x1".into(),
+            block_timestamp: "0x0".into(),
+            transaction_hash: "0xA".into(),
+            log_index: "0x0".into(),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x".into(),
+                note: "".into(),
+            }),
+        }];
+        let mut store = vec![DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: "garbage".into(),
+            block_timestamp: "0x0".into(),
+            transaction_hash: "0xB".into(),
+            log_index: "0x1".into(),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x".into(),
+                note: "".into(),
+            }),
+        }];
+
+        let err = merge_store_events(&mut decoded, &mut store).unwrap_err();
+        match err {
+            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 
     #[test]
