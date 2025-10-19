@@ -23,8 +23,8 @@ execSync("npm run build-wasm");
 // list of packages to build can be extended by adding new package
 // names to the list below
 const packages = ["js_api"];
-for (const package of packages) {
-  execSync(`node ./scripts/buildPackage ${package} ${buildType}`);
+for (const pkg of packages) {
+  execSync(`node ./scripts/buildPackage ${pkg} ${buildType}`);
 }
 
 // rm temp folder
