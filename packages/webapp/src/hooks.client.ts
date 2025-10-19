@@ -1,5 +1,4 @@
-import type { ClientInit } from '@sveltejs/kit';
-import type { HandleClientError } from '@sveltejs/kit';
+import type { ClientInit, HandleClientError } from '@sveltejs/kit';
 import { init as initOrderbookPackage } from '@rainlanguage/orderbook/esm';
 
 // in webapp, we need to initialize the wasm module in svelte init hook because
