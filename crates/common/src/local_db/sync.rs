@@ -591,19 +591,17 @@ mod tests {
 
     #[test]
     fn test_sort_events_by_block_and_log_returns_error_on_bad_block() {
-        let mut events = vec![
-            DecodedEventData {
-                event_type: EventType::Unknown,
-                block_number: "0xZZ".to_string(),
-                block_timestamp: "0x0".to_string(),
-                transaction_hash: "0x1".to_string(),
-                log_index: "0x0".to_string(),
-                decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                    raw_data: "0x".to_string(),
-                    note: "".to_string(),
-                }),
-            },
-        ];
+        let mut events = vec![DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: "0xZZ".to_string(),
+            block_timestamp: "0x0".to_string(),
+            transaction_hash: "0x1".to_string(),
+            log_index: "0x0".to_string(),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x".to_string(),
+                note: "".to_string(),
+            }),
+        }];
         let err = sort_events_by_block_and_log(&mut events).unwrap_err();
         match err {
             LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
@@ -613,19 +611,17 @@ mod tests {
 
     #[test]
     fn test_sort_events_by_block_and_log_returns_error_on_bad_log_index() {
-        let mut events = vec![
-            DecodedEventData {
-                event_type: EventType::Unknown,
-                block_number: "0x1".to_string(),
-                block_timestamp: "0x0".to_string(),
-                transaction_hash: "0x1".to_string(),
-                log_index: "not-a-number".to_string(),
-                decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                    raw_data: "0x".to_string(),
-                    note: "".to_string(),
-                }),
-            },
-        ];
+        let mut events = vec![DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: "0x1".to_string(),
+            block_timestamp: "0x0".to_string(),
+            transaction_hash: "0x1".to_string(),
+            log_index: "not-a-number".to_string(),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x".to_string(),
+                note: "".to_string(),
+            }),
+        }];
         let err = sort_events_by_block_and_log(&mut events).unwrap_err();
         match err {
             LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse log_index")),
@@ -635,19 +631,17 @@ mod tests {
 
     #[test]
     fn test_sort_events_by_block_and_log_returns_error_on_bad_decimal_block() {
-        let mut events = vec![
-            DecodedEventData {
-                event_type: EventType::Unknown,
-                block_number: "123x".to_string(),
-                block_timestamp: "0x0".to_string(),
-                transaction_hash: "0x1".to_string(),
-                log_index: "0x0".to_string(),
-                decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                    raw_data: "0x".to_string(),
-                    note: "".to_string(),
-                }),
-            },
-        ];
+        let mut events = vec![DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: "123x".to_string(),
+            block_timestamp: "0x0".to_string(),
+            transaction_hash: "0x1".to_string(),
+            log_index: "0x0".to_string(),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x".to_string(),
+                note: "".to_string(),
+            }),
+        }];
         let err = sort_events_by_block_and_log(&mut events).unwrap_err();
         match err {
             LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),

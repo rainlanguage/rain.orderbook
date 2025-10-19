@@ -42,9 +42,7 @@ mod wasm_tests {
     use wasm_bindgen::prelude::Closure;
     use wasm_bindgen::JsCast;
     use wasm_bindgen_test::*;
-    use wasm_bindgen_utils::{
-        prelude::serde_wasm_bindgen::to_value, result::WasmEncodedResult,
-    };
+    use wasm_bindgen_utils::{prelude::serde_wasm_bindgen::to_value, result::WasmEncodedResult};
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_and_none_on_empty() {
@@ -121,7 +119,8 @@ mod wasm_tests {
                 error: None,
             };
             to_value(&result).unwrap()
-        }) as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
+        })
+            as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
         let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
 
