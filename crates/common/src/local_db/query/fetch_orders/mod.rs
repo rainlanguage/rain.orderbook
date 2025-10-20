@@ -1,3 +1,4 @@
+use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
 use crate::utils::serde::bool_from_int_or_bool;
 use serde::{Deserialize, Serialize};
 
@@ -46,78 +47,76 @@ pub struct LocalDbOrder {
 
 /// Builds the SQL query fetching orders from the local database based on the
 /// supplied filters.
-pub fn build_fetch_orders_query(args: &FetchOrdersArgs) -> String {
-    let filter_str = match args.filter {
+const OWNERS_CLAUSE: &str = "/*OWNERS_CLAUSE*/";
+const OWNERS_CLAUSE_BODY: &str = "AND lower(l.order_owner) IN ({list})";
+
+const ORDER_HASH_CLAUSE: &str = "/*ORDER_HASH_CLAUSE*/";
+const ORDER_HASH_CLAUSE_BODY: &str =
+    "AND lower(COALESCE(la.order_hash, l.order_hash)) = lower({param})";
+
+const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
+const TOKENS_CLAUSE_BODY: &str =
+    "AND EXISTS ( \n      SELECT 1 FROM order_ios io2 \n      WHERE io2.transaction_hash = la.transaction_hash \n        AND io2.log_index = la.log_index \n        AND lower(io2.token) IN ({list}) )";
+
+pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, SqlBuildError> {
+    let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
+
+    // ?1 active filter
+    let active_str = match args.filter {
         FetchOrdersActiveFilter::All => "all",
         FetchOrdersActiveFilter::Active => "active",
         FetchOrdersActiveFilter::Inactive => "inactive",
     };
+    stmt.push(SqlValue::Text(active_str.to_string()));
 
-    let sanitize_literal = |value: &str| value.replace('\'', "''");
-
-    let owner_values: Vec<String> = args
+    // Owners list (lowercased, trimmed, non-empty)
+    let owners_lower = args
         .owners
         .iter()
-        .filter_map(|owner| {
-            let trimmed = owner.trim();
-            if trimmed.is_empty() {
+        .filter_map(|o| {
+            let t = o.trim();
+            if t.is_empty() {
                 None
             } else {
-                Some(format!("'{}'", sanitize_literal(&trimmed.to_lowercase())))
+                Some(t.to_ascii_lowercase())
             }
         })
-        .collect();
-    let filter_owners = if owner_values.is_empty() {
-        String::new()
-    } else {
-        format!(
-            "\nAND lower(l.order_owner) IN ({})\n",
-            owner_values.join(", ")
-        )
-    };
+        .collect::<Vec<_>>();
+    stmt.bind_list_clause(
+        OWNERS_CLAUSE,
+        OWNERS_CLAUSE_BODY,
+        owners_lower.into_iter().map(SqlValue::Text),
+    )?;
 
-    let filter_order_hash = args
+    // Optional order hash param
+    let order_hash_val = args
         .order_hash
         .as_ref()
-        .and_then(|hash| {
-            let trimmed = hash.trim();
-            if trimmed.is_empty() {
-                None
-            } else {
-                Some(format!(
-                    "\nAND lower(COALESCE(la.order_hash, l.order_hash)) = lower('{}')\n",
-                    sanitize_literal(trimmed)
-                ))
-            }
-        })
-        .unwrap_or_default();
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| SqlValue::Text(s.to_string()));
+    stmt.bind_param_clause(ORDER_HASH_CLAUSE, ORDER_HASH_CLAUSE_BODY, order_hash_val)?;
 
-    let token_values: Vec<String> = args
+    // Tokens list
+    let tokens_lower = args
         .tokens
         .iter()
-        .filter_map(|token| {
-            let trimmed = token.trim();
-            if trimmed.is_empty() {
+        .filter_map(|t| {
+            let x = t.trim();
+            if x.is_empty() {
                 None
             } else {
-                Some(format!("'{}'", sanitize_literal(&trimmed.to_lowercase())))
+                Some(x.to_ascii_lowercase())
             }
         })
-        .collect();
-    let filter_tokens = if token_values.is_empty() {
-        String::new()
-    } else {
-        format!(
-            "\nAND EXISTS (\n    SELECT 1 FROM order_ios io2\n    WHERE io2.transaction_hash = la.transaction_hash\n      AND io2.log_index = la.log_index\n      AND lower(io2.token) IN ({})\n)\n",
-            token_values.join(", ")
-        )
-    };
+        .collect::<Vec<_>>();
+    stmt.bind_list_clause(
+        TOKENS_CLAUSE,
+        TOKENS_CLAUSE_BODY,
+        tokens_lower.into_iter().map(SqlValue::Text),
+    )?;
 
-    QUERY_TEMPLATE
-        .replace("'?filter_active'", &format!("'{}'", filter_str))
-        .replace("?filter_owners", &filter_owners)
-        .replace("?filter_order_hash", &filter_order_hash)
-        .replace("?filter_tokens", &filter_tokens)
+    Ok(stmt)
 }
 
 #[cfg(test)]
@@ -132,47 +131,74 @@ mod tests {
     fn filter_active_all_and_no_extras() {
         let mut args = mk_args();
         args.filter = FetchOrdersActiveFilter::All;
-        let q = build_fetch_orders_query(&args);
-        assert!(q.contains("'all'"));
-        assert!(!q.contains("?filter_owners"));
-        assert!(!q.contains("?filter_tokens"));
-        assert!(!q.contains("?filter_order_hash"));
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(stmt.sql.contains("?1 = 'all'"));
+        assert!(!stmt.sql.contains(OWNERS_CLAUSE));
+        assert!(!stmt.sql.contains(TOKENS_CLAUSE));
+        assert!(!stmt.sql.contains(ORDER_HASH_CLAUSE));
     }
 
     #[test]
-    fn owners_tokens_and_order_hash_filters_with_sanitization() {
+    fn owners_tokens_and_order_hash_filters_with_params() {
         let mut args = mk_args();
         args.filter = FetchOrdersActiveFilter::Active;
-        args.owners = vec![" 0xA ".into(), "".into(), "O'Owner".into()];
-        args.tokens = vec!["TOK'A".into(), "   ".into()];
-        args.order_hash = Some(" 0xHash ' ".into());
+        args.owners = vec![" 0xA ".into(), "".into(), "Owner".into()];
+        args.tokens = vec!["TOKA".into(), "   ".into()];
+        args.order_hash = Some(" 0xHash ".into());
 
-        let q = build_fetch_orders_query(&args);
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
 
-        // Active filter string inserted
-        assert!(q.contains("'active'"));
+        // Active filter parameterized
+        assert!(stmt.sql.contains("?1 = 'active'"));
 
-        // Owners filter inserted as IN clause with lowercase + sanitized values
-        assert!(q.contains("AND lower(l.order_owner) IN ('0xa', 'o''owner')"));
+        // Owners clause present, tokens clause present, order hash clause present
+        assert!(!stmt.sql.contains(OWNERS_CLAUSE));
+        assert!(!stmt.sql.contains(TOKENS_CLAUSE));
+        assert!(!stmt.sql.contains(ORDER_HASH_CLAUSE));
 
-        // Tokens filter inserted as IN clause with lowercase + sanitized values
-        assert!(q.contains("lower(io2.token) IN ('tok''a')"));
-
-        // Order hash filter present, sanitized, applied to COALESCE hash
-        // Note: builder relies on SQL lower(...) rather than pre-lowercasing the literal.
-        assert!(q.contains("lower(COALESCE(la.order_hash, l.order_hash)) = lower('0xHash ''')"));
-
-        // No placeholders remain
-        assert!(!q.contains("?filter_owners"));
-        assert!(!q.contains("?filter_tokens"));
-        assert!(!q.contains("?filter_order_hash"));
+        // Params include at least one for the active filter
+        assert!(!stmt.params.is_empty());
     }
 
     #[test]
     fn filter_inactive_string() {
         let mut args = mk_args();
         args.filter = FetchOrdersActiveFilter::Inactive;
-        let q = build_fetch_orders_query(&args);
-        assert!(q.contains("'inactive'"));
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(stmt.sql.contains("?1 = 'inactive'"));
+    }
+
+    #[test]
+    fn missing_order_hash_marker_yields_error() {
+        // Simulate the ORDER_HASH_CLAUSE marker being removed from the template.
+        let bad_template = QUERY_TEMPLATE.replace(ORDER_HASH_CLAUSE, "");
+        let mut stmt = SqlStatement::new(bad_template);
+        // Push the active filter param that the template expects as ?1
+        stmt.push(SqlValue::Text("all".to_string()));
+        let err = stmt
+            .bind_param_clause(
+                ORDER_HASH_CLAUSE,
+                ORDER_HASH_CLAUSE_BODY,
+                Some(SqlValue::Text("0xhash".into())),
+            )
+            .unwrap_err();
+        assert!(matches!(err, SqlBuildError::MissingMarker { .. }));
+    }
+
+    #[test]
+    fn missing_param_token_in_body_yields_error() {
+        let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
+        // Push the active filter param (?1)
+        stmt.push(SqlValue::Text("all".to_string()));
+        // Remove {param} token from the body to simulate drift between code and template
+        let bad_body = ORDER_HASH_CLAUSE_BODY.replace("{param}", "");
+        let err = stmt
+            .bind_param_clause(
+                ORDER_HASH_CLAUSE,
+                &bad_body,
+                Some(SqlValue::Text("0xhash".into())),
+            )
+            .unwrap_err();
+        assert!(matches!(err, SqlBuildError::MissingMarker { .. }));
     }
 }

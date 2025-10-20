@@ -1,3 +1,4 @@
+use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -56,29 +57,37 @@ pub struct LocalDbOrderTrade {
     pub trade_id: String,
 }
 
-/// Builds the SQL query for retrieving order trades within the specified window.
-pub fn build_fetch_order_trades_query(
+/// Builds the SQL statement for retrieving order trades within the specified window.
+const START_TS_CLAUSE: &str = "/*START_TS_CLAUSE*/";
+const START_TS_BODY: &str = "\nAND block_timestamp >= {param}\n";
+
+const END_TS_CLAUSE: &str = "/*END_TS_CLAUSE*/";
+const END_TS_BODY: &str = "\nAND block_timestamp <= {param}\n";
+
+pub fn build_fetch_order_trades_stmt(
     chain_id: u32,
     order_hash: &str,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
-) -> String {
-    let sanitize_literal = |value: &str| value.replace('\'', "''");
+) -> Result<SqlStatement, SqlBuildError> {
+    let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
+    // ?1: order hash (raw, lower() in SQL), ?2: chain id
+    stmt.push(SqlValue::Text(order_hash.to_string()));
+    stmt.push(SqlValue::I64(chain_id as i64));
 
-    let order_hash = sanitize_literal(&order_hash.trim().to_lowercase());
+    // Optional time filters
+    stmt.bind_param_clause(
+        START_TS_CLAUSE,
+        START_TS_BODY,
+        start_timestamp.map(|v| SqlValue::I64(v as i64)),
+    )?;
+    stmt.bind_param_clause(
+        END_TS_CLAUSE,
+        END_TS_BODY,
+        end_timestamp.map(|v| SqlValue::I64(v as i64)),
+    )?;
 
-    let filter_start_timestamp = start_timestamp
-        .map(|ts| format!("\nAND block_timestamp >= {}\n", ts))
-        .unwrap_or_default();
-    let filter_end_timestamp = end_timestamp
-        .map(|ts| format!("\nAND block_timestamp <= {}\n", ts))
-        .unwrap_or_default();
-
-    QUERY_TEMPLATE
-        .replace("'?order_hash'", &format!("'{}'", order_hash))
-        .replace("'?chain_id'", &chain_id.to_string())
-        .replace("?filter_start_timestamp", &filter_start_timestamp)
-        .replace("?filter_end_timestamp", &filter_end_timestamp)
+    Ok(stmt)
 }
 
 #[cfg(test)]
@@ -86,33 +95,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn builds_with_chain_id_sanitized_order_hash_and_filters() {
-        let q = build_fetch_order_trades_query(137, "  AbC'X  ", Some(11), Some(22));
-
-        // No placeholders remain
-        assert!(!q.contains("?filter_start_timestamp"));
-        assert!(!q.contains("?filter_end_timestamp"));
-        assert!(!q.contains("'?order_hash'"));
-        assert!(!q.contains("'?chain_id'"));
-
-        // Chain id appears in erc20 token JOINs
-        assert!(q.contains("et_in.chain_id = 137"));
-        assert!(q.contains("et_out.chain_id = 137"));
-
-        // Time filters
-        assert!(q.contains("block_timestamp >= 11"));
-        assert!(q.contains("block_timestamp <= 22"));
-
-        // Sanitized, lowercased order hash
-        assert!(q.contains("lower('abc''x')"));
+    fn builds_with_chain_id_and_filters() {
+        let stmt = build_fetch_order_trades_stmt(137, "AbC'X", Some(11), Some(22)).unwrap();
+        // Fixed params
+        assert!(stmt.sql.contains("et_in.chain_id = ?2"));
+        assert!(stmt.sql.contains("et_out.chain_id = ?2"));
+        // Dynamic param clauses inserted
+        assert!(!stmt.sql.contains(START_TS_CLAUSE));
+        assert!(!stmt.sql.contains(END_TS_CLAUSE));
+        assert!(stmt.sql.contains("block_timestamp >="));
+        assert!(stmt.sql.contains("block_timestamp <="));
+        // First two params: order hash and chain id
+        assert_eq!(stmt.params.len(), 4); // includes start and end
     }
 
     #[test]
     fn builds_without_time_filters_when_none() {
-        let q = build_fetch_order_trades_query(1, "hash", None, None);
-        assert!(!q.contains("block_timestamp >="));
-        assert!(!q.contains("block_timestamp <="));
-        assert!(!q.contains("?filter_start_timestamp"));
-        assert!(!q.contains("?filter_end_timestamp"));
+        let stmt = build_fetch_order_trades_stmt(1, "hash", None, None).unwrap();
+        assert!(!stmt.sql.contains("block_timestamp >="));
+        assert!(!stmt.sql.contains("block_timestamp <="));
+        assert!(!stmt.sql.contains(START_TS_CLAUSE));
+        assert!(!stmt.sql.contains(END_TS_CLAUSE));
+        assert_eq!(stmt.params.len(), 2);
     }
 }
