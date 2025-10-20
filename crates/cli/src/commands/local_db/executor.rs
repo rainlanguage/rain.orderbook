@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use rain_orderbook_common::local_db::query::{FromDbJson, LocalDbQueryError, LocalDbQueryExecutor};
-use std::io::Write;
+use rusqlite::{types::ValueRef, Connection};
+use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 
 pub struct SqliteCliExecutor {
     db_path: PathBuf,
@@ -19,63 +19,56 @@ impl SqliteCliExecutor {
 #[async_trait(?Send)]
 impl LocalDbQueryExecutor for SqliteCliExecutor {
     async fn query_text(&self, sql: &str) -> Result<String, LocalDbQueryError> {
-        let mut child = Command::new("sqlite3")
-            .arg(self.db_path.as_os_str())
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to spawn sqlite3: {e}")))?;
-
-        if let Some(stdin) = child.stdin.as_mut() {
-            stdin
-                .write_all(sql.as_bytes())
-                .map_err(|e| LocalDbQueryError::database(format!("Failed to write SQL: {e}")))?;
-        } else {
-            return Err(LocalDbQueryError::database("Failed to open sqlite3 stdin"));
-        }
-
-        let output = child
-            .wait_with_output()
-            .map_err(|e| LocalDbQueryError::database(format!("sqlite3 wait failed: {e}")))?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(LocalDbQueryError::database(format!(
-                "sqlite3 exited with status {}: {}",
-                output.status, stderr
-            )));
-        }
-        let stdout =
-            String::from_utf8(output.stdout).map_err(|_| LocalDbQueryError::invalid_response())?;
-        Ok(stdout)
+        let conn = Connection::open(&self.db_path)
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
+        conn.execute_batch(sql)
+            .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
+        Ok(String::new())
     }
 
     async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
     where
         T: FromDbJson,
     {
-        let output = Command::new("sqlite3")
-            .arg("-json")
-            .arg(self.db_path.as_os_str())
-            .arg(sql)
-            .output()
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to run sqlite3: {e}")))?;
+        let conn = Connection::open(&self.db_path)
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(LocalDbQueryError::database(format!(
-                "sqlite3 exited with status {} for query {}: {}",
-                output.status, sql, stderr
-            )));
+        let mut stmt = conn
+            .prepare(sql)
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to prepare query: {e}")))?;
+        let column_names: Vec<String> = (0..stmt.column_count())
+            .map(|i| stmt.column_name(i).unwrap_or("").to_string())
+            .collect();
+
+        let rows_iter = stmt
+            .query_map([], |row| {
+                let mut obj = Map::with_capacity(column_names.len());
+                for (i, name) in column_names.iter().enumerate() {
+                    let v = match row.get_ref(i) {
+                        Ok(ValueRef::Null) => Value::Null,
+                        Ok(ValueRef::Integer(n)) => json!(n),
+                        Ok(ValueRef::Real(f)) => json!(f),
+                        Ok(ValueRef::Text(bytes)) => match std::str::from_utf8(bytes) {
+                            Ok(s) => json!(s),
+                            Err(_) => json!(alloy::hex::encode_prefixed(bytes)),
+                        },
+                        Ok(ValueRef::Blob(bytes)) => json!(alloy::hex::encode_prefixed(bytes)),
+                        Err(_) => Value::Null,
+                    };
+                    obj.insert(name.clone(), v);
+                }
+                Ok(Value::Object(obj))
+            })
+            .map_err(|e| LocalDbQueryError::database(format!("Query failed: {e}")))?;
+
+        let mut out: Vec<Value> = Vec::new();
+        for r in rows_iter {
+            let v = r.map_err(|e| LocalDbQueryError::database(format!("Row error: {e}")))?;
+            out.push(v);
         }
 
-        let stdout =
-            String::from_utf8(output.stdout).map_err(|_| LocalDbQueryError::invalid_response())?;
-        let trimmed = stdout.trim();
-        let payload = if trimmed.is_empty() { "[]" } else { trimmed };
-
-        serde_json::from_str::<T>(payload)
+        let json_value = Value::Array(out);
+        serde_json::from_value::<T>(json_value)
             .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
     }
 }
@@ -139,5 +132,76 @@ mod tests {
         };
         assert!(has(&["foo", "bar"]));
         assert!(!has(&["foo", "baz"]));
+    }
+
+    #[tokio::test]
+    async fn query_json_multi_column_rows() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("multi.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec
+            .query_text(
+                r#"
+                CREATE TABLE people (
+                    id INTEGER,
+                    name TEXT,
+                    note BLOB
+                );
+                INSERT INTO people (id, name, note) VALUES
+                    (1, 'Alice', X'000102'),
+                    (2, 'Bob',   X'ff'),
+                    (3, 'Carol', NULL),
+                    (4, 'Дора',  X'c0'),
+                    (5, 'Eve',   X'');
+                "#,
+            )
+            .await
+            .unwrap();
+
+        #[derive(serde::Deserialize, Debug, PartialEq, Eq)]
+        struct PersonRow {
+            id: i64,
+            name: String,
+            note: Option<String>,
+        }
+
+        let rows: Vec<PersonRow> = exec
+            .query_json("SELECT id, name, note FROM people ORDER BY id ASC;")
+            .await
+            .unwrap();
+
+        assert_eq!(rows.len(), 5);
+        assert_eq!(
+            rows,
+            vec![
+                PersonRow {
+                    id: 1,
+                    name: "Alice".to_string(),
+                    note: Some("0x000102".to_string()),
+                },
+                PersonRow {
+                    id: 2,
+                    name: "Bob".to_string(),
+                    note: Some("0xff".to_string()),
+                },
+                PersonRow {
+                    id: 3,
+                    name: "Carol".to_string(),
+                    note: None,
+                },
+                PersonRow {
+                    id: 4,
+                    name: "Дора".to_string(),
+                    note: Some("0xc0".to_string()),
+                },
+                PersonRow {
+                    id: 5,
+                    name: "Eve".to_string(),
+                    note: Some("0x".to_string()),
+                },
+            ]
+        );
     }
 }
