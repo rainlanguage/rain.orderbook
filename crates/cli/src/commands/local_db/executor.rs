@@ -37,23 +37,30 @@ impl LocalDbQueryExecutor for SqliteCliExecutor {
             .prepare(sql)
             .map_err(|e| LocalDbQueryError::database(format!("Failed to prepare query: {e}")))?;
         let column_names: Vec<String> = (0..stmt.column_count())
-            .map(|i| stmt.column_name(i).unwrap_or("").to_string())
+            .map(|i| {
+                let raw = stmt.column_name(i).unwrap_or("");
+                let trimmed = raw.trim();
+                if trimmed.is_empty() {
+                    format!("column_{}", i)
+                } else {
+                    trimmed.to_string()
+                }
+            })
             .collect();
 
         let rows_iter = stmt
             .query_map([], |row| {
                 let mut obj = Map::with_capacity(column_names.len());
                 for (i, name) in column_names.iter().enumerate() {
-                    let v = match row.get_ref(i) {
-                        Ok(ValueRef::Null) => Value::Null,
-                        Ok(ValueRef::Integer(n)) => json!(n),
-                        Ok(ValueRef::Real(f)) => json!(f),
-                        Ok(ValueRef::Text(bytes)) => match std::str::from_utf8(bytes) {
+                    let v = match row.get_ref(i)? {
+                        ValueRef::Null => Value::Null,
+                        ValueRef::Integer(n) => json!(n),
+                        ValueRef::Real(f) => json!(f),
+                        ValueRef::Text(bytes) => match std::str::from_utf8(bytes) {
                             Ok(s) => json!(s),
                             Err(_) => json!(alloy::hex::encode_prefixed(bytes)),
                         },
-                        Ok(ValueRef::Blob(bytes)) => json!(alloy::hex::encode_prefixed(bytes)),
-                        Err(_) => Value::Null,
+                        ValueRef::Blob(bytes) => json!(alloy::hex::encode_prefixed(bytes)),
                     };
                     obj.insert(name.clone(), v);
                 }
@@ -141,9 +148,8 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         let exec = SqliteCliExecutor::new(&*db_path_str);
-        exec
-            .query_text(
-                r#"
+        exec.query_text(
+            r#"
                 CREATE TABLE people (
                     id INTEGER,
                     name TEXT,
@@ -156,9 +162,9 @@ mod tests {
                     (4, 'Дора',  X'c0'),
                     (5, 'Eve',   X'');
                 "#,
-            )
-            .await
-            .unwrap();
+        )
+        .await
+        .unwrap();
 
         #[derive(serde::Deserialize, Debug, PartialEq, Eq)]
         struct PersonRow {
