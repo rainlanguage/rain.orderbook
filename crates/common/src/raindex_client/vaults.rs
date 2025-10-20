@@ -1817,6 +1817,7 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_filters() {
+            use wasm_bindgen_utils::prelude::JsValue;
             let owner_kept = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             let token_kept = "0x00000000000000000000000000000000000000aa";
 
@@ -1826,7 +1827,7 @@ mod tests {
                 owner_kept,
                 Float::parse("2".to_string()).unwrap(),
             );
-            let captured_sql = Rc::new(RefCell::new(String::new()));
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
             let json = serde_json::to_string(&vec![keep_vault]).unwrap();
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
 
@@ -1855,13 +1856,33 @@ mod tests {
             assert_eq!(vault.formatted_balance(), "2".to_string());
 
             let sql = captured_sql.borrow();
-            assert!(
-                sql.contains("lower(o.owner) IN ('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')")
-            );
-            assert!(
-                sql.contains("lower(o.token) IN ('0x00000000000000000000000000000000000000aa')")
-            );
-            assert!(sql.contains("AND NOT FLOAT_IS_ZERO("));
+            // SQL should contain parameterized IN-clauses and hide-zero filter body
+            assert!(sql.0.contains("lower(o.owner) IN ("));
+            assert!(sql.0.contains("lower(o.token) IN ("));
+            assert!(sql.0.contains("AND NOT FLOAT_IS_ZERO("));
+
+            // Params should include chain id, owner and token values bound in order
+            let params: Vec<crate::local_db::query::SqlValue> =
+                wasm_bindgen_utils::prelude::serde_wasm_bindgen::from_value(sql.1.clone())
+                    .expect("params parse");
+
+            // Expect first param to be chain id (I64)
+            assert!(matches!(
+                params.get(0),
+                Some(crate::local_db::query::SqlValue::I64(42161))
+            ));
+
+            // Expect owner and token to be present among text params
+            let has_owner = params.iter().any(|p| match p {
+                crate::local_db::query::SqlValue::Text(s) => s == owner_kept,
+                _ => false,
+            });
+            let has_token = params.iter().any(|p| match p {
+                crate::local_db::query::SqlValue::Text(s) => s == token_kept,
+                _ => false,
+            });
+            assert!(has_owner, "owner missing in params");
+            assert!(has_token, "token missing in params");
         }
     }
 
