@@ -4,11 +4,11 @@ use rusqlite::{types::ValueRef, Connection};
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
 
-pub struct SqliteCliExecutor {
+pub struct RusqliteExecutor {
     db_path: PathBuf,
 }
 
-impl SqliteCliExecutor {
+impl RusqliteExecutor {
     pub fn new<P: AsRef<Path>>(db_path: P) -> Self {
         Self {
             db_path: db_path.as_ref().to_path_buf(),
@@ -17,7 +17,7 @@ impl SqliteCliExecutor {
 }
 
 #[async_trait(?Send)]
-impl LocalDbQueryExecutor for SqliteCliExecutor {
+impl LocalDbQueryExecutor for RusqliteExecutor {
     async fn query_text(&self, sql: &str) -> Result<String, LocalDbQueryError> {
         let conn = Connection::open(&self.db_path)
             .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
@@ -91,7 +91,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
+        let exec = RusqliteExecutor::new(&*db_path_str);
         exec.query_text(
             "CREATE TABLE numbers (n INTEGER); INSERT INTO numbers (n) VALUES (1), (2);",
         )
@@ -116,7 +116,7 @@ mod tests {
         let db_path = temp_dir.path().join("schema.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
+        let exec = RusqliteExecutor::new(&*db_path_str);
         exec.query_text("CREATE TABLE foo (id INTEGER); CREATE TABLE bar (id INTEGER);")
             .await
             .unwrap();
@@ -147,7 +147,7 @@ mod tests {
         let db_path = temp_dir.path().join("multi.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
+        let exec = RusqliteExecutor::new(&*db_path_str);
         exec.query_text(
             r#"
                 CREATE TABLE people (
