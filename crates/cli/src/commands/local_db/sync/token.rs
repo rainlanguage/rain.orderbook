@@ -94,7 +94,7 @@ mod tests {
 
     use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
-    use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
+    use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 
     struct NoopFetcher;
 
@@ -112,9 +112,11 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
         exec
-            .query_text("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);")
+            .query_text(&SqlStatement::new("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);"))
             .await
             .unwrap();
 
