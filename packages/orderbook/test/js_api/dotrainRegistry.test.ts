@@ -293,7 +293,7 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 		});
 
 		it('should create GUI for valid order and deployment', async () => {
-			const gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null));
+			const gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null, null));
 
 			const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
 
@@ -305,7 +305,7 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 			const stateCallback = () => {};
 
 			const gui = extractWasmEncodedData(
-				await registry.getGui('fixed-limit', 'base', stateCallback)
+				await registry.getGui('fixed-limit', 'base', null, stateCallback)
 			);
 
 			const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
@@ -314,8 +314,25 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 			assert.strictEqual(currentDeployment.description, 'Base order description');
 		});
 
+		it('should restore GUI from serialized state when provided', async () => {
+			let gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null, null));
+
+			gui.setFieldValue('test-binding', '42');
+			const serializedState = extractWasmEncodedData<string>(gui.serializeState());
+
+			gui = extractWasmEncodedData(
+				await registry.getGui('fixed-limit', 'flare', serializedState, null)
+			);
+
+			const fieldValue = extractWasmEncodedData<{ value: string }>(
+				gui.getFieldValue('test-binding')
+			);
+
+			assert.strictEqual(fieldValue.value, '42');
+		});
+
 		it('should handle GUI creation for non-existent order', async () => {
-			const result = await registry.getGui('non-existent', 'flare', null);
+			const result = await registry.getGui('non-existent', 'flare', null, null);
 			assert(result.error);
 			assert(result.error.readableMsg.includes("order key 'non-existent' was not found"));
 		});

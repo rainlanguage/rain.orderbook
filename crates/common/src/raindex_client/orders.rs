@@ -1,8 +1,10 @@
-use super::local_db::query::fetch_orders::{FetchOrdersArgs, LocalDbOrder};
-use super::local_db::query::fetch_vault::LocalDbVault;
-use super::local_db::query::LocalDbQuery;
-use super::local_db::LocalDb;
 use super::*;
+use crate::local_db::query::{
+    fetch_orders::{FetchOrdersArgs, LocalDbOrder},
+    fetch_vault::LocalDbVault,
+};
+use crate::local_db::LocalDb;
+use crate::raindex_client::local_db::query::LocalDbQuery;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -11,7 +13,7 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{keccak256, Address, Bytes, U256};
 use csv::{ReaderBuilder, Terminator};
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
@@ -516,6 +518,10 @@ impl RaindexClient {
 
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
+        if local_ids.is_empty() && sg_ids.is_empty() {
+            return self.get_orders_sg(None, filters, page).await;
+        }
+
         if !local_ids.is_empty() {
             let locals = futures::future::try_join_all(
                 local_ids
@@ -915,11 +921,16 @@ impl RaindexOrder {
             .as_ref()
             .and_then(|meta| meta.try_decode_rainlangsource().ok());
 
+        let id = [
+            order.orderbook_address.as_bytes(),
+            order.order_hash.as_bytes(),
+        ]
+        .concat();
+
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
             chain_id,
-            // TODO: Needs updating
-            id: Bytes::from_str("0x01")?,
+            id: Bytes::from(keccak256(&id).as_slice().to_vec()),
             order_bytes: Bytes::from_str(&order.order_bytes)?,
             order_hash: Bytes::from_str(&order.order_hash)?,
             owner: Address::from_str(&order.owner)?,
@@ -948,7 +959,10 @@ impl RaindexOrder {
             orderbook: Address::from_str(&order.orderbook_address)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
-            meta: order.meta.map(|meta| Bytes::from_str(&meta)).transpose()?,
+            meta: order
+                .meta
+                .map(|meta| Bytes::from_str(meta.as_str()))
+                .transpose()?,
             rainlang,
             transaction: None,
             trades_count: order.trade_count as u16,
@@ -963,9 +977,7 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::raindex_client::local_db::query::{
-            fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault,
-        };
+        use crate::local_db::query::{fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault};
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };

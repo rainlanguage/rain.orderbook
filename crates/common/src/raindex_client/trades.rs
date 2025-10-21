@@ -1,6 +1,10 @@
 use super::*;
+use crate::local_db::{query::fetch_order_trades::LocalDbOrderTrade, LocalDb};
 use crate::raindex_client::{
-    orders::RaindexOrder, transactions::RaindexTransaction, vaults::RaindexVaultBalanceChange,
+    local_db::query::LocalDbQuery,
+    orders::RaindexOrder,
+    transactions::RaindexTransaction,
+    vaults::{LocalTradeBalanceInfo, LocalTradeTokenInfo, RaindexVaultBalanceChange},
 };
 use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_subgraph_client::{
@@ -124,6 +128,29 @@ impl RaindexOrder {
         )]
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
+        let chain_id = self.chain_id();
+        if LocalDb::check_support(chain_id) {
+            let raindex_client = self.get_raindex_client();
+            if let Some(db_cb) = raindex_client.local_db_callback() {
+                let order_hash = self.order_hash().to_string();
+                let local_trades = LocalDbQuery::fetch_order_trades(
+                    &db_cb,
+                    chain_id,
+                    &order_hash,
+                    start_timestamp,
+                    end_timestamp,
+                )
+                .await?;
+
+                let trades = local_trades
+                    .into_iter()
+                    .map(|trade| RaindexTrade::try_from_local_db_trade(chain_id, trade))
+                    .collect::<Result<Vec<RaindexTrade>, RaindexError>>()?;
+
+                return Ok(trades);
+            }
+        }
+
         let client = self.get_orderbook_client()?;
         let trades = client
             .order_trades_list(
@@ -212,6 +239,22 @@ impl RaindexOrder {
         )]
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
+        let chain_id = self.chain_id();
+        if LocalDb::check_support(chain_id) {
+            let raindex_client = self.get_raindex_client();
+            if let Some(db_cb) = raindex_client.local_db_callback() {
+                let order_hash = self.order_hash().to_string();
+                let count = LocalDbQuery::fetch_order_trades_count(
+                    &db_cb,
+                    &order_hash,
+                    start_timestamp,
+                    end_timestamp,
+                )
+                .await?;
+                return Ok(count);
+            }
+        }
+
         let client = self.get_orderbook_client()?;
         let trades_count = client
             .order_trades_list_all(
@@ -255,12 +298,437 @@ impl RaindexTrade {
             orderbook: Address::from_str(&trade.orderbook.id.0)?,
         })
     }
+
+    pub(crate) fn try_from_local_db_trade(
+        chain_id: u32,
+        trade: LocalDbOrderTrade,
+    ) -> Result<Self, RaindexError> {
+        let orderbook = Address::from_str(&trade.orderbook_address)?;
+        let transaction = RaindexTransaction::from_local_parts(
+            &trade.transaction_hash,
+            &trade.transaction_sender,
+            trade.block_number,
+            trade.block_timestamp,
+        )?;
+
+        let input_change = RaindexVaultBalanceChange::try_from_local_trade_side(
+            chain_id,
+            orderbook,
+            &transaction,
+            &trade.input_vault_id,
+            LocalTradeTokenInfo {
+                address: trade.input_token.clone(),
+                name: trade.input_token_name.clone(),
+                symbol: trade.input_token_symbol.clone(),
+                decimals: trade.input_token_decimals,
+            },
+            LocalTradeBalanceInfo {
+                delta: trade.input_delta.clone(),
+                running_balance: trade.input_running_balance.clone(),
+            },
+            trade.block_timestamp,
+        )?;
+
+        let output_change = RaindexVaultBalanceChange::try_from_local_trade_side(
+            chain_id,
+            orderbook,
+            &transaction,
+            &trade.output_vault_id,
+            LocalTradeTokenInfo {
+                address: trade.output_token.clone(),
+                name: trade.output_token_name.clone(),
+                symbol: trade.output_token_symbol.clone(),
+                decimals: trade.output_token_decimals,
+            },
+            LocalTradeBalanceInfo {
+                delta: trade.output_delta.clone(),
+                running_balance: trade.output_running_balance.clone(),
+            },
+            trade.block_timestamp,
+        )?;
+
+        Ok(RaindexTrade {
+            id: Bytes::from_str(&trade.trade_id)?,
+            order_hash: Bytes::from_str(&trade.order_hash)?,
+            transaction,
+            input_vault_balance_change: input_change,
+            output_vault_balance_change: output_change,
+            timestamp: U256::from(trade.block_timestamp),
+            orderbook,
+        })
+    }
 }
 
 #[cfg(test)]
 mod test_helpers {
+    #[cfg(target_family = "wasm")]
+    use super::*;
     #[cfg(not(target_family = "wasm"))]
     use super::*;
+
+    #[cfg(target_family = "wasm")]
+    mod wasm_tests {
+        use super::*;
+        use crate::local_db::query::{
+            fetch_order_trades::LocalDbOrderTrade, fetch_orders::LocalDbOrder,
+            fetch_vault::LocalDbVault,
+        };
+        use crate::raindex_client::tests::{
+            get_local_db_test_yaml, new_test_client_with_db_callback,
+        };
+        use alloy::primitives::{Address, Bytes};
+        use rain_orderbook_subgraph_client::utils::float::{F1, F2, F3, NEG2};
+        use serde_json::{self, json};
+        use std::str::FromStr;
+        use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+        use wasm_bindgen_test::wasm_bindgen_test;
+        use wasm_bindgen_utils::prelude::WasmEncodedResult;
+
+        #[derive(Clone)]
+        struct LocalTradeFixture {
+            order: LocalDbOrder,
+            input_vault: LocalDbVault,
+            output_vault: LocalDbVault,
+            trade: LocalDbOrderTrade,
+            orderbook_address: String,
+            order_hash: String,
+            input_token: String,
+            output_token: String,
+        }
+
+        fn build_local_trade_fixture(
+            tx_hash: &str,
+            trade_log_index: u64,
+            trade_count: u64,
+        ) -> LocalTradeFixture {
+            const ORDERBOOK_ADDRESS: &str = "0x2f209e5b67a33b8fe96e28f24628df6da301c8eb";
+            const ORDER_HASH: &str =
+                "0x0000000000000000000000000000000000000000000000000000000000000abc";
+            const OWNER: &str = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            const INPUT_VAULT_ID: &str = "0x01";
+            const OUTPUT_VAULT_ID: &str = "0x02";
+            const INPUT_TOKEN: &str = "0x00000000000000000000000000000000000000aa";
+            const OUTPUT_TOKEN: &str = "0x00000000000000000000000000000000000000bb";
+            const INPUT_DELTA_HEX: &str =
+                "0x0000000000000000000000000000000000000000000000000000000000000001";
+            const INPUT_RUNNING_HEX: &str =
+                "0x0000000000000000000000000000000000000000000000000000000000000003";
+            const OUTPUT_DELTA_HEX: &str =
+                "0x00000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffe";
+            const OUTPUT_RUNNING_HEX: &str =
+                "0x0000000000000000000000000000000000000000000000000000000000000001";
+
+            let trade_id = format!(
+                "0x{}{:016x}",
+                tx_hash.trim_start_matches("0x"),
+                trade_log_index
+            )
+            .to_lowercase();
+
+            let order = LocalDbOrder {
+                order_hash: ORDER_HASH.to_string(),
+                owner: OWNER.to_string(),
+                block_timestamp: 1_700_000_010,
+                block_number: 123_456,
+                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
+                order_bytes: "0x00000000000000000000000000000000000000000000000000000000000000ff"
+                    .to_string(),
+                transaction_hash: tx_hash.to_string(),
+                inputs: Some(format!("0:{}:{}", INPUT_VAULT_ID, INPUT_TOKEN)),
+                outputs: Some(format!("0:{}:{}", OUTPUT_VAULT_ID, OUTPUT_TOKEN)),
+                trade_count,
+                active: true,
+                meta: Some("0x1234".to_string()),
+            };
+
+            let input_vault = LocalDbVault {
+                vault_id: INPUT_VAULT_ID.to_string(),
+                token: INPUT_TOKEN.to_string(),
+                owner: OWNER.to_string(),
+                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
+                token_name: "Token A".to_string(),
+                token_symbol: "TKNA".to_string(),
+                token_decimals: 18,
+                balance: INPUT_RUNNING_HEX.to_string(),
+                input_orders: Some(format!("0x01:{}:0", ORDER_HASH)),
+                output_orders: None,
+            };
+
+            let output_vault = LocalDbVault {
+                vault_id: OUTPUT_VAULT_ID.to_string(),
+                token: OUTPUT_TOKEN.to_string(),
+                owner: OWNER.to_string(),
+                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
+                token_name: "Token B".to_string(),
+                token_symbol: "TKNB".to_string(),
+                token_decimals: 6,
+                balance: OUTPUT_RUNNING_HEX.to_string(),
+                input_orders: None,
+                output_orders: Some(format!("0x01:{}:0", ORDER_HASH)),
+            };
+
+            let trade = LocalDbOrderTrade {
+                trade_kind: "take".into(),
+                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
+                order_hash: ORDER_HASH.to_string(),
+                order_owner: OWNER.to_string(),
+                order_nonce: "0".into(),
+                transaction_hash: tx_hash.to_string(),
+                log_index: trade_log_index,
+                block_number: 123_460,
+                block_timestamp: 1_700_000_000,
+                transaction_sender: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                input_vault_id: INPUT_VAULT_ID.to_string(),
+                input_token: INPUT_TOKEN.to_string(),
+                input_token_name: Some("Token A".into()),
+                input_token_symbol: Some("TKNA".into()),
+                input_token_decimals: Some(18),
+                input_delta: INPUT_DELTA_HEX.into(),
+                input_running_balance: Some(INPUT_RUNNING_HEX.into()),
+                output_vault_id: OUTPUT_VAULT_ID.to_string(),
+                output_token: OUTPUT_TOKEN.to_string(),
+                output_token_name: Some("Token B".into()),
+                output_token_symbol: Some("TKNB".into()),
+                output_token_decimals: Some(6),
+                output_delta: OUTPUT_DELTA_HEX.into(),
+                output_running_balance: Some(OUTPUT_RUNNING_HEX.into()),
+                trade_id,
+            };
+
+            LocalTradeFixture {
+                order,
+                input_vault,
+                output_vault,
+                trade,
+                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
+                order_hash: ORDER_HASH.to_string(),
+                input_token: INPUT_TOKEN.to_string(),
+                output_token: OUTPUT_TOKEN.to_string(),
+            }
+        }
+
+        fn make_local_db_trades_callback(
+            orders: Vec<LocalDbOrder>,
+            vaults: Vec<LocalDbVault>,
+            trades: Vec<LocalDbOrderTrade>,
+            trade_count: u64,
+        ) -> js_sys::Function {
+            let orders_json = serde_json::to_string(&orders).unwrap();
+            let orders_result = WasmEncodedResult::Success::<String> {
+                value: orders_json,
+                error: None,
+            };
+            let orders_payload =
+                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&orders_result).unwrap())
+                    .unwrap()
+                    .as_string()
+                    .unwrap();
+
+            let trades_json = serde_json::to_string(&trades).unwrap();
+            let trades_result = WasmEncodedResult::Success::<String> {
+                value: trades_json,
+                error: None,
+            };
+            let trades_payload =
+                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&trades_result).unwrap())
+                    .unwrap()
+                    .as_string()
+                    .unwrap();
+
+            let trade_count_rows =
+                serde_json::to_string(&vec![json!({ "trade_count": trade_count })]).unwrap();
+            let trade_count_result = WasmEncodedResult::Success::<String> {
+                value: trade_count_rows,
+                error: None,
+            };
+            let trade_count_payload = js_sys::JSON::stringify(
+                &serde_wasm_bindgen::to_value(&trade_count_result).unwrap(),
+            )
+            .unwrap()
+            .as_string()
+            .unwrap();
+
+            let empty_result = WasmEncodedResult::Success::<String> {
+                value: "[]".to_string(),
+                error: None,
+            };
+            let empty_payload =
+                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&empty_result).unwrap())
+                    .unwrap()
+                    .as_string()
+                    .unwrap();
+
+            let mut vault_payloads: Vec<(String, String)> = Vec::new();
+            for vault in vaults.into_iter() {
+                let lookup = format!("'{}'", vault.vault_id);
+                let json = serde_json::to_string(&vec![vault]).unwrap();
+                let result = WasmEncodedResult::Success::<String> {
+                    value: json,
+                    error: None,
+                };
+                let payload =
+                    js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&result).unwrap())
+                        .unwrap()
+                        .as_string()
+                        .unwrap();
+                vault_payloads.push((lookup, payload));
+            }
+
+            let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
+                if sql.contains("GROUP_CONCAT(CASE WHEN ios.io_type = 'input'") {
+                    return js_sys::JSON::parse(&orders_payload).unwrap();
+                }
+
+                if sql.contains("COUNT(*) AS trade_count") {
+                    return js_sys::JSON::parse(&trade_count_payload).unwrap();
+                }
+
+                if sql.contains("FROM take_orders") || sql.contains("FROM clear_v3_events") {
+                    return js_sys::JSON::parse(&trades_payload).unwrap();
+                }
+
+                if sql.contains("FLOAT_SUM(vd.delta)") {
+                    for (needle, payload) in &vault_payloads {
+                        if sql.contains(needle) {
+                            return js_sys::JSON::parse(payload).unwrap();
+                        }
+                    }
+                }
+
+                js_sys::JSON::parse(&empty_payload).unwrap()
+            }) as Box<dyn Fn(String) -> JsValue>);
+
+            callback.into_js_value().dyn_into().unwrap()
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_trades_list_local_db_path() {
+            let trade_log_index = 1u64;
+            let tx_hash = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let fixture = build_local_trade_fixture(tx_hash, trade_log_index, 4);
+            let trade_id = fixture.trade.trade_id.clone();
+
+            let callback = make_local_db_trades_callback(
+                vec![fixture.order.clone()],
+                vec![fixture.input_vault.clone(), fixture.output_vault.clone()],
+                vec![fixture.trade.clone()],
+                4,
+            );
+            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+
+            let order = client
+                .get_order_by_hash(
+                    42161,
+                    Address::from_str(&fixture.orderbook_address).unwrap(),
+                    Bytes::from_str(&fixture.order_hash).unwrap(),
+                )
+                .await
+                .unwrap();
+
+            let trades = order.get_trades_list(None, None, None).await.unwrap();
+
+            assert_eq!(trades.len(), 1);
+
+            let trade = trades.first().unwrap();
+            assert_eq!(trade.id(), trade_id);
+            assert_eq!(trade.order_hash(), fixture.order_hash);
+            assert_eq!(
+                trade.orderbook().to_lowercase(),
+                fixture.orderbook_address.to_lowercase()
+            );
+
+            let transaction = trade.transaction();
+            assert_eq!(transaction.id(), tx_hash.to_string());
+            assert_eq!(
+                transaction.from().to_lowercase(),
+                fixture.trade.transaction_sender.to_lowercase()
+            );
+            let block_number = transaction
+                .block_number()
+                .unwrap()
+                .to_string(10)
+                .unwrap()
+                .as_string()
+                .unwrap();
+            assert_eq!(block_number, fixture.trade.block_number.to_string());
+            let timestamp = transaction
+                .timestamp()
+                .unwrap()
+                .to_string(10)
+                .unwrap()
+                .as_string()
+                .unwrap();
+            assert_eq!(timestamp, fixture.trade.block_timestamp.to_string());
+
+            let trade_timestamp = trade
+                .timestamp()
+                .unwrap()
+                .to_string(10)
+                .unwrap()
+                .as_string()
+                .unwrap();
+            assert_eq!(trade_timestamp, fixture.trade.block_timestamp.to_string());
+
+            let input_change = trade.input_vault_balance_change();
+            assert!(input_change.amount().eq(F1).unwrap());
+            assert!(input_change.new_balance().eq(F3).unwrap());
+            assert!(input_change.old_balance().eq(F2).unwrap());
+            assert_eq!(
+                input_change.token().symbol(),
+                fixture.trade.input_token_symbol.clone()
+            );
+            assert_eq!(
+                input_change.token().address().to_lowercase(),
+                fixture.input_token.to_lowercase()
+            );
+
+            let output_change = trade.output_vault_balance_change();
+            assert!(output_change.amount().eq(NEG2).unwrap());
+            assert!(output_change.new_balance().eq(F1).unwrap());
+            assert!(output_change.old_balance().eq(F3).unwrap());
+            assert_eq!(
+                output_change.token().symbol(),
+                fixture.trade.output_token_symbol.clone()
+            );
+            assert_eq!(
+                output_change.token().address().to_lowercase(),
+                fixture.output_token.to_lowercase()
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_trade_count_local_db_path() {
+            let fixture = build_local_trade_fixture(
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                3,
+                7,
+            );
+
+            let callback = make_local_db_trades_callback(
+                vec![fixture.order.clone()],
+                vec![fixture.input_vault.clone(), fixture.output_vault.clone()],
+                vec![fixture.trade.clone()],
+                7,
+            );
+            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+
+            let order = client
+                .get_order_by_hash(
+                    42161,
+                    Address::from_str(&fixture.orderbook_address).unwrap(),
+                    Bytes::from_str(&fixture.order_hash).unwrap(),
+                )
+                .await
+                .unwrap();
+
+            let count = order
+                .get_trade_count(Some(1_699_999_900), Some(1_700_000_900))
+                .await
+                .unwrap();
+
+            assert_eq!(count, 7);
+        }
+    }
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {

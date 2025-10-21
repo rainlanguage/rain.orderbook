@@ -47,6 +47,8 @@ rain-math-float.workspace = true
 tower.workspace = true
 backon = "0.4.4"
 flate2 = "1.0.34"
+itertools = { workspace = true }
+async-trait = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
