@@ -1,4 +1,3 @@
-use crate::local_db::LocalDbError;
 use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
 use alloy::transports::TransportError;
@@ -117,9 +116,9 @@ pub struct BlockRange {
     pub end: u64,
 }
 impl BlockRange {
-    pub fn inclusive(start: u64, end: u64) -> Result<Self, LocalDbError> {
+    pub fn inclusive(start: u64, end: u64) -> Result<Self, RpcClientError> {
         if start > end {
-            Err(LocalDbError::InvalidBlockRange { start, end })
+            Err(RpcClientError::InvalidBlockRange { start, end })
         } else {
             Ok(Self { start, end })
         }
@@ -295,6 +294,9 @@ pub enum RpcClientError {
 
     #[error("Configuration error: {message}")]
     Config { message: String },
+
+    #[error("Invalid block range: start {start} > end {end}")]
+    InvalidBlockRange { start: u64, end: u64 },
 }
 
 impl From<TransportError> for RpcClientError {
@@ -306,7 +308,6 @@ impl From<TransportError> for RpcClientError {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
-    use crate::local_db::LocalDbError;
     use httpmock::MockServer;
     use serde_json::json;
 
@@ -392,7 +393,7 @@ mod tests {
         let err = BlockRange::inclusive(10_u64, 5_u64).unwrap_err();
         assert!(matches!(
             err,
-            LocalDbError::InvalidBlockRange { start: 10, end: 5 }
+            RpcClientError::InvalidBlockRange { start: 10, end: 5 }
         ));
     }
 

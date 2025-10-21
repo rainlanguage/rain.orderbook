@@ -41,10 +41,10 @@ impl LocalDb {
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         if filter.range.start > filter.range.end {
-            return Err(LocalDbError::InvalidBlockRange {
+            return Err(LocalDbError::Rpc(RpcClientError::InvalidBlockRange {
                 start: filter.range.start,
                 end: filter.range.end,
-            });
+            }));
         }
 
         if filter.addresses.is_empty() {
@@ -608,7 +608,7 @@ mod tests {
                 .await
                 .unwrap_err();
             match err {
-                LocalDbError::InvalidBlockRange { start, end } => {
+                LocalDbError::Rpc(RpcClientError::InvalidBlockRange { start, end }) => {
                     assert_eq!(start, 10);
                     assert_eq!(end, 1);
                 }
@@ -664,7 +664,7 @@ mod tests {
                 .await
                 .unwrap_err();
             match err {
-                LocalDbError::InvalidBlockRange { start, end } => {
+                LocalDbError::Rpc(RpcClientError::InvalidBlockRange { start, end }) => {
                     assert_eq!(start, 10);
                     assert_eq!(end, 1);
                 }
