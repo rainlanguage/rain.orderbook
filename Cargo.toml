@@ -62,6 +62,7 @@ tempfile = "3.20.0"
 eyre = "0.6.12"
 tower = "0.5.2"
 getrandom = { version = "0.2", features = ["js"] }
+assert_matches = "1.5.0"
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"

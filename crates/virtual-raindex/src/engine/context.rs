@@ -3,10 +3,11 @@
 use alloy::primitives::{Address, B256, U256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, SignedContextV1, IOV2};
+use rain_orderbook_common::utils::order_hash;
 
 use crate::{cache::CodeCache, host, state};
 
-use super::{address_to_u256, VirtualRaindex};
+use super::{address_to_u256, u8_to_b256, VirtualRaindex};
 
 pub(super) const CALLING_CONTEXT_COLUMNS: usize = 4;
 pub(super) const CONTEXT_CALLING_CONTEXT_COLUMN: usize = 1;
@@ -16,6 +17,12 @@ pub(super) const CONTEXT_VAULT_OUTPUTS_COLUMN: usize = 4;
 pub(super) const HANDLE_IO_ENTRYPOINT: u64 = 1;
 pub(super) const CONTEXT_VAULT_IO_BALANCE_DIFF_ROW: usize = 5;
 
+pub(super) struct IOContext {
+    pub(super) io: IOV2,
+    pub(super) balance: Float,
+    pub(super) decimals: u8,
+}
+
 impl<C, H> VirtualRaindex<C, H>
 where
     C: CodeCache,
@@ -23,7 +30,7 @@ where
 {
     /// Constructs the base context for order post tasks.
     pub(super) fn build_post_context(&self, order: &OrderV4) -> Vec<Vec<B256>> {
-        let order_hash = state::order_hash(order);
+        let order_hash = order_hash(order);
         vec![vec![order_hash, order.owner.into_word()]]
     }
 
@@ -33,12 +40,8 @@ where
         order_hash: B256,
         owner: Address,
         counterparty: Address,
-        input: &IOV2,
-        input_decimals: u8,
-        input_balance: Float,
-        output: &IOV2,
-        output_decimals: u8,
-        output_balance: Float,
+        input: &IOContext,
+        output: &IOContext,
         signed_context: &[SignedContextV1],
     ) -> Vec<Vec<B256>> {
         let mut base_columns = vec![Vec::new(); CALLING_CONTEXT_COLUMNS];
@@ -48,19 +51,21 @@ where
 
         base_columns[CONTEXT_CALCULATIONS_COLUMN - 1] = vec![B256::ZERO; 2];
 
+        let input_io = &input.io;
         base_columns[CONTEXT_VAULT_INPUTS_COLUMN - 1] = vec![
-            input.token.into_word(),
-            u8_to_b256(input_decimals),
-            input.vaultId,
-            input_balance.get_inner(),
+            input_io.token.into_word(),
+            u8_to_b256(input.decimals),
+            input_io.vaultId,
+            input.balance.get_inner(),
             B256::ZERO,
         ];
 
+        let output_io = &output.io;
         base_columns[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = vec![
-            output.token.into_word(),
-            u8_to_b256(output_decimals),
-            output.vaultId,
-            output_balance.get_inner(),
+            output_io.token.into_word(),
+            u8_to_b256(output.decimals),
+            output_io.vaultId,
+            output.balance.get_inner(),
             B256::ZERO,
         ];
 
@@ -87,15 +92,13 @@ where
         context.extend(base_columns);
 
         if !signed_context.is_empty() {
-            let mut signers = Vec::with_capacity(signed_context.len());
-            for sc in signed_context {
-                signers.push(sc.signer.into_word());
-            }
+            let signers: Vec<_> = signed_context
+                .iter()
+                .map(|sc| sc.signer.into_word())
+                .collect();
             context.push(signers);
 
-            for sc in signed_context {
-                context.push(sc.context.clone());
-            }
+            context.extend(signed_context.iter().map(|sc| sc.context.clone()));
         }
 
         context
@@ -110,7 +113,166 @@ pub(super) fn namespace_for_order(order: &OrderV4, orderbook: Address) -> (U256,
     (namespace, qualified)
 }
 
-/// Convenience helper for encoding a `u8` value as a `B256` word.
-pub(super) fn u8_to_b256(value: u8) -> B256 {
-    B256::from(U256::from(value))
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::{IOContext, VirtualRaindex};
+    use crate::{
+        cache::CodeCache,
+        error::{RaindexError, Result},
+        host::{self, InterpreterHost},
+        state::{self, StoreKey},
+    };
+    use alloy::primitives::{Address, B256};
+    use rain_interpreter_bindings::IInterpreterV4::EvalV4;
+    use std::{collections::HashMap, sync::Arc};
+
+    #[derive(Default)]
+    struct NullCache;
+
+    impl CodeCache for NullCache {
+        fn interpreter(&self, _address: Address) -> Option<Arc<revm::state::Bytecode>> {
+            None
+        }
+
+        fn store(&self, _address: Address) -> Option<Arc<revm::state::Bytecode>> {
+            None
+        }
+
+        fn ensure_artifacts(&self, _order: &OrderV4) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    #[derive(Default)]
+    struct NullHost;
+
+    impl InterpreterHost for NullHost {
+        fn eval4(
+            &self,
+            _interpreter: Address,
+            _eval: &EvalV4,
+            _store_snapshot: &HashMap<StoreKey, B256>,
+            _env: state::Env,
+        ) -> Result<host::EvalOutcome> {
+            Err(RaindexError::Unimplemented("test interpreter host"))
+        }
+    }
+
+    fn new_raindex() -> VirtualRaindex<NullCache, NullHost> {
+        let orderbook = Address::repeat_byte(0xAB);
+        VirtualRaindex::new(
+            orderbook,
+            Arc::new(NullCache::default()),
+            Arc::new(NullHost::default()),
+        )
+    }
+
+    fn parse_float(value: &str) -> Float {
+        Float::parse(value.to_owned()).expect("float parse")
+    }
+
+    fn make_io_context(token_byte: u8, vault_byte: u8, decimals: u8, balance: &str) -> IOContext {
+        IOContext {
+            io: IOV2 {
+                token: Address::repeat_byte(token_byte),
+                vaultId: B256::from([vault_byte; 32]),
+            },
+            balance: parse_float(balance),
+            decimals,
+        }
+    }
+
+    #[test]
+    fn quote_context_populates_expected_columns() {
+        let raindex = new_raindex();
+        let order_hash = B256::from([0x11; 32]);
+        let owner = Address::repeat_byte(0x22);
+        let counterparty = Address::repeat_byte(0x33);
+        let input = make_io_context(0x44, 0x55, 6, "123.5");
+        let output = make_io_context(0x66, 0x77, 8, "42.25");
+
+        let context =
+            raindex.build_quote_context(order_hash, owner, counterparty, &input, &output, &[]);
+
+        assert_eq!(context.len(), 1 + CALLING_CONTEXT_COLUMNS);
+        assert_eq!(
+            context[0],
+            vec![counterparty.into_word(), raindex.orderbook.into_word()]
+        );
+        assert_eq!(
+            context[CONTEXT_CALLING_CONTEXT_COLUMN],
+            vec![order_hash, owner.into_word(), counterparty.into_word()]
+        );
+        assert_eq!(
+            context[CONTEXT_CALCULATIONS_COLUMN],
+            vec![B256::ZERO, B256::ZERO]
+        );
+
+        let expected_input = vec![
+            input.io.token.into_word(),
+            u8_to_b256(input.decimals),
+            input.io.vaultId,
+            input.balance.clone().get_inner(),
+            B256::ZERO,
+        ];
+        assert_eq!(context[CONTEXT_VAULT_INPUTS_COLUMN], expected_input);
+
+        let expected_output = vec![
+            output.io.token.into_word(),
+            u8_to_b256(output.decimals),
+            output.io.vaultId,
+            output.balance.clone().get_inner(),
+            B256::ZERO,
+        ];
+        assert_eq!(context[CONTEXT_VAULT_OUTPUTS_COLUMN], expected_output);
+    }
+
+    #[test]
+    fn quote_context_appends_signed_rows() {
+        let raindex = new_raindex();
+        let order_hash = B256::from([0x01; 32]);
+        let owner = Address::repeat_byte(0x02);
+        let counterparty = Address::repeat_byte(0x03);
+        let input = make_io_context(0x04, 0x05, 7, "1.0");
+        let output = make_io_context(0x06, 0x07, 9, "2.0");
+        let signed_context = vec![
+            SignedContextV1 {
+                signer: Address::repeat_byte(0x10),
+                context: vec![B256::from([0xAA; 32])],
+                signature: B256::from([0xCC; 32]).into(),
+            },
+            SignedContextV1 {
+                signer: Address::repeat_byte(0x20),
+                context: vec![B256::from([0xBB; 32])],
+                signature: B256::from([0xDD; 32]).into(),
+            },
+        ];
+
+        let context = raindex.build_quote_context(
+            order_hash,
+            owner,
+            counterparty,
+            &input,
+            &output,
+            &signed_context,
+        );
+
+        let signers_row_index = 1 + CALLING_CONTEXT_COLUMNS;
+        assert_eq!(
+            context[signers_row_index],
+            signed_context
+                .iter()
+                .map(|sc| sc.signer.into_word())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            context[signers_row_index + 1],
+            signed_context[0].context.clone()
+        );
+        assert_eq!(
+            context[signers_row_index + 2],
+            signed_context[1].context.clone()
+        );
+    }
 }

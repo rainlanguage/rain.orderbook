@@ -1,16 +1,19 @@
-use super::context::{
-    CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_OUTPUTS_COLUMN,
+use super::{
+    context::{
+        CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_OUTPUTS_COLUMN,
+        IOContext,
+    },
+    OrderRef, QuoteRequest, StoreOverride, TakeOrder, TakeOrderWarning, TakeOrdersConfig,
+    VirtualRaindex, address_to_u256,
 };
-use super::*;
 use crate::{
     cache::{CodeCache, StaticCodeCache},
     error::{RaindexError, Result},
     host::{self, InterpreterHost},
     state::{
-        self, derive_fqn, Env, RaindexMutation, StoreKey, StoreKeyValue, StoreSet,
-        TokenDecimalEntry, VaultDelta,
+        derive_fqn, Env, RaindexMutation, StoreKey, StoreKeyValue, StoreSet, TokenDecimalEntry,
+        VaultDelta,
     },
-    types::{OrderRef, QuoteRequest, StoreOverride, TakeOrder, TakeOrderWarning, TakeOrdersConfig},
     RevmInterpreterHost, VaultKey,
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
@@ -18,6 +21,7 @@ use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_interpreter_test_fixtures::{Interpreter, LocalEvm, Store};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, TaskV2, IOV2};
+use rain_orderbook_common::utils::order_hash;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -221,8 +225,8 @@ fn set_orders_insert_and_remove() {
     let snapshot = raindex.snapshot();
     assert_eq!(snapshot.orders.len(), 2);
 
-    let hash_a = state::order_hash(&order_a);
-    let hash_b = state::order_hash(&order_b);
+    let hash_a = order_hash(&order_a);
+    let hash_b = order_hash(&order_b);
     assert!(snapshot.orders.contains_key(&hash_a));
     assert!(snapshot.orders.contains_key(&hash_b));
 
@@ -258,7 +262,7 @@ fn set_orders_idempotent() {
 
     let snapshot = raindex.snapshot();
     assert_eq!(snapshot.orders.len(), 1);
-    let hash = state::order_hash(&order);
+    let hash = order_hash(&order);
     assert_eq!(snapshot.orders.get(&hash), Some(&order));
 }
 
@@ -346,7 +350,7 @@ fn take_orders_returns_mutations() {
     let orderbook = Address::repeat_byte(0xAA);
     let mut raindex = VirtualRaindex::new(orderbook, cache, host.clone());
 
-    let hash = state::order_hash(&order);
+    let hash = order_hash(&order);
 
     raindex
         .apply_mutations(&[RaindexMutation::SetTokenDecimals {
@@ -549,7 +553,7 @@ fn take_orders_enforces_minimum_input() {
         }])
         .expect("seed vault");
 
-    let hash = state::order_hash(&order);
+    let hash = order_hash(&order);
     let err = raindex
         .take_orders(TakeOrdersConfig {
             orders: vec![TakeOrder {
@@ -566,7 +570,7 @@ fn take_orders_enforces_minimum_input() {
         })
         .expect_err("minimum input");
 
-    matches!(err, RaindexError::MinimumInputNotMet { .. });
+    assert_matches::assert_matches!(err, RaindexError::MinimumInputNotMet { .. });
 }
 
 #[test]
@@ -601,7 +605,7 @@ fn take_orders_skips_ratio_exceeded() {
         }])
         .expect("set order");
 
-    let hash = state::order_hash(&order);
+    let hash = order_hash(&order);
     let outcome = raindex
         .take_orders(TakeOrdersConfig {
             orders: vec![TakeOrder {
@@ -619,10 +623,10 @@ fn take_orders_skips_ratio_exceeded() {
         .expect("take orders");
 
     assert!(outcome.taken.is_empty());
-    assert!(matches!(
+    assert_matches::assert_matches!(
         outcome.warnings.first(),
         Some(TakeOrderWarning::RatioExceeded { .. })
-    ));
+    );
 }
 
 #[test]
@@ -785,12 +789,20 @@ async fn quote_matches_contract_eval() {
 
     let output_balance = parse_float("5");
     let vault_delta = RaindexMutation::VaultDeltas {
-        deltas: vec![VaultDelta {
-            owner: order.owner,
-            token: output_token,
-            vault_id: output_vault_id,
-            delta: output_balance,
-        }],
+        deltas: vec![
+            VaultDelta {
+                owner: order.owner,
+                token: input_token,
+                vault_id: input_vault_id,
+                delta: Float::default(),
+            },
+            VaultDelta {
+                owner: order.owner,
+                token: output_token,
+                vault_id: output_vault_id,
+                delta: output_balance,
+            },
+        ],
     };
 
     raindex
@@ -803,7 +815,7 @@ async fn quote_matches_contract_eval() {
         ])
         .expect("mutations");
 
-    let order_hash = state::order_hash(&order);
+    let order_hash = order_hash(&order);
     let state_namespace = address_to_u256(order.owner);
     let fqn = derive_fqn(state_namespace, orderbook);
     let namespace = U256::from_be_slice(fqn.as_slice());
@@ -814,12 +826,16 @@ async fn quote_matches_contract_eval() {
         order_hash,
         order.owner,
         counterparty,
-        &order.validInputs[0],
-        18,
-        input_balance,
-        &order.validOutputs[0],
-        18,
-        output_balance,
+        &IOContext {
+            io: order.validInputs[0].clone(),
+            balance: input_balance,
+            decimals: 18,
+        },
+        &IOContext {
+            io: order.validOutputs[0].clone(),
+            balance: output_balance,
+            decimals: 18,
+        },
         &[],
     );
 
@@ -945,12 +961,20 @@ async fn quote_reflects_env_values() {
 
     let initial_balance = parse_float("1000000");
     let vault_delta = RaindexMutation::VaultDeltas {
-        deltas: vec![VaultDelta {
-            owner: order.owner,
-            token: output_token,
-            vault_id: output_vault_id,
-            delta: initial_balance,
-        }],
+        deltas: vec![
+            VaultDelta {
+                owner: order.owner,
+                token: input_token,
+                vault_id: input_vault_id,
+                delta: Float::default(),
+            },
+            VaultDelta {
+                owner: order.owner,
+                token: output_token,
+                vault_id: output_vault_id,
+                delta: initial_balance,
+            },
+        ],
     };
 
     let env_first = Env {
@@ -976,7 +1000,7 @@ async fn quote_reflects_env_values() {
         ])
         .expect("initial mutations");
 
-    let order_hash = state::order_hash(&order);
+    let order_hash = order_hash(&order);
     let request = QuoteRequest::new(OrderRef::ByHash(order_hash), 0, 0, Address::ZERO);
 
     let quote_first = raindex.quote(request.clone()).expect("quote env 1");
@@ -1033,7 +1057,7 @@ fn quote_errors_when_order_missing() {
     let err = raindex
         .quote(new_quote_request(OrderRef::ByHash(B256::ZERO)))
         .expect_err("missing order");
-    matches!(err, RaindexError::OrderNotFound { .. });
+    assert_matches::assert_matches!(err, RaindexError::OrderNotFound { .. });
 }
 
 #[test]
@@ -1056,23 +1080,23 @@ fn quote_errors_on_invalid_io_index() {
 
     let err = raindex
         .quote(QuoteRequest::new(
-            OrderRef::ByHash(state::order_hash(&order)),
+            OrderRef::ByHash(order_hash(&order)),
             2,
             0,
             Address::ZERO,
         ))
         .expect_err("invalid input index");
-    matches!(err, RaindexError::InvalidInputIndex { .. });
+    assert_matches::assert_matches!(err, RaindexError::InvalidInputIndex { .. });
 
     let err = raindex
         .quote(QuoteRequest::new(
-            OrderRef::ByHash(state::order_hash(&order)),
+            OrderRef::ByHash(order_hash(&order)),
             0,
             1,
             Address::ZERO,
         ))
         .expect_err("invalid output index");
-    matches!(err, RaindexError::InvalidOutputIndex { .. });
+    assert_matches::assert_matches!(err, RaindexError::InvalidOutputIndex { .. });
 }
 
 #[test]
@@ -1089,11 +1113,9 @@ fn quote_errors_without_token_decimals() {
         .expect("set order");
 
     let err = raindex
-        .quote(new_quote_request(OrderRef::ByHash(state::order_hash(
-            &order,
-        ))))
+        .quote(new_quote_request(OrderRef::ByHash(order_hash(&order))))
         .expect_err("missing decimals");
-    matches!(err, RaindexError::TokenDecimalMissing { .. });
+    assert_matches::assert_matches!(err, RaindexError::TokenDecimalMissing { .. });
 }
 
 #[test]
@@ -1153,17 +1175,15 @@ fn quote_errors_on_self_trade() {
         .expect("mutations");
 
     let err = raindex
-        .quote(new_quote_request(OrderRef::ByHash(state::order_hash(
-            &order,
-        ))))
+        .quote(new_quote_request(OrderRef::ByHash(order_hash(&order))))
         .expect_err("self trade");
-    matches!(err, RaindexError::TokenSelfTrade);
+    assert_matches::assert_matches!(err, RaindexError::TokenSelfTrade);
 }
 
 #[test]
 fn quote_builds_expected_eval_context() {
     let order = test_order();
-    let order_hash = state::order_hash(&order);
+    let order_hash = order_hash(&order);
     let output_balance = parse_float("5");
 
     let outcome = host::EvalOutcome {
@@ -1196,12 +1216,20 @@ fn quote_builds_expected_eval_context() {
                 orders: vec![order.clone()],
             },
             RaindexMutation::VaultDeltas {
-                deltas: vec![VaultDelta {
-                    owner: order.owner,
-                    token: order.validOutputs[0].token,
-                    vault_id: order.validOutputs[0].vaultId,
-                    delta: output_balance,
-                }],
+                deltas: vec![
+                    VaultDelta {
+                        owner: order.owner,
+                        token: order.validInputs[0].token,
+                        vault_id: order.validInputs[0].vaultId,
+                        delta: Float::default(),
+                    },
+                    VaultDelta {
+                        owner: order.owner,
+                        token: order.validOutputs[0].token,
+                        vault_id: order.validOutputs[0].vaultId,
+                        delta: output_balance,
+                    },
+                ],
             },
         ])
         .expect("mutations");
@@ -1244,7 +1272,7 @@ fn quote_builds_expected_eval_context() {
 #[test]
 fn quote_applies_store_overrides() {
     let order = test_order();
-    let order_hash = state::order_hash(&order);
+    let order_hash = order_hash(&order);
 
     let outcome = host::EvalOutcome {
         stack: vec![parse_float("1").get_inner(), parse_float("1").get_inner()],
@@ -1258,6 +1286,8 @@ fn quote_applies_store_overrides() {
     let namespace = derive_fqn(address_to_u256(order.owner), orderbook);
     let existing_key = B256::from([0xA5; 32]);
     let existing_value = B256::from([0xB6; 32]);
+    let input_balance = Float::default();
+    let output_balance = parse_float("1");
 
     raindex
         .apply_mutations(&[
@@ -1275,6 +1305,22 @@ fn quote_applies_store_overrides() {
             },
             RaindexMutation::SetOrders {
                 orders: vec![order.clone()],
+            },
+            RaindexMutation::VaultDeltas {
+                deltas: vec![
+                    VaultDelta {
+                        owner: order.owner,
+                        token: order.validInputs[0].token,
+                        vault_id: order.validInputs[0].vaultId,
+                        delta: input_balance,
+                    },
+                    VaultDelta {
+                        owner: order.owner,
+                        token: order.validOutputs[0].token,
+                        vault_id: order.validOutputs[0].vaultId,
+                        delta: output_balance,
+                    },
+                ],
             },
             RaindexMutation::ApplyStore {
                 sets: vec![StoreSet {

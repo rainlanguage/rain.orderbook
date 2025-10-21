@@ -32,6 +32,12 @@ pub enum RaindexError {
     TokenDecimalMissing { token: Address },
     /// Raised when a quote attempts to use the same token for input and output.
     TokenSelfTrade,
+    /// Raised when a required vault balance is missing from state.
+    VaultBalanceMissing {
+        owner: Address,
+        token: Address,
+        vault_id: B256,
+    },
     /// Raised when the take orders config contains no orders.
     NoOrders,
     /// Raised when the maximum input for take orders is zero.
@@ -70,6 +76,14 @@ impl fmt::Display for RaindexError {
                 write!(f, "missing token decimals for {token}")
             }
             RaindexError::TokenSelfTrade => write!(f, "token self trade is not allowed"),
+            RaindexError::VaultBalanceMissing {
+                owner,
+                token,
+                vault_id,
+            } => write!(
+                f,
+                "missing vault balance owner {owner}, token {token}, vault {vault_id:?}"
+            ),
             RaindexError::NoOrders => write!(f, "take orders requires at least one order"),
             RaindexError::ZeroMaximumInput => {
                 write!(f, "take orders maximum input must be positive")

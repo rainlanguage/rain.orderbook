@@ -10,6 +10,7 @@ alloy = { workspace = true }
 rain-math-float = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
+rain_orderbook_common = { workspace = true }
 revm = { version = "25.0.0", default-features = false }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -21,3 +22,4 @@ rain_interpreter_test_fixtures = { path = "../../lib/rain.interpreter/crates/tes
 rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
 proptest = { workspace = true }
+assert_matches = { workspace = true }

@@ -8,8 +8,7 @@ use alloy::{
 };
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::OrderV4;
-
-use crate::Result;
+use rain_orderbook_common::utils::order_hash;
 
 /// Shared environmental information for the Virtual Raindex.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -137,7 +136,7 @@ impl RaindexState {
     }
 
     /// Applies a batch of mutations, recursing through nested batches as needed.
-    pub fn apply_mutations(&mut self, mutations: &[RaindexMutation]) -> Result<()> {
+    pub fn apply_mutations(&mut self, mutations: &[RaindexMutation]) -> crate::Result<()> {
         for mutation in mutations {
             match mutation {
                 RaindexMutation::SetEnv {
@@ -188,7 +187,7 @@ impl RaindexState {
     }
 
     /// Applies a single vault balance delta to the state.
-    fn apply_vault_delta(&mut self, delta: &VaultDelta) -> Result<()> {
+    fn apply_vault_delta(&mut self, delta: &VaultDelta) -> crate::Result<()> {
         let key = VaultKey::new(delta.owner, delta.token, delta.vault_id);
         let entry = self.vault_balances.entry(key).or_default();
         let updated = (*entry + delta.delta)?;
@@ -197,12 +196,186 @@ impl RaindexState {
     }
 }
 
-/// Computes the canonical hash for an [`OrderV4`].
-pub fn order_hash(order: &OrderV4) -> B256 {
-    keccak256(order.abi_encode())
-}
-
 /// Derives the fully-qualified namespace for a Rain interpreter store namespace.
 pub fn derive_fqn(namespace: U256, caller: Address) -> B256 {
     keccak256((namespace, caller).abi_encode())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::primitives::{Address, Bytes, U256};
+    use alloy::sol_types::SolValue;
+    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, IOV2};
+
+    fn parse_float(value: &str) -> Float {
+        Float::parse(value.to_string()).expect("float parse")
+    }
+
+    fn sample_order(owner_byte: u8, nonce_byte: u8) -> OrderV4 {
+        let mut order = OrderV4::default();
+        order.owner = Address::repeat_byte(owner_byte);
+        order.nonce = B256::from([nonce_byte; 32]);
+        order.evaluable = EvaluableV4 {
+            interpreter: Address::repeat_byte(0xF1),
+            store: Address::repeat_byte(0xF2),
+            bytecode: Bytes::default(),
+        };
+        order.validInputs = vec![IOV2 {
+            token: Address::repeat_byte(0x11),
+            vaultId: B256::from([0xAA; 32]),
+        }];
+        order.validOutputs = vec![IOV2 {
+            token: Address::repeat_byte(0x22),
+            vaultId: B256::from([0xBB; 32]),
+        }];
+        order
+    }
+
+    #[test]
+    fn apply_mutations_updates_all_state_segments() {
+        let mut state = RaindexState::default();
+        let order_a = sample_order(0xAA, 0x01);
+        let order_b = sample_order(0xBB, 0x02);
+        let hash_a = order_hash(&order_a);
+        let hash_b = order_hash(&order_b);
+
+        let vault_key = VaultKey::new(
+            Address::repeat_byte(0x0C),
+            Address::repeat_byte(0x0D),
+            B256::from([0xCC; 32]),
+        );
+        let vault_delta = VaultDelta {
+            owner: vault_key.owner,
+            token: vault_key.token,
+            vault_id: vault_key.vault_id,
+            delta: parse_float("3.5"),
+        };
+
+        let store_key = B256::from([0xDD; 32]);
+        let store_value = B256::from([0xEE; 32]);
+
+        state
+            .apply_mutations(&[
+                RaindexMutation::SetEnv {
+                    block_number: Some(123),
+                    timestamp: Some(456),
+                },
+                RaindexMutation::SetOrders {
+                    orders: vec![order_a.clone(), order_b.clone()],
+                },
+                RaindexMutation::Batch(vec![RaindexMutation::VaultDeltas {
+                    deltas: vec![vault_delta.clone()],
+                }]),
+                RaindexMutation::ApplyStore {
+                    sets: vec![StoreSet {
+                        store: Address::repeat_byte(0x99),
+                        fqn: B256::from([0xFE; 32]),
+                        kvs: vec![StoreKeyValue {
+                            key: store_key,
+                            value: store_value,
+                        }],
+                    }],
+                },
+                RaindexMutation::SetTokenDecimals {
+                    entries: vec![TokenDecimalEntry {
+                        token: Address::repeat_byte(0x55),
+                        decimals: 6,
+                    }],
+                },
+                RaindexMutation::RemoveOrders {
+                    order_hashes: vec![hash_b],
+                },
+            ])
+            .expect("mutations apply");
+
+        assert_eq!(
+            state.env,
+            Env {
+                block_number: 123,
+                timestamp: 456
+            }
+        );
+        assert_eq!(state.orders.get(&hash_a), Some(&order_a));
+        assert!(!state.orders.contains_key(&hash_b));
+        let applied_balance = *state
+            .vault_balances
+            .get(&vault_key)
+            .expect("vault delta balance recorded");
+        assert!(applied_balance
+            .eq(vault_delta.delta)
+            .expect("float eq for applied balance"));
+        let store_entry = StoreKey::new(
+            Address::repeat_byte(0x99),
+            B256::from([0xFE; 32]),
+            store_key,
+        );
+        assert_eq!(state.store.get(&store_entry), Some(&store_value));
+        assert_eq!(
+            state.token_decimals.get(&Address::repeat_byte(0x55)),
+            Some(&6)
+        );
+    }
+
+    #[test]
+    fn apply_vault_delta_creates_new_balance() {
+        let mut state = RaindexState::default();
+        let delta = VaultDelta {
+            owner: Address::repeat_byte(0x01),
+            token: Address::repeat_byte(0x02),
+            vault_id: B256::from([0x03; 32]),
+            delta: parse_float("1.25"),
+        };
+
+        state
+            .apply_vault_delta(&delta)
+            .expect("vault delta applied");
+
+        let key = VaultKey::new(delta.owner, delta.token, delta.vault_id);
+        let recorded_balance = *state
+            .vault_balances
+            .get(&key)
+            .expect("vault balance created");
+        assert!(recorded_balance
+            .eq(delta.delta)
+            .expect("float eq for new balance"));
+    }
+
+    #[test]
+    fn apply_vault_delta_accumulates_existing_balance() {
+        let mut state = RaindexState::default();
+        let key = VaultKey::new(
+            Address::repeat_byte(0x10),
+            Address::repeat_byte(0x20),
+            B256::from([0x30; 32]),
+        );
+        state.vault_balances.insert(key, parse_float("4.0"));
+
+        let delta = VaultDelta {
+            owner: key.owner,
+            token: key.token,
+            vault_id: key.vault_id,
+            delta: parse_float("1.5"),
+        };
+
+        state
+            .apply_vault_delta(&delta)
+            .expect("vault delta accumulated");
+
+        let updated_balance = *state
+            .vault_balances
+            .get(&key)
+            .expect("vault balance updated");
+        assert!(updated_balance
+            .eq(parse_float("5.5"))
+            .expect("float eq for accumulated balance"));
+    }
+
+    #[test]
+    fn derive_fqn_matches_expected_hash() {
+        let namespace = U256::from(42);
+        let caller = Address::repeat_byte(0xCA);
+        let expected = keccak256((namespace, caller).abi_encode());
+        assert_eq!(derive_fqn(namespace, caller), expected);
+    }
 }

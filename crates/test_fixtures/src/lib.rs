@@ -79,7 +79,10 @@ pub struct LocalEvm {
 impl LocalEvm {
     /// Instantiates this struct with rain contracts deployed and no ERC20 tokens
     pub async fn new() -> Self {
-        let anvil = spawn_anvil_instance();
+        let anvil = Anvil::new()
+            .arg("--disable-code-size-limit")
+            .try_spawn()
+            .unwrap();
 
         // set up signers from anvil accounts
         let mut signer_wallets = vec![];
@@ -331,23 +334,6 @@ impl LocalEvm {
         let returns = self.provider.call(tx_req).await?;
         Ok(T::abi_decode_returns(&returns))
     }
-}
-
-fn spawn_anvil_instance() -> AnvilInstance {
-    let code_size_limit = u32::MAX.to_string();
-
-    let try_new_limit = || {
-        Anvil::new()
-            .arg("--code-size-limit")
-            .arg(code_size_limit.clone())
-            .try_spawn()
-    };
-    let try_legacy_disable = || Anvil::new().arg("--disable-code-size-limit").try_spawn();
-
-    try_new_limit()
-        .or_else(|_| try_legacy_disable())
-        .or_else(|_| Anvil::new().try_spawn())
-        .expect("failed to spawn anvil instance")
 }
 
 const MULTICALL3_ADDRESS: &str = "0xcA11bde05977b3631167028862bE2a173976CA11";

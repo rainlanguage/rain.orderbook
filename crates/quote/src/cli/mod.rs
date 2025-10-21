@@ -154,6 +154,7 @@ mod tests {
     use httpmock::{Method::POST, MockServer};
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return, OrderV4, IOV2};
+    use rain_orderbook_common::utils::order_hash;
     use serde_json::json;
     use std::{fs::read_to_string, str::FromStr};
     use tempfile::NamedTempFile;
@@ -329,7 +330,7 @@ mod tests {
             validOutputs: vec![IOV2::default()],
             ..Default::default()
         };
-        let order_hash_bytes = keccak256(order.abi_encode()).0;
+        let order_hash_bytes = order_hash(&order).0;
         let order_hash_u256 = U256::from_be_bytes(order_hash_bytes);
         let order_hash = encode_prefixed(order_hash_bytes);
         let mut order_id = vec![];

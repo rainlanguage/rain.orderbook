@@ -17,18 +17,15 @@ where
 {
     /// Ensures all resources referenced in the mutation batch are available before applying them.
     pub(super) fn prepare_mutations(&self, mutations: &[RaindexMutation]) -> Result<()> {
-        for mutation in mutations {
-            match mutation {
-                RaindexMutation::SetOrders { orders } => {
-                    for order in orders {
-                        self.code_cache.ensure_artifacts(order)?;
-                    }
-                }
-                RaindexMutation::Batch(batch) => self.prepare_mutations(batch)?,
-                _ => {}
-            }
-        }
-        Ok(())
+        mutations
+            .into_iter()
+            .try_for_each(|mutation| match mutation {
+                RaindexMutation::SetOrders { orders } => orders
+                    .into_iter()
+                    .try_for_each(|order| self.code_cache.ensure_artifacts(order)),
+                RaindexMutation::Batch(batch) => self.prepare_mutations(batch),
+                _ => Ok(()),
+            })
     }
 
     /// Ensures the state has baseline entries needed to process an order.

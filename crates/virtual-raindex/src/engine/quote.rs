@@ -2,21 +2,99 @@
 
 use std::collections::HashMap;
 
-use alloy::primitives::{B256, U256};
+use alloy::primitives::{Address, B256, U256};
 use rain_math_float::Float;
+use rain_orderbook_common::utils::order_hash;
+use rain_orderbook_bindings::IOrderBookV5::SignedContextV1;
 
 use crate::{
     cache::CodeCache,
-    error::{RaindexError, Result},
+    engine::context::IOContext,
+    error::RaindexError,
     host,
     state::{self, StoreKey, VaultKey},
-    types::{Quote, QuoteRequest, StoreOverride},
 };
 
 use super::{address_to_u256, VirtualRaindex};
+use super::OrderRef;
+
+/// Temporary overlay applied to interpreter store reads during evaluation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StoreOverride {
+    pub store: Address,
+    pub fqn: B256,
+    pub key: B256,
+    pub value: B256,
+}
+
+impl From<StoreOverride> for StoreKey {
+    fn from(value: StoreOverride) -> Self {
+        StoreKey::new(value.store, value.fqn, value.key)
+    }
+}
+
+impl From<StoreOverride> for (StoreKey, B256) {
+    fn from(value: StoreOverride) -> Self {
+        (StoreKey::from(value), value.value)
+    }
+}
+
+/// Input parameters for calculating a quote against an order.
+#[derive(Clone, Debug)]
+pub struct QuoteRequest {
+    pub order: OrderRef,
+    pub input_io_index: usize,
+    pub output_io_index: usize,
+    pub counterparty: Address,
+    pub signed_context: Vec<SignedContextV1>,
+    pub overrides: Vec<StoreOverride>,
+}
+
+impl QuoteRequest {
+    /// Creates a quote request for the given order reference and IO indices.
+    pub fn new(
+        order: OrderRef,
+        input_io_index: usize,
+        output_io_index: usize,
+        counterparty: Address,
+    ) -> Self {
+        Self {
+            order,
+            input_io_index,
+            output_io_index,
+            counterparty,
+            signed_context: Vec::new(),
+            overrides: Vec::new(),
+        }
+    }
+
+    /// Sets signed context payloads to append to the interpreter context grid.
+    pub fn with_signed_context(mut self, signed_context: Vec<SignedContextV1>) -> Self {
+        self.signed_context = signed_context;
+        self
+    }
+
+    /// Applies temporary store overrides used during evaluation.
+    pub fn with_overrides(mut self, overrides: Vec<StoreOverride>) -> Self {
+        self.overrides = overrides;
+        self
+    }
+}
+
+/// Result of executing calculate-io for an order.
+#[derive(Clone, Debug)]
+pub struct Quote {
+    pub io_ratio: Float,
+    pub output_max: Float,
+    pub stack: Vec<B256>,
+    pub writes: Vec<B256>,
+}
 
 /// Computes a quote for a specific IO pairing on an order reference.
-pub(super) fn quote<C, H>(raindex: &VirtualRaindex<C, H>, request: QuoteRequest) -> Result<Quote>
+pub(super) fn quote<C, H>(
+    raindex: &VirtualRaindex<C, H>,
+    request: QuoteRequest,
+) -> crate::error::Result<Quote>
 where
     C: CodeCache,
     H: host::InterpreterHost,
@@ -67,7 +145,7 @@ where
         },
     )?;
 
-    let order_hash = state::order_hash(&order);
+    let order_hash = order_hash(&order);
 
     let input_vault_balance = raindex
         .state
@@ -78,7 +156,11 @@ where
             input_io.vaultId,
         ))
         .cloned()
-        .unwrap_or_default();
+        .ok_or(RaindexError::VaultBalanceMissing {
+            owner: order.owner,
+            token: input_io.token,
+            vault_id: input_io.vaultId,
+        })?;
     let output_vault_balance = raindex
         .state
         .vault_balances
@@ -88,18 +170,26 @@ where
             output_io.vaultId,
         ))
         .cloned()
-        .unwrap_or_default();
+        .ok_or(RaindexError::VaultBalanceMissing {
+            owner: order.owner,
+            token: output_io.token,
+            vault_id: output_io.vaultId,
+        })?;
 
     let context = raindex.build_quote_context(
         order_hash,
         order.owner,
         counterparty,
-        input_io,
-        input_decimals,
-        input_vault_balance,
-        output_io,
-        output_decimals,
-        output_vault_balance,
+        &IOContext {
+            io: input_io.clone(),
+            balance: input_vault_balance,
+            decimals: input_decimals,
+        },
+        &IOContext {
+            io: output_io.clone(),
+            balance: output_vault_balance,
+            decimals: output_decimals,
+        },
         &signed_context,
     );
 
@@ -147,7 +237,53 @@ where
 /// Applies temporary store overrides to a snapshot before interpreter execution.
 fn apply_overrides(store_snapshot: &mut HashMap<StoreKey, B256>, overrides: Vec<StoreOverride>) {
     for override_entry in overrides {
-        let key = StoreKey::new(override_entry.store, override_entry.fqn, override_entry.key);
-        store_snapshot.insert(key, override_entry.value);
+        let (key, value): (StoreKey, B256) = override_entry.into();
+        store_snapshot.insert(key, value);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloy::primitives::{Address, B256};
+    use std::collections::HashMap;
+
+    use super::*;
+
+    #[test]
+    fn apply_overrides_inserts_new_entries() {
+        let override_entry = StoreOverride {
+            store: Address::from([1u8; 20]),
+            fqn: B256::from([2u8; 32]),
+            key: B256::from([3u8; 32]),
+            value: B256::from([4u8; 32]),
+        };
+        let mut store_snapshot = HashMap::new();
+
+        apply_overrides(&mut store_snapshot, vec![override_entry]);
+
+        let key = StoreKey::from(override_entry);
+        assert_eq!(store_snapshot.get(&key), Some(&override_entry.value));
+    }
+
+    #[test]
+    fn apply_overrides_overwrites_existing_entries() {
+        let base_override = StoreOverride {
+            store: Address::from([5u8; 20]),
+            fqn: B256::from([6u8; 32]),
+            key: B256::from([7u8; 32]),
+            value: B256::from([8u8; 32]),
+        };
+        let mut store_snapshot = HashMap::new();
+        let key = StoreKey::from(base_override);
+        store_snapshot.insert(key, B256::from([9u8; 32]));
+
+        let updated_override = StoreOverride {
+            value: B256::from([10u8; 32]),
+            ..base_override
+        };
+
+        apply_overrides(&mut store_snapshot, vec![updated_override]);
+
+        assert_eq!(store_snapshot.get(&key), Some(&updated_override.value));
     }
 }

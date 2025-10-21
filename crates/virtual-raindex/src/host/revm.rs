@@ -162,18 +162,128 @@ fn build_state_overlay(
     namespace: U256,
 ) -> Vec<B256> {
     let namespace = B256::from(namespace.to_be_bytes());
-    let mut overlay = Vec::new();
-    for (key, value) in snapshot
+    snapshot
         .iter()
         .filter(|(k, _)| k.store == store_address && k.fqn == namespace)
-    {
-        overlay.push(key.key);
-        overlay.push(*value);
-    }
-    overlay
+        .flat_map(|(key, value)| [key.key, *value])
+        .collect()
 }
 
 /// Convenience helper for translating `Address` into the REVM representation.
 fn to_revm_address(address: Address) -> RevmAddress {
     RevmAddress::from_slice(address.as_slice())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cache::StaticCodeCache;
+    use std::{collections::HashMap, sync::Arc};
+
+    fn make_address(byte: u8) -> Address {
+        Address::from([byte; 20])
+    }
+
+    #[test]
+    fn build_state_overlay_filters_by_store_and_namespace() {
+        let store = make_address(0x11);
+        let other_store = make_address(0x22);
+        let namespace = U256::from(42);
+        let other_namespace = U256::from(7);
+        let namespace_fqn = B256::from(namespace.to_be_bytes());
+        let other_fqn = B256::from(other_namespace.to_be_bytes());
+
+        let key = B256::from([0xAA; 32]);
+        let value = B256::from([0xBB; 32]);
+
+        let mut snapshot = HashMap::new();
+        snapshot.insert(StoreKey::new(store, namespace_fqn, key), value);
+        snapshot.insert(
+            StoreKey::new(other_store, namespace_fqn, B256::from([0xCC; 32])),
+            B256::from([0xDD; 32]),
+        );
+        snapshot.insert(
+            StoreKey::new(store, other_fqn, B256::from([0xEE; 32])),
+            B256::from([0xFF; 32]),
+        );
+
+        let overlay = build_state_overlay(&snapshot, store, namespace);
+
+        assert_eq!(overlay, vec![key, value]);
+    }
+
+    #[test]
+    fn ensure_contract_inserts_bytecode_when_missing() {
+        let cache = Arc::new(StaticCodeCache::default());
+        let host = RevmInterpreterHost::new(cache.clone());
+        let interpreter = make_address(0x33);
+        let bytecode = [0x60, 0x00, 0x60, 0x00, 0x01];
+
+        cache.upsert_interpreter(interpreter, &bytecode);
+
+        let mut db = InMemoryDB::default();
+        host.ensure_contract(&mut db, interpreter, BytecodeKind::Interpreter)
+            .expect("bytecode must be cached");
+
+        let revm_address = to_revm_address(interpreter);
+        let account = db
+            .cache
+            .accounts
+            .get(&revm_address)
+            .expect("account should be present");
+        let info = account.info().expect("account info should exist");
+        let stored_code = info.code.expect("stored code should be present");
+        let expected: &[u8] = &bytecode;
+        assert_eq!(stored_code.original_byte_slice(), expected);
+    }
+
+    #[test]
+    fn ensure_contract_missing_bytecode_returns_error() {
+        let cache = Arc::new(StaticCodeCache::default());
+        let host = RevmInterpreterHost::new(cache);
+        let interpreter = make_address(0x44);
+        let mut db = InMemoryDB::default();
+
+        let err = host
+            .ensure_contract(&mut db, interpreter, BytecodeKind::Interpreter)
+            .expect_err("missing bytecode should error");
+        match err {
+            RaindexError::MissingBytecode { address, kind } => {
+                assert_eq!(address, interpreter);
+                assert_matches::assert_matches!(kind, BytecodeKind::Interpreter);
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn ensure_code_loaded_populates_interpreter_and_store_accounts() {
+        let cache = Arc::new(StaticCodeCache::default());
+        let interpreter = make_address(0x55);
+        let store = make_address(0x66);
+        let interpreter_code = [0x60, 0x00, 0x60, 0x00, 0x02];
+        let store_code = [0x60, 0x01, 0x60, 0x00, 0x03];
+
+        cache.upsert_interpreter(interpreter, &interpreter_code);
+        cache.upsert_store(store, &store_code);
+
+        let host = RevmInterpreterHost::new(cache);
+        host.ensure_code_loaded(interpreter, store)
+            .expect("bytecode should be cached");
+
+        let db = host.base_db.read();
+        let interpreter_account = db
+            .cache
+            .accounts
+            .get(&to_revm_address(interpreter))
+            .and_then(|account| account.info());
+        let store_account = db
+            .cache
+            .accounts
+            .get(&to_revm_address(store))
+            .and_then(|account| account.info());
+
+        assert!(interpreter_account.is_some(), "interpreter should be cached");
+        assert!(store_account.is_some(), "store should be cached");
+    }
 }

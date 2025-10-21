@@ -1525,6 +1525,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "assert_matches"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
+
+[[package]]
 name = "async-attributes"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9811,6 +9817,7 @@ name = "virtual-raindex"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "assert_matches",
  "once_cell",
  "parking_lot",
  "proptest",
@@ -9818,6 +9825,7 @@ dependencies = [
  "rain_interpreter_bindings",
  "rain_interpreter_test_fixtures",
  "rain_orderbook_bindings",
+ "rain_orderbook_common",
  "rain_orderbook_test_fixtures",
  "revm 25.0.0",
  "serde",
