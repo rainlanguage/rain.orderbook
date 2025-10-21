@@ -11,7 +11,7 @@ rain-math-float = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_orderbook_common = { workspace = true }
-revm = { version = "25.0.0", default-features = false }
+revm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 once_cell = { workspace = true }
