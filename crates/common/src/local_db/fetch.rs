@@ -3,13 +3,14 @@ use crate::rpc_client::{BlockRange, LogEntryResponse, RpcClientError, Topics};
 use alloy::primitives::{Address, U256};
 use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
+use rain_orderbook_bindings::topics::{orderbook_event_topics, store_set_topics};
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
 };
 
 #[derive(Debug, Clone)]
-pub struct LogFilter {
+struct LogFilter {
     pub addresses: Vec<Address>,
     pub topics: Topics,
     pub range: BlockRange,
@@ -78,18 +79,30 @@ impl LocalDb {
 
     pub async fn fetch_orderbook_events(
         &self,
-        filter: &LogFilter,
+        address: Address,
+        range: BlockRange,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        self.collect_logs(filter, config).await
+        let filter = LogFilter {
+            addresses: vec![address],
+            topics: Topics::from_b256_list(orderbook_event_topics()),
+            range,
+        };
+        self.collect_logs(&filter, config).await
     }
 
     pub async fn fetch_store_events(
         &self,
-        filter: &LogFilter,
+        addresses: &[Address],
+        range: BlockRange,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        self.collect_logs(filter, config).await
+        let filter = LogFilter {
+            addresses: addresses.to_vec(),
+            topics: Topics::from_b256_list(store_set_topics()),
+            range,
+        };
+        self.collect_logs(&filter, config).await
     }
 
     async fn fetch_block_timestamps(
@@ -335,7 +348,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod tokio_tests {
         use super::*;
-        use crate::rpc_client::{BlockRange, Topics};
+        use crate::rpc_client::BlockRange;
         use alloy::hex;
         use alloy::primitives::Address;
         use alloy::sol_types::SolEvent;
@@ -466,17 +479,12 @@ mod tests {
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let topics = Topics::from_b256_list(vec![AddOrderV3::SIGNATURE_HASH]);
             let range = BlockRange::inclusive(1, 2).expect("valid range");
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let filter = LogFilter {
-                addresses: vec![addr],
-                topics,
-                range,
-            };
             let events = db
                 .fetch_orderbook_events(
-                    &filter,
+                    addr,
+                    range,
                     &FetchConfig {
                         chunk_size: 1000,
                         max_concurrent_requests: 1,
@@ -497,15 +505,10 @@ mod tests {
         #[tokio::test]
         async fn fetch_store_events_returns_empty_for_no_addresses() {
             let db = LocalDb::default();
-            let topics = Topics::from_b256_list(vec![Set::SIGNATURE_HASH]);
             let range = BlockRange::inclusive(0, 10).expect("valid range");
-            let filter = LogFilter {
-                addresses: vec![],
-                topics,
-                range,
-            };
+            let addresses: Vec<Address> = vec![];
             let events = db
-                .fetch_store_events(&filter, &FetchConfig::default())
+                .fetch_store_events(&addresses, range, &FetchConfig::default())
                 .await
                 .unwrap();
             assert!(events.is_empty());
@@ -562,16 +565,12 @@ mod tests {
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let topics = Topics::from_b256_list(vec![Set::SIGNATURE_HASH]);
             let range = BlockRange::inclusive(1, 2).expect("valid range");
-            let filter = LogFilter {
-                addresses: vec![addr, addr, addr],
-                topics,
-                range,
-            };
+            let addresses = vec![addr, addr, addr];
             let events = db
                 .fetch_store_events(
-                    &filter,
+                    &addresses,
+                    range,
                     &FetchConfig {
                         chunk_size: 1000,
                         max_concurrent_requests: 1,
@@ -595,16 +594,10 @@ mod tests {
         #[tokio::test]
         async fn fetch_store_events_returns_error_for_inverted_range() {
             let db = LocalDb::default();
-            let topics = Topics::from_b256_list(vec![Set::SIGNATURE_HASH]);
-            let range = BlockRange::inclusive(10, 1).ok();
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let filter = LogFilter {
-                addresses: vec![addr],
-                topics,
-                range: range.unwrap_or(BlockRange { start: 10, end: 1 }),
-            };
+            let range = BlockRange { start: 10, end: 1 };
             let err = db
-                .fetch_store_events(&filter, &FetchConfig::default())
+                .fetch_store_events(&[addr], range, &FetchConfig::default())
                 .await
                 .unwrap_err();
             match err {
@@ -652,15 +645,10 @@ mod tests {
         #[tokio::test]
         async fn fetch_orderbook_events_returns_error_for_inverted_range() {
             let db = LocalDb::default();
-            let topics = Topics::from_b256_list(vec![AddOrderV3::SIGNATURE_HASH]);
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let filter = LogFilter {
-                addresses: vec![addr],
-                topics,
-                range: BlockRange { start: 10, end: 1 },
-            };
+            let range = BlockRange { start: 10, end: 1 };
             let err = db
-                .fetch_orderbook_events(&filter, &FetchConfig::default())
+                .fetch_orderbook_events(addr, range, &FetchConfig::default())
                 .await
                 .unwrap_err();
             match err {
@@ -742,20 +730,15 @@ mod tests {
                     .body(sample_block_response("0x1", Some("0x64")));
             });
 
+            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let topics = Topics::from_b256_list(vec![AddOrderV3::SIGNATURE_HASH]);
             let range = BlockRange::inclusive(1, 1).expect("valid");
-            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let filter = LogFilter {
-                addresses: vec![addr],
-                topics,
-                range,
-            };
             let events = db
                 .fetch_orderbook_events(
-                    &filter,
+                    addr,
+                    range,
                     &FetchConfig {
                         chunk_size: 1000,
                         max_concurrent_requests: 1,
@@ -1081,20 +1064,15 @@ mod tests {
                     );
             });
 
+            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let topics = Topics::from_b256_list(vec![Set::SIGNATURE_HASH]);
             let range = BlockRange::inclusive(1, 2).expect("valid");
-            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let filter = LogFilter {
-                addresses: vec![addr],
-                topics,
-                range,
-            };
             let events = db
                 .fetch_store_events(
-                    &filter,
+                    &[addr],
+                    range,
                     &FetchConfig {
                         chunk_size: 1, // forces per-block jobs
                         max_concurrent_requests: 2,
