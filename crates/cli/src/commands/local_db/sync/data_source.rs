@@ -1,16 +1,19 @@
 use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use rain_orderbook_bindings::topics::{orderbook_event_topics, store_set_topics};
 use rain_orderbook_common::{
     erc20::TokenInfo,
     local_db::{
         decode::{DecodedEvent, DecodedEventData},
+        fetch::LogFilter,
         token_fetch::fetch_erc20_metadata_concurrent,
         FetchConfig, LocalDb,
     },
-    rpc_client::LogEntryResponse,
+    rpc_client::{BlockRange, LogEntryResponse, Topics},
 };
 use std::collections::HashMap;
+use std::str::FromStr;
 use url::Url;
 
 #[async_trait]
@@ -84,9 +87,17 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_events(self, orderbook_address, start_block, end_block)
-            .await
-            .map_err(|e| anyhow!(e))
+        <LocalDb>::fetch_orderbook_events(
+            self,
+            &LogFilter {
+                addresses: vec![Address::from_str(orderbook_address)?],
+                topics: Topics::from_b256_list(orderbook_event_topics()),
+                range: BlockRange::inclusive(start_block, end_block)?,
+            },
+            &FetchConfig::default(),
+        )
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     async fn fetch_store_set_events(
@@ -95,11 +106,17 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_store_set_events(
+        let addresses: Vec<Address> = store_addresses
+            .iter()
+            .map(|s| Address::from_str(s))
+            .collect::<Result<_, _>>()?;
+        <LocalDb>::fetch_store_events(
             self,
-            store_addresses,
-            start_block,
-            end_block,
+            &LogFilter {
+                addresses,
+                topics: Topics::from_b256_list(store_set_topics()),
+                range: BlockRange::inclusive(start_block, end_block)?,
+            },
             &FetchConfig::default(),
         )
         .await

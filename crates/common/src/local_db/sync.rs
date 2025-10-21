@@ -1,5 +1,6 @@
 use super::{
     decode::{DecodedEvent, DecodedEventData},
+    fetch::LogFilter,
     insert,
     query::{
         create_tables::REQUIRED_TABLES,
@@ -14,9 +15,11 @@ use super::{
     tokens::{collect_store_addresses, collect_token_addresses},
     FetchConfig, LocalDb, LocalDbError,
 };
+use crate::rpc_client::{BlockRange, Topics};
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
+use rain_orderbook_bindings::topics::{orderbook_event_topics, store_set_topics};
 use reqwest::Client;
 use std::collections::BTreeSet;
 use std::{
@@ -75,10 +78,13 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
 
     status.send("Fetching latest onchain events...".to_string())?;
     let events = local_db
-        .fetch_events(
-            &orderbook_cfg.address.to_string(),
-            start_block,
-            latest_block,
+        .fetch_orderbook_events(
+            &LogFilter {
+                addresses: vec![orderbook_cfg.address],
+                topics: Topics::from_b256_list(orderbook_event_topics()),
+                range: BlockRange::inclusive(start_block, latest_block)?,
+            },
+            &FetchConfig::default(),
         )
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
@@ -93,12 +99,18 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         .await
         .map_err(LocalDbError::from)?;
     let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
+    let store_addresses: Vec<Address> = store_addresses_vec
+        .iter()
+        .map(|s| Address::from_str(s))
+        .collect::<Result<_, _>>()?;
 
     let store_logs = local_db
-        .fetch_store_set_events(
-            &store_addresses_vec,
-            start_block,
-            latest_block,
+        .fetch_store_events(
+            &LogFilter {
+                addresses: store_addresses,
+                topics: Topics::from_b256_list(store_set_topics()),
+                range: BlockRange::inclusive(start_block, latest_block)?,
+            },
             &FetchConfig::default(),
         )
         .await
