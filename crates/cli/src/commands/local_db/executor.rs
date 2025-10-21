@@ -5,9 +5,18 @@ use rain_orderbook_common::local_db::query::{
 use rusqlite::{types::ValueRef, Connection};
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 pub struct RusqliteExecutor {
     db_path: PathBuf,
+}
+
+fn sqlvalue_to_rusqlite(v: SqlValue) -> rusqlite::types::Value {
+    match v {
+        SqlValue::Text(t) => rusqlite::types::Value::Text(t),
+        SqlValue::I64(i) => rusqlite::types::Value::Integer(i),
+        SqlValue::Null => rusqlite::types::Value::Null,
+    }
 }
 
 impl RusqliteExecutor {
@@ -23,19 +32,17 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
     async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
         let conn = Connection::open(&self.db_path)
             .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
-        if stmt.params.is_empty() {
-            conn.execute_batch(&stmt.sql)
+        conn.busy_timeout(Duration::from_millis(500))
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
+        if stmt.params().is_empty() {
+            conn.execute_batch(stmt.sql())
                 .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
             Ok(String::new())
         } else {
-            let mut s = conn.prepare(&stmt.sql).map_err(|e| {
+            let mut s = conn.prepare(stmt.sql()).map_err(|e| {
                 LocalDbQueryError::database(format!("Failed to prepare query: {e}"))
             })?;
-            let bound = stmt.params.iter().cloned().map(|v| match v {
-                SqlValue::Text(t) => rusqlite::types::Value::Text(t),
-                SqlValue::I64(i) => rusqlite::types::Value::Integer(i),
-                SqlValue::Null => rusqlite::types::Value::Null,
-            });
+            let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
             let params = rusqlite::params_from_iter(bound);
             s.execute(params)
                 .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
@@ -49,9 +56,11 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
     {
         let conn = Connection::open(&self.db_path)
             .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
+        conn.busy_timeout(Duration::from_millis(500))
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
 
         let mut s = conn
-            .prepare(&stmt.sql)
+            .prepare(stmt.sql())
             .map_err(|e| LocalDbQueryError::database(format!("Failed to prepare query: {e}")))?;
         let column_names: Vec<String> = (0..s.column_count())
             .map(|i| {
@@ -65,11 +74,7 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
             })
             .collect();
 
-        let bound = stmt.params.iter().cloned().map(|v| match v {
-            SqlValue::Text(t) => rusqlite::types::Value::Text(t),
-            SqlValue::I64(i) => rusqlite::types::Value::Integer(i),
-            SqlValue::Null => rusqlite::types::Value::Null,
-        });
+        let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
         let params = rusqlite::params_from_iter(bound);
 
         let rows_iter = s

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use thiserror::Error;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,16 +25,19 @@ impl From<i64> for SqlValue {
         SqlValue::I64(i)
     }
 }
-impl From<u64> for SqlValue {
-    fn from(i: u64) -> Self {
-        SqlValue::I64(i as i64)
+impl TryFrom<u64> for SqlValue {
+    type Error = SqlBuildError;
+    fn try_from(i: u64) -> Result<Self, Self::Error> {
+        let i = i64::try_from(i)
+            .map_err(|_| SqlBuildError::new(format!("u64 out of range for i64: {}", i)))?;
+        Ok(SqlValue::I64(i))
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct SqlStatement {
-    pub sql: String,
-    pub params: Vec<SqlValue>,
+    pub(crate) sql: String,
+    pub(crate) params: Vec<SqlValue>,
 }
 
 impl SqlStatement {
@@ -44,6 +48,14 @@ impl SqlStatement {
         }
     }
 
+    pub fn sql(&self) -> &str {
+        &self.sql
+    }
+
+    pub fn params(&self) -> &[SqlValue] {
+        &self.params
+    }
+
     /// Push a value and return its placeholder string ("?N"). Use to
     /// satisfy fixed placeholders embedded in the template (e.g., ?1).
     pub fn push(&mut self, v: impl Into<SqlValue>) -> String {
@@ -51,7 +63,18 @@ impl SqlStatement {
         format!("?{}", self.params.len())
     }
 
-    /// Replace a single marker in the SQL template with the provided text.
+    /// Replace all occurrences of `marker` in the SQL template with the
+    /// provided raw text. This uses `String::replace`, which substitutes
+    /// every occurrence globally.
+    ///
+    /// Safety:
+    /// - `with` must be trusted/static SQL and not derived from user input.
+    ///   This helper performs a verbatim splice (no parameterization), so
+    ///   injecting untrusted text can lead to SQL injection.
+    /// - `with` must not introduce parameter placeholders like `?1`, `?2`, …
+    ///   as this would desynchronize placeholder numbering relative to values
+    ///   pushed via [`push`].
+    ///
     /// Returns an error if the marker is not present.
     pub fn replace(&mut self, marker: &str, with: &str) -> Result<&mut Self, SqlBuildError> {
         if !self.sql.contains(marker) {
@@ -135,12 +158,20 @@ impl SqlStatement {
 pub enum SqlBuildError {
     #[error("SQL template marker not found: {marker}")]
     MissingMarker { marker: String },
+    #[error("{message}")]
+    Generic { message: String },
 }
 
 impl SqlBuildError {
     pub fn missing_marker(marker: impl Into<String>) -> Self {
         SqlBuildError::MissingMarker {
             marker: marker.into(),
+        }
+    }
+
+    pub fn new(message: impl Into<String>) -> Self {
+        SqlBuildError::Generic {
+            message: message.into(),
         }
     }
 }
@@ -158,7 +189,7 @@ mod tests {
             SqlValue::Text("def".to_owned())
         );
         assert_eq!(SqlValue::from(42i64), SqlValue::I64(42));
-        assert_eq!(SqlValue::from(7u64), SqlValue::I64(7));
+        assert_eq!(SqlValue::try_from(7u64).unwrap(), SqlValue::I64(7));
     }
 
     #[test]

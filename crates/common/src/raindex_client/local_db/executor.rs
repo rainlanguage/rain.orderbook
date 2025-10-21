@@ -190,6 +190,42 @@ pub mod tests {
         }
 
         #[wasm_bindgen_test]
+        async fn passes_array_params_when_non_empty() {
+            use js_sys::Array;
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use wasm_bindgen::JsValue;
+
+            let store = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let callback = create_sql_capturing_callback("OK", store.clone());
+            let exec = JsCallbackExecutor::new(&callback);
+
+            // Build a statement with parameters
+            let mut stmt = SqlStatement::new("SELECT ?1, ?2");
+            let _ = stmt.push(123i64);
+            let _ = stmt.push("abc");
+
+            let _ = exec.query_text(&stmt).await.unwrap();
+
+            let (_, captured_params) = store.borrow().clone();
+
+            // Ensure non-empty params are passed as a JavaScript Array
+            assert!(Array::is_array(&captured_params));
+
+            // Decode and assert expected contents and length
+            let decoded: Vec<crate::local_db::query::SqlValue> =
+                serde_wasm_bindgen::from_value(captured_params).unwrap();
+            assert_eq!(decoded.len(), 2);
+            assert_eq!(
+                decoded,
+                vec![
+                    crate::local_db::query::SqlValue::I64(123),
+                    crate::local_db::query::SqlValue::Text("abc".to_owned()),
+                ]
+            );
+        }
+
+        #[wasm_bindgen_test]
         async fn test_callback_throws() {
             // callback that throws synchronously
             let callback = Function::new_with_args("sql, params", "throw new Error('boom')");

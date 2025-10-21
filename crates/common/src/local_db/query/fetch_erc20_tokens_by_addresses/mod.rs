@@ -61,6 +61,9 @@ mod tests {
 
         // Params: first chain id, then two addresses in order
         assert_eq!(stmt.params.len(), 3);
+        assert_eq!(stmt.params[0], SqlValue::I64(137));
+        assert_eq!(stmt.params[1], SqlValue::Text(addrs[0].clone()));
+        assert_eq!(stmt.params[2], SqlValue::Text(addrs[1].clone()));
     }
 
     #[test]

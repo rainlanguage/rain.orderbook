@@ -70,7 +70,7 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
     stmt.push(SqlValue::Text(active_str.to_string()));
 
     // Owners list (lowercased, trimmed, non-empty)
-    let owners_lower = args
+    let mut owners_lower = args
         .owners
         .iter()
         .filter_map(|o| {
@@ -82,6 +82,9 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
             }
         })
         .collect::<Vec<_>>();
+    // Deduplicate to keep IN-list and params minimal (deterministic order)
+    owners_lower.sort();
+    owners_lower.dedup();
     stmt.bind_list_clause(
         OWNERS_CLAUSE,
         OWNERS_CLAUSE_BODY,
@@ -98,7 +101,7 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
     stmt.bind_param_clause(ORDER_HASH_CLAUSE, ORDER_HASH_CLAUSE_BODY, order_hash_val)?;
 
     // Tokens list
-    let tokens_lower = args
+    let mut tokens_lower = args
         .tokens
         .iter()
         .filter_map(|t| {
@@ -110,6 +113,9 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
             }
         })
         .collect::<Vec<_>>();
+    // Deduplicate to avoid redundant IN parameters (deterministic order)
+    tokens_lower.sort();
+    tokens_lower.dedup();
     stmt.bind_list_clause(
         TOKENS_CLAUSE,
         TOKENS_CLAUSE_BODY,

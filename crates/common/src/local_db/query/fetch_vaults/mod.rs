@@ -1,4 +1,5 @@
 use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
+use std::collections::HashSet;
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
@@ -27,38 +28,38 @@ pub fn build_fetch_vaults_stmt(
     // ?1: chain id
     stmt.push(SqlValue::I64(chain_id as i64));
 
-    // Owners list (trim, non-empty, lowercase)
-    let owners = args
-        .owners
-        .iter()
-        .filter_map(|owner| {
-            let t = owner.trim();
-            if t.is_empty() {
-                None
-            } else {
-                Some(t.to_ascii_lowercase())
-            }
-        })
-        .collect::<Vec<_>>();
+    // Owners list (trim, non-empty, lowercase) with order-preserving dedup
+    let mut owners: Vec<String> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    for owner in args.owners.iter() {
+        let t = owner.trim();
+        if t.is_empty() {
+            continue;
+        }
+        let lowered = t.to_ascii_lowercase();
+        if seen.insert(lowered.clone()) {
+            owners.push(lowered);
+        }
+    }
     stmt.bind_list_clause(
         OWNERS_CLAUSE,
         OWNERS_CLAUSE_BODY,
         owners.into_iter().map(SqlValue::Text),
     )?;
 
-    // Tokens list (trim, non-empty, lowercase)
-    let tokens = args
-        .tokens
-        .iter()
-        .filter_map(|token| {
-            let t = token.trim();
-            if t.is_empty() {
-                None
-            } else {
-                Some(t.to_ascii_lowercase())
-            }
-        })
-        .collect::<Vec<_>>();
+    // Tokens list (trim, non-empty, lowercase) with order-preserving dedup
+    let mut tokens: Vec<String> = Vec::new();
+    let mut seen_tokens: HashSet<String> = HashSet::new();
+    for token in args.tokens.iter() {
+        let t = token.trim();
+        if t.is_empty() {
+            continue;
+        }
+        let lowered = t.to_ascii_lowercase();
+        if seen_tokens.insert(lowered.clone()) {
+            tokens.push(lowered);
+        }
+    }
     stmt.bind_list_clause(
         TOKENS_CLAUSE,
         TOKENS_CLAUSE_BODY,

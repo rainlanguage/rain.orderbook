@@ -76,16 +76,28 @@ pub fn build_fetch_order_trades_stmt(
     stmt.push(SqlValue::I64(chain_id as i64));
 
     // Optional time filters
-    stmt.bind_param_clause(
-        START_TS_CLAUSE,
-        START_TS_BODY,
-        start_timestamp.map(|v| SqlValue::I64(v as i64)),
-    )?;
-    stmt.bind_param_clause(
-        END_TS_CLAUSE,
-        END_TS_BODY,
-        end_timestamp.map(|v| SqlValue::I64(v as i64)),
-    )?;
+    let start_param = if let Some(v) = start_timestamp {
+        let i = i64::try_from(v).map_err(|e| {
+            SqlBuildError::new(format!(
+                "start_timestamp out of range for i64: {} ({})",
+                v, e
+            ))
+        })?;
+        Some(SqlValue::I64(i))
+    } else {
+        None
+    };
+    stmt.bind_param_clause(START_TS_CLAUSE, START_TS_BODY, start_param)?;
+
+    let end_param = if let Some(v) = end_timestamp {
+        let i = i64::try_from(v).map_err(|e| {
+            SqlBuildError::new(format!("end_timestamp out of range for i64: {} ({})", v, e))
+        })?;
+        Some(SqlValue::I64(i))
+    } else {
+        None
+    };
+    stmt.bind_param_clause(END_TS_CLAUSE, END_TS_BODY, end_param)?;
 
     Ok(stmt)
 }
@@ -107,6 +119,8 @@ mod tests {
         assert!(stmt.sql.contains("block_timestamp <="));
         // First two params: order hash and chain id
         assert_eq!(stmt.params.len(), 4); // includes start and end
+        assert_eq!(stmt.params[0], SqlValue::Text("AbC'X".to_string()));
+        assert_eq!(stmt.params[1], SqlValue::I64(137));
     }
 
     #[test]
@@ -117,5 +131,8 @@ mod tests {
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
         assert!(!stmt.sql.contains(END_TS_CLAUSE));
         assert_eq!(stmt.params.len(), 2);
+        // Order of fixed params: order hash (?1) then chain id (?2)
+        assert_eq!(stmt.params[0], SqlValue::Text("hash".to_string()));
+        assert_eq!(stmt.params[1], SqlValue::I64(1));
     }
 }

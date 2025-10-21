@@ -1,5 +1,6 @@
 use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
@@ -23,16 +24,34 @@ pub fn build_fetch_trade_count_stmt(
     // ?1: order hash
     stmt.push(SqlValue::Text(order_hash.to_string()));
     // Optional time filters
-    stmt.bind_param_clause(
-        START_TS_CLAUSE,
-        START_TS_BODY,
-        start_timestamp.map(|v| SqlValue::I64(v as i64)),
-    )?;
-    stmt.bind_param_clause(
-        END_TS_CLAUSE,
-        END_TS_BODY,
-        end_timestamp.map(|v| SqlValue::I64(v as i64)),
-    )?;
+    if let (Some(start), Some(end)) = (start_timestamp, end_timestamp) {
+        if start > end {
+            return Err(SqlBuildError::new("start_timestamp > end_timestamp"));
+        }
+    }
+
+    let start_param = if let Some(v) = start_timestamp {
+        let i = i64::try_from(v).map_err(|e| {
+            SqlBuildError::new(format!(
+                "start_timestamp out of range for i64: {} ({})",
+                v, e
+            ))
+        })?;
+        Some(SqlValue::I64(i))
+    } else {
+        None
+    };
+    stmt.bind_param_clause(START_TS_CLAUSE, START_TS_BODY, start_param)?;
+
+    let end_param = if let Some(v) = end_timestamp {
+        let i = i64::try_from(v).map_err(|e| {
+            SqlBuildError::new(format!("end_timestamp out of range for i64: {} ({})", v, e))
+        })?;
+        Some(SqlValue::I64(i))
+    } else {
+        None
+    };
+    stmt.bind_param_clause(END_TS_CLAUSE, END_TS_BODY, end_param)?;
     Ok(stmt)
 }
 

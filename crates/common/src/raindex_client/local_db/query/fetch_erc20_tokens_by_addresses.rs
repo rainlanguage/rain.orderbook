@@ -52,7 +52,30 @@ mod wasm_tests {
         let res = super::fetch_erc20_tokens_by_addresses(&exec, 10, &addrs).await;
         assert!(res.is_ok());
 
-        let (captured_sql, _params) = store.borrow().clone();
+        let (captured_sql, captured_params) = store.borrow().clone();
         assert_eq!(captured_sql, expected_stmt.sql);
+
+        // Also assert parameters are encoded and passed as expected
+        // The executor passes `undefined` when empty, otherwise an array via serde_wasm_bindgen
+        if expected_stmt.params().is_empty() {
+            assert!(captured_params.is_undefined());
+        } else {
+            // Encode expected params to JsValue the same way the callback receives them
+            let expected_js_params = wasm_bindgen_utils::prelude::serde_wasm_bindgen::to_value(
+                &expected_stmt.as_js_params(),
+            )
+            .expect("encode expected params");
+
+            // Compare as JSON strings to ensure deep structural equality
+            let expected_json = js_sys::JSON::stringify(&expected_js_params)
+                .unwrap()
+                .as_string()
+                .unwrap();
+            let captured_json = js_sys::JSON::stringify(&captured_params)
+                .unwrap()
+                .as_string()
+                .unwrap();
+            assert_eq!(captured_json, expected_json);
+        }
     }
 }
