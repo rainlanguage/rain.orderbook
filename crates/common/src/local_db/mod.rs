@@ -102,6 +102,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
+
+    #[error("Invalid block range: start {start} > end {end}")]
+    InvalidBlockRange { start: u64, end: u64 },
 }
 
 impl LocalDbError {
@@ -126,6 +129,12 @@ impl LocalDbError {
             }
             LocalDbError::TableCheckFailed(err) => {
                 format!("Failed to check required tables: {}", err)
+            }
+            LocalDbError::InvalidBlockRange { start, end } => {
+                format!(
+                    "Invalid block range: start {} is greater than end {}",
+                    start, end
+                )
             }
             LocalDbError::SyncStatusReadFailed(err) => {
                 format!("Failed to read sync status: {}", err)
