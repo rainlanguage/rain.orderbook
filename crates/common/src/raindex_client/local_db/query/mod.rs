@@ -12,28 +12,16 @@ pub mod fetch_vault_balance_changes;
 pub mod fetch_vaults;
 pub mod update_last_synced_block;
 
-use super::*;
-use wasm_bindgen_utils::prelude::wasm_bindgen_futures::JsFuture;
+use crate::local_db::{
+    query::{FromDbJson, LocalDbQueryError},
+    LocalDb, LocalDbError,
+};
+use wasm_bindgen_utils::prelude::{
+    js_sys, serde_wasm_bindgen, wasm_bindgen_futures::JsFuture, JsValue, *,
+};
+use wasm_bindgen_utils::result::WasmEncodedResult;
 
 pub struct LocalDbQuery;
-
-#[derive(Error, Debug)]
-pub enum LocalDbQueryError {
-    #[error("JavaScript callback invocation failed: {0}")]
-    CallbackError(String),
-
-    #[error("Promise resolution failed: {0}")]
-    PromiseError(String),
-
-    #[error("JSON deserialization failed: {0}")]
-    JsonError(#[from] serde_json::Error),
-
-    #[error("Database operation failed: {message}")]
-    DatabaseError { message: String },
-
-    #[error("Invalid response format from database")]
-    InvalidResponse,
-}
 
 impl LocalDbQuery {
     async fn execute_query_raw(
@@ -41,27 +29,29 @@ impl LocalDbQuery {
         sql: &str,
     ) -> Result<String, LocalDbQueryError> {
         let result = callback
-            .call1(
-                &wasm_bindgen::JsValue::NULL,
-                &wasm_bindgen::JsValue::from_str(sql),
-            )
-            .map_err(|e| LocalDbQueryError::CallbackError(format!("{:?}", e)))?;
+            .call1(&JsValue::NULL, &JsValue::from_str(sql))
+            .map_err(|e| {
+                LocalDbQueryError::database(format!(
+                    "JavaScript callback invocation failed: {:?}",
+                    e
+                ))
+            })?;
 
         let promise = js_sys::Promise::resolve(&result);
         let future = JsFuture::from(promise);
 
-        let js_result = future
-            .await
-            .map_err(|e| LocalDbQueryError::PromiseError(format!("{:?}", e)))?;
+        let js_result = future.await.map_err(|e| {
+            LocalDbQueryError::database(format!("Promise resolution failed: {:?}", e))
+        })?;
 
         let wasm_result: WasmEncodedResult<String> = serde_wasm_bindgen::from_value(js_result)
-            .map_err(|_| LocalDbQueryError::InvalidResponse)?;
+            .map_err(|_| LocalDbQueryError::invalid_response())?;
 
         match wasm_result {
             WasmEncodedResult::Success { value, .. } => Ok(value),
-            WasmEncodedResult::Err { error, .. } => Err(LocalDbQueryError::DatabaseError {
-                message: error.readable_msg,
-            }),
+            WasmEncodedResult::Err { error, .. } => {
+                Err(LocalDbQueryError::database(error.readable_msg))
+            }
         }
     }
 
@@ -70,11 +60,11 @@ impl LocalDbQuery {
         sql: &str,
     ) -> Result<T, LocalDbQueryError>
     where
-        T: for<'de> serde::Deserialize<'de>,
+        T: FromDbJson,
     {
         let value = Self::execute_query_raw(callback, sql).await?;
-
-        serde_json::from_str(&value).map_err(LocalDbQueryError::JsonError)
+        serde_json::from_str(&value)
+            .map_err(|err| LocalDbQueryError::deserialization(err.to_string()))
     }
 
     pub async fn execute_query_text(
@@ -87,7 +77,10 @@ impl LocalDbQuery {
 
 #[cfg(test)]
 pub mod tests {
+    #[cfg(target_family = "wasm")]
     use super::*;
+    #[cfg(target_family = "wasm")]
+    pub use wasm_tests::create_sql_capturing_callback;
 
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
@@ -95,6 +88,9 @@ pub mod tests {
         use js_sys::Function;
         use serde::{Deserialize, Serialize};
         use wasm_bindgen_test::*;
+        use wasm_bindgen_utils::prelude::serde_wasm_bindgen;
+        use wasm_bindgen_utils::prelude::JsValue;
+        use wasm_bindgen_utils::result::WasmEncodedResult;
 
         #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
         struct TestData {
@@ -102,16 +98,12 @@ pub mod tests {
             name: String,
         }
 
-        fn create_error_callback(readable_msg: &str) -> Function {
-            let error_result = WasmEncodedResult::Err::<String> {
-                value: None,
-                error: WasmEncodedError {
-                    msg: "DatabaseError".to_string(),
-                    readable_msg: readable_msg.to_string(),
-                },
+        pub fn create_success_callback(response: &str) -> Function {
+            let success = WasmEncodedResult::Success::<String> {
+                value: response.to_string(),
+                error: None,
             };
-            let js_value = serde_wasm_bindgen::to_value(&error_result).unwrap();
-
+            let js_value = serde_wasm_bindgen::to_value(&success).unwrap();
             Function::new_no_args(&format!(
                 "return {}",
                 js_sys::JSON::stringify(&js_value)
@@ -121,12 +113,28 @@ pub mod tests {
             ))
         }
 
-        fn create_invalid_callback() -> Function {
-            Function::new_no_args("return 42")
-        }
+        pub fn create_sql_capturing_callback(
+            response: &str,
+            store: std::rc::Rc<std::cell::RefCell<String>>,
+        ) -> Function {
+            use wasm_bindgen::prelude::Closure;
+            use wasm_bindgen::JsCast;
 
-        fn create_callback_that_throws() -> Function {
-            Function::new_no_args("throw new Error('Callback error')")
+            let response = response.to_string();
+            let store_clone = store.clone();
+            let closure = Closure::wrap(Box::new(move |sql: String| -> wasm_bindgen::JsValue {
+                *store_clone.borrow_mut() = sql;
+                let result = WasmEncodedResult::Success::<String> {
+                    value: response.clone(),
+                    error: None,
+                };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            })
+                as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
+
+            let func: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+            func
         }
 
         #[wasm_bindgen_test]
@@ -142,7 +150,7 @@ pub mod tests {
                 },
             ];
             let json_data = serde_json::to_string(&test_data).unwrap();
-            let callback = super::create_success_callback(&json_data);
+            let callback = create_success_callback(&json_data);
 
             let result: Result<Vec<TestData>, LocalDbQueryError> =
                 LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
@@ -155,211 +163,84 @@ pub mod tests {
         }
 
         #[wasm_bindgen_test]
-        async fn test_execute_query_empty_success() {
-            let callback = super::create_success_callback("[]");
-
-            let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM empty_table").await;
-
-            assert!(result.is_ok());
-            let data = result.unwrap();
-            assert_eq!(data.len(), 0);
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_execute_query_database_error() {
-            let callback = create_error_callback("no such table: users");
-
-            let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
-
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                LocalDbQueryError::DatabaseError { message } => {
-                    assert_eq!(message, "no such table: users");
-                }
-                _ => panic!("Expected DatabaseError"),
-            }
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_execute_query_invalid_json() {
-            let callback = super::create_success_callback("{ invalid json }");
-
-            let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
-
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                LocalDbQueryError::JsonError(_) => {}
-                _ => panic!("Expected JsonError"),
-            }
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_execute_query_invalid_response_format() {
-            let callback = create_invalid_callback();
-
-            let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
-
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                LocalDbQueryError::InvalidResponse => {}
-                _ => panic!("Expected InvalidResponse"),
-            }
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_execute_query_callback_throws() {
-            let callback = create_callback_that_throws();
-
-            let result: Result<Vec<TestData>, LocalDbQueryError> =
-                LocalDbQuery::execute_query_json(&callback, "SELECT * FROM users").await;
-
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                LocalDbQueryError::CallbackError(_) => {}
-                _ => panic!("Expected CallbackError"),
-            }
-        }
-
-        fn create_rejecting_promise_callback() -> Function {
-            Function::new_no_args("return Promise.reject(new Error('Promise failed'))")
+        async fn test_execute_query_raw_success() {
+            let callback = create_success_callback("\"ok\"");
+            let val = LocalDbQuery::execute_query_raw(&callback, "SELECT 1")
+                .await
+                .unwrap();
+            assert_eq!(val, "\"ok\"");
         }
 
         #[wasm_bindgen_test]
         async fn test_execute_query_text_success() {
-            let callback = super::create_success_callback("hello world");
-
-            let result = LocalDbQuery::execute_query_text(&callback, "SELECT 'hello world'").await;
-
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), "hello world".to_string());
+            let callback = create_success_callback("text-result");
+            let val = LocalDbQuery::execute_query_text(&callback, "SELECT 1")
+                .await
+                .unwrap();
+            assert_eq!(val, "text-result");
         }
 
         #[wasm_bindgen_test]
-        async fn test_execute_query_text_empty_success() {
-            let callback = super::create_success_callback("");
-
-            let result = LocalDbQuery::execute_query_text(&callback, "SELECT ''").await;
-
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), "");
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_execute_query_text_database_error() {
-            let callback = create_error_callback("no such table: users");
-
-            let result = LocalDbQuery::execute_query_text(&callback, "SELECT * FROM users").await;
-
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                LocalDbQueryError::DatabaseError { message } => {
-                    assert_eq!(message, "no such table: users");
-                }
-                _ => panic!("Expected DatabaseError"),
+        async fn test_execute_query_raw_callback_throws() {
+            // callback that throws synchronously
+            let callback = Function::new_with_args("sql", "throw new Error('boom')");
+            let err = LocalDbQuery::execute_query_raw(&callback, "SELECT 1")
+                .await
+                .err()
+                .unwrap();
+            match err {
+                LocalDbQueryError::Database { .. } => {}
+                other => panic!("unexpected error variant: {:?}", other),
             }
         }
 
         #[wasm_bindgen_test]
-        async fn test_execute_query_text_invalid_response_format() {
-            let callback = create_invalid_callback();
-
-            let result = LocalDbQuery::execute_query_text(&callback, "SELECT 1").await;
-
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                LocalDbQueryError::InvalidResponse => {}
-                _ => panic!("Expected InvalidResponse"),
+        async fn test_execute_query_raw_promise_rejects() {
+            // callback returns a rejected Promise
+            let callback = Function::new_with_args("sql", "return Promise.reject('rejected')");
+            let err = LocalDbQuery::execute_query_raw(&callback, "SELECT 1")
+                .await
+                .err()
+                .unwrap();
+            match err {
+                LocalDbQueryError::Database { .. } => {}
+                other => panic!("unexpected error variant: {:?}", other),
             }
         }
 
         #[wasm_bindgen_test]
-        async fn test_execute_query_text_callback_throws() {
-            let callback = create_callback_that_throws();
-
-            let result = LocalDbQuery::execute_query_text(&callback, "SELECT 1").await;
-
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                LocalDbQueryError::CallbackError(_) => {}
-                _ => panic!("Expected CallbackError"),
-            }
+        async fn test_execute_query_json_invalid_response() {
+            // returns a plain string instead of WasmEncodedResult
+            let callback = Function::new_with_args("sql", "return 'not-a-wrapper'");
+            let res: Result<Vec<TestData>, LocalDbQueryError> =
+                LocalDbQuery::execute_query_json(&callback, "SELECT 1").await;
+            assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
         }
 
         #[wasm_bindgen_test]
-        async fn test_execute_query_text_promise_rejection() {
-            let callback = create_rejecting_promise_callback();
+        async fn test_execute_query_json_deserialization_error() {
+            // Success wrapper but invalid JSON payload
+            let store = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
+            let store_clone = store.clone();
+            let closure =
+                wasm_bindgen::prelude::Closure::wrap(Box::new(move |sql: String| -> JsValue {
+                    *store_clone.borrow_mut() = sql;
+                    let result: WasmEncodedResult<String> = WasmEncodedResult::Success {
+                        value: "not-json".to_string(),
+                        error: None,
+                    };
+                    serde_wasm_bindgen::to_value(&result).unwrap()
+                })
+                    as Box<dyn FnMut(String) -> JsValue>);
+            let callback: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
 
-            let result = LocalDbQuery::execute_query_text(&callback, "SELECT 1").await;
-
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                LocalDbQueryError::PromiseError(_) => {}
-                _ => panic!("Expected PromiseError"),
-            }
+            let res: Result<Vec<TestData>, LocalDbQueryError> =
+                LocalDbQuery::execute_query_json(&callback, "SELECT 1").await;
+            assert!(matches!(
+                res,
+                Err(LocalDbQueryError::Deserialization { .. })
+            ));
         }
-
-        #[wasm_bindgen_test]
-        async fn test_execute_query_text_passes_sql_to_callback() {
-            use std::cell::RefCell;
-            use std::rc::Rc;
-
-            let captured_sql = Rc::new(RefCell::new(String::new()));
-            let callback = super::create_sql_capturing_callback("ok", captured_sql.clone());
-
-            let sql = "SELECT name FROM users WHERE id = 42";
-            let result = LocalDbQuery::execute_query_text(&callback, sql).await;
-
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), "ok".to_string());
-            assert_eq!(captured_sql.borrow().as_str(), sql);
-        }
-    }
-
-    #[cfg(target_family = "wasm")]
-    pub fn create_success_callback(json_data: &str) -> js_sys::Function {
-        let success_result = WasmEncodedResult::Success::<String> {
-            value: json_data.to_string(),
-            error: None,
-        };
-        let js_value = serde_wasm_bindgen::to_value(&success_result).unwrap();
-
-        js_sys::Function::new_no_args(&format!(
-            "return {}",
-            js_sys::JSON::stringify(&js_value)
-                .unwrap()
-                .as_string()
-                .unwrap()
-        ))
-    }
-
-    #[cfg(target_family = "wasm")]
-    pub fn create_sql_capturing_callback(
-        json_data: &str,
-        captured_sql: std::rc::Rc<std::cell::RefCell<String>>,
-    ) -> js_sys::Function {
-        use wasm_bindgen::prelude::*;
-        use wasm_bindgen::JsCast;
-
-        let success_result = WasmEncodedResult::Success::<String> {
-            value: json_data.to_string(),
-            error: None,
-        };
-        let js_value = serde_wasm_bindgen::to_value(&success_result).unwrap();
-
-        let result_json = js_sys::JSON::stringify(&js_value)
-            .unwrap()
-            .as_string()
-            .unwrap();
-
-        let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
-            *captured_sql.borrow_mut() = sql;
-            js_sys::JSON::parse(&result_json).unwrap()
-        }) as Box<dyn Fn(String) -> JsValue>);
-
-        callback.into_js_value().dyn_into().unwrap()
     }
 }

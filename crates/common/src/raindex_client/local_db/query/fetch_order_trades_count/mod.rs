@@ -1,13 +1,7 @@
 use super::*;
-use serde::{Deserialize, Serialize};
-
-const QUERY: &str = include_str!("query.sql");
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct LocalDbTradeCountRow {
-    #[serde(alias = "trade_count")]
-    trade_count: u64,
-}
+use crate::local_db::query::fetch_order_trades_count::{
+    build_fetch_trade_count_query, extract_trade_count, LocalDbTradeCountRow,
+};
 
 impl LocalDbQuery {
     pub async fn fetch_order_trades_count(
@@ -16,77 +10,48 @@ impl LocalDbQuery {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<u64, LocalDbQueryError> {
-        let sanitize_literal = |value: &str| value.replace('\'', "''");
-
-        let order_hash = sanitize_literal(&order_hash.trim().to_lowercase());
-
-        let filter_start_timestamp = start_timestamp
-            .map(|ts| format!("\nAND block_timestamp >= {}\n", ts))
-            .unwrap_or_default();
-        let filter_end_timestamp = end_timestamp
-            .map(|ts| format!("\nAND block_timestamp <= {}\n", ts))
-            .unwrap_or_default();
-
-        let sql = QUERY
-            .replace("'?order_hash'", &format!("'{}'", order_hash))
-            .replace("?filter_start_timestamp", &filter_start_timestamp)
-            .replace("?filter_end_timestamp", &filter_end_timestamp);
-
-        let rows = LocalDbQuery::execute_query_json::<Vec<LocalDbTradeCountRow>>(db_callback, &sql)
-            .await?;
-
-        Ok(rows.first().map(|row| row.trade_count).unwrap_or(0))
+        let sql = build_fetch_trade_count_query(order_hash, start_timestamp, end_timestamp);
+        let rows: Vec<LocalDbTradeCountRow> =
+            LocalDbQuery::execute_query_json(db_callback, &sql).await?;
+        Ok(extract_trade_count(&rows))
     }
 }
 
-#[cfg(test)]
-mod tests {
+#[cfg(all(test, target_family = "wasm"))]
+mod wasm_tests {
     use super::*;
+    use crate::raindex_client::local_db::query::tests::create_sql_capturing_callback;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use wasm_bindgen_test::*;
 
-    #[cfg(target_family = "wasm")]
-    mod wasm_tests {
-        use super::*;
-        use crate::raindex_client::local_db::query::tests::{
-            create_sql_capturing_callback, create_success_callback,
-        };
-        use wasm_bindgen_test::wasm_bindgen_test;
+    #[wasm_bindgen_test]
+    async fn wrapper_uses_builder_sql_and_extracts_count() {
+        let order_hash = " 0xAbC ' ";
+        let start = Some(10);
+        let end = Some(20);
 
-        #[wasm_bindgen_test]
-        async fn test_fetch_order_trades_count_parses_value() {
-            let callback = create_success_callback("[{\"trade_count\": 7}]");
+        let expected_sql = build_fetch_trade_count_query(order_hash, start, end);
 
-            let result =
-                LocalDbQuery::fetch_order_trades_count(&callback, "0xABC", None, None).await;
+        // Return one row with count 5
+        let response = r#"[{"trade_count":5}]"#;
+        let store = Rc::new(RefCell::new(String::new()));
+        let callback = create_sql_capturing_callback(response, store.clone());
 
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), 7);
-        }
+        let res = LocalDbQuery::fetch_order_trades_count(&callback, order_hash, start, end).await;
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), 5);
 
-        #[wasm_bindgen_test]
-        async fn test_fetch_order_trades_count_defaults_to_zero() {
-            let callback = create_success_callback("[]");
+        let captured = store.borrow().clone();
+        assert_eq!(captured, expected_sql);
+    }
 
-            let result =
-                LocalDbQuery::fetch_order_trades_count(&callback, "0xABC", None, None).await;
-
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), 0);
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_fetch_order_trades_count_replaces_placeholder() {
-            let captured_sql = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
-            let callback =
-                create_sql_capturing_callback("[{\"trade_count\":0}]", captured_sql.clone());
-
-            let _ = LocalDbQuery::fetch_order_trades_count(&callback, "0xABCDEF", Some(1), Some(2))
-                .await;
-
-            let sql = captured_sql.borrow();
-            assert!(sql.contains("'0xabcdef'"));
-            assert!(!sql.contains("?order_hash"));
-            assert!(sql.contains("block_timestamp >= 1"));
-            assert!(sql.contains("block_timestamp <= 2"));
-        }
+    #[wasm_bindgen_test]
+    async fn wrapper_extracts_zero_on_empty_rows() {
+        let store = Rc::new(RefCell::new(String::new()));
+        let callback = create_sql_capturing_callback("[]", store.clone());
+        let res = LocalDbQuery::fetch_order_trades_count(&callback, "hash", None, None).await;
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), 0);
     }
 }

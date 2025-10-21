@@ -1,9 +1,7 @@
 use super::*;
+use crate::local_db::{query::fetch_order_trades::LocalDbOrderTrade, LocalDb};
 use crate::raindex_client::{
-    local_db::{
-        query::{fetch_order_trades::LocalDbOrderTrade, LocalDbQuery},
-        LocalDb,
-    },
+    local_db::query::LocalDbQuery,
     orders::RaindexOrder,
     transactions::RaindexTransaction,
     vaults::{LocalTradeBalanceInfo, LocalTradeTokenInfo, RaindexVaultBalanceChange},
@@ -371,7 +369,7 @@ mod test_helpers {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::raindex_client::local_db::query::{
+        use crate::local_db::query::{
             fetch_order_trades::LocalDbOrderTrade, fetch_orders::LocalDbOrder,
             fetch_vault::LocalDbVault,
         };

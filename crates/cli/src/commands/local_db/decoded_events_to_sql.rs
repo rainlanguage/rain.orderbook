@@ -1,7 +1,7 @@
 use alloy::primitives::Address;
 use anyhow::{anyhow, Context, Result};
 use clap::Args;
-use rain_orderbook_common::raindex_client::local_db::{
+use rain_orderbook_common::local_db::{
     decode::{DecodedEvent, DecodedEventData},
     insert::decoded_events_to_sql,
 };
@@ -115,7 +115,7 @@ mod tests {
     use alloy::primitives::{Address as AlloyAddress, U256};
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
-    use rain_orderbook_common::raindex_client::local_db::decode::{EventType, UnknownEventDecoded};
+    use rain_orderbook_common::local_db::decode::{EventType, UnknownEventDecoded};
     use std::fs;
     use std::str::FromStr;
     use tempfile::TempDir;
