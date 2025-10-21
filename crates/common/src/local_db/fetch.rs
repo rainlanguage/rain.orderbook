@@ -1,19 +1,19 @@
 use super::{LocalDb, LocalDbError};
-use crate::rpc_client::{LogEntryResponse, RpcClientError};
-use alloy::{primitives::U256, sol_types::SolEvent};
+use crate::rpc_client::{BlockRange, LogEntryResponse, RpcClientError, Topics};
+use alloy::primitives::{Address, U256};
 use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
-use rain_orderbook_bindings::{
-    IInterpreterStoreV3::Set,
-    IOrderBookV5::{
-        AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
-    },
-    OrderBook::MetaV1_2,
-};
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
 };
+
+#[derive(Debug, Clone)]
+pub struct LogFilter {
+    pub addresses: Vec<Address>,
+    pub topics: Topics,
+    pub range: BlockRange,
+}
 
 #[derive(Debug, Clone)]
 pub struct FetchConfig {
@@ -35,129 +35,61 @@ impl Default for FetchConfig {
 }
 
 impl LocalDb {
-    pub async fn fetch_events(
+    async fn collect_logs(
         &self,
-        contract_address: &str,
-        start_block: u64,
-        end_block: u64,
-    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        self.fetch_events_with_config(
-            contract_address,
-            start_block,
-            end_block,
-            &FetchConfig::default(),
-        )
-        .await
-    }
-
-    pub async fn fetch_events_with_config(
-        &self,
-        contract_address: &str,
-        start_block: u64,
-        end_block: u64,
+        filter: &LogFilter,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        let topics = Some(vec![Some(vec![
-            AddOrderV3::SIGNATURE_HASH.to_string(),
-            TakeOrderV3::SIGNATURE_HASH.to_string(),
-            WithdrawV2::SIGNATURE_HASH.to_string(),
-            DepositV2::SIGNATURE_HASH.to_string(),
-            RemoveOrderV3::SIGNATURE_HASH.to_string(),
-            ClearV3::SIGNATURE_HASH.to_string(),
-            AfterClearV2::SIGNATURE_HASH.to_string(),
-            MetaV1_2::SIGNATURE_HASH.to_string(),
-        ])]);
-
-        let mut chunks = Vec::new();
-        let mut current_block = start_block;
-        let chunk_size = config.chunk_size.max(1);
-        let chunk_span = chunk_size.saturating_sub(1);
-        while current_block <= end_block {
-            let to_block = current_block.saturating_add(chunk_span).min(end_block);
-            chunks.push((current_block, to_block));
-            if to_block == u64::MAX {
-                break;
-            }
-            current_block = to_block.saturating_add(1);
+        if filter.range.start > filter.range.end {
+            return Err(LocalDbError::InvalidBlockRange {
+                start: filter.range.start,
+                end: filter.range.end,
+            });
         }
 
-        let contract_address = contract_address.to_string();
-        let concurrency = config.max_concurrent_requests.max(1);
-        let client = self.rpc_client().clone();
-        let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(chunks)
-            .map(|(from_block, to_block)| {
-                let topics = topics.clone();
-                let contract_address = contract_address.clone();
-                let client = client.clone();
-                let max_attempts = config.max_retry_attempts;
-
-                async move {
-                    let from_block_hex = format!("0x{:x}", from_block);
-                    let to_block_hex = format!("0x{:x}", to_block);
-
-                    let response = retry_with_attempts(
-                        || {
-                            client.get_logs(
-                                &from_block_hex,
-                                &to_block_hex,
-                                &contract_address,
-                                topics.clone(),
-                            )
-                        },
-                        max_attempts,
-                    )
-                    .await?;
-
-                    Ok::<_, LocalDbError>(response)
-                }
-            })
-            .buffer_unordered(concurrency)
-            .try_collect()
-            .await?;
-
-        let mut all_events: Vec<LogEntryResponse> = results.into_iter().flatten().collect();
-
-        all_events.sort_by(|a, b| {
-            let block_a = extract_block_number_from_entry(a).unwrap_or(0);
-            let block_b = extract_block_number_from_entry(b).unwrap_or(0);
-            block_a
-                .cmp(&block_b)
-                .then_with(|| a.log_index.cmp(&b.log_index))
-        });
-
-        self.backfill_missing_timestamps(&mut all_events, config)
-            .await?;
-        Ok(all_events)
-    }
-
-    pub async fn fetch_store_set_events(
-        &self,
-        store_addresses: &[String],
-        start_block: u64,
-        end_block: u64,
-        config: &FetchConfig,
-    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        if store_addresses.is_empty() || start_block > end_block {
+        if filter.addresses.is_empty() {
             return Ok(Vec::new());
         }
 
-        let unique_addresses = Self::dedupe_addresses(store_addresses);
+        let unique_addresses = Self::dedupe_addresses(&filter.addresses);
         if unique_addresses.is_empty() {
             return Ok(Vec::new());
         }
 
-        let jobs = Self::build_store_jobs(&unique_addresses, start_block, end_block, config);
+        let filter = LogFilter {
+            addresses: unique_addresses,
+            topics: filter.topics.clone(),
+            range: filter.range,
+        };
+
+        let jobs = Self::build_log_jobs(&filter.addresses, filter.range, config)?;
         if jobs.is_empty() {
             return Ok(Vec::new());
         }
 
-        let topics = Self::store_set_topics();
-        let mut events = self.fetch_logs_for_jobs(jobs, topics, config).await?;
-
+        let mut events = self
+            .fetch_logs_for_jobs(jobs, &filter.topics, config)
+            .await?;
         Self::sort_events_by_block_and_log(&mut events);
         self.backfill_missing_timestamps(&mut events, config)
             .await?;
         Ok(events)
+    }
+
+    pub async fn fetch_orderbook_events(
+        &self,
+        filter: &LogFilter,
+        config: &FetchConfig,
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+        self.collect_logs(filter, config).await
+    }
+
+    pub async fn fetch_store_events(
+        &self,
+        filter: &LogFilter,
+        config: &FetchConfig,
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+        self.collect_logs(filter, config).await
     }
 
     async fn fetch_block_timestamps(
@@ -239,46 +171,35 @@ impl LocalDb {
         Ok(())
     }
 
-    fn dedupe_addresses(store_addresses: &[String]) -> Vec<String> {
+    fn dedupe_addresses(addresses: &[Address]) -> Vec<Address> {
         let mut dedup = HashSet::new();
-        store_addresses
+        addresses
             .iter()
-            .filter_map(|addr| {
-                let lower = addr.to_ascii_lowercase();
-                if dedup.insert(lower.clone()) {
-                    Some(lower)
-                } else {
-                    None
-                }
-            })
+            .copied()
+            .filter(|addr| dedup.insert(*addr))
             .collect()
     }
 
-    fn build_store_jobs(
-        addresses: &[String],
-        start_block: u64,
-        end_block: u64,
+    fn build_log_jobs(
+        addresses: &[Address],
+        range: BlockRange,
         config: &FetchConfig,
-    ) -> Vec<StoreLogFetchJob> {
-        if start_block > end_block {
-            return Vec::new();
-        }
-
+    ) -> Result<Vec<LogFetchJob>, LocalDbError> {
         let chunk_size = config.chunk_size.max(1);
         let chunk_span = chunk_size.saturating_sub(1);
         let mut jobs = Vec::new();
 
-        for address in addresses {
-            let mut current_block = start_block;
-            while current_block <= end_block {
-                let to_block = current_block.saturating_add(chunk_span).min(end_block);
-                jobs.push(StoreLogFetchJob {
-                    address: address.clone(),
-                    from_block: current_block,
-                    to_block,
+        for &address in addresses {
+            let mut current_block = range.start;
+            while current_block <= range.end {
+                let to_block = current_block.saturating_add(chunk_span).min(range.end);
+                let chunk_range = BlockRange::inclusive(current_block, to_block)?;
+                jobs.push(LogFetchJob {
+                    address,
+                    range: chunk_range,
                 });
 
-                if to_block == end_block || to_block == u64::MAX {
+                if to_block == range.end || to_block == u64::MAX {
                     break;
                 }
 
@@ -286,17 +207,13 @@ impl LocalDb {
             }
         }
 
-        jobs
-    }
-
-    fn store_set_topics() -> Option<Vec<Option<Vec<String>>>> {
-        Some(vec![Some(vec![Set::SIGNATURE_HASH.to_string()])])
+        Ok(jobs)
     }
 
     async fn fetch_logs_for_jobs(
         &self,
-        jobs: Vec<StoreLogFetchJob>,
-        topics: Option<Vec<Option<Vec<String>>>>,
+        jobs: Vec<LogFetchJob>,
+        topics: &Topics,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         if jobs.is_empty() {
@@ -312,18 +229,8 @@ impl LocalDb {
                 let max_attempts = config.max_retry_attempts;
 
                 async move {
-                    let from_block_hex = format!("0x{:x}", job.from_block);
-                    let to_block_hex = format!("0x{:x}", job.to_block);
-
                     let response = retry_with_attempts(
-                        || {
-                            client.get_logs(
-                                &from_block_hex,
-                                &to_block_hex,
-                                &job.address,
-                                topics.clone(),
-                            )
-                        },
+                        || client.get_logs(job.address, &topics, job.range),
                         max_attempts,
                     )
                     .await?;
@@ -352,10 +259,9 @@ impl LocalDb {
 const RETRY_DELAY_MILLIS: u64 = 100;
 
 #[derive(Clone)]
-struct StoreLogFetchJob {
-    address: String,
-    from_block: u64,
-    to_block: u64,
+struct LogFetchJob {
+    address: Address,
+    range: BlockRange,
 }
 
 async fn retry_with_attempts<T, F, Fut>(
@@ -429,10 +335,15 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod tokio_tests {
         use super::*;
+        use crate::rpc_client::{BlockRange, Topics};
         use alloy::hex;
+        use alloy::primitives::Address;
+        use alloy::sol_types::SolEvent;
         use httpmock::prelude::*;
+        use rain_orderbook_bindings::{IInterpreterStoreV3::Set, IOrderBookV5::AddOrderV3};
         use serde_json::json;
         use std::str::FromStr;
+        use std::sync::atomic::{AtomicUsize, Ordering};
         use url::Url;
 
         fn make_log_entry_basic(block_number: &str, timestamp: Option<&str>) -> LogEntryResponse {
@@ -485,7 +396,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn fetch_events_with_config_fetches_and_sorts() {
+        async fn fetch_orderbook_events_fetches_and_sorts() {
             let server = MockServer::start();
             let url = Url::from_str(&server.url("/")).unwrap();
 
@@ -555,11 +466,17 @@ mod tests {
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
+            let topics = Topics::from_b256_list(vec![AddOrderV3::SIGNATURE_HASH]);
+            let range = BlockRange::inclusive(1, 2).expect("valid range");
+            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
+            let filter = LogFilter {
+                addresses: vec![addr],
+                topics,
+                range,
+            };
             let events = db
-                .fetch_events_with_config(
-                    "0xabc",
-                    1,
-                    2,
+                .fetch_orderbook_events(
+                    &filter,
                     &FetchConfig {
                         chunk_size: 1000,
                         max_concurrent_requests: 1,
@@ -578,17 +495,24 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn fetch_store_set_events_returns_empty_for_no_addresses() {
+        async fn fetch_store_events_returns_empty_for_no_addresses() {
             let db = LocalDb::default();
+            let topics = Topics::from_b256_list(vec![Set::SIGNATURE_HASH]);
+            let range = BlockRange::inclusive(0, 10).expect("valid range");
+            let filter = LogFilter {
+                addresses: vec![],
+                topics,
+                range,
+            };
             let events = db
-                .fetch_store_set_events(&[], 0, 10, &FetchConfig::default())
+                .fetch_store_events(&filter, &FetchConfig::default())
                 .await
                 .unwrap();
             assert!(events.is_empty());
         }
 
         #[tokio::test]
-        async fn fetch_store_set_events_handles_duplicates_and_sorts() {
+        async fn fetch_store_events_handles_duplicates_and_sorts() {
             let server = MockServer::start();
             let url = Url::from_str(&server.url("/")).unwrap();
 
@@ -623,11 +547,13 @@ mod tests {
                 ]
             });
 
+            let addr = Address::from_str("0x0000000000000000000000000000000000000aBc").unwrap();
+            let expected_addr = format!("{:#x}", addr);
             let log_mock = server.mock(|when, then| {
                 when.method(POST)
                     .path("/")
                     .body_contains("\"eth_getLogs\"")
-                    .body_contains("\"0xstore\"");
+                    .body_contains(&expected_addr);
                 then.status(200)
                     .header("content-type", "application/json")
                     .body(logs_response.to_string());
@@ -636,15 +562,16 @@ mod tests {
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
+            let topics = Topics::from_b256_list(vec![Set::SIGNATURE_HASH]);
+            let range = BlockRange::inclusive(1, 2).expect("valid range");
+            let filter = LogFilter {
+                addresses: vec![addr, addr, addr],
+                topics,
+                range,
+            };
             let events = db
-                .fetch_store_set_events(
-                    &[
-                        "0xStore".to_string(),
-                        "0xstore".to_string(),
-                        "0xSTORE".to_string(),
-                    ],
-                    1,
-                    2,
+                .fetch_store_events(
+                    &filter,
                     &FetchConfig {
                         chunk_size: 1000,
                         max_concurrent_requests: 1,
@@ -666,13 +593,27 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn fetch_store_set_events_returns_empty_for_inverted_range() {
+        async fn fetch_store_events_returns_error_for_inverted_range() {
             let db = LocalDb::default();
-            let events = db
-                .fetch_store_set_events(&["0xstore".to_string()], 10, 1, &FetchConfig::default())
+            let topics = Topics::from_b256_list(vec![Set::SIGNATURE_HASH]);
+            let range = BlockRange::inclusive(10, 1).ok();
+            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
+            let filter = LogFilter {
+                addresses: vec![addr],
+                topics,
+                range: range.unwrap_or(BlockRange { start: 10, end: 1 }),
+            };
+            let err = db
+                .fetch_store_events(&filter, &FetchConfig::default())
                 .await
-                .unwrap();
-            assert!(events.is_empty());
+                .unwrap_err();
+            match err {
+                LocalDbError::InvalidBlockRange { start, end } => {
+                    assert_eq!(start, 10);
+                    assert_eq!(end, 1);
+                }
+                other => panic!("expected InvalidBlockRange, got {other:?}"),
+            }
         }
 
         #[tokio::test]
@@ -706,6 +647,471 @@ mod tests {
 
             assert_eq!(events[0].block_timestamp.as_deref(), Some("0x10"));
             assert_eq!(events[1].block_timestamp.as_deref(), Some("0x20"));
+        }
+
+        #[tokio::test]
+        async fn fetch_orderbook_events_returns_error_for_inverted_range() {
+            let db = LocalDb::default();
+            let topics = Topics::from_b256_list(vec![AddOrderV3::SIGNATURE_HASH]);
+            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
+            let filter = LogFilter {
+                addresses: vec![addr],
+                topics,
+                range: BlockRange { start: 10, end: 1 },
+            };
+            let err = db
+                .fetch_orderbook_events(&filter, &FetchConfig::default())
+                .await
+                .unwrap_err();
+            match err {
+                LocalDbError::InvalidBlockRange { start, end } => {
+                    assert_eq!(start, 10);
+                    assert_eq!(end, 1);
+                }
+                other => panic!("expected InvalidBlockRange, got {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn fetch_orderbook_events_sorts_numeric_log_index_within_block() {
+            let server = MockServer::start();
+            let url = Url::from_str(&server.url("/")).unwrap();
+
+            let response_body = json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": [
+                    {
+                        "address": "0xabc",
+                        "topics": [
+                            format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
+                        ],
+                        "data": "0xdeadbeef",
+                        "blockNumber": "0x1",
+                        "transactionHash": "0xtx1",
+                        "transactionIndex": "0x0",
+                        "blockHash": "0x0",
+                        "logIndex": "0x10",
+                        "removed": false
+                    },
+                    {
+                        "address": "0xabc",
+                        "topics": [
+                            format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
+                        ],
+                        "data": "0xdeadbeef",
+                        "blockNumber": "0x1",
+                        "transactionHash": "0xtx2",
+                        "transactionIndex": "0x0",
+                        "blockHash": "0x0",
+                        "logIndex": "0x2",
+                        "removed": false
+                    },
+                    {
+                        "address": "0xabc",
+                        "topics": [
+                            format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
+                        ],
+                        "data": "0xdeadbeef",
+                        "blockNumber": "0x1",
+                        "transactionHash": "0xtx3",
+                        "transactionIndex": "0x0",
+                        "blockHash": "0x0",
+                        "logIndex": "0xA",
+                        "removed": false
+                    }
+                ]
+            });
+
+            // Mock eth_getLogs
+            server.mock(|when, then| {
+                when.method(POST).path("/").body_contains("\"eth_getLogs\"");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(response_body.to_string());
+            });
+
+            // Backfill timestamp for block 0x1
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .body_contains("\"eth_getBlockByNumber\"")
+                    .body_contains("\"0x1\"");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(sample_block_response("0x1", Some("0x64")));
+            });
+
+            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
+            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
+
+            let topics = Topics::from_b256_list(vec![AddOrderV3::SIGNATURE_HASH]);
+            let range = BlockRange::inclusive(1, 1).expect("valid");
+            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
+            let filter = LogFilter {
+                addresses: vec![addr],
+                topics,
+                range,
+            };
+            let events = db
+                .fetch_orderbook_events(
+                    &filter,
+                    &FetchConfig {
+                        chunk_size: 1000,
+                        max_concurrent_requests: 1,
+                        max_concurrent_blocks: 1,
+                        max_retry_attempts: 1,
+                    },
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(events.len(), 3);
+            // Expect numeric sort of logIndex within the same block: 0x2, 0xA, 0x10
+            assert_eq!(events[0].log_index, "0x2");
+            assert_eq!(events[1].log_index, "0xA");
+            assert_eq!(events[2].log_index, "0x10");
+            assert!(events.iter().all(|e| e.block_number == "0x1"));
+        }
+
+        #[tokio::test]
+        async fn retry_with_attempts_retries_on_rpc_then_succeeds() {
+            let attempts = AtomicUsize::new(0);
+            let res: Result<u32, LocalDbError> = retry_with_attempts(
+                || async {
+                    let i = attempts.fetch_add(1, Ordering::SeqCst);
+                    if i == 0 {
+                        Err(RpcClientError::RpcError {
+                            message: "first fail".into(),
+                        })
+                    } else {
+                        Ok(42u32)
+                    }
+                },
+                3,
+            )
+            .await;
+
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap(), 42);
+            assert_eq!(
+                attempts.load(Ordering::SeqCst),
+                2,
+                "should retry exactly once"
+            );
+        }
+
+        #[tokio::test]
+        async fn retry_with_attempts_gives_up_after_max_attempts() {
+            let attempts = AtomicUsize::new(0);
+            let err = retry_with_attempts(
+                || async {
+                    attempts.fetch_add(1, Ordering::SeqCst);
+                    Err::<(), _>(RpcClientError::RpcError {
+                        message: "always fail".into(),
+                    })
+                },
+                2,
+            )
+            .await
+            .unwrap_err();
+
+            match err {
+                LocalDbError::Rpc(RpcClientError::RpcError { .. }) => {}
+                other => panic!("expected LocalDbError::Rpc, got {other:?}"),
+            }
+            assert_eq!(attempts.load(Ordering::SeqCst), 2, "should attempt twice");
+        }
+
+        #[tokio::test]
+        async fn retry_with_attempts_does_not_retry_on_json_parse_error() {
+            let attempts = AtomicUsize::new(0);
+            let err = retry_with_attempts(
+                || async {
+                    attempts.fetch_add(1, Ordering::SeqCst);
+                    let e = serde_json::from_str::<serde_json::Value>("not json").unwrap_err();
+                    Err::<(), _>(RpcClientError::JsonSerialization(e))
+                },
+                3,
+            )
+            .await
+            .unwrap_err();
+
+            match err {
+                LocalDbError::JsonParse(_) => {}
+                other => panic!("expected LocalDbError::JsonParse, got {other:?}"),
+            }
+            assert_eq!(
+                attempts.load(Ordering::SeqCst),
+                1,
+                "should not retry json errors"
+            );
+        }
+
+        #[tokio::test]
+        async fn retry_with_attempts_zero_attempts_is_config_error() {
+            let attempts = AtomicUsize::new(0);
+            let err = retry_with_attempts(
+                || async {
+                    attempts.fetch_add(1, Ordering::SeqCst);
+                    Ok::<u32, RpcClientError>(1)
+                },
+                0,
+            )
+            .await
+            .unwrap_err();
+
+            match err {
+                LocalDbError::Config { .. } => {}
+                other => panic!("expected LocalDbError::Config, got {other:?}"),
+            }
+            assert_eq!(attempts.load(Ordering::SeqCst), 0, "operation must not run");
+        }
+
+        #[test]
+        fn parse_block_number_str_variants() {
+            // hex lower/upper and decimal
+            assert_eq!(parse_block_number_str("0xA").unwrap(), 10);
+            assert_eq!(parse_block_number_str("0X10").unwrap(), 16);
+            assert_eq!(parse_block_number_str("42").unwrap(), 42);
+        }
+
+        #[test]
+        fn parse_block_number_str_invalid_inputs() {
+            // invalid hex prefix only
+            match parse_block_number_str("0x").unwrap_err() {
+                LocalDbError::InvalidBlockNumber { .. } => {}
+                other => panic!("expected InvalidBlockNumber, got {other:?}"),
+            }
+
+            // invalid decimal
+            match parse_block_number_str("notanumber").unwrap_err() {
+                LocalDbError::InvalidBlockNumber { .. } => {}
+                other => panic!("expected InvalidBlockNumber, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn build_store_jobs_chunking_basic() {
+            let jobs = LocalDb::build_log_jobs(
+                &[Address::ZERO],
+                BlockRange::inclusive(1, 10).expect("valid range"),
+                &FetchConfig {
+                    chunk_size: 3,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+
+            assert_eq!(jobs.len(), 4);
+            assert_eq!(jobs[0].range.start, 1);
+            assert_eq!(jobs[0].range.end, 3);
+            assert_eq!(jobs[1].range.start, 4);
+            assert_eq!(jobs[1].range.end, 6);
+            assert_eq!(jobs[2].range.start, 7);
+            assert_eq!(jobs[2].range.end, 9);
+            assert_eq!(jobs[3].range.start, 10);
+            assert_eq!(jobs[3].range.end, 10);
+            assert!(jobs.iter().all(|j| j.address == Address::ZERO));
+        }
+
+        #[test]
+        fn build_store_jobs_handles_u64_max_boundary() {
+            let start = u64::MAX - 50;
+            let end = u64::MAX;
+            let jobs = LocalDb::build_log_jobs(
+                &[Address::ZERO],
+                BlockRange::inclusive(start, end).expect("valid range"),
+                &FetchConfig {
+                    chunk_size: 100,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+
+            // Should create a single job and not overflow or loop
+            assert_eq!(jobs.len(), 1);
+            assert_eq!(jobs[0].range.start, start);
+            assert_eq!(jobs[0].range.end, end);
+        }
+
+        #[tokio::test]
+        async fn fetch_block_timestamps_empty_input_returns_empty_map() {
+            let db = LocalDb::default();
+            let map = db
+                .fetch_block_timestamps(vec![], &FetchConfig::default())
+                .await
+                .unwrap();
+            assert!(map.is_empty());
+        }
+
+        #[tokio::test]
+        async fn fetch_block_timestamps_missing_result_field() {
+            let server = MockServer::start();
+            let url = Url::from_str(&server.url("/")).unwrap();
+
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .body_contains("\"eth_getBlockByNumber\"")
+                    .body_contains("\"0x1\"");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(json!({"jsonrpc":"2.0","id":1,"result":null}).to_string());
+            });
+
+            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
+            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
+
+            let err = db
+                .fetch_block_timestamps(
+                    vec![1],
+                    &FetchConfig {
+                        max_retry_attempts: 1,
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap_err();
+
+            match err {
+                LocalDbError::MissingField { field } => assert_eq!(field, "result"),
+                other => panic!("expected MissingField('result'), got {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn fetch_block_timestamps_missing_timestamp_maps_to_json_error() {
+            let server = MockServer::start();
+            let url = Url::from_str(&server.url("/")).unwrap();
+
+            // Respond with a block object missing the required `timestamp` field
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .body_contains("\"eth_getBlockByNumber\"")
+                    .body_contains("\"0x1\"");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(sample_block_response("0x1", None));
+            });
+
+            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
+            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
+
+            let err = db
+                .fetch_block_timestamps(
+                    vec![1],
+                    &FetchConfig {
+                        max_retry_attempts: 1,
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap_err();
+
+            match err {
+                LocalDbError::JsonParse(_) => {}
+                other => panic!("expected JsonParse, got {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn fetch_store_events_chunking_multiple_jobs_merged_and_sorted() {
+            let server = MockServer::start();
+            let url = Url::from_str(&server.url("/")).unwrap();
+
+            // Job 1: from 0x1 to 0x1
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .body_contains("\"eth_getLogs\"")
+                    .body_contains("\"0x1\"")
+                    .body_contains("\"0x1\"");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(
+                        json!({
+                            "jsonrpc":"2.0",
+                            "id":1,
+                            "result":[{
+                                "address":"0xstore",
+                                "topics":[Set::SIGNATURE_HASH.to_string()],
+                                "data":"0xdeadbeef",
+                                "blockNumber":"0x1",
+                                "blockTimestamp":"0x64",
+                                "transactionHash":"0xtx1",
+                                "transactionIndex":"0x0",
+                                "blockHash":"0x0",
+                                "logIndex":"0x1",
+                                "removed":false
+                            }]
+                        })
+                        .to_string(),
+                    );
+            });
+
+            // Job 2: from 0x2 to 0x2
+            server.mock(|when, then| {
+                when.method(POST)
+                    .path("/")
+                    .body_contains("\"eth_getLogs\"")
+                    .body_contains("\"0x2\"")
+                    .body_contains("\"0x2\"");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(
+                        json!({
+                            "jsonrpc":"2.0",
+                            "id":1,
+                            "result":[{
+                                "address":"0xstore",
+                                "topics":[Set::SIGNATURE_HASH.to_string()],
+                                "data":"0xdeadbeef",
+                                "blockNumber":"0x2",
+                                "blockTimestamp":"0x65",
+                                "transactionHash":"0xtx2",
+                                "transactionIndex":"0x0",
+                                "blockHash":"0x0",
+                                "logIndex":"0x0",
+                                "removed":false
+                            }]
+                        })
+                        .to_string(),
+                    );
+            });
+
+            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
+            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
+
+            let topics = Topics::from_b256_list(vec![Set::SIGNATURE_HASH]);
+            let range = BlockRange::inclusive(1, 2).expect("valid");
+            let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
+            let filter = LogFilter {
+                addresses: vec![addr],
+                topics,
+                range,
+            };
+            let events = db
+                .fetch_store_events(
+                    &filter,
+                    &FetchConfig {
+                        chunk_size: 1, // forces per-block jobs
+                        max_concurrent_requests: 2,
+                        max_concurrent_blocks: 1,
+                        max_retry_attempts: 1,
+                    },
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(events.len(), 2);
+            assert_eq!(events[0].block_number, "0x1");
+            assert_eq!(events[0].log_index, "0x1");
+            assert_eq!(events[1].block_number, "0x2");
+            assert_eq!(events[1].log_index, "0x0");
+            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x64"));
+            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x65"));
         }
     }
 }
