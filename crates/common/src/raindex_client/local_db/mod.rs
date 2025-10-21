@@ -1,11 +1,11 @@
 use crate::local_db::{LocalDb, LocalDbError};
-
-pub mod query;
-pub mod sync;
-
 use crate::raindex_client::{RaindexClient, RaindexError};
 use wasm_bindgen_utils::result::WasmEncodedError;
 use wasm_bindgen_utils::{prelude::*, wasm_export};
+
+pub mod executor;
+pub mod query;
+pub mod sync;
 
 impl From<LocalDbError> for WasmEncodedError {
     fn from(value: LocalDbError) -> Self {

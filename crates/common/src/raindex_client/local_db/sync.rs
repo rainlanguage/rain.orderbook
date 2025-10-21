@@ -1,37 +1,10 @@
-use super::query::LocalDbQuery;
-use crate::local_db::sync::{sync_database_with_services, Database, StatusSink};
+use crate::local_db::sync::{sync_database_with_services, StatusSink};
 use crate::local_db::LocalDbError;
 use crate::raindex_client::RaindexClient;
-use async_trait::async_trait;
 use wasm_bindgen_utils::prelude::*;
 use wasm_bindgen_utils::wasm_export;
 
-struct JsDatabaseBridge<'a> {
-    callback: &'a js_sys::Function,
-}
-
-impl<'a> JsDatabaseBridge<'a> {
-    fn new(callback: &'a js_sys::Function) -> Self {
-        Self { callback }
-    }
-}
-
-#[async_trait(?Send)]
-impl<'a> Database for JsDatabaseBridge<'a> {
-    async fn query_json<T>(&self, sql: &str) -> Result<T, crate::local_db::query::LocalDbQueryError>
-    where
-        T: crate::local_db::query::FromDbJson,
-    {
-        LocalDbQuery::execute_query_json(self.callback, sql).await
-    }
-
-    async fn query_text(
-        &self,
-        sql: &str,
-    ) -> Result<String, crate::local_db::query::LocalDbQueryError> {
-        LocalDbQuery::execute_query_text(self.callback, sql).await
-    }
-}
+use super::executor::JsCallbackExecutor;
 
 struct JsStatusReporter<'a> {
     callback: &'a js_sys::Function,
@@ -74,7 +47,7 @@ impl RaindexClient {
         #[wasm_export(param_description = "The blockchain network ID to sync against")]
         chain_id: u32,
     ) -> Result<(), LocalDbError> {
-        let db_bridge = JsDatabaseBridge::new(&db_callback);
+        let db_bridge = JsCallbackExecutor::new(&db_callback);
         let status_bridge = JsStatusReporter::new(&status_callback);
         let orderbooks =
             self.get_orderbooks_by_chain_id(chain_id)
