@@ -3,7 +3,7 @@ use crate::rpc_client::{BlockRange, LogEntryResponse, RpcClientError, Topics};
 use alloy::primitives::{Address, U256};
 use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
-use rain_orderbook_bindings::topics::{orderbook_event_topics, store_set_topics};
+use rain_orderbook_bindings::topics::{ORDERBOOK_EVENT_TOPICS, STORE_SET_TOPICS};
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
@@ -85,7 +85,7 @@ impl LocalDb {
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         let filter = LogFilter {
             addresses: vec![address],
-            topics: Topics::from_b256_list(orderbook_event_topics()),
+            topics: Topics::from_b256_list(ORDERBOOK_EVENT_TOPICS.to_vec()),
             range,
         };
         self.collect_logs(&filter, config).await
@@ -99,7 +99,7 @@ impl LocalDb {
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         let filter = LogFilter {
             addresses: addresses.to_vec(),
-            topics: Topics::from_b256_list(store_set_topics()),
+            topics: Topics::from_b256_list(STORE_SET_TOPICS.to_vec()),
             range,
         };
         self.collect_logs(&filter, config).await

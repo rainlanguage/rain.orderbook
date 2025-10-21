@@ -1,5 +1,5 @@
 use alloy::primitives::Address;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use rain_orderbook_common::{
     erc20::TokenInfo,
@@ -103,7 +103,12 @@ impl SyncDataSource for LocalDb {
     ) -> Result<Vec<LogEntryResponse>> {
         let addresses: Vec<Address> = store_addresses
             .iter()
-            .map(|s| Address::from_str(s))
+            .enumerate()
+            .map(|(idx, s)| {
+                Address::from_str(s).with_context(|| {
+                    format!("failed to parse store address at index {}: {}", idx, s)
+                })
+            })
             .collect::<Result<_, _>>()?;
         <LocalDb>::fetch_store_events(
             self,

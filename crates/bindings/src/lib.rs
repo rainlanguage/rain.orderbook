@@ -45,20 +45,16 @@ pub mod topics {
     };
     use alloy::{primitives::B256, sol_types::SolEvent};
 
-    pub fn orderbook_event_topics() -> Vec<B256> {
-        vec![
-            AddOrderV3::SIGNATURE_HASH,
-            TakeOrderV3::SIGNATURE_HASH,
-            WithdrawV2::SIGNATURE_HASH,
-            DepositV2::SIGNATURE_HASH,
-            RemoveOrderV3::SIGNATURE_HASH,
-            ClearV3::SIGNATURE_HASH,
-            AfterClearV2::SIGNATURE_HASH,
-            MetaV1_2::SIGNATURE_HASH,
-        ]
-    }
+    pub const ORDERBOOK_EVENT_TOPICS: [B256; 8] = [
+        AddOrderV3::SIGNATURE_HASH,
+        TakeOrderV3::SIGNATURE_HASH,
+        WithdrawV2::SIGNATURE_HASH,
+        DepositV2::SIGNATURE_HASH,
+        RemoveOrderV3::SIGNATURE_HASH,
+        ClearV3::SIGNATURE_HASH,
+        AfterClearV2::SIGNATURE_HASH,
+        MetaV1_2::SIGNATURE_HASH,
+    ];
 
-    pub fn store_set_topics() -> Vec<B256> {
-        vec![Set::SIGNATURE_HASH]
-    }
+    pub const STORE_SET_TOPICS: [B256; 1] = [Set::SIGNATURE_HASH];
 }
