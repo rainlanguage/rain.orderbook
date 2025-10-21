@@ -1,10 +1,8 @@
 use alloy::primitives::Address;
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_bindings::topics::orderbook_event_topics;
-use rain_orderbook_common::local_db::fetch::LogFilter;
 use rain_orderbook_common::local_db::{FetchConfig, LocalDb, LocalDbError};
-use rain_orderbook_common::rpc_client::{BlockRange, LogEntryResponse, RpcClientError, Topics};
+use rain_orderbook_common::rpc_client::{BlockRange, LogEntryResponse, RpcClientError};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -34,11 +32,8 @@ impl EventClient for LocalDb {
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         self.fetch_orderbook_events(
-            &LogFilter {
-                addresses: vec![Address::from_str(address)?],
-                topics: Topics::from_b256_list(orderbook_event_topics()),
-                range: BlockRange::inclusive(start_block, end_block)?,
-            },
+            Address::from_str(address)?,
+            BlockRange::inclusive(start_block, end_block)?,
             &FetchConfig::default(),
         )
         .await
