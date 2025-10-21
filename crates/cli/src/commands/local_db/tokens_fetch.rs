@@ -4,6 +4,7 @@ use clap::Parser;
 use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::local_db::token_fetch::fetch_erc20_metadata_concurrent;
 use rain_orderbook_common::local_db::tokens::collect_token_addresses;
+use rain_orderbook_common::local_db::FetchConfig;
 use serde::Serialize;
 use std::fs;
 use url::Url;
@@ -64,7 +65,7 @@ impl TokensFetch {
             .map_err(|e| anyhow!("Invalid --rpc URL: {}", e))?;
 
         // Fetch metadata
-        let fetched = fetch_erc20_metadata_concurrent(rpcs, addrs).await?;
+        let fetched = fetch_erc20_metadata_concurrent(rpcs, addrs, &FetchConfig::default()).await?;
 
         // Serialize to tokens.json
         let tokens: Vec<TokenJson> = fetched

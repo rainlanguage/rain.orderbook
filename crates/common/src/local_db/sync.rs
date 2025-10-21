@@ -109,7 +109,14 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     merge_store_events(&mut decoded_events, &mut decoded_store_events)?;
 
     status.send("Populating token information...".to_string())?;
-    let prep = prepare_erc20_tokens_prefix(db, &local_db, chain_id, &decoded_events).await?;
+    let prep = prepare_erc20_tokens_prefix(
+        db,
+        &local_db,
+        chain_id,
+        &decoded_events,
+        &FetchConfig::default(),
+    )
+    .await?;
 
     status.send("Populating database...".to_string())?;
     let prefix_sql = if prep.tokens_prefix_sql.is_empty() {
@@ -219,6 +226,7 @@ async fn prepare_erc20_tokens_prefix(
     local_db: &LocalDb,
     chain_id: u32,
     decoded_events: &[DecodedEventData<DecodedEvent>],
+    config: &FetchConfig,
 ) -> Result<TokenPrepResult, LocalDbError> {
     let address_set = collect_token_addresses(decoded_events);
     let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
@@ -257,7 +265,7 @@ async fn prepare_erc20_tokens_prefix(
 
         if !missing_addrs.is_empty() {
             let rpcs = local_db.rpc_client().rpc_urls().to_vec();
-            let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs).await?;
+            let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs, config).await?;
 
             tokens_prefix_sql = insert::generate_erc20_tokens_sql(chain_id, &successes);
 
@@ -771,9 +779,15 @@ mod tests {
             let local_db =
                 LocalDb::new_with_regular_rpcs(vec![]).unwrap_or_else(|_| LocalDb::default());
 
-            let out = prepare_erc20_tokens_prefix(&db, &local_db, chain_id, &events)
-                .await
-                .unwrap();
+            let out = prepare_erc20_tokens_prefix(
+                &db,
+                &local_db,
+                chain_id,
+                &events,
+                &FetchConfig::default(),
+            )
+            .await
+            .unwrap();
             assert!(out.tokens_prefix_sql.is_empty());
             assert_eq!(out.decimals_by_addr.get(&token), Some(&6));
         }
@@ -796,9 +810,10 @@ mod tests {
                 .expect("some");
             let db = MockDb::new().with_json(&stmt.sql, "[]");
 
-            let out = prepare_erc20_tokens_prefix(&db, &local_db, 1, &events)
-                .await
-                .unwrap();
+            let out =
+                prepare_erc20_tokens_prefix(&db, &local_db, 1, &events, &FetchConfig::default())
+                    .await
+                    .unwrap();
             assert!(!out.tokens_prefix_sql.is_empty());
             assert!(out.tokens_prefix_sql.contains("erc20_tokens"));
             assert!(out.tokens_prefix_sql.contains(&format!("0x{:x}", token)));
