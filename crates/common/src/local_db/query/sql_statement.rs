@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 use thiserror::Error;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -7,6 +6,7 @@ use thiserror::Error;
 pub enum SqlValue {
     Text(String),
     I64(i64),
+    U64(u64),
     Null,
 }
 
@@ -25,12 +25,9 @@ impl From<i64> for SqlValue {
         SqlValue::I64(i)
     }
 }
-impl TryFrom<u64> for SqlValue {
-    type Error = SqlBuildError;
-    fn try_from(i: u64) -> Result<Self, Self::Error> {
-        let i = i64::try_from(i)
-            .map_err(|_| SqlBuildError::new(format!("u64 out of range for i64: {}", i)))?;
-        Ok(SqlValue::I64(i))
+impl From<u64> for SqlValue {
+    fn from(i: u64) -> Self {
+        SqlValue::U64(i)
     }
 }
 
@@ -189,28 +186,34 @@ mod tests {
             SqlValue::Text("def".to_owned())
         );
         assert_eq!(SqlValue::from(42i64), SqlValue::I64(42));
-        assert_eq!(SqlValue::try_from(7u64).unwrap(), SqlValue::I64(7));
+        assert_eq!(SqlValue::from(7u64), SqlValue::U64(7));
+        assert_eq!(SqlValue::from(7u64), SqlValue::U64(7));
     }
 
     #[test]
     fn sql_value_serde_shape_and_roundtrip() {
         let v_text = SqlValue::Text("hi".to_owned());
         let v_i64 = SqlValue::I64(5);
+        let v_u64 = SqlValue::U64(123);
         let v_null = SqlValue::Null;
 
         let j_text = serde_json::to_value(&v_text).unwrap();
         let j_i64 = serde_json::to_value(&v_i64).unwrap();
+        let j_u64 = serde_json::to_value(&v_u64).unwrap();
         let j_null = serde_json::to_value(&v_null).unwrap();
 
         assert_eq!(j_text, json!({"t":"Text","v":"hi"}));
         assert_eq!(j_i64, json!({"t":"I64","v":5}));
+        assert_eq!(j_u64, json!({"t":"U64","v":123}));
         assert_eq!(j_null, json!({"t":"Null"}));
 
         let rt_text: SqlValue = serde_json::from_value(j_text).unwrap();
         let rt_i64: SqlValue = serde_json::from_value(j_i64).unwrap();
+        let rt_u64: SqlValue = serde_json::from_value(j_u64).unwrap();
         let rt_null: SqlValue = serde_json::from_value(j_null).unwrap();
         assert_eq!(rt_text, v_text);
         assert_eq!(rt_i64, v_i64);
+        assert_eq!(rt_u64, v_u64);
         assert_eq!(rt_null, v_null);
     }
 
@@ -219,6 +222,7 @@ mod tests {
         let arr = vec![
             SqlValue::Text("a".to_owned()),
             SqlValue::I64(1),
+            SqlValue::U64(2),
             SqlValue::Null,
         ];
         let j = serde_json::to_value(&arr).unwrap();
@@ -227,6 +231,7 @@ mod tests {
             json!([
                 {"t":"Text","v":"a"},
                 {"t":"I64","v":1},
+                {"t":"U64","v":2},
                 {"t":"Null"}
             ])
         );
@@ -246,6 +251,14 @@ mod tests {
             s.params,
             vec![SqlValue::I64(10), SqlValue::Text("abc".to_owned())]
         );
+    }
+
+    #[test]
+    fn push_accepts_u64_values() {
+        let mut s = SqlStatement::new("SELECT ?1");
+        let ph = s.push(123u64);
+        assert_eq!(ph, "?1");
+        assert_eq!(s.params, vec![SqlValue::U64(123)]);
     }
 
     #[test]
@@ -279,6 +292,15 @@ mod tests {
             .unwrap();
         assert_eq!(s.sql, "SELECT * FROM t WHERE 1=1  AND a = ?1");
         assert_eq!(s.params, vec![SqlValue::I64(99)]);
+    }
+
+    #[test]
+    fn bind_param_clause_accepts_u64_value() {
+        let mut s = SqlStatement::new("SELECT * FROM t WHERE 1=1 /*M*/");
+        s.bind_param_clause("/*M*/", " AND a = {param}", Some(42u64))
+            .unwrap();
+        assert_eq!(s.sql, "SELECT * FROM t WHERE 1=1  AND a = ?1");
+        assert_eq!(s.params, vec![SqlValue::U64(42)]);
     }
 
     #[test]
@@ -345,6 +367,18 @@ mod tests {
         assert_eq!(
             s.params,
             vec![SqlValue::I64(1), SqlValue::I64(2), SqlValue::I64(3)]
+        );
+    }
+
+    #[test]
+    fn bind_list_clause_accepts_u64_values() {
+        let mut s = SqlStatement::new("SELECT * FROM t WHERE 1=1 /*LIST*/");
+        s.bind_list_clause("/*LIST*/", " AND a IN ({list})", vec![10u64, 11, 12])
+            .unwrap();
+        assert_eq!(s.sql, "SELECT * FROM t WHERE 1=1  AND a IN (?1, ?2, ?3)");
+        assert_eq!(
+            s.params,
+            vec![SqlValue::U64(10), SqlValue::U64(11), SqlValue::U64(12)]
         );
     }
 
@@ -479,6 +513,20 @@ mod tests {
                 prop_assert_eq!(s.params, expected);
 
                 // Placeholder count equals number of params
+                let ph_count = s.sql.matches('?').count();
+                prop_assert_eq!(ph_count, expected_len);
+            }
+
+            #[test]
+            fn bind_list_clause_length_and_params_u64(vals in proptest::collection::vec(0u64..1_000, 0..20)) {
+                let mut s = SqlStatement::new("SELECT 1 /*M*/");
+                s.bind_list_clause("/*M*/", " WHERE id IN ({list})", vals.clone()).unwrap();
+
+                prop_assert_eq!(s.params.len(), vals.len());
+                let expected: Vec<SqlValue> = vals.into_iter().map(SqlValue::U64).collect();
+                let expected_len = expected.len();
+                prop_assert_eq!(s.params, expected);
+
                 let ph_count = s.sql.matches('?').count();
                 prop_assert_eq!(ph_count, expected_len);
             }
