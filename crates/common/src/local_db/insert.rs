@@ -117,16 +117,16 @@ pub fn decoded_events_to_statement(
                 )?);
             }
             DecodedEvent::WithdrawV2(decoded) => {
-                batch.add(generate_withdraw_statement(&context, decoded.as_ref())?);
+                batch.add(generate_withdraw_statement(&context, decoded.as_ref()));
             }
             DecodedEvent::AddOrderV3(decoded) => {
                 let add_event = decoded.as_ref();
-                batch.add(generate_add_order_statement(&context, add_event)?);
+                batch.add(generate_add_order_statement(&context, add_event));
                 batch.extend(generate_order_ios_statements(&context, &add_event.order));
             }
             DecodedEvent::RemoveOrderV3(decoded) => {
                 let remove_event = decoded.as_ref();
-                batch.add(generate_remove_order_sql(&context, remove_event)?);
+                batch.add(generate_remove_order_statement(&context, remove_event));
                 batch.extend(generate_order_ios_statements(&context, &remove_event.order));
             }
             DecodedEvent::TakeOrderV3(decoded) => {
@@ -141,13 +141,13 @@ pub fn decoded_events_to_statement(
                 batch.add(generate_clear_v3_statement(&context, decoded.as_ref())?);
             }
             DecodedEvent::AfterClearV2(decoded) => {
-                batch.add(generate_after_clear_statement(&context, decoded.as_ref())?);
+                batch.add(generate_after_clear_statement(&context, decoded.as_ref()));
             }
             DecodedEvent::MetaV1_2(decoded) => {
-                batch.add(generate_meta_statement(&context, decoded.as_ref())?);
+                batch.add(generate_meta_statement(&context, decoded.as_ref()));
             }
             DecodedEvent::InterpreterStoreSet(decoded) => {
-                batch.add(generate_store_set_statement(&context, decoded.as_ref())?);
+                batch.add(generate_store_set_statement(&context, decoded.as_ref()));
             }
             DecodedEvent::Unknown(decoded) => {
                 eprintln!(
@@ -354,10 +354,7 @@ fn generate_deposit_statement(
     ))
 }
 
-fn generate_withdraw_statement(
-    context: &EventContext<'_>,
-    decoded: &WithdrawV2,
-) -> Result<SqlStatement, InsertError> {
+fn generate_withdraw_statement(context: &EventContext<'_>, decoded: &WithdrawV2) -> SqlStatement {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = context.transaction_hash;
@@ -369,7 +366,7 @@ fn generate_withdraw_statement(
     let withdraw_amount = hex::encode_prefixed(decoded.withdrawAmount);
     let withdraw_amount_uint256 = encode_u256_prefixed(&decoded.withdrawAmountUint256);
 
-    Ok(SqlStatement::new_with_params(
+    SqlStatement::new_with_params(
         r#"INSERT INTO withdrawals (
     block_number,
     block_timestamp,
@@ -406,13 +403,10 @@ fn generate_withdraw_statement(
             SqlValue::from(withdraw_amount),
             SqlValue::from(withdraw_amount_uint256),
         ],
-    ))
+    )
 }
 
-fn generate_add_order_statement(
-    context: &EventContext<'_>,
-    decoded: &AddOrderV3,
-) -> Result<SqlStatement, InsertError> {
+fn generate_add_order_statement(context: &EventContext<'_>, decoded: &AddOrderV3) -> SqlStatement {
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
@@ -423,7 +417,7 @@ fn generate_add_order_statement(
     let order_owner = hex::encode_prefixed(decoded.order.owner);
     let order_nonce = hex::encode_prefixed(decoded.order.nonce);
 
-    Ok(SqlStatement::new_with_params(
+    SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
     block_number,
     block_timestamp,
@@ -459,13 +453,13 @@ fn generate_add_order_statement(
             SqlValue::from(order_nonce),
             SqlValue::from(order_bytes),
         ],
-    ))
+    )
 }
 
-fn generate_remove_order_sql(
+fn generate_remove_order_statement(
     context: &EventContext<'_>,
     decoded: &RemoveOrderV3,
-) -> Result<SqlStatement, InsertError> {
+) -> SqlStatement {
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
@@ -476,7 +470,7 @@ fn generate_remove_order_sql(
     let order_owner = hex::encode_prefixed(decoded.order.owner);
     let order_nonce = hex::encode_prefixed(decoded.order.nonce);
 
-    Ok(SqlStatement::new_with_params(
+    SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
     block_number,
     block_timestamp,
@@ -512,7 +506,7 @@ fn generate_remove_order_sql(
             SqlValue::from(order_nonce),
             SqlValue::from(order_bytes),
         ],
-    ))
+    )
 }
 
 fn generate_take_order_statement(
@@ -785,7 +779,7 @@ fn generate_clear_v3_statement(
 fn generate_after_clear_statement(
     context: &EventContext<'_>,
     decoded: &AfterClearV2,
-) -> Result<SqlStatement, InsertError> {
+) -> SqlStatement {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = context.transaction_hash;
@@ -796,7 +790,7 @@ fn generate_after_clear_statement(
     let bob_input = hex::encode_prefixed(decoded.clearStateChange.bobInput);
     let bob_output = hex::encode_prefixed(decoded.clearStateChange.bobOutput);
 
-    Ok(SqlStatement::new_with_params(
+    SqlStatement::new_with_params(
         r#"INSERT INTO after_clear_v2_events (
     block_number,
     block_timestamp,
@@ -830,13 +824,10 @@ fn generate_after_clear_statement(
             SqlValue::from(bob_input),
             SqlValue::from(bob_output),
         ],
-    ))
+    )
 }
 
-fn generate_meta_statement(
-    context: &EventContext<'_>,
-    decoded: &MetaV1_2,
-) -> Result<SqlStatement, InsertError> {
+fn generate_meta_statement(context: &EventContext<'_>, decoded: &MetaV1_2) -> SqlStatement {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = context.transaction_hash;
@@ -845,7 +836,7 @@ fn generate_meta_statement(
     let subject = hex::encode_prefixed(decoded.subject);
     let meta = hex::encode_prefixed(&decoded.meta);
 
-    Ok(SqlStatement::new_with_params(
+    SqlStatement::new_with_params(
         r#"INSERT INTO meta_events (
     block_number,
     block_timestamp,
@@ -873,14 +864,14 @@ fn generate_meta_statement(
             SqlValue::from(subject),
             SqlValue::from(meta),
         ],
-    ))
+    )
 }
 
 fn generate_store_set_statement(
     context: &EventContext<'_>,
     decoded: &InterpreterStoreSetEvent,
-) -> Result<SqlStatement, InsertError> {
-    Ok(SqlStatement::new_with_params(
+) -> SqlStatement {
+    SqlStatement::new_with_params(
         r#"INSERT INTO interpreter_store_sets (
     store_address,
     block_number,
@@ -917,7 +908,7 @@ fn generate_store_set_statement(
             SqlValue::from(hex::encode_prefixed(decoded.key)),
             SqlValue::from(hex::encode_prefixed(decoded.value)),
         ],
-    ))
+    )
 }
 
 fn generate_order_ios_statements(context: &EventContext<'_>, order: &OrderV4) -> SqlStatementBatch {
@@ -1209,7 +1200,7 @@ mod tests {
             unreachable!()
         };
 
-        let statement = generate_store_set_statement(&context, decoded.as_ref()).unwrap();
+        let statement = generate_store_set_statement(&context, decoded.as_ref());
         assert!(statement
             .sql()
             .contains("INSERT INTO interpreter_store_sets"));
@@ -1263,7 +1254,7 @@ mod tests {
         let DecodedEvent::AddOrderV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
-        let statement = generate_add_order_statement(&context, decoded).unwrap();
+        let statement = generate_add_order_statement(&context, decoded);
         assert!(statement.sql().contains("order_bytes"));
         assert!(statement.sql().contains("?9"));
         let params = statement.params();
@@ -1325,7 +1316,7 @@ mod tests {
         let DecodedEvent::AfterClearV2(decoded) = &event.decoded_data else {
             unreachable!()
         };
-        let statement = generate_after_clear_statement(&context, decoded).unwrap();
+        let statement = generate_after_clear_statement(&context, decoded);
         assert!(statement
             .sql()
             .contains("INSERT INTO after_clear_v2_events"));
@@ -1347,7 +1338,7 @@ mod tests {
         let DecodedEvent::MetaV1_2(decoded) = &event.decoded_data else {
             unreachable!()
         };
-        let statement = generate_meta_statement(&context, decoded).unwrap();
+        let statement = generate_meta_statement(&context, decoded);
         assert!(statement.sql().contains("INSERT INTO meta_events"));
         assert!(statement.sql().contains("?7"));
         let params = statement.params();
