@@ -145,8 +145,7 @@ pub fn decoded_events_to_statement(
             }
             DecodedEvent::AfterClearV2(decoded) => {
                 let context = event_context(event)?;
-                let stmt = generate_after_clear_sql(&context, decoded.as_ref())?;
-                batch.add(SqlStatement::new(stmt));
+                batch.add(generate_after_clear_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::MetaV1_2(decoded) => {
                 let context = event_context(event)?;
@@ -794,7 +793,7 @@ fn generate_clear_v3_sql(
 fn generate_after_clear_sql(
     context: &EventContext<'_>,
     decoded: &AfterClearV2,
-) -> Result<String, InsertError> {
+) -> Result<SqlStatement, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = context.transaction_hash;
@@ -805,7 +804,7 @@ fn generate_after_clear_sql(
     let bob_input = hex::encode_prefixed(decoded.clearStateChange.bobInput);
     let bob_output = hex::encode_prefixed(decoded.clearStateChange.bobOutput);
 
-    Ok(format!(
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO after_clear_v2_events (
     block_number,
     block_timestamp,
@@ -817,17 +816,28 @@ fn generate_after_clear_sql(
     bob_input,
     bob_output
 ) VALUES (
-    {block_number},
-    {block_timestamp},
-    '{transaction_hash}',
-    {log_index},
-    '{sender}',
-    '{alice_input}',
-    '{alice_output}',
-    '{bob_input}',
-    '{bob_output}'
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?8,
+    ?9
 );
-"#
+"#,
+        vec![
+            SqlValue::from(block_number),
+            SqlValue::from(block_timestamp),
+            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(log_index),
+            SqlValue::from(sender),
+            SqlValue::from(alice_input),
+            SqlValue::from(alice_output),
+            SqlValue::from(bob_input),
+            SqlValue::from(bob_output),
+        ],
     ))
 }
 
@@ -983,7 +993,7 @@ mod tests {
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use rain_orderbook_bindings::IOrderBookV5::{
-        ClearConfigV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
+        ClearConfigV2, ClearStateChangeV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
     };
     use std::collections::HashMap;
 
@@ -1113,6 +1123,27 @@ mod tests {
             "0xdef",
             "0x2",
             DecodedEvent::TakeOrderV3(Box::new(take)),
+        )
+    }
+
+    fn sample_after_clear_event() -> DecodedEventData<DecodedEvent> {
+        let after_clear = AfterClearV2 {
+            sender: Address::from([0x17; 20]),
+            clearStateChange: ClearStateChangeV2 {
+                aliceInput: U256::from(0x1f4).into(),
+                aliceOutput: U256::from(0x258).into(),
+                bobInput: U256::from(0x2bc).into(),
+                bobOutput: U256::from(0x320).into(),
+            },
+        };
+
+        build_event(
+            EventType::AfterClearV2,
+            "0x103",
+            "0x203",
+            "0x2468",
+            "0x5",
+            DecodedEvent::AfterClearV2(Box::new(after_clear)),
         )
     }
 
@@ -1257,6 +1288,28 @@ mod tests {
             .statements()
             .iter()
             .all(|stmt| stmt.sql().contains("INSERT INTO context_values")));
+    }
+
+    #[test]
+    fn after_clear_sql_generation() {
+        let event = sample_after_clear_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::AfterClearV2(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
+        let statement = generate_after_clear_sql(&context, decoded).unwrap();
+        assert!(statement
+            .sql()
+            .contains("INSERT INTO after_clear_v2_events"));
+        assert!(statement.sql().contains("?9"));
+        let params = statement.params();
+        assert_eq!(params.len(), 9);
+        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        let expected_alice_input = hex::encode_prefixed(decoded.clearStateChange.aliceInput);
+        assert!(matches!(params[5], SqlValue::Text(ref v) if v == &expected_alice_input));
+        let expected_bob_output = hex::encode_prefixed(decoded.clearStateChange.bobOutput);
+        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_bob_output));
     }
 
     #[test]
