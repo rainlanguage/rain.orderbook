@@ -45,6 +45,18 @@ impl SqlStatement {
         }
     }
 
+    pub fn new_with_params<I, T>(sql: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<SqlValue>,
+    {
+        let mut statement = Self::new(sql);
+        for value in values {
+            statement.push(value);
+        }
+        statement
+    }
+
     pub fn sql(&self) -> &str {
         &self.sql
     }
@@ -250,6 +262,43 @@ mod tests {
         assert_eq!(
             s.params,
             vec![SqlValue::I64(10), SqlValue::Text("abc".to_owned())]
+        );
+    }
+
+    #[test]
+    fn statement_new_with_params_populates_params() {
+        let s = SqlStatement::new_with_params(
+            "SELECT ?1, ?2, ?3",
+            vec![
+                SqlValue::I64(10),
+                SqlValue::Text("twenty".to_owned()),
+                SqlValue::Null,
+            ],
+        );
+        assert_eq!(s.sql, "SELECT ?1, ?2, ?3");
+        assert_eq!(
+            s.params,
+            vec![
+                SqlValue::I64(10),
+                SqlValue::Text("twenty".to_owned()),
+                SqlValue::Null,
+            ]
+        );
+    }
+
+    #[test]
+    fn statement_new_with_params_preserves_placeholder_sequence() {
+        let mut s =
+            SqlStatement::new_with_params("SELECT * FROM t WHERE a = ?1 AND b = ?2", [1i64, 2i64]);
+        let ph = s.push("third");
+        assert_eq!(ph, "?3");
+        assert_eq!(
+            s.params,
+            vec![
+                SqlValue::I64(1),
+                SqlValue::I64(2),
+                SqlValue::Text("third".to_owned())
+            ]
         );
     }
 
