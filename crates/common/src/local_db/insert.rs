@@ -153,8 +153,7 @@ pub fn decoded_events_to_statement(
             }
             DecodedEvent::InterpreterStoreSet(decoded) => {
                 let context = event_context(event)?;
-                let stmt = generate_store_set_sql(&context, decoded.as_ref())?;
-                batch.add(SqlStatement::new(stmt));
+                batch.add(generate_store_set_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::Unknown(decoded) => {
                 eprintln!(
@@ -886,45 +885,45 @@ fn generate_meta_sql(
 fn generate_store_set_sql(
     context: &EventContext<'_>,
     decoded: &InterpreterStoreSetEvent,
-) -> Result<String, InsertError> {
-    let mut sql = String::new();
-    sql.push_str(&format!(
+) -> Result<SqlStatement, InsertError> {
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO interpreter_store_sets (
-            store_address,
-            block_number,
-            block_timestamp,
-            transaction_hash,
-            log_index,
-            namespace,
-            key,
-            value
-        ) VALUES (
-            '{}',
-            {},
-            {},
-            '{}',
-            {},
-            '{}',
-            '{}',
-            '{}'
-        ) ON CONFLICT(transaction_hash, log_index) DO UPDATE SET
-            store_address = excluded.store_address,
-            block_number = excluded.block_number,
-            block_timestamp = excluded.block_timestamp,
-            namespace = excluded.namespace,
-            key = excluded.key,
-            value = excluded.value;
+    store_address,
+    block_number,
+    block_timestamp,
+    transaction_hash,
+    log_index,
+    namespace,
+    key,
+    value
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?8
+) ON CONFLICT(transaction_hash, log_index) DO UPDATE SET
+    store_address = excluded.store_address,
+    block_number = excluded.block_number,
+    block_timestamp = excluded.block_timestamp,
+    namespace = excluded.namespace,
+    key = excluded.key,
+    value = excluded.value;
 "#,
-        hex::encode_prefixed(decoded.store_address),
-        context.block_number,
-        context.block_timestamp,
-        context.transaction_hash,
-        context.log_index,
-        hex::encode_prefixed(decoded.namespace),
-        hex::encode_prefixed(decoded.key),
-        hex::encode_prefixed(decoded.value)
-    ));
-    Ok(sql)
+        vec![
+            SqlValue::from(hex::encode_prefixed(decoded.store_address)),
+            SqlValue::from(context.block_number),
+            SqlValue::from(context.block_timestamp),
+            SqlValue::from(context.transaction_hash.to_owned()),
+            SqlValue::from(context.log_index),
+            SqlValue::from(hex::encode_prefixed(decoded.namespace)),
+            SqlValue::from(hex::encode_prefixed(decoded.key)),
+            SqlValue::from(hex::encode_prefixed(decoded.value)),
+        ],
+    ))
 }
 
 fn generate_order_ios_sql(context: &EventContext<'_>, order: &OrderV4) -> SqlStatementBatch {
@@ -1216,19 +1215,29 @@ mod tests {
             unreachable!()
         };
 
-        let sql = generate_store_set_sql(&context, decoded.as_ref()).unwrap();
-        let expected = format!(
-            "INSERT INTO interpreter_store_sets (\n            store_address,\n            block_number,\n            block_timestamp,\n            transaction_hash,\n            log_index,\n            namespace,\n            key,\n            value\n        ) VALUES (\n            '{}',\n            {},\n            {},\n            '{}',\n            {},\n            '{}',\n            '{}',\n            '{}'\n        ) ON CONFLICT(transaction_hash, log_index) DO UPDATE SET\n            store_address = excluded.store_address,\n            block_number = excluded.block_number,\n            block_timestamp = excluded.block_timestamp,\n            namespace = excluded.namespace,\n            key = excluded.key,\n            value = excluded.value;\n",
-            hex::encode_prefixed(decoded.store_address),
-            context.block_number,
-            context.block_timestamp,
-            context.transaction_hash,
-            context.log_index,
-            hex::encode_prefixed(decoded.namespace),
-            hex::encode_prefixed(decoded.key),
-            hex::encode_prefixed(decoded.value)
+        let statement = generate_store_set_sql(&context, decoded.as_ref()).unwrap();
+        assert!(statement
+            .sql()
+            .contains("INSERT INTO interpreter_store_sets"));
+        assert!(statement.sql().contains("?8"));
+        let params = statement.params();
+        assert_eq!(params.len(), 8);
+        assert!(
+            matches!(params[0], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.store_address))
         );
-        assert_eq!(sql, expected);
+        assert!(matches!(params[1], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_timestamp));
+        assert!(matches!(params[3], SqlValue::Text(ref v) if v == context.transaction_hash));
+        assert!(matches!(params[4], SqlValue::U64(v) if v == context.log_index));
+        assert!(
+            matches!(params[5], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.namespace))
+        );
+        assert!(
+            matches!(params[6], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.key))
+        );
+        assert!(
+            matches!(params[7], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.value))
+        );
     }
 
     #[test]
