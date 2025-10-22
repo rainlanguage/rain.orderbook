@@ -1,6 +1,9 @@
 use super::*;
-use crate::local_db::query::{FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement};
+use crate::local_db::query::{
+    FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+};
 use async_trait::async_trait;
+use wasm_bindgen_utils::prelude::wasm_bindgen_futures::JsFuture;
 
 pub struct JsCallbackExecutor<'a> {
     callback: &'a js_sys::Function,
@@ -10,14 +13,8 @@ impl<'a> JsCallbackExecutor<'a> {
     pub fn new(callback: &'a js_sys::Function) -> Self {
         Self { callback }
     }
-}
 
-#[async_trait(?Send)]
-impl<'a> LocalDbQueryExecutor for JsCallbackExecutor<'a> {
-    async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
-        use wasm_bindgen_utils::prelude::{js_sys, wasm_bindgen_futures::JsFuture, JsValue};
-        use wasm_bindgen_utils::{prelude::serde_wasm_bindgen, result::WasmEncodedResult};
-
+    async fn invoke_statement(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
         // If there are no parameters, pass `undefined` to the JS callback
         // instead of an empty array to match the SDK's expected semantics.
         let js_params_val = if stmt.params.is_empty() {
@@ -56,6 +53,20 @@ impl<'a> LocalDbQueryExecutor for JsCallbackExecutor<'a> {
                 Err(LocalDbQueryError::database(error.readable_msg))
             }
         }
+    }
+}
+
+#[async_trait(?Send)]
+impl<'a> LocalDbQueryExecutor for JsCallbackExecutor<'a> {
+    async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+        for stmt in batch {
+            let _ = self.invoke_statement(stmt).await?;
+        }
+        Ok(())
+    }
+
+    async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+        self.invoke_statement(stmt).await
     }
 
     async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
@@ -223,6 +234,56 @@ pub mod tests {
                     crate::local_db::query::SqlValue::Text("abc".to_owned()),
                 ]
             );
+        }
+
+        #[wasm_bindgen_test]
+        async fn execute_batch_invokes_all_statements_in_order() {
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use wasm_bindgen::prelude::Closure;
+
+            let calls: Rc<RefCell<Vec<(String, JsValue)>>> = Rc::new(RefCell::new(Vec::new()));
+            let calls_clone = calls.clone();
+            let closure = Closure::wrap(Box::new(move |sql: String, params: JsValue| -> JsValue {
+                calls_clone.borrow_mut().push((sql, params.clone()));
+                let result = WasmEncodedResult::Success::<String> {
+                    value: String::new(),
+                    error: None,
+                };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            })
+                as Box<dyn FnMut(String, JsValue) -> JsValue>);
+
+            let callback: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+
+            let exec = JsCallbackExecutor::new(&callback);
+
+            let mut batch = SqlStatementBatch::new();
+            batch.add(SqlStatement::new("CREATE TABLE example (val INTEGER)"));
+            let mut insert = SqlStatement::new("INSERT INTO example (val) VALUES (?1)");
+            insert.push(42i64);
+            batch.add(insert);
+            batch.add(SqlStatement::new("DELETE FROM example WHERE val = 0"));
+
+            exec.execute_batch(&batch).await.unwrap();
+
+            let calls = calls.borrow();
+            assert_eq!(calls.len(), 3);
+
+            assert_eq!(calls[0].0, "CREATE TABLE example (val INTEGER)");
+            assert!(calls[0].1.is_undefined());
+
+            assert_eq!(calls[1].0, "INSERT INTO example (val) VALUES (?1)");
+            let params_value = calls[1].1.clone();
+
+            assert_eq!(calls[2].0, "DELETE FROM example WHERE val = 0");
+            assert!(calls[2].1.is_undefined());
+            drop(calls);
+
+            let decoded: Vec<crate::local_db::query::SqlValue> =
+                serde_wasm_bindgen::from_value(params_value).unwrap();
+            assert_eq!(decoded, vec![crate::local_db::query::SqlValue::I64(42)]);
         }
 
         #[wasm_bindgen_test]
