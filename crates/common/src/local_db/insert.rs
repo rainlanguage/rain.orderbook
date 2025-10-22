@@ -118,8 +118,7 @@ pub fn decoded_events_to_statement(
             }
             DecodedEvent::WithdrawV2(decoded) => {
                 let context = event_context(event)?;
-                let stmt = generate_withdraw_sql(&context, decoded.as_ref())?;
-                batch.add(SqlStatement::new(stmt));
+                batch.add(generate_withdraw_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::AddOrderV3(decoded) => {
                 let context = event_context(event)?;
@@ -364,7 +363,7 @@ fn generate_deposit_statement(
 fn generate_withdraw_sql(
     context: &EventContext<'_>,
     decoded: &WithdrawV2,
-) -> Result<String, InsertError> {
+) -> Result<SqlStatement, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = context.transaction_hash;
@@ -376,7 +375,7 @@ fn generate_withdraw_sql(
     let withdraw_amount = hex::encode_prefixed(decoded.withdrawAmount);
     let withdraw_amount_uint256 = encode_u256_prefixed(&decoded.withdrawAmountUint256);
 
-    Ok(format!(
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO withdrawals (
     block_number,
     block_timestamp,
@@ -389,18 +388,30 @@ fn generate_withdraw_sql(
     withdraw_amount,
     withdraw_amount_uint256
 ) VALUES (
-    {block_number},
-    {block_timestamp},
-    '{transaction_hash}',
-    {log_index},
-    '{sender}',
-    '{token}',
-    '{vault_id}',
-    '{target_amount}',
-    '{withdraw_amount}',
-    '{withdraw_amount_uint256}'
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?8,
+    ?9,
+    ?10
 );
-"#
+"#,
+        vec![
+            SqlValue::from(block_number),
+            SqlValue::from(block_timestamp),
+            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(log_index),
+            SqlValue::from(sender),
+            SqlValue::from(token),
+            SqlValue::from(vault_id),
+            SqlValue::from(target_amount),
+            SqlValue::from(withdraw_amount),
+            SqlValue::from(withdraw_amount_uint256),
+        ],
     ))
 }
 
