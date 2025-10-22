@@ -117,42 +117,34 @@ pub fn decoded_events_to_statement(
                 )?);
             }
             DecodedEvent::WithdrawV2(decoded) => {
-                let context = event_context(event)?;
                 batch.add(generate_withdraw_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::AddOrderV3(decoded) => {
-                let context = event_context(event)?;
                 let add_event = decoded.as_ref();
                 batch.add(generate_add_order_sql(&context, add_event)?);
                 batch.extend(generate_order_ios_sql(&context, &add_event.order));
             }
             DecodedEvent::RemoveOrderV3(decoded) => {
-                let context = event_context(event)?;
                 let remove_event = decoded.as_ref();
                 batch.add(generate_remove_order_sql(&context, remove_event)?);
                 batch.extend(generate_order_ios_sql(&context, &remove_event.order));
             }
             DecodedEvent::TakeOrderV3(decoded) => {
-                let context = event_context(event)?;
                 let take_event = decoded.as_ref();
                 batch.add(generate_take_order_sql(&context, take_event)?);
                 batch.extend(generate_take_order_contexts(&context, take_event));
                 batch.extend(generate_take_order_context_values(&context, take_event));
             }
             DecodedEvent::ClearV3(decoded) => {
-                let context = event_context(event)?;
                 batch.add(generate_clear_v3_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::AfterClearV2(decoded) => {
-                let context = event_context(event)?;
                 batch.add(generate_after_clear_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::MetaV1_2(decoded) => {
-                let context = event_context(event)?;
                 batch.add(generate_meta_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::InterpreterStoreSet(decoded) => {
-                let context = event_context(event)?;
                 batch.add(generate_store_set_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::Unknown(decoded) => {
