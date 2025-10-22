@@ -122,13 +122,15 @@ pub fn decoded_events_to_statement(
             }
             DecodedEvent::AddOrderV3(decoded) => {
                 let context = event_context(event)?;
-                let stmt = generate_add_order_sql(&context, decoded.as_ref())?;
-                batch.add(SqlStatement::new(stmt));
+                let add_event = decoded.as_ref();
+                batch.add(generate_add_order_sql(&context, add_event)?);
+                batch.extend(generate_order_ios_sql(&context, &add_event.order));
             }
             DecodedEvent::RemoveOrderV3(decoded) => {
                 let context = event_context(event)?;
-                let stmt = generate_remove_order_sql(&context, decoded.as_ref())?;
-                batch.add(SqlStatement::new(stmt));
+                let remove_event = decoded.as_ref();
+                batch.add(generate_remove_order_sql(&context, remove_event)?);
+                batch.extend(generate_order_ios_sql(&context, &remove_event.order));
             }
             DecodedEvent::TakeOrderV3(decoded) => {
                 let context = event_context(event)?;
@@ -418,8 +420,7 @@ fn generate_withdraw_sql(
 fn generate_add_order_sql(
     context: &EventContext<'_>,
     decoded: &AddOrderV3,
-) -> Result<String, InsertError> {
-    let mut sql = String::new();
+) -> Result<SqlStatement, InsertError> {
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
@@ -430,7 +431,7 @@ fn generate_add_order_sql(
     let order_owner = hex::encode_prefixed(decoded.order.owner);
     let order_nonce = hex::encode_prefixed(decoded.order.nonce);
 
-    sql.push_str(&format!(
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
     block_number,
     block_timestamp,
@@ -443,33 +444,36 @@ fn generate_add_order_sql(
     order_nonce,
     order_bytes
 ) VALUES (
-    {block_number},
-    {block_timestamp},
-    '{transaction_hash}',
-    {log_index},
+    ?1,
+    ?2,
+    ?3,
+    ?4,
     'AddOrderV3',
-    '{sender}',
-    '{order_hash}',
-    '{order_owner}',
-    '{order_nonce}',
-    '{order_bytes}'
+    ?5,
+    ?6,
+    ?7,
+    ?8,
+    ?9
 );
-"#
-    ));
-
-    let ios_sql = generate_order_ios_sql(context, &decoded.order);
-    if !ios_sql.is_empty() {
-        sql.push_str(&ios_sql);
-    }
-
-    Ok(sql)
+"#,
+        vec![
+            SqlValue::from(block_number),
+            SqlValue::from(block_timestamp),
+            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(log_index),
+            SqlValue::from(sender),
+            SqlValue::from(order_hash),
+            SqlValue::from(order_owner),
+            SqlValue::from(order_nonce),
+            SqlValue::from(order_bytes),
+        ],
+    ))
 }
 
 fn generate_remove_order_sql(
     context: &EventContext<'_>,
     decoded: &RemoveOrderV3,
-) -> Result<String, InsertError> {
-    let mut sql = String::new();
+) -> Result<SqlStatement, InsertError> {
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
@@ -480,7 +484,7 @@ fn generate_remove_order_sql(
     let order_owner = hex::encode_prefixed(decoded.order.owner);
     let order_nonce = hex::encode_prefixed(decoded.order.nonce);
 
-    sql.push_str(&format!(
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
     block_number,
     block_timestamp,
@@ -493,26 +497,30 @@ fn generate_remove_order_sql(
     order_nonce,
     order_bytes
 ) VALUES (
-    {block_number},
-    {block_timestamp},
-    '{transaction_hash}',
-    {log_index},
+    ?1,
+    ?2,
+    ?3,
+    ?4,
     'RemoveOrderV3',
-    '{sender}',
-    '{order_hash}',
-    '{order_owner}',
-    '{order_nonce}',
-    '{order_bytes}'
+    ?5,
+    ?6,
+    ?7,
+    ?8,
+    ?9
 );
-"#
-    ));
-
-    let ios_sql = generate_order_ios_sql(context, &decoded.order);
-    if !ios_sql.is_empty() {
-        sql.push_str(&ios_sql);
-    }
-
-    Ok(sql)
+"#,
+        vec![
+            SqlValue::from(block_number),
+            SqlValue::from(block_timestamp),
+            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(log_index),
+            SqlValue::from(sender),
+            SqlValue::from(order_hash),
+            SqlValue::from(order_owner),
+            SqlValue::from(order_nonce),
+            SqlValue::from(order_bytes),
+        ],
+    ))
 }
 
 fn generate_take_order_sql(
@@ -831,46 +839,57 @@ fn generate_store_set_sql(
     Ok(sql)
 }
 
-fn generate_order_ios_sql(context: &EventContext<'_>, order: &OrderV4) -> String {
-    let mut rows = Vec::new();
-
-    for (index, input) in order.validInputs.iter().enumerate() {
-        rows.push(format!(
-            "('{}', {}, {}, 'input', '{}', '{}')",
-            context.transaction_hash,
-            context.log_index,
-            index,
-            hex::encode_prefixed(input.token),
-            hex::encode_prefixed(input.vaultId),
-        ));
-    }
-
-    for (index, output) in order.validOutputs.iter().enumerate() {
-        rows.push(format!(
-            "('{}', {}, {}, 'output', '{}', '{}')",
-            context.transaction_hash,
-            context.log_index,
-            index,
-            hex::encode_prefixed(output.token),
-            hex::encode_prefixed(output.vaultId),
-        ));
-    }
-
-    if rows.is_empty() {
-        return String::new();
-    }
-
-    format!(
-        r#"INSERT INTO order_ios (
+fn generate_order_ios_sql(context: &EventContext<'_>, order: &OrderV4) -> SqlStatementBatch {
+    const INSERT_IO_SQL: &str = r#"INSERT INTO order_ios (
     transaction_hash,
     log_index,
     io_index,
     io_type,
     token,
     vault_id
-) VALUES {};\n"#,
-        rows.join(", ")
-    )
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6
+);
+"#;
+
+    let mut batch = SqlStatementBatch::new();
+    let transaction_hash = context.transaction_hash.to_owned();
+    let log_index = context.log_index;
+
+    for (index, input) in order.validInputs.iter().enumerate() {
+        batch.add(SqlStatement::new_with_params(
+            INSERT_IO_SQL,
+            vec![
+                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(log_index),
+                SqlValue::from(index as u64),
+                SqlValue::from("input"),
+                SqlValue::from(hex::encode_prefixed(input.token)),
+                SqlValue::from(hex::encode_prefixed(input.vaultId)),
+            ],
+        ));
+    }
+
+    for (index, output) in order.validOutputs.iter().enumerate() {
+        batch.add(SqlStatement::new_with_params(
+            INSERT_IO_SQL,
+            vec![
+                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(log_index),
+                SqlValue::from(index as u64),
+                SqlValue::from("output"),
+                SqlValue::from(hex::encode_prefixed(output.token)),
+                SqlValue::from(hex::encode_prefixed(output.vaultId)),
+            ],
+        ));
+    }
+
+    batch
 }
 
 fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
@@ -1115,10 +1134,20 @@ mod tests {
         let DecodedEvent::AddOrderV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
-        let sql = generate_add_order_sql(&context, decoded).unwrap();
-        assert!(sql.contains("order_bytes"));
+        let statement = generate_add_order_sql(&context, decoded).unwrap();
+        assert!(statement.sql().contains("order_bytes"));
+        assert!(statement.sql().contains("?9"));
+        let params = statement.params();
+        assert_eq!(params.len(), 9);
         let expected_bytes = hex::encode_prefixed(decoded.order.abi_encode());
-        assert!(sql.contains(&expected_bytes));
+        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_bytes));
+        let ios_batch = generate_order_ios_sql(&context, &decoded.order);
+        let expected_ios_len = decoded.order.validInputs.len() + decoded.order.validOutputs.len();
+        assert_eq!(ios_batch.len(), expected_ios_len);
+        assert!(ios_batch
+            .statements()
+            .iter()
+            .all(|stmt| stmt.sql().contains("INSERT INTO order_ios")));
     }
 
     #[test]
