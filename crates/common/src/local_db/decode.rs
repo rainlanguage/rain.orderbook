@@ -21,6 +21,8 @@ pub enum DecodeError {
     HexDecode(#[from] hex::FromHexError),
     #[error("ABI decode error: {0}")]
     AbiDecode(String),
+    #[error("log at index {index} missing required field {field}")]
+    MissingRequiredField { field: &'static str, index: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -102,71 +104,85 @@ pub enum DecodedEvent {
 pub fn decode_events(
     events: &[LogEntryResponse],
 ) -> Result<Vec<DecodedEventData<DecodedEvent>>, DecodeError> {
-    let mut decoded_events = Vec::with_capacity(events.len());
+    events
+        .iter()
+        .enumerate()
+        .map(|(index, event)| {
+            let topic0 = event
+                .topics
+                .first()
+                .ok_or(DecodeError::MissingRequiredField {
+                    field: "topic0",
+                    index,
+                })?;
+            let trimmed_data = event.data.trim();
+            let data_without_prefix = trimmed_data
+                .strip_prefix("0x")
+                .or_else(|| trimmed_data.strip_prefix("0X"))
+                .unwrap_or(trimmed_data);
+            if data_without_prefix.trim().is_empty() {
+                return Err(DecodeError::MissingRequiredField {
+                    field: "data",
+                    index,
+                });
+            }
+            let event_type = EventType::from_topic(topic0);
 
-    for event in events {
-        let Some(topic0) = event.topics.first() else {
-            continue;
-        };
-        if event.data.trim().is_empty() {
-            continue;
-        }
-        let event_type = EventType::from_topic(topic0);
+            let decoded_data = match event_type {
+                EventType::AddOrderV3 => {
+                    DecodedEvent::AddOrderV3(Box::new(decode_event::<AddOrderV3>(event)?))
+                }
+                EventType::TakeOrderV3 => {
+                    DecodedEvent::TakeOrderV3(Box::new(decode_event::<TakeOrderV3>(event)?))
+                }
+                EventType::WithdrawV2 => {
+                    DecodedEvent::WithdrawV2(Box::new(decode_event::<WithdrawV2>(event)?))
+                }
+                EventType::DepositV2 => {
+                    DecodedEvent::DepositV2(Box::new(decode_event::<DepositV2>(event)?))
+                }
+                EventType::RemoveOrderV3 => {
+                    DecodedEvent::RemoveOrderV3(Box::new(decode_event::<RemoveOrderV3>(event)?))
+                }
+                EventType::ClearV3 => {
+                    DecodedEvent::ClearV3(Box::new(decode_event::<ClearV3>(event)?))
+                }
+                EventType::AfterClearV2 => {
+                    DecodedEvent::AfterClearV2(Box::new(decode_event::<AfterClearV2>(event)?))
+                }
+                EventType::MetaV1_2 => {
+                    DecodedEvent::MetaV1_2(Box::new(decode_event::<MetaV1_2>(event)?))
+                }
+                EventType::InterpreterStoreSet => {
+                    DecodedEvent::InterpreterStoreSet(Box::new(decode_store_set_event(event)?))
+                }
+                EventType::Unknown => DecodedEvent::Unknown(UnknownEventDecoded {
+                    raw_data: event.data.clone(),
+                    note: "Unknown event type - could not decode".to_string(),
+                }),
+            };
 
-        let decoded_data = match event_type {
-            EventType::AddOrderV3 => {
-                DecodedEvent::AddOrderV3(Box::new(decode_event::<AddOrderV3>(event)?))
-            }
-            EventType::TakeOrderV3 => {
-                DecodedEvent::TakeOrderV3(Box::new(decode_event::<TakeOrderV3>(event)?))
-            }
-            EventType::WithdrawV2 => {
-                DecodedEvent::WithdrawV2(Box::new(decode_event::<WithdrawV2>(event)?))
-            }
-            EventType::DepositV2 => {
-                DecodedEvent::DepositV2(Box::new(decode_event::<DepositV2>(event)?))
-            }
-            EventType::RemoveOrderV3 => {
-                DecodedEvent::RemoveOrderV3(Box::new(decode_event::<RemoveOrderV3>(event)?))
-            }
-            EventType::ClearV3 => DecodedEvent::ClearV3(Box::new(decode_event::<ClearV3>(event)?)),
-            EventType::AfterClearV2 => {
-                DecodedEvent::AfterClearV2(Box::new(decode_event::<AfterClearV2>(event)?))
-            }
-            EventType::MetaV1_2 => {
-                DecodedEvent::MetaV1_2(Box::new(decode_event::<MetaV1_2>(event)?))
-            }
-            EventType::InterpreterStoreSet => {
-                DecodedEvent::InterpreterStoreSet(Box::new(decode_store_set_event(event)?))
-            }
-            EventType::Unknown => DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: event.data.clone(),
-                note: "Unknown event type - could not decode".to_string(),
-            }),
-        };
-
-        decoded_events.push(DecodedEventData {
-            event_type,
-            block_number: if event.block_number.is_empty() {
-                "0x0".to_string()
-            } else {
-                event.block_number.clone()
-            },
-            block_timestamp: match event.block_timestamp.clone() {
-                Some(ts) if !ts.is_empty() => ts,
-                _ => "0x0".to_string(),
-            },
-            transaction_hash: event.transaction_hash.clone(),
-            log_index: if event.log_index.is_empty() {
-                "0x0".to_string()
-            } else {
-                event.log_index.clone()
-            },
-            decoded_data,
-        });
-    }
-
-    Ok(decoded_events)
+            Ok(DecodedEventData {
+                event_type,
+                block_number: if event.block_number.is_empty() {
+                    "0x0".to_string()
+                } else {
+                    event.block_number.clone()
+                },
+                block_timestamp: match event.block_timestamp.clone() {
+                    Some(ts) if !ts.is_empty() => ts,
+                    _ => "0x0".to_string(),
+                },
+                transaction_hash: event.transaction_hash.clone(),
+                log_index: if event.log_index.is_empty() {
+                    "0x0".to_string()
+                } else {
+                    event.log_index.clone()
+                },
+                decoded_data,
+            })
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -864,8 +880,12 @@ mod test_helpers {
         event_empty_topics.topics.clear();
         event_empty_topics.data = "0x1234567890abcdef".to_string();
 
-        let decoded_events = decode_events_vec(vec![event_empty_topics]);
-        assert!(decoded_events.is_empty());
+        let result = decode_events(&[event_empty_topics]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::MissingRequiredField { field, index })
+                if field == "topic0" && index == 0
+        ));
     }
 
     #[test]
@@ -873,8 +893,27 @@ mod test_helpers {
         let mut event_no_data = create_add_order_v3_event_data();
         event_no_data.data = String::new();
 
-        let decoded_events = decode_events_vec(vec![event_no_data]);
-        assert!(decoded_events.is_empty());
+        let result = decode_events(&[event_no_data]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::MissingRequiredField { field, index })
+                if field == "data" && index == 0
+        ));
+    }
+
+    #[test]
+    fn test_event_zero_length_hex_data() {
+        for hex_prefix in ["0x", "0X"] {
+            let mut event_no_data = create_add_order_v3_event_data();
+            event_no_data.data = hex_prefix.to_string();
+
+            let result = decode_events(&[event_no_data]);
+            assert!(matches!(
+                result,
+                Err(DecodeError::MissingRequiredField { field, index })
+                    if field == "data" && index == 0
+            ));
+        }
     }
 
     #[test]
