@@ -257,7 +257,6 @@ mod tests {
         fetch_calls: Mutex<Vec<(String, u64, u64)>>,
         fetch_store_calls: Mutex<Vec<(Vec<String>, u64, u64)>>,
         sql_calls: Mutex<Vec<usize>>,
-        prefixes: Mutex<Vec<String>>,
         decimals: Mutex<Vec<HashMap<Address, u8>>>,
         raw_statements: Vec<SqlStatement>,
         raw_calls: Mutex<Vec<Vec<LogEntryResponse>>>,
@@ -312,19 +311,14 @@ mod tests {
             &self,
             decoded_events: &[DecodedEventData<DecodedEvent>],
             decimals_by_token: &HashMap<Address, u8>,
-            prefix_sql: &str,
         ) -> Result<SqlStatementBatch> {
             self.sql_calls.lock().unwrap().push(decoded_events.len());
-            self.prefixes.lock().unwrap().push(prefix_sql.to_string());
             self.decimals
                 .lock()
                 .unwrap()
                 .push(decimals_by_token.clone());
 
             let mut statements = Vec::new();
-            if !prefix_sql.is_empty() {
-                statements.push(SqlStatement::new(prefix_sql.to_string()));
-            }
             if !self.sql_result.is_empty() {
                 statements.push(SqlStatement::new(self.sql_result.clone()));
             }
@@ -430,7 +424,6 @@ mod tests {
             fetch_calls: Mutex::new(vec![]),
             fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
-            prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
             raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             raw_calls: Mutex::new(vec![]),
@@ -488,7 +481,6 @@ mod tests {
             fetch_calls: Mutex::new(vec![]),
             fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
-            prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
             raw_statements: Vec::new(),
             raw_calls: Mutex::new(vec![]),
@@ -561,7 +553,6 @@ mod tests {
             fetch_calls: Mutex::new(vec![]),
             fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
-            prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
             raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             raw_calls: Mutex::new(vec![]),

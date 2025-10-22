@@ -184,7 +184,6 @@ mod tests {
             &self,
             _decoded_events: &[DecodedEventData<DecodedEvent>],
             _decimals_by_token: &HashMap<Address, u8>,
-            _prefix_sql: &str,
         ) -> Result<SqlStatementBatch> {
             Ok(SqlStatementBatch::new())
         }

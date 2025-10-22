@@ -38,7 +38,6 @@ pub(crate) trait SyncDataSource {
         &self,
         decoded_events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
-        prefix_sql: &str,
     ) -> Result<SqlStatementBatch>;
     fn raw_events_to_statements(
         &self,
@@ -135,15 +134,8 @@ impl SyncDataSource for LocalDb {
         &self,
         decoded_events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
-        prefix_sql: &str,
     ) -> Result<SqlStatementBatch> {
-        let prefix = if prefix_sql.is_empty() {
-            None
-        } else {
-            Some(prefix_sql)
-        };
-
-        <LocalDb>::decoded_events_to_statement(self, decoded_events, decimals_by_token, prefix)
+        <LocalDb>::decoded_events_to_statement(self, decoded_events, decimals_by_token)
             .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 

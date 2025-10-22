@@ -8,7 +8,7 @@ use super::{
         fetch_store_addresses::{fetch_store_addresses_stmt, StoreAddressRow},
         fetch_tables::{fetch_tables_stmt, TableResponse},
         update_last_synced_block::build_update_last_synced_block_stmt,
-        LocalDbQueryError, SqlStatement,
+        LocalDbQueryError, SqlStatement, SqlStatementBatch,
     },
     token_fetch::fetch_erc20_metadata_concurrent,
     tokens::{collect_store_addresses, collect_token_addresses},
@@ -119,19 +119,18 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     .await?;
 
     status.send("Populating database...".to_string())?;
-    let prefix_sql = if prep.tokens_prefix_sql.is_empty() {
-        None
-    } else {
-        Some(prep.tokens_prefix_sql.as_str())
-    };
 
-    let mut sql_batch = local_db
-        .decoded_events_to_statement(&decoded_events, &prep.decimals_by_addr, prefix_sql)
+    let mut batch = SqlStatementBatch::new();
+    batch.extend(prep.tokens_prefix_sql);
+
+    let events_batch = local_db
+        .decoded_events_to_statement(&decoded_events, &prep.decimals_by_addr)
         .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
 
-    sql_batch.add(build_update_last_synced_block_stmt(latest_block));
+    batch.extend(events_batch);
+    batch.add(build_update_last_synced_block_stmt(latest_block));
 
-    let sql_batch = sql_batch.into_transaction().map_err(|err| {
+    let sql_batch = batch.into_transaction().map_err(|err| {
         LocalDbError::SqlGenerationFailed(Box::new(LocalDbError::InsertError {
             message: err.to_string(),
         }))
@@ -215,7 +214,7 @@ fn merge_store_events(
 }
 
 struct TokenPrepResult {
-    tokens_prefix_sql: String,
+    tokens_prefix_sql: SqlStatementBatch,
     decimals_by_addr: HashMap<Address, u8>,
 }
 
@@ -230,7 +229,7 @@ async fn prepare_erc20_tokens_prefix(
     let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
     all_token_addrs.sort();
 
-    let mut tokens_prefix_sql = String::new();
+    let mut tokens_prefix_sql = SqlStatementBatch::new();
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
 
     if !all_token_addrs.is_empty() {
@@ -265,7 +264,7 @@ async fn prepare_erc20_tokens_prefix(
             let rpcs = local_db.rpc_client().rpc_urls().to_vec();
             let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs, config).await?;
 
-            tokens_prefix_sql = insert::generate_erc20_tokens_sql(chain_id, &successes);
+            tokens_prefix_sql = insert::generate_erc20_token_statements(chain_id, &successes);
 
             for (addr, info) in successes.iter() {
                 decimals_by_addr.insert(*addr, info.decimals);
@@ -733,8 +732,9 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod prepare_tokens_tests {
         use super::*;
-        use crate::local_db::query::fetch_erc20_tokens_by_addresses::{
-            build_fetch_stmt, Erc20TokenRow,
+        use crate::local_db::query::{
+            fetch_erc20_tokens_by_addresses::{build_fetch_stmt, Erc20TokenRow},
+            SqlValue,
         };
         use alloy::primitives::Address;
         use rain_orderbook_bindings::IOrderBookV5::DepositV2;
@@ -820,8 +820,17 @@ mod tests {
                     .await
                     .unwrap();
             assert!(!out.tokens_prefix_sql.is_empty());
-            assert!(out.tokens_prefix_sql.contains("erc20_tokens"));
-            assert!(out.tokens_prefix_sql.contains(&format!("0x{:x}", token)));
+            let statements = out.tokens_prefix_sql.statements();
+            assert_eq!(statements.len(), 1);
+            let stmt = &statements[0];
+            assert!(stmt.sql().contains("INSERT INTO erc20_tokens"));
+            let params = stmt.params();
+            assert_eq!(params.len(), 5);
+            assert!(matches!(params[0], SqlValue::U64(1u64)));
+            assert!(matches!(
+                &params[1],
+                SqlValue::Text(address) if address == &format!("0x{:x}", token)
+            ));
             assert_eq!(out.decimals_by_addr.get(&token), Some(&18));
         }
     }
