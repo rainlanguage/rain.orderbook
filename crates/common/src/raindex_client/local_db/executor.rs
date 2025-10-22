@@ -59,6 +59,12 @@ impl<'a> JsCallbackExecutor<'a> {
 #[async_trait(?Send)]
 impl<'a> LocalDbQueryExecutor for JsCallbackExecutor<'a> {
     async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+        if !batch.is_transaction() {
+            return Err(LocalDbQueryError::database(
+                "SQL statement batch must be wrapped in a transaction",
+            ));
+        }
+
         for stmt in batch {
             let _ = self.invoke_statement(stmt).await?;
         }
@@ -266,24 +272,42 @@ pub mod tests {
             batch.add(insert);
             batch.add(SqlStatement::new("DELETE FROM example WHERE val = 0"));
 
+            let batch = batch.into_transaction().unwrap();
+
             exec.execute_batch(&batch).await.unwrap();
 
             let calls = calls.borrow();
-            assert_eq!(calls.len(), 3);
+            assert_eq!(calls.len(), 5);
 
-            assert_eq!(calls[0].0, "CREATE TABLE example (val INTEGER)");
+            assert_eq!(calls[0].0, "BEGIN TRANSACTION");
             assert!(calls[0].1.is_undefined());
 
-            assert_eq!(calls[1].0, "INSERT INTO example (val) VALUES (?1)");
-            let params_value = calls[1].1.clone();
+            assert_eq!(calls[1].0, "CREATE TABLE example (val INTEGER)");
+            assert!(calls[1].1.is_undefined());
 
-            assert_eq!(calls[2].0, "DELETE FROM example WHERE val = 0");
-            assert!(calls[2].1.is_undefined());
+            assert_eq!(calls[2].0, "INSERT INTO example (val) VALUES (?1)");
+            let params_value = calls[2].1.clone();
+
+            assert_eq!(calls[3].0, "DELETE FROM example WHERE val = 0");
+            assert!(calls[3].1.is_undefined());
+
+            assert_eq!(calls[4].0, "COMMIT");
+            assert!(calls[4].1.is_undefined());
             drop(calls);
 
             let decoded: Vec<crate::local_db::query::SqlValue> =
                 serde_wasm_bindgen::from_value(params_value).unwrap();
             assert_eq!(decoded, vec![crate::local_db::query::SqlValue::I64(42)]);
+        }
+
+        #[wasm_bindgen_test]
+        async fn execute_batch_rejects_non_transactions() {
+            let callback = create_success_callback("");
+            let exec = JsCallbackExecutor::new(&callback);
+            let batch = SqlStatementBatch::from(vec![SqlStatement::new("SELECT 1")]);
+
+            let err = exec.execute_batch(&batch).await.unwrap_err();
+            assert!(matches!(err, LocalDbQueryError::Database { .. }));
         }
 
         #[wasm_bindgen_test]

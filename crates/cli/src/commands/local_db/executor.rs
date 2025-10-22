@@ -35,6 +35,12 @@ impl RusqliteExecutor {
 #[async_trait(?Send)]
 impl LocalDbQueryExecutor for RusqliteExecutor {
     async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+        if !batch.is_transaction() {
+            return Err(LocalDbQueryError::database(
+                "SQL statement batch must be wrapped in a transaction",
+            ));
+        }
+
         let conn = Connection::open(&self.db_path)
             .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
         conn.busy_timeout(Duration::from_millis(500))
@@ -167,6 +173,8 @@ mod tests {
         batch.add(SqlStatement::new(
             "INSERT INTO widgets (name, qty) VALUES ('widget-b', 7);",
         ));
+
+        let batch = batch.into_transaction().unwrap();
 
         exec.execute_batch(&batch).await.unwrap();
 
@@ -348,7 +356,9 @@ mod tests {
         insert_large.push("large");
         insert_large.push(large_value);
 
-        let batch = SqlStatementBatch::from(vec![insert_small, insert_large]);
+        let batch = SqlStatementBatch::from(vec![insert_small, insert_large])
+            .into_transaction()
+            .unwrap();
         exec.execute_batch(&batch).await.unwrap();
 
         #[derive(serde::Deserialize, Debug)]
@@ -374,5 +384,19 @@ mod tests {
         let large = rows.iter().find(|row| row.label == "large").unwrap();
         assert_eq!(large.ty, "text");
         assert_eq!(large.val, json!(large_value.to_string()));
+    }
+
+    #[tokio::test]
+    async fn execute_batch_requires_transaction() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("batch.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        let exec = RusqliteExecutor::new(&*db_path_str);
+
+        let batch = SqlStatementBatch::from(vec![SqlStatement::new("SELECT 1")]);
+        let err = exec.execute_batch(&batch).await.unwrap_err();
+
+        assert!(matches!(err, LocalDbQueryError::Database { .. }));
     }
 }
