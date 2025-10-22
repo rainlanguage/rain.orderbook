@@ -95,15 +95,8 @@ fn event_context<'a>(
 pub fn decoded_events_to_statement(
     events: &[DecodedEventData<DecodedEvent>],
     decimals_by_token: &HashMap<Address, u8>,
-    prefix_sql: Option<&str>,
 ) -> Result<SqlStatementBatch, InsertError> {
     let mut batch = SqlStatementBatch::new();
-
-    if let Some(prefix) = prefix_sql {
-        if !prefix.is_empty() {
-            batch.add(SqlStatement::new(prefix));
-        }
-    }
 
     for event in events {
         let context = event_context(event)?;
@@ -244,45 +237,43 @@ pub fn raw_events_to_statements(
 }
 
 /// Build upsert SQL for erc20_tokens. Only include successfully fetched tokens.
-pub fn generate_erc20_tokens_sql(chain_id: u32, tokens: &[(Address, TokenInfo)]) -> String {
-    if tokens.is_empty() {
-        return String::new();
-    }
+pub fn generate_erc20_token_statements(
+    chain_id: u32,
+    tokens: &[(Address, TokenInfo)],
+) -> SqlStatementBatch {
+    let mut batch = SqlStatementBatch::new();
 
-    let mut sql = String::new();
-    sql.push_str(
-        r#"INSERT INTO erc20_tokens (
-    chain_id,
-    address,
-    name,
-    symbol,
-    decimals
-) VALUES "#,
-    );
-
-    let mut first = true;
     for (addr, info) in tokens.iter() {
-        let address_str = format!("0x{:x}", addr);
-        let address_literal = sql_string_literal(&address_str);
-        let name_literal = sql_string_literal(&info.name);
-        let symbol_literal = sql_string_literal(&info.symbol);
-        let decimals = info.decimals as u32; // store as INTEGER
-        if !first {
-            sql.push_str(", ");
-        }
-        first = false;
-        sql.push_str(&format!(
-            "({}, {}, {}, {}, {})",
-            chain_id, address_literal, name_literal, symbol_literal, decimals
+        batch.add(SqlStatement::new_with_params(
+            r#"INSERT INTO erc20_tokens (
+            chain_id,
+            address,
+            name,
+            symbol,
+            decimals
+        ) VALUES (
+            ?1,
+            ?2,
+            ?3,
+            ?4,
+            ?5
+        )
+        ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;
+        "#,
+            [
+                SqlValue::from(chain_id as u64),
+                SqlValue::from(format!("0x{:x}", addr)),
+                SqlValue::from(info.name.clone()),
+                SqlValue::from(info.symbol.clone()),
+                SqlValue::from(info.decimals as i64),
+            ],
         ));
     }
 
-    sql.push_str(
-        " ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;\n",
-    );
-    sql
+    batch
 }
 
+#[cfg(test)]
 fn sql_string_literal(value: &str) -> String {
     let mut literal = String::with_capacity(value.len() + 2);
     literal.push('\'');
@@ -980,7 +971,6 @@ mod tests {
     use super::*;
     use crate::local_db::decode::{EventType, UnknownEventDecoded};
     use crate::local_db::query::SqlValue;
-    use crate::local_db::LocalDb;
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
@@ -1390,7 +1380,7 @@ mod tests {
         if let DecodedEvent::DepositV2(deposit) = &deposit_event.decoded_data {
             decimals.insert(deposit.token, 6);
         }
-        let batch = decoded_events_to_statement(&[deposit_event, clear_event], &decimals, None)
+        let batch = decoded_events_to_statement(&[deposit_event, clear_event], &decimals)
             .unwrap()
             .into_transaction()
             .unwrap();
@@ -1412,7 +1402,7 @@ mod tests {
                 note: "n/a".into(),
             }),
         );
-        let batch = decoded_events_to_statement(&[unknown_event], &HashMap::new(), None)
+        let batch = decoded_events_to_statement(&[unknown_event], &HashMap::new())
             .unwrap()
             .into_transaction()
             .unwrap();
@@ -1421,7 +1411,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_erc20_tokens_sql_builder() {
+    fn test_generate_erc20_token_statements_builder() {
         let addr1 = Address::from([1u8; 20]);
         let addr2 = Address::from([2u8; 20]);
         let tokens = vec![
@@ -1443,14 +1433,36 @@ mod tests {
             ),
         ];
 
-        let sql = generate_erc20_tokens_sql(1, &tokens);
-        assert!(sql.starts_with("INSERT INTO erc20_tokens"));
-        assert!(sql.contains("ON CONFLICT(chain_id, address) DO UPDATE"));
-        assert!(sql.contains("0x0101010101010101010101010101010101010101"));
-        assert!(sql.contains("0x0202020202020202020202020202020202020202"));
-        // Apostrophes should be doubled
-        assert!(sql.contains("Bar''s Token"));
-        assert!(sql.contains("B''AR"));
+        let batch = generate_erc20_token_statements(1, &tokens);
+        assert_eq!(batch.len(), tokens.len());
+
+        for (statement, (expected_addr, expected_info)) in
+            batch.statements().iter().zip(tokens.iter())
+        {
+            let sql = statement.sql();
+            assert!(sql.contains("INSERT INTO erc20_tokens"));
+            assert!(sql.contains("ON CONFLICT(chain_id, address) DO UPDATE"));
+
+            let params = statement.params();
+            assert_eq!(params.len(), 5);
+            assert!(matches!(params[0], SqlValue::U64(1u64)));
+            assert!(matches!(
+                &params[1],
+                SqlValue::Text(addr) if addr == &format!("0x{:x}", expected_addr)
+            ));
+            assert!(matches!(
+                &params[2],
+                SqlValue::Text(name) if name == &expected_info.name
+            ));
+            assert!(matches!(
+                &params[3],
+                SqlValue::Text(symbol) if symbol == &expected_info.symbol
+            ));
+            assert!(matches!(
+                params[4],
+                SqlValue::I64(value) if value == expected_info.decimals as i64
+            ));
+        }
     }
 
     fn assert_literal_round_trip(literal: &str, expected: &str) {
@@ -1481,7 +1493,7 @@ mod tests {
     }
 
     #[test]
-    fn generate_erc20_tokens_sql_escapes_special_characters() {
+    fn generate_erc20_token_statements_escapes_special_characters() {
         let addr = Address::from([3u8; 20]);
         let name =
             "Dangerous 'Name' \"Quotes\" \\ Backslash\nNewline; DROP TABLE tokens; --".to_string();
@@ -1495,64 +1507,32 @@ mod tests {
             },
         )];
 
-        let sql = generate_erc20_tokens_sql(5, &tokens);
+        let batch = generate_erc20_token_statements(5, &tokens);
+        assert_eq!(batch.len(), 1);
+        let statement = &batch.statements()[0];
+        let sql = statement.sql();
+        assert!(sql.contains("INSERT INTO erc20_tokens"));
 
-        let expected_tuple = format!(
-            "({}, {}, {}, {}, {})",
-            5,
-            super::sql_string_literal(&format!("0x{:x}", addr)),
-            super::sql_string_literal(&name),
-            super::sql_string_literal(&symbol),
-            8u32
-        );
-
-        assert!(sql.starts_with("INSERT INTO erc20_tokens"));
-        assert!(sql.contains(&expected_tuple));
-        assert!(sql.ends_with(
-            " ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;\n"
+        let params = statement.params();
+        assert_eq!(params.len(), 5);
+        assert!(matches!(params[0], SqlValue::U64(5u64)));
+        assert!(matches!(
+            &params[1],
+            SqlValue::Text(address) if address == &format!("0x{:x}", addr)
         ));
+        assert!(matches!(
+            &params[2],
+            SqlValue::Text(name_param) if name_param == &name
+        ));
+        assert!(matches!(
+            &params[3],
+            SqlValue::Text(symbol_param) if symbol_param == &symbol
+        ));
+        assert!(matches!(params[4], SqlValue::I64(8i64)));
 
-        let address_literal = super::sql_string_literal(&format!("0x{:x}", addr));
-        let name_literal = super::sql_string_literal(&name);
-        let symbol_literal = super::sql_string_literal(&symbol);
-
-        assert!(sql.contains(&address_literal));
-        assert!(sql.contains(&name_literal));
-        assert!(sql.contains(&symbol_literal));
-
-        assert_literal_round_trip(&address_literal, &format!("0x{:x}", addr));
-        assert_literal_round_trip(&name_literal, &name);
-        assert_literal_round_trip(&symbol_literal, &symbol);
-    }
-
-    #[test]
-    fn test_decoded_events_to_statement_with_prefix_injection() {
-        let events: Vec<DecodedEventData<DecodedEvent>> = Vec::new();
-        let base_batch = LocalDb::default()
-            .decoded_events_to_statement(&events, &HashMap::new(), None)
-            .unwrap()
-            .into_transaction()
-            .unwrap();
-        let base = base_batch
-            .statements()
-            .iter()
-            .map(|stmt| stmt.sql())
-            .join("\n");
-        assert!(base.starts_with("BEGIN TRANSACTION"));
-
-        let prefix = "-- prefix sql\n";
-        let prefixed_batch = LocalDb::default()
-            .decoded_events_to_statement(&events, &HashMap::new(), Some(prefix))
-            .unwrap()
-            .into_transaction()
-            .unwrap();
-        let prefixed = prefixed_batch
-            .statements()
-            .iter()
-            .map(|stmt| stmt.sql())
-            .join("\n");
-        let expected = format!("BEGIN TRANSACTION\n{}", prefix.trim_end_matches('\n'));
-        assert!(prefixed.starts_with(&expected));
+        // Ensure no in-place escaping mangles the stored strings.
+        assert_literal_round_trip(&super::sql_string_literal(&name), &name);
+        assert_literal_round_trip(&super::sql_string_literal(&symbol), &symbol);
     }
 
     #[test]
