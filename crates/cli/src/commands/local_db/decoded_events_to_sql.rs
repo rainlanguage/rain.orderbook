@@ -135,7 +135,12 @@ mod tests {
     use alloy::primitives::{Address as AlloyAddress, U256};
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
-    use rain_orderbook_common::local_db::decode::{EventType, UnknownEventDecoded};
+    use rain_orderbook_common::local_db::{
+        decode::{EventType, UnknownEventDecoded},
+        insert::decoded_events_to_statement,
+        query::SqlValue,
+    };
+    use std::collections::HashMap;
     use std::fs;
     use std::str::FromStr;
     use tempfile::TempDir;
@@ -287,12 +292,26 @@ mod tests {
 
         let sql = std::fs::read_to_string(&output_file)?;
         assert!(sql.contains("INSERT INTO deposits"));
+
+        // Validate computed deposit amount using structured statements
+        let mut decimals = HashMap::new();
+        decimals.insert(token_addr, 18u8);
+        let batch =
+            decoded_events_to_statement(&decoded, 1000, &decimals, None).expect("SQL generation");
+        let deposit_statement = batch
+            .statements()
+            .iter()
+            .find(|stmt| stmt.sql().contains("INSERT INTO deposits"))
+            .expect("deposit statement");
         // Expect deposit_amount to be Float for 1e18 with 18 decimals => 1
         let expected =
             Float::from_fixed_decimal(U256::from_str("1000000000000000000").unwrap(), 18)
                 .unwrap()
                 .as_hex();
-        assert!(sql.contains(&expected));
+        assert!(matches!(
+            deposit_statement.params().get(7),
+            Some(SqlValue::Text(v)) if v == &expected
+        ));
 
         Ok(())
     }
