@@ -259,7 +259,7 @@ mod tests {
         sql_calls: Mutex<Vec<usize>>,
         prefixes: Mutex<Vec<String>>,
         decimals: Mutex<Vec<HashMap<Address, u8>>>,
-        raw_sql: String,
+        raw_statements: Vec<SqlStatement>,
         raw_calls: Mutex<Vec<Vec<LogEntryResponse>>>,
     }
 
@@ -331,9 +331,12 @@ mod tests {
             Ok(SqlStatementBatch::from(statements))
         }
 
-        fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
+        fn raw_events_to_statements(
+            &self,
+            raw_events: &[LogEntryResponse],
+        ) -> Result<SqlStatementBatch> {
             self.raw_calls.lock().unwrap().push(raw_events.to_vec());
-            Ok(self.raw_sql.clone())
+            Ok(SqlStatementBatch::from(self.raw_statements.clone()))
         }
 
         fn rpc_urls(&self) -> &[Url] {
@@ -429,7 +432,7 @@ mod tests {
             sql_calls: Mutex::new(vec![]),
             prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
-            raw_sql: RAW_SQL_STUB.into(),
+            raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             raw_calls: Mutex::new(vec![]),
         };
 
@@ -487,7 +490,7 @@ mod tests {
             sql_calls: Mutex::new(vec![]),
             prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
-            raw_sql: String::new(),
+            raw_statements: Vec::new(),
             raw_calls: Mutex::new(vec![]),
         };
         let fetcher = TestFetcher {
@@ -560,7 +563,7 @@ mod tests {
             sql_calls: Mutex::new(vec![]),
             prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
-            raw_sql: RAW_SQL_STUB.into(),
+            raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             raw_calls: Mutex::new(vec![]),
         };
         let fetcher = TestFetcher {

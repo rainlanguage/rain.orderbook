@@ -83,7 +83,7 @@ where
         &metadata_rpc_urls
     };
 
-    let raw_events_sql = data_source.raw_events_to_sql(&raw_events)?;
+    let mut batch = data_source.raw_events_to_statements(&raw_events)?;
 
     let token_prep = prepare_token_metadata(
         &db_path,
@@ -94,16 +94,12 @@ where
     )
     .await?;
 
-    let mut combined_prefix = raw_events_sql;
-    if !token_prep.tokens_prefix_sql.is_empty() {
-        combined_prefix.push_str(&token_prep.tokens_prefix_sql);
-    }
-
-    let mut batch = data_source.events_to_sql(
+    let events_batch = data_source.events_to_sql(
         &decoded_events,
         &token_prep.decimals_by_addr,
-        &combined_prefix,
+        &token_prep.tokens_prefix_sql,
     )?;
+    batch.extend(events_batch);
     batch.add(build_update_last_synced_block_stmt(target_block));
 
     batch
@@ -174,7 +170,7 @@ mod tests {
         captured_prefixes: Mutex<Vec<String>>,
         captured_events: Mutex<Vec<Vec<DecodedEventData<DecodedEvent>>>>,
         captured_decimals: Mutex<Vec<HashMap<Address, u8>>>,
-        raw_sql: String,
+        raw_statements: Vec<SqlStatement>,
         captured_raw: Mutex<Vec<Vec<LogEntryResponse>>>,
     }
 
@@ -238,9 +234,12 @@ mod tests {
             Ok(SqlStatementBatch::from(statements))
         }
 
-        fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
+        fn raw_events_to_statements(
+            &self,
+            raw_events: &[LogEntryResponse],
+        ) -> Result<SqlStatementBatch> {
             self.captured_raw.lock().unwrap().push(raw_events.to_vec());
-            Ok(self.raw_sql.clone())
+            Ok(SqlStatementBatch::from(self.raw_statements.clone()))
         }
 
         fn rpc_urls(&self) -> &[Url] {
@@ -267,7 +266,7 @@ mod tests {
             captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
-            raw_sql: String::new(),
+            raw_statements: Vec::new(),
             captured_raw: Mutex::new(vec![]),
         };
 
@@ -286,7 +285,7 @@ mod tests {
             captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
-            raw_sql: String::new(),
+            raw_statements: Vec::new(),
             captured_raw: Mutex::new(vec![]),
         };
 
@@ -312,7 +311,7 @@ mod tests {
             captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
-            raw_sql: RAW_SQL_STUB.to_string(),
+            raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             captured_raw: Mutex::new(vec![]),
         };
 
@@ -336,7 +335,7 @@ mod tests {
         assert!(sql_text.contains("INSERT INTO sync"));
         let prefixes = data_source.captured_prefixes.lock().unwrap();
         assert_eq!(prefixes.len(), 1);
-        assert!(prefixes[0].starts_with("INSERT INTO raw_events"));
+        assert!(prefixes[0].is_empty());
         let raw = data_source.captured_raw.lock().unwrap();
         assert_eq!(raw.len(), 1);
         assert!(raw[0].is_empty());
@@ -383,7 +382,7 @@ mod tests {
             captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
             captured_decimals: Mutex::new(Vec::new()),
-            raw_sql: RAW_SQL_STUB.into(),
+            raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             captured_raw: Mutex::new(Vec::new()),
         };
 
@@ -430,7 +429,7 @@ mod tests {
 
         let prefixes = data_source.captured_prefixes.lock().unwrap();
         assert_eq!(prefixes.len(), 1);
-        assert!(prefixes[0].starts_with("INSERT INTO raw_events"));
+        assert!(prefixes[0].starts_with("INSERT INTO erc20_tokens"));
 
         let captured_events = data_source.captured_events.lock().unwrap();
         assert_eq!(captured_events.len(), 1);
@@ -468,7 +467,7 @@ mod tests {
             captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
             captured_decimals: Mutex::new(Vec::new()),
-            raw_sql: String::new(),
+            raw_statements: Vec::new(),
             captured_raw: Mutex::new(Vec::new()),
         };
         let mock_fetcher = MockFetcher { metadata: vec![] };

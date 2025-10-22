@@ -40,7 +40,10 @@ pub(crate) trait SyncDataSource {
         decimals_by_token: &HashMap<Address, u8>,
         prefix_sql: &str,
     ) -> Result<SqlStatementBatch>;
-    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String>;
+    fn raw_events_to_statements(
+        &self,
+        raw_events: &[LogEntryResponse],
+    ) -> Result<SqlStatementBatch>;
     fn rpc_urls(&self) -> &[Url];
 }
 
@@ -144,8 +147,11 @@ impl SyncDataSource for LocalDb {
             .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 
-    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
-        <LocalDb>::raw_events_to_sql(self, raw_events)
+    fn raw_events_to_statements(
+        &self,
+        raw_events: &[LogEntryResponse],
+    ) -> Result<SqlStatementBatch> {
+        <LocalDb>::raw_events_to_statements(self, raw_events)
             .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 

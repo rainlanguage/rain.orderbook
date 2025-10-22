@@ -13,7 +13,7 @@ use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData
 pub use fetch::{FetchConfig, FetchConfigError};
 use insert::{
     decoded_events_to_statement as decoded_events_to_statement_impl,
-    raw_events_to_sql as raw_events_to_sql_impl,
+    raw_events_to_statements as raw_events_to_statements_impl,
 };
 use query::{LocalDbQueryError, SqlStatementBatch};
 use std::collections::HashMap;
@@ -212,11 +212,11 @@ impl LocalDb {
         })
     }
 
-    pub fn raw_events_to_sql(
+    pub fn raw_events_to_statements(
         &self,
         raw_events: &[LogEntryResponse],
-    ) -> Result<String, LocalDbError> {
-        raw_events_to_sql_impl(raw_events).map_err(|err| LocalDbError::InsertError {
+    ) -> Result<SqlStatementBatch, LocalDbError> {
+        raw_events_to_statements_impl(raw_events).map_err(|err| LocalDbError::InsertError {
             message: err.to_string(),
         })
     }

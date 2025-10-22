@@ -189,8 +189,8 @@ mod tests {
             Ok(SqlStatementBatch::new())
         }
 
-        fn raw_events_to_sql(&self, _: &[LogEntryResponse]) -> Result<String> {
-            Ok(String::new())
+        fn raw_events_to_statements(&self, _: &[LogEntryResponse]) -> Result<SqlStatementBatch> {
+            Ok(SqlStatementBatch::new())
         }
 
         fn rpc_urls(&self) -> &[Url] {

@@ -160,7 +160,9 @@ pub fn decoded_events_to_statement(
     Ok(batch)
 }
 
-pub fn raw_events_to_sql(raw_events: &[LogEntryResponse]) -> Result<String, InsertError> {
+pub fn raw_events_to_statements(
+    raw_events: &[LogEntryResponse],
+) -> Result<SqlStatementBatch, InsertError> {
     struct RawEventRow<'a> {
         block_number: u64,
         log_index: u64,
@@ -195,19 +197,17 @@ pub fn raw_events_to_sql(raw_events: &[LogEntryResponse]) -> Result<String, Inse
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    let sql = rows
-        .iter()
-        .sorted_by(|a, b| {
-            a.block_number
-                .cmp(&b.block_number)
-                .then_with(|| a.log_index.cmp(&b.log_index))
-        })
-        .map(|row| {
-            let timestamp_sql = row
-                .block_timestamp
-                .map_or_else(|| "NULL".to_string(), |ts| ts.to_string());
-            format!(
-                r#"INSERT INTO raw_events (
+    let mut batch = SqlStatementBatch::new();
+
+    for row in rows.iter().sorted_by(|a, b| {
+        a.block_number
+            .cmp(&b.block_number)
+            .then_with(|| a.log_index.cmp(&b.log_index))
+    }) {
+        let block_timestamp = row.block_timestamp.map_or(SqlValue::Null, SqlValue::from);
+
+        batch.add(SqlStatement::new_with_params(
+            r#"INSERT INTO raw_events (
     block_number,
     block_timestamp,
     transaction_hash,
@@ -216,21 +216,31 @@ pub fn raw_events_to_sql(raw_events: &[LogEntryResponse]) -> Result<String, Inse
     topics,
     data,
     raw_json
-) VALUES ({}, {}, '{}', {}, '{}', '{}', '{}', '{}');
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?8
+);
 "#,
-                row.block_number,
-                timestamp_sql,
-                escape_sql_text(&row.event.transaction_hash),
-                row.log_index,
-                escape_sql_text(&row.event.address),
-                escape_sql_text(&row.topics_json),
-                escape_sql_text(&row.event.data),
-                escape_sql_text(&row.raw_json),
-            )
-        })
-        .collect::<String>();
+            vec![
+                SqlValue::from(row.block_number),
+                block_timestamp,
+                SqlValue::from(row.event.transaction_hash.clone()),
+                SqlValue::from(row.log_index),
+                SqlValue::from(row.event.address.clone()),
+                SqlValue::from(row.topics_json.clone()),
+                SqlValue::from(row.event.data.clone()),
+                SqlValue::from(row.raw_json.clone()),
+            ],
+        ));
+    }
 
-    Ok(sql)
+    Ok(batch)
 }
 
 /// Build upsert SQL for erc20_tokens. Only include successfully fetched tokens.
@@ -965,10 +975,6 @@ fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
     })
 }
 
-fn escape_sql_text(value: &str) -> String {
-    value.replace('\'', "''")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1590,16 +1596,38 @@ mod tests {
             },
         ];
 
-        let sql = raw_events_to_sql(&events).unwrap();
-        assert!(sql.contains("INSERT INTO raw_events"));
+        let batch = raw_events_to_statements(&events).unwrap();
+        assert_eq!(batch.len(), 3);
 
-        let first_pos = sql.find("0xaaa").unwrap();
-        let second_pos = sql.find("0xbbb").unwrap();
-        let third_pos = sql.find("0xccc").unwrap();
-        assert!(first_pos < second_pos && second_pos < third_pos);
+        let hashes: Vec<_> = batch
+            .statements()
+            .iter()
+            .map(|stmt| match stmt.params().get(2) {
+                Some(SqlValue::Text(h)) => h.as_str(),
+                other => panic!("unexpected hash param: {:?}", other),
+            })
+            .collect();
+        assert_eq!(hashes, vec!["0xaaa", "0xbbb", "0xccc"]);
 
-        assert!(sql.contains("VALUES (3, NULL,"));
-        assert!(sql.contains("[\"0x01\",\"0x02\"]"));
+        let timestamps: Vec<_> = batch
+            .statements()
+            .iter()
+            .map(|stmt| stmt.params().get(1).cloned().unwrap())
+            .collect();
+        assert!(matches!(timestamps[0], SqlValue::U64(0x64b8c124)));
+        assert!(matches!(timestamps[1], SqlValue::U64(0x64b8c125)));
+        assert!(matches!(timestamps[2], SqlValue::Null));
+
+        let topics_values: Vec<_> = batch
+            .statements()
+            .iter()
+            .map(|stmt| match stmt.params().get(5) {
+                Some(SqlValue::Text(t)) => t.clone(),
+                other => panic!("unexpected topics param: {:?}", other),
+            })
+            .collect();
+        assert_eq!(topics_values[0], "[\"0x01\"]");
+        assert_eq!(topics_values[1], "[\"0x01\",\"0x02\"]");
     }
 
     #[test]
@@ -1617,7 +1645,7 @@ mod tests {
             removed: false,
         }];
 
-        let result = raw_events_to_sql(&events);
+        let result = raw_events_to_statements(&events);
         assert!(matches!(result, Err(InsertError::HexParseError { .. })));
     }
 }
