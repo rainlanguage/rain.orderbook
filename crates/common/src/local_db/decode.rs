@@ -108,10 +108,13 @@ pub fn decode_events(
         .iter()
         .enumerate()
         .map(|(index, event)| {
-            let topic0 = event.topics.first().ok_or(DecodeError::MissingRequiredField {
-                field: "topic0",
-                index,
-            })?;
+            let topic0 = event
+                .topics
+                .first()
+                .ok_or(DecodeError::MissingRequiredField {
+                    field: "topic0",
+                    index,
+                })?;
             if event.data.trim().is_empty() {
                 return Err(DecodeError::MissingRequiredField {
                     field: "data",
