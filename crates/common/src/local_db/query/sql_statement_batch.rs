@@ -34,6 +34,13 @@ impl SqlStatementBatch {
         self
     }
 
+    pub fn is_transaction(&self) -> bool {
+        if let (Some(first), Some(last)) = (self.statements.first(), self.statements.last()) {
+            return is_begin(first.sql()) && is_commit(last.sql());
+        }
+        false
+    }
+
     pub fn into_transaction(mut self) -> Result<Self, SqlBatchError> {
         if self
             .statements
@@ -325,6 +332,34 @@ mod tests {
 
         let err = batch.into_transaction().unwrap_err();
         assert_eq!(err, SqlBatchError::AlreadyTransaction);
+    }
+
+    #[test]
+    fn is_transaction_returns_true_when_wrapped() {
+        let batch = SqlStatementBatch::from(vec![
+            SqlStatement::new("BEGIN TRANSACTION"),
+            SqlStatement::new("INSERT INTO foo VALUES (1)"),
+            SqlStatement::new("COMMIT"),
+        ]);
+        assert!(batch.is_transaction());
+    }
+
+    #[test]
+    fn is_transaction_returns_false_when_missing_boundaries() {
+        let batch = SqlStatementBatch::from(vec![SqlStatement::new("INSERT INTO foo VALUES (1)")]);
+        assert!(!batch.is_transaction());
+
+        let batch = SqlStatementBatch::from(vec![
+            SqlStatement::new("BEGIN TRANSACTION"),
+            SqlStatement::new("INSERT INTO foo VALUES (1)"),
+        ]);
+        assert!(!batch.is_transaction());
+
+        let batch = SqlStatementBatch::from(vec![
+            SqlStatement::new("INSERT INTO foo VALUES (1)"),
+            SqlStatement::new("COMMIT"),
+        ]);
+        assert!(!batch.is_transaction());
     }
 
     #[test]
