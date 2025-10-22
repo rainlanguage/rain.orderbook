@@ -1,10 +1,10 @@
 use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
-    primitives::{Address, FixedBytes, B256},
+    primitives::{Address, B256},
     sol_types::{abi::token::WordToken, SolEvent},
 };
-use core::convert::{TryFrom, TryInto};
+use core::convert::TryFrom;
 use rain_orderbook_bindings::{
     IInterpreterStoreV3::Set,
     IOrderBookV5::{
@@ -101,6 +101,18 @@ pub enum DecodedEvent {
     Unknown(UnknownEventDecoded),
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InterpreterStoreSetEvent {
+    pub store_address: Address,
+    pub payload: Set,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnknownEventDecoded {
+    pub raw_data: String,
+    pub note: String,
+}
+
 pub fn decode_events(
     events: &[LogEntryResponse],
 ) -> Result<Vec<DecodedEventData<DecodedEvent>>, DecodeError> {
@@ -149,7 +161,10 @@ pub fn decode_events(
                     DecodedEvent::MetaV1_2(Box::new(decode_event::<MetaV1_2>(event)?))
                 }
                 EventType::InterpreterStoreSet => {
-                    DecodedEvent::InterpreterStoreSet(Box::new(decode_store_set_event(event)?))
+                    DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
+                        store_address: Address::from_str(&event.address)?,
+                        payload: decode_event::<Set>(event)?,
+                    }))
                 }
                 EventType::Unknown => DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: event.data.clone(),
@@ -180,20 +195,6 @@ pub fn decode_events(
         .collect()
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UnknownEventDecoded {
-    pub raw_data: String,
-    pub note: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InterpreterStoreSetEvent {
-    pub store_address: Address,
-    pub namespace: FixedBytes<32>,
-    pub key: FixedBytes<32>,
-    pub value: FixedBytes<32>,
-}
-
 fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError> {
     let topics = event
         .topics
@@ -207,38 +208,6 @@ fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError>
         .collect::<Result<Vec<_>, DecodeError>>()?;
     let data = hex::decode(&event.data).map_err(DecodeError::HexDecode)?;
     E::decode_raw_log(topics, &data).map_err(|err| DecodeError::AbiDecode(err.to_string()))
-}
-
-fn decode_store_set_event(
-    event: &LogEntryResponse,
-) -> Result<InterpreterStoreSetEvent, DecodeError> {
-    let data = hex::decode(event.data.trim_start_matches("0x")).map_err(DecodeError::HexDecode)?;
-    if data.len() < 96 {
-        return Err(DecodeError::AbiDecode(
-            "Set event data is too short".to_string(),
-        ));
-    }
-
-    let namespace_bytes: [u8; 32] = data[0..32]
-        .try_into()
-        .map_err(|_| DecodeError::AbiDecode("Invalid namespace length".to_string()))?;
-    let key_bytes: [u8; 32] = data[32..64]
-        .try_into()
-        .map_err(|_| DecodeError::AbiDecode("Invalid key length".to_string()))?;
-    let value_bytes: [u8; 32] = data[64..96]
-        .try_into()
-        .map_err(|_| DecodeError::AbiDecode("Invalid value length".to_string()))?;
-
-    let store_address = Address::from_str(&event.address).map_err(|err| {
-        DecodeError::AbiDecode(format!("Invalid store address {}: {}", event.address, err))
-    })?;
-
-    Ok(InterpreterStoreSetEvent {
-        store_address,
-        namespace: FixedBytes::from(namespace_bytes),
-        key: FixedBytes::from(key_bytes),
-        value: FixedBytes::from(value_bytes),
-    })
 }
 
 #[cfg(test)]
@@ -255,6 +224,7 @@ mod test_helpers {
         IOrderBookV5::{EvaluableV4, OrderV4, IOV2},
         OrderBook::MetaV1_2,
     };
+    use serde_json::Value;
 
     fn create_sample_order_v4() -> OrderV4 {
         OrderV4 {
@@ -466,18 +436,15 @@ mod test_helpers {
     }
 
     fn create_store_set_log() -> LogEntryResponse {
-        let namespace = [0x33u8; 32];
-        let key = [0x44u8; 32];
-        let value = [0x55u8; 32];
+        let event_data = Set {
+            namespace: U256::from_be_bytes([0x33u8; 32]),
+            key: FixedBytes::<32>::from([0x44u8; 32]),
+            value: FixedBytes::<32>::from([0x55u8; 32]),
+        };
 
-        let mut data = Vec::with_capacity(96);
-        data.extend_from_slice(&namespace);
-        data.extend_from_slice(&key);
-        data.extend_from_slice(&value);
-
-        let encoded = format!("0x{}", hex::encode(data));
+        let encoded = format!("0x{}", hex::encode(event_data.encode_data()));
         let mut entry = new_log_entry(
-            Set::SIGNATURE_HASH.to_string(),
+            format!("0x{}", hex::encode(Set::SIGNATURE_HASH)),
             encoded,
             "0x12345c",
             Some("0x64b8c129"),
@@ -716,12 +683,35 @@ mod test_helpers {
                     data.store_address,
                     Address::from_str("0x0123456789abcdef0123456789abcdef01234567").unwrap()
                 );
-                assert_eq!(data.namespace, FixedBytes::<32>::from([0x33u8; 32]));
-                assert_eq!(data.key, FixedBytes::<32>::from([0x44u8; 32]));
-                assert_eq!(data.value, FixedBytes::<32>::from([0x55u8; 32]));
+                assert_eq!(data.payload.namespace, U256::from_be_bytes([0x33u8; 32]));
+                assert_eq!(data.payload.key, FixedBytes::<32>::from([0x44u8; 32]));
+                assert_eq!(data.payload.value, FixedBytes::<32>::from([0x55u8; 32]));
             }
             other => panic!("expected InterpreterStoreSet, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_interpreter_store_set_serializes_namespace_as_quantity() {
+        let event = InterpreterStoreSetEvent {
+            store_address: Address::from([0x12u8; 20]),
+            payload: Set {
+                namespace: U256::from(0x1234),
+                key: FixedBytes::<32>::from([0x01u8; 32]),
+                value: FixedBytes::<32>::from([0x02u8; 32]),
+            },
+        };
+
+        let json = serde_json::to_value(&event).unwrap();
+        let payload = json
+            .get("payload")
+            .and_then(Value::as_object)
+            .expect("payload should serialize to an object");
+        let namespace = payload
+            .get("namespace")
+            .and_then(Value::as_str)
+            .expect("namespace should serialize to a string");
+        assert_eq!(namespace, "0x1234");
     }
 
     #[test]
