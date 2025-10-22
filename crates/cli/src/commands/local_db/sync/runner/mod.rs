@@ -1,8 +1,5 @@
 use anyhow::Result;
-use rain_orderbook_common::local_db::{
-    decode::{DecodedEvent, DecodedEventData},
-    query::{SqlStatement, SqlStatementBatch},
-};
+use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
 use url::Url;
 
 use super::{
@@ -204,6 +201,7 @@ mod tests {
     use rain_orderbook_common::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
+    use rain_orderbook_common::local_db::query::{SqlStatement, SqlStatementBatch};
     use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::collections::HashMap;
     use std::sync::Mutex;
