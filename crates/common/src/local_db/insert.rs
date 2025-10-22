@@ -149,8 +149,7 @@ pub fn decoded_events_to_statement(
             }
             DecodedEvent::MetaV1_2(decoded) => {
                 let context = event_context(event)?;
-                let stmt = generate_meta_sql(&context, decoded.as_ref())?;
-                batch.add(SqlStatement::new(stmt));
+                batch.add(generate_meta_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::InterpreterStoreSet(decoded) => {
                 let context = event_context(event)?;
@@ -844,7 +843,7 @@ fn generate_after_clear_sql(
 fn generate_meta_sql(
     context: &EventContext<'_>,
     decoded: &MetaV1_2,
-) -> Result<String, InsertError> {
+) -> Result<SqlStatement, InsertError> {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = context.transaction_hash;
@@ -853,7 +852,7 @@ fn generate_meta_sql(
     let subject = hex::encode_prefixed(decoded.subject);
     let meta = hex::encode_prefixed(&decoded.meta);
 
-    Ok(format!(
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO meta_events (
     block_number,
     block_timestamp,
@@ -863,15 +862,24 @@ fn generate_meta_sql(
     subject,
     meta
 ) VALUES (
-    {block_number},
-    {block_timestamp},
-    '{transaction_hash}',
-    {log_index},
-    '{sender}',
-    '{subject}',
-    '{meta}'
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7
 );
-"#
+"#,
+        vec![
+            SqlValue::from(block_number),
+            SqlValue::from(block_timestamp),
+            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(log_index),
+            SqlValue::from(sender),
+            SqlValue::from(subject),
+            SqlValue::from(meta),
+        ],
     ))
 }
 
@@ -1147,6 +1155,23 @@ mod tests {
         )
     }
 
+    fn sample_meta_event() -> DecodedEventData<DecodedEvent> {
+        let meta = MetaV1_2 {
+            sender: Address::from([0x18; 20]),
+            subject: FixedBytes::<32>::from([0x19; 32]),
+            meta: Bytes::from(vec![0xde, 0xad, 0xbe, 0xef]),
+        };
+
+        build_event(
+            EventType::MetaV1_2,
+            "0x104",
+            "0x204",
+            "0x1122",
+            "0x6",
+            DecodedEvent::MetaV1_2(Box::new(meta)),
+        )
+    }
+
     fn sample_store_set_event() -> DecodedEventData<DecodedEvent> {
         let store = InterpreterStoreSetEvent {
             store_address: Address::from([0x30; 20]),
@@ -1310,6 +1335,28 @@ mod tests {
         assert!(matches!(params[5], SqlValue::Text(ref v) if v == &expected_alice_input));
         let expected_bob_output = hex::encode_prefixed(decoded.clearStateChange.bobOutput);
         assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_bob_output));
+    }
+
+    #[test]
+    fn meta_sql_generation() {
+        let event = sample_meta_event();
+        let context = event_context(&event).unwrap();
+        let DecodedEvent::MetaV1_2(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
+        let statement = generate_meta_sql(&context, decoded).unwrap();
+        assert!(statement.sql().contains("INSERT INTO meta_events"));
+        assert!(statement.sql().contains("?7"));
+        let params = statement.params();
+        assert_eq!(params.len(), 7);
+        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        let expected_sender = hex::encode_prefixed(decoded.sender);
+        assert!(matches!(params[4], SqlValue::Text(ref v) if v == &expected_sender));
+        let expected_subject = hex::encode_prefixed(decoded.subject);
+        assert!(matches!(params[5], SqlValue::Text(ref v) if v == &expected_subject));
+        let expected_meta = hex::encode_prefixed(&decoded.meta);
+        assert!(matches!(params[6], SqlValue::Text(ref v) if v == &expected_meta));
     }
 
     #[test]
