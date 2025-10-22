@@ -94,7 +94,6 @@ fn event_context<'a>(
 
 pub fn decoded_events_to_statement(
     events: &[DecodedEventData<DecodedEvent>],
-    end_block: u64,
     decimals_by_token: &HashMap<Address, u8>,
     prefix_sql: Option<&str>,
 ) -> Result<SqlStatementBatch, InsertError> {
@@ -157,11 +156,6 @@ pub fn decoded_events_to_statement(
             }
         }
     }
-
-    batch.add(SqlStatement::new(format!(
-        "UPDATE sync_status SET last_synced_block = {}, updated_at = CURRENT_TIMESTAMP WHERE id = 1;",
-        end_block
-    )));
 
     Ok(batch)
 }
@@ -1390,15 +1384,13 @@ mod tests {
         if let DecodedEvent::DepositV2(deposit) = &deposit_event.decoded_data {
             decimals.insert(deposit.token, 6);
         }
-        let batch =
-            decoded_events_to_statement(&[deposit_event, clear_event], 0x200, &decimals, None)
-                .unwrap()
-                .into_transaction()
-                .unwrap();
+        let batch = decoded_events_to_statement(&[deposit_event, clear_event], &decimals, None)
+            .unwrap()
+            .into_transaction()
+            .unwrap();
         let sql = batch.statements().iter().map(|stmt| stmt.sql()).join("\n");
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("INSERT INTO clear_v3_events"));
-        assert!(sql.contains("UPDATE sync_status SET last_synced_block = 512"));
     }
 
     #[test]
@@ -1414,7 +1406,7 @@ mod tests {
                 note: "n/a".into(),
             }),
         );
-        let batch = decoded_events_to_statement(&[unknown_event], 0, &HashMap::new(), None)
+        let batch = decoded_events_to_statement(&[unknown_event], &HashMap::new(), None)
             .unwrap()
             .into_transaction()
             .unwrap();
@@ -1531,7 +1523,7 @@ mod tests {
     fn test_decoded_events_to_statement_with_prefix_injection() {
         let events: Vec<DecodedEventData<DecodedEvent>> = Vec::new();
         let base_batch = LocalDb::default()
-            .decoded_events_to_statement(&events, 0, &HashMap::new(), None)
+            .decoded_events_to_statement(&events, &HashMap::new(), None)
             .unwrap()
             .into_transaction()
             .unwrap();
@@ -1544,7 +1536,7 @@ mod tests {
 
         let prefix = "-- prefix sql\n";
         let prefixed_batch = LocalDb::default()
-            .decoded_events_to_statement(&events, 0, &HashMap::new(), Some(prefix))
+            .decoded_events_to_statement(&events, &HashMap::new(), Some(prefix))
             .unwrap()
             .into_transaction()
             .unwrap();
