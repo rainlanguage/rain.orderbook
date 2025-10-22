@@ -199,6 +199,7 @@ mod tests {
     use super::*;
     use alloy::primitives::{Address, FixedBytes, U256};
     use async_trait::async_trait;
+    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
     use rain_orderbook_common::local_db::decode::{
@@ -377,9 +378,11 @@ mod tests {
             log_index: "0x1".into(),
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
                 store_address: store,
-                namespace: FixedBytes::from([0xaa; 32]),
-                key: FixedBytes::from([0xbb; 32]),
-                value: FixedBytes::from([0xcc; 32]),
+                payload: Set {
+                    namespace: U256::from_be_bytes([0xaa; 32]),
+                    key: FixedBytes::from([0xbb; 32]),
+                    value: FixedBytes::from([0xcc; 32]),
+                },
             })),
         }
     }
