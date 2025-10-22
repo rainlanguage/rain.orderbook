@@ -183,7 +183,6 @@ mod tests {
         fn events_to_sql(
             &self,
             _decoded_events: &[DecodedEventData<DecodedEvent>],
-            _end_block: u64,
             _decimals_by_token: &HashMap<Address, u8>,
             _prefix_sql: &str,
         ) -> Result<SqlStatementBatch> {

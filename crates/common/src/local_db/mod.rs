@@ -202,15 +202,14 @@ impl LocalDb {
     pub fn decoded_events_to_statement(
         &self,
         events: &[DecodedEventData<DecodedEvent>],
-        end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
         prefix_sql: Option<&str>,
     ) -> Result<SqlStatementBatch, LocalDbError> {
-        decoded_events_to_statement_impl(events, end_block, decimals_by_token, prefix_sql).map_err(
-            |err| LocalDbError::InsertError {
+        decoded_events_to_statement_impl(events, decimals_by_token, prefix_sql).map_err(|err| {
+            LocalDbError::InsertError {
                 message: err.to_string(),
-            },
-        )
+            }
+        })
     }
 
     pub fn raw_events_to_sql(
@@ -296,7 +295,7 @@ mod bool_deserialize_tests {
         }
 
         let err = db
-            .decoded_events_to_statement(&[event], 42, &decimals, None)
+            .decoded_events_to_statement(&[event], &decimals, None)
             .unwrap_err();
         match err {
             LocalDbError::InsertError { message } => {

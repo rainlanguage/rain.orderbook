@@ -84,11 +84,10 @@ impl DecodedEventsToSql {
             }
         }
 
-        let sql_batch =
-            decoded_events_to_statement(&decoded_events, self.end_block, &decimals_by_token, None)
-                .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?
-                .into_transaction()
-                .map_err(|e| anyhow::anyhow!("Failed to wrap SQL in transaction: {}", e))?;
+        let sql_batch = decoded_events_to_statement(&decoded_events, &decimals_by_token, None)
+            .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?
+            .into_transaction()
+            .map_err(|e| anyhow::anyhow!("Failed to wrap SQL in transaction: {}", e))?;
         let sql_statements = batch_to_string(&sql_batch);
 
         let output_path = self.output_file.map(PathBuf::from).unwrap_or_else(|| {
@@ -296,8 +295,7 @@ mod tests {
         // Validate computed deposit amount using structured statements
         let mut decimals = HashMap::new();
         decimals.insert(token_addr, 18u8);
-        let batch =
-            decoded_events_to_statement(&decoded, 1000, &decimals, None).expect("SQL generation");
+        let batch = decoded_events_to_statement(&decoded, &decimals, None).expect("SQL generation");
         let deposit_statement = batch
             .statements()
             .iter()

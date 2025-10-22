@@ -256,7 +256,7 @@ mod tests {
         sql_result: String,
         fetch_calls: Mutex<Vec<(String, u64, u64)>>,
         fetch_store_calls: Mutex<Vec<(Vec<String>, u64, u64)>>,
-        sql_calls: Mutex<Vec<(usize, u64)>>,
+        sql_calls: Mutex<Vec<usize>>,
         prefixes: Mutex<Vec<String>>,
         decimals: Mutex<Vec<HashMap<Address, u8>>>,
         raw_sql: String,
@@ -311,14 +311,10 @@ mod tests {
         fn events_to_sql(
             &self,
             decoded_events: &[DecodedEventData<DecodedEvent>],
-            end_block: u64,
             decimals_by_token: &HashMap<Address, u8>,
             prefix_sql: &str,
         ) -> Result<SqlStatementBatch> {
-            self.sql_calls
-                .lock()
-                .unwrap()
-                .push((decoded_events.len(), end_block));
+            self.sql_calls.lock().unwrap().push(decoded_events.len());
             self.prefixes.lock().unwrap().push(prefix_sql.to_string());
             self.decimals
                 .lock()
@@ -329,10 +325,9 @@ mod tests {
             if !prefix_sql.is_empty() {
                 statements.push(SqlStatement::new(prefix_sql.to_string()));
             }
-            let main_sql = self
-                .sql_result
-                .replace("?end_block", &end_block.to_string());
-            statements.push(SqlStatement::new(main_sql));
+            if !self.sql_result.is_empty() {
+                statements.push(SqlStatement::new(self.sql_result.clone()));
+            }
             Ok(SqlStatementBatch::from(statements))
         }
 
@@ -428,7 +423,7 @@ mod tests {
             fetch_logs: vec![sample_log()],
             store_logs: vec![sample_store_log()],
             decode_responses: Mutex::new(vec![vec![base_event.clone()], vec![store_event.clone()]]),
-            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            sql_result: String::new(),
             fetch_calls: Mutex::new(vec![]),
             fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
@@ -471,7 +466,7 @@ mod tests {
 
         let sql_calls = data_source.sql_calls.lock().unwrap();
         assert_eq!(sql_calls.len(), 1);
-        assert_eq!(sql_calls[0].0, 2);
+        assert_eq!(sql_calls[0], 2);
 
         let raw_calls = data_source.raw_calls.lock().unwrap();
         assert_eq!(raw_calls.len(), 1);
@@ -559,7 +554,7 @@ mod tests {
             fetch_logs: vec![sample_log()],
             store_logs: vec![sample_store_log()],
             decode_responses: Mutex::new(vec![decoded]),
-            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            sql_result: String::new(),
             fetch_calls: Mutex::new(vec![]),
             fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
