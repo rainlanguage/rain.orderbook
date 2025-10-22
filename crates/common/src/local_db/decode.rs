@@ -21,6 +21,8 @@ pub enum DecodeError {
     HexDecode(#[from] hex::FromHexError),
     #[error("ABI decode error: {0}")]
     AbiDecode(String),
+    #[error("log at index {index} missing required field {field}")]
+    MissingRequiredField { field: &'static str, index: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -104,12 +106,18 @@ pub fn decode_events(
 ) -> Result<Vec<DecodedEventData<DecodedEvent>>, DecodeError> {
     let mut decoded_events = Vec::with_capacity(events.len());
 
-    for event in events {
+    for (index, event) in events.iter().enumerate() {
         let Some(topic0) = event.topics.first() else {
-            continue;
+            return Err(DecodeError::MissingRequiredField {
+                field: "topic0",
+                index,
+            });
         };
         if event.data.trim().is_empty() {
-            continue;
+            return Err(DecodeError::MissingRequiredField {
+                field: "data",
+                index,
+            });
         }
         let event_type = EventType::from_topic(topic0);
 
@@ -864,8 +872,12 @@ mod test_helpers {
         event_empty_topics.topics.clear();
         event_empty_topics.data = "0x1234567890abcdef".to_string();
 
-        let decoded_events = decode_events_vec(vec![event_empty_topics]);
-        assert!(decoded_events.is_empty());
+        let result = decode_events(&[event_empty_topics]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::MissingRequiredField { field, index })
+                if field == "topic0" && index == 0
+        ));
     }
 
     #[test]
@@ -873,8 +885,12 @@ mod test_helpers {
         let mut event_no_data = create_add_order_v3_event_data();
         event_no_data.data = String::new();
 
-        let decoded_events = decode_events_vec(vec![event_no_data]);
-        assert!(decoded_events.is_empty());
+        let result = decode_events(&[event_no_data]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::MissingRequiredField { field, index })
+                if field == "data" && index == 0
+        ));
     }
 
     #[test]
