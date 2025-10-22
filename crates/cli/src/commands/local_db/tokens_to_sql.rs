@@ -2,7 +2,10 @@ use alloy::primitives::Address;
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use rain_orderbook_common::erc20::TokenInfo;
-use rain_orderbook_common::local_db::insert::generate_erc20_tokens_sql;
+use rain_orderbook_common::local_db::{
+    insert::generate_erc20_token_statements,
+    query::{SqlStatement, SqlStatementBatch, SqlValue},
+};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -60,11 +63,44 @@ impl TokensToSql {
         }
         let tokens: Vec<(Address, TokenInfo)> = tokens_map.into_iter().collect();
 
-        let sql = generate_erc20_tokens_sql(chain_id, &tokens);
-        fs::write(&output_file, sql)
+        let batch = generate_erc20_token_statements(chain_id, &tokens);
+        fs::write(&output_file, batch_to_string(&batch))
             .await
             .with_context(|| format!("failed to write token SQL to {}", &output_file))?;
         Ok(())
+    }
+}
+
+fn batch_to_string(batch: &SqlStatementBatch) -> String {
+    let mut out = String::new();
+    for stmt in batch.statements() {
+        if !out.is_empty() && !out.ends_with('\n') {
+            out.push('\n');
+        }
+        let sql = materialize_statement(stmt);
+        out.push_str(&sql);
+        if !sql.ends_with('\n') {
+            out.push('\n');
+        }
+    }
+    out
+}
+
+fn materialize_statement(statement: &SqlStatement) -> String {
+    let mut sql = statement.sql().to_string();
+    for (idx, value) in statement.params().iter().enumerate().rev() {
+        let placeholder = format!("?{}", idx + 1);
+        sql = sql.replacen(&placeholder, &render_sql_value(value), 1);
+    }
+    sql
+}
+
+fn render_sql_value(value: &SqlValue) -> String {
+    match value {
+        SqlValue::Text(text) => format!("'{}'", text.replace('\'', "''")),
+        SqlValue::I64(num) => num.to_string(),
+        SqlValue::U64(num) => num.to_string(),
+        SqlValue::Null => "NULL".to_string(),
     }
 }
 

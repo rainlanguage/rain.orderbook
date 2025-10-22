@@ -4,7 +4,7 @@ use clap::Args;
 use rain_orderbook_common::local_db::{
     decode::{DecodedEvent, DecodedEventData},
     insert::decoded_events_to_statement,
-    query::SqlStatementBatch,
+    query::{SqlStatement, SqlStatementBatch, SqlValue},
 };
 use serde::Deserialize;
 use std::collections::{BTreeSet, HashMap};
@@ -84,7 +84,7 @@ impl DecodedEventsToSql {
             }
         }
 
-        let sql_batch = decoded_events_to_statement(&decoded_events, &decimals_by_token, None)
+        let sql_batch = decoded_events_to_statement(&decoded_events, &decimals_by_token)
             .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?
             .into_transaction()
             .map_err(|e| anyhow::anyhow!("Failed to wrap SQL in transaction: {}", e))?;
@@ -113,13 +113,31 @@ fn batch_to_string(batch: &SqlStatementBatch) -> String {
         if !out.is_empty() && !out.ends_with('\n') {
             out.push('\n');
         }
-        let sql = stmt.sql();
-        out.push_str(sql);
+        let sql = materialize_statement(stmt);
+        out.push_str(&sql);
         if !sql.ends_with('\n') {
             out.push('\n');
         }
     }
     out
+}
+
+fn materialize_statement(statement: &SqlStatement) -> String {
+    let mut sql = statement.sql().to_string();
+    for (idx, value) in statement.params().iter().enumerate().rev() {
+        let placeholder = format!("?{}", idx + 1);
+        sql = sql.replacen(&placeholder, &render_sql_value(value), 1);
+    }
+    sql
+}
+
+fn render_sql_value(value: &SqlValue) -> String {
+    match value {
+        SqlValue::Text(text) => format!("'{}'", text.replace('\'', "''")),
+        SqlValue::I64(num) => num.to_string(),
+        SqlValue::U64(num) => num.to_string(),
+        SqlValue::Null => "NULL".to_string(),
+    }
 }
 
 #[derive(Deserialize)]
@@ -295,7 +313,7 @@ mod tests {
         // Validate computed deposit amount using structured statements
         let mut decimals = HashMap::new();
         decimals.insert(token_addr, 18u8);
-        let batch = decoded_events_to_statement(&decoded, &decimals, None).expect("SQL generation");
+        let batch = decoded_events_to_statement(&decoded, &decimals).expect("SQL generation");
         let deposit_statement = batch
             .statements()
             .iter()
