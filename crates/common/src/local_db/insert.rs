@@ -134,8 +134,10 @@ pub fn decoded_events_to_statement(
             }
             DecodedEvent::TakeOrderV3(decoded) => {
                 let context = event_context(event)?;
-                let stmt = generate_take_order_sql(&context, decoded.as_ref())?;
-                batch.add(SqlStatement::new(stmt));
+                let take_event = decoded.as_ref();
+                batch.add(generate_take_order_sql(&context, take_event)?);
+                batch.extend(generate_take_order_contexts(&context, take_event));
+                batch.extend(generate_take_order_context_values(&context, take_event));
             }
             DecodedEvent::ClearV3(decoded) => {
                 let context = event_context(event)?;
@@ -526,11 +528,10 @@ fn generate_remove_order_sql(
 fn generate_take_order_sql(
     context: &EventContext<'_>,
     decoded: &TakeOrderV3,
-) -> Result<String, InsertError> {
+) -> Result<SqlStatement, InsertError> {
     let input_io_index_u64 = u256_to_u64(&decoded.config.inputIOIndex, "inputIOIndex")?;
     let output_io_index_u64 = u256_to_u64(&decoded.config.outputIOIndex, "outputIOIndex")?;
 
-    let mut sql = String::new();
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
     let transaction_hash = context.transaction_hash;
@@ -540,10 +541,8 @@ fn generate_take_order_sql(
     let order_nonce = hex::encode_prefixed(decoded.config.order.nonce);
     let taker_input = hex::encode_prefixed(decoded.input);
     let taker_output = hex::encode_prefixed(decoded.output);
-    let input_io_index = input_io_index_u64;
-    let output_io_index = output_io_index_u64;
 
-    sql.push_str(&format!(
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO take_orders (
     block_number,
     block_timestamp,
@@ -557,20 +556,55 @@ fn generate_take_order_sql(
     taker_input,
     taker_output
 ) VALUES (
-    {block_number},
-    {block_timestamp},
-    '{transaction_hash}',
-    {log_index},
-    '{sender}',
-    '{order_owner}',
-    '{order_nonce}',
-    {input_io_index},
-    {output_io_index},
-    '{taker_input}',
-    '{taker_output}'
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?8,
+    ?9,
+    ?10,
+    ?11
 );
-"#
-    ));
+"#,
+        vec![
+            SqlValue::from(block_number),
+            SqlValue::from(block_timestamp),
+            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(log_index),
+            SqlValue::from(sender),
+            SqlValue::from(order_owner),
+            SqlValue::from(order_nonce),
+            SqlValue::from(input_io_index_u64),
+            SqlValue::from(output_io_index_u64),
+            SqlValue::from(taker_input),
+            SqlValue::from(taker_output),
+        ],
+    ))
+}
+
+fn generate_take_order_contexts(
+    context: &EventContext<'_>,
+    decoded: &TakeOrderV3,
+) -> SqlStatementBatch {
+    const INSERT_CONTEXT_SQL: &str = r#"INSERT INTO take_order_contexts (
+    transaction_hash,
+    log_index,
+    context_index,
+    context_value
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4
+);
+"#;
+
+    let mut batch = SqlStatementBatch::new();
+    let transaction_hash = context.transaction_hash.to_owned();
+    let log_index = context.log_index;
 
     for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
         let context_value = format!(
@@ -579,43 +613,59 @@ fn generate_take_order_sql(
             hex::encode_prefixed(&signed_context.signature)
         );
 
-        sql.push_str(&format!(
-            r#"INSERT INTO take_order_contexts (
-    transaction_hash,
-    log_index,
-    context_index,
-    context_value
-) VALUES (
-    '{transaction_hash}',
-    {log_index},
-    {context_index},
-    '{context_value}'
-);
-"#
+        batch.add(SqlStatement::new_with_params(
+            INSERT_CONTEXT_SQL,
+            vec![
+                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(log_index),
+                SqlValue::from(context_index as u64),
+                SqlValue::from(context_value),
+            ],
         ));
+    }
 
-        for (value_index, value) in signed_context.context.iter().enumerate() {
-            let value_hex = hex::encode_prefixed(value);
-            sql.push_str(&format!(
-                r#"INSERT INTO context_values (
+    batch
+}
+
+fn generate_take_order_context_values(
+    context: &EventContext<'_>,
+    decoded: &TakeOrderV3,
+) -> SqlStatementBatch {
+    const INSERT_VALUE_SQL: &str = r#"INSERT INTO context_values (
     transaction_hash,
     log_index,
     context_index,
     value_index,
     value
 ) VALUES (
-    '{transaction_hash}',
-    {log_index},
-    {context_index},
-    {value_index},
-    '{value_hex}'
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5
 );
-"#
+"#;
+
+    let mut batch = SqlStatementBatch::new();
+    let transaction_hash = context.transaction_hash.to_owned();
+    let log_index = context.log_index;
+
+    for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
+        for (value_index, value) in signed_context.context.iter().enumerate() {
+            batch.add(SqlStatement::new_with_params(
+                INSERT_VALUE_SQL,
+                vec![
+                    SqlValue::from(transaction_hash.clone()),
+                    SqlValue::from(log_index),
+                    SqlValue::from(context_index as u64),
+                    SqlValue::from(value_index as u64),
+                    SqlValue::from(hex::encode_prefixed(value)),
+                ],
             ));
         }
     }
 
-    Ok(sql)
+    batch
 }
 
 fn generate_clear_v3_sql(
@@ -1157,12 +1207,36 @@ mod tests {
         let DecodedEvent::TakeOrderV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
-        let sql = generate_take_order_sql(&context, decoded).unwrap();
-        assert!(sql.contains("INSERT INTO take_orders"));
-        assert!(sql.contains("signer:0x0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"));
+        let statement = generate_take_order_sql(&context, decoded).unwrap();
+        assert!(statement.sql().contains("INSERT INTO take_orders"));
+        assert!(statement.sql().contains("?11"));
+        let params = statement.params();
+        assert_eq!(params.len(), 11);
+        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
         assert!(
-            sql.contains("'0x000000000000000000000000000000000000000000000000000000000000002a'")
+            matches!(params[4], SqlValue::Text(ref v) if v == "0x0909090909090909090909090909090909090909")
         );
+
+        let contexts = generate_take_order_contexts(&context, decoded);
+        assert_eq!(contexts.len(), decoded.config.signedContext.len());
+        assert!(contexts
+            .statements()
+            .iter()
+            .all(|stmt| stmt.sql().contains("INSERT INTO take_order_contexts")));
+
+        let context_values = generate_take_order_context_values(&context, decoded);
+        let expected_values: usize = decoded
+            .config
+            .signedContext
+            .iter()
+            .map(|ctx| ctx.context.len())
+            .sum();
+        assert_eq!(context_values.len(), expected_values);
+        assert!(context_values
+            .statements()
+            .iter()
+            .all(|stmt| stmt.sql().contains("INSERT INTO context_values")));
     }
 
     #[test]
