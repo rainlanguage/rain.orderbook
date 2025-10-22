@@ -1,5 +1,5 @@
 use super::decode::{DecodedEvent, DecodedEventData, InterpreterStoreSetEvent};
-use super::query::{SqlStatement, SqlStatementBatch};
+use super::query::{SqlStatement, SqlStatementBatch, SqlValue};
 use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
 use alloy::sol_types::SolValue;
 use alloy::{
@@ -107,11 +107,14 @@ pub fn decoded_events_to_statement(
     }
 
     for event in events {
+        let context = event_context(event)?;
         match &event.decoded_data {
             DecodedEvent::DepositV2(decoded) => {
-                let context = event_context(event)?;
-                let stmt = generate_deposit_sql(&context, decoded.as_ref(), decimals_by_token)?;
-                batch.add(SqlStatement::new(stmt));
+                batch.add(generate_deposit_statement(
+                    &context,
+                    decoded.as_ref(),
+                    decimals_by_token,
+                )?);
             }
             DecodedEvent::WithdrawV2(decoded) => {
                 let context = event_context(event)?;
@@ -296,11 +299,11 @@ fn sql_string_literal(value: &str) -> String {
     literal
 }
 
-fn generate_deposit_sql(
+fn generate_deposit_statement(
     context: &EventContext<'_>,
     decoded: &DepositV2,
     decimals_by_token: &HashMap<Address, u8>,
-) -> Result<String, InsertError> {
+) -> Result<SqlStatement, InsertError> {
     let decimals = decimals_by_token
         .get(&decoded.token)
         .copied()
@@ -321,7 +324,7 @@ fn generate_deposit_sql(
     let deposit_amount = deposit_amount_float.as_hex();
     let deposit_amount_uint256 = encode_u256_prefixed(&decoded.depositAmountUint256);
 
-    Ok(format!(
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO deposits (
     block_number,
     block_timestamp,
@@ -333,17 +336,28 @@ fn generate_deposit_sql(
     deposit_amount,
     deposit_amount_uint256
 ) VALUES (
-    {block_number},
-    {block_timestamp},
-    '{transaction_hash}',
-    {log_index},
-    '{sender}',
-    '{token}',
-    '{vault_id}',
-    '{deposit_amount}',
-    '{deposit_amount_uint256}'
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?8,
+    ?9
 );
-"#
+"#,
+        vec![
+            SqlValue::from(block_number),
+            SqlValue::from(block_timestamp),
+            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(log_index),
+            SqlValue::from(sender),
+            SqlValue::from(token),
+            SqlValue::from(vault_id),
+            SqlValue::from(deposit_amount),
+            SqlValue::from(deposit_amount_uint256),
+        ],
     ))
 }
 
@@ -863,6 +877,7 @@ fn escape_sql_text(value: &str) -> String {
 mod tests {
     use super::*;
     use crate::local_db::decode::{EventType, UnknownEventDecoded};
+    use crate::local_db::query::SqlValue;
     use crate::local_db::LocalDb;
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
@@ -1061,7 +1076,7 @@ mod tests {
     }
 
     #[test]
-    fn deposit_sql_generation() {
+    fn deposit_statement_generation() {
         let event = sample_deposit_event();
         let context = event_context(&event).unwrap();
         let DecodedEvent::DepositV2(decoded) = &event.decoded_data else {
@@ -1070,9 +1085,16 @@ mod tests {
         let deposit = decoded.as_ref();
         let mut decimals = HashMap::new();
         decimals.insert(deposit.token, 6);
-        let sql = generate_deposit_sql(&context, deposit, &decimals).unwrap();
-        assert!(sql.contains("INSERT INTO deposits"));
-        assert!(sql.contains("0x0000000000000000000000000000000000000000000000000000000000000fa0"));
+        let statement = generate_deposit_statement(&context, deposit, &decimals).unwrap();
+        assert!(statement.sql().contains("INSERT INTO deposits"));
+        assert!(statement.sql().contains("?9"));
+        let params = statement.params();
+        assert_eq!(params.len(), 9);
+        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[1], SqlValue::U64(v) if v == context.block_timestamp));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        let expected_uint256 = encode_u256_prefixed(&deposit.depositAmountUint256);
+        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_uint256));
     }
 
     #[test]
