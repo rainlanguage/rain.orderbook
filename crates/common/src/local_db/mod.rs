@@ -10,7 +10,7 @@ use crate::rpc_client::{LogEntryResponse, RpcClient, RpcClientError};
 use alloy::primitives::ruint::ParseError;
 use alloy::primitives::{hex::FromHexError, Address};
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
-pub use fetch::FetchConfig;
+pub use fetch::{FetchConfig, FetchConfigError};
 use insert::{
     decoded_events_to_sql as decoded_events_to_sql_impl,
     raw_events_to_sql as raw_events_to_sql_impl,
