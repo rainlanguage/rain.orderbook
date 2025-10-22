@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rain_orderbook_common::local_db::{
     decode::{DecodedEvent, DecodedEventData},
-    query::SqlStatement,
+    query::{SqlStatement, SqlStatementBatch},
 };
 use url::Url;
 
@@ -135,7 +135,7 @@ where
         }
 
         println!("Preparing token metadata");
-        let sql = prepare_sql(
+        let sql_batch = prepare_sql(
             self.data_source,
             self.token_fetcher,
             PrepareSqlParams {
@@ -152,7 +152,7 @@ where
         println!("Generating SQL for {} events", decoded_count);
         println!("Applying SQL to {}", self.db_path);
         let exec = RusqliteExecutor::new(self.db_path);
-        exec.query_text(&SqlStatement::new(sql))
+        exec.execute_batch(&sql_batch)
             .await
             .map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
@@ -316,7 +316,7 @@ mod tests {
             end_block: u64,
             decimals_by_token: &HashMap<Address, u8>,
             prefix_sql: &str,
-        ) -> Result<String> {
+        ) -> Result<SqlStatementBatch> {
             self.sql_calls
                 .lock()
                 .unwrap()
@@ -327,19 +327,15 @@ mod tests {
                 .unwrap()
                 .push(decimals_by_token.clone());
 
-            let mut out = String::new();
+            let mut statements = Vec::new();
             if !prefix_sql.is_empty() {
-                out.push_str(prefix_sql);
-                if !prefix_sql.ends_with('\n') {
-                    out.push('\n');
-                }
+                statements.push(SqlStatement::new(prefix_sql.to_string()));
             }
-            out.push_str(
-                &self
-                    .sql_result
-                    .replace("?end_block", &end_block.to_string()),
-            );
-            Ok(out)
+            let main_sql = self
+                .sql_result
+                .replace("?end_block", &end_block.to_string());
+            statements.push(SqlStatement::new(main_sql));
+            Ok(SqlStatementBatch::from(statements))
         }
 
         fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {

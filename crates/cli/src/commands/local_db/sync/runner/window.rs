@@ -3,6 +3,7 @@ use anyhow::{anyhow, Result};
 use super::super::data_source::SyncDataSource;
 use super::super::storage::fetch_last_synced;
 use super::SyncParams;
+use rain_orderbook_common::local_db::query::SqlStatementBatch;
 
 pub(super) struct SyncWindow {
     pub(super) last_synced_block: u64,
@@ -184,8 +185,8 @@ mod tests {
             _end_block: u64,
             _decimals_by_token: &HashMap<Address, u8>,
             _prefix_sql: &str,
-        ) -> Result<String> {
-            Ok(String::new())
+        ) -> Result<SqlStatementBatch> {
+            Ok(SqlStatementBatch::new())
         }
 
         fn raw_events_to_sql(&self, _: &[LogEntryResponse]) -> Result<String> {

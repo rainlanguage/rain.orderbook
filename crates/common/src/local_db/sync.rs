@@ -125,16 +125,22 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         Some(prep.tokens_prefix_sql.as_str())
     };
 
-    let sql_commands = local_db
-        .decoded_events_to_sql(
+    let sql_batch = local_db
+        .decoded_events_to_statement(
             &decoded_events,
             latest_block,
             &prep.decimals_by_addr,
             prefix_sql,
         )
-        .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
+        .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?
+        .into_transaction()
+        .map_err(|err| {
+            LocalDbError::SqlGenerationFailed(Box::new(LocalDbError::InsertError {
+                message: err.to_string(),
+            }))
+        })?;
 
-    db.query_text(&SqlStatement::new(sql_commands))
+    db.execute_batch(&sql_batch)
         .await
         .map_err(LocalDbError::from)?;
 
@@ -334,7 +340,7 @@ mod tests {
         create_tables::REQUIRED_TABLES,
         fetch_last_synced_block::{fetch_last_synced_block_stmt, SyncStatusResponse},
         fetch_tables::{fetch_tables_stmt, TableResponse},
-        LocalDbQueryError,
+        LocalDbQueryError, SqlStatementBatch,
     };
     use async_trait::async_trait;
 
@@ -369,6 +375,13 @@ mod tests {
 
     #[async_trait(?Send)]
     impl LocalDbQueryExecutor for MockDb {
+        async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            for stmt in batch {
+                let _ = self.query_text(stmt).await?;
+            }
+            Ok(())
+        }
+
         async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
         where
             T: FromDbJson,

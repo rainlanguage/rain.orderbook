@@ -3,7 +3,8 @@ use anyhow::{anyhow, Context, Result};
 use clap::Args;
 use rain_orderbook_common::local_db::{
     decode::{DecodedEvent, DecodedEventData},
-    insert::decoded_events_to_sql,
+    insert::decoded_events_to_statement,
+    query::SqlStatementBatch,
 };
 use serde::Deserialize;
 use std::collections::{BTreeSet, HashMap};
@@ -83,9 +84,12 @@ impl DecodedEventsToSql {
             }
         }
 
-        let sql_statements =
-            decoded_events_to_sql(&decoded_events, self.end_block, &decimals_by_token, None)
-                .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?;
+        let sql_batch =
+            decoded_events_to_statement(&decoded_events, self.end_block, &decimals_by_token, None)
+                .map_err(|e| anyhow::anyhow!("Failed to generate SQL: {}", e))?
+                .into_transaction()
+                .map_err(|e| anyhow::anyhow!("Failed to wrap SQL in transaction: {}", e))?;
+        let sql_statements = batch_to_string(&sql_batch);
 
         let output_path = self.output_file.map(PathBuf::from).unwrap_or_else(|| {
             let input_path = Path::new(&self.input_file);
@@ -101,6 +105,22 @@ impl DecodedEventsToSql {
         println!("SQL statements written to {}", output_path.display());
         Ok(())
     }
+}
+
+fn batch_to_string(batch: &SqlStatementBatch) -> String {
+    // TODO: LEGACY SUPPORT convert structured statements back into raw SQL text for older tooling.
+    let mut out = String::new();
+    for stmt in batch.statements() {
+        if !out.is_empty() && !out.ends_with('\n') {
+            out.push('\n');
+        }
+        let sql = stmt.sql();
+        out.push_str(sql);
+        if !sql.ends_with('\n') {
+            out.push('\n');
+        }
+    }
+    out
 }
 
 #[derive(Deserialize)]

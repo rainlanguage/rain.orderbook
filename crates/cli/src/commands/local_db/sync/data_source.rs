@@ -5,6 +5,7 @@ use rain_orderbook_common::{
     erc20::TokenInfo,
     local_db::{
         decode::{DecodedEvent, DecodedEventData},
+        query::SqlStatementBatch,
         token_fetch::fetch_erc20_metadata_concurrent,
         FetchConfig, LocalDb,
     },
@@ -39,7 +40,7 @@ pub(crate) trait SyncDataSource {
         end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
         prefix_sql: &str,
-    ) -> Result<String>;
+    ) -> Result<SqlStatementBatch>;
     fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String>;
     fn rpc_urls(&self) -> &[Url];
 }
@@ -134,15 +135,21 @@ impl SyncDataSource for LocalDb {
         end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
         prefix_sql: &str,
-    ) -> Result<String> {
+    ) -> Result<SqlStatementBatch> {
         let prefix = if prefix_sql.is_empty() {
             None
         } else {
             Some(prefix_sql)
         };
 
-        <LocalDb>::decoded_events_to_sql(self, decoded_events, end_block, decimals_by_token, prefix)
-            .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
+        <LocalDb>::decoded_events_to_statement(
+            self,
+            decoded_events,
+            end_block,
+            decimals_by_token,
+            prefix,
+        )
+        .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 
     fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {

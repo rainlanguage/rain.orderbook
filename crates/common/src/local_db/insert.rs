@@ -1,4 +1,5 @@
 use super::decode::{DecodedEvent, DecodedEventData, InterpreterStoreSetEvent};
+use super::query::{SqlStatement, SqlStatementBatch};
 use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
 use alloy::sol_types::SolValue;
 use alloy::{
@@ -91,21 +92,17 @@ fn event_context<'a>(
     })
 }
 
-pub fn decoded_events_to_sql(
+pub fn decoded_events_to_statement(
     events: &[DecodedEventData<DecodedEvent>],
     end_block: u64,
     decimals_by_token: &HashMap<Address, u8>,
     prefix_sql: Option<&str>,
-) -> Result<String, InsertError> {
-    let mut sql = String::new();
-    sql.push_str("BEGIN TRANSACTION;\n\n");
+) -> Result<SqlStatementBatch, InsertError> {
+    let mut batch = SqlStatementBatch::new();
 
     if let Some(prefix) = prefix_sql {
         if !prefix.is_empty() {
-            sql.push_str(prefix);
-            if !prefix.ends_with('\n') {
-                sql.push('\n');
-            }
+            batch.add(SqlStatement::new(prefix));
         }
     }
 
@@ -113,43 +110,48 @@ pub fn decoded_events_to_sql(
         match &event.decoded_data {
             DecodedEvent::DepositV2(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_deposit_sql(
-                    &context,
-                    decoded.as_ref(),
-                    decimals_by_token,
-                )?);
+                let stmt = generate_deposit_sql(&context, decoded.as_ref(), decimals_by_token)?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::WithdrawV2(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_withdraw_sql(&context, decoded.as_ref())?);
+                let stmt = generate_withdraw_sql(&context, decoded.as_ref())?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::AddOrderV3(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_add_order_sql(&context, decoded.as_ref())?);
+                let stmt = generate_add_order_sql(&context, decoded.as_ref())?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::RemoveOrderV3(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_remove_order_sql(&context, decoded.as_ref())?);
+                let stmt = generate_remove_order_sql(&context, decoded.as_ref())?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::TakeOrderV3(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_take_order_sql(&context, decoded.as_ref())?);
+                let stmt = generate_take_order_sql(&context, decoded.as_ref())?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::ClearV3(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_clear_v3_sql(&context, decoded.as_ref())?);
+                let stmt = generate_clear_v3_sql(&context, decoded.as_ref())?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::AfterClearV2(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_after_clear_sql(&context, decoded.as_ref())?);
+                let stmt = generate_after_clear_sql(&context, decoded.as_ref())?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::MetaV1_2(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_meta_sql(&context, decoded.as_ref())?);
+                let stmt = generate_meta_sql(&context, decoded.as_ref())?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::InterpreterStoreSet(decoded) => {
                 let context = event_context(event)?;
-                sql.push_str(&generate_store_set_sql(&context, decoded.as_ref())?);
+                let stmt = generate_store_set_sql(&context, decoded.as_ref())?;
+                batch.add(SqlStatement::new(stmt));
             }
             DecodedEvent::Unknown(decoded) => {
                 eprintln!(
@@ -160,14 +162,12 @@ pub fn decoded_events_to_sql(
         }
     }
 
-    sql.push_str(&format!(
-        "\nUPDATE sync_status SET last_synced_block = {}, updated_at = CURRENT_TIMESTAMP WHERE id = 1;\n",
+    batch.add(SqlStatement::new(format!(
+        "UPDATE sync_status SET last_synced_block = {}, updated_at = CURRENT_TIMESTAMP WHERE id = 1;",
         end_block
-    ));
+    )));
 
-    sql.push_str("\nCOMMIT;\n");
-
-    Ok(sql)
+    Ok(batch)
 }
 
 pub fn raw_events_to_sql(raw_events: &[LogEntryResponse]) -> Result<String, InsertError> {
@@ -1126,15 +1126,19 @@ mod tests {
     }
 
     #[test]
-    fn decoded_events_to_sql_multiple_events() {
+    fn decoded_events_to_statement_multiple_events() {
         let clear_event = sample_clear_event();
         let deposit_event = sample_deposit_event();
         let mut decimals = HashMap::new();
         if let DecodedEvent::DepositV2(deposit) = &deposit_event.decoded_data {
             decimals.insert(deposit.token, 6);
         }
-        let sql =
-            decoded_events_to_sql(&[deposit_event, clear_event], 0x200, &decimals, None).unwrap();
+        let batch =
+            decoded_events_to_statement(&[deposit_event, clear_event], 0x200, &decimals, None)
+                .unwrap()
+                .into_transaction()
+                .unwrap();
+        let sql = batch.statements().iter().map(|stmt| stmt.sql()).join("\n");
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("INSERT INTO clear_v3_events"));
         assert!(sql.contains("UPDATE sync_status SET last_synced_block = 512"));
@@ -1153,7 +1157,11 @@ mod tests {
                 note: "n/a".into(),
             }),
         );
-        let sql = decoded_events_to_sql(&[unknown_event], 0, &HashMap::new(), None).unwrap();
+        let batch = decoded_events_to_statement(&[unknown_event], 0, &HashMap::new(), None)
+            .unwrap()
+            .into_transaction()
+            .unwrap();
+        let sql = batch.statements().iter().map(|stmt| stmt.sql()).join("\n");
         assert!(sql.contains("BEGIN TRANSACTION"));
     }
 
@@ -1263,18 +1271,32 @@ mod tests {
     }
 
     #[test]
-    fn test_decoded_events_to_sql_with_prefix_injection() {
+    fn test_decoded_events_to_statement_with_prefix_injection() {
         let events: Vec<DecodedEventData<DecodedEvent>> = Vec::new();
-        let base = LocalDb::default()
-            .decoded_events_to_sql(&events, 0, &HashMap::new(), None)
+        let base_batch = LocalDb::default()
+            .decoded_events_to_statement(&events, 0, &HashMap::new(), None)
+            .unwrap()
+            .into_transaction()
             .unwrap();
-        assert!(base.starts_with("BEGIN TRANSACTION;\n\n"));
+        let base = base_batch
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql())
+            .join("\n");
+        assert!(base.starts_with("BEGIN TRANSACTION"));
 
         let prefix = "-- prefix sql\n";
-        let prefixed = LocalDb::default()
-            .decoded_events_to_sql(&events, 0, &HashMap::new(), Some(prefix))
+        let prefixed_batch = LocalDb::default()
+            .decoded_events_to_statement(&events, 0, &HashMap::new(), Some(prefix))
+            .unwrap()
+            .into_transaction()
             .unwrap();
-        let expected = format!("BEGIN TRANSACTION;\n\n{}", prefix);
+        let prefixed = prefixed_batch
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql())
+            .join("\n");
+        let expected = format!("BEGIN TRANSACTION\n{}", prefix.trim_end_matches('\n'));
         assert!(prefixed.starts_with(&expected));
     }
 
