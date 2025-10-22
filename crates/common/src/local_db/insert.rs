@@ -141,8 +141,7 @@ pub fn decoded_events_to_statement(
             }
             DecodedEvent::ClearV3(decoded) => {
                 let context = event_context(event)?;
-                let stmt = generate_clear_v3_sql(&context, decoded.as_ref())?;
-                batch.add(SqlStatement::new(stmt));
+                batch.add(generate_clear_v3_sql(&context, decoded.as_ref())?);
             }
             DecodedEvent::AfterClearV2(decoded) => {
                 let context = event_context(event)?;
@@ -671,7 +670,7 @@ fn generate_take_order_context_values(
 fn generate_clear_v3_sql(
     context: &EventContext<'_>,
     decoded: &ClearV3,
-) -> Result<String, InsertError> {
+) -> Result<SqlStatement, InsertError> {
     let alice_input_io_index_u64 =
         u256_to_u64(&decoded.clearConfig.aliceInputIOIndex, "aliceInputIOIndex")?;
     let alice_output_io_index_u64 = u256_to_u64(
@@ -725,7 +724,7 @@ fn generate_clear_v3_sql(
     let bob_input_vault_id_hex = hex::encode_prefixed(bob_input_vault_id);
     let bob_output_vault_id_hex = hex::encode_prefixed(bob_output_vault_id);
 
-    Ok(format!(
+    Ok(SqlStatement::new_with_params(
         r#"INSERT INTO clear_v3_events (
     block_number,
     block_timestamp,
@@ -747,27 +746,48 @@ fn generate_clear_v3_sql(
     bob_input_vault_id,
     bob_output_vault_id
 ) VALUES (
-    {block_number},
-    {block_timestamp},
-    '{transaction_hash}',
-    {log_index},
-    '{sender}',
-    '{alice_order_hash}',
-    '{alice_order_owner}',
-    {alice_input_io_index},
-    {alice_output_io_index},
-    '{alice_bounty_vault_id}',
-    '{alice_input_vault_id_hex}',
-    '{alice_output_vault_id_hex}',
-    '{bob_order_hash}',
-    '{bob_order_owner}',
-    {bob_input_io_index},
-    {bob_output_io_index},
-    '{bob_bounty_vault_id}',
-    '{bob_input_vault_id_hex}',
-    '{bob_output_vault_id_hex}'
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?8,
+    ?9,
+    ?10,
+    ?11,
+    ?12,
+    ?13,
+    ?14,
+    ?15,
+    ?16,
+    ?17,
+    ?18,
+    ?19
 );
-"#
+"#,
+        vec![
+            SqlValue::from(block_number),
+            SqlValue::from(block_timestamp),
+            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(log_index),
+            SqlValue::from(sender),
+            SqlValue::from(alice_order_hash),
+            SqlValue::from(alice_order_owner),
+            SqlValue::from(alice_input_io_index),
+            SqlValue::from(alice_output_io_index),
+            SqlValue::from(alice_bounty_vault_id),
+            SqlValue::from(alice_input_vault_id_hex),
+            SqlValue::from(alice_output_vault_id_hex),
+            SqlValue::from(bob_order_hash),
+            SqlValue::from(bob_order_owner),
+            SqlValue::from(bob_input_io_index),
+            SqlValue::from(bob_output_io_index),
+            SqlValue::from(bob_bounty_vault_id),
+            SqlValue::from(bob_input_vault_id_hex),
+            SqlValue::from(bob_output_vault_id_hex),
+        ],
     ))
 }
 
@@ -1246,10 +1266,17 @@ mod tests {
         let DecodedEvent::ClearV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
-        let sql = generate_clear_v3_sql(&context, decoded).unwrap();
-        assert!(sql.contains("INSERT INTO clear_v3_events"));
-        assert!(sql.contains("0x0000000000000000000000000000000000000000000000000000000000000064"));
-        assert!(sql.contains("0x00000000000000000000000000000000000000000000000000000000000002bc"));
+        let statement = generate_clear_v3_sql(&context, decoded).unwrap();
+        assert!(statement.sql().contains("INSERT INTO clear_v3_events"));
+        assert!(statement.sql().contains("?19"));
+        let params = statement.params();
+        assert_eq!(params.len(), 19);
+        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        let expected_alice_input_vault = hex::encode_prefixed(decoded.alice.validInputs[0].vaultId);
+        assert!(matches!(params[10], SqlValue::Text(ref v) if v == &expected_alice_input_vault));
+        let expected_bob_input_vault = hex::encode_prefixed(decoded.bob.validInputs[0].vaultId);
+        assert!(matches!(params[17], SqlValue::Text(ref v) if v == &expected_bob_input_vault));
     }
 
     #[test]
