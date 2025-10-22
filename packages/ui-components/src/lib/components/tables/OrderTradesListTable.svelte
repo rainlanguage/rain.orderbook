@@ -4,7 +4,7 @@
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '../../services/time';
+	import { formatTimestampSecondsAsLocal, timestampSecondsToUTCTimestamp } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { BugOutline } from 'flowbite-svelte-icons';
 	import type { RaindexOrder, RaindexTrade } from '@rainlanguage/orderbook';
