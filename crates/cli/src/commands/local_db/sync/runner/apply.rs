@@ -1,6 +1,8 @@
 use anyhow::Result;
 use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
-use rain_orderbook_common::local_db::query::SqlStatementBatch;
+use rain_orderbook_common::local_db::query::{
+    update_last_synced_block::build_update_last_synced_block_stmt, SqlStatementBatch,
+};
 use rain_orderbook_common::rpc_client::LogEntryResponse;
 use url::Url;
 
@@ -97,12 +99,12 @@ where
         combined_prefix.push_str(&token_prep.tokens_prefix_sql);
     }
 
-    let batch = data_source.events_to_sql(
+    let mut batch = data_source.events_to_sql(
         &decoded_events,
-        target_block,
         &token_prep.decimals_by_addr,
         &combined_prefix,
     )?;
+    batch.add(build_update_last_synced_block_stmt(target_block));
 
     batch
         .into_transaction()
@@ -126,7 +128,7 @@ mod tests {
     use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
     use rain_orderbook_common::local_db::query::{
-        LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+        LocalDbQueryExecutor, SqlStatement, SqlStatementBatch, SqlValue,
     };
 
     const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
@@ -210,7 +212,6 @@ mod tests {
         fn events_to_sql(
             &self,
             decoded_events: &[DecodedEventData<DecodedEvent>],
-            end_block: u64,
             decimals_by_token: &HashMap<Address, u8>,
             prefix_sql: &str,
         ) -> Result<SqlStatementBatch> {
@@ -231,10 +232,9 @@ mod tests {
             if !prefix_sql.is_empty() {
                 statements.push(SqlStatement::new(prefix_sql.to_string()));
             }
-            let main_sql = self
-                .sql_result
-                .replace("?end_block", &end_block.to_string());
-            statements.push(SqlStatement::new(main_sql));
+            if !self.sql_result.is_empty() {
+                statements.push(SqlStatement::new(self.sql_result.clone()));
+            }
             Ok(SqlStatementBatch::from(statements))
         }
 
@@ -378,7 +378,7 @@ mod tests {
         };
 
         let data_source = MockDataSource {
-            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            sql_result: String::new(),
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
             captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
@@ -415,8 +415,18 @@ mod tests {
         .await
         .unwrap();
 
-        let sql = batch_to_string(&batch);
-        assert!(sql.contains("last_synced_block = 42"));
+        let update_stmt = batch
+            .statements()
+            .iter()
+            .find(|stmt| {
+                stmt.sql()
+                    .contains("UPDATE sync_status SET last_synced_block")
+            })
+            .expect("update statement");
+        assert!(matches!(
+            update_stmt.params().first(),
+            Some(SqlValue::I64(value)) if *value == 42
+        ));
 
         let prefixes = data_source.captured_prefixes.lock().unwrap();
         assert_eq!(prefixes.len(), 1);
@@ -453,7 +463,7 @@ mod tests {
             .unwrap();
 
         let data_source = MockDataSource {
-            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            sql_result: String::new(),
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
             captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
@@ -478,8 +488,18 @@ mod tests {
         .await
         .unwrap();
 
-        let sql = batch_to_string(&batch);
-        assert!(sql.contains("last_synced_block = 75"));
+        let update_stmt = batch
+            .statements()
+            .iter()
+            .find(|stmt| {
+                stmt.sql()
+                    .contains("UPDATE sync_status SET last_synced_block")
+            })
+            .expect("update statement");
+        assert!(matches!(
+            update_stmt.params().first(),
+            Some(SqlValue::I64(value)) if *value == 75
+        ));
         let prefixes = data_source.captured_prefixes.lock().unwrap();
         assert_eq!(prefixes.len(), 1);
         assert!(prefixes[0].is_empty());

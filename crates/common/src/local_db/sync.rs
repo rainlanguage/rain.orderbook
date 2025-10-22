@@ -125,27 +125,19 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         Some(prep.tokens_prefix_sql.as_str())
     };
 
-    let sql_batch = local_db
-        .decoded_events_to_statement(
-            &decoded_events,
-            latest_block,
-            &prep.decimals_by_addr,
-            prefix_sql,
-        )
-        .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?
-        .into_transaction()
-        .map_err(|err| {
-            LocalDbError::SqlGenerationFailed(Box::new(LocalDbError::InsertError {
-                message: err.to_string(),
-            }))
-        })?;
+    let mut sql_batch = local_db
+        .decoded_events_to_statement(&decoded_events, &prep.decimals_by_addr, prefix_sql)
+        .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
+
+    sql_batch.add(build_update_last_synced_block_stmt(latest_block));
+
+    let sql_batch = sql_batch.into_transaction().map_err(|err| {
+        LocalDbError::SqlGenerationFailed(Box::new(LocalDbError::InsertError {
+            message: err.to_string(),
+        }))
+    })?;
 
     db.execute_batch(&sql_batch)
-        .await
-        .map_err(LocalDbError::from)?;
-
-    let update_stmt = build_update_last_synced_block_stmt(latest_block);
-    db.query_text(&update_stmt)
         .await
         .map_err(LocalDbError::from)?;
 
