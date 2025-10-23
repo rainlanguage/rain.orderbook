@@ -2,6 +2,7 @@ pub mod address_collectors;
 pub mod decode;
 pub mod fetch;
 pub mod insert;
+pub mod pipeline;
 pub mod query;
 pub mod sync;
 pub mod token_fetch;
