@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::strict_yaml::Hash as YamlHash;
 use strict_yaml_rust::StrictYaml;
-use url::{ParseError as UrlParseError, Url};
+use url::Url;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -31,85 +31,37 @@ pub struct LocalDbCfg {
 }
 
 impl LocalDbCfg {
-    fn parse_positive_u32(value: &str, field: &str, location: String) -> Result<u32, YamlError> {
-        let parsed: u32 = value
-            .parse()
-            .map_err(|e: std::num::ParseIntError| YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: field.to_string(),
-                    reason: e.to_string(),
-                },
-                location: location.clone(),
-            })?;
-        if parsed == 0 {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: field.to_string(),
-                    reason: "must be a positive integer".to_string(),
-                },
-                location,
-            });
-        }
-        Ok(parsed)
-    }
-
-    fn parse_positive_u64(value: &str, field: &str, location: String) -> Result<u64, YamlError> {
-        let parsed: u64 = value
-            .parse()
-            .map_err(|e: std::num::ParseIntError| YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: field.to_string(),
-                    reason: e.to_string(),
-                },
-                location: location.clone(),
-            })?;
-        if parsed == 0 {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: field.to_string(),
-                    reason: "must be a positive integer".to_string(),
-                },
-                location,
-            });
-        }
-        Ok(parsed)
-    }
-
-    fn parse_manifest_url(value: &str) -> Result<Url, UrlParseError> {
-        Url::parse(value)
-    }
-
     fn parse_sync_network_settings(
         network_key: &str,
         yaml: &StrictYaml,
     ) -> Result<SyncSettings, YamlError> {
         let location = format!("local-db.sync.{}", network_key);
-        let batch_size = Self::parse_positive_u32(
+        let batch_size = crate::utils::parse_positive_u32(
             &require_string(yaml, Some("batch-size"), Some(location.clone()))?,
             "batch-size",
             location.clone(),
         )?;
-        let max_concurrent_batches = Self::parse_positive_u32(
+        let max_concurrent_batches = crate::utils::parse_positive_u32(
             &require_string(yaml, Some("max-concurrent-batches"), Some(location.clone()))?,
             "max-concurrent-batches",
             location.clone(),
         )?;
-        let retry_attempts = Self::parse_positive_u32(
+        let retry_attempts = crate::utils::parse_positive_u32(
             &require_string(yaml, Some("retry-attempts"), Some(location.clone()))?,
             "retry-attempts",
             location.clone(),
         )?;
-        let retry_delay_ms = Self::parse_positive_u64(
+        let retry_delay_ms = crate::utils::parse_positive_u64(
             &require_string(yaml, Some("retry-delay-ms"), Some(location.clone()))?,
             "retry-delay-ms",
             location.clone(),
         )?;
-        let rate_limit_delay_ms = Self::parse_positive_u64(
+        let rate_limit_delay_ms = crate::utils::parse_positive_u64(
             &require_string(yaml, Some("rate-limit-delay-ms"), Some(location.clone()))?,
             "rate-limit-delay-ms",
             location.clone(),
         )?;
-        let finality_depth = Self::parse_positive_u32(
+        let finality_depth = crate::utils::parse_positive_u32(
             &require_string(yaml, Some("finality-depth"), Some(location.clone()))?,
             "finality-depth",
             location,
@@ -157,13 +109,7 @@ impl YamlParseableValue for LocalDbCfg {
                 {
                     let s = require_string(manifest_yaml, None, Some("local-db".to_string()))?;
                     let parsed =
-                        LocalDbCfg::parse_manifest_url(&s).map_err(|e| YamlError::Field {
-                            kind: FieldErrorKind::InvalidValue {
-                                field: "manifest-url".to_string(),
-                                reason: e.to_string(),
-                            },
-                            location: "local-db".to_string(),
-                        })?;
+                        crate::utils::parse_url(&s, "manifest-url", "local-db".to_string())?;
 
                     if let Some(existing) = &manifest_url_str {
                         if existing != &s {
