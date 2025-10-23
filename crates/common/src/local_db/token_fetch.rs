@@ -38,10 +38,13 @@ pub async fn fetch_erc20_metadata_concurrent(
 
                 match result {
                     Ok(info) => Ok((addr, info)),
-                    Err(RetryError::Operation(err)) => Err(LocalDbError::CustomError(format!(
-                        "Failed to fetch token info for 0x{:x} after {} attempts: {}",
-                        addr, max_attempts, err
-                    ))),
+                    Err(RetryError::Operation(err)) => {
+                        Err(LocalDbError::TokenMetadataFetchFailed {
+                            address: addr,
+                            attempts: max_attempts,
+                            source: Box::new(err),
+                        })
+                    }
                     Err(RetryError::Config { message }) => Err(LocalDbError::Config { message }),
                 }
             }
@@ -64,6 +67,7 @@ pub async fn fetch_erc20_metadata_concurrent(
 mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
+        use crate::erc20::Error as TokenError;
         use crate::local_db::token_fetch::fetch_erc20_metadata_concurrent;
         use crate::local_db::{FetchConfig, LocalDbError};
         use alloy::primitives::Address;
@@ -94,10 +98,20 @@ mod tests {
             let res = fetch_erc20_metadata_concurrent(rpcs, addrs, &FetchConfig::default()).await;
             assert!(res.is_err());
             match res.err().unwrap() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to fetch token info"));
+                LocalDbError::TokenMetadataFetchFailed {
+                    address,
+                    attempts,
+                    source,
+                } => {
+                    assert_eq!(address, Address::ZERO);
+                    assert_eq!(attempts, FetchConfig::default().max_retry_attempts());
+                    assert!(
+                        matches!(source.as_ref(), TokenError::ReadProviderError(_)),
+                        "unexpected source error: {:?}",
+                        source
+                    );
                 }
-                other => panic!("Expected CustomError, got {other:?}"),
+                other => panic!("Expected TokenMetadataFetchFailed, got {other:?}"),
             }
         }
     }

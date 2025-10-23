@@ -1,4 +1,5 @@
 use super::{
+    address_collectors::{collect_store_addresses, collect_token_addresses},
     decode::{DecodedEvent, DecodedEventData},
     insert,
     query::{
@@ -11,7 +12,6 @@ use super::{
         LocalDbQueryError, SqlStatement, SqlStatementBatch,
     },
     token_fetch::fetch_erc20_metadata_concurrent,
-    tokens::{collect_store_addresses, collect_token_addresses},
     FetchConfig, LocalDb, LocalDbError,
 };
 use crate::rpc_client::BlockRange;
