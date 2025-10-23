@@ -299,7 +299,7 @@
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
-          buildInputs = rainix.devShells.${system}.default.buildInputs ++ [ pkgs.clang-tools ];
+          buildInputs = rainix.devShells.${system}.default.buildInputs;
           nativeBuildInputs =
             rainix.devShells.${system}.default.nativeBuildInputs;
         };
