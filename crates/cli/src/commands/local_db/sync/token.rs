@@ -2,9 +2,9 @@ use alloy::hex;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use itertools::Itertools;
-use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
-use rain_orderbook_common::raindex_client::local_db::insert::generate_erc20_tokens_sql;
-use rain_orderbook_common::raindex_client::local_db::tokens::collect_token_addresses;
+use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
+use rain_orderbook_common::local_db::insert::generate_erc20_tokens_sql;
+use rain_orderbook_common::local_db::tokens::collect_token_addresses;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use url::Url;
@@ -40,7 +40,7 @@ where
         .iter()
         .map(|a| hex::encode_prefixed(*a))
         .collect();
-    let existing_rows = fetch_existing_tokens(db_path, chain_id, &addr_strings)?;
+    let existing_rows = fetch_existing_tokens(db_path, chain_id, &addr_strings).await?;
 
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
     let mut existing_lower: HashSet<String> = HashSet::new();
@@ -88,14 +88,13 @@ mod tests {
     use async_trait::async_trait;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
-    use rain_orderbook_common::raindex_client::local_db::decode::{
-        DecodedEvent, DecodedEventData, EventType,
-    };
+    use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData, EventType};
     use tempfile::TempDir;
     use url::Url;
 
-    use crate::commands::local_db::sqlite::sqlite_execute;
+    use crate::commands::local_db::executor::SqliteCliExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
+    use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
 
     struct NoopFetcher;
 
@@ -112,12 +111,12 @@ mod tests {
         let db_path = temp_dir.path().join("tokens.db");
         let db_path_str = db_path.to_string_lossy();
 
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        sqlite_execute(
-            &db_path_str,
-            "INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);",
-        )
-        .unwrap();
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec
+            .query_text("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);")
+            .await
+            .unwrap();
 
         let token_addr = Address::from([0xaa; 20]);
         let decoded = vec![DecodedEventData {

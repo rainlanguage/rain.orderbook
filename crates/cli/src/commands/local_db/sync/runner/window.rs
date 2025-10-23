@@ -38,7 +38,7 @@ pub(super) async fn compute_sync_window<D>(
 where
     D: SyncDataSource + Send + Sync,
 {
-    let last_synced_block = fetch_last_synced(db_path)?;
+    let last_synced_block = fetch_last_synced(db_path).await?;
 
     let mut start_block = params
         .start_block
@@ -132,14 +132,15 @@ mod tests {
     use super::*;
     use alloy::primitives::Address;
     use async_trait::async_trait;
-    use rain_orderbook_common::raindex_client::local_db::decode::{DecodedEvent, DecodedEventData};
+    use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
     use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::collections::HashMap;
     use tempfile::TempDir;
     use url::Url;
 
-    use crate::commands::local_db::sqlite::sqlite_execute;
+    use crate::commands::local_db::executor::SqliteCliExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
+    use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
 
     struct MockDataSource {
         latest_block: u64,
@@ -211,7 +212,8 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("window.db");
         let db_path_str = db_path.to_string_lossy();
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
 
         let data_source = MockDataSource {
             latest_block: 100,
@@ -233,13 +235,14 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("window.db");
         let db_path_str = db_path.to_string_lossy();
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        // simulate previous sync
-        sqlite_execute(
-            &db_path_str,
-            "UPDATE sync_status SET last_synced_block = 80, updated_at = CURRENT_TIMESTAMP WHERE id = 1;",
-        )
-        .unwrap();
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec
+            .query_text(
+                "UPDATE sync_status SET last_synced_block = 80, updated_at = CURRENT_TIMESTAMP WHERE id = 1;",
+            )
+            .await
+            .unwrap();
 
         let data_source = MockDataSource {
             latest_block: 120,
@@ -262,7 +265,8 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("window.db");
         let db_path_str = db_path.to_string_lossy();
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
 
         let data_source = MockDataSource {
             latest_block: 90,
@@ -285,7 +289,8 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("window.db");
         let db_path_str = db_path.to_string_lossy();
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
 
         let data_source = MockDataSource {
             latest_block: 60,

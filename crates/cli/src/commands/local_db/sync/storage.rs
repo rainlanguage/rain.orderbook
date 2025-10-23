@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use rain_orderbook_app_settings::network::NetworkCfg;
-use rain_orderbook_common::raindex_client::local_db::{
+use rain_orderbook_common::local_db::{
     query::{
         create_tables::{CREATE_TABLES_SQL, REQUIRED_TABLES},
         fetch_erc20_tokens_by_addresses::FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL,
@@ -12,29 +12,61 @@ use rain_orderbook_common::raindex_client::local_db::{
 use serde::Deserialize;
 use url::Url;
 
-use super::super::sqlite::{sqlite_execute, sqlite_has_required_tables, sqlite_query_json};
+use crate::commands::local_db::executor::SqliteCliExecutor;
+use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
 
 pub(crate) const DEFAULT_SCHEMA_SQL: &str = CREATE_TABLES_SQL;
 pub(crate) const SYNC_STATUS_QUERY: &str = FETCH_LAST_SYNCED_BLOCK_SQL;
 pub(crate) const ERC20_QUERY_TEMPLATE: &str = FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL;
 pub(crate) const STORE_ADDRESSES_QUERY: &str = FETCH_STORE_ADDRESSES_SQL;
 
-pub(crate) fn ensure_schema(db_path: &str) -> Result<bool> {
-    if sqlite_has_required_tables(db_path, REQUIRED_TABLES)? {
+pub(crate) async fn ensure_schema(db_path: &str) -> Result<bool> {
+    let exec = SqliteCliExecutor::new(db_path);
+
+    const TABLE_QUERY: &str =
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';";
+    #[derive(Debug, Deserialize)]
+    struct TableNameRow {
+        name: String,
+    }
+
+    let rows: Vec<TableNameRow> = exec
+        .query_json(TABLE_QUERY)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))?;
+    let existing: std::collections::HashSet<String> = rows
+        .into_iter()
+        .map(|row| row.name.to_ascii_lowercase())
+        .collect();
+    let has_tables = REQUIRED_TABLES
+        .iter()
+        .all(|t| existing.contains(&t.to_ascii_lowercase()));
+
+    if has_tables {
         return Ok(false);
     }
 
-    sqlite_execute(db_path, DEFAULT_SCHEMA_SQL)?;
+    exec.query_text(DEFAULT_SCHEMA_SQL)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))?;
     Ok(true)
 }
 
-pub(crate) fn fetch_last_synced(db_path: &str) -> Result<u64> {
-    let rows: Vec<SyncStatusRow> = sqlite_query_json(db_path, SYNC_STATUS_QUERY)?;
+pub(crate) async fn fetch_last_synced(db_path: &str) -> Result<u64> {
+    let exec = SqliteCliExecutor::new(db_path);
+    let rows: Vec<SyncStatusRow> = exec
+        .query_json(SYNC_STATUS_QUERY)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))?;
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
 }
 
-pub(crate) fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
-    let rows: Vec<StoreAddressRow> = sqlite_query_json(db_path, STORE_ADDRESSES_QUERY)?;
+pub(crate) async fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
+    let exec = SqliteCliExecutor::new(db_path);
+    let rows: Vec<StoreAddressRow> = exec
+        .query_json(STORE_ADDRESSES_QUERY)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))?;
     Ok(rows
         .into_iter()
         .filter_map(|row| {
@@ -74,7 +106,7 @@ pub(crate) fn build_local_db_from_network(
     Ok((local_db, metadata_rpcs))
 }
 
-pub(crate) fn fetch_existing_tokens(
+pub(crate) async fn fetch_existing_tokens(
     db_path: &str,
     chain_id: u32,
     addresses: &[String],
@@ -93,7 +125,10 @@ pub(crate) fn fetch_existing_tokens(
         .replace("?chain_id", &chain_id.to_string())
         .replace("?addresses_in", &in_clause);
 
-    sqlite_query_json(db_path, &sql)
+    let exec = SqliteCliExecutor::new(db_path);
+    exec.query_json(&sql)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))
 }
 
 #[derive(Debug, Deserialize)]
@@ -140,36 +175,39 @@ mod tests {
         assert!(event_urls[0].as_str().ends_with(&format!("/{api_token}")));
     }
 
-    #[test]
-    fn ensure_schema_initializes_tables() {
+    #[tokio::test]
+    async fn ensure_schema_initializes_tables() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("schema.db");
         let db_path_str = db_path.to_string_lossy();
 
-        assert!(ensure_schema(&db_path_str).unwrap());
-        assert!(!ensure_schema(&db_path_str).unwrap());
+        assert!(ensure_schema(&db_path_str).await.unwrap());
+        assert!(!ensure_schema(&db_path_str).await.unwrap());
     }
 
-    #[test]
-    fn fetch_last_synced_defaults_to_zero() {
+    #[tokio::test]
+    async fn fetch_last_synced_defaults_to_zero() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("status.db");
         let db_path_str = db_path.to_string_lossy();
 
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        let value = fetch_last_synced(&db_path_str).unwrap();
+        {
+            let exec = SqliteCliExecutor::new(&*db_path_str);
+            exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        }
+        let value = fetch_last_synced(&db_path_str).await.unwrap();
         assert_eq!(value, 0);
     }
 
-    #[test]
-    fn fetch_existing_store_addresses_returns_lowercase() {
+    #[tokio::test]
+    async fn fetch_existing_store_addresses_returns_lowercase() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("stores.db");
         let db_path_str = db_path.to_string_lossy();
 
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        sqlite_execute(
-            &db_path_str,
+        let exec = SqliteCliExecutor::new(&*db_path_str);
+        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(
             r#"INSERT INTO interpreter_store_sets (
                 store_address,
                 transaction_hash,
@@ -191,9 +229,10 @@ mod tests {
             );
 "#,
         )
+        .await
         .unwrap();
 
-        let stores = fetch_existing_store_addresses(&db_path_str).unwrap();
+        let stores = fetch_existing_store_addresses(&db_path_str).await.unwrap();
         assert_eq!(stores, vec!["0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);
     }
 }

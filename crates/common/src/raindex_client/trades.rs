@@ -1,9 +1,9 @@
+use super::local_db::executor::JsCallbackExecutor;
 use super::*;
+use crate::local_db::{query::fetch_order_trades::LocalDbOrderTrade, LocalDb};
+use crate::raindex_client::local_db::query::fetch_order_trades::fetch_order_trades;
+use crate::raindex_client::local_db::query::fetch_order_trades_count::fetch_order_trades_count;
 use crate::raindex_client::{
-    local_db::{
-        query::{fetch_order_trades::LocalDbOrderTrade, LocalDbQuery},
-        LocalDb,
-    },
     orders::RaindexOrder,
     transactions::RaindexTransaction,
     vaults::{LocalTradeBalanceInfo, LocalTradeTokenInfo, RaindexVaultBalanceChange},
@@ -134,9 +134,10 @@ impl RaindexOrder {
         if LocalDb::check_support(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
+                let exec = JsCallbackExecutor::new(&db_cb);
                 let order_hash = self.order_hash().to_string();
-                let local_trades = LocalDbQuery::fetch_order_trades(
-                    &db_cb,
+                let local_trades = fetch_order_trades(
+                    &exec,
                     chain_id,
                     &order_hash,
                     start_timestamp,
@@ -245,14 +246,11 @@ impl RaindexOrder {
         if LocalDb::check_support(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
+                let exec = JsCallbackExecutor::new(&db_cb);
                 let order_hash = self.order_hash().to_string();
-                let count = LocalDbQuery::fetch_order_trades_count(
-                    &db_cb,
-                    &order_hash,
-                    start_timestamp,
-                    end_timestamp,
-                )
-                .await?;
+                let count =
+                    fetch_order_trades_count(&exec, &order_hash, start_timestamp, end_timestamp)
+                        .await?;
                 return Ok(count);
             }
         }
@@ -371,7 +369,7 @@ mod test_helpers {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::raindex_client::local_db::query::{
+        use crate::local_db::query::{
             fetch_order_trades::LocalDbOrderTrade, fetch_orders::LocalDbOrder,
             fetch_vault::LocalDbVault,
         };
