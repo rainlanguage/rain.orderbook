@@ -92,7 +92,7 @@ fn event_context<'a>(
     })
 }
 
-pub fn decoded_events_to_statement(
+pub fn decoded_events_to_statements(
     events: &[DecodedEventData<DecodedEvent>],
     decimals_by_token: &HashMap<Address, u8>,
 ) -> Result<SqlStatementBatch, InsertError> {
@@ -1373,14 +1373,14 @@ mod tests {
     }
 
     #[test]
-    fn decoded_events_to_statement_multiple_events() {
+    fn decoded_events_to_statements_multiple_events() {
         let clear_event = sample_clear_event();
         let deposit_event = sample_deposit_event();
         let mut decimals = HashMap::new();
         if let DecodedEvent::DepositV2(deposit) = &deposit_event.decoded_data {
             decimals.insert(deposit.token, 6);
         }
-        let batch = decoded_events_to_statement(&[deposit_event, clear_event], &decimals)
+        let batch = decoded_events_to_statements(&[deposit_event, clear_event], &decimals)
             .unwrap()
             .into_transaction()
             .unwrap();
@@ -1402,7 +1402,7 @@ mod tests {
                 note: "n/a".into(),
             }),
         );
-        let batch = decoded_events_to_statement(&[unknown_event], &HashMap::new())
+        let batch = decoded_events_to_statements(&[unknown_event], &HashMap::new())
             .unwrap()
             .into_transaction()
             .unwrap();

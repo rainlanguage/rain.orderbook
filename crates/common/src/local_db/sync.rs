@@ -124,7 +124,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     batch.extend(prep.tokens_prefix_sql);
 
     let events_batch = local_db
-        .decoded_events_to_statement(&decoded_events, &prep.decimals_by_addr)
+        .decoded_events_to_statements(&decoded_events, &prep.decimals_by_addr)
         .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
 
     batch.extend(events_batch);

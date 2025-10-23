@@ -135,7 +135,7 @@ impl SyncDataSource for LocalDb {
         decoded_events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch> {
-        <LocalDb>::decoded_events_to_statement(self, decoded_events, decimals_by_token)
+        <LocalDb>::decoded_events_to_statements(self, decoded_events, decimals_by_token)
             .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 

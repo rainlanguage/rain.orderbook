@@ -12,7 +12,7 @@ use alloy::primitives::{hex::FromHexError, Address};
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::{FetchConfig, FetchConfigError};
 use insert::{
-    decoded_events_to_statement as decoded_events_to_statement_impl,
+    decoded_events_to_statements as decoded_events_to_statements_impl,
     raw_events_to_statements as raw_events_to_statements_impl,
 };
 use query::{LocalDbQueryError, SqlStatementBatch};
@@ -199,12 +199,12 @@ impl LocalDb {
         })
     }
 
-    pub fn decoded_events_to_statement(
+    pub fn decoded_events_to_statements(
         &self,
         events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch, LocalDbError> {
-        decoded_events_to_statement_impl(events, decimals_by_token).map_err(|err| {
+        decoded_events_to_statements_impl(events, decimals_by_token).map_err(|err| {
             LocalDbError::InsertError {
                 message: err.to_string(),
             }
@@ -285,7 +285,7 @@ mod bool_deserialize_tests {
     }
 
     #[test]
-    fn decoded_events_to_statement_maps_insert_errors() {
+    fn decoded_events_to_statements_maps_insert_errors() {
         let db = make_local_db();
         let event = deposit_event_with_invalid_block();
         let mut decimals = HashMap::new();
@@ -294,7 +294,7 @@ mod bool_deserialize_tests {
         }
 
         let err = db
-            .decoded_events_to_statement(&[event], &decimals)
+            .decoded_events_to_statements(&[event], &decimals)
             .unwrap_err();
         match err {
             LocalDbError::InsertError { message } => {
