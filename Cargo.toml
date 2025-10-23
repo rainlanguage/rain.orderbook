@@ -90,3 +90,6 @@ path = "crates/math"
 
 [workspace.dependencies.rain_orderbook_js_api]
 path = "crates/js_api"
+
+[workspace.dependencies.rain_orderbook_wasm_async_compile_wrapper]
+path = "crates/wasm_wrapper"

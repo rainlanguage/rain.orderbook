@@ -6965,6 +6965,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_orderbook_wasm_async_compile_wrapper"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "futures",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
+]
+
+[[package]]
 name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
