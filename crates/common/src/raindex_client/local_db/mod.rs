@@ -21,6 +21,6 @@ impl RaindexClient {
     #[wasm_export(js_name = "getLocalDbClient", preserve_js_class)]
     pub fn get_local_db_client(&self, chain_id: u32) -> Result<LocalDb, RaindexError> {
         let rpcs = self.get_rpc_urls_for_chain(chain_id)?;
-        LocalDb::new_with_regular_rpcs(rpcs).map_err(RaindexError::LocalDbError)
+        LocalDb::new_with_regular_rpcs(rpcs).map_err(RaindexError::from)
     }
 }

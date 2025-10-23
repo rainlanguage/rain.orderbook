@@ -2,7 +2,7 @@ use alloy::hex;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use itertools::Itertools;
-use rain_orderbook_common::local_db::tokens::collect_token_addresses;
+use rain_orderbook_common::local_db::address_collectors::collect_token_addresses;
 use rain_orderbook_common::local_db::{
     decode::{DecodedEvent, DecodedEventData},
     insert::generate_erc20_token_statements,

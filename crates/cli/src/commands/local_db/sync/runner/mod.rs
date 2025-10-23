@@ -16,7 +16,7 @@ use self::{
     window::compute_sync_window,
 };
 
-use rain_orderbook_common::local_db::tokens::collect_store_addresses;
+use rain_orderbook_common::local_db::address_collectors::collect_store_addresses;
 use std::collections::BTreeSet;
 
 mod apply;
