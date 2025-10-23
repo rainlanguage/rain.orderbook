@@ -1,6 +1,8 @@
 use crate::utils::{parse_positive_u32, parse_positive_u64, parse_url};
 use crate::yaml::{require_hash, require_string, require_vec, YamlError};
+use alloy::primitives::Address;
 use std::collections::HashMap;
+use std::str::FromStr;
 use strict_yaml_rust::StrictYaml;
 use url::Url;
 
@@ -21,7 +23,7 @@ pub struct ManifestNetwork {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ManifestOrderbook {
-    pub address: String,
+    pub address: Address,
     pub dump_url: Url,
     pub end_block: u64,
     pub end_block_hash: String,
@@ -29,12 +31,20 @@ pub struct ManifestOrderbook {
 }
 
 impl LocalDbManifest {
-    pub fn find(&self, chain_id: u64, address: &str) -> Option<&ManifestOrderbook> {
+    pub fn find(&self, chain_id: u64, address: Address) -> Option<&ManifestOrderbook> {
         self.networks
             .values()
             .find(|n| n.chain_id == chain_id)
             .and_then(|n| n.orderbooks.iter().find(|ob| ob.address == address))
     }
+}
+
+pub fn current_manifest_version() -> u32 {
+    MANIFEST_VERSION
+}
+
+pub fn is_manifest_version_current(version: u32) -> bool {
+    version == MANIFEST_VERSION
 }
 
 pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError> {
@@ -79,7 +89,14 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
             let location_ob = format!("{}.orderbooks[{}]", location_network, idx);
             let _ob_hash = require_hash(ob_yaml, None, Some(location_ob.clone()))?;
 
-            let address = require_string(ob_yaml, Some("address"), Some(location_ob.clone()))?;
+            let address_str = require_string(ob_yaml, Some("address"), Some(location_ob.clone()))?;
+            let address = Address::from_str(&address_str).map_err(|e| YamlError::Field {
+                kind: crate::yaml::FieldErrorKind::InvalidValue {
+                    field: "address".to_string(),
+                    reason: e.to_string(),
+                },
+                location: location_ob.clone(),
+            })?;
 
             let dump_url_str =
                 require_string(ob_yaml, Some("dump-url"), Some(location_ob.clone()))?;
@@ -132,6 +149,7 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
     use strict_yaml_rust::StrictYamlLoader;
 
     fn load(yaml: &str) -> StrictYaml {
@@ -365,17 +383,35 @@ networks:
         let m = parse_manifest_doc(&load(yaml)).unwrap();
 
         assert!(m
-            .find(1, "0x1111111111111111111111111111111111111111")
+            .find(
+                1,
+                Address::from_str("0x1111111111111111111111111111111111111111").unwrap()
+            )
             .is_some());
         assert!(m
-            .find(2, "0x2222222222222222222222222222222222222222")
+            .find(
+                2,
+                Address::from_str("0x2222222222222222222222222222222222222222").unwrap()
+            )
             .is_some());
 
         assert!(m
-            .find(1, "0xdeadbeef00000000000000000000000000000000")
+            .find(
+                1,
+                Address::from_str("0xdeadbeef00000000000000000000000000000000").unwrap()
+            )
             .is_none());
         assert!(m
-            .find(999, "0x1111111111111111111111111111111111111111")
+            .find(
+                999,
+                Address::from_str("0x1111111111111111111111111111111111111111").unwrap()
+            )
             .is_none());
+    }
+
+    #[test]
+    fn test_manifest_version_helpers() {
+        assert!(is_manifest_version_current(current_manifest_version()));
+        assert!(!is_manifest_version_current(0));
     }
 }

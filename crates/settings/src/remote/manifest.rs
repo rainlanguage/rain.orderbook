@@ -21,6 +21,7 @@ pub async fn fetch(url: Url) -> Result<LocalDbManifest, FetchManifestError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::address;
     use httpmock::MockServer;
 
     #[tokio::test]
@@ -60,14 +61,14 @@ networks:
         assert_eq!(net.orderbooks.len(), 1);
         assert_eq!(
             net.orderbooks[0].address,
-            "0x0000000000000000000000000000000000000001"
+            address!("0x0000000000000000000000000000000000000001")
         );
         assert_eq!(net.orderbooks[0].end_block, 123);
         assert_eq!(net.orderbooks[0].end_block_hash, "0xabc");
         assert_eq!(net.orderbooks[0].end_block_time_ms, 1000);
 
         // find helper
-        let found = manifest.find(1, "0x0000000000000000000000000000000000000001");
+        let found = manifest.find(1, address!("0x0000000000000000000000000000000000000001"));
         assert!(found.is_some());
     }
 
