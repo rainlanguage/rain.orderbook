@@ -102,9 +102,7 @@ where
     batch.extend(tokens_prefix_sql);
     batch.add(build_update_last_synced_block_stmt(target_block));
 
-    batch
-        .into_transaction()
-        .map_err(|e| anyhow::anyhow!("Failed to wrap SQL in transaction: {}", e))
+    Ok(batch.ensure_transaction())
 }
 
 #[cfg(test)]

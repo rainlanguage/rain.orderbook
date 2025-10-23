@@ -1382,8 +1382,7 @@ mod tests {
         }
         let batch = decoded_events_to_statements(&[deposit_event, clear_event], &decimals)
             .unwrap()
-            .into_transaction()
-            .unwrap();
+            .ensure_transaction();
         let sql = batch.statements().iter().map(|stmt| stmt.sql()).join("\n");
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("INSERT INTO clear_v3_events"));
@@ -1404,8 +1403,7 @@ mod tests {
         );
         let batch = decoded_events_to_statements(&[unknown_event], &HashMap::new())
             .unwrap()
-            .into_transaction()
-            .unwrap();
+            .ensure_transaction();
         let sql = batch.statements().iter().map(|stmt| stmt.sql()).join("\n");
         assert!(sql.contains("BEGIN TRANSACTION"));
     }

@@ -1,5 +1,4 @@
 use super::sql_statement::SqlStatement;
-use thiserror::Error;
 
 const BEGIN_TRANSACTION: &str = "BEGIN TRANSACTION";
 const COMMIT: &str = "COMMIT";
@@ -7,12 +6,6 @@ const COMMIT: &str = "COMMIT";
 #[derive(Clone, Debug, Default)]
 pub struct SqlStatementBatch {
     statements: Vec<SqlStatement>,
-}
-
-#[derive(Debug, Error, Clone, PartialEq, Eq)]
-pub enum SqlBatchError {
-    #[error("SQL statement batch is already wrapped in a transaction")]
-    AlreadyTransaction,
 }
 
 impl SqlStatementBatch {
@@ -41,7 +34,8 @@ impl SqlStatementBatch {
         false
     }
 
-    pub fn into_transaction(mut self) -> Result<Self, SqlBatchError> {
+    /// Wrap the batch in a transaction when needed; no-op if already wrapped.
+    pub fn ensure_transaction(mut self) -> Self {
         if self
             .statements
             .first()
@@ -51,13 +45,17 @@ impl SqlStatementBatch {
                 .last()
                 .is_some_and(|stmt| is_commit(stmt.sql()))
         {
-            return Err(SqlBatchError::AlreadyTransaction);
+            return self;
         }
 
+        self.wrap_with_transaction();
+        self
+    }
+
+    fn wrap_with_transaction(&mut self) {
         self.statements
             .insert(0, SqlStatement::new(BEGIN_TRANSACTION));
         self.statements.push(SqlStatement::new(COMMIT));
-        Ok(self)
     }
 
     pub fn statements(&self) -> &[SqlStatement] {
@@ -255,13 +253,13 @@ mod tests {
     }
 
     #[test]
-    fn into_transaction_wraps_statements() {
+    fn ensure_transaction_wraps_statements() {
         let batch = SqlStatementBatch::from(vec![
             SqlStatement::new("INSERT INTO foo VALUES (?1)"),
             SqlStatement::new("UPDATE foo SET bar = ?1"),
         ]);
 
-        let batch = batch.into_transaction().unwrap();
+        let batch = batch.ensure_transaction();
         let texts: Vec<_> = batch.into_iter().map(|s| s.sql().to_owned()).collect();
         assert_eq!(
             texts,
@@ -275,63 +273,85 @@ mod tests {
     }
 
     #[test]
-    fn into_transaction_wraps_empty_batch() {
-        let batch = SqlStatementBatch::new().into_transaction().unwrap();
+    fn ensure_transaction_is_noop_when_wrapped() {
+        let batch = SqlStatementBatch::from(vec![
+            SqlStatement::new("BEGIN TRANSACTION"),
+            SqlStatement::new("INSERT INTO foo VALUES (1)"),
+            SqlStatement::new("COMMIT"),
+        ]);
+
+        let batch = batch.ensure_transaction();
+        assert!(batch.is_transaction());
+        let texts: Vec<_> = batch.into_iter().map(|s| s.sql().to_owned()).collect();
+        assert_eq!(
+            texts,
+            vec!["BEGIN TRANSACTION", "INSERT INTO foo VALUES (1)", "COMMIT"]
+        );
+    }
+
+    #[test]
+    fn ensure_transaction_wraps_empty_batch() {
+        let batch = SqlStatementBatch::new().ensure_transaction();
         let texts: Vec<_> = batch.into_iter().map(|s| s.sql().to_owned()).collect();
         assert_eq!(texts, vec![BEGIN_TRANSACTION, COMMIT]);
     }
 
     #[test]
-    fn into_transaction_detects_existing_wrapper_by_begin() {
+    fn ensure_transaction_detects_existing_wrapper_by_begin() {
         let batch = SqlStatementBatch::from(vec![
             SqlStatement::new("BEGIN TRANSACTION"),
             SqlStatement::new("INSERT INTO foo VALUES (?1)"),
-        ]);
-
-        let err = batch.into_transaction().unwrap_err();
-        assert_eq!(err, SqlBatchError::AlreadyTransaction);
-    }
-
-    #[test]
-    fn into_transaction_detects_existing_wrapper_by_commit() {
-        let batch = SqlStatementBatch::from(vec![
-            SqlStatement::new("INSERT INTO foo VALUES (?1)"),
-            SqlStatement::new("COMMIT"),
-        ]);
-
-        let err = batch.into_transaction().unwrap_err();
-        assert_eq!(err, SqlBatchError::AlreadyTransaction);
-    }
-
-    #[test]
-    fn into_transaction_detects_commit_with_whitespace_and_semicolon() {
-        let batch = SqlStatementBatch::from(vec![
-            SqlStatement::new("INSERT INTO foo VALUES (?1)"),
-            SqlStatement::new("  commit ; "),
-        ]);
-
-        let err = batch.into_transaction().unwrap_err();
-        assert_eq!(err, SqlBatchError::AlreadyTransaction);
-    }
-
-    #[test]
-    fn into_transaction_recognizes_semicolon_suffix() {
-        let batch = SqlStatementBatch::from(vec![SqlStatement::new("BEGIN TRANSACTION;")]);
+        ])
+        .ensure_transaction();
+        let texts: Vec<_> = batch.into_iter().map(|s| s.sql().to_owned()).collect();
         assert_eq!(
-            batch.into_transaction().unwrap_err(),
-            SqlBatchError::AlreadyTransaction
+            texts,
+            vec!["BEGIN TRANSACTION", "INSERT INTO foo VALUES (?1)",]
         );
     }
 
     #[test]
-    fn into_transaction_detects_begin_with_whitespace_and_lowercase() {
+    fn ensure_transaction_detects_existing_wrapper_by_commit() {
+        let batch = SqlStatementBatch::from(vec![
+            SqlStatement::new("INSERT INTO foo VALUES (?1)"),
+            SqlStatement::new("COMMIT"),
+        ])
+        .ensure_transaction();
+        let texts: Vec<_> = batch.into_iter().map(|s| s.sql().to_owned()).collect();
+        assert_eq!(texts, vec!["INSERT INTO foo VALUES (?1)", "COMMIT"]);
+    }
+
+    #[test]
+    fn ensure_transaction_detects_commit_with_whitespace_and_semicolon() {
+        let batch = SqlStatementBatch::from(vec![
+            SqlStatement::new("INSERT INTO foo VALUES (?1)"),
+            SqlStatement::new("  commit ; "),
+        ])
+        .ensure_transaction();
+        let texts: Vec<_> = batch.into_iter().map(|s| s.sql().to_owned()).collect();
+        assert_eq!(texts, vec!["INSERT INTO foo VALUES (?1)", "  commit ; "]);
+    }
+
+    #[test]
+    fn ensure_transaction_recognizes_semicolon_suffix() {
+        let batch = SqlStatementBatch::from(vec![SqlStatement::new("BEGIN TRANSACTION;")])
+            .ensure_transaction();
+        let texts: Vec<_> = batch.into_iter().map(|s| s.sql().to_owned()).collect();
+        assert_eq!(texts, vec!["BEGIN TRANSACTION;"]);
+    }
+
+    #[test]
+    fn ensure_transaction_detects_begin_with_whitespace_and_lowercase() {
         let batch = SqlStatementBatch::from(vec![
             SqlStatement::new(" begin transaction ; "),
             SqlStatement::new("INSERT INTO foo VALUES (?1)"),
-        ]);
-
-        let err = batch.into_transaction().unwrap_err();
-        assert_eq!(err, SqlBatchError::AlreadyTransaction);
+        ])
+        .ensure_transaction();
+        let texts: Vec<_> = batch.into_iter().map(|s| s.sql().to_owned()).collect();
+        assert_eq!(
+            texts,
+            vec![" begin transaction ; ", "INSERT INTO foo VALUES (?1)"]
+        );
     }
 
     #[test]

@@ -130,11 +130,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     batch.extend(events_batch);
     batch.add(build_update_last_synced_block_stmt(latest_block));
 
-    let sql_batch = batch.into_transaction().map_err(|err| {
-        LocalDbError::SqlGenerationFailed(Box::new(LocalDbError::InsertError {
-            message: err.to_string(),
-        }))
-    })?;
+    let sql_batch = batch.ensure_transaction();
 
     db.execute_batch(&sql_batch)
         .await

@@ -30,6 +30,31 @@ impl RusqliteExecutor {
             db_path: db_path.as_ref().to_path_buf(),
         }
     }
+
+    fn open_connection(&self) -> Result<Connection, LocalDbQueryError> {
+        let conn = Connection::open(&self.db_path)
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
+        conn.busy_timeout(Duration::from_millis(500))
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
+        Ok(conn)
+    }
+
+    fn invoke_statement(conn: &Connection, stmt: &SqlStatement) -> Result<(), LocalDbQueryError> {
+        if stmt.params().is_empty() {
+            conn.execute_batch(stmt.sql())
+                .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
+        } else {
+            let mut prepared = conn.prepare(stmt.sql()).map_err(|e| {
+                LocalDbQueryError::database(format!("Failed to prepare query: {e}"))
+            })?;
+            let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
+            let params = rusqlite::params_from_iter(bound);
+            prepared
+                .execute(params)
+                .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
+        }
+        Ok(())
+    }
 }
 
 #[async_trait(?Send)]
@@ -41,25 +66,12 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
             ));
         }
 
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
-        conn.busy_timeout(Duration::from_millis(500))
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
+        let conn = self.open_connection()?;
 
         for stmt in batch {
-            if stmt.params().is_empty() {
-                conn.execute_batch(stmt.sql()).map_err(|e| {
-                    LocalDbQueryError::database(format!("SQL execution failed: {e}"))
-                })?;
-            } else {
-                let mut prepared = conn.prepare(stmt.sql()).map_err(|e| {
-                    LocalDbQueryError::database(format!("Failed to prepare query: {e}"))
-                })?;
-                let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
-                let params = rusqlite::params_from_iter(bound);
-                prepared.execute(params).map_err(|e| {
-                    LocalDbQueryError::database(format!("SQL execution failed: {e}"))
-                })?;
+            if let Err(err) = Self::invoke_statement(&conn, stmt) {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(err);
             }
         }
 
@@ -67,35 +79,16 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
     }
 
     async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
-        conn.busy_timeout(Duration::from_millis(500))
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
-        if stmt.params().is_empty() {
-            conn.execute_batch(stmt.sql())
-                .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
-            Ok(String::new())
-        } else {
-            let mut s = conn.prepare(stmt.sql()).map_err(|e| {
-                LocalDbQueryError::database(format!("Failed to prepare query: {e}"))
-            })?;
-            let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
-            let params = rusqlite::params_from_iter(bound);
-            s.execute(params)
-                .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
-            Ok(String::new())
-        }
+        let conn = self.open_connection()?;
+        Self::invoke_statement(&conn, stmt)?;
+        Ok(String::new())
     }
 
     async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
     where
         T: FromDbJson,
     {
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
-        conn.busy_timeout(Duration::from_millis(500))
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
-
+        let conn = self.open_connection()?;
         let mut s = conn
             .prepare(stmt.sql())
             .map_err(|e| LocalDbQueryError::database(format!("Failed to prepare query: {e}")))?;
@@ -174,7 +167,7 @@ mod tests {
             "INSERT INTO widgets (name, qty) VALUES ('widget-b', 7);",
         ));
 
-        let batch = batch.into_transaction().unwrap();
+        let batch = batch.ensure_transaction();
 
         exec.execute_batch(&batch).await.unwrap();
 
@@ -356,9 +349,7 @@ mod tests {
         insert_large.push("large");
         insert_large.push(large_value);
 
-        let batch = SqlStatementBatch::from(vec![insert_small, insert_large])
-            .into_transaction()
-            .unwrap();
+        let batch = SqlStatementBatch::from(vec![insert_small, insert_large]).ensure_transaction();
         exec.execute_batch(&batch).await.unwrap();
 
         #[derive(serde::Deserialize, Debug)]
@@ -384,6 +375,80 @@ mod tests {
         let large = rows.iter().find(|row| row.label == "large").unwrap();
         assert_eq!(large.ty, "text");
         assert_eq!(large.val, json!(large_value.to_string()));
+    }
+
+    #[tokio::test]
+    async fn execute_batch_rolls_back_on_error_non_parameterized() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("rollback-non-param.db");
+        let db_path_str = db_path.to_string_lossy();
+        let exec = RusqliteExecutor::new(&*db_path_str);
+
+        let mut setup_batch = SqlStatementBatch::new();
+        setup_batch.add(SqlStatement::new(
+            "CREATE TABLE rollback_non_param (id INTEGER PRIMARY KEY, value TEXT NOT NULL);",
+        ));
+        let setup_batch = setup_batch.ensure_transaction();
+        exec.execute_batch(&setup_batch).await.unwrap();
+
+        let mut batch = SqlStatementBatch::new();
+        batch.add(SqlStatement::new(
+            "INSERT INTO rollback_non_param (id, value) VALUES (1, 'first');",
+        ));
+        batch.add(SqlStatement::new(
+            "INSERT INTO rollback_non_param (id, value) VALUES (1, 'duplicate');",
+        ));
+        let batch = batch.ensure_transaction();
+
+        let err = exec.execute_batch(&batch).await.unwrap_err();
+        assert!(matches!(err, LocalDbQueryError::Database { .. }));
+
+        let conn = Connection::open(&*db_path_str).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM rollback_non_param;", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[tokio::test]
+    async fn execute_batch_rolls_back_on_error_parameterized() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("rollback-param.db");
+        let db_path_str = db_path.to_string_lossy();
+        let exec = RusqliteExecutor::new(&*db_path_str);
+
+        let mut setup_batch = SqlStatementBatch::new();
+        setup_batch.add(SqlStatement::new(
+            "CREATE TABLE rollback_param (id INTEGER PRIMARY KEY, value TEXT NOT NULL);",
+        ));
+        let setup_batch = setup_batch.ensure_transaction();
+        exec.execute_batch(&setup_batch).await.unwrap();
+
+        let mut insert_ok =
+            SqlStatement::new("INSERT INTO rollback_param (id, value) VALUES (?1, ?2);");
+        insert_ok.push(1i64);
+        insert_ok.push("first");
+
+        let mut insert_fail =
+            SqlStatement::new("INSERT INTO rollback_param (id, value) VALUES (?1, ?2);");
+        insert_fail.push(1i64);
+        insert_fail.push("duplicate");
+
+        let mut batch = SqlStatementBatch::new();
+        batch.add(insert_ok);
+        batch.add(insert_fail);
+        let batch = batch.ensure_transaction();
+
+        let err = exec.execute_batch(&batch).await.unwrap_err();
+        assert!(matches!(err, LocalDbQueryError::Database { .. }));
+
+        let conn = Connection::open(&*db_path_str).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM rollback_param;", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 0);
     }
 
     #[tokio::test]

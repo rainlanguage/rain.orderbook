@@ -17,7 +17,7 @@ pub mod update_last_synced_block;
 
 pub use executor::LocalDbQueryExecutor;
 pub use sql_statement::{SqlBuildError, SqlStatement, SqlValue};
-pub use sql_statement_batch::{SqlBatchError, SqlStatementBatch};
+pub use sql_statement_batch::SqlStatementBatch;
 
 use serde::de::DeserializeOwned;
 use thiserror::Error;
