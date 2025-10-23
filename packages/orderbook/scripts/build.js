@@ -1,8 +1,6 @@
 const fs = require("fs");
 const { execSync } = require("child_process");
 
-const [buildType = ''] = process.argv.slice(2);
-
 // create root esm.js and cjs.js files with their .d.ts
 fs.writeFileSync(
   "./cjs.js",
@@ -30,8 +28,8 @@ fs.writeFileSync("./dist//esm/index.js", `${esmIndex.join("\n")}\n`);
 fs.writeFileSync("./dist/esm/index.d.ts", `${esmIndex.join("\n")}\n`);
 
 for (const pkg of packages) {
-  execSync(`node ./scripts/buildCjs ${pkg} ${buildType}`);
-  execSync(`node ./scripts/buildEsm ${pkg} ${buildType}`);
+  execSync(`node ./scripts/buildCjs ${pkg}`);
+  execSync(`node ./scripts/buildEsm ${pkg}`);
 }
 
 // rm temp folder

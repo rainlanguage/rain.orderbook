@@ -2,7 +2,7 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 
 const packagePrefix = 'rain_orderbook_';
-const [pkg, buildType = ''] = process.argv.slice(2);
+const [pkg] = process.argv.slice(2);
 
 // generate web bindgens for esm output
 fs.mkdirSync(`./dist/esm/${pkg}`, { recursive: true });

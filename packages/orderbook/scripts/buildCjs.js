@@ -2,7 +2,7 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 
 const packagePrefix = 'rain_orderbook_';
-const [pkg, buildType = ''] = process.argv.slice(2);
+const [pkg] = process.argv.slice(2);
 
 // for cjs we only need to build "js_api" since we dont have limitations on wasm init
 if (pkg !== "js_api") return;
