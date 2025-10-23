@@ -1,4 +1,4 @@
-mod sqlite;
+pub mod executor;
 
 pub mod decode_events;
 pub mod decoded_events_to_sql;

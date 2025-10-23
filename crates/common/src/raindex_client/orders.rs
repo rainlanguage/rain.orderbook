@@ -1,8 +1,13 @@
-use super::local_db::query::fetch_orders::{FetchOrdersArgs, LocalDbOrder};
-use super::local_db::query::fetch_vault::LocalDbVault;
-use super::local_db::query::LocalDbQuery;
-use super::local_db::LocalDb;
+use super::local_db::executor::JsCallbackExecutor;
 use super::*;
+use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{
+    fetch_orders::{FetchOrdersArgs, LocalDbOrder},
+    fetch_vault::LocalDbVault,
+};
+use crate::local_db::LocalDb;
+use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
+use crate::raindex_client::local_db::query::fetch_vault::fetch_vaults_for_io_string;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -521,11 +526,10 @@ impl RaindexClient {
         }
 
         if !local_ids.is_empty() {
-            let locals = futures::future::try_join_all(
-                local_ids
-                    .into_iter()
-                    .map(|id| self.get_orders_local_db(&db_cb, id, filters.clone())),
-            )
+            let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
+                let exec = JsCallbackExecutor::new(&db_cb);
+                self.get_orders_local_db(exec, id, filters.clone())
+            }))
             .await?;
             for mut chunk in locals {
                 orders.append(&mut chunk);
@@ -593,9 +597,9 @@ impl RaindexClient {
         Ok(orders)
     }
 
-    async fn get_orders_local_db(
+    async fn get_orders_local_db<E: LocalDbQueryExecutor>(
         &self,
-        db_callback: &js_sys::Function,
+        executor: E,
         chain_id: u32,
         filters: Option<GetOrdersFilters>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
@@ -603,21 +607,13 @@ impl RaindexClient {
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
         let fetch_args = filters.map(FetchOrdersArgs::from).unwrap_or_default();
-        let local_db_orders = LocalDbQuery::fetch_orders(db_callback, fetch_args).await?;
+        let local_db_orders = fetch_orders(&executor, fetch_args).await?;
 
         for local_db_order in &local_db_orders {
-            let input_vaults = LocalDbQuery::fetch_vaults_for_io_string(
-                db_callback,
-                chain_id,
-                &local_db_order.inputs,
-            )
-            .await?;
-            let output_vaults = LocalDbQuery::fetch_vaults_for_io_string(
-                db_callback,
-                chain_id,
-                &local_db_order.outputs,
-            )
-            .await?;
+            let input_vaults =
+                fetch_vaults_for_io_string(&executor, chain_id, &local_db_order.inputs).await?;
+            let output_vaults =
+                fetch_vaults_for_io_string(&executor, chain_id, &local_db_order.outputs).await?;
 
             let order = RaindexOrder::try_from_local_db(
                 raindex_client.clone(),
@@ -702,13 +698,9 @@ impl RaindexClient {
 
         if LocalDb::check_support(chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
+                let exec = JsCallbackExecutor::new(&db_cb);
                 if let Some(order) = self
-                    .get_order_by_hash_local_db(
-                        &db_cb,
-                        chain_id,
-                        orderbook_address,
-                        &order_hash_hex,
-                    )
+                    .get_order_by_hash_local_db(&exec, chain_id, orderbook_address, &order_hash_hex)
                     .await?
                 {
                     return Ok(order);
@@ -723,9 +715,9 @@ impl RaindexClient {
         Ok(order)
     }
 
-    async fn get_order_by_hash_local_db(
+    async fn get_order_by_hash_local_db<E: LocalDbQueryExecutor + ?Sized>(
         &self,
-        db_callback: &js_sys::Function,
+        executor: &E,
         chain_id: u32,
         orderbook_address: Address,
         order_hash: &str,
@@ -735,7 +727,7 @@ impl RaindexClient {
             ..FetchOrdersArgs::default()
         };
 
-        let local_db_orders = LocalDbQuery::fetch_orders(db_callback, fetch_args).await?;
+        let local_db_orders = fetch_orders(executor, fetch_args).await?;
         let raindex_client = Rc::new(self.clone());
 
         for local_db_order in local_db_orders {
@@ -744,18 +736,10 @@ impl RaindexClient {
                 continue;
             }
 
-            let input_vaults = LocalDbQuery::fetch_vaults_for_io_string(
-                db_callback,
-                chain_id,
-                &local_db_order.inputs,
-            )
-            .await?;
-            let output_vaults = LocalDbQuery::fetch_vaults_for_io_string(
-                db_callback,
-                chain_id,
-                &local_db_order.outputs,
-            )
-            .await?;
+            let input_vaults =
+                fetch_vaults_for_io_string(executor, chain_id, &local_db_order.inputs).await?;
+            let output_vaults =
+                fetch_vaults_for_io_string(executor, chain_id, &local_db_order.outputs).await?;
 
             let order = RaindexOrder::try_from_local_db(
                 Rc::clone(&raindex_client),
@@ -957,7 +941,10 @@ impl RaindexOrder {
             orderbook: Address::from_str(&order.orderbook_address)?,
             active: order.active,
             timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
-            meta: order.meta.map(|meta| Bytes::from_str(&meta)).transpose()?,
+            meta: order
+                .meta
+                .map(|meta| Bytes::from_str(meta.as_str()))
+                .transpose()?,
             rainlang,
             transaction: None,
             trades_count: order.trade_count as u16,
@@ -972,9 +959,7 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::raindex_client::local_db::query::{
-            fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault,
-        };
+        use crate::local_db::query::{fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault};
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
