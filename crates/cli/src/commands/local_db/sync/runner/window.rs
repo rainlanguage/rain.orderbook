@@ -140,7 +140,7 @@ mod tests {
 
     use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
-    use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
+    use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 
     struct MockDataSource {
         latest_block: u64,
@@ -213,7 +213,9 @@ mod tests {
         let db_path = temp_dir.path().join("window.db");
         let db_path_str = db_path.to_string_lossy();
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
 
         let data_source = MockDataSource {
             latest_block: 100,
@@ -236,11 +238,13 @@ mod tests {
         let db_path = temp_dir.path().join("window.db");
         let db_path_str = db_path.to_string_lossy();
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
         exec
-            .query_text(
+            .query_text(&SqlStatement::new(
                 "UPDATE sync_status SET last_synced_block = 80, updated_at = CURRENT_TIMESTAMP WHERE id = 1;",
-            )
+            ))
             .await
             .unwrap();
 
@@ -266,7 +270,9 @@ mod tests {
         let db_path = temp_dir.path().join("window.db");
         let db_path_str = db_path.to_string_lossy();
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
 
         let data_source = MockDataSource {
             latest_block: 90,
@@ -290,7 +296,9 @@ mod tests {
         let db_path = temp_dir.path().join("window.db");
         let db_path_str = db_path.to_string_lossy();
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
 
         let data_source = MockDataSource {
             latest_block: 60,

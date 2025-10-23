@@ -1,12 +1,12 @@
-use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_query;
+use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_stmt;
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
 pub async fn update_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     block_number: u64,
 ) -> Result<(), LocalDbQueryError> {
-    let sql = build_update_last_synced_block_query(block_number);
-    exec.query_text(&sql).await.map(|_| ())
+    let stmt = build_update_last_synced_block_stmt(block_number);
+    exec.query_text(&stmt).await.map(|_| ())
 }
 
 #[cfg(all(test, target_family = "wasm"))]
@@ -23,27 +23,35 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
-        let expected_sql = build_update_last_synced_block_query(999);
-        let store = Rc::new(RefCell::new(String::new()));
+        let expected_stmt = build_update_last_synced_block_stmt(999);
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let callback = create_sql_capturing_callback("OK", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
         let res = super::update_last_synced_block(&exec, 999).await;
         assert!(res.is_ok());
         let captured = store.borrow().clone();
-        assert_eq!(captured, expected_sql);
+        assert_eq!(captured.0, expected_stmt.sql);
     }
 
     #[wasm_bindgen_test]
     async fn invalid_response_yields_invalid_response_error() {
         // Return a raw JsValue string instead of WasmEncodedResult
-        let store = Rc::new(RefCell::new(String::new()));
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let store_clone = store.clone();
-        let closure = Closure::wrap(Box::new(move |sql: String| -> wasm_bindgen::JsValue {
-            *store_clone.borrow_mut() = sql;
-            wasm_bindgen::JsValue::from_str("not-a-wrapper")
-        })
-            as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
+        let closure = Closure::wrap(Box::new(
+            move |sql: String, params: wasm_bindgen::JsValue| -> wasm_bindgen::JsValue {
+                *store_clone.borrow_mut() = (sql, params);
+                wasm_bindgen::JsValue::from_str("not-a-wrapper")
+            },
+        )
+            as Box<dyn FnMut(String, wasm_bindgen::JsValue) -> wasm_bindgen::JsValue>);
         let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
 

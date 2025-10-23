@@ -1,10 +1,10 @@
-use crate::local_db::query::fetch_tables::{fetch_tables_sql, TableResponse};
+use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
 pub async fn fetch_all_tables<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
 ) -> Result<Vec<TableResponse>, LocalDbQueryError> {
-    exec.query_json(fetch_tables_sql()).await
+    exec.query_json(&fetch_tables_stmt()).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]
@@ -20,8 +20,11 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_raw_sql_exactly() {
-        let expected_sql = fetch_tables_sql();
-        let store = Rc::new(RefCell::new(String::new()));
+        let expected_stmt = fetch_tables_stmt();
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
@@ -29,19 +32,24 @@ mod wasm_tests {
         assert!(res.is_ok());
 
         let captured = store.borrow().clone();
-        assert_eq!(captured, expected_sql);
+        assert_eq!(captured.0, expected_stmt.sql);
     }
 
     #[wasm_bindgen_test]
     async fn invalid_response_yields_invalid_response_error() {
         // Return a raw JsValue string instead of WasmEncodedResult
-        let store = Rc::new(RefCell::new(String::new()));
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let store_clone = store.clone();
-        let closure = Closure::wrap(Box::new(move |sql: String| -> wasm_bindgen::JsValue {
-            *store_clone.borrow_mut() = sql;
-            wasm_bindgen::JsValue::from_str("not-a-wrapper")
-        })
-            as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
+        let closure = Closure::wrap(Box::new(
+            move |sql: String, params: wasm_bindgen::JsValue| -> wasm_bindgen::JsValue {
+                *store_clone.borrow_mut() = (sql, params);
+                wasm_bindgen::JsValue::from_str("not-a-wrapper")
+            },
+        )
+            as Box<dyn FnMut(String, wasm_bindgen::JsValue) -> wasm_bindgen::JsValue>);
         let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
 

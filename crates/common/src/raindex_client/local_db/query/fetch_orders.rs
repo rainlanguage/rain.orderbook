@@ -1,5 +1,5 @@
 use crate::local_db::query::fetch_orders::{
-    build_fetch_orders_query, FetchOrdersActiveFilter, FetchOrdersArgs, LocalDbOrder,
+    build_fetch_orders_stmt, FetchOrdersActiveFilter, FetchOrdersArgs, LocalDbOrder,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::raindex_client::orders::GetOrdersFilters;
@@ -40,8 +40,8 @@ pub async fn fetch_orders<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     args: FetchOrdersArgs,
 ) -> Result<Vec<LocalDbOrder>, LocalDbQueryError> {
-    let sql = build_fetch_orders_query(&args);
-    exec.query_json(&sql).await
+    let stmt = build_fetch_orders_stmt(&args)?;
+    exec.query_json(&stmt).await
 }
 
 #[cfg(test)]
@@ -98,9 +98,12 @@ mod tests {
             args.tokens = vec![" Tok'A ".into()];
             args.order_hash = Some(" 0xHash ' ".into());
 
-            let expected_sql = build_fetch_orders_query(&args);
+            let expected_stmt = build_fetch_orders_stmt(&args).unwrap();
 
-            let store = Rc::new(RefCell::new(String::new()));
+            let store = Rc::new(RefCell::new((
+                String::new(),
+                wasm_bindgen::JsValue::UNDEFINED,
+            )));
             let callback = create_sql_capturing_callback("[]", store.clone());
             let exec = JsCallbackExecutor::new(&callback);
 
@@ -109,27 +112,32 @@ mod tests {
 
             // Assert
             assert!(res.is_ok());
-            let captured = store.borrow().clone();
-            assert_eq!(captured, expected_sql);
+            let (captured_sql, _captured_params) = store.borrow().clone();
+            assert_eq!(captured_sql, expected_stmt.sql);
         }
 
         #[wasm_bindgen_test]
         async fn error_propagates_from_callback() {
             // Callback that returns WasmEncodedResult::Err
-            let store = Rc::new(RefCell::new(String::new()));
+            let store = Rc::new(RefCell::new((
+                String::new(),
+                wasm_bindgen::JsValue::UNDEFINED,
+            )));
             let store_clone = store.clone();
-            let closure = Closure::wrap(Box::new(move |sql: String| -> wasm_bindgen::JsValue {
-                *store_clone.borrow_mut() = sql;
-                let result: WasmEncodedResult<String> = WasmEncodedResult::Err {
-                    value: None,
-                    error: WasmEncodedError {
-                        msg: "boom".to_string(),
-                        readable_msg: "boom readable".to_string(),
-                    },
-                };
-                serde_wasm_bindgen::to_value(&result).unwrap()
-            })
-                as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
+            let closure = Closure::wrap(Box::new(
+                move |sql: String, params: wasm_bindgen::JsValue| -> wasm_bindgen::JsValue {
+                    *store_clone.borrow_mut() = (sql, params);
+                    let result: WasmEncodedResult<String> = WasmEncodedResult::Err {
+                        value: None,
+                        error: WasmEncodedError {
+                            msg: "boom".to_string(),
+                            readable_msg: "boom readable".to_string(),
+                        },
+                    };
+                    serde_wasm_bindgen::to_value(&result).unwrap()
+                },
+            )
+                as Box<dyn FnMut(String, wasm_bindgen::JsValue) -> wasm_bindgen::JsValue>);
             let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
             closure.forget();
 
@@ -146,10 +154,13 @@ mod tests {
         async fn invalid_json_yields_deserialization_error() {
             // Build args and expected SQL
             let args = FetchOrdersArgs::default();
-            let expected_sql = build_fetch_orders_query(&args);
+            let expected_stmt = build_fetch_orders_stmt(&args).unwrap();
 
             // Callback returns Success with invalid JSON payload
-            let store = Rc::new(RefCell::new(String::new()));
+            let store = Rc::new(RefCell::new((
+                String::new(),
+                wasm_bindgen::JsValue::UNDEFINED,
+            )));
             let callback = create_sql_capturing_callback("not-json", store.clone());
 
             let exec = JsCallbackExecutor::new(&callback);
@@ -160,19 +171,24 @@ mod tests {
             ));
 
             // Still should have executed with expected SQL
-            assert_eq!(store.borrow().clone(), expected_sql);
+            assert_eq!(store.borrow().clone().0, expected_stmt.sql);
         }
 
         #[wasm_bindgen_test]
         async fn invalid_response_yields_invalid_response_error() {
             // Return a raw JsValue string instead of WasmEncodedResult
-            let store = Rc::new(RefCell::new(String::new()));
+            let store = Rc::new(RefCell::new((
+                String::new(),
+                wasm_bindgen::JsValue::UNDEFINED,
+            )));
             let store_clone = store.clone();
-            let closure = Closure::wrap(Box::new(move |sql: String| -> wasm_bindgen::JsValue {
-                *store_clone.borrow_mut() = sql;
-                wasm_bindgen::JsValue::from_str("not-a-wrapper")
-            })
-                as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
+            let closure = Closure::wrap(Box::new(
+                move |sql: String, params: wasm_bindgen::JsValue| -> wasm_bindgen::JsValue {
+                    *store_clone.borrow_mut() = (sql, params);
+                    wasm_bindgen::JsValue::from_str("not-a-wrapper")
+                },
+            )
+                as Box<dyn FnMut(String, wasm_bindgen::JsValue) -> wasm_bindgen::JsValue>);
             let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
             closure.forget();
 

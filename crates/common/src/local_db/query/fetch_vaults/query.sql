@@ -73,10 +73,10 @@ FROM (
   FROM vault_deltas
 ) AS o
 JOIN erc20_tokens et
-  ON et.chain_id = '?chain_id'
+  ON et.chain_id = ?1
  AND lower(et.address) = lower(o.token)
 WHERE 1=1
-?filter_owners
-?filter_tokens
-?filter_hide_zero_balance
+/*OWNERS_CLAUSE*/
+/*TOKENS_CLAUSE*/
+/*HIDE_ZERO_BALANCE*/
 ORDER BY o.owner, o.token, o.vault_id;

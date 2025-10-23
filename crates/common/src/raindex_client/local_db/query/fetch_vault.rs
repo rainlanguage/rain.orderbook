@@ -1,5 +1,5 @@
 use crate::local_db::query::fetch_vault::{
-    build_fetch_vault_query, parse_io_indexed_pairs, LocalDbVault,
+    build_fetch_vault_stmt, parse_io_indexed_pairs, LocalDbVault,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
@@ -9,8 +9,8 @@ pub async fn fetch_vault<E: LocalDbQueryExecutor + ?Sized>(
     vault_id: &str,
     token: &str,
 ) -> Result<Option<LocalDbVault>, LocalDbQueryError> {
-    let sql = build_fetch_vault_query(chain_id, vault_id, token);
-    let rows: Vec<LocalDbVault> = exec.query_json(&sql).await?;
+    let stmt = build_fetch_vault_stmt(chain_id, vault_id, token);
+    let rows: Vec<LocalDbVault> = exec.query_json(&stmt).await?;
     Ok(rows.into_iter().next())
 }
 
@@ -47,9 +47,12 @@ mod wasm_tests {
         let chain_id = 100;
         let vault_id = "0x01";
         let token = "0xabc";
-        let expected_sql = build_fetch_vault_query(chain_id, vault_id, token);
+        let expected_stmt = build_fetch_vault_stmt(chain_id, vault_id, token);
 
-        let store = Rc::new(RefCell::new(String::new()));
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
@@ -58,7 +61,7 @@ mod wasm_tests {
         assert!(res.unwrap().is_none());
 
         let captured = store.borrow().clone();
-        assert_eq!(captured, expected_sql);
+        assert_eq!(captured.0, expected_stmt.sql);
     }
 
     #[wasm_bindgen_test]
@@ -66,12 +69,15 @@ mod wasm_tests {
         let chain_id = 100;
         let vault_id = "0x01";
         let token = "0xabc";
-        let expected_sql = build_fetch_vault_query(chain_id, vault_id, token);
+        let expected_stmt = build_fetch_vault_stmt(chain_id, vault_id, token);
 
         // Single row JSON for LocalDbVault
         let row_json = r#"[{"vaultId":"1","token":"t","owner":"o","orderbookAddress":"ob","tokenName":"N","tokenSymbol":"S","tokenDecimals":18,"balance":"0x0","inputOrders":null,"outputOrders":null}]"#;
 
-        let store = Rc::new(RefCell::new(String::new()));
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let callback = create_sql_capturing_callback(row_json, store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
@@ -79,12 +85,15 @@ mod wasm_tests {
         assert!(res.is_ok());
         let row = res.unwrap();
         assert!(row.is_some());
-        assert_eq!(store.borrow().clone(), expected_sql);
+        assert_eq!(store.borrow().clone().0, expected_stmt.sql);
     }
 
     #[wasm_bindgen_test]
     async fn fetch_vaults_for_io_string_none_or_empty() {
-        let store = Rc::new(RefCell::new(String::new()));
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
@@ -113,15 +122,17 @@ mod wasm_tests {
         // Capture all SQL calls
         let calls: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(vec![]));
         let calls_clone = calls.clone();
-        let closure = Closure::wrap(Box::new(move |sql: String| -> wasm_bindgen::JsValue {
-            calls_clone.borrow_mut().push(sql);
-            let result = WasmEncodedResult::Success::<String> {
-                value: row_json.to_string(),
-                error: None,
-            };
-            to_value(&result).unwrap()
-        })
-            as Box<dyn FnMut(String) -> wasm_bindgen::JsValue>);
+        let closure = Closure::wrap(Box::new(
+            move |sql: String, _params: wasm_bindgen::JsValue| -> wasm_bindgen::JsValue {
+                calls_clone.borrow_mut().push(sql);
+                let result = WasmEncodedResult::Success::<String> {
+                    value: row_json.to_string(),
+                    error: None,
+                };
+                to_value(&result).unwrap()
+            },
+        )
+            as Box<dyn FnMut(String, wasm_bindgen::JsValue) -> wasm_bindgen::JsValue>);
         let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
 
@@ -134,8 +145,8 @@ mod wasm_tests {
 
         // Assert both SQLs fired in sorted order by io index
         let captured = calls.borrow().clone();
-        let expected1 = build_fetch_vault_query(chain_id, "v1", "t1");
-        let expected2 = build_fetch_vault_query(chain_id, "v2", "t2");
-        assert_eq!(captured, vec![expected1, expected2]);
+        let expected1 = build_fetch_vault_stmt(chain_id, "v1", "t1");
+        let expected2 = build_fetch_vault_stmt(chain_id, "v2", "t2");
+        assert_eq!(captured, vec![expected1.sql, expected2.sql]);
     }
 }

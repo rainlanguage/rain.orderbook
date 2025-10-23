@@ -1,3 +1,5 @@
+use crate::local_db::query::SqlStatement;
+
 pub const CREATE_TABLES_SQL: &str = include_str!("query.sql");
 
 pub const REQUIRED_TABLES: &[&str] = &[
@@ -19,6 +21,10 @@ pub const REQUIRED_TABLES: &[&str] = &[
 
 pub fn create_tables_sql() -> &'static str {
     CREATE_TABLES_SQL
+}
+
+pub fn create_tables_stmt() -> SqlStatement {
+    SqlStatement::new(CREATE_TABLES_SQL)
 }
 
 #[cfg(test)]

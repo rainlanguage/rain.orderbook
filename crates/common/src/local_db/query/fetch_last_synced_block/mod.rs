@@ -16,6 +16,21 @@ pub struct SyncStatusResponse {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(SyncStatusResponse);
 
-pub fn fetch_last_synced_block_sql() -> &'static str {
-    FETCH_LAST_SYNCED_BLOCK_SQL
+use crate::local_db::query::SqlStatement;
+
+pub fn fetch_last_synced_block_stmt() -> SqlStatement {
+    SqlStatement::new(FETCH_LAST_SYNCED_BLOCK_SQL)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stmt_is_static_and_param_free() {
+        let stmt = fetch_last_synced_block_stmt();
+        assert_eq!(stmt.sql, FETCH_LAST_SYNCED_BLOCK_SQL);
+        assert!(stmt.params.is_empty());
+        assert!(stmt.sql.to_lowercase().contains("from sync_status"));
+    }
 }

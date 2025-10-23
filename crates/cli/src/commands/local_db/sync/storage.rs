@@ -3,7 +3,7 @@ use rain_orderbook_app_settings::network::NetworkCfg;
 use rain_orderbook_common::local_db::{
     query::{
         create_tables::{CREATE_TABLES_SQL, REQUIRED_TABLES},
-        fetch_erc20_tokens_by_addresses::FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL,
+        fetch_erc20_tokens_by_addresses,
         fetch_last_synced_block::FETCH_LAST_SYNCED_BLOCK_SQL,
         fetch_store_addresses::FETCH_STORE_ADDRESSES_SQL,
     },
@@ -13,11 +13,11 @@ use serde::Deserialize;
 use url::Url;
 
 use crate::commands::local_db::executor::RusqliteExecutor;
-use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
+use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 
 pub(crate) const DEFAULT_SCHEMA_SQL: &str = CREATE_TABLES_SQL;
 pub(crate) const SYNC_STATUS_QUERY: &str = FETCH_LAST_SYNCED_BLOCK_SQL;
-pub(crate) const ERC20_QUERY_TEMPLATE: &str = FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL;
+
 pub(crate) const STORE_ADDRESSES_QUERY: &str = FETCH_STORE_ADDRESSES_SQL;
 
 pub(crate) async fn ensure_schema(db_path: &str) -> Result<bool> {
@@ -31,7 +31,7 @@ pub(crate) async fn ensure_schema(db_path: &str) -> Result<bool> {
     }
 
     let rows: Vec<TableNameRow> = exec
-        .query_json(TABLE_QUERY)
+        .query_json(&SqlStatement::new(TABLE_QUERY))
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
     let existing: std::collections::HashSet<String> = rows
@@ -46,7 +46,7 @@ pub(crate) async fn ensure_schema(db_path: &str) -> Result<bool> {
         return Ok(false);
     }
 
-    exec.query_text(DEFAULT_SCHEMA_SQL)
+    exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
     Ok(true)
@@ -55,7 +55,7 @@ pub(crate) async fn ensure_schema(db_path: &str) -> Result<bool> {
 pub(crate) async fn fetch_last_synced(db_path: &str) -> Result<u64> {
     let exec = RusqliteExecutor::new(db_path);
     let rows: Vec<SyncStatusRow> = exec
-        .query_json(SYNC_STATUS_QUERY)
+        .query_json(&SqlStatement::new(SYNC_STATUS_QUERY))
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
@@ -64,7 +64,7 @@ pub(crate) async fn fetch_last_synced(db_path: &str) -> Result<u64> {
 pub(crate) async fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
     let exec = RusqliteExecutor::new(db_path);
     let rows: Vec<StoreAddressRow> = exec
-        .query_json(STORE_ADDRESSES_QUERY)
+        .query_json(&SqlStatement::new(STORE_ADDRESSES_QUERY))
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
     Ok(rows
@@ -111,22 +111,16 @@ pub(crate) async fn fetch_existing_tokens(
     chain_id: u32,
     addresses: &[String],
 ) -> Result<Vec<Erc20TokenRow>> {
-    if addresses.is_empty() {
+    // Build a parameterized statement. When address list is empty, there is
+    // nothing to fetch.
+    let Some(stmt) = fetch_erc20_tokens_by_addresses::build_fetch_stmt(chain_id, addresses)
+        .map_err(|e| anyhow!(e.to_string()))?
+    else {
         return Ok(vec![]);
-    }
-
-    let in_clause = addresses
-        .iter()
-        .map(|addr| format!("'{}'", addr.replace('\'', "''")))
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    let sql = ERC20_QUERY_TEMPLATE
-        .replace("?chain_id", &chain_id.to_string())
-        .replace("?addresses_in", &in_clause);
+    };
 
     let exec = RusqliteExecutor::new(db_path);
-    exec.query_json(&sql)
+    exec.query_json(&stmt)
         .await
         .map_err(|e| anyhow!(e.to_string()))
 }
@@ -193,7 +187,9 @@ mod tests {
 
         {
             let exec = RusqliteExecutor::new(&*db_path_str);
-            exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+            exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+                .await
+                .unwrap();
         }
         let value = fetch_last_synced(&db_path_str).await.unwrap();
         assert_eq!(value, 0);
@@ -206,8 +202,10 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
-        exec.query_text(
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
+        exec.query_text(&SqlStatement::new(
             r#"INSERT INTO interpreter_store_sets (
                 store_address,
                 transaction_hash,
@@ -228,7 +226,7 @@ mod tests {
                 '0x0'
             );
 "#,
-        )
+        ))
         .await
         .unwrap();
 
