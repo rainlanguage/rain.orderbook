@@ -118,7 +118,7 @@ mod tests {
     use tempfile::TempDir;
     use url::Url;
 
-    use crate::commands::local_db::executor::SqliteCliExecutor;
+    use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
     use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
 
@@ -282,7 +282,7 @@ mod tests {
         let db_path = temp_dir.path().join("sync.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
+        let exec = RusqliteExecutor::new(&*db_path_str);
         exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
 
         let data_source = MockDataSource {
@@ -326,7 +326,7 @@ mod tests {
         let db_path = temp_dir.path().join("prep.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
+        let exec = RusqliteExecutor::new(&*db_path_str);
         exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
 
         let token_addr = Address::from([0xaa; 20]);
@@ -422,7 +422,7 @@ mod tests {
         let db_path = temp_dir.path().join("prep.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
+        let exec = RusqliteExecutor::new(&*db_path_str);
         exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
 
         let data_source = MockDataSource {
