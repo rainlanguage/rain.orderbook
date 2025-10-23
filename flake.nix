@@ -33,29 +33,6 @@
             '';
           };
 
-          # wasm-split-cli is not available on nix pkgs, so we install it from crates.io
-          # the bin will be accessible with `wasm_split_cli` in nix shells
-          wasm-split = (pkgs.makeRustPlatform{
-            rustc = rainix.rust-toolchain.${system};
-            cargo = rainix.rust-toolchain.${system};
-          }).buildRustPackage rec {
-            # pkg details
-            pname = "wasm_split_cli_support";
-            version = "0.2.0";
-            buildFeatures = ["build-binary"]; # required pkg feature flag for binary build
-
-            # fetch from crates.io
-            src = pkgs.fetchCrate {
-              inherit pname version;
-              hash = "sha256-mvDd4yvdyM52/cznbCPl6u/nWWw9l+FGxOpFYsFXhVg=";
-            };
-
-            # biuld configurations
-            doCheck = false;
-            useFetchCargoVendor = true;
-            cargoHash = "sha256-HpGZHa6YXBKyVE/vzP99z3Fx5LwkJksVwAwf98s6RUc=";
-          };
-
           ob-rs-test = rainix.mkTask.${system} {
             name = "ob-rs-test";
             body = ''
@@ -319,11 +296,10 @@
             rain.defaultPackage.${system}
             packages.ob-ui-components-prelude
             packages.rainix-ob-cli-artifact
-            packages.wasm-split
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
-          buildInputs = rainix.devShells.${system}.default.buildInputs ++ [ pkgs.clang-tools packages.wasm-split ];
+          buildInputs = rainix.devShells.${system}.default.buildInputs ++ [ pkgs.clang-tools ];
           nativeBuildInputs =
             rainix.devShells.${system}.default.nativeBuildInputs;
         };

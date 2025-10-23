@@ -6969,6 +6969,7 @@ name = "rain_orderbook_wasm_async_compile_wrapper"
 version = "0.0.0-alpha.0"
 dependencies = [
  "futures",
+ "rain_orderbook_js_api",
  "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 

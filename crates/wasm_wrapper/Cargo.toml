@@ -13,3 +13,4 @@ crate-type = ["cdylib"]
 [dependencies]
 futures = { workspace = true }
 wasm-bindgen-utils = { workspace = true }
+rain_orderbook_js_api = { workspace = true }
