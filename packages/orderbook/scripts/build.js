@@ -17,6 +17,8 @@ fs.mkdirSync("./dist/cjs", { recursive: true });
 fs.mkdirSync("./dist/esm", { recursive: true });
 fs.writeFileSync("./dist//esm/index.js", "export * from './wasm_async_compile_wrapper/index';\nexport * from './js_api/index';\n");
 fs.writeFileSync("./dist/esm/index.d.ts", "export * from './wasm_async_compile_wrapper/index';\nexport * from './js_api/index';\n");
+fs.writeFileSync("./dist//cjs/index.js", "'use strict';\nmodule.exports = {\n...require('./wasm_async_compile_wrapper/index'),\n...require('./js_api/index')\n};");
+fs.writeFileSync("./dist/cjs/index.d.ts", "export * from './wasm_async_compile_wrapper/index';\nexport * from './js_api/index';\n");
 
 // build for wasm32 target
 execSync("npm run build-wasm");
