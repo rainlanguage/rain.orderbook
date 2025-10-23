@@ -226,7 +226,7 @@ impl OrderbookYaml {
         Ok(remote_tokens)
     }
 
-    pub fn get_local_db(&self) -> Result<Option<crate::local_db::LocalDbCfg>, YamlError> {
+    pub fn get_local_db(&self) -> Result<Option<LocalDbCfg>, YamlError> {
         LocalDbCfg::parse_from_yaml_optional(self.documents.clone(), None)
     }
 

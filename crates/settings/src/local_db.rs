@@ -53,7 +53,27 @@ impl LocalDbCfg {
         Ok(parsed)
     }
 
-    // Removed parse_positive_u64; use parse_positive_u32 and cast to u64 instead.
+    fn parse_positive_u64(value: &str, field: &str, location: String) -> Result<u64, YamlError> {
+        let parsed: u64 = value
+            .parse()
+            .map_err(|e: std::num::ParseIntError| YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: field.to_string(),
+                    reason: e.to_string(),
+                },
+                location: location.clone(),
+            })?;
+        if parsed == 0 {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: field.to_string(),
+                    reason: "must be a positive integer".to_string(),
+                },
+                location,
+            });
+        }
+        Ok(parsed)
+    }
 
     fn parse_manifest_url(value: &str) -> Result<Url, UrlParseError> {
         Url::parse(value)
@@ -79,16 +99,16 @@ impl LocalDbCfg {
             "retry-attempts",
             location.clone(),
         )?;
-        let retry_delay_ms = Self::parse_positive_u32(
+        let retry_delay_ms = Self::parse_positive_u64(
             &require_string(yaml, Some("retry-delay-ms"), Some(location.clone()))?,
             "retry-delay-ms",
             location.clone(),
-        )? as u64;
-        let rate_limit_delay_ms = Self::parse_positive_u32(
+        )?;
+        let rate_limit_delay_ms = Self::parse_positive_u64(
             &require_string(yaml, Some("rate-limit-delay-ms"), Some(location.clone()))?,
             "rate-limit-delay-ms",
             location.clone(),
-        )? as u64;
+        )?;
         let finality_depth = Self::parse_positive_u32(
             &require_string(yaml, Some("finality-depth"), Some(location.clone()))?,
             "finality-depth",
@@ -166,7 +186,27 @@ impl YamlParseableValue for LocalDbCfg {
                         require_hash(sync_yaml, None, Some("local-db".to_string()))?;
 
                     for (key_yaml, settings_yaml) in sync_hash.iter() {
-                        let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+                        let network_key = match key_yaml.as_str() {
+                            Some(s) if !s.is_empty() => s.to_string(),
+                            Some(_) => {
+                                return Err(YamlError::Field {
+                                    kind: FieldErrorKind::InvalidValue {
+                                        field: "sync key".to_string(),
+                                        reason: "network name cannot be empty".to_string(),
+                                    },
+                                    location: "local-db.sync".to_string(),
+                                })
+                            }
+                            None => {
+                                return Err(YamlError::Field {
+                                    kind: FieldErrorKind::InvalidType {
+                                        field: "sync key".to_string(),
+                                        expected: "a string".to_string(),
+                                    },
+                                    location: "local-db.sync".to_string(),
+                                })
+                            }
+                        };
                         if seen_networks.contains(&network_key) {
                             return Err(YamlError::KeyShadowing(
                                 network_key,
