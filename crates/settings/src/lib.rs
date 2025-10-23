@@ -5,6 +5,7 @@ pub mod deployer;
 pub mod deployment;
 pub mod gui;
 pub mod local_db;
+pub mod local_db_manifest;
 pub mod metaboard;
 pub mod network;
 pub mod order;
@@ -19,6 +20,7 @@ pub mod spec_version;
 pub mod subgraph;
 pub mod token;
 pub mod unit_test; // NOTE: this is used by unit_tests module in common crate
+pub mod utils;
 pub mod yaml;
 
 pub(crate) use chart::*;
