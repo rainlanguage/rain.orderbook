@@ -2,7 +2,7 @@ use super::{cache::Cache, ValidationConfig, *};
 use crate::{
     accounts::AccountCfg, metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg,
     remote_tokens::RemoteTokensCfg, sentry::Sentry, spec_version::SpecVersion,
-    subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
+    subgraph::SubgraphCfg, DeployerCfg, LocalDbCfg, NetworkCfg, OrderbookCfg, TokenCfg,
 };
 use alloy::primitives::Address;
 use serde::{
@@ -224,6 +224,10 @@ impl OrderbookYaml {
         let remote_tokens =
             RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), None)?;
         Ok(remote_tokens)
+    }
+
+    pub fn get_local_db(&self) -> Result<Option<crate::local_db::LocalDbCfg>, YamlError> {
+        LocalDbCfg::parse_from_yaml_optional(self.documents.clone(), None)
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -995,5 +999,43 @@ test: test
             err,
             YamlError::NotFound("orderbook with chain-id: 42161".to_string())
         );
+    }
+
+    #[test]
+    fn test_get_local_db_absent_returns_none() {
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
+
+        let res = ob_yaml.get_local_db().unwrap();
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn test_get_local_db_present_parses() {
+        let yaml = r#"
+local-db:
+  manifest-url: https://example.com/manifest.json
+  sync:
+    mainnet:
+      batch-size: 1000
+      max-concurrent-batches: 2
+      retry-attempts: 3
+      retry-delay-ms: 1000
+      rate-limit-delay-ms: 1
+      finality-depth: 64
+"#;
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+
+        let cfg = ob_yaml.get_local_db().unwrap().unwrap();
+        assert_eq!(
+            cfg.manifest_url.to_string(),
+            "https://example.com/manifest.json"
+        );
+        assert!(cfg.sync.contains_key("mainnet"));
+        assert_eq!(cfg.sync.get("mainnet").unwrap().batch_size, 1000);
     }
 }
