@@ -165,4 +165,15 @@ networks:
             _ => panic!("expected field error"),
         }
     }
+
+    #[tokio::test]
+    async fn test_fetch_manifest_http_error_path() {
+        // Use an unsupported scheme to deterministically trigger a reqwest error
+        let url = Url::parse("ftp://example.com").unwrap();
+        let err = fetch(url).await.unwrap_err();
+        match err {
+            FetchManifestError::ReqwestError(_) => {}
+            other => panic!("expected reqwest error, got {other:?}"),
+        }
+    }
 }

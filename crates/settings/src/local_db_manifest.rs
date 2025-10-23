@@ -128,3 +128,254 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
         networks,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use strict_yaml_rust::StrictYamlLoader;
+
+    fn load(yaml: &str) -> StrictYaml {
+        StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone()
+    }
+
+    #[test]
+    fn test_missing_manifest_version() {
+        let yaml = r#"
+db-schema-version: 1
+networks: {}
+"#;
+        let err = parse_manifest_doc(&load(yaml)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+    }
+
+    #[test]
+    fn test_missing_db_schema_version() {
+        let yaml = r#"
+manifest-version: 1
+networks: {}
+"#;
+        let err = parse_manifest_doc(&load(yaml)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+    }
+
+    #[test]
+    fn test_missing_networks() {
+        let yaml = r#"
+manifest-version: 1
+db-schema-version: 1
+"#;
+        let err = parse_manifest_doc(&load(yaml)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+    }
+
+    #[test]
+    fn test_zero_or_invalid_manifest_and_schema_versions() {
+        let yaml_zero_manifest = r#"
+manifest-version: 0
+db-schema-version: 1
+networks: {}
+"#;
+        let err = parse_manifest_doc(&load(yaml_zero_manifest)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+
+        let yaml_zero_schema = r#"
+manifest-version: 1
+db-schema-version: 0
+networks: {}
+"#;
+        let err = parse_manifest_doc(&load(yaml_zero_schema)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+    }
+
+    #[test]
+    fn test_network_missing_chain_id_and_invalid() {
+        let yaml_missing = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet: {}
+"#;
+        let err = parse_manifest_doc(&load(yaml_missing)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+
+        let yaml_zero = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 0
+    orderbooks: []
+"#;
+        let err = parse_manifest_doc(&load(yaml_zero)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+    }
+
+    #[test]
+    fn test_orderbooks_required_and_type() {
+        let yaml_missing = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+"#;
+        let err = parse_manifest_doc(&load(yaml_missing)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+
+        let yaml_non_list = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+    orderbooks: {}
+"#;
+        let err = parse_manifest_doc(&load(yaml_non_list)).unwrap_err();
+        assert!(matches!(err, YamlError::Field { .. }));
+    }
+
+    #[test]
+    fn test_orderbook_missing_fields() {
+        // Full, valid baseline
+        let good = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+    orderbooks:
+      - address: "0x0000000000000000000000000000000000000001"
+        dump-url: "http://example.com"
+        end-block: 1
+        end-block-hash: "0xabc"
+        end-block-time-ms: 1
+"#;
+        assert!(parse_manifest_doc(&load(good)).is_ok());
+
+        // Now omit each required field individually
+        let missing_address = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+    orderbooks:
+      - dump-url: "http://example.com"
+        end-block: 1
+        end-block-hash: "0xabc"
+        end-block-time-ms: 1
+"#;
+        assert!(matches!(
+            parse_manifest_doc(&load(missing_address)).unwrap_err(),
+            YamlError::Field { .. }
+        ));
+
+        let missing_dump = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+    orderbooks:
+      - address: "0x0000000000000000000000000000000000000001"
+        end-block: 1
+        end-block-hash: "0xabc"
+        end-block-time-ms: 1
+"#;
+        assert!(matches!(
+            parse_manifest_doc(&load(missing_dump)).unwrap_err(),
+            YamlError::Field { .. }
+        ));
+
+        let missing_end_block = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+    orderbooks:
+      - address: "0x0000000000000000000000000000000000000001"
+        dump-url: "http://example.com"
+        end-block-hash: "0xabc"
+        end-block-time-ms: 1
+"#;
+        assert!(matches!(
+            parse_manifest_doc(&load(missing_end_block)).unwrap_err(),
+            YamlError::Field { .. }
+        ));
+
+        let missing_end_hash = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+    orderbooks:
+      - address: "0x0000000000000000000000000000000000000001"
+        dump-url: "http://example.com"
+        end-block: 1
+        end-block-time-ms: 1
+"#;
+        assert!(matches!(
+            parse_manifest_doc(&load(missing_end_hash)).unwrap_err(),
+            YamlError::Field { .. }
+        ));
+
+        let missing_end_time = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+    orderbooks:
+      - address: "0x0000000000000000000000000000000000000001"
+        dump-url: "http://example.com"
+        end-block: 1
+        end-block-hash: "0xabc"
+"#;
+        assert!(matches!(
+            parse_manifest_doc(&load(missing_end_time)).unwrap_err(),
+            YamlError::Field { .. }
+        ));
+    }
+
+    #[test]
+    fn test_find_across_networks_and_negatives() {
+        let yaml = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  mainnet:
+    chain-id: 1
+    orderbooks:
+      - address: "0x1111111111111111111111111111111111111111"
+        dump-url: "http://example.com/a"
+        end-block: 10
+        end-block-hash: "0xa"
+        end-block-time-ms: 100
+  other:
+    chain-id: 2
+    orderbooks:
+      - address: "0x2222222222222222222222222222222222222222"
+        dump-url: "http://example.com/b"
+        end-block: 20
+        end-block-hash: "0xb"
+        end-block-time-ms: 200
+"#;
+        let m = parse_manifest_doc(&load(yaml)).unwrap();
+
+        assert!(m
+            .find(1, "0x1111111111111111111111111111111111111111")
+            .is_some());
+        assert!(m
+            .find(2, "0x2222222222222222222222222222222222222222")
+            .is_some());
+
+        assert!(m
+            .find(1, "0xdeadbeef00000000000000000000000000000000")
+            .is_none());
+        assert!(m
+            .find(999, "0x1111111111111111111111111111111111111111")
+            .is_none());
+    }
+}
