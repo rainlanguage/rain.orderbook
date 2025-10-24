@@ -59,16 +59,11 @@ export default __wbg_init;`,
     `import { Buffer } from 'buffer';
 import wasmB64 from './orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');\n
-function isChromeFeatureDetection() {
-    return !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
-}
 /** Initializes this package WebAssembly module */
 export async function init_wasm() {
-    console.log(isChromeFeatureDetection())
     try {
         initSync(bytes);
     } catch (error) {
-        console.log("yo", error)
         await __wbg_init(bytes);   
     }
 }`
