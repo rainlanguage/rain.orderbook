@@ -13,13 +13,13 @@ use rain_orderbook_bindings::IOrderBookV5::IOrderBookV5Instance;
 use url::Url;
 
 /// Quotes array of given quote targets using the given rpc url
-pub async fn batch_quote_with_registry(
+pub async fn batch_quote(
     quote_targets: &[QuoteTarget],
     rpcs: Vec<String>,
     block_number: Option<u64>,
     _gas: Option<u64>, // TODO: remove or use
     multicall_address: Option<Address>,
-    registry: &dyn ErrorRegistry,
+    registry: Option<&dyn ErrorRegistry>,
 ) -> Result<Vec<QuoteResult>, Error> {
     let rpcs = rpcs
         .into_iter()
@@ -43,11 +43,12 @@ pub async fn batch_quote_with_registry(
         multicall = multicall.add_dynamic(ob_instance.quote2(quote_target.quote_config.clone()));
     }
 
+    let oc_default = OpenChainRegistry::default();
+    let registry: &dyn ErrorRegistry = registry.unwrap_or(&oc_default);
+
     let aggregate_res = match multicall.aggregate3().await {
         Ok(results) => results,
         Err(MulticallError::CallFailed(bytes)) => {
-            // Handle the case where the entire multicall failed
-            // Create a single error result for all quote targets
             let decoded_error =
                 match AbiDecodedErrorType::decode_with_registry(bytes.as_ref(), registry).await {
                     Ok(err) => FailedQuote::RevertError(err),
@@ -92,27 +93,6 @@ pub async fn batch_quote_with_registry(
     }
 
     Ok(results)
-}
-
-/// Quotes array of given quote targets using the given rpc url
-/// Uses the default OpenChain-backed registry for error decoding to remain back-compatible.
-pub async fn batch_quote(
-    quote_targets: &[QuoteTarget],
-    rpcs: Vec<String>,
-    block_number: Option<u64>,
-    _gas: Option<u64>, // TODO: remove or use
-    multicall_address: Option<Address>,
-) -> Result<Vec<QuoteResult>, Error> {
-    let reg = OpenChainRegistry::default();
-    batch_quote_with_registry(
-        quote_targets,
-        rpcs,
-        block_number,
-        _gas,
-        multicall_address,
-        &reg,
-    )
-    .await
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -189,6 +169,7 @@ mod tests {
             None,
             None,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -213,6 +194,7 @@ mod tests {
         let err = batch_quote(
             &quote_targets,
             vec!["this should break".to_string()],
+            None,
             None,
             None,
             None,
@@ -243,6 +225,7 @@ mod tests {
         let err = batch_quote(
             &quote_targets,
             vec![rpc_server.url("/rpc").to_string()],
+            None,
             None,
             None,
             None,
@@ -302,13 +285,13 @@ mod tests {
             }
         }
 
-        let results = batch_quote_with_registry(
+        let results = batch_quote(
             &quote_targets,
             vec![rpc_server.url("/rpc").to_string()],
             None,
             None,
             None,
-            &FakeRegistry,
+            Some(&FakeRegistry),
         )
         .await
         .unwrap();
