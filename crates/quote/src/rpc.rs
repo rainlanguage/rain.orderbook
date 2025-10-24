@@ -7,7 +7,7 @@ use alloy::{
     eips::{BlockId, BlockNumberOrTag},
     primitives::Address,
 };
-use rain_error_decoding::AbiDecodedErrorType;
+use rain_error_decoding::{AbiDecodedErrorType, ErrorRegistry, OpenChainRegistry};
 use rain_orderbook_bindings::provider::mk_read_provider;
 use rain_orderbook_bindings::IOrderBookV5::IOrderBookV5Instance;
 use url::Url;
@@ -19,6 +19,7 @@ pub async fn batch_quote(
     block_number: Option<u64>,
     _gas: Option<u64>, // TODO: remove or use
     multicall_address: Option<Address>,
+    registry: Option<&dyn ErrorRegistry>,
 ) -> Result<Vec<QuoteResult>, Error> {
     let rpcs = rpcs
         .into_iter()
@@ -42,13 +43,14 @@ pub async fn batch_quote(
         multicall = multicall.add_dynamic(ob_instance.quote2(quote_target.quote_config.clone()));
     }
 
+    let oc_default = OpenChainRegistry::default();
+    let registry: &dyn ErrorRegistry = registry.unwrap_or(&oc_default);
+
     let aggregate_res = match multicall.aggregate3().await {
         Ok(results) => results,
         Err(MulticallError::CallFailed(bytes)) => {
-            // Handle the case where the entire multicall failed
-            // Create a single error result for all quote targets
             let decoded_error =
-                match AbiDecodedErrorType::selector_registry_abi_decode(bytes.as_ref()).await {
+                match AbiDecodedErrorType::decode_with_registry(bytes.as_ref(), registry).await {
                     Ok(err) => FailedQuote::RevertError(err),
                     Err(err) => FailedQuote::RevertErrorDecodeFailed(err),
                 };
@@ -80,7 +82,8 @@ pub async fn batch_quote(
                 }
             }
             Err(failure) => {
-                match AbiDecodedErrorType::selector_registry_abi_decode(&failure.return_data).await
+                match AbiDecodedErrorType::decode_with_registry(&failure.return_data, registry)
+                    .await
                 {
                     Ok(e) => results.push(Err(FailedQuote::RevertError(e))),
                     Err(e) => results.push(Err(FailedQuote::RevertErrorDecodeFailed(e))),
@@ -96,12 +99,14 @@ pub async fn batch_quote(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::json_abi::Error as AlloyError;
     use alloy::providers::bindings::IMulticall3::Result as MulticallResult;
     use alloy::providers::MulticallError;
     use alloy::sol_types::SolCall;
     use alloy::sol_types::SolValue;
     use alloy::transports::TransportError;
     use httpmock::{Method::POST, MockServer};
+    use rain_error_decoding::ErrorRegistry;
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return};
     use serde_json::json;
@@ -164,6 +169,7 @@ mod tests {
             None,
             None,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -188,6 +194,7 @@ mod tests {
         let err = batch_quote(
             &quote_targets,
             vec!["this should break".to_string()],
+            None,
             None,
             None,
             None,
@@ -218,6 +225,7 @@ mod tests {
         let err = batch_quote(
             &quote_targets,
             vec![rpc_server.url("/rpc").to_string()],
+            None,
             None,
             None,
             None,
@@ -260,12 +268,30 @@ mod tests {
             }));
         });
 
+        struct FakeRegistry;
+
+        #[async_trait::async_trait]
+        impl ErrorRegistry for FakeRegistry {
+            async fn lookup(
+                &self,
+                selector: [u8; 4],
+            ) -> Result<Vec<AlloyError>, rain_error_decoding::AbiDecodeFailedErrors> {
+                // 0x734bc71c -> "TokenSelfTrade()"
+                if selector == [0x73, 0x4b, 0xc7, 0x1c] {
+                    Ok(vec!["TokenSelfTrade()".parse().unwrap()])
+                } else {
+                    Ok(vec![]) // keep 0xdeadbeef unknown
+                }
+            }
+        }
+
         let results = batch_quote(
             &quote_targets,
             vec![rpc_server.url("/rpc").to_string()],
             None,
             None,
             None,
+            Some(&FakeRegistry),
         )
         .await
         .unwrap();
