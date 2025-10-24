@@ -1,19 +1,13 @@
 use super::{LocalDb, LocalDbError};
 use crate::{
     retry::{retry_with_backoff, RetryError},
-    rpc_client::{BlockRange, LogEntryResponse, RpcClientError, Topics},
+    rpc_client::{LogEntryResponse, RpcClientError},
 };
 use alloy::primitives::{Address, U256};
+use alloy::rpc::types::Filter;
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::topics::{ORDERBOOK_EVENT_TOPICS, STORE_SET_TOPICS};
 use std::collections::{HashMap, HashSet};
-
-#[derive(Debug, Clone)]
-struct LogFilter {
-    pub addresses: Vec<Address>,
-    pub topics: Topics,
-    pub range: BlockRange,
-}
 
 #[derive(Debug, Clone)]
 pub struct FetchConfig {
@@ -37,70 +31,56 @@ impl Default for FetchConfig {
 impl LocalDb {
     async fn collect_logs(
         &self,
-        filter: &LogFilter,
+        filter: &Filter,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        if filter.range.start > filter.range.end {
-            return Err(LocalDbError::Rpc(RpcClientError::InvalidBlockRange {
-                start: filter.range.start,
-                end: filter.range.end,
-            }));
-        }
+        filter.block_option.ensure_valid_block_range()?;
 
-        if filter.addresses.is_empty() {
+        if filter.address.is_empty() {
             return Ok(Vec::new());
         }
 
-        let unique_addresses = Self::dedupe_addresses(&filter.addresses);
-        if unique_addresses.is_empty() {
+        let filters = Self::build_log_filters(filter, config)?;
+        if filters.is_empty() {
             return Ok(Vec::new());
         }
 
-        let filter = LogFilter {
-            addresses: unique_addresses,
-            topics: filter.topics.clone(),
-            range: filter.range,
-        };
+        let mut events = self.fetch_logs_for_filters(filters, config).await?;
 
-        let jobs = Self::build_log_jobs(&filter.addresses, filter.range, config)?;
-        if jobs.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let mut events = self
-            .fetch_logs_for_jobs(jobs, &filter.topics, config)
-            .await?;
         Self::sort_events_by_block_and_log(&mut events);
         self.backfill_missing_timestamps(&mut events, config)
             .await?;
+
         Ok(events)
     }
 
     pub async fn fetch_orderbook_events(
         &self,
         address: Address,
-        range: BlockRange,
+        from_block: u64,
+        to_block: u64,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        let filter = LogFilter {
-            addresses: vec![address],
-            topics: Topics::from_b256_list(ORDERBOOK_EVENT_TOPICS.to_vec()),
-            range,
-        };
+        let filter = Filter::new()
+            .address(address)
+            .from_block(from_block)
+            .to_block(to_block)
+            .event_signature(ORDERBOOK_EVENT_TOPICS.to_vec());
         self.collect_logs(&filter, config).await
     }
 
     pub async fn fetch_store_events(
         &self,
         addresses: &[Address],
-        range: BlockRange,
+        from_block: u64,
+        to_block: u64,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        let filter = LogFilter {
-            addresses: addresses.to_vec(),
-            topics: Topics::from_b256_list(STORE_SET_TOPICS.to_vec()),
-            range,
-        };
+        let filter = Filter::new()
+            .address(addresses.to_vec())
+            .from_block(from_block)
+            .to_block(to_block)
+            .event_signature(STORE_SET_TOPICS.to_vec());
         self.collect_logs(&filter, config).await
     }
 
@@ -193,60 +173,68 @@ impl LocalDb {
         Ok(())
     }
 
-    fn dedupe_addresses(addresses: &[Address]) -> Vec<Address> {
-        let mut dedup = HashSet::new();
-        addresses
-            .iter()
-            .copied()
-            .filter(|addr| dedup.insert(*addr))
-            .collect()
-    }
-
-    fn build_log_jobs(
-        addresses: &[Address],
-        range: BlockRange,
+    fn build_log_filters(
+        filter: &Filter,
         config: &FetchConfig,
-    ) -> Result<Vec<LogFetchJob>, LocalDbError> {
+    ) -> Result<Vec<Filter>, LocalDbError> {
         let chunk_size = config.chunk_size.max(1);
         let chunk_span = chunk_size.saturating_sub(1);
-        let mut jobs = Vec::new();
+        let mut filters = Vec::new();
 
-        for &address in addresses {
-            let mut current_block = range.start;
-            while current_block <= range.end {
-                let to_block = current_block.saturating_add(chunk_span).min(range.end);
-                let chunk_range = BlockRange::inclusive(current_block, to_block)?;
-                jobs.push(LogFetchJob {
-                    address,
-                    range: chunk_range,
-                });
+        let from_block = filter
+            .block_option
+            .get_from_block()
+            .ok_or(LocalDbError::MissingBlockFilter("from".to_string()))?
+            .as_number()
+            .ok_or(LocalDbError::NonNumberBlockNumber("from".to_string()))?;
+        let to_block = filter
+            .block_option
+            .get_to_block()
+            .ok_or(LocalDbError::MissingBlockFilter("to".to_string()))?
+            .as_number()
+            .ok_or(LocalDbError::NonNumberBlockNumber("to".to_string()))?;
 
-                if to_block == range.end || to_block == u64::MAX {
+        for &address in filter.address.iter() {
+            let mut current_block = from_block;
+            while current_block <= to_block {
+                let end = current_block.saturating_add(chunk_span).min(to_block);
+
+                let all_topics = filter.topics.clone();
+                let topics = all_topics
+                    .first()
+                    .ok_or(LocalDbError::MissingTopicsFilter)?;
+
+                let mut filter = Filter::new()
+                    .address(address)
+                    .from_block(current_block)
+                    .to_block(end);
+                filter = filter.event_signature(topics.clone());
+                filters.push(filter);
+
+                if end == to_block || end == u64::MAX {
                     break;
                 }
 
-                current_block = to_block.saturating_add(1);
+                current_block = end.saturating_add(1);
             }
         }
 
-        Ok(jobs)
+        Ok(filters)
     }
 
-    async fn fetch_logs_for_jobs(
+    async fn fetch_logs_for_filters(
         &self,
-        jobs: Vec<LogFetchJob>,
-        topics: &Topics,
+        filters: Vec<Filter>,
         config: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        if jobs.is_empty() {
+        if filters.is_empty() {
             return Ok(Vec::new());
         }
 
         let concurrency = config.max_concurrent_requests.max(1);
         let client = self.rpc_client().clone();
-        let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(jobs)
-            .map(|job| {
-                let topics = topics.clone();
+        let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(filters)
+            .map(|filter| {
                 let client = client.clone();
                 let max_attempts = config.max_retry_attempts;
 
@@ -254,13 +242,8 @@ impl LocalDb {
                     let response = retry_with_backoff(
                         || {
                             let client = client.clone();
-                            let topics = topics.clone();
-                            async move {
-                                client
-                                    .get_logs(job.address, &topics, job.range)
-                                    .await
-                                    .map_err(map_rpc_error)
-                            }
+                            let filter = filter.clone();
+                            async move { client.get_logs(&filter).await.map_err(map_rpc_error) }
                         },
                         max_attempts,
                         should_retry_local_db_error,
@@ -287,12 +270,6 @@ impl LocalDb {
             block_a.cmp(&block_b).then_with(|| log_a.cmp(&log_b))
         });
     }
-}
-
-#[derive(Clone)]
-struct LogFetchJob {
-    address: Address,
-    range: BlockRange,
 }
 
 fn map_retry_error(error: RetryError<LocalDbError>) -> LocalDbError {
@@ -352,9 +329,9 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod tokio_tests {
         use super::*;
-        use crate::rpc_client::BlockRange;
         use alloy::hex;
         use alloy::primitives::Address;
+        use alloy::rpc::types::FilterBlockError;
         use alloy::sol_types::SolEvent;
         use httpmock::prelude::*;
         use rain_orderbook_bindings::{IInterpreterStoreV3::Set, IOrderBookV5::AddOrderV3};
@@ -483,12 +460,12 @@ mod tests {
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let range = BlockRange::inclusive(1, 2).expect("valid range");
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
             let events = db
                 .fetch_orderbook_events(
                     addr,
-                    range,
+                    1,
+                    2,
                     &FetchConfig {
                         chunk_size: 1000,
                         max_concurrent_requests: 1,
@@ -509,10 +486,9 @@ mod tests {
         #[tokio::test]
         async fn fetch_store_events_returns_empty_for_no_addresses() {
             let db = LocalDb::default();
-            let range = BlockRange::inclusive(0, 10).expect("valid range");
             let addresses: Vec<Address> = vec![];
             let events = db
-                .fetch_store_events(&addresses, range, &FetchConfig::default())
+                .fetch_store_events(&addresses, 0, 10, &FetchConfig::default())
                 .await
                 .unwrap();
             assert!(events.is_empty());
@@ -569,12 +545,12 @@ mod tests {
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let range = BlockRange::inclusive(1, 2).expect("valid range");
             let addresses = vec![addr, addr, addr];
             let events = db
                 .fetch_store_events(
                     &addresses,
-                    range,
+                    1,
+                    2,
                     &FetchConfig {
                         chunk_size: 1000,
                         max_concurrent_requests: 1,
@@ -599,15 +575,17 @@ mod tests {
         async fn fetch_store_events_returns_error_for_inverted_range() {
             let db = LocalDb::default();
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let range = BlockRange { start: 10, end: 1 };
             let err = db
-                .fetch_store_events(&[addr], range, &FetchConfig::default())
+                .fetch_store_events(&[addr], 10, 1, &FetchConfig::default())
                 .await
                 .unwrap_err();
             match err {
-                LocalDbError::Rpc(RpcClientError::InvalidBlockRange { start, end }) => {
-                    assert_eq!(start, 10);
-                    assert_eq!(end, 1);
+                LocalDbError::FilterBlockError(FilterBlockError::FromBlockGreaterThanToBlock {
+                    from,
+                    to,
+                }) => {
+                    assert_eq!(from, 10);
+                    assert_eq!(to, 1);
                 }
                 other => panic!("expected InvalidBlockRange, got {other:?}"),
             }
@@ -650,15 +628,17 @@ mod tests {
         async fn fetch_orderbook_events_returns_error_for_inverted_range() {
             let db = LocalDb::default();
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let range = BlockRange { start: 10, end: 1 };
             let err = db
-                .fetch_orderbook_events(addr, range, &FetchConfig::default())
+                .fetch_orderbook_events(addr, 10, 1, &FetchConfig::default())
                 .await
                 .unwrap_err();
             match err {
-                LocalDbError::Rpc(RpcClientError::InvalidBlockRange { start, end }) => {
-                    assert_eq!(start, 10);
-                    assert_eq!(end, 1);
+                LocalDbError::FilterBlockError(FilterBlockError::FromBlockGreaterThanToBlock {
+                    from,
+                    to,
+                }) => {
+                    assert_eq!(from, 10);
+                    assert_eq!(to, 1);
                 }
                 other => panic!("expected InvalidBlockRange, got {other:?}"),
             }
@@ -738,11 +718,11 @@ mod tests {
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let range = BlockRange::inclusive(1, 1).expect("valid");
             let events = db
                 .fetch_orderbook_events(
                     addr,
-                    range,
+                    1,
+                    1,
                     &FetchConfig {
                         chunk_size: 1000,
                         max_concurrent_requests: 1,
@@ -809,10 +789,15 @@ mod tests {
         }
 
         #[test]
-        fn build_store_jobs_chunking_basic() {
-            let jobs = LocalDb::build_log_jobs(
-                &[Address::ZERO],
-                BlockRange::inclusive(1, 10).expect("valid range"),
+        fn build_store_filters_chunking_basic() {
+            let filter = Filter::new()
+                .address(vec![Address::ZERO])
+                .from_block(1)
+                .to_block(10)
+                .event_signature(STORE_SET_TOPICS.to_vec());
+
+            let filters = LocalDb::build_log_filters(
+                &filter,
                 &FetchConfig {
                     chunk_size: 3,
                     ..Default::default()
@@ -820,25 +805,30 @@ mod tests {
             )
             .unwrap();
 
-            assert_eq!(jobs.len(), 4);
-            assert_eq!(jobs[0].range.start, 1);
-            assert_eq!(jobs[0].range.end, 3);
-            assert_eq!(jobs[1].range.start, 4);
-            assert_eq!(jobs[1].range.end, 6);
-            assert_eq!(jobs[2].range.start, 7);
-            assert_eq!(jobs[2].range.end, 9);
-            assert_eq!(jobs[3].range.start, 10);
-            assert_eq!(jobs[3].range.end, 10);
-            assert!(jobs.iter().all(|j| j.address == Address::ZERO));
+            assert_eq!(filters.len(), 4);
+            assert_eq!(filters[0].get_from_block().unwrap(), 1);
+            assert_eq!(filters[0].get_to_block().unwrap(), 3);
+            assert_eq!(filters[1].get_from_block().unwrap(), 4);
+            assert_eq!(filters[1].get_to_block().unwrap(), 6);
+            assert_eq!(filters[2].get_from_block().unwrap(), 7);
+            assert_eq!(filters[2].get_to_block().unwrap(), 9);
+            assert_eq!(filters[3].get_from_block().unwrap(), 10);
+            assert_eq!(filters[3].get_to_block().unwrap(), 10);
         }
 
         #[test]
-        fn build_store_jobs_handles_u64_max_boundary() {
+        fn build_store_filters_handles_u64_max_boundary() {
             let start = u64::MAX - 50;
             let end = u64::MAX;
-            let jobs = LocalDb::build_log_jobs(
-                &[Address::ZERO],
-                BlockRange::inclusive(start, end).expect("valid range"),
+
+            let filter = Filter::new()
+                .address(vec![Address::ZERO])
+                .from_block(start)
+                .to_block(end)
+                .event_signature(STORE_SET_TOPICS.to_vec());
+
+            let filters = LocalDb::build_log_filters(
+                &filter,
                 &FetchConfig {
                     chunk_size: 100,
                     ..Default::default()
@@ -847,9 +837,9 @@ mod tests {
             .unwrap();
 
             // Should create a single job and not overflow or loop
-            assert_eq!(jobs.len(), 1);
-            assert_eq!(jobs[0].range.start, start);
-            assert_eq!(jobs[0].range.end, end);
+            assert_eq!(filters.len(), 1);
+            assert_eq!(filters[0].get_from_block().unwrap(), start);
+            assert_eq!(filters[0].get_to_block().unwrap(), end);
         }
 
         #[tokio::test]
@@ -934,7 +924,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn fetch_store_events_chunking_multiple_jobs_merged_and_sorted() {
+        async fn fetch_store_events_chunking_multiple_filters_merged_and_sorted() {
             let server = MockServer::start();
             let url = Url::from_str(&server.url("/")).unwrap();
 
@@ -1002,13 +992,13 @@ mod tests {
             let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
             db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let range = BlockRange::inclusive(1, 2).expect("valid");
             let events = db
                 .fetch_store_events(
                     &[addr],
-                    range,
+                    1,
+                    2,
                     &FetchConfig {
-                        chunk_size: 1, // forces per-block jobs
+                        chunk_size: 1, // forces per-block filters
                         max_concurrent_requests: 2,
                         max_concurrent_blocks: 1,
                         max_retry_attempts: 1,
