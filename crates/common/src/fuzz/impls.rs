@@ -781,7 +781,7 @@ b: fuzzed;
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner_invalid_spec_version() {
         let dotrain = r#"
-version: 2
+version: 1
 deployers:
     some-key:
         address: 0x1111111111111111111111111111111111111111
@@ -808,7 +808,7 @@ b: fuzzed;
         assert!(matches!(
             err,
             FuzzRunnerError::SpecVersionMismatch(ref expected, ref actual)
-                if expected == "3" && actual == "2"
+                if expected == "4" && actual == "1"
         ));
     }
 
@@ -1245,7 +1245,7 @@ scenarios:
         deployer: flare
         runs: 1
         bindings:
-            orderbook-subparser: {orderbook_subparser} 
+            orderbook-subparser: {orderbook_subparser}
 orders:
     sell-wflr:
         network: flare

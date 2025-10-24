@@ -94,6 +94,19 @@ deployments:
     other-deployment:
         scenario: some-scenario.sub-scenario
         order: some-order
+
+local-db-remotes:
+  some-orderbook: http://test.com
+  other-orderbook: http://test.com
+
+local-db-sync:
+  test:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
 `;
 
 const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {

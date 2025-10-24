@@ -14,15 +14,15 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 };
 
 const MOCK_SETTINGS_CONTENT = `
-version: 3
+version: 4
 networks:
   flare:
-    rpcs: 
+    rpcs:
       - https://mainnet.flare.org
     chain-id: 14
     currency: ETH
   base:
-    rpcs: 
+    rpcs:
       - https://mainnet.base.org
     chain-id: 8453
     currency: ETH
@@ -57,6 +57,18 @@ tokens:
   token2:
     address: 0x4200000000000000000000000000000000000042
     network: base
+local-db-remotes:
+  flare: http://test.com
+  base: http://test.com
+
+local-db-sync:
+  test:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
 `;
 
 const MOCK_DOTRAIN_PREFIX = `

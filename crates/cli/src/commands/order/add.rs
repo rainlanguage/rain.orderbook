@@ -181,6 +181,17 @@ deployments:
     some-deployment:
         scenario: some-scenario
         order: some-order
+
+local-db-remotes:
+    some-orderbook: https://some-local-db-remote.com
+local-db-sync:
+    test:
+        batch-size: 1
+        max-concurrent-batches: 1
+        retry-attempts: 1
+        retry-delay-ms: 1
+        rate-limit-delay-ms: 1
+        finality-depth: 1
 ---
 #calculate-io
 _ _: 0 0;
