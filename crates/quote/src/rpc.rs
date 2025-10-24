@@ -246,7 +246,7 @@ mod tests {
             },
             MulticallResult {
                 success: false,
-                returnData: alloy::hex!("deadbeef").to_vec().into(), // Unknown error selector
+                returnData: alloy::hex!("ff00ff00").to_vec().into(), // Unknown error selector
             },
         ]
         .abi_encode();

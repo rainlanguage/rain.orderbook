@@ -19,6 +19,7 @@ import {LibOrder} from "src/lib/LibOrder.sol";
 import {OrderBook} from "src/concrete/ob/OrderBook.sol";
 import {EvaluableV4} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
 
 /// @title OrderBookExternalTest
 /// Abstract contract that performs common setup needed for testing an orderbook
@@ -40,6 +41,11 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV5Stub
 
     constructor() {
         vm.pauseGasMetering();
+
+        // Put the TOFU decimals contract in place so that any calls to it
+        // succeed. This is because we don't have zoltu here.
+        vm.etch(address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT), type(TOFUTokenDecimals).runtimeCode);
+
         iInterpreter = IInterpreterV4(address(uint160(uint256(keccak256("interpreter.rain.test")))));
         vm.etch(address(iInterpreter), REVERTING_MOCK_BYTECODE);
         iStore = IInterpreterStoreV3(address(uint160(uint256(keccak256("store.rain.test")))));
