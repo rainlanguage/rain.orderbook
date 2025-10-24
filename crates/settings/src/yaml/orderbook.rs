@@ -1,8 +1,14 @@
 use super::{cache::Cache, ValidationConfig, *};
 use crate::{
-    accounts::AccountCfg, metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg,
-    remote_tokens::RemoteTokensCfg, sentry::Sentry, spec_version::SpecVersion,
-    subgraph::SubgraphCfg, DeployerCfg, LocalDbCfg, NetworkCfg, OrderbookCfg, TokenCfg,
+    accounts::AccountCfg,
+    local_db::{LocalDbRemoteCfg, LocalDbSyncCfg},
+    metaboard::MetaboardCfg,
+    remote_networks::RemoteNetworksCfg,
+    remote_tokens::RemoteTokensCfg,
+    sentry::Sentry,
+    spec_version::SpecVersion,
+    subgraph::SubgraphCfg,
+    DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
 };
 use alloy::primitives::Address;
 use serde::{
@@ -226,8 +232,12 @@ impl OrderbookYaml {
         Ok(remote_tokens)
     }
 
-    pub fn get_local_db(&self) -> Result<Option<LocalDbCfg>, YamlError> {
-        LocalDbCfg::parse_from_yaml_optional(self.documents.clone(), None)
+    pub fn get_local_db_remotes(&self) -> Result<HashMap<String, LocalDbRemoteCfg>, YamlError> {
+        LocalDbRemoteCfg::parse_all_from_yaml(self.documents.clone(), None)
+    }
+
+    pub fn get_local_db_sync(&self) -> Result<HashMap<String, LocalDbSyncCfg>, YamlError> {
+        LocalDbSyncCfg::parse_all_from_yaml(self.documents.clone(), None)
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -452,6 +462,8 @@ mod tests {
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
         secondary: https://api.thegraph.com/subgraphs/name/abc
+    local-db-remotes:
+        orderbook1: https://localdb.example.com
     metaboards:
         board1: https://meta.example.com/board1
         board2: https://meta.example.com/board2
@@ -854,6 +866,10 @@ test: test
             currency: ETH
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    local-db-remotes:
+        mainnet-orderbook: https://db.example.com/mainnet
+        other-orderbook: https://db.example.com/other
+        polygon-orderbook: https://db.example.com/polygon
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
@@ -960,6 +976,10 @@ test: test
             chain-id: 42161
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    local-db-remotes:
+        mainnet-orderbook: https://db.example.com/mainnet
+        other-orderbook: https://db.example.com/other
+        polygon-orderbook: https://db.example.com/polygon
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
@@ -1002,40 +1022,193 @@ test: test
     }
 
     #[test]
-    fn test_get_local_db_absent_returns_none() {
+    fn test_get_local_db_sync_absent_returns_error() {
         let ob_yaml = OrderbookYaml::new(
             vec![FULL_YAML.to_string()],
             OrderbookYamlValidation::default(),
         )
         .unwrap();
-
-        let res = ob_yaml.get_local_db().unwrap();
-        assert!(res.is_none());
+        let err = ob_yaml.get_local_db_sync().unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
+                location: "root".to_string(),
+            }
+        );
     }
 
     #[test]
-    fn test_get_local_db_present_parses() {
+    fn test_get_local_db_sync_parse_ok() {
         let yaml = r#"
-local-db:
-  manifest-url: https://example.com/manifest.json
-  sync:
-    mainnet:
-      batch-size: 1000
-      max-concurrent-batches: 2
-      retry-attempts: 3
-      retry-delay-ms: 1000
-      rate-limit-delay-ms: 1
-      finality-depth: 64
+local-db-sync:
+  mainnet:
+    batch-size: 100
+    max-concurrent-batches: 5
+    retry-attempts: 3
+    retry-delay-ms: 50
+    rate-limit-delay-ms: 10
+    finality-depth: 100
 "#;
         let ob_yaml =
             OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
 
-        let cfg = ob_yaml.get_local_db().unwrap().unwrap();
+        let syncs = ob_yaml.get_local_db_sync().unwrap();
+        assert_eq!(syncs.len(), 1);
+        let cfg = syncs.get("mainnet").unwrap();
+        assert_eq!(cfg.key, "mainnet");
+        assert_eq!(cfg.batch_size, 100);
+        assert_eq!(cfg.max_concurrent_batches, 5);
+        assert_eq!(cfg.retry_attempts, 3);
+        assert_eq!(cfg.retry_delay_ms, 50);
+        assert_eq!(cfg.rate_limit_delay_ms, 10);
+        assert_eq!(cfg.finality_depth, 100);
+    }
+
+    #[test]
+    fn test_get_local_db_sync_invalid_value() {
+        let yaml = r#"
+local-db-sync:
+  mainnet:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 0
+    finality-depth: 1
+"#;
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+
+        let err = ob_yaml.get_local_db_sync().unwrap_err();
         assert_eq!(
-            cfg.manifest_url.to_string(),
-            "https://example.com/manifest.json"
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "rate-limit-delay-ms".to_string(),
+                    reason: "must be a positive integer".to_string(),
+                },
+                location: "local-db-sync.mainnet".to_string(),
+            }
         );
-        assert!(cfg.sync.contains_key("mainnet"));
-        assert_eq!(cfg.sync.get("mainnet").unwrap().batch_size, 1000);
+    }
+
+    #[test]
+    fn test_get_local_db_sync_duplicate_keys() {
+        let yaml_one = r#"
+local-db-sync:
+  mainnet:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
+"#;
+        let yaml_two = r#"
+local-db-sync:
+  mainnet:
+    batch-size: 2
+    max-concurrent-batches: 2
+    retry-attempts: 2
+    retry-delay-ms: 2
+    rate-limit-delay-ms: 2
+    finality-depth: 2
+"#;
+        let ob_yaml = OrderbookYaml::new(
+            vec![yaml_one.to_string(), yaml_two.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
+
+        let err = ob_yaml.get_local_db_sync().unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::KeyShadowing("mainnet".to_string(), "local-db-sync".to_string())
+        );
+    }
+
+    #[test]
+    fn test_local_db_remotes_absent_returns_error() {
+        let yaml = format!("version: {}\n", SpecVersion::current());
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+
+        let err = ob_yaml.get_local_db_remotes().unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
+                location: "root".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_local_db_remotes_parse_success() {
+        let yaml = format!(
+            r#"
+version: {spec}
+local-db-remotes:
+  primary: https://example.com
+  mirror: https://mirror.example.com
+"#,
+            spec = SpecVersion::current()
+        );
+
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let remotes = ob_yaml.get_local_db_remotes().unwrap();
+
+        assert_eq!(remotes.len(), 2);
+        assert_eq!(
+            remotes.get("primary").unwrap().url,
+            Url::parse("https://example.com").unwrap()
+        );
+        assert_eq!(
+            remotes.get("mirror").unwrap().url,
+            Url::parse("https://mirror.example.com").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_local_db_remotes_invalid_url_error() {
+        let yaml = r#"
+local-db-remotes:
+  bad: test
+"#;
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+        let err = ob_yaml.get_local_db_remotes().unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "url".to_string(),
+                    reason: "relative URL without a base".to_string(),
+                },
+                location: "local-db-remotes.bad".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_local_db_remotes_duplicate_keys_across_files() {
+        let yaml1 = r#"
+local-db-remotes:
+  r1: https://example.com
+"#;
+        let yaml2 = r#"
+local-db-remotes:
+  r1: https://another.example.com
+"#;
+        let ob_yaml = OrderbookYaml::new(
+            vec![yaml1.to_string(), yaml2.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
+        let err = ob_yaml.get_local_db_remotes().unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::KeyShadowing("r1".to_string(), "local-db-remotes".to_string())
+        );
     }
 }
