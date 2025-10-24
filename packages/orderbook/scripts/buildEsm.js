@@ -33,7 +33,7 @@ dts = dts.replace(
 );
 dts = '/* this file is auto-generated, do not modify */\n' + dts;
 if (pkg !== 'wasm_async_compile_wrapper') {
-    dts += "/** Initialize the Orderbook pkg WebAssembly module */\nexport function init_wasm(): Promise<void>\n";
+    dts += "/** Initializes this package WebAssembly module */\nexport function init_wasm(): Promise<void>\n";
 }
 fs.writeFileSync(`./dist/esm/${pkg}/index.d.ts`, dts);
 
@@ -59,11 +59,16 @@ export default __wbg_init;`,
     `import { Buffer } from 'buffer';
 import wasmB64 from './orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');\n
-/** Initialize the Orderbook pkg WebAssembly module */
+function isChromeFeatureDetection() {
+    return !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
+}
+/** Initializes this package WebAssembly module */
 export async function init_wasm() {
+    console.log(isChromeFeatureDetection())
     try {
         initSync(bytes);
     } catch (error) {
+        console.log("yo", error)
         await __wbg_init(bytes);   
     }
 }`
