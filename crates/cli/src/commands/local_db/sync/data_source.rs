@@ -63,9 +63,10 @@ impl TokenMetadataFetcher for DefaultTokenFetcher {
             return Ok(vec![]);
         }
 
-        let fetched = fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing)
-            .await
-            .map_err(|e| anyhow!(e))?;
+        let fetched =
+            fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing, &FetchConfig::default())
+                .await
+                .map_err(|e| anyhow!(e))?;
         Ok(fetched)
     }
 }
