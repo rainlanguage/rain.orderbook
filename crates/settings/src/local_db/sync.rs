@@ -6,8 +6,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct LocalDbSyncCfg {
     #[serde(skip, default = "default_document")]
@@ -20,6 +23,8 @@ pub struct LocalDbSyncCfg {
     pub rate_limit_delay_ms: u64,
     pub finality_depth: u32,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(LocalDbSyncCfg);
 
 impl LocalDbSyncCfg {
     fn parse_positive_u32(value: &str, field: &str, location: String) -> Result<u32, YamlError> {

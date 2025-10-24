@@ -9,15 +9,21 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use url::{ParseError as UrlParseError, Url};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct LocalDbRemoteCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub url: Url,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(LocalDbRemoteCfg);
 
 impl LocalDbRemoteCfg {
     pub fn validate_url(value: &str) -> Result<Url, UrlParseError> {
