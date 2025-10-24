@@ -137,7 +137,7 @@ gui:
 `;
 
 const dotrain = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -205,6 +205,18 @@ deployments:
     other-deployment:
         scenario: some-scenario.sub-scenario
         order: some-order
+
+local-db-remotes:
+  some-orderbook: http://test.com
+
+local-db-sync:
+  test:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
 ---
 #test-binding !
 #another-binding !
@@ -216,7 +228,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -278,6 +290,18 @@ deployments:
     other-deployment:
         scenario: some-scenario
         order: some-order
+
+local-db-remotes:
+  some-orderbook: http://test.com
+
+local-db-sync:
+  test:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
 ---
 #test-binding !
 #calculate-io
@@ -288,7 +312,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -336,6 +360,18 @@ deployments:
     other-deployment:
         scenario: some-scenario
         order: some-order
+
+local-db-remotes:
+  some-orderbook: http://test.com
+
+local-db-sync:
+  test:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
 ---
 #calculate-io
 _ _: 0 0;
@@ -345,7 +381,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
-version: 3
+version: 4
 gui:
   name: Test
   description: Fixed limit order
@@ -451,6 +487,19 @@ deployments:
     other-deployment:
         scenario: other-scenario
         order: other-order
+
+local-db-remotes:
+  some-orderbook: http://test.com
+  other-orderbook: http://test.com
+
+local-db-sync:
+  test:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
 ---
 _: 10,
 _: 20;
@@ -968,7 +1017,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QsU7DMBDNBQQSYkCIFQmJFRPHUqpSlYUKEamMiUjHNjWkqmsbxy2lfAQjKz9Q8QWsbHwPYkMRZ0oEN_id772z3x1437GNaHlpyWAkhyN5A1ij3tZvdtYXU-5jZcMxasxl6LlYR4zocaMmYT-SNcSQUvjvMVa_OYOlmnAiub1TZuz69hELa3UrCITK-6JQpW01aTMKjM7J1IiHSgHVCe7r8yTew_Sx_bE8fG8vX5-il8_MZydvzznswibSSeXhgIEbO2G-t4r6EsDZCuHPTCvuCBNCzUUcLrpJNu-Fl0pfDW67nc4s42zRI6WaX8eFznXjLE3T0x3sUbbghgy5Fup-wqX9AlyGsB3FAQAA';
+			'H4sIAAAAAAAA_21QwUrDQBDNRlEQDyJeBcGrMZtgNJZ6EjFCwZZGzLVNVlOz2V0200r1Izx69QeKX-DVm98j3iQ4aw12Dvtm573ZfTPE-ol1RGAVOMORyEbilmCNWmt_2cmAj5mNlRXDyIIJzzKxjBjQ_cOGxP-VLCF6lJJFj_nNmzFYyZI5gsG91IXp20bMAVTLdblMBzyXFbRCGgauVqkz1vyxVpD6JObrszjawvSp_Tnb_WjP3p6D16_E9o_fX1KySVaRjmsPOz4xY8e-bc2juQRibHnk30xzbg-TKQCNuldHVXauywPWue49XCT9m7veZTCMOmFXqUkCUCT90_BkA3sk5Ew7GVNcTksm4BuGZL0VxQEAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {

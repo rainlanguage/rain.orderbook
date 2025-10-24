@@ -4,7 +4,7 @@ import { assert } from 'chai';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const dotrain = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -64,6 +64,18 @@ deployments:
     some-deployment:
         scenario: some-scenario
         order: some-order
+
+local-db-remotes:
+  some-orderbook: http://test.com
+
+local-db-sync:
+  test:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
 ---
 #key !Test binding
 #calculate-io
