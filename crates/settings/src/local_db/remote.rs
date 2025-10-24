@@ -61,7 +61,7 @@ impl YamlParsableHash for LocalDbRemoteCfg {
                     };
 
                     if remotes.contains_key(&key) {
-                        return Err(YamlError::KeyShadowing(key, "local-db.remotes".to_string()));
+                        return Err(YamlError::KeyShadowing(key, "local-db-remotes".to_string()));
                     }
                     remotes.insert(key, remote);
                 }
@@ -137,7 +137,7 @@ local-db-remotes:
         .unwrap_err();
         assert_eq!(
             err,
-            YamlError::KeyShadowing("test".to_string(), "local-db.remotes".to_string())
+            YamlError::KeyShadowing("test".to_string(), "local-db-remotes".to_string())
         );
     }
 

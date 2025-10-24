@@ -70,7 +70,7 @@ impl LocalDbSyncCfg {
         network_key: &str,
         yaml: &StrictYaml,
     ) -> Result<LocalDbSyncCfg, YamlError> {
-        let location = format!("local-db.sync.{}", network_key);
+        let location = format!("local-db-sync.{}", network_key);
         let batch_size = Self::parse_positive_u32(
             &require_string(yaml, Some("batch-size"), Some(location.clone()))?,
             "batch-size",
@@ -140,7 +140,7 @@ impl YamlParsableHash for LocalDbSyncCfg {
                                     field: "sync key".to_string(),
                                     reason: "network name cannot be empty".to_string(),
                                 },
-                                location: "local-db.sync".to_string(),
+                                location: "local-db-sync".to_string(),
                             })
                         }
                         None => {
@@ -149,12 +149,12 @@ impl YamlParsableHash for LocalDbSyncCfg {
                                     field: "sync key".to_string(),
                                     expected: "a string".to_string(),
                                 },
-                                location: "local-db.sync".to_string(),
+                                location: "local-db-sync".to_string(),
                             })
                         }
                     };
                     if seen.contains(&key) {
-                        return Err(YamlError::KeyShadowing(key, "local-db.sync".to_string()));
+                        return Err(YamlError::KeyShadowing(key, "local-db-sync".to_string()));
                     }
                     seen.insert(key.clone());
 
@@ -272,7 +272,7 @@ local-db-sync:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("mainnet".to_string(), "local-db.sync".to_string())
+            YamlError::KeyShadowing("mainnet".to_string(), "local-db-sync".to_string())
         );
     }
 
@@ -294,7 +294,7 @@ local-db-sync:
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("retry-delay-ms".to_string()),
-                location: "local-db.sync.devnet".to_string(),
+                location: "local-db-sync.devnet".to_string(),
             }
         );
     }
@@ -321,7 +321,7 @@ local-db-sync:
                     field: "retry-attempts".to_string(),
                     reason: "invalid digit found in string".to_string()
                 },
-                location: "local-db.sync.devnet".to_string(),
+                location: "local-db-sync.devnet".to_string(),
             }
         );
     }
@@ -348,7 +348,7 @@ local-db-sync:
                     field: "rate-limit-delay-ms".to_string(),
                     reason: "must be a positive integer".to_string()
                 },
-                location: "local-db.sync.devnet".to_string(),
+                location: "local-db-sync.devnet".to_string(),
             }
         );
     }
@@ -375,7 +375,7 @@ local-db-sync:
                     field: "sync key".to_string(),
                     reason: "network name cannot be empty".to_string()
                 },
-                location: "local-db.sync".to_string(),
+                location: "local-db-sync".to_string(),
             }
         );
     }
