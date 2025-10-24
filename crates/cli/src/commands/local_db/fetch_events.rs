@@ -1,10 +1,12 @@
+use alloy::primitives::Address;
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::local_db::{LocalDb, LocalDbError};
+use rain_orderbook_common::local_db::{FetchConfig, LocalDb, LocalDbError};
 use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClientError};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 #[async_trait::async_trait]
 pub trait EventClient {
@@ -29,7 +31,13 @@ impl EventClient for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        self.fetch_events(address, start_block, end_block).await
+        self.fetch_orderbook_events(
+            Address::from_str(address)?,
+            start_block,
+            end_block,
+            &FetchConfig::default(),
+        )
+        .await
     }
 }
 
