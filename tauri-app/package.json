@@ -5,8 +5,8 @@
   "license": "LicenseRef-DCL-1.0",
   "author": "Rain Open Source Software Ltd",
   "scripts": {
-    "dev": "npm run build-tauri -w @rainlanguage/orderbook && vite dev",
-    "build": "npm run build-tauri -w @rainlanguage/orderbook && npm run build-bindings && vite build",
+    "dev": "vite dev",
+    "build": "npm run build-bindings && vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
