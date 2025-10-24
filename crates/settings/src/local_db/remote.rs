@@ -68,6 +68,13 @@ impl YamlParsableHash for LocalDbRemoteCfg {
             }
         }
 
+        if remotes.is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
+                location: "root".to_string(),
+            });
+        }
+
         Ok(remotes)
     }
 }
@@ -94,14 +101,20 @@ mod tests {
     use crate::yaml::{tests::get_document, FieldErrorKind};
 
     #[test]
-    fn test_parse_local_db_remotes_missing_section_is_ok() {
+    fn test_parse_local_db_remotes_missing_section_is_error() {
         let yaml = r#"
 not-remotes:
   test: http://example.com
 "#;
-        let remotes =
-            LocalDbRemoteCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
-        assert!(remotes.is_empty());
+        let err =
+            LocalDbRemoteCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
+                location: "root".to_string(),
+            }
+        );
     }
 
     #[test]

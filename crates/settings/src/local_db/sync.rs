@@ -166,6 +166,13 @@ impl YamlParsableHash for LocalDbSyncCfg {
             }
         }
 
+        if syncs.is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
+                location: "root".to_string(),
+            });
+        }
+
         Ok(syncs)
     }
 }
@@ -223,6 +230,23 @@ local-db-sync:
     finality-depth: {finality_depth}
 "#
         )
+    }
+
+    #[test]
+    fn test_parse_sync_missing_section_is_error() {
+        let yaml = r#"
+not-sync:
+  some: value
+"#;
+        let error =
+            LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
+                location: "root".to_string(),
+            }
+        );
     }
 
     #[test]
