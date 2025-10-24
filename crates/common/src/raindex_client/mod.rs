@@ -534,6 +534,17 @@ accounts:
     alice: 0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA
     bob: 0x8ba1f109551bD432803012645aac136c0c8D2e80
     charlie: 0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5
+local-db-remotes:
+    mainnet-orderbook: https://some-local-db-remote.com
+    polygon-orderbook: https://some-local-db-remote.com
+local-db-sync:
+    test:
+        batch-size: 1
+        max-concurrent-batches: 1
+        retry-attempts: 1
+        retry-delay-ms: 1
+        rate-limit-delay-ms: 1
+        finality-depth: 1
 "#,
             spec_version = SpecVersion::current()
         )

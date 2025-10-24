@@ -133,7 +133,7 @@ deployers:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
 orderbooks:
-    {}:
+    {orderbook_key}:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -174,6 +174,17 @@ deployments:
     some-deployment:
         scenario: some-scenario
         order: some-order
+
+local-db-remotes:
+    {}: https://some-local-db-remote.com
+local-db-sync:
+    test:
+        batch-size: 1
+        max-concurrent-batches: 1
+        retry-attempts: 1
+        retry-delay-ms: 1
+        rate-limit-delay-ms: 1
+        finality-depth: 1
 ---
 #key !Test binding
 #calculate-io

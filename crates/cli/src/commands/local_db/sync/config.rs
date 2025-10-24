@@ -49,6 +49,16 @@ orderbooks:
     network: arbitrum
     subgraph: arbitrum
     deployment-block: "123"
+local-db-remotes:
+    arbitrum: https://some-local-db-remote.com
+local-db-sync:
+    test:
+        batch-size: 1
+        max-concurrent-batches: 1
+        retry-attempts: 1
+        retry-delay-ms: 1
+        rate-limit-delay-ms: 1
+        finality-depth: 1
 "#;
 
     #[test]
