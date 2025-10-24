@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{local_db::LocalDbRemoteCfg, *};
 use alloy::primitives::Address;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
@@ -38,6 +38,11 @@ pub fn mock_orderbook() -> Arc<OrderbookCfg> {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             url: "https://subgraph.com".parse().unwrap(),
+        }),
+        local_db_remote: Arc::new(LocalDbRemoteCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            url: "http://example.com".parse().unwrap(),
         }),
         network: mock_network(),
         deployment_block: 12345,
