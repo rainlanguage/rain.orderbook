@@ -8,7 +8,7 @@ use rain_orderbook_common::{
         token_fetch::fetch_erc20_metadata_concurrent,
         FetchConfig, LocalDb,
     },
-    rpc_client::{BlockRange, LogEntryResponse},
+    rpc_client::LogEntryResponse,
 };
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -88,7 +88,8 @@ impl SyncDataSource for LocalDb {
         <LocalDb>::fetch_orderbook_events(
             self,
             Address::from_str(orderbook_address)?,
-            BlockRange::inclusive(start_block, end_block)?,
+            start_block,
+            end_block,
             &FetchConfig::default(),
         )
         .await
@@ -113,7 +114,8 @@ impl SyncDataSource for LocalDb {
         <LocalDb>::fetch_store_events(
             self,
             &addresses,
-            BlockRange::inclusive(start_block, end_block)?,
+            start_block,
+            end_block,
             &FetchConfig::default(),
         )
         .await
