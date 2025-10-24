@@ -115,6 +115,12 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     FilterBlockError(#[from] FilterBlockError),
+
+    #[error("Invalid retry max attempts")]
+    InvalidRetryMaxAttemps,
+
+    #[error(transparent)]
+    ERC20Error(#[from] crate::erc20::Error),
 }
 
 impl LocalDbError {
@@ -169,6 +175,10 @@ impl LocalDbError {
             LocalDbError::NonNumberBlockNumber(value) => {
                 format!("Block number is not a valid number: {}", value)
             }
+            LocalDbError::InvalidRetryMaxAttemps => {
+                "Invalid retry configuration for max attemps".to_string()
+            }
+            LocalDbError::ERC20Error(err) => format!("ERC20 error: {}", err),
         }
     }
 }

@@ -1,6 +1,6 @@
 use super::{LocalDb, LocalDbError};
 use crate::{
-    retry::{retry_with_backoff, RetryError},
+    retry::retry_with_backoff,
     rpc_client::{LogEntryResponse, RpcClientError},
 };
 use alloy::primitives::{Address, U256};
@@ -114,8 +114,7 @@ impl LocalDb {
                             max_attempts,
                             should_retry_local_db_error,
                         )
-                        .await
-                        .map_err(map_retry_error)?;
+                        .await?;
 
                         let block_data =
                             block_response.ok_or_else(|| LocalDbError::MissingField {
@@ -248,8 +247,7 @@ impl LocalDb {
                         max_attempts,
                         should_retry_local_db_error,
                     )
-                    .await
-                    .map_err(map_retry_error)?;
+                    .await?;
 
                     Ok::<_, LocalDbError>(response)
                 }
@@ -269,13 +267,6 @@ impl LocalDb {
             let log_b = parse_block_number_str(&b.log_index).unwrap_or(0);
             block_a.cmp(&block_b).then_with(|| log_a.cmp(&log_b))
         });
-    }
-}
-
-fn map_retry_error(error: RetryError<LocalDbError>) -> LocalDbError {
-    match error {
-        RetryError::Config { message } => LocalDbError::Config { message },
-        RetryError::Operation(err) => err,
     }
 }
 
@@ -755,9 +746,9 @@ mod tests {
                 should_retry_local_db_error,
             )
             .await
-            .map_err(map_retry_error)
             .unwrap_err();
 
+            let err: LocalDbError = err.into();
             match err {
                 LocalDbError::Rpc(RpcClientError::RpcError { .. }) => {}
                 other => panic!("expected LocalDbError::Rpc, got {other:?}"),

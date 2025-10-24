@@ -34,16 +34,12 @@ pub async fn fetch_erc20_metadata_concurrent(
                     max_attempts,
                     should_retry_token_error,
                 )
-                .await;
-
-                match result {
-                    Ok(info) => Ok((addr, info)),
-                    Err(RetryError::Operation(err)) => Err(LocalDbError::CustomError(format!(
-                        "Failed to fetch token info for 0x{:x} after {} attempts: {}",
-                        addr, max_attempts, err
-                    ))),
-                    Err(RetryError::Config { message }) => Err(LocalDbError::Config { message }),
-                }
+                .await
+                .map_err(|e| match e {
+                    RetryError::InvalidMaxAttempts => LocalDbError::InvalidRetryMaxAttemps,
+                    RetryError::Operation(inner) => LocalDbError::ERC20Error(inner),
+                })?;
+                Ok((addr, result))
             }
         }))
         .buffer_unordered(concurrency)
@@ -94,10 +90,8 @@ mod tests {
             let res = fetch_erc20_metadata_concurrent(rpcs, addrs, &FetchConfig::default()).await;
             assert!(res.is_err());
             match res.err().unwrap() {
-                LocalDbError::CustomError(msg) => {
-                    assert!(msg.contains("Failed to fetch token info"));
-                }
-                other => panic!("Expected CustomError, got {other:?}"),
+                LocalDbError::ERC20Error(_) => {}
+                other => panic!("Expected ERC20Error, got {other:?}"),
             }
         }
     }
