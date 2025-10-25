@@ -5,9 +5,9 @@ const packagePrefix = 'rain_orderbook_';
 const [pkg] = process.argv.slice(2);
 
 // generate web bindgens for esm output
-fs.mkdirSync(`./dist/esm/${pkg}`, { recursive: true });
+fs.mkdirSync(`./dist/esm`, { recursive: true });
 execSync(
-    `wasm-bindgen --target web ../../target/wasm32-unknown-unknown/release/${
+    `wasm-bindgen --target web ../../target/wasm32-unknown-unknown/release-wasm/${
         packagePrefix + pkg
     }.wasm --out-dir ./temp/web/${pkg} --out-name ${pkg}`
 );
@@ -16,7 +16,7 @@ execSync(
 // in js modules in order to avoid using fetch or fs operations
 const wasmEsmBytes = fs.readFileSync(`./temp/web/${pkg}/${pkg}_bg.wasm`);
 fs.writeFileSync(
-    `./dist/esm/${pkg}/orderbook_wbg.json`,
+    `./dist/esm/orderbook_wbg.json`,
     JSON.stringify({
         wasm: Buffer.from(wasmEsmBytes, 'binary').toString('base64')
     })
@@ -32,42 +32,37 @@ dts = dts.replace(
     ''
 );
 dts = '/* this file is auto-generated, do not modify */\n' + dts;
-if (pkg !== 'wasm_async_compile_wrapper') {
-    dts += "/** Initializes this package WebAssembly module */\nexport function init_wasm(): Promise<void>\n";
+
+// after using opt-level on wasm build, WasmEncodedResult and WasmEncodedError
+// are duplicated in the dts so we need to dedupe them
+const dups = [
+    `export type WasmEncodedResult<T> = { value: T; error: undefined } | { value: undefined; error: WasmEncodedError };
+
+export interface WasmEncodedError {
+    msg: string;
+    readableMsg: string;
+}`
+];
+for (const dup of dups) {
+    const index = dts.indexOf(dup);
+    dts = dts.replaceAll(dup, "");
+    const start = dts.slice(0, index);
+    const end = dts.slice(index);
+    console.log(start.length, end.length)
+    dts = start + dup + end;
 }
-fs.writeFileSync(`./dist/esm/${pkg}/index.d.ts`, dts);
+fs.writeFileSync(`./dist/esm/index.d.ts`, dts);
 
 // prepare esm .js
 let esm = fs.readFileSync(`./temp/web/${pkg}/${pkg}.js`, {
     encoding: 'utf-8'
 });
-
-// in esm due to issues/limitations with safari and chrome we sync init the wrapper
-// but do NOT init the other pkgs, as they will get initialized from inside of the wrapper.
-// the wrapper can be removed once safari issue with "top-level-await" is resolved
-if (pkg === 'wasm_async_compile_wrapper') {
-    esm = esm.replace(`export { initSync };
+esm = esm.replace(`export { initSync };
 export default __wbg_init;`,
     `import { Buffer } from 'buffer';
 import wasmB64 from './orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');\n
 initSync(bytes);`
     );
-} else {
-    esm = esm.replace(`export { initSync };
-export default __wbg_init;`,
-    `import { Buffer } from 'buffer';
-import wasmB64 from './orderbook_wbg.json';
-const bytes = Buffer.from(wasmB64.wasm, 'base64');\n
-/** Initializes this package WebAssembly module */
-export async function init_wasm() {
-    try {
-        initSync(bytes);
-    } catch (error) {
-        await __wbg_init(bytes);   
-    }
-}`
-    );
-}
 esm = '/* this file is auto-generated, do not modify */\n' + esm;
-fs.writeFileSync(`./dist/esm/${pkg}/index.js`, esm);
+fs.writeFileSync(`./dist/esm/index.js`, esm);

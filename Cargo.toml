@@ -91,5 +91,17 @@ path = "crates/math"
 [workspace.dependencies.rain_orderbook_js_api]
 path = "crates/js_api"
 
-[workspace.dependencies.rain_orderbook_wasm_async_compile_wrapper]
-path = "crates/wasm_wrapper"
+# release profile for wasm build optimized for size reduction
+[profile.release-wasm]
+inherits = "release"
+opt-level = "z"
+lto = true
+strip = true
+panic = "abort"
+codegen-units = 1
+rpath = false
+debug = false
+incremental = false
+overflow-checks = false
+debug-assertions = false
+split-debuginfo = "packed"

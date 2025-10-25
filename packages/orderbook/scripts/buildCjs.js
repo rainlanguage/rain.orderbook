@@ -4,13 +4,10 @@ const { execSync } = require('child_process');
 const packagePrefix = 'rain_orderbook_';
 const [pkg] = process.argv.slice(2);
 
-// for cjs we only need to build "js_api" since we dont have limitations on wasm init
-if (pkg !== "js_api") return;
-
 // generate node bindgens for cjs output
 fs.mkdirSync(`./dist/cjs`, { recursive: true });
 execSync(
-    `wasm-bindgen --target nodejs ../../target/wasm32-unknown-unknown/release/${
+    `wasm-bindgen --target nodejs ../../target/wasm32-unknown-unknown/release-wasm/${
         packagePrefix + pkg
     }.wasm --out-dir ./temp/node/${pkg} --out-name ${pkg}`
 );
@@ -35,6 +32,25 @@ dts = dts.replace(
     ''
 );
 dts = '/* this file is auto-generated, do not modify */\n' + dts;
+
+// after using opt-level on wasm build, WasmEncodedResult and WasmEncodedError
+// are duplicated in the dts so we need to dedupe them
+const dups = [
+    `export type WasmEncodedResult<T> = { value: T; error: undefined } | { value: undefined; error: WasmEncodedError };
+
+export interface WasmEncodedError {
+    msg: string;
+    readableMsg: string;
+}`
+];
+for (const dup of dups) {
+    const index = dts.indexOf(dup);
+    dts = dts.replaceAll(dup, "");
+    const start = dts.slice(0, index);
+    const end = dts.slice(index);
+    console.log(start.length, end.length)
+    dts = start + dup + end;
+}
 fs.writeFileSync(`./dist/cjs/index.d.ts`, dts);
 
 // prepare cjs

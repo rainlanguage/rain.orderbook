@@ -16,20 +16,15 @@ execSync("npm run build-wasm");
 // build specified packages and include them in final index file
 // list of packages to build can be extended by adding new package
 // names to the list below
-const packages = ["wasm_async_compile_wrapper", "js_api"];
-
-// create esm index
-fs.mkdirSync("./dist/esm", { recursive: true });
-const esmIndex = ["import * as wasmWrapper from './wasm_async_compile_wrapper/index';"]
-packages.slice(1).forEach((pkgName) => {
-  esmIndex.push(`export * from './${pkgName}/index';`)
-})
-fs.writeFileSync("./dist//esm/index.js", `${esmIndex.join("\n")}\n`);
-fs.writeFileSync("./dist/esm/index.d.ts", `${esmIndex.join("\n")}\n`);
+const packages = ["js_api"];
 
 for (const pkg of packages) {
+  // build for cjs and esm
   execSync(`node ./scripts/buildCjs ${pkg}`);
   execSync(`node ./scripts/buildEsm ${pkg}`);
+
+  // check wasm size
+  execSync(`node ./scripts/sizeCheck ${pkg}`);
 }
 
 // rm temp folder
