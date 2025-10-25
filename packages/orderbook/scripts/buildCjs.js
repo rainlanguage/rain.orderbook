@@ -36,15 +36,15 @@ dts = '/* this file is auto-generated, do not modify */\n' + dts;
 // after using opt-level on wasm build, WasmEncodedResult and WasmEncodedError
 // are duplicated in the dts so we need to dedupe them
 const dups = [
-    `export type WasmEncodedResult<T> = { value: T; error: undefined } | { value: undefined; error: WasmEncodedError };
-
-export interface WasmEncodedError {
+    "\nexport type WasmEncodedResult<T> = { value: T; error: undefined } | { value: undefined; error: WasmEncodedError };\n",
+    `\nexport interface WasmEncodedError {
     msg: string;
     readableMsg: string;
-}`
+}\n`
 ];
 for (const dup of dups) {
     const index = dts.indexOf(dup);
+    if (index === -1) continue;
     dts = dts.replaceAll(dup, "");
     const start = dts.slice(0, index);
     const end = dts.slice(index);
