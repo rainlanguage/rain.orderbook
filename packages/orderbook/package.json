@@ -31,7 +31,7 @@
     ],
     "scripts": {
         "prepublish": "node ./scripts/setup",
-        "build": "npm run rm-dist && npm run rm-temp && node ./scripts/build",
+        "build": "npm run rm-dist && npm run rm-temp && node ./scripts/build && npm run check",
         "build-wasm": "cargo build --target wasm32-unknown-unknown --lib --profile release-wasm -p rain_orderbook_js_api",
         "rm-dist": "rimraf ./dist",
         "rm-temp": "rimraf ./temp",

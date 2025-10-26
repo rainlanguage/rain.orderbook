@@ -29,6 +29,3 @@ for (const pkg of packages) {
 
 // rm temp folder
 execSync("npm run rm-temp");
-
-// check bindings for possible errors
-execSync("npm run check");
