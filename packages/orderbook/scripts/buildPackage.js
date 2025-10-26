@@ -113,7 +113,7 @@ module.exports.buildEsm = function (pkg) {
         encoding: 'utf-8'
     });
     esm = esm.replace(`export { initSync };
-    export default __wbg_init;`,
+export default __wbg_init;`,
         `import { Buffer } from 'buffer';
 import wasmB64 from './orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');\n
