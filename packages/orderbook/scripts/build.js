@@ -15,9 +15,9 @@ fs.writeFileSync("./esm.d.ts", 'export * from "./dist/esm/index";\n');
 // build specified packages and include them in final index file
 // list of packages to build can be extended by adding new package
 // names to the list below
-const packages = ["js_api"];
+const pkgs = ["js_api"];
 
-for (const pkg of packages) {
+for (const pkg of pkgs) {
   // build for cjs and esm
   buildCjs(pkg);
   buildEsm(pkg);
