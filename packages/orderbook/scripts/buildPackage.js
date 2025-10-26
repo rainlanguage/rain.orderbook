@@ -44,7 +44,8 @@ module.exports.buildCjs = function (pkg) {
     dts = '/* this file is auto-generated, do not modify */\n' + dts;
     for (const dup of dups) {
         const index = dts.indexOf(dup);
-        if (index === -1) continue;
+        const lastIndex = dts.lastIndexOf(dup);
+        if (index === -1 || lastIndex === index) continue;
         dts = dts.replaceAll(dup, "");
         const start = dts.slice(0, index);
         const end = dts.slice(index);
@@ -100,7 +101,8 @@ module.exports.buildEsm = function (pkg) {
     dts = '/* this file is auto-generated, do not modify */\n' + dts;
     for (const dup of dups) {
         const index = dts.indexOf(dup);
-        if (index === -1) continue;
+        const lastIndex = dts.lastIndexOf(dup);
+        if (index === -1 || index === lastIndex) continue;
         dts = dts.replaceAll(dup, "");
         const start = dts.slice(0, index);
         const end = dts.slice(index);
