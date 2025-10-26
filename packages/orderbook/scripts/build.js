@@ -1,5 +1,7 @@
 const fs = require("fs");
+const { sizeCheck } = require("./sizeCheck");
 const { execSync } = require("child_process");
+const { buildCjs, buildEsm } = require("./buildPackage");
 
 // create root esm.js and cjs.js files with their .d.ts
 fs.writeFileSync(
@@ -17,11 +19,11 @@ const packages = ["js_api"];
 
 for (const pkg of packages) {
   // build for cjs and esm
-  execSync(`node ./scripts/buildCjs ${pkg}`);
-  execSync(`node ./scripts/buildEsm ${pkg}`);
+  buildCjs(pkg);
+  buildEsm(pkg);
 
   // check wasm size
-  execSync(`node ./scripts/sizeCheck ${pkg}`);
+  sizeCheck(pkg);
 }
 
 // rm temp folder
