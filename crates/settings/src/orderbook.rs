@@ -9,6 +9,7 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 use subgraph::SubgraphCfg;
+use local_db_remotes::LocalDbRemoteCfg;
 use thiserror::Error;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
@@ -28,6 +29,8 @@ pub struct OrderbookCfg {
     pub address: Address,
     pub network: Arc<NetworkCfg>,
     pub subgraph: Arc<SubgraphCfg>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub local_db_remote: Option<Arc<LocalDbRemoteCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub label: Option<String>,
     pub deployment_block: u64,
@@ -86,6 +89,8 @@ impl YamlParsableHash for OrderbookCfg {
 
         let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), context)?;
         let subgraphs = SubgraphCfg::parse_all_from_yaml(documents.clone(), context)?;
+        let local_db_remotes =
+            LocalDbRemoteCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -138,6 +143,25 @@ impl YamlParsableHash for OrderbookCfg {
 
                     let label = optional_string(orderbook_yaml, "label");
 
+                    let local_db_remote = match optional_string(orderbook_yaml, "local-db-remote") {
+                        Some(remote_name) => {
+                            let remote = local_db_remotes.get(&remote_name).ok_or_else(|| {
+                                YamlError::Field {
+                                    kind: FieldErrorKind::InvalidValue {
+                                        field: "local-db-remote".to_string(),
+                                        reason: format!(
+                                            "Local DB remote '{}' not found",
+                                            remote_name
+                                        ),
+                                    },
+                                    location: location.clone(),
+                                }
+                            })?;
+                            Some(Arc::new(remote.clone()))
+                        }
+                        None => None,
+                    };
+
                     let deployment_block_str = require_string(
                         orderbook_yaml,
                         Some("deployment-block"),
@@ -160,6 +184,7 @@ impl YamlParsableHash for OrderbookCfg {
                         address,
                         network: Arc::new(network.clone()),
                         subgraph: Arc::new(subgraph.clone()),
+                        local_db_remote,
                         label,
                         deployment_block,
                     };
@@ -194,6 +219,7 @@ impl Default for OrderbookCfg {
             address: Address::ZERO,
             network: Arc::new(NetworkCfg::default()),
             subgraph: Arc::new(SubgraphCfg::default()),
+            local_db_remote: None,
             label: None,
             deployment_block: 0,
         }
@@ -205,6 +231,7 @@ impl PartialEq for OrderbookCfg {
             && self.address == other.address
             && self.network == other.network
             && self.subgraph == other.subgraph
+            && self.local_db_remote == other.local_db_remote
             && self.label == other.label
             && self.deployment_block == other.deployment_block
     }
@@ -758,6 +785,86 @@ orderbooks:
                     field: "deployment-block".to_string(),
                     reason: "Failed to parse deployment block: invalid digit found in string"
                         .to_string(),
+                },
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_orderbook_local_db_remote_absent() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: 123
+"#;
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let ob = orderbooks.get("TestOrderbook").unwrap();
+        assert!(ob.local_db_remote.is_none());
+    }
+
+    #[test]
+    fn test_orderbook_local_db_remote_resolves() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        local-db-remote: mainnet
+        deployment-block: 123
+"#;
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let ob = orderbooks.get("TestOrderbook").unwrap();
+        let remote = ob.local_db_remote.as_ref().expect("expected some remote");
+        assert_eq!(remote.key, "mainnet");
+        assert_eq!(remote.url.to_string(), "https://example.com/localdb/mainnet/");
+    }
+
+    #[test]
+    fn test_orderbook_local_db_remote_not_found() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        local-db-remote: missing
+        deployment-block: 123
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "local-db-remote".to_string(),
+                    reason: "Local DB remote 'missing' not found".to_string(),
                 },
                 location: "orderbook 'TestOrderbook'".to_string(),
             }
