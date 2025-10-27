@@ -1,4 +1,4 @@
 #![allow(dead_code)]
 
-pub mod traits;
 pub mod adapters;
+pub mod traits;
