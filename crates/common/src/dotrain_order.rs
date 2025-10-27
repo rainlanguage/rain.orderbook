@@ -392,11 +392,17 @@ impl DotrainOrder {
     ) -> Result<String, DotrainOrderError> {
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
-        Ok(compose_to_rainlang(
+        let composed = compose_to_rainlang(
             self.dotrain.clone(),
             scenario.bindings.clone(),
             &ORDERBOOK_ORDER_ENTRYPOINTS,
-        )?)
+        )?;
+        let sanitized = composed
+            .lines()
+            .map(|l| l.trim_end())
+            .collect::<Vec<_>>()
+            .join("\n");
+        Ok(sanitized)
     }
 
     /// Composes handle-add-order entrypoint for a specific scenario into Rainlang code
@@ -429,11 +435,17 @@ impl DotrainOrder {
     ) -> Result<String, DotrainOrderError> {
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
-        Ok(compose_to_rainlang(
+        let composed = compose_to_rainlang(
             self.dotrain.clone(),
             scenario.bindings.clone(),
             &ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS,
-        )?)
+        )?;
+        let sanitized = composed
+            .lines()
+            .map(|l| l.trim_end())
+            .collect::<Vec<_>>()
+            .join("\n");
+        Ok(sanitized)
     }
 
     /// Composes a specific deployment configuration into Rainlang code.
@@ -468,11 +480,17 @@ impl DotrainOrder {
     ) -> Result<String, DotrainOrderError> {
         let scenario = self.dotrain_yaml.get_deployment(&deployment)?.scenario;
 
-        Ok(compose_to_rainlang(
+        let composed = compose_to_rainlang(
             self.dotrain.clone(),
             scenario.bindings.clone(),
             &ORDERBOOK_ORDER_ENTRYPOINTS,
-        )?)
+        )?;
+        let sanitized = composed
+            .lines()
+            .map(|l| l.trim_end())
+            .collect::<Vec<_>>()
+            .join("\n");
+        Ok(sanitized)
     }
 }
 

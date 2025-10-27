@@ -156,6 +156,9 @@ deployers:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
+local-db-remotes:
+  some-orderbook: http://example.com
+
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
@@ -235,6 +238,9 @@ deployers:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
+local-db-remotes:
+  some-orderbook: http://example.com
+
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
@@ -306,6 +312,9 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+local-db-remotes:
+  some-orderbook: http://example.com
 
 orderbooks:
     some-orderbook:
@@ -392,16 +401,20 @@ deployers:
     other-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+local-db-remotes:
+  remote: http://example.com
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: remote-network
         subgraph: some-sg
+        local-db-remote: remote
         deployment-block: 12345
     other-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
+        local-db-remote: remote
         deployment-block: 12345
 using-tokens-from:
   - http://localhost:8085/remote-tokens
@@ -968,7 +981,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QsU7DMBDNBQQSYkCIFQmJFRPHUqpSlYUKEamMiUjHNjWkqmsbxy2lfAQjKz9Q8QWsbHwPYkMRZ0oEN_id772z3x1437GNaHlpyWAkhyN5A1ij3tZvdtYXU-5jZcMxasxl6LlYR4zocaMmYT-SNcSQUvjvMVa_OYOlmnAiub1TZuz69hELa3UrCITK-6JQpW01aTMKjM7J1IiHSgHVCe7r8yTew_Sx_bE8fG8vX5-il8_MZydvzznswibSSeXhgIEbO2G-t4r6EsDZCuHPTCvuCBNCzUUcLrpJNu-Fl0pfDW67nc4s42zRI6WaX8eFznXjLE3T0x3sUbbghgy5Fup-wqX9AlyGsB3FAQAA';
+			'H4sIAAAAAAAA_21QwUrDQBDNRFEQDyJeBcGrMZuFlFrqIYIarFrFFMSL1GQ1NdvduNkq0Y_w6NUfKH6BV29-j3iT4Kw16Bz2zc57s_tmwPqOeUTNCu1cDEQyEFeANWLN_WZv-3zEbKzMGEZmTHiWiWlEn6w3ahL6I5lC9AiB_x6j9ZsxWMghcwTTd1Jlpm8ZMdU6b7kul3Gfp7LQrSZp-q7KY2ek-EOlgOoE8_V2FC5h-tj-GK--t8evT_7L56lNN96eY1iEWaSjysMKBTN2RG1rEvUlgLHlwZ-ZJtwaJuVZcNTdPyYJ3U3Pix1x2HFE5yQrBQ23VOMg0HvXYffmvncZ9DYXsEfqlCknYTmX5ZAJ_QUObbwHxQEAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
