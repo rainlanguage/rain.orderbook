@@ -26,7 +26,7 @@ local-db-remotes:
   some-orderbook: http://example.com
 
 local-db-sync:
-  test:
+  some-orderbook:
     batch-size: 2000
     max-concurrent-batches: 10
     retry-attempts: 3
