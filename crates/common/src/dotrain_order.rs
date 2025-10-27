@@ -746,10 +746,10 @@ _ _: 0 0;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. calculate-io */ 
+            r#"/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;"#
         );
     }
@@ -799,7 +799,7 @@ _ _: 1 2;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. handle-add-order */ 
+            r#"/* 0. handle-add-order */
 _ _: 1 2;"#
         );
     }
@@ -1493,10 +1493,10 @@ _ _: 0 0;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. calculate-io */ 
+            r#"/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;"#
         );
     }
