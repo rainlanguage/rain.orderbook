@@ -28,6 +28,7 @@ pub trait ValidationConfig {
     fn should_validate_tokens(&self) -> bool;
     fn should_validate_remote_tokens(&self) -> bool;
     fn should_validate_subgraphs(&self) -> bool;
+    fn should_validate_local_db_remotes(&self) -> bool;
     fn should_validate_orderbooks(&self) -> bool;
     fn should_validate_metaboards(&self) -> bool;
     fn should_validate_deployers(&self) -> bool;

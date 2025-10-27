@@ -1,8 +1,9 @@
 use super::{cache::Cache, ValidationConfig, *};
 use crate::{
-    accounts::AccountCfg, metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg,
-    remote_tokens::RemoteTokensCfg, sentry::Sentry, spec_version::SpecVersion,
-    subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
+    accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, metaboard::MetaboardCfg,
+    remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg, sentry::Sentry,
+    spec_version::SpecVersion, subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg,
+    TokenCfg,
 };
 use alloy::primitives::Address;
 use serde::{
@@ -34,6 +35,7 @@ pub struct OrderbookYamlValidation {
     pub tokens: bool,
     pub remote_tokens: bool,
     pub subgraphs: bool,
+    pub local_db_remotes: bool,
     pub orderbooks: bool,
     pub metaboards: bool,
     pub deployers: bool,
@@ -46,6 +48,7 @@ impl OrderbookYamlValidation {
             tokens: true,
             remote_tokens: true,
             subgraphs: true,
+            local_db_remotes: true,
             orderbooks: true,
             metaboards: true,
             deployers: true,
@@ -67,6 +70,9 @@ impl ValidationConfig for OrderbookYamlValidation {
     }
     fn should_validate_subgraphs(&self) -> bool {
         self.subgraphs
+    }
+    fn should_validate_local_db_remotes(&self) -> bool {
+        self.local_db_remotes
     }
     fn should_validate_orderbooks(&self) -> bool {
         self.orderbooks
@@ -119,6 +125,9 @@ impl YamlParsable for OrderbookYaml {
         }
         if validate.should_validate_subgraphs() {
             SubgraphCfg::parse_all_from_yaml(documents.clone(), None)?;
+        }
+        if validate.should_validate_local_db_remotes() {
+            LocalDbRemoteCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
         if validate.should_validate_orderbooks() {
             OrderbookCfg::parse_all_from_yaml(documents.clone(), None)?;
@@ -235,6 +244,16 @@ impl OrderbookYaml {
     }
     pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
         SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None)
+    }
+
+    pub fn get_local_db_remote_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_local_db_remotes()?.keys().cloned().collect())
+    }
+    pub fn get_local_db_remotes(&self) -> Result<HashMap<String, LocalDbRemoteCfg>, YamlError> {
+        LocalDbRemoteCfg::parse_all_from_yaml(self.documents.clone(), None)
+    }
+    pub fn get_local_db_remote(&self, key: &str) -> Result<LocalDbRemoteCfg, YamlError> {
+        LocalDbRemoteCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
