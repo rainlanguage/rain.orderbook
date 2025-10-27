@@ -65,7 +65,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - uses: nixbuild/nix-quick-install-action@v34
+      - uses: nixbuild/nix-quick-install-action@v30
         with:
           nix_conf: |
             keep-env-derivations = true
