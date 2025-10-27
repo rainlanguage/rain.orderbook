@@ -24,13 +24,13 @@ impl TokensPipeline for DefaultTokensPipeline {
     async fn load_existing<DB>(
         &self,
         db: &DB,
-        chain_id: u64,
+        chain_id: u32,
         token_addrs_lower: &[String],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        let Some(stmt) = build_fetch_stmt(chain_id as u32, token_addrs_lower)? else {
+        let Some(stmt) = build_fetch_stmt(chain_id, token_addrs_lower)? else {
             return Ok(vec![]);
         };
         let rows: Vec<Erc20TokenRow> = db.query_json(&stmt).await?;
