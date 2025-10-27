@@ -221,7 +221,7 @@ pub trait TokensPipeline {
     async fn load_existing<DB>(
         &self,
         db: &DB,
-        chain_id: u64,
+        chain_id: u32,
         token_addrs_lower: &[String],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where
