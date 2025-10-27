@@ -346,7 +346,7 @@ dependencies = [
  "derive_builder 0.12.0",
  "getrandom 0.3.3",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=bf08b5ab305287fc49408a441d6375f35dc280db)",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -366,7 +366,7 @@ dependencies = [
  "derive_builder 0.12.0",
  "getrandom 0.3.3",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=bf08b5ab305287fc49408a441d6375f35dc280db)",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -8738,6 +8738,22 @@ dependencies = [
 [[package]]
 name = "rain-error-decoding"
 version = "0.1.0"
+source = "git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3#3d2ed70fb2f7c6156706846e10f163d1e493a8d3"
+dependencies = [
+ "alloy",
+ "async-trait",
+ "getrandom 0.2.16",
+ "once_cell",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "url",
+]
+
+[[package]]
+name = "rain-error-decoding"
+version = "0.1.0"
 source = "git+https://github.com/rainlanguage/rain.error?rev=bf08b5ab305287fc49408a441d6375f35dc280db#bf08b5ab305287fc49408a441d6375f35dc280db"
 dependencies = [
  "alloy",
@@ -8757,7 +8773,7 @@ dependencies = [
  "eyre",
  "foundry-evm",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
  "rain_interpreter_bindings",
  "reqwest 0.11.27",
  "revm 24.0.1",
@@ -8959,7 +8975,7 @@ dependencies = [
  "itertools 0.14.0",
  "once_cell",
  "proptest",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
  "rain-interpreter-eval",
  "rain-math-float",
  "rain-metaboard-subgraph",
@@ -9007,7 +9023,7 @@ dependencies = [
  "clap",
  "getrandom 0.2.16",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
  "rain-interpreter-eval",
  "rain-math-float",
  "rain_orderbook_bindings",
@@ -11688,7 +11704,7 @@ dependencies = [
  "futures",
  "httpmock",
  "rain-erc 0.0.0 (git+https://github.com/rainlanguage/rain.erc?rev=1014cbd72fab790b4ab1f5aab3e6780f13cd8efb)",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
  "rain-interpreter-eval",
  "rain-math-float",
  "rain-metadata 0.0.2-alpha.6",
