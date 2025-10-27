@@ -856,7 +856,7 @@ orderbooks:
         assert_eq!(ob.local_db_remote.key, "TestOrderbook");
         assert_eq!(
             ob.local_db_remote.url.to_string(),
-            "https://example.com/localdb/testorderbook/"
+            "https://example.com/localdb/testorderbook"
         );
     }
 
@@ -885,7 +885,7 @@ orderbooks:
         assert_eq!(ob.local_db_remote.key, "mainnet");
         assert_eq!(
             ob.local_db_remote.url.to_string(),
-            "https://example.com/localdb/mainnet/"
+            "https://example.com/localdb/mainnet"
         );
     }
 
@@ -899,6 +899,33 @@ networks:
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        local-db-remote: missing
+        deployment-block: 123
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
