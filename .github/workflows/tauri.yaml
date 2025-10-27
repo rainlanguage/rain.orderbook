@@ -91,13 +91,13 @@ jobs:
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
 
-      - run: nix develop --impure .#tauri-shell -c ob-tauri-unit-test
+      - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
-      - run: nix develop --impure .#tauri-shell --command ob-tauri-before-build-ci
+      - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
         working-directory: ./tauri-app
         env:
           WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
-      - run: nix develop --impure .#tauri-shell --command npm run svelte-lint-format-check
+      - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
         working-directory: ./tauri-app
 
       - name: Reset workspace target before Rust tests
@@ -106,7 +106,7 @@ jobs:
           rm -rf tauri-app/src-tauri/target
 
       - name: Run Rust tests with reduced debug artifacts
-        run: nix develop --impure .#tauri-shell --command tauri-rs-test
+        run: nix develop .#tauri-shell --command tauri-rs-test
         env:
           RUSTFLAGS: "-Cdebuginfo=0"
           CARGO_INCREMENTAL: 0
@@ -115,7 +115,7 @@ jobs:
           rm -rf target
           rm -rf tauri-app/src-tauri/target
 
-      - run: nix develop --impure .#tauri-shell --command cargo tauri build --verbose
+      - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
 
       - name: Reclaim workspace target artifacts
