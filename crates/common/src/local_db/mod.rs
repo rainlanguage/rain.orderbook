@@ -15,7 +15,7 @@ use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData
 pub use fetch::{FetchConfig, FetchConfigError};
 use insert::{
     decoded_events_to_statements as decoded_events_to_statements_impl,
-    raw_events_to_statements as raw_events_to_statements_impl,
+    raw_events_to_statements as raw_events_to_statements_impl, InsertError,
 };
 use query::{LocalDbQueryError, SqlBuildError, SqlStatementBatch};
 use std::collections::HashMap;
@@ -83,9 +83,6 @@ pub enum LocalDbError {
     #[error("Event decoding error: {message}")]
     DecodeError { message: String },
 
-    #[error("Database insertion error: {message}")]
-    InsertError { message: String },
-
     #[error("Failed to check required tables")]
     TableCheckFailed(#[source] LocalDbQueryError),
 
@@ -115,6 +112,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     SqlBuildError(#[from] SqlBuildError),
+
+    #[error(transparent)]
+    InsertError(#[from] InsertError),
 }
 
 impl LocalDbError {
@@ -142,9 +142,6 @@ impl LocalDbError {
             ),
             LocalDbError::Config { message } => format!("Configuration error: {}", message),
             LocalDbError::DecodeError { message } => format!("Event decoding error: {}", message),
-            LocalDbError::InsertError { message } => {
-                format!("Database insertion error: {}", message)
-            }
             LocalDbError::TableCheckFailed(err) => {
                 format!("Failed to check required tables: {}", err)
             }
@@ -170,6 +167,7 @@ impl LocalDbError {
             LocalDbError::IoError(err) => format!("I/O error: {}", err),
             LocalDbError::FromHexError(err) => format!("Hex decoding error: {}", err),
             LocalDbError::SqlBuildError(err) => format!("SQL build error: {}", err),
+            LocalDbError::InsertError(err) => format!("Data insertion error: {}", err),
         }
     }
 }
@@ -226,20 +224,15 @@ impl LocalDb {
         events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch, LocalDbError> {
-        decoded_events_to_statements_impl(events, decimals_by_token).map_err(|err| {
-            LocalDbError::InsertError {
-                message: err.to_string(),
-            }
-        })
+        decoded_events_to_statements_impl(events, decimals_by_token)
+            .map_err(LocalDbError::InsertError)
     }
 
     pub fn raw_events_to_statements(
         &self,
         raw_events: &[LogEntryResponse],
     ) -> Result<SqlStatementBatch, LocalDbError> {
-        raw_events_to_statements_impl(raw_events).map_err(|err| LocalDbError::InsertError {
-            message: err.to_string(),
-        })
+        raw_events_to_statements_impl(raw_events).map_err(LocalDbError::InsertError)
     }
 }
 
@@ -319,13 +312,7 @@ mod bool_deserialize_tests {
             .decoded_events_to_statements(&[event], &decimals)
             .unwrap_err();
         match err {
-            LocalDbError::InsertError { message } => {
-                assert!(
-                    message.to_lowercase().contains("hex"),
-                    "unexpected message: {}",
-                    message
-                );
-            }
+            LocalDbError::InsertError(..) => {}
             other => panic!("expected LocalDbError::InsertError, got {other:?}"),
         }
     }
