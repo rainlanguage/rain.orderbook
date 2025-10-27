@@ -1,9 +1,9 @@
+use crate::local_db_remotes::LocalDbRemoteCfg;
 use crate::*;
 use alloy::primitives::Address;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 use subgraph::SubgraphCfg;
-use crate::local_db_remotes::LocalDbRemoteCfg;
 
 // Helper function to create a mock network
 pub fn mock_network() -> Arc<NetworkCfg> {
