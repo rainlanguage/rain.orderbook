@@ -564,11 +564,14 @@ subgraphs:
     arbitrum: https://arb.subgraph
 metaboards:
     arbitrum: https://arb.metaboard
+local-db-remotes:
+    remote: https://example.com/localdb
 orderbooks:
     arbitrum-orderbook:
         address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
         network: arbitrum
         subgraph: arbitrum
+        local-db-remote: remote
         deployment-block: 1
 tokens:
     tokena:
@@ -784,11 +787,14 @@ accounts:
         test-deployer:
             address: 0x2222222222222222222222222222222222222222
             network: isolated
+    local-db-remotes:
+        remote: https://example.com/localdb
     orderbooks:
         test-orderbook:
             address: 0x1111111111111111111111111111111111111111
             network: some-network
             subgraph: test
+            local-db-remote: remote
             label: Test Orderbook
             deployment-block: 12345
     "#,
