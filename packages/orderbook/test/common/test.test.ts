@@ -4,7 +4,7 @@ import { assert } from 'chai';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const dotrain = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
