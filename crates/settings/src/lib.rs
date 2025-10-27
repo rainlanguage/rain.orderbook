@@ -4,6 +4,7 @@ pub mod chart;
 pub mod deployer;
 pub mod deployment;
 pub mod gui;
+pub mod local_db_manifest;
 pub mod local_db_remotes;
 pub mod local_db_sync;
 pub mod metaboard;
@@ -20,6 +21,7 @@ pub mod spec_version;
 pub mod subgraph;
 pub mod token;
 pub mod unit_test; // NOTE: this is used by unit_tests module in common crate
+pub mod utils;
 pub mod yaml;
 
 pub(crate) use chart::*;
