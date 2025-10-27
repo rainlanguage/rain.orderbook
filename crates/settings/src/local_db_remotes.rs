@@ -77,6 +77,13 @@ impl YamlParsableHash for LocalDbRemoteCfg {
             }
         }
 
+        if remotes.is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
+                location: "root".to_string(),
+            });
+        }
+
         Ok(remotes)
     }
 }
@@ -157,9 +164,15 @@ local-db-remotes:
         let yaml = r#"
 test: test
 "#;
-        let remotes =
-            LocalDbRemoteCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
-        assert!(remotes.is_empty());
+        let err =
+            LocalDbRemoteCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
+                location: "root".to_string(),
+            }
+        );
     }
 
     #[test]

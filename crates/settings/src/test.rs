@@ -3,6 +3,7 @@ use alloy::primitives::Address;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 use subgraph::SubgraphCfg;
+use crate::local_db_remotes::LocalDbRemoteCfg;
 
 // Helper function to create a mock network
 pub fn mock_network() -> Arc<NetworkCfg> {
@@ -40,6 +41,7 @@ pub fn mock_orderbook() -> Arc<OrderbookCfg> {
             url: "https://subgraph.com".parse().unwrap(),
         }),
         network: mock_network(),
+        local_db_remote: Arc::new(LocalDbRemoteCfg::default()),
         deployment_block: 12345,
     })
 }

@@ -467,6 +467,8 @@ mod tests {
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
         secondary: https://api.thegraph.com/subgraphs/name/abc
+    local-db-remotes:
+        mainnet: https://example.com/localdb/mainnet
     metaboards:
         board1: https://meta.example.com/board1
         board2: https://meta.example.com/board2
@@ -475,6 +477,7 @@ mod tests {
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             label: Primary Orderbook
             deployment-block: 12345
     tokens:
@@ -502,6 +505,8 @@ mod tests {
             chain-id: 1
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    local-db-remotes:
+        orderbook1: https://example.com/localdb/mainnet
     metaboards:
         board1: https://meta.example.com/board1
     orderbooks:
@@ -869,22 +874,27 @@ test: test
             currency: ETH
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    local-db-remotes:
+        mainnet: https://example.com/localdb/mainnet
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             deployment-block: 12345
         other-orderbook:
             address: 0x1234567890123456789012345678901234567891
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             deployment-block: 12345
         polygon-orderbook:
             address: 0x0987654321098765432109876543210987654321
             network: polygon
             deployment-block: 12345
             subgraph: mainnet
+            local-db-remote: mainnet
     "#,
             spec_version = SpecVersion::current()
         );
@@ -975,22 +985,27 @@ test: test
             chain-id: 42161
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    local-db-remotes:
+        mainnet: https://example.com/localdb/mainnet
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             deployment-block: 12345
         other-orderbook:
             address: 0x1234567890123456789012345678901234567891
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             deployment-block: 12345
         polygon-orderbook:
             address: 0x0987654321098765432109876543210987654321
             network: polygon
             deployment-block: 12345
             subgraph: mainnet
+            local-db-remote: mainnet
     "#,
             spec_version = SpecVersion::current()
         );
