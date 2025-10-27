@@ -129,7 +129,8 @@ All core configs implement `YamlParsableHash` unless noted, and each instance ca
 ### Local DB Remotes (`local_db_remotes.rs`)
 
 - `local-db-remotes:` is a required top-level map. Each entry is parsed as `LocalDbRemoteCfg { key, url }`.
-- The `orderbooks[*].local-db-remote` field is required and must reference a defined remote key.
+- The `orderbooks[*].local-db-remote` field is optional. If omitted, it defaults to the orderbook's key. When provided explicitly, it must reference a defined remote key under `local-db-remotes`.
+  - See `src/orderbook.rs` for the implementation and tests, e.g. `test_orderbook_local_db_remote_absent_defaults_to_orderbook_key`, `test_orderbook_local_db_remote_resolves`, and `test_orderbook_local_db_remote_not_found`.
 
 ### Deployers (`deployer.rs`)
 

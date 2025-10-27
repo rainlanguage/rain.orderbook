@@ -1049,6 +1049,66 @@ test: test
         );
     }
 
+    fn test_get_local_db_remote_keys() {
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
+
+        let keys = ob_yaml.get_local_db_remote_keys().unwrap();
+        assert_eq!(keys, vec!["mainnet".to_string()]);
+    }
+
+    #[test]
+    fn test_get_local_db_remotes_and_single_remote() {
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
+
+        let remotes = ob_yaml.get_local_db_remotes().unwrap();
+        assert_eq!(remotes.len(), 1);
+        let remote = remotes.get("mainnet").unwrap();
+        assert_eq!(remote.key, "mainnet");
+        assert_eq!(
+            remote.url,
+            Url::parse("https://example.com/localdb/mainnet").unwrap()
+        );
+
+        // Also validate the getter for a single key
+        let single = ob_yaml.get_local_db_remote("mainnet").unwrap();
+        assert_eq!(single.key, "mainnet");
+        assert_eq!(
+            single.url,
+            Url::parse("https://example.com/localdb/mainnet").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_get_local_db_remote_missing_key_error() {
+        let yaml = format!(
+            r#"
+version: {version}
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+subgraphs:
+    mainnet: https://api.thegraph.com/subgraphs/name/xyz
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
+"#,
+            version = SpecVersion::current()
+        );
+
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let err = ob_yaml.get_local_db_remote("polygon").unwrap_err();
+        assert_eq!(err, YamlError::KeyNotFound("polygon".to_string()));
+    }
+
     #[test]
     fn test_get_local_db_syncs_and_keys() {
         let yaml = r#"
