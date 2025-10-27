@@ -33,7 +33,6 @@ jobs:
       CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
       RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
       COMMIT_SHA: ${{ github.sha }}
-      NIXPKGS_ALLOW_INSECURE: 1
     steps:
       - name: Free up disk space in action runner (Ubuntu)
         if: matrix.platform == 'ubuntu-22.04'
