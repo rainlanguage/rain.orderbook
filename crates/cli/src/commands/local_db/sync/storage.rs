@@ -12,7 +12,7 @@ use rain_orderbook_common::local_db::{
 use serde::Deserialize;
 use url::Url;
 
-use crate::commands::local_db::executor::SqliteCliExecutor;
+use crate::commands::local_db::executor::RusqliteExecutor;
 use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
 
 pub(crate) const DEFAULT_SCHEMA_SQL: &str = CREATE_TABLES_SQL;
@@ -21,7 +21,7 @@ pub(crate) const ERC20_QUERY_TEMPLATE: &str = FETCH_ERC20_TOKENS_BY_ADDRESSES_SQ
 pub(crate) const STORE_ADDRESSES_QUERY: &str = FETCH_STORE_ADDRESSES_SQL;
 
 pub(crate) async fn ensure_schema(db_path: &str) -> Result<bool> {
-    let exec = SqliteCliExecutor::new(db_path);
+    let exec = RusqliteExecutor::new(db_path);
 
     const TABLE_QUERY: &str =
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';";
@@ -53,7 +53,7 @@ pub(crate) async fn ensure_schema(db_path: &str) -> Result<bool> {
 }
 
 pub(crate) async fn fetch_last_synced(db_path: &str) -> Result<u64> {
-    let exec = SqliteCliExecutor::new(db_path);
+    let exec = RusqliteExecutor::new(db_path);
     let rows: Vec<SyncStatusRow> = exec
         .query_json(SYNC_STATUS_QUERY)
         .await
@@ -62,7 +62,7 @@ pub(crate) async fn fetch_last_synced(db_path: &str) -> Result<u64> {
 }
 
 pub(crate) async fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
-    let exec = SqliteCliExecutor::new(db_path);
+    let exec = RusqliteExecutor::new(db_path);
     let rows: Vec<StoreAddressRow> = exec
         .query_json(STORE_ADDRESSES_QUERY)
         .await
@@ -125,7 +125,7 @@ pub(crate) async fn fetch_existing_tokens(
         .replace("?chain_id", &chain_id.to_string())
         .replace("?addresses_in", &in_clause);
 
-    let exec = SqliteCliExecutor::new(db_path);
+    let exec = RusqliteExecutor::new(db_path);
     exec.query_json(&sql)
         .await
         .map_err(|e| anyhow!(e.to_string()))
@@ -192,7 +192,7 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         {
-            let exec = SqliteCliExecutor::new(&*db_path_str);
+            let exec = RusqliteExecutor::new(&*db_path_str);
             exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
         }
         let value = fetch_last_synced(&db_path_str).await.unwrap();
@@ -205,7 +205,7 @@ mod tests {
         let db_path = temp_dir.path().join("stores.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
+        let exec = RusqliteExecutor::new(&*db_path_str);
         exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
         exec.query_text(
             r#"INSERT INTO interpreter_store_sets (
