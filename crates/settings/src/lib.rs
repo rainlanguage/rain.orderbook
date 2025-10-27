@@ -5,6 +5,7 @@ pub mod deployer;
 pub mod deployment;
 pub mod gui;
 pub mod metaboard;
+pub mod local_db_remotes;
 pub mod network;
 pub mod order;
 pub mod orderbook;
