@@ -3,7 +3,7 @@ use crate::yaml::{
     YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 #[cfg(target_family = "wasm")]
@@ -126,7 +126,6 @@ impl YamlParsableHash for LocalDbSyncCfg {
         _context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut syncs: HashMap<String, LocalDbSyncCfg> = HashMap::new();
-        let mut seen: HashSet<String> = HashSet::new();
 
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -158,10 +157,9 @@ impl YamlParsableHash for LocalDbSyncCfg {
                             })
                         }
                     };
-                    if seen.contains(&key) {
+                    if syncs.contains_key(&key) {
                         return Err(YamlError::KeyShadowing(key, "local-db-sync".to_string()));
                     }
-                    seen.insert(key.clone());
 
                     let mut cfg = LocalDbSyncCfg::parse_sync_network_settings(&key, settings_yaml)?;
                     cfg.document = document.clone();

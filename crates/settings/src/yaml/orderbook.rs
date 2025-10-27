@@ -1166,6 +1166,25 @@ local-db-sync:
     }
 
     #[test]
+    fn test_get_local_db_sync_missing_key_error() {
+        let yaml = r#"
+local-db-sync:
+  test:
+    batch-size: 1
+    max-concurrent-batches: 2
+    retry-attempts: 3
+    retry-delay-ms: 4
+    rate-limit-delay-ms: 5
+    finality-depth: 6
+"#;
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+
+        let err = ob_yaml.get_local_db_sync("nonexistent").unwrap_err();
+        assert_eq!(err, YamlError::KeyNotFound("nonexistent".to_string()));
+    }
+
+    #[test]
     fn test_get_local_db_syncs_missing_section_errors() {
         let yaml = r#"test: test"#;
         let ob_yaml =
