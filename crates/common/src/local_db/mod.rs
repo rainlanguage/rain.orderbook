@@ -17,7 +17,7 @@ use insert::{
     decoded_events_to_statements as decoded_events_to_statements_impl,
     raw_events_to_statements as raw_events_to_statements_impl,
 };
-use query::{LocalDbQueryError, SqlStatementBatch};
+use query::{LocalDbQueryError, SqlBuildError, SqlStatementBatch};
 use std::collections::HashMap;
 use url::Url;
 use wasm_bindgen_utils::prelude::*;
@@ -112,6 +112,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
+
+    #[error(transparent)]
+    SqlBuildError(#[from] SqlBuildError),
 }
 
 impl LocalDbError {
@@ -166,6 +169,7 @@ impl LocalDbError {
             LocalDbError::LocalDbQueryError(err) => format!("Database query error: {}", err),
             LocalDbError::IoError(err) => format!("I/O error: {}", err),
             LocalDbError::FromHexError(err) => format!("Hex decoding error: {}", err),
+            LocalDbError::SqlBuildError(err) => format!("SQL build error: {}", err),
         }
     }
 }
