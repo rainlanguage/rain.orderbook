@@ -7,7 +7,7 @@ use alloy::{
     eips::{BlockId, BlockNumberOrTag},
     primitives::Address,
 };
-use rain_error_decoding::{AbiDecodedErrorType, ErrorRegistry, OpenChainRegistry};
+use rain_error_decoding::{AbiDecodedErrorType, ErrorRegistry};
 use rain_orderbook_bindings::provider::mk_read_provider;
 use rain_orderbook_bindings::IOrderBookV5::IOrderBookV5Instance;
 use url::Url;
@@ -43,14 +43,13 @@ pub async fn batch_quote(
         multicall = multicall.add_dynamic(ob_instance.quote2(quote_target.quote_config.clone()));
     }
 
-    let oc_default = OpenChainRegistry::default();
-    let registry: &dyn ErrorRegistry = registry.unwrap_or(&oc_default);
-
     let aggregate_res = match multicall.aggregate3().await {
         Ok(results) => results,
         Err(MulticallError::CallFailed(bytes)) => {
             let decoded_error =
-                match AbiDecodedErrorType::decode_with_registry(bytes.as_ref(), registry).await {
+                match AbiDecodedErrorType::selector_registry_abi_decode(bytes.as_ref(), registry)
+                    .await
+                {
                     Ok(err) => FailedQuote::RevertError(err),
                     Err(err) => FailedQuote::RevertErrorDecodeFailed(err),
                 };
@@ -82,8 +81,11 @@ pub async fn batch_quote(
                 }
             }
             Err(failure) => {
-                match AbiDecodedErrorType::decode_with_registry(&failure.return_data, registry)
-                    .await
+                match AbiDecodedErrorType::selector_registry_abi_decode(
+                    &failure.return_data,
+                    registry,
+                )
+                .await
                 {
                     Ok(e) => results.push(Err(FailedQuote::RevertError(e))),
                     Err(e) => results.push(Err(FailedQuote::RevertErrorDecodeFailed(e))),
