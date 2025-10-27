@@ -1049,6 +1049,7 @@ test: test
         );
     }
 
+    #[test]
     fn test_get_local_db_remote_keys() {
         let ob_yaml = OrderbookYaml::new(
             vec![FULL_YAML.to_string()],
