@@ -1,6 +1,6 @@
 use crate::utils::{parse_positive_u32, parse_positive_u64, parse_url};
 use crate::yaml::{require_hash, require_string, require_vec, FieldErrorKind, YamlError};
-use alloy::primitives::Address;
+use alloy::primitives::{Address, Bytes};
 use std::collections::HashMap;
 use std::str::FromStr;
 use strict_yaml_rust::StrictYaml;
@@ -26,7 +26,7 @@ pub struct ManifestOrderbook {
     pub address: Address,
     pub dump_url: Url,
     pub end_block: u64,
-    pub end_block_hash: String,
+    pub end_block_hash: Bytes,
     pub end_block_time_ms: u64,
 }
 
@@ -56,6 +56,20 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
         location_root.clone(),
     )?;
 
+    // Fail fast if the manifest version is incompatible with the supported version.
+    if manifest_version != MANIFEST_VERSION {
+        return Err(YamlError::Field {
+            kind: FieldErrorKind::InvalidValue {
+                field: "manifest-version".to_string(),
+                reason: format!(
+                    "unsupported manifest version {}, expected {}",
+                    manifest_version, MANIFEST_VERSION
+                ),
+            },
+            location: location_root.clone(),
+        });
+    }
+
     let db_schema_version = parse_positive_u32(
         &require_string(doc, Some("db-schema-version"), Some(location_root.clone()))?,
         "db-schema-version",
@@ -76,6 +90,15 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
                 location: "manifest.networks".to_string(),
             })?
             .to_string();
+        if network_key.trim().is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "key".to_string(),
+                    reason: "network name must not be empty".to_string(),
+                },
+                location: "manifest.networks".to_string(),
+            });
+        }
         let location_network = format!("manifest.networks.{}", network_key);
 
         let _network_hash = require_hash(network_yaml, None, Some(location_network.clone()))?;
@@ -116,8 +139,16 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
                 location_ob.clone(),
             )?;
 
-            let end_block_hash =
+            let end_block_hash_str =
                 require_string(ob_yaml, Some("end-block-hash"), Some(location_ob.clone()))?;
+            let end_block_hash =
+                Bytes::from_str(&end_block_hash_str).map_err(|e| YamlError::Field {
+                    kind: FieldErrorKind::InvalidValue {
+                        field: "end-block-hash".to_string(),
+                        reason: e.to_string(),
+                    },
+                    location: location_ob.clone(),
+                })?;
 
             let end_block_time_ms = parse_positive_u64(
                 &require_string(
@@ -273,7 +304,7 @@ networks:
       - address: "0x0000000000000000000000000000000000000001"
         dump-url: "http://example.com"
         end-block: 1
-        end-block-hash: "0xabc"
+        end-block-hash: "0x0abc"
         end-block-time-ms: 1
 "#;
         assert!(parse_manifest_doc(&load(good)).is_ok());
@@ -288,7 +319,7 @@ networks:
     orderbooks:
       - dump-url: "http://example.com"
         end-block: 1
-        end-block-hash: "0xabc"
+        end-block-hash: "0x0abc"
         end-block-time-ms: 1
 "#;
         assert!(matches!(
@@ -305,7 +336,7 @@ networks:
     orderbooks:
       - address: "0x0000000000000000000000000000000000000001"
         end-block: 1
-        end-block-hash: "0xabc"
+        end-block-hash: "0x0abc"
         end-block-time-ms: 1
 "#;
         assert!(matches!(
@@ -322,7 +353,7 @@ networks:
     orderbooks:
       - address: "0x0000000000000000000000000000000000000001"
         dump-url: "http://example.com"
-        end-block-hash: "0xabc"
+        end-block-hash: "0x0abc"
         end-block-time-ms: 1
 "#;
         assert!(matches!(
@@ -357,7 +388,7 @@ networks:
       - address: "0x0000000000000000000000000000000000000001"
         dump-url: "http://example.com"
         end-block: 1
-        end-block-hash: "0xabc"
+        end-block-hash: "0x0abc"
 "#;
         assert!(matches!(
             parse_manifest_doc(&load(missing_end_time)).unwrap_err(),
@@ -377,7 +408,7 @@ networks:
       - address: "0x1111111111111111111111111111111111111111"
         dump-url: "http://example.com/a"
         end-block: 10
-        end-block-hash: "0xa"
+        end-block-hash: "0x0a"
         end-block-time-ms: 100
   other:
     chain-id: 2
@@ -385,7 +416,7 @@ networks:
       - address: "0x2222222222222222222222222222222222222222"
         dump-url: "http://example.com/b"
         end-block: 20
-        end-block-hash: "0xb"
+        end-block-hash: "0x0b"
         end-block-time-ms: 200
 "#;
         let m = parse_manifest_doc(&load(yaml)).unwrap();
@@ -421,5 +452,48 @@ networks:
     fn test_manifest_version_helpers() {
         assert!(is_manifest_version_current(current_manifest_version()));
         assert!(!is_manifest_version_current(0));
+    }
+
+    #[test]
+    fn test_incompatible_manifest_version_rejected() {
+        let yaml = r#"
+manifest-version: 999
+db-schema-version: 1
+networks: {}
+"#;
+        let err = parse_manifest_doc(&load(yaml)).unwrap_err();
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, reason: _ },
+                location,
+            } => {
+                assert_eq!(field, "manifest-version");
+                assert_eq!(location, "manifest");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_empty_network_key_is_rejected() {
+        let yaml = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  "":
+    chain-id: 1
+    orderbooks: []
+"#;
+        let err = parse_manifest_doc(&load(yaml)).unwrap_err();
+        match err {
+            YamlError::Field { kind, location } => match kind {
+                FieldErrorKind::InvalidValue { field, reason: _ } => {
+                    assert_eq!(field, "key");
+                    assert_eq!(location, "manifest.networks");
+                }
+                other => panic!("unexpected field error kind: {other:?}"),
+            },
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 }
