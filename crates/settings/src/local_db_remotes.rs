@@ -47,7 +47,16 @@ impl YamlParsableHash for LocalDbRemoteCfg {
                 Some("root".to_string()),
             ) {
                 for (key_yaml, remote_yaml) in remotes_hash {
-                    let remote_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let remote_key = key_yaml
+                        .as_str()
+                        .ok_or(YamlError::Field {
+                            kind: FieldErrorKind::InvalidType {
+                                field: "key".to_string(),
+                                expected: "a string".to_string(),
+                            },
+                            location: "local-db-remotes".to_string(),
+                        })?
+                        .to_string();
                     let location = format!("local-db-remotes[{}]", remote_key);
 
                     let url_str = require_string(remote_yaml, None, Some(location.clone()))?;
@@ -204,7 +213,7 @@ local-db-remotes:
         match err {
             YamlError::Field { kind, location } => {
                 assert_eq!(location, "local-db-remotes[mainnet]".to_string());
-                matches!(kind, FieldErrorKind::InvalidValue { .. });
+                assert!(matches!(kind, FieldErrorKind::InvalidValue { .. }));
             }
             _ => panic!("unexpected error type"),
         }
