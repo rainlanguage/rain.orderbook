@@ -529,7 +529,8 @@ impl FuzzRunner {
 
         let mut error = None;
         if res.exit_reason.is_revert() {
-            error = Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
+            error =
+                Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result, None).await);
         }
         let run = res.try_into()?;
 
@@ -1245,7 +1246,7 @@ scenarios:
         deployer: flare
         runs: 1
         bindings:
-            orderbook-subparser: {orderbook_subparser} 
+            orderbook-subparser: {orderbook_subparser}
 orders:
     sell-wflr:
         network: flare
