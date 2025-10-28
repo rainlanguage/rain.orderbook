@@ -120,6 +120,9 @@ pub enum LocalDbError {
     #[error("Overflow when incrementing last_synced_block: {last_synced_block}")]
     LastSyncedBlockOverflow { last_synced_block: u64 },
 
+    #[error("There are no rows in the db_metadata table")]
+    MissingDbMetadataRow,
+
     #[error("Database schema version mismatch: expected {expected}, found {found}")]
     SchemaVersionMismatch { expected: u32, found: u32 },
 
@@ -189,6 +192,9 @@ impl LocalDbError {
                 "Overflow when incrementing last_synced_block {}",
                 last_synced_block
             ),
+            LocalDbError::MissingDbMetadataRow => {
+                "There are no rows in the db_metadata table".to_string()
+            }
             LocalDbError::SchemaVersionMismatch { expected, found } => format!(
                 "Database schema version mismatch: expected {}, found {}",
                 expected, found
