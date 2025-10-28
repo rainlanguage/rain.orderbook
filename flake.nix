@@ -2,17 +2,19 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix?rev=499059a89d5a946513b24e56f3f67792e5ad5bbd";
+    rainix.url = "github:rainlanguage/rainix?rev=5a9777f987828ccfdedee8ce709c0e558858bed1";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, flake-utils, rainix, rain, nixpkgs }:
+  outputs = { self, flake-utils, rainix, rain }:
     flake-utils.lib.eachDefaultSystem (system:
       let 
         pkgs = rainix.pkgs.${system};
+        old-pkgs = rainix.old-pkgs.${system};
       in rec {
         packages = rec {
+
           tauri-release-env = rainix.tauri-release-env.${system};
 
           raindex-prelude = rainix.mkTask.${system} {
@@ -133,7 +135,7 @@
               echo COMMIT_SHA=''${COMMIT_SHA} >> .env
               echo VITE_WALLETCONNECT_PROJECT_ID=''${VITE_WALLETCONNECT_PROJECT_ID} >> .env
             '';
-            # additionalBuildInputs = [ pkgs.sentry-cli ];
+            additionalBuildInputs = [ old-pkgs.sentry-cli ];
           };
 
           ob-tauri-before-build-ci = rainix.mkTask.${system} {
@@ -320,11 +322,6 @@
             ++ [ pkgs.clang-tools ];
           nativeBuildInputs =
             rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
-            #  ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
-            #   npkgs.libsoup_2_4
-            #   npkgs.webkitgtk
-            #   # npkgs.gtk3
-            # ]);
         };
         devShells.webapp-shell = pkgs.mkShell {
           packages = with pkgs; [ nodejs_20 ];
@@ -333,4 +330,5 @@
             rainix.devShells.${system}.default.nativeBuildInputs;
         };
       });
+
 }
