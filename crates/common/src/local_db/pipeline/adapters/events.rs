@@ -7,7 +7,7 @@ use crate::local_db::decode::{DecodedEvent, DecodedEventData};
 use crate::local_db::{FetchConfig, LocalDb, LocalDbError};
 use crate::rpc_client::{BlockRange, LogEntryResponse};
 
-use crate::local_db::pipeline::traits::EventsPipeline;
+use crate::local_db::pipeline::EventsPipeline;
 
 /// Shared implementation of the EventsPipeline that delegates to LocalDb.
 ///
@@ -115,15 +115,11 @@ mod tests {
             data: format!("0x{}", hex::encode(encoded)),
             block_number: "0x1".to_string(),
             block_timestamp: Some("0x2".to_string()),
-            transaction_hash: format!(
-                "0x{}",
-                "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
-            ),
+            transaction_hash: "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+                .to_string(),
             transaction_index: "0x0".to_string(),
-            block_hash: format!(
-                "0x{}",
-                "bbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa"
-            ),
+            block_hash: "0xbbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa"
+                .to_string(),
             log_index: "0x0".to_string(),
             removed: false,
         }
@@ -185,15 +181,11 @@ mod tests {
             data: "0x".to_string(),
             block_number: "0x1".to_string(),
             block_timestamp: Some("0x2".to_string()),
-            transaction_hash: format!(
-                "0x{}",
-                "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
-            ),
+            transaction_hash: "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+                .to_string(),
             transaction_index: "0x0".to_string(),
-            block_hash: format!(
-                "0x{}",
-                "bbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa"
-            ),
+            block_hash: "0xbbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa"
+                .to_string(),
             log_index: "0x0".to_string(),
             removed: false,
         };
