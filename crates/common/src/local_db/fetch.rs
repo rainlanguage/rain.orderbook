@@ -25,14 +25,6 @@ pub enum FetchConfigError {
     MaxRetryAttemptsZero(usize),
 }
 
-impl From<FetchConfigError> for LocalDbError {
-    fn from(error: FetchConfigError) -> Self {
-        LocalDbError::Config {
-            message: error.to_string(),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct FetchConfig {
     chunk_size: u64,

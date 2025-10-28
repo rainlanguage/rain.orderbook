@@ -121,6 +121,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     ERC20Error(#[from] crate::erc20::Error),
+
+    #[error(transparent)]
+    FetchConfigError(#[from] FetchConfigError),
 }
 
 impl LocalDbError {
@@ -179,6 +182,7 @@ impl LocalDbError {
                 "Invalid retry configuration for max attemps".to_string()
             }
             LocalDbError::ERC20Error(err) => format!("ERC20 error: {}", err),
+            LocalDbError::FetchConfigError(err) => format!("Fetch configuration error: {}", err),
         }
     }
 }
