@@ -53,8 +53,8 @@ nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
 
 echo "Setting up UI components..."
-nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
-nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
+NIXPKGS_ALLOW_INSECURE=1 NIXPKGS_ALLOW_BROKEN=1 nix develop --impure -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
+NIXPKGS_ALLOW_INSECURE=1 NIXPKGS_ALLOW_BROKEN=1 nix develop --impure -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
 
 echo "Building packages..."
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
