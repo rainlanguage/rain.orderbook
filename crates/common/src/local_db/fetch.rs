@@ -1,14 +1,13 @@
 use super::{LocalDb, LocalDbError};
-use crate::rpc_client::{LogEntryResponse, RpcClientError};
+use crate::{
+    retry::retry_with_backoff,
+    rpc_client::{LogEntryResponse, RpcClientError},
+};
 use alloy::primitives::{Address, U256};
 use alloy::rpc::types::Filter;
-use backon::{ConstantBuilder, Retryable};
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::topics::{ORDERBOOK_EVENT_TOPICS, STORE_SET_TOPICS};
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct FetchConfig {
@@ -102,9 +101,18 @@ impl LocalDb {
                     let client = client.clone();
                     let max_attempts = config.max_retry_attempts;
                     async move {
-                        let block_response = retry_with_attempts(
-                            || client.get_block_by_number(block_number),
+                        let block_response = retry_with_backoff(
+                            || {
+                                let client = client.clone();
+                                async move {
+                                    client
+                                        .get_block_by_number(block_number)
+                                        .await
+                                        .map_err(map_rpc_error)
+                                }
+                            },
                             max_attempts,
+                            should_retry_local_db_error,
                         )
                         .await?;
 
@@ -230,8 +238,16 @@ impl LocalDb {
                 let max_attempts = config.max_retry_attempts;
 
                 async move {
-                    let response =
-                        retry_with_attempts(|| client.get_logs(&filter), max_attempts).await?;
+                    let response = retry_with_backoff(
+                        || {
+                            let client = client.clone();
+                            let filter = filter.clone();
+                            async move { client.get_logs(&filter).await.map_err(map_rpc_error) }
+                        },
+                        max_attempts,
+                        should_retry_local_db_error,
+                    )
+                    .await?;
 
                     Ok::<_, LocalDbError>(response)
                 }
@@ -254,38 +270,15 @@ impl LocalDb {
     }
 }
 
-const RETRY_DELAY_MILLIS: u64 = 100;
-
-async fn retry_with_attempts<T, F, Fut>(
-    operation: F,
-    max_attempts: usize,
-) -> Result<T, LocalDbError>
-where
-    F: Fn() -> Fut,
-    Fut: std::future::Future<Output = Result<T, RpcClientError>>,
-{
-    if max_attempts == 0 {
-        return Err(LocalDbError::Config {
-            message: "max_attempts must be > 0".to_string(),
-        });
+fn map_rpc_error(error: RpcClientError) -> LocalDbError {
+    match error {
+        RpcClientError::JsonSerialization(err) => LocalDbError::JsonParse(err),
+        other => LocalDbError::Rpc(other),
     }
+}
 
-    let backoff = ConstantBuilder::default()
-        .with_delay(Duration::from_millis(RETRY_DELAY_MILLIS))
-        .with_max_times(max_attempts.saturating_sub(1));
-
-    let retryable = || async {
-        match operation().await {
-            Ok(result) => Ok(result),
-            Err(RpcClientError::JsonSerialization(err)) => Err(LocalDbError::JsonParse(err)),
-            Err(err) => Err(LocalDbError::Rpc(err)),
-        }
-    };
-
-    retryable
-        .retry(&backoff)
-        .when(|error: &LocalDbError| matches!(error, LocalDbError::Rpc(_)))
-        .await
+fn should_retry_local_db_error(error: &LocalDbError) -> bool {
+    matches!(error, LocalDbError::Rpc(_))
 }
 
 fn extract_block_number_from_entry(event: &LogEntryResponse) -> Result<u64, LocalDbError> {
@@ -740,97 +733,27 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn retry_with_attempts_retries_on_rpc_then_succeeds() {
+        async fn retry_helper_returns_rpc_error_after_exhaustion() {
             let attempts = AtomicUsize::new(0);
-            let res: Result<u32, LocalDbError> = retry_with_attempts(
-                || async {
-                    let i = attempts.fetch_add(1, Ordering::SeqCst);
-                    if i == 0 {
-                        Err(RpcClientError::RpcError {
-                            message: "first fail".into(),
-                        })
-                    } else {
-                        Ok(42u32)
-                    }
-                },
-                3,
-            )
-            .await;
-
-            assert!(res.is_ok());
-            assert_eq!(res.unwrap(), 42);
-            assert_eq!(
-                attempts.load(Ordering::SeqCst),
-                2,
-                "should retry exactly once"
-            );
-        }
-
-        #[tokio::test]
-        async fn retry_with_attempts_gives_up_after_max_attempts() {
-            let attempts = AtomicUsize::new(0);
-            let err = retry_with_attempts(
+            let err = retry_with_backoff(
                 || async {
                     attempts.fetch_add(1, Ordering::SeqCst);
-                    Err::<(), _>(RpcClientError::RpcError {
+                    Err::<(), _>(map_rpc_error(RpcClientError::RpcError {
                         message: "always fail".into(),
-                    })
+                    }))
                 },
                 2,
+                should_retry_local_db_error,
             )
             .await
             .unwrap_err();
 
+            let err: LocalDbError = err.into();
             match err {
                 LocalDbError::Rpc(RpcClientError::RpcError { .. }) => {}
                 other => panic!("expected LocalDbError::Rpc, got {other:?}"),
             }
             assert_eq!(attempts.load(Ordering::SeqCst), 2, "should attempt twice");
-        }
-
-        #[tokio::test]
-        async fn retry_with_attempts_does_not_retry_on_json_parse_error() {
-            let attempts = AtomicUsize::new(0);
-            let err = retry_with_attempts(
-                || async {
-                    attempts.fetch_add(1, Ordering::SeqCst);
-                    let e = serde_json::from_str::<serde_json::Value>("not json").unwrap_err();
-                    Err::<(), _>(RpcClientError::JsonSerialization(e))
-                },
-                3,
-            )
-            .await
-            .unwrap_err();
-
-            match err {
-                LocalDbError::JsonParse(_) => {}
-                other => panic!("expected LocalDbError::JsonParse, got {other:?}"),
-            }
-            assert_eq!(
-                attempts.load(Ordering::SeqCst),
-                1,
-                "should not retry json errors"
-            );
-        }
-
-        #[tokio::test]
-        async fn retry_with_attempts_zero_attempts_is_config_error() {
-            let attempts = AtomicUsize::new(0);
-            let err = retry_with_attempts(
-                || async {
-                    attempts.fetch_add(1, Ordering::SeqCst);
-                    Ok::<u32, RpcClientError>(1)
-                },
-                0,
-            )
-            .await
-            .unwrap_err();
-
-            match err {
-                LocalDbError::Config { .. } => {}
-                other => panic!("expected LocalDbError::Config, got {other:?}"),
-            }
-            assert_eq!(attempts.load(Ordering::SeqCst), 0, "operation must not run");
         }
 
         #[test]
