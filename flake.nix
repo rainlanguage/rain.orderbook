@@ -321,7 +321,7 @@
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs
             ++ [ pkgs.clang-tools ];
           nativeBuildInputs =
-            rainix.devShells.${system}.tauri-shell.nativeBuildInputs ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+            rainix.devShells.${system}.tauri-shell.nativeBuildInputs ++ (npkgs.lib.optionals (!npkgs.stdenv.isDarwin) [
               npkgs.libsoup_2_4
               npkgs.webkitgtk
               # npkgs.gtk3
