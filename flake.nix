@@ -321,6 +321,7 @@
             rainix.devShells.${system}.tauri-shell.nativeBuildInputs ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
               pkgs.libsoup_2_4
               pkgs.webkitgtk_4_0
+              pkgs.gtk4
             ]);
         };
         devShells.webapp-shell = pkgs.mkShell {
