@@ -22,6 +22,7 @@ use std::collections::HashMap;
 use url::Url;
 use wasm_bindgen_utils::prelude::*;
 
+pub const DATABASE_SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
 
 #[derive(Debug, Clone)]
@@ -118,6 +119,9 @@ pub enum LocalDbError {
 
     #[error("Overflow when incrementing last_synced_block: {last_synced_block}")]
     LastSyncedBlockOverflow { last_synced_block: u64 },
+
+    #[error("Database schema version mismatch: expected {expected}, found {found}")]
+    SchemaVersionMismatch { expected: u32, found: u32 },
 }
 
 impl LocalDbError {
@@ -174,6 +178,10 @@ impl LocalDbError {
             LocalDbError::LastSyncedBlockOverflow { last_synced_block } => format!(
                 "Overflow when incrementing last_synced_block {}",
                 last_synced_block
+            ),
+            LocalDbError::SchemaVersionMismatch { expected, found } => format!(
+                "Database schema version mismatch: expected {}, found {}",
+                expected, found
             ),
         }
     }
