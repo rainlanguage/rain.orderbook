@@ -2,14 +2,17 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix?rev=d26f65d1a5de54996fa42ce0ca0d3d95ff44e2bc";
+    rainix.url = "github:rainlanguage/rainix?rev=b26aff9868b253329c3f27a94094130b01f6916f";
+    nixpkgs.url = "github:nixos/nixpkgs?rev=48975d7f9b9960ed33c4e8561bcce20cc0c2de5b";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, flake-utils, rainix, rain }:
+  outputs = { self, flake-utils, rainix, rain, nixpkgs }:
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = rainix.pkgs.${system};
+      let 
+        pkgs = rainix.pkgs.${system};
+        npkgs = nixpkgs.${system};
       in rec {
         packages = rec {
           tauri-release-env = rainix.tauri-release-env.${system};
@@ -319,9 +322,9 @@
             ++ [ pkgs.clang-tools ];
           nativeBuildInputs =
             rainix.devShells.${system}.tauri-shell.nativeBuildInputs ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
-              pkgs.libsoup_2_4
-              pkgs.webkitgtk_4_0
-              pkgs.gtk3
+              npkgs.libsoup_2_4
+              npkgs.webkitgtk
+              # npkgs.gtk3
             ]);
         };
         devShells.webapp-shell = pkgs.mkShell {
