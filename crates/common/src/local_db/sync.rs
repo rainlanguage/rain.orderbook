@@ -14,7 +14,6 @@ use super::{
     tokens::{collect_store_addresses, collect_token_addresses},
     FetchConfig, LocalDb, LocalDbError,
 };
-use crate::rpc_client::BlockRange;
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
@@ -74,11 +73,14 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         last_synced_block.saturating_add(1)
     };
 
-    let range = BlockRange::inclusive(start_block, latest_block)?;
-
     status.send("Fetching latest onchain events...".to_string())?;
     let events = local_db
-        .fetch_orderbook_events(orderbook_cfg.address, range, &FetchConfig::default())
+        .fetch_orderbook_events(
+            orderbook_cfg.address,
+            start_block,
+            latest_block,
+            &FetchConfig::default(),
+        )
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
@@ -98,7 +100,12 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         .collect::<Result<_, _>>()?;
 
     let store_logs = local_db
-        .fetch_store_events(&store_addresses, range, &FetchConfig::default())
+        .fetch_store_events(
+            &store_addresses,
+            start_block,
+            latest_block,
+            &FetchConfig::default(),
+        )
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
