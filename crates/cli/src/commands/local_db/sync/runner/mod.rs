@@ -1,5 +1,8 @@
 use anyhow::Result;
-use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
+use rain_orderbook_common::local_db::{
+    decode::{DecodedEvent, DecodedEventData},
+    query::SqlStatement,
+};
 use url::Url;
 
 use super::{
@@ -149,7 +152,7 @@ where
         println!("Generating SQL for {} events", decoded_count);
         println!("Applying SQL to {}", self.db_path);
         let exec = RusqliteExecutor::new(self.db_path);
-        exec.query_text(&sql)
+        exec.query_text(&SqlStatement::new(sql))
             .await
             .map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
@@ -418,7 +421,9 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
 
         let base_event = sample_store_decoded_event(Address::from([0x11; 20]));
         let store_event = sample_store_decoded_event(Address::from([0x55; 20]));
@@ -524,8 +529,10 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
-        exec.query_text(
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
+        exec.query_text(&SqlStatement::new(
             r#"INSERT INTO interpreter_store_sets (
                 store_address,
                 transaction_hash,
@@ -546,7 +553,7 @@ mod tests {
                 '0x0'
             );
 "#,
-        )
+        ))
         .await
         .unwrap();
 

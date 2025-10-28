@@ -1,5 +1,5 @@
 use crate::local_db::query::fetch_order_trades_count::{
-    build_fetch_trade_count_query, extract_trade_count, LocalDbTradeCountRow,
+    build_fetch_trade_count_stmt, extract_trade_count, LocalDbTradeCountRow,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 
@@ -9,8 +9,8 @@ pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<u64, LocalDbQueryError> {
-    let sql = build_fetch_trade_count_query(order_hash, start_timestamp, end_timestamp);
-    let rows: Vec<LocalDbTradeCountRow> = exec.query_json(&sql).await?;
+    let stmt = build_fetch_trade_count_stmt(order_hash, start_timestamp, end_timestamp)?;
+    let rows: Vec<LocalDbTradeCountRow> = exec.query_json(&stmt).await?;
     Ok(extract_trade_count(&rows))
 }
 
@@ -22,6 +22,7 @@ mod wasm_tests {
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen_test::*;
+    use wasm_bindgen_utils::prelude::wasm_bindgen;
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_and_extracts_count() {
@@ -29,11 +30,14 @@ mod wasm_tests {
         let start = Some(10);
         let end = Some(20);
 
-        let expected_sql = build_fetch_trade_count_query(order_hash, start, end);
+        let expected_stmt = build_fetch_trade_count_stmt(order_hash, start, end).unwrap();
 
         // Return one row with count 5
         let response = r#"[{"trade_count":5}]"#;
-        let store = Rc::new(RefCell::new(String::new()));
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let callback = create_sql_capturing_callback(response, store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
@@ -42,12 +46,15 @@ mod wasm_tests {
         assert_eq!(res.unwrap(), 5);
 
         let captured = store.borrow().clone();
-        assert_eq!(captured, expected_sql);
+        assert_eq!(captured.0, expected_stmt.sql);
     }
 
     #[wasm_bindgen_test]
     async fn wrapper_extracts_zero_on_empty_rows() {
-        let store = Rc::new(RefCell::new(String::new()));
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
         let res = super::fetch_order_trades_count(&exec, "hash", None, None).await;
