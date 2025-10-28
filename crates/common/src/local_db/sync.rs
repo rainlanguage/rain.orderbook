@@ -75,10 +75,11 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
 
     status.send("Fetching latest onchain events...".to_string())?;
     let events = local_db
-        .fetch_events(
-            &orderbook_cfg.address.to_string(),
+        .fetch_orderbook_events(
+            orderbook_cfg.address,
             start_block,
             latest_block,
+            &FetchConfig::default(),
         )
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
@@ -93,10 +94,14 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         .await
         .map_err(LocalDbError::from)?;
     let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
+    let store_addresses: Vec<Address> = store_addresses_vec
+        .iter()
+        .map(|s| Address::from_str(s))
+        .collect::<Result<_, _>>()?;
 
     let store_logs = local_db
-        .fetch_store_set_events(
-            &store_addresses_vec,
+        .fetch_store_events(
+            &store_addresses,
             start_block,
             latest_block,
             &FetchConfig::default(),
