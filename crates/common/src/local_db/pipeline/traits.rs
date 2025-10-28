@@ -27,7 +27,7 @@ use crate::rpc_client::{BlockRange, LogEntryResponse};
 #[derive(Debug, Clone)]
 pub struct TargetKey {
     /// Chain id for the orderbook deployment.
-    pub chain_id: u64,
+    pub chain_id: u32,
     /// Address of the orderbook contract.
     pub orderbook_address: Address,
 }
@@ -84,6 +84,13 @@ pub struct SyncOutcome {
     pub decoded_events: usize,
 }
 
+#[derive(Debug, Clone)]
+pub struct BootstrapConfig {
+    pub target_key: TargetKey,
+    pub dump_stmt: Option<SqlStatement>,
+    pub latest_block: u64,
+}
+
 /// Bootstrap state snapshot used by environment orchestration to decide actions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BootstrapState {
@@ -97,27 +104,36 @@ pub struct BootstrapState {
 /// helpers for the lower-level operations exposed as trait methods here.
 #[async_trait(?Send)]
 pub trait BootstrapPipeline {
-    async fn ensure_schema<DB>(&self, db: &DB) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn inspect_state<DB>(&self, db: &DB) -> Result<BootstrapState, LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn import_seed_sql<DB>(
+    async fn ensure_schema<DB>(
         &self,
         db: &DB,
-        seed_sql: &SqlStatement,
+        db_schema_version: Option<u32>,
     ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized;
 
-    async fn reset_db<DB>(&self, db: &DB) -> Result<(), LocalDbError>
+    async fn inspect_state<DB>(
+        &self,
+        db: &DB,
+        target_key: &TargetKey,
+    ) -> Result<BootstrapState, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized;
 
-    async fn run<DB>(&self, db: &DB, target: &TargetKey) -> Result<(), LocalDbError>
+    async fn reset_db<DB>(
+        &self,
+        db: &DB,
+        db_schema_version: Option<u32>,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized;
+
+    async fn run<DB>(
+        &self,
+        db: &DB,
+        db_schema_version: Option<u32>,
+        config: &BootstrapConfig,
+    ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized;
 }
