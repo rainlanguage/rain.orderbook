@@ -30,6 +30,7 @@ jobs:
     env:
       COMMIT_SHA: ${{ github.sha }}
       NIXPKGS_ALLOW_INSECURE: 1
+      NIXPKGS_ALLOW_BROKEN: 1
     steps:
       - name: Free up disk space in action runner (Ubuntu)
         if: matrix.os == 'ubuntu-22.04'

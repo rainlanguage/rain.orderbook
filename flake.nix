@@ -2,7 +2,7 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix";
+    rainix.url = "github:rainlanguage/rainix?rev=d26f65d1a5de54996fa42ce0ca0d3d95ff44e2bc";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -85,6 +85,32 @@
               set -euxo pipefail
 
               cd tauri-app && npm i && npm run test
+            '';
+          };
+
+          rainix-ob-cli-artifact = rainix.mkTask.${system} {
+            name = "rainix-ob-cli-artifact";
+            body = ''
+              set -euxo pipefail
+
+              OUTPUT_DIR=crates/cli/bin
+              ARCHIVE_NAME=rain-orderbook-cli.tar.gz
+              BINARY_NAME=rain-orderbook-cli
+
+              TARGET_TRIPLE=x86_64-unknown-linux-gnu
+
+              cargo build --release -p rain_orderbook_cli --target "$TARGET_TRIPLE"
+
+              mkdir -p "$OUTPUT_DIR"
+              rm -f "$OUTPUT_DIR/$ARCHIVE_NAME"
+
+              cp "target/$TARGET_TRIPLE/release/rain_orderbook_cli" "$OUTPUT_DIR/$BINARY_NAME"
+              chmod 755 "$OUTPUT_DIR/$BINARY_NAME"
+              strip "$OUTPUT_DIR/$BINARY_NAME" || true
+
+              tar -C "$OUTPUT_DIR" -czf "$OUTPUT_DIR/$ARCHIVE_NAME" "$BINARY_NAME"
+
+              rm -f "$OUTPUT_DIR/$BINARY_NAME"
             '';
           };
 
@@ -268,6 +294,7 @@
             packages.test-js-bindings
             rain.defaultPackage.${system}
             packages.ob-ui-components-prelude
+            packages.rainix-ob-cli-artifact
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
@@ -289,9 +316,13 @@
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs
-            ++ [ pkgs.clang-tools pkgs.libsoup_3 ];
+            ++ [ pkgs.clang-tools ];
           nativeBuildInputs =
-            rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
+            rainix.devShells.${system}.tauri-shell.nativeBuildInputs ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+              pkgs.libsoup_2_4
+              pkgs.webkitgtk_4_0
+              pkgs.gtk3
+            ]);
         };
         devShells.webapp-shell = pkgs.mkShell {
           packages = with pkgs; [ nodejs_20 ];
