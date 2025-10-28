@@ -9,9 +9,7 @@
 
   outputs = { self, flake-utils, rainix, rain }:
     flake-utils.lib.eachDefaultSystem (system:
-      let 
-        pkgs = rainix.pkgs.${system};
-        old-pkgs = rainix.old-pkgs.${system};
+      let pkgs = rainix.pkgs.${system};
       in rec {
         packages = rec {
 
@@ -135,7 +133,7 @@
               echo COMMIT_SHA=''${COMMIT_SHA} >> .env
               echo VITE_WALLETCONNECT_PROJECT_ID=''${VITE_WALLETCONNECT_PROJECT_ID} >> .env
             '';
-            additionalBuildInputs = [ old-pkgs.sentry-cli ];
+            additionalBuildInputs = [ pkgs.sentry-cli ];
           };
 
           ob-tauri-before-build-ci = rainix.mkTask.${system} {
