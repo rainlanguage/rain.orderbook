@@ -48,12 +48,27 @@ pub fn is_manifest_version_current(version: u32) -> bool {
 }
 
 pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError> {
-    let location_root = "manifest".to_string();
+    let location_root = "manifest";
 
+    let (manifest_version, db_schema_version) = parse_manifest_header(doc, location_root)?;
+    let networks = parse_networks(doc, location_root)?;
+
+    Ok(LocalDbManifest {
+        manifest_version,
+        db_schema_version,
+        networks,
+    })
+}
+
+fn parse_manifest_header(doc: &StrictYaml, location_root: &str) -> Result<(u32, u32), YamlError> {
     let manifest_version = parse_positive_u32(
-        &require_string(doc, Some("manifest-version"), Some(location_root.clone()))?,
+        &require_string(
+            doc,
+            Some("manifest-version"),
+            Some(location_root.to_string()),
+        )?,
         "manifest-version",
-        location_root.clone(),
+        location_root.to_string(),
     )?;
 
     // Fail fast if the manifest version is incompatible with the supported version.
@@ -66,17 +81,28 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
                     manifest_version, MANIFEST_VERSION
                 ),
             },
-            location: location_root.clone(),
+            location: location_root.to_string(),
         });
     }
 
     let db_schema_version = parse_positive_u32(
-        &require_string(doc, Some("db-schema-version"), Some(location_root.clone()))?,
+        &require_string(
+            doc,
+            Some("db-schema-version"),
+            Some(location_root.to_string()),
+        )?,
         "db-schema-version",
-        location_root.clone(),
+        location_root.to_string(),
     )?;
 
-    let networks_hash = require_hash(doc, Some("networks"), Some(location_root.clone()))?;
+    Ok((manifest_version, db_schema_version))
+}
+
+fn parse_networks(
+    doc: &StrictYaml,
+    location_root: &str,
+) -> Result<HashMap<String, ManifestNetwork>, YamlError> {
+    let networks_hash = require_hash(doc, Some("networks"), Some(location_root.to_string()))?;
     let mut networks: HashMap<String, ManifestNetwork> = HashMap::new();
 
     for (key_yaml, network_yaml) in networks_hash.iter() {
@@ -99,89 +125,97 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
                 location: "manifest.networks".to_string(),
             });
         }
-        let location_network = format!("manifest.networks.{}", network_key);
 
-        let _network_hash = require_hash(network_yaml, None, Some(location_network.clone()))?;
-
-        let chain_id = parse_positive_u64(
-            &require_string(
-                network_yaml,
-                Some("chain-id"),
-                Some(location_network.clone()),
-            )?,
-            "chain-id",
-            location_network.clone(),
-        )?;
-
-        let orderbooks_yaml =
-            require_vec(network_yaml, "orderbooks", Some(location_network.clone()))?;
-
-        let mut orderbooks: Vec<ManifestOrderbook> = Vec::new();
-        for (idx, ob_yaml) in orderbooks_yaml.iter().enumerate() {
-            let location_ob = format!("{}.orderbooks[{}]", location_network, idx);
-
-            let address_str = require_string(ob_yaml, Some("address"), Some(location_ob.clone()))?;
-            let address = Address::from_str(&address_str).map_err(|e| YamlError::Field {
-                kind: crate::yaml::FieldErrorKind::InvalidValue {
-                    field: "address".to_string(),
-                    reason: e.to_string(),
-                },
-                location: location_ob.clone(),
-            })?;
-
-            let dump_url_str =
-                require_string(ob_yaml, Some("dump-url"), Some(location_ob.clone()))?;
-            let dump_url = parse_url(&dump_url_str, "dump-url", location_ob.clone())?;
-
-            let end_block = parse_positive_u64(
-                &require_string(ob_yaml, Some("end-block"), Some(location_ob.clone()))?,
-                "end-block",
-                location_ob.clone(),
-            )?;
-
-            let end_block_hash_str =
-                require_string(ob_yaml, Some("end-block-hash"), Some(location_ob.clone()))?;
-            let end_block_hash =
-                Bytes::from_str(&end_block_hash_str).map_err(|e| YamlError::Field {
-                    kind: FieldErrorKind::InvalidValue {
-                        field: "end-block-hash".to_string(),
-                        reason: e.to_string(),
-                    },
-                    location: location_ob.clone(),
-                })?;
-
-            let end_block_time_ms = parse_positive_u64(
-                &require_string(
-                    ob_yaml,
-                    Some("end-block-time-ms"),
-                    Some(location_ob.clone()),
-                )?,
-                "end-block-time-ms",
-                location_ob.clone(),
-            )?;
-
-            orderbooks.push(ManifestOrderbook {
-                address,
-                dump_url,
-                end_block,
-                end_block_hash,
-                end_block_time_ms,
-            });
-        }
-
-        networks.insert(
-            network_key.clone(),
-            ManifestNetwork {
-                chain_id,
-                orderbooks,
-            },
-        );
+        let network = parse_single_network(&network_key, network_yaml, location_root)?;
+        networks.insert(network_key.clone(), network);
     }
 
-    Ok(LocalDbManifest {
-        manifest_version,
-        db_schema_version,
-        networks,
+    Ok(networks)
+}
+
+fn parse_single_network(
+    network_key: &str,
+    network_yaml: &StrictYaml,
+    location_root: &str,
+) -> Result<ManifestNetwork, YamlError> {
+    let location_network = format!("{}.networks.{}", location_root, network_key);
+
+    let _network_hash = require_hash(network_yaml, None, Some(location_network.clone()))?;
+
+    let chain_id = parse_positive_u64(
+        &require_string(
+            network_yaml,
+            Some("chain-id"),
+            Some(location_network.clone()),
+        )?,
+        "chain-id",
+        location_network.clone(),
+    )?;
+
+    let orderbooks_yaml = require_vec(network_yaml, "orderbooks", Some(location_network.clone()))?;
+
+    let mut orderbooks: Vec<ManifestOrderbook> = Vec::new();
+    for (idx, ob_yaml) in orderbooks_yaml.iter().enumerate() {
+        orderbooks.push(parse_single_orderbook(idx, ob_yaml, &location_network)?);
+    }
+
+    Ok(ManifestNetwork {
+        chain_id,
+        orderbooks,
+    })
+}
+
+fn parse_single_orderbook(
+    idx: usize,
+    ob_yaml: &StrictYaml,
+    location_network: &str,
+) -> Result<ManifestOrderbook, YamlError> {
+    let location_ob = format!("{}.orderbooks[{}]", location_network, idx);
+
+    let address_str = require_string(ob_yaml, Some("address"), Some(location_ob.clone()))?;
+    let address = Address::from_str(&address_str).map_err(|e| YamlError::Field {
+        kind: crate::yaml::FieldErrorKind::InvalidValue {
+            field: "address".to_string(),
+            reason: e.to_string(),
+        },
+        location: location_ob.clone(),
+    })?;
+
+    let dump_url_str = require_string(ob_yaml, Some("dump-url"), Some(location_ob.clone()))?;
+    let dump_url = parse_url(&dump_url_str, "dump-url", location_ob.clone())?;
+
+    let end_block = parse_positive_u64(
+        &require_string(ob_yaml, Some("end-block"), Some(location_ob.clone()))?,
+        "end-block",
+        location_ob.clone(),
+    )?;
+
+    let end_block_hash_str =
+        require_string(ob_yaml, Some("end-block-hash"), Some(location_ob.clone()))?;
+    let end_block_hash = Bytes::from_str(&end_block_hash_str).map_err(|e| YamlError::Field {
+        kind: FieldErrorKind::InvalidValue {
+            field: "end-block-hash".to_string(),
+            reason: e.to_string(),
+        },
+        location: location_ob.clone(),
+    })?;
+
+    let end_block_time_ms = parse_positive_u64(
+        &require_string(
+            ob_yaml,
+            Some("end-block-time-ms"),
+            Some(location_ob.clone()),
+        )?,
+        "end-block-time-ms",
+        location_ob.clone(),
+    )?;
+
+    Ok(ManifestOrderbook {
+        address,
+        dump_url,
+        end_block,
+        end_block_hash,
+        end_block_time_ms,
     })
 }
 
@@ -193,6 +227,99 @@ mod tests {
 
     fn load(yaml: &str) -> StrictYaml {
         StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone()
+    }
+
+    #[test]
+    fn test_header_helper_ok_and_incompatible() {
+        // OK header
+        let yaml_ok = r#"
+manifest-version: 1
+db-schema-version: 7
+networks: {}
+"#;
+        let doc = load(yaml_ok);
+        let (mv, sv) = parse_manifest_header(&doc, "manifest").expect("header parses");
+        assert_eq!(mv, 1);
+        assert_eq!(sv, 7);
+
+        // Incompatible manifest version
+        let yaml_bad = r#"
+manifest-version: 999
+db-schema-version: 1
+networks: {}
+"#;
+        let err = parse_manifest_header(&load(yaml_bad), "manifest").unwrap_err();
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, .. },
+                location,
+            } => {
+                assert_eq!(field, "manifest-version");
+                assert_eq!(location, "manifest");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_networks_helper_empty_key_rejected() {
+        let yaml = r#"
+manifest-version: 1
+db-schema-version: 1
+networks:
+  "":
+    chain-id: 1
+    orderbooks: []
+"#;
+        let err = parse_networks(&load(yaml), "manifest").unwrap_err();
+        match err {
+            YamlError::Field { kind, location } => match kind {
+                FieldErrorKind::InvalidValue { field, .. } => {
+                    assert_eq!(field, "key");
+                    assert_eq!(location, "manifest.networks");
+                }
+                other => panic!("unexpected field error kind: {other:?}"),
+            },
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_orderbook_helper_ok_and_bad_address() {
+        let base_loc = "manifest.networks.mainnet";
+
+        // Valid orderbook
+        let ob_ok = r#"
+address: "0x0000000000000000000000000000000000000001"
+dump-url: "http://example.com"
+end-block: 1
+end-block-hash: "0x0abc"
+end-block-time-ms: 1
+"#;
+        let ob_doc = load(ob_ok);
+        let ob = parse_single_orderbook(0, &ob_doc, base_loc).expect("orderbook parses");
+        assert_eq!(ob.end_block, 1);
+        assert_eq!(ob.end_block_time_ms, 1);
+
+        // Bad address
+        let ob_bad = r#"
+address: "not-an-address"
+dump-url: "http://example.com"
+end-block: 1
+end-block-hash: "0x0abc"
+end-block-time-ms: 1
+"#;
+        let err = parse_single_orderbook(0, &load(ob_bad), base_loc).unwrap_err();
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, .. },
+                location,
+            } => {
+                assert_eq!(field, "address");
+                assert_eq!(location, "manifest.networks.mainnet.orderbooks[0]");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 
     #[test]
