@@ -316,13 +316,12 @@
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs
-            ++ [ pkgs.clang-tools ]
-            ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
-            pkgs.libsoup_2_4
-            pkgs.webkitgtk_4_0
-          ]);
+            ++ [ pkgs.clang-tools ];
           nativeBuildInputs =
-            rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
+            rainix.devShells.${system}.tauri-shell.nativeBuildInputs ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+              pkgs.libsoup_2_4
+              pkgs.webkitgtk_4_0
+            ]);
         };
         devShells.webapp-shell = pkgs.mkShell {
           packages = with pkgs; [ nodejs_20 ];
