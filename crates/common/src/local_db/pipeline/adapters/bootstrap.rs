@@ -16,8 +16,7 @@ use crate::local_db::DATABASE_SCHEMA_VERSION;
 use std::collections::HashSet;
 
 /// Default adapter that exposes the shared bootstrap helpers via the
-/// BootstrapPipeline trait. The `run` method performs a minimal safe
-/// orchestration (ensure schema only). Environment runners can provide
+/// BootstrapPipeline trait. Environment runners can provide
 /// their own adapter overriding `run` while reusing these helpers.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DefaultBootstrapAdapter;
@@ -112,5 +111,453 @@ impl BootstrapPipeline for DefaultBootstrapAdapter {
         DB: LocalDbQueryExecutor + ?Sized,
     {
         Err(LocalDbError::MissingBootstrapImplementation)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+
+    use super::*;
+    use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
+    use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
+    use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
+    use alloy::primitives::Address;
+    use async_trait::async_trait;
+    use serde_json::json;
+
+    #[derive(Default)]
+    struct MockDb {
+        json_map: HashMap<String, String>,
+        text_map: HashMap<String, String>,
+        calls_text: Mutex<Vec<String>>,
+    }
+
+    impl MockDb {
+        fn with_json(mut self, stmt: &SqlStatement, value: serde_json::Value) -> Self {
+            self.json_map
+                .insert(stmt.sql().to_string(), value.to_string());
+            self
+        }
+        fn with_text(mut self, stmt: &SqlStatement, value: &str) -> Self {
+            self.text_map
+                .insert(stmt.sql().to_string(), value.to_string());
+            self
+        }
+        fn calls(&self) -> Vec<String> {
+            self.calls_text.lock().unwrap().clone()
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LocalDbQueryExecutor for MockDb {
+        async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            for stmt in batch {
+                let _ = self.query_text(stmt).await?;
+            }
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            let sql = stmt.sql();
+            let Some(body) = self.json_map.get(sql) else {
+                return Err(LocalDbQueryError::database("no json for sql"));
+            };
+            serde_json::from_str::<T>(body)
+                .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
+        }
+
+        async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            let sql = stmt.sql();
+            self.calls_text.lock().unwrap().push(sql.to_string());
+            let Some(body) = self.text_map.get(sql) else {
+                return Err(LocalDbQueryError::database("no text for sql"));
+            };
+            Ok(body.clone())
+        }
+    }
+
+    #[tokio::test]
+    async fn ensure_schema_ok_with_matching_version() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db_row = DbMetadataRow {
+            id: 1,
+            db_schema_version: DATABASE_SCHEMA_VERSION,
+            created_at: None,
+            updated_at: None,
+        };
+        let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([db_row]));
+
+        adapter.ensure_schema(&db, None).await.expect("schema ok");
+    }
+
+    #[tokio::test]
+    async fn ensure_schema_err_on_mismatch() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db_row = DbMetadataRow {
+            id: 1,
+            db_schema_version: DATABASE_SCHEMA_VERSION + 1,
+            created_at: None,
+            updated_at: None,
+        };
+        let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([db_row]));
+
+        let err = adapter.ensure_schema(&db, None).await.unwrap_err();
+        match err {
+            LocalDbError::SchemaVersionMismatch { expected, found } => {
+                assert_eq!(expected, DATABASE_SCHEMA_VERSION);
+                assert_eq!(found, DATABASE_SCHEMA_VERSION + 1);
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn ensure_schema_honors_override_ok() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let override_version = DATABASE_SCHEMA_VERSION + 7;
+        let db_row = DbMetadataRow {
+            id: 1,
+            db_schema_version: override_version,
+            created_at: None,
+            updated_at: None,
+        };
+        let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([db_row]));
+
+        adapter
+            .ensure_schema(&db, Some(override_version))
+            .await
+            .expect("schema ok with override");
+    }
+
+    #[tokio::test]
+    async fn ensure_schema_honors_override_mismatch() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let row_version = DATABASE_SCHEMA_VERSION + 3;
+        let db_row = DbMetadataRow {
+            id: 1,
+            db_schema_version: row_version,
+            created_at: None,
+            updated_at: None,
+        };
+        let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([db_row]));
+
+        let err = adapter
+            .ensure_schema(&db, Some(DATABASE_SCHEMA_VERSION))
+            .await
+            .unwrap_err();
+        match err {
+            LocalDbError::SchemaVersionMismatch { expected, found } => {
+                assert_eq!(expected, DATABASE_SCHEMA_VERSION);
+                assert_eq!(found, row_version);
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn ensure_schema_err_on_missing_row() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([]));
+        let err = adapter.ensure_schema(&db, None).await.unwrap_err();
+        match err {
+            LocalDbError::MissingDbMetadataRow => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn inspect_state_tables_and_last_synced_block() {
+        let adapter = DefaultBootstrapAdapter::new();
+        // Provide all required tables
+        let tables_json = serde_json::to_value(
+            REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+
+        // Watermark row present
+        let target_key = TargetKey {
+            chain_id: 1,
+            orderbook_address: Address::ZERO,
+        };
+        let watermark_stmt =
+            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+        let watermark_json = json!([TargetWatermarkRow {
+            chain_id: target_key.chain_id,
+            orderbook_address: target_key.orderbook_address,
+            last_block: 123,
+            last_hash: None,
+            updated_at: None,
+        }]);
+
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(&watermark_stmt, watermark_json);
+
+        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        assert!(state.has_required_tables);
+        assert_eq!(state.last_synced_block, Some(123));
+    }
+
+    #[tokio::test]
+    async fn inspect_state_missing_tables_means_not_ready_and_no_watermark_query() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db = MockDb::default().with_json(&fetch_tables_stmt(), json!([]));
+        let target_key = TargetKey {
+            chain_id: 1,
+            orderbook_address: Address::ZERO,
+        };
+        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        assert!(!state.has_required_tables);
+        assert_eq!(state.last_synced_block, None);
+    }
+
+    #[tokio::test]
+    async fn inspect_state_missing_only_watermark_table() {
+        let adapter = DefaultBootstrapAdapter::new();
+        // All required tables except `target_watermarks`.
+        let names: Vec<&str> = REQUIRED_TABLES
+            .iter()
+            .copied()
+            .filter(|t| !t.eq_ignore_ascii_case("target_watermarks"))
+            .collect();
+        assert!(names.len() + 1 == REQUIRED_TABLES.len());
+        let tables_json = serde_json::to_value(
+            names
+                .into_iter()
+                .map(|name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+
+        let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
+        let target_key = TargetKey {
+            chain_id: 1,
+            orderbook_address: Address::ZERO,
+        };
+        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        assert!(!state.has_required_tables);
+        assert_eq!(state.last_synced_block, None);
+    }
+
+    #[tokio::test]
+    async fn inspect_state_watermark_table_present_but_empty() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let tables_json = serde_json::to_value(
+            REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+
+        let target_key = TargetKey {
+            chain_id: 1,
+            orderbook_address: Address::ZERO,
+        };
+        let watermark_stmt =
+            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(&watermark_stmt, json!([]));
+
+        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        assert!(state.has_required_tables);
+        assert_eq!(state.last_synced_block, None);
+    }
+
+    #[tokio::test]
+    async fn inspect_state_table_names_case_insensitive() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let tables_json = serde_json::to_value(
+            REQUIRED_TABLES
+                .iter()
+                .enumerate()
+                .map(|(i, &name)| {
+                    let cased = if i % 2 == 0 {
+                        name.to_ascii_uppercase()
+                    } else {
+                        name.to_ascii_lowercase()
+                    };
+                    TableResponse { name: cased }
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+
+        let target_key = TargetKey {
+            chain_id: 1,
+            orderbook_address: Address::ZERO,
+        };
+        let watermark_stmt =
+            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+        let watermark_json = json!([TargetWatermarkRow {
+            chain_id: target_key.chain_id,
+            orderbook_address: target_key.orderbook_address,
+            last_block: 42,
+            last_hash: None,
+            updated_at: None,
+        }]);
+
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(&watermark_stmt, watermark_json);
+
+        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        assert!(state.has_required_tables);
+        assert_eq!(state.last_synced_block, Some(42));
+    }
+
+    #[tokio::test]
+    async fn inspect_state_propagates_fetch_tables_error() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db = MockDb::default(); // no json for fetch_tables_stmt()
+        let target_key = TargetKey {
+            chain_id: 1,
+            orderbook_address: Address::ZERO,
+        };
+        let err = adapter.inspect_state(&db, &target_key).await.unwrap_err();
+        match err {
+            LocalDbError::LocalDbQueryError(..) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn inspect_state_propagates_watermark_query_error() {
+        let adapter = DefaultBootstrapAdapter::new();
+        // Include all required tables so it attempts the watermark query.
+        let tables_json = serde_json::to_value(
+            REQUIRED_TABLES
+                .iter()
+                .map(|&name| TableResponse {
+                    name: name.to_string(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+
+        let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
+        let target_key = TargetKey {
+            chain_id: 1,
+            orderbook_address: Address::ZERO,
+        };
+        // Intentionally do not provide json for watermark_stmt -> should error
+        let err = adapter.inspect_state(&db, &target_key).await.unwrap_err();
+        match err {
+            LocalDbError::LocalDbQueryError(..) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn reset_db_runs_clear_create_and_insert() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db = MockDb::default()
+            .with_text(&clear_tables_stmt(), "ok")
+            .with_text(&create_tables_stmt(), "ok")
+            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+
+        adapter
+            .reset_db(&db, Some(DATABASE_SCHEMA_VERSION))
+            .await
+            .unwrap();
+
+        let calls = db.calls();
+        assert_eq!(calls.len(), 3);
+        assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
+        assert_eq!(calls[1], create_tables_stmt().sql().to_string());
+        assert_eq!(
+            calls[2],
+            insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
+                .sql()
+                .to_string()
+        );
+    }
+
+    #[tokio::test]
+    async fn reset_db_uses_default_version_when_none() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db = MockDb::default()
+            .with_text(&clear_tables_stmt(), "ok")
+            .with_text(&create_tables_stmt(), "ok")
+            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+
+        adapter.reset_db(&db, None).await.unwrap();
+
+        let calls = db.calls();
+        assert_eq!(calls.len(), 3);
+        assert_eq!(
+            calls[2],
+            insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION).sql()
+        );
+    }
+
+    #[tokio::test]
+    async fn reset_db_uses_custom_version_when_some() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let custom_version = DATABASE_SCHEMA_VERSION + 9;
+        let db = MockDb::default()
+            .with_text(&clear_tables_stmt(), "ok")
+            .with_text(&create_tables_stmt(), "ok")
+            .with_text(&insert_db_metadata_stmt(custom_version), "ok");
+
+        adapter.reset_db(&db, Some(custom_version)).await.unwrap();
+
+        let calls = db.calls();
+        assert_eq!(calls.len(), 3);
+        assert_eq!(calls[2], insert_db_metadata_stmt(custom_version).sql());
+    }
+
+    #[tokio::test]
+    async fn reset_db_propagates_errors() {
+        let adapter = DefaultBootstrapAdapter::new();
+        // Only the first statement is present; second will fail.
+        let db = MockDb::default().with_text(&clear_tables_stmt(), "ok");
+
+        let err = adapter.reset_db(&db, None).await.unwrap_err();
+        match err {
+            LocalDbError::LocalDbQueryError(..) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
+
+        let calls = db.calls();
+        assert_eq!(calls.len(), 2); // attempted clear and create
+        assert_eq!(calls[0], clear_tables_stmt().sql());
+        assert_eq!(calls[1], create_tables_stmt().sql());
+    }
+
+    #[tokio::test]
+    async fn run_returns_missing_impl() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db = MockDb::default();
+        let cfg = BootstrapConfig {
+            target_key: TargetKey {
+                chain_id: 1,
+                orderbook_address: Address::ZERO,
+            },
+            dump_stmt: None,
+            latest_block: 0,
+        };
+
+        let err = adapter.run(&db, None, &cfg).await.unwrap_err();
+        match err {
+            LocalDbError::MissingBootstrapImplementation => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 }
