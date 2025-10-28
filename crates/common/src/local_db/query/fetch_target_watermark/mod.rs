@@ -14,7 +14,7 @@ pub struct TargetWatermarkRow {
     pub updated_at: Option<String>,
 }
 
-pub fn fetch_target_watermark_stmt(chain_id: u32, orderbook_address: &str) -> SqlStatement {
+pub fn fetch_target_watermark_stmt(chain_id: u32, orderbook_address: Address) -> SqlStatement {
     SqlStatement::new_with_params(
         FETCH_TARGET_WATERMARK_SQL,
         [
@@ -30,7 +30,7 @@ mod tests {
 
     #[test]
     fn fetch_stmt_binds_params() {
-        let stmt = fetch_target_watermark_stmt(10, "0xabc");
+        let stmt = fetch_target_watermark_stmt(10, Address::ZERO);
         assert!(stmt.sql().to_lowercase().contains("from target_watermarks"));
         assert_eq!(stmt.params().len(), 2);
     }
