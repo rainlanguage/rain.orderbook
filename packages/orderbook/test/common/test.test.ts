@@ -4,7 +4,7 @@ import { assert } from 'chai';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const dotrain = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -20,6 +20,9 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+local-db-remotes:
+  some-orderbook: http://example.com
 
 orderbooks:
     some-orderbook:
@@ -80,10 +83,10 @@ _ _: 0 0;
 		const dotrainOrder = res.value;
 		const result = await dotrainOrder.composeDeploymentToRainlang('some-deployment');
 		if (!result.value) assert.fail('expected to resolve, but failed');
-		const expected = `/* 0. calculate-io */ 
+		const expected = `/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;`;
 
 		assert.equal(result.value, expected);
@@ -103,10 +106,10 @@ scenarios:
 		const dotrainOrder = res.value;
 		const result = await dotrainOrder.composeScenarioToRainlang('config-scenario');
 		if (!result.value) assert.fail('expected to resolve, but failed');
-		const expected = `/* 0. calculate-io */ 
+		const expected = `/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;`;
 
 		assert.equal(result.value, expected);

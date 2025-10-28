@@ -137,7 +137,7 @@ gui:
 `;
 
 const dotrain = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -155,6 +155,9 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+local-db-remotes:
+  some-orderbook: http://example.com
 
 orderbooks:
     some-orderbook:
@@ -216,7 +219,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -234,6 +237,9 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+local-db-remotes:
+  some-orderbook: http://example.com
 
 orderbooks:
     some-orderbook:
@@ -288,7 +294,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -306,6 +312,9 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+local-db-remotes:
+  some-orderbook: http://example.com
 
 orderbooks:
     some-orderbook:
@@ -345,7 +354,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
-version: 3
+version: 4
 gui:
   name: Test
   description: Fixed limit order
@@ -392,16 +401,20 @@ deployers:
     other-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+local-db-remotes:
+  remote: http://example.com
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: remote-network
         subgraph: some-sg
+        local-db-remote: remote
         deployment-block: 12345
     other-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
+        local-db-remote: remote
         deployment-block: 12345
 using-tokens-from:
   - http://localhost:8085/remote-tokens
@@ -968,7 +981,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QsU7DMBDNBQQSYkCIFQmJFRPHUqpSlYUKEamMiUjHNjWkqmsbxy2lfAQjKz9Q8QWsbHwPYkMRZ0oEN_id772z3x1437GNaHlpyWAkhyN5A1ij3tZvdtYXU-5jZcMxasxl6LlYR4zocaMmYT-SNcSQUvjvMVa_OYOlmnAiub1TZuz69hELa3UrCITK-6JQpW01aTMKjM7J1IiHSgHVCe7r8yTew_Sx_bE8fG8vX5-il8_MZydvzznswibSSeXhgIEbO2G-t4r6EsDZCuHPTCvuCBNCzUUcLrpJNu-Fl0pfDW67nc4s42zRI6WaX8eFznXjLE3T0x3sUbbghgy5Fup-wqX9AlyGsB3FAQAA';
+			'H4sIAAAAAAAA_21QwUrEMBBtqiiIBxGvguDV2jSQpS7rQaWLohaVIrq3tZu1pWlS21lX8SM8evUHFr_Aqze_R7xJceJadA55k3lvkjdDrO9YRARRgXOVqkGqrgnWqLXwm73ty5GwsTJnGJ0J5VkmZhE53Ww1JOxHMoPoUUr-e4w1b8ZgpXPhKAFjXWambxUxASjarit13JeJrqDtU5-7ZRE7o1I-1ApSn8R8HUT7K5g-dj4m6--dyesTf_m8sNnW23NMlsk80lHtYY0RM3bEbGsazSUQY8sjf2aachuYCBkG3Nv1D4JepfYuD1vD87zgp3fDIxGejU96OzfQDZNuCtnx9hL2aEhE6QxEIfV9LhR8AbKibF_FAQAA';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {

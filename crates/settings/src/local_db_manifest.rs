@@ -1,5 +1,5 @@
 use crate::utils::{parse_positive_u32, parse_positive_u64, parse_url};
-use crate::yaml::{require_hash, require_string, require_vec, YamlError};
+use crate::yaml::{require_hash, require_string, require_vec, FieldErrorKind, YamlError};
 use alloy::primitives::Address;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -66,7 +66,16 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
     let mut networks: HashMap<String, ManifestNetwork> = HashMap::new();
 
     for (key_yaml, network_yaml) in networks_hash.iter() {
-        let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+        let network_key = key_yaml
+            .as_str()
+            .ok_or(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "key".to_string(),
+                    expected: "a string".to_string(),
+                },
+                location: "manifest.networks".to_string(),
+            })?
+            .to_string();
         let location_network = format!("manifest.networks.{}", network_key);
 
         let _network_hash = require_hash(network_yaml, None, Some(location_network.clone()))?;
@@ -87,7 +96,6 @@ pub fn parse_manifest_doc(doc: &StrictYaml) -> Result<LocalDbManifest, YamlError
         let mut orderbooks: Vec<ManifestOrderbook> = Vec::new();
         for (idx, ob_yaml) in orderbooks_yaml.iter().enumerate() {
             let location_ob = format!("{}.orderbooks[{}]", location_network, idx);
-            let _ob_hash = require_hash(ob_yaml, None, Some(location_ob.clone()))?;
 
             let address_str = require_string(ob_yaml, Some("address"), Some(location_ob.clone()))?;
             let address = Address::from_str(&address_str).map_err(|e| YamlError::Field {
