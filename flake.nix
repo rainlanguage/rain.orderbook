@@ -12,7 +12,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let 
         pkgs = rainix.pkgs.${system};
-        npkgs = nixpkgs.${system};
+        npkgs = import nixpkgs { inherit system; };
       in rec {
         packages = rec {
           tauri-release-env = rainix.tauri-release-env.${system};
