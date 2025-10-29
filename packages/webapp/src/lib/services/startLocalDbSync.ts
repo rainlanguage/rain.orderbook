@@ -22,7 +22,7 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 		raindexClient,
 		localDb,
 		chainId = 42161,
-		orderbookAddress = '0x1111111111111111111111111111111111111111',
+		orderbookAddress = '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB',
 		intervalMs = 10_000
 	} = options;
 
