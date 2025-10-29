@@ -128,11 +128,22 @@ pub trait BootstrapPipeline {
     where
         DB: LocalDbQueryExecutor + ?Sized;
 
-    async fn run<DB>(
+    async fn clear_orderbook_data<DB>(
+        &self,
+        db: &DB,
+        target: &TargetKey,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized;
+
+    async fn engine_run<DB>(&self, db: &DB, config: &BootstrapConfig) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized;
+
+    async fn runner_run<DB>(
         &self,
         db: &DB,
         db_schema_version: Option<u32>,
-        config: &BootstrapConfig,
     ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized;
