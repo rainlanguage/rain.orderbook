@@ -995,7 +995,9 @@ mod tests {
 
             let mut vault_payloads: Vec<(String, String)> = Vec::new();
             for vault in vaults.into_iter() {
-                let lookup = format!("'{}'", vault.vault_id);
+                // Match on the vault_id value passed as a parameter to the query.
+                // We will check this against the serialized params JSON.
+                let lookup = format!("\"{}\"", vault.vault_id);
                 let json = serde_json::to_string(&vec![vault]).unwrap();
                 let result = WasmEncodedResult::Success::<String> {
                     value: json,
@@ -1009,7 +1011,7 @@ mod tests {
                 vault_payloads.push((lookup, payload));
             }
 
-            let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
+            let callback = Closure::wrap(Box::new(move |sql: String, params: JsValue| -> JsValue {
                 if sql.contains("FROM order_events")
                     && sql.contains("GROUP_CONCAT(CASE WHEN ios.io_type = 'input'")
                 {
@@ -1017,15 +1019,20 @@ mod tests {
                 }
 
                 if sql.contains("FLOAT_SUM(vd.delta)") {
+                    // Serialize params and try to match against captured vault ids
+                    let params_json = js_sys::JSON::stringify(&params)
+                        .unwrap()
+                        .as_string()
+                        .unwrap_or_default();
                     for (needle, payload) in &vault_payloads {
-                        if sql.contains(needle) {
+                        if params_json.contains(needle) {
                             return js_sys::JSON::parse(payload).unwrap();
                         }
                     }
                 }
 
                 js_sys::JSON::parse(&empty_payload).unwrap()
-            }) as Box<dyn Fn(String) -> JsValue>);
+            }) as Box<dyn Fn(String, JsValue) -> JsValue>);
 
             callback.into_js_value().dyn_into().unwrap()
         }

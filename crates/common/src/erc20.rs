@@ -161,6 +161,8 @@ pub enum Error {
     ContractCallError(#[from] alloy::contract::Error),
     #[error("Multicall failed: {0}")]
     MulticallError(#[from] MulticallError),
+    #[error("Invalid retry max attempts")]
+    InvalidRetryMaxAttemps,
 }
 
 async fn handle_alloy_err(err: alloy::contract::Error, msg: &str) -> Error {

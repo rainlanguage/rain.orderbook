@@ -84,7 +84,7 @@ FROM (
     END AS output_running_balance
   FROM take_orders t
   JOIN order_events oe
-    ON lower(oe.order_hash) = lower('?order_hash')
+    ON lower(oe.order_hash) = lower(?1)
    AND oe.order_owner = t.order_owner
    AND oe.order_nonce = t.order_nonce
    AND (
@@ -94,7 +94,7 @@ FROM (
    AND NOT EXISTS (
      SELECT 1
      FROM order_events oe2
-     WHERE lower(oe2.order_hash) = lower('?order_hash')
+     WHERE lower(oe2.order_hash) = lower(?1)
        AND oe2.order_owner = t.order_owner
        AND oe2.order_nonce = t.order_nonce
        AND (
@@ -131,10 +131,10 @@ FROM (
    AND vd_out.vault_id = io_out.vault_id
    AND vd_out.kind = 'TAKE_OUTPUT'
   LEFT JOIN erc20_tokens et_in
-    ON et_in.chain_id = '?chain_id'
+    ON et_in.chain_id = ?2
    AND lower(et_in.address) = lower(io_in.token)
   LEFT JOIN erc20_tokens et_out
-    ON et_out.chain_id = '?chain_id'
+    ON et_out.chain_id = ?2
    AND lower(et_out.address) = lower(io_out.token)
 
   UNION ALL
@@ -249,7 +249,7 @@ FROM (
   LEFT JOIN erc20_tokens et_out
     ON et_out.chain_id = '?chain_id'
    AND lower(et_out.address) = lower(io_out.token)
-  WHERE lower(c.alice_order_hash) = lower('?order_hash')
+  WHERE lower(c.alice_order_hash) = lower(?1)
 
   UNION ALL
 
@@ -358,14 +358,14 @@ FROM (
    AND vd_out.vault_id = io_out.vault_id
    AND vd_out.kind = 'CLEAR_BOB_OUTPUT'
   LEFT JOIN erc20_tokens et_in
-    ON et_in.chain_id = '?chain_id'
+    ON et_in.chain_id = ?2
    AND lower(et_in.address) = lower(io_in.token)
   LEFT JOIN erc20_tokens et_out
-    ON et_out.chain_id = '?chain_id'
+    ON et_out.chain_id = ?2
    AND lower(et_out.address) = lower(io_out.token)
-  WHERE lower(c.bob_order_hash) = lower('?order_hash')
+  WHERE lower(c.bob_order_hash) = lower(?1)
 ) AS combined_trades
 WHERE 1=1
-?filter_start_timestamp
-?filter_end_timestamp
+/*START_TS_CLAUSE*/
+/*END_TS_CLAUSE*/
 ORDER BY block_timestamp DESC, block_number DESC, log_index DESC;

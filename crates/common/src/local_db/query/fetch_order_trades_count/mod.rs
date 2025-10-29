@@ -1,4 +1,6 @@
+use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
@@ -8,25 +10,49 @@ pub struct LocalDbTradeCountRow {
     pub trade_count: u64,
 }
 
-pub fn build_fetch_trade_count_query(
+const START_TS_CLAUSE: &str = "/*START_TS_CLAUSE*/";
+const START_TS_BODY: &str = "\nAND block_timestamp >= {param}\n";
+const END_TS_CLAUSE: &str = "/*END_TS_CLAUSE*/";
+const END_TS_BODY: &str = "\nAND block_timestamp <= {param}\n";
+
+pub fn build_fetch_trade_count_stmt(
     order_hash: &str,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
-) -> String {
-    let sanitize_literal = |value: &str| value.replace('\'', "''");
-    let order_hash = sanitize_literal(&order_hash.trim().to_lowercase());
+) -> Result<SqlStatement, SqlBuildError> {
+    let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
+    // ?1: order hash
+    stmt.push(SqlValue::Text(order_hash.to_string()));
+    // Optional time filters
+    if let (Some(start), Some(end)) = (start_timestamp, end_timestamp) {
+        if start > end {
+            return Err(SqlBuildError::new("start_timestamp > end_timestamp"));
+        }
+    }
 
-    let filter_start_timestamp = start_timestamp
-        .map(|ts| format!("\nAND block_timestamp >= {}\n", ts))
-        .unwrap_or_default();
-    let filter_end_timestamp = end_timestamp
-        .map(|ts| format!("\nAND block_timestamp <= {}\n", ts))
-        .unwrap_or_default();
+    let start_param = if let Some(v) = start_timestamp {
+        let i = i64::try_from(v).map_err(|e| {
+            SqlBuildError::new(format!(
+                "start_timestamp out of range for i64: {} ({})",
+                v, e
+            ))
+        })?;
+        Some(SqlValue::I64(i))
+    } else {
+        None
+    };
+    stmt.bind_param_clause(START_TS_CLAUSE, START_TS_BODY, start_param)?;
 
-    QUERY_TEMPLATE
-        .replace("'?order_hash'", &format!("'{}'", order_hash))
-        .replace("?filter_start_timestamp", &filter_start_timestamp)
-        .replace("?filter_end_timestamp", &filter_end_timestamp)
+    let end_param = if let Some(v) = end_timestamp {
+        let i = i64::try_from(v).map_err(|e| {
+            SqlBuildError::new(format!("end_timestamp out of range for i64: {} ({})", v, e))
+        })?;
+        Some(SqlValue::I64(i))
+    } else {
+        None
+    };
+    stmt.bind_param_clause(END_TS_CLAUSE, END_TS_BODY, end_param)?;
+    Ok(stmt)
 }
 
 pub fn extract_trade_count(rows: &[LocalDbTradeCountRow]) -> u64 {
@@ -38,30 +64,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn builds_with_time_filters_and_sanitization() {
-        let q = build_fetch_trade_count_query(" 0xABC'DEF ", Some(1000), Some(2000));
-
-        // Placeholders should be gone
-        assert!(!q.contains("?filter_start_timestamp"));
-        assert!(!q.contains("?filter_end_timestamp"));
-        assert!(!q.contains("?order_hash"));
-
-        // Time filters present
-        assert!(q.contains("block_timestamp >= 1000"));
-        assert!(q.contains("block_timestamp <= 2000"));
-
-        // Order hash trimmed, lowercased, and quotes sanitized
-        // We expect lower('0xabc''def') to appear at least once.
-        assert!(q.contains("lower('0xabc''def')"));
+    fn builds_with_time_filters() {
+        let stmt = build_fetch_trade_count_stmt("0xABC'DEF", Some(1000), Some(2000)).unwrap();
+        // Time filter clauses present
+        assert!(!stmt.sql.contains(START_TS_CLAUSE));
+        assert!(!stmt.sql.contains(END_TS_CLAUSE));
+        assert!(stmt.sql.contains("block_timestamp >="));
+        assert!(stmt.sql.contains("block_timestamp <="));
+        // Params include order hash and two timestamps
+        assert_eq!(stmt.params.len(), 3);
     }
 
     #[test]
     fn builds_without_time_filters_when_none() {
-        let q = build_fetch_trade_count_query("hash", None, None);
-        assert!(!q.contains("block_timestamp >="));
-        assert!(!q.contains("block_timestamp <="));
-        assert!(!q.contains("?filter_start_timestamp"));
-        assert!(!q.contains("?filter_end_timestamp"));
+        let stmt = build_fetch_trade_count_stmt("hash", None, None).unwrap();
+        assert!(!stmt.sql.contains("block_timestamp >="));
+        assert!(!stmt.sql.contains("block_timestamp <="));
+        assert!(!stmt.sql.contains(START_TS_CLAUSE));
+        assert!(!stmt.sql.contains(END_TS_CLAUSE));
+        assert_eq!(stmt.params.len(), 1);
     }
 
     #[test]

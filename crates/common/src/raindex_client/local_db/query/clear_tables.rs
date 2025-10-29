@@ -1,4 +1,4 @@
-use crate::local_db::query::clear_tables::clear_tables_sql;
+use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::{LocalDb, LocalDbError};
 use wasm_bindgen_utils::prelude::*;
@@ -6,7 +6,8 @@ use wasm_bindgen_utils::prelude::*;
 pub async fn clear_tables<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
 ) -> Result<(), LocalDbQueryError> {
-    exec.query_text(clear_tables_sql()).await.map(|_| ())
+    let stmt = clear_tables_stmt();
+    exec.query_text(&stmt).await.map(|_| ())
 }
 
 #[wasm_export]
@@ -34,12 +35,15 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_raw_sql_exactly() {
-        let expected_sql = clear_tables_sql();
-        let store = Rc::new(RefCell::new(String::new()));
+        let expected_sql = clear_tables_stmt();
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
         let callback = create_sql_capturing_callback("OK", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
         let res = super::clear_tables(&exec).await;
         assert!(res.is_ok());
-        assert_eq!(store.borrow().clone(), expected_sql);
+        assert_eq!(store.borrow().clone().0, expected_sql.sql);
     }
 }

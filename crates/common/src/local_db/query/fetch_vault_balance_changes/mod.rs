@@ -1,3 +1,4 @@
+use crate::local_db::query::{SqlStatement, SqlValue};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -23,14 +24,12 @@ pub struct LocalDbVaultBalanceChange {
     pub running_balance: String,
 }
 
-pub fn build_fetch_balance_changes_query(vault_id: &str, token: &str) -> String {
-    let sanitize_literal = |value: &str| value.replace('\'', "''");
-    let vault_id = sanitize_literal(&vault_id.trim().to_lowercase());
-    let token = sanitize_literal(&token.trim().to_lowercase());
-
-    QUERY_TEMPLATE
-        .replace("'?vault_id'", &format!("'{}'", vault_id))
-        .replace("'?token'", &format!("'{}'", token))
+pub fn build_fetch_balance_changes_stmt(vault_id: &str, token: &str) -> SqlStatement {
+    let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
+    // Parameter order: ?1 vault_id, ?2 token
+    stmt.push(SqlValue::Text(vault_id.to_string()));
+    stmt.push(SqlValue::Text(token.to_string()));
+    stmt
 }
 
 #[cfg(test)]
@@ -38,17 +37,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn builds_with_sanitized_values() {
-        let q = build_fetch_balance_changes_query("  V01'  ", "  0xTo'ken  ");
-
-        // No placeholders remain
-        assert!(!q.contains("'?vault_id'"));
-        assert!(!q.contains("'?token'"));
-
-        // Lowercased + sanitized literal replacements
-        assert!(!q.contains("'?vault_id' AS vault_id"));
-        assert!(!q.contains("'?token' AS token"));
-        assert!(q.contains("'v01'''"));
-        assert!(q.contains("'0xto''ken'"));
+    fn builds_with_params() {
+        let stmt = build_fetch_balance_changes_stmt("v01", "0xtoken");
+        assert!(stmt.sql.contains("?1 AS vault_id"));
+        assert!(stmt.sql.contains("?2                         AS token"));
+        assert_eq!(stmt.params.len(), 2);
     }
 }
