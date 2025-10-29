@@ -190,11 +190,17 @@ describe('Full Deployment Tests', () => {
 
 			// Set vault id for token2
 			await userEvent.clear(vaultIdInputs[0]);
-			await userEvent.type(vaultIdInputs[0], '0x1230000000000000000000000000000000000000000000000000000000000000');
+			await userEvent.type(
+				vaultIdInputs[0],
+				'0x1230000000000000000000000000000000000000000000000000000000000000'
+			);
 
 			// Set vault id for token1
 			await userEvent.clear(vaultIdInputs[1]);
-			await userEvent.type(vaultIdInputs[1], '0x2340000000000000000000000000000000000000000000000000000000000000');
+			await userEvent.type(
+				vaultIdInputs[1],
+				'0x2340000000000000000000000000000000000000000000000000000000000000'
+			);
 
 			// Click the "Deploy Order" button
 			const deployButton = screen.getByText('Deploy Order');
@@ -213,8 +219,16 @@ describe('Full Deployment Tests', () => {
 					.value as DotrainOrderGui;
 				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-				gui.setVaultId('output', 'token1', '0x1230000000000000000000000000000000000000000000000000000000000000');
-				gui.setVaultId('input', 'token2', '0x2340000000000000000000000000000000000000000000000000000000000000');
+				gui.setVaultId(
+					'output',
+					'token1',
+					'0x1230000000000000000000000000000000000000000000000000000000000000'
+				);
+				gui.setVaultId(
+					'input',
+					'token2',
+					'0x2340000000000000000000000000000000000000000000000000000000000000'
+				);
 				gui.setFieldValue('fixed-io', '10');
 				const args = await gui.getDeploymentTransactionArgs(
 					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
