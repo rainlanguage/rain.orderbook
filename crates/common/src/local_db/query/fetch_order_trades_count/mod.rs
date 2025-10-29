@@ -80,6 +80,9 @@ mod tests {
         assert!(stmt.sql.contains("block_timestamp <="));
         // Params include order hash and two timestamps
         assert_eq!(stmt.params.len(), 5);
+        assert_eq!(stmt.params[0], SqlValue::I64(137));
+        assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
+        assert_eq!(stmt.params[2], SqlValue::Text("0xABC'DEF".into()));
     }
 
     #[test]
@@ -90,6 +93,9 @@ mod tests {
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
         assert!(!stmt.sql.contains(END_TS_CLAUSE));
         assert_eq!(stmt.params.len(), 3);
+        assert_eq!(stmt.params[0], SqlValue::I64(1));
+        assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
+        assert_eq!(stmt.params[2], SqlValue::Text("hash".into()));
     }
 
     #[test]

@@ -70,7 +70,7 @@ mod tests {
         assert!(stmt.sql.contains("WHERE chain_id = ?1"));
         assert!(!stmt.sql.contains(ADDRESSES_CLAUSE));
 
-        // Params: chain id then addresses
+        // Params: chain id, orderbook address, then addresses
         assert_eq!(stmt.params.len(), 4);
         assert_eq!(stmt.params[0], SqlValue::I64(137));
         assert_eq!(stmt.params[1], SqlValue::Text(orderbook.to_string()));

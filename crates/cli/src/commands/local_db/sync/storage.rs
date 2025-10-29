@@ -63,7 +63,7 @@ pub(crate) async fn fetch_last_synced(
     let stmt = SqlStatement::new_with_params(
         SYNC_STATUS_QUERY,
         [
-            SqlValue::from(chain_id as i64),
+            SqlValue::from(chain_id as u64),
             SqlValue::from(orderbook_address.to_string()),
         ],
     );
@@ -84,7 +84,7 @@ pub(crate) async fn fetch_existing_store_addresses(
         .query_json(&SqlStatement::new_with_params(
             STORE_ADDRESSES_QUERY,
             [
-                SqlValue::from(chain_id as i64),
+                SqlValue::from(chain_id as u64),
                 SqlValue::from(orderbook_address.to_string()),
             ],
         ))

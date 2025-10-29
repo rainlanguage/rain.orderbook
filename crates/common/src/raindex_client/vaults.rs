@@ -1879,7 +1879,7 @@ mod tests {
             // Expect first param to be chain id (I64)
             assert!(matches!(
                 params.get(0),
-                Some(crate::local_db::query::SqlValue::I64(42161))
+                Some(crate::local_db::query::SqlValue::U64(42161))
             ));
 
             // Expect owner and token to be present among text params

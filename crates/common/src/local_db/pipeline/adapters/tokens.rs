@@ -116,7 +116,7 @@ mod tests {
             rows: vec![],
             expect_in_clause: false,
             expect_chain_id: None,
-            expect_orderbook: Some(orderbook.to_string()),
+            expect_orderbook: None,
             expect_addr_count: None,
         };
         let pipeline = DefaultTokensPipeline::new();

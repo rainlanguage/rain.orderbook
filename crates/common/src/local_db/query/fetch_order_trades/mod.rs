@@ -121,7 +121,7 @@ mod tests {
         assert!(!stmt.sql.contains(END_TS_CLAUSE));
         assert!(stmt.sql.contains("block_timestamp >="));
         assert!(stmt.sql.contains("block_timestamp <="));
-        // First two params: order hash and chain id
+        // First three fixed params: chain id (?1), orderbook address (?2), order hash (?3)
         assert_eq!(stmt.params.len(), 5); // includes start and end
         assert_eq!(stmt.params[0], SqlValue::I64(137));
         assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));

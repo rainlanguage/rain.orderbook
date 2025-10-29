@@ -236,7 +236,7 @@ pub fn raw_events_to_statements(
 );
 "#,
             vec![
-                SqlValue::from(chain_id as i64),
+                SqlValue::from(chain_id as u64),
                 SqlValue::from(orderbook_address.to_string()),
                 SqlValue::from(row.block_number),
                 block_timestamp,

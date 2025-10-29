@@ -68,7 +68,7 @@ FROM (
 JOIN vault_deltas vd
   ON vd.chain_id = ?1
  AND lower(vd.orderbook_address) = lower(?2)
- AND vd.vault_id = o.vault_id
- AND vd.token    = o.token
- AND vd.owner    = o.owner
+ AND lower(vd.vault_id) = lower(o.vault_id)
+ AND lower(vd.token)    = lower(o.token)
+ AND lower(vd.owner)    = lower(o.owner)
 ORDER BY vd.block_number DESC, vd.log_index DESC, vd.kind;

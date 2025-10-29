@@ -38,8 +38,8 @@ SELECT
       ) l ON l.order_owner = oe.order_owner AND l.order_nonce = oe.order_nonce
       WHERE io.chain_id = ?1
         AND lower(io.orderbook_address) = lower(?2)
-        AND io.token    = o.token
-        AND io.vault_id = o.vault_id
+        AND lower(io.token)    = lower(o.token)
+        AND lower(io.vault_id) = lower(o.vault_id)
         AND UPPER(io.io_type) = 'INPUT'
       ORDER BY oe.order_hash
     ) AS q_in
@@ -76,8 +76,8 @@ SELECT
       ) l ON l.order_owner = oe.order_owner AND l.order_nonce = oe.order_nonce
       WHERE io.chain_id = ?1
         AND lower(io.orderbook_address) = lower(?2)
-        AND io.token    = o.token
-        AND io.vault_id = o.vault_id
+        AND lower(io.token)    = lower(o.token)
+        AND lower(io.vault_id) = lower(o.vault_id)
         AND UPPER(io.io_type) = 'OUTPUT'
       ORDER BY oe.order_hash
     ) AS q_out
@@ -88,8 +88,8 @@ SELECT
     WHERE vd.chain_id = ?1
       AND lower(vd.orderbook_address) = lower(?2)
       AND vd.owner    = o.owner
-      AND vd.token    = o.token
-      AND vd.vault_id = o.vault_id
+      AND lower(vd.token)    = lower(o.token)
+      AND lower(vd.vault_id) = lower(o.vault_id)
   ), FLOAT_ZERO_HEX()) AS balance
 FROM (
   /* all distinct (owner, token, vault_id) that ever had a delta on this target */

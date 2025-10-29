@@ -132,7 +132,11 @@
 		try {
 			error = '';
 			const queryFn = db.value.query.bind(db.value);
-			const statusResult = await localDbClient.getSyncStatus(queryFn);
+			const statusResult = await localDbClient.getSyncStatus(
+				queryFn,
+				42161,
+				'0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB'
+			);
 
 			if (!statusResult.error && statusResult.value) {
 				const statusArray = statusResult.value;

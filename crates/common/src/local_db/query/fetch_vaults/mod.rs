@@ -19,8 +19,19 @@ const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
 const TOKENS_CLAUSE_BODY: &str = "\nAND lower(o.token) IN ({list})\n";
 
 const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
-const HIDE_ZERO_BALANCE_BODY: &str =
-    "\nAND NOT FLOAT_IS_ZERO(\n    COALESCE((\n      SELECT FLOAT_SUM(vd.delta)\n      FROM vault_deltas vd\n      WHERE vd.chain_id = ?1\n        AND lower(vd.orderbook_address) = lower(?2)\n        AND vd.owner    = o.owner\n        AND vd.token    = o.token\n        AND vd.vault_id = o.vault_id\n    ), FLOAT_ZERO_HEX())\n  )\n\n";
+const HIDE_ZERO_BALANCE_BODY: &str = r##"
+AND NOT FLOAT_IS_ZERO(
+    COALESCE((
+      SELECT FLOAT_SUM(vd.delta)
+      FROM vault_deltas vd
+      WHERE vd.chain_id = ?1
+        AND lower(vd.orderbook_address) = lower(?2)
+        AND lower(vd.owner)    = lower(o.owner)
+        AND lower(vd.token)    = lower(o.token)
+        AND lower(vd.vault_id) = lower(o.vault_id)
+    ), FLOAT_ZERO_HEX())
+  )
+"##;
 
 pub fn build_fetch_vaults_stmt(
     chain_id: u32,
@@ -29,7 +40,7 @@ pub fn build_fetch_vaults_stmt(
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
     // ?1: chain id
-    stmt.push(SqlValue::I64(chain_id as i64));
+    stmt.push(SqlValue::U64(chain_id as u64));
     // ?2: orderbook address
     stmt.push(SqlValue::Text(orderbook_address.to_string()));
 
