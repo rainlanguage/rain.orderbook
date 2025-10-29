@@ -17,6 +17,8 @@ interface StartLocalDbSyncOptions {
 	intervalMs?: number;
 }
 
+// NOTE: This function will be replaced with a more robust solution
+// after we introduce the new sync logic in the Raindex client.
 export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 	const {
 		raindexClient,
