@@ -1,7 +1,7 @@
 use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
-    primitives::{Address, FixedBytes, B256},
+    primitives::{Address, Bytes, FixedBytes, B256},
     sol_types::{abi::token::WordToken, SolEvent},
 };
 use core::convert::{TryFrom, TryInto};
@@ -81,7 +81,7 @@ pub struct DecodedEventData<T> {
     pub event_type: EventType,
     pub block_number: String,
     pub block_timestamp: String,
-    pub transaction_hash: String,
+    pub transaction_hash: Bytes,
     pub log_index: String,
     pub decoded_data: T,
 }
@@ -173,7 +173,7 @@ pub fn decode_events(
                     Some(ts) if !ts.is_empty() => ts,
                     _ => "0x0".to_string(),
                 },
-                transaction_hash: event.transaction_hash.clone(),
+                transaction_hash: Bytes::from_str(&event.transaction_hash)?,
                 log_index: if event.log_index.is_empty() {
                     "0x0".to_string()
                 } else {
@@ -931,7 +931,7 @@ mod test_helpers {
         assert_eq!(decoded_event.event_type, EventType::AddOrderV3);
         assert_eq!(decoded_event.block_number, "0x0");
         assert_eq!(decoded_event.block_timestamp, "0x0");
-        assert_eq!(decoded_event.transaction_hash, "");
+        assert_eq!(decoded_event.transaction_hash, Bytes::from_str("").unwrap());
         assert_eq!(decoded_event.log_index, "0x0");
     }
 

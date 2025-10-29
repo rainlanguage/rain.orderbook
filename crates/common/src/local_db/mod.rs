@@ -263,28 +263,34 @@ impl LocalDb {
 
     pub fn decoded_events_to_statements(
         &self,
+        chain_id: u32,
+        orderbook_address: Address,
         events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch, LocalDbError> {
-        decoded_events_to_statements_impl(events, decimals_by_token)
+        decoded_events_to_statements_impl(chain_id, orderbook_address, events, decimals_by_token)
             .map_err(LocalDbError::InsertError)
     }
 
     pub fn raw_events_to_statements(
         &self,
+        chain_id: u32,
+        orderbook_address: Address,
         raw_events: &[LogEntryResponse],
     ) -> Result<SqlStatementBatch, LocalDbError> {
-        raw_events_to_statements_impl(raw_events).map_err(LocalDbError::InsertError)
+        raw_events_to_statements_impl(chain_id, orderbook_address, raw_events)
+            .map_err(LocalDbError::InsertError)
     }
 }
 
 #[cfg(test)]
 mod bool_deserialize_tests {
     use super::*;
-    use alloy::primitives::{Address, U256};
+    use alloy::primitives::{Address, Bytes, U256};
     use alloy::sol_types::SolEvent;
     use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, DepositV2};
     use std::collections::HashMap;
+    use std::str::FromStr;
 
     fn make_local_db() -> LocalDb {
         LocalDb::new(8453, "test_token".to_string()).expect("create LocalDb")
@@ -335,7 +341,7 @@ mod bool_deserialize_tests {
             event_type: decode::EventType::DepositV2,
             block_number: "not-hex".to_string(),
             block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x5".to_string(),
+            transaction_hash: Bytes::from_str("0x50").unwrap(),
             log_index: "0x0".to_string(),
             decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
         }
@@ -351,7 +357,7 @@ mod bool_deserialize_tests {
         }
 
         let err = db
-            .decoded_events_to_statements(&[event], &decimals)
+            .decoded_events_to_statements(1, Address::ZERO, &[event], &decimals)
             .unwrap_err();
         match err {
             LocalDbError::InsertError(..) => {}

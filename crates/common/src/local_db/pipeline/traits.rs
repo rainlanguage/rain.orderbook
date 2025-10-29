@@ -222,7 +222,7 @@ pub trait EventsPipeline {
 ///   is handled by the Apply pipeline.
 ///
 /// Invariants:
-/// - Upserts must be idempotent and keyed by `(chain_id, lower(address))`.
+/// - Upserts must be idempotent and keyed by `(chain_id, orderbook_address, lower(token_address))`.
 #[async_trait(?Send)]
 pub trait TokensPipeline {
     /// Loads existing token rows for the provided lowercase addresses.
@@ -230,6 +230,7 @@ pub trait TokensPipeline {
         &self,
         db: &DB,
         chain_id: u64,
+        orderbook_address: Address,
         token_addrs_lower: &[String],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where

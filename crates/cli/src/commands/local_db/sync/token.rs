@@ -23,6 +23,7 @@ pub(crate) async fn prepare_token_metadata<T>(
     db_path: &str,
     rpc_urls: &[Url],
     chain_id: u32,
+    orderbook_address: Address,
     decoded_events: &[DecodedEventData<DecodedEvent>],
     token_fetcher: &T,
 ) -> Result<TokenPrepResult>
@@ -43,15 +44,16 @@ where
         .iter()
         .map(|a| hex::encode_prefixed(*a))
         .collect();
-    let existing_rows = fetch_existing_tokens(db_path, chain_id, &addr_strings).await?;
+    let existing_rows =
+        fetch_existing_tokens(db_path, chain_id, orderbook_address, &addr_strings).await?;
 
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
     let mut existing_lower: HashSet<String> = HashSet::new();
     for row in existing_rows.iter() {
-        let key = row.address.to_ascii_lowercase();
+        let key = row.token_address.to_ascii_lowercase();
         existing_lower.insert(key.clone());
-        let address = Address::from_str(&row.address)
-            .with_context(|| format!("Invalid address stored in DB: {}", row.address))?;
+        let address = Address::from_str(&row.token_address)
+            .with_context(|| format!("Invalid address stored in DB: {}", row.token_address))?;
         decimals_by_addr.insert(address, row.decimals);
     }
 
@@ -73,7 +75,7 @@ where
     println!("Fetching metadata for {} new token(s)", missing_addrs.len());
     let fetched = token_fetcher.fetch(rpc_urls, missing_addrs).await?;
 
-    let tokens_prefix_sql = generate_erc20_token_statements(chain_id, &fetched);
+    let tokens_prefix_sql = generate_erc20_token_statements(chain_id, orderbook_address, &fetched);
     for (addr, info) in fetched.into_iter() {
         decimals_by_addr.insert(addr, info.decimals);
     }
@@ -118,8 +120,9 @@ mod tests {
         exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
             .await
             .unwrap();
-        exec
-            .query_text(&SqlStatement::new("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);"))
+        exec.query_text(&SqlStatement::new(
+                "INSERT INTO erc20_tokens (chain_id, orderbook_address, token_address, name, symbol, decimals) VALUES (1, '0x0101010101010101010101010101010101010101', '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);",
+            ))
             .await
             .unwrap();
 
@@ -139,9 +142,17 @@ mod tests {
         }];
 
         let rpc_urls = vec![Url::parse("http://localhost:1").unwrap()];
-        let prep = prepare_token_metadata(&db_path_str, &rpc_urls, 1, &decoded, &NoopFetcher)
-            .await
-            .unwrap();
+        let orderbook_address = Address::from([0x01; 20]);
+        let prep = prepare_token_metadata(
+            &db_path_str,
+            &rpc_urls,
+            1,
+            orderbook_address,
+            &decoded,
+            &NoopFetcher,
+        )
+        .await
+        .unwrap();
         assert!(prep.tokens_prefix_sql.is_empty());
         assert_eq!(prep.decimals_by_addr.len(), 1);
         assert_eq!(prep.decimals_by_addr.get(&token_addr).copied(), Some(18));

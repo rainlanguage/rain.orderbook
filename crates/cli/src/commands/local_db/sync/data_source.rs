@@ -36,11 +36,15 @@ pub(crate) trait SyncDataSource {
     ) -> Result<Vec<DecodedEventData<DecodedEvent>>>;
     fn events_to_sql(
         &self,
+        chain_id: u32,
+        orderbook_address: Address,
         decoded_events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch>;
     fn raw_events_to_statements(
         &self,
+        chain_id: u32,
+        orderbook_address: Address,
         raw_events: &[LogEntryResponse],
     ) -> Result<SqlStatementBatch>;
     fn rpc_urls(&self) -> &[Url];
@@ -132,18 +136,28 @@ impl SyncDataSource for LocalDb {
 
     fn events_to_sql(
         &self,
+        chain_id: u32,
+        orderbook_address: Address,
         decoded_events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch> {
-        <LocalDb>::decoded_events_to_statements(self, decoded_events, decimals_by_token)
-            .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
+        <LocalDb>::decoded_events_to_statements(
+            self,
+            chain_id,
+            orderbook_address,
+            decoded_events,
+            decimals_by_token,
+        )
+        .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 
     fn raw_events_to_statements(
         &self,
+        chain_id: u32,
+        orderbook_address: Address,
         raw_events: &[LogEntryResponse],
     ) -> Result<SqlStatementBatch> {
-        <LocalDb>::raw_events_to_statements(self, raw_events)
+        <LocalDb>::raw_events_to_statements(self, chain_id, orderbook_address, raw_events)
             .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 

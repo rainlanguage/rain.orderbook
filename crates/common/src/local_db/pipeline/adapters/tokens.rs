@@ -25,12 +25,14 @@ impl TokensPipeline for DefaultTokensPipeline {
         &self,
         db: &DB,
         chain_id: u64,
+        orderbook_address: Address,
         token_addrs_lower: &[String],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        let Some(stmt) = build_fetch_stmt(chain_id as u32, token_addrs_lower)? else {
+        let Some(stmt) = build_fetch_stmt(chain_id as u32, orderbook_address, token_addrs_lower)?
+        else {
             return Ok(vec![]);
         };
         let rows: Vec<Erc20TokenRow> = db.query_json(&stmt).await?;
@@ -59,6 +61,7 @@ mod tests {
         // Assertions for the incoming statement
         expect_in_clause: bool,
         expect_chain_id: Option<i64>,
+        expect_orderbook: Option<String>,
         expect_addr_count: Option<usize>,
     }
 
@@ -78,9 +81,19 @@ mod tests {
                     other => panic!("expected first param I64({cid}), got {other:?}"),
                 }
             }
+            if let Some(expected_orderbook) = self.expect_orderbook.as_ref() {
+                match stmt.params().get(1) {
+                    Some(crate::local_db::query::SqlValue::Text(actual)) => {
+                        assert_eq!(actual, expected_orderbook);
+                    }
+                    other => {
+                        panic!("expected second param Text({expected_orderbook}), got {other:?}")
+                    }
+                }
+            }
             if let Some(n) = self.expect_addr_count {
-                // There should be 1 chain id param + n address params
-                assert_eq!(stmt.params().len(), 1 + n);
+                // There should be chain id + orderbook + n address params
+                assert_eq!(stmt.params().len(), 2 + n);
             }
             if self.expect_in_clause {
                 assert!(stmt.sql().contains("IN ("), "expected IN clause in SQL");
@@ -98,22 +111,30 @@ mod tests {
 
     #[tokio::test]
     async fn load_existing_empty_addresses_short_circuits() {
+        let orderbook = Address::from([0xbe; 20]);
         let db = MockDb {
             rows: vec![],
             expect_in_clause: false,
             expect_chain_id: None,
+            expect_orderbook: Some(orderbook.to_string()),
             expect_addr_count: None,
         };
         let pipeline = DefaultTokensPipeline::new();
-        let out = pipeline.load_existing(&db, 137, &[]).await.expect("ok");
+        let out = pipeline
+            .load_existing(&db, 137, orderbook, &[])
+            .await
+            .expect("ok");
         assert!(out.is_empty());
     }
 
     #[tokio::test]
     async fn load_existing_builds_query_and_returns_rows() {
+        let orderbook = Address::from([0xab; 20]);
+        let token_addr = Address::from([0xac; 20]);
         let row = Erc20TokenRow {
             chain_id: 137,
-            address: "0xabc".to_string(),
+            orderbook_address: orderbook.to_string(),
+            token_address: token_addr.to_string(),
             name: "Token".to_string(),
             symbol: "TKN".to_string(),
             decimals: 18,
@@ -122,11 +143,18 @@ mod tests {
             rows: vec![row.clone()],
             expect_in_clause: true,
             expect_chain_id: Some(137),
+            expect_orderbook: Some(orderbook.to_string()),
             expect_addr_count: Some(2),
         };
         let pipeline = DefaultTokensPipeline::new();
-        let addrs = vec!["0xabc".to_string(), "0xdef".to_string()];
-        let out = pipeline.load_existing(&db, 137, &addrs).await.expect("ok");
+        let addrs = vec![
+            token_addr.to_string(),
+            Address::from([0xad; 20]).to_string(),
+        ];
+        let out = pipeline
+            .load_existing(&db, 137, orderbook, &addrs)
+            .await
+            .expect("ok");
         assert_eq!(out, vec![row]);
     }
 

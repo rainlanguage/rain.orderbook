@@ -47,7 +47,7 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let decimals_by_token: HashMap<Address, u8> = existing_tokens
             .iter()
             .filter_map(|row| {
-                Address::from_str(&row.address)
+                Address::from_str(&row.token_address)
                     .ok()
                     .map(|addr| (addr, row.decimals))
             })
@@ -62,21 +62,31 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let mut batch = SqlStatementBatch::new();
 
         // Raw events first
-        let raw_batch = build_raw_event_sql(raw_logs)?;
+        let raw_batch = build_raw_event_sql(target.chain_id, target.orderbook_address, raw_logs)?;
         batch.extend(raw_batch);
 
         // Token upserts for the missing set only
         if !tokens_to_upsert.is_empty() {
-            let upserts = build_token_upserts(target.chain_id, tokens_to_upsert);
+            let upserts =
+                build_token_upserts(target.chain_id, target.orderbook_address, tokens_to_upsert);
             batch.extend(upserts);
         }
 
         // Decoded orderbook/store events
-        let decoded_batch = build_decoded_event_sql(decoded_events, &decimals_by_token)?;
+        let decoded_batch = build_decoded_event_sql(
+            target.chain_id,
+            target.orderbook_address,
+            decoded_events,
+            &decimals_by_token,
+        )?;
         batch.extend(decoded_batch);
 
         // Watermark update to target block
-        batch.add(build_update_last_synced_block_stmt(target_block));
+        batch.add(build_update_last_synced_block_stmt(
+            target.chain_id,
+            target.orderbook_address,
+            target_block,
+        ));
 
         // Ensure atomicity
         Ok(batch.ensure_transaction())
@@ -201,7 +211,8 @@ mod tests {
         // existing token with decimals 18
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            address: format!("0x{:x}", token),
+            orderbook_address: format!("0x{:x}", target.orderbook_address),
+            token_address: format!("0x{:x}", token),
             name: "Token".into(),
             symbol: "TKN".into(),
             decimals: 18,
@@ -220,9 +231,7 @@ mod tests {
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
         assert!(
-            texts
-                .iter()
-                .any(|s| s.contains("UPDATE sync_status SET last_synced_block")),
+            texts.iter().any(|s| s.contains("INSERT INTO sync_status")),
             "watermark update present"
         );
     }
@@ -282,9 +291,7 @@ mod tests {
         // Expect exactly BEGIN, UPDATE, COMMIT
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql().trim()).collect();
         assert_eq!(texts.first().copied(), Some("BEGIN TRANSACTION"));
-        assert!(texts
-            .iter()
-            .any(|s| s.contains("UPDATE sync_status SET last_synced_block")));
+        assert!(texts.iter().any(|s| s.contains("INSERT INTO sync_status")));
         assert_eq!(
             texts.last().copied().map(|s| s.to_ascii_uppercase()),
             Some("COMMIT".into())
@@ -304,7 +311,8 @@ mod tests {
         // Existing says 6 decimals
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            address: format!("0x{:x}", token),
+            orderbook_address: format!("0x{:x}", target.orderbook_address),
+            token_address: format!("0x{:x}", token),
             name: "Token".into(),
             symbol: "T6".into(),
             decimals: 6,
@@ -324,15 +332,15 @@ mod tests {
             .build_batch(&target, 100, &[], &decoded, &existing, &upserts)
             .expect("batch ok");
 
-        // Find the deposit INSERT and inspect params; ?8 is deposit_amount
+        // Find the deposit INSERT and inspect params; ?10 is deposit_amount
         let stmt = batch
             .statements()
             .iter()
             .find(|s| s.sql().starts_with("INSERT INTO deposits"))
             .expect("deposit insert present");
 
-        // Params: [block_number, block_timestamp, tx_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256]
-        let deposit_amount_param = stmt.params().get(7).expect("param 8 present");
+        // Params: [chain_id, orderbook, block_number, block_timestamp, tx_hash, log_index, sender, token, vault_id, deposit_amount, deposit_amount_uint256]
+        let deposit_amount_param = stmt.params().get(9).expect("param 10 present");
         let expected = Float::from_fixed_decimal(U256::from(1000u64), 18)
             .unwrap()
             .as_hex();
@@ -360,7 +368,8 @@ mod tests {
         // Existing has an invalid address string
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            address: "not-an-address".into(),
+            orderbook_address: format!("0x{:x}", target.orderbook_address),
+            token_address: "not-an-address".into(),
             name: "Bad".into(),
             symbol: "BAD".into(),
             decimals: 6,
@@ -385,7 +394,7 @@ mod tests {
             .iter()
             .find(|s| s.sql().starts_with("INSERT INTO deposits"))
             .expect("deposit insert present");
-        let deposit_amount_param = stmt.params().get(7).expect("param 8 present");
+        let deposit_amount_param = stmt.params().get(9).expect("param 10 present");
         let expected = Float::from_fixed_decimal(U256::from(1000u64), 9)
             .unwrap()
             .as_hex();
@@ -427,7 +436,8 @@ mod tests {
         let token_b = Address::from([2u8; 20]);
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            address: format!("0x{:x}", token_a),
+            orderbook_address: format!("0x{:x}", target.orderbook_address),
+            token_address: format!("0x{:x}", token_a),
             name: "A".into(),
             symbol: "A".into(),
             decimals: 6,
@@ -456,13 +466,13 @@ mod tests {
             "upsert statements are generated for provided tokens"
         );
 
-        // The address param is ?2 in the token upsert builder
-        let addr_param = upsert_stmts[0].params().get(1).unwrap();
+        // The token param is ?3 in the token upsert builder
+        let addr_param = upsert_stmts[0].params().get(2).unwrap();
         match addr_param {
             crate::local_db::query::SqlValue::Text(val) => {
                 assert_eq!(val, &format!("0x{:x}", token_b));
             }
-            other => panic!("unexpected param type for address: {other:?}"),
+            other => panic!("unexpected param type for token: {other:?}"),
         }
     }
 
@@ -479,10 +489,10 @@ mod tests {
         let stmt = batch
             .statements()
             .iter()
-            .find(|s| s.sql().contains("UPDATE sync_status SET last_synced_block"))
+            .find(|s| s.sql().starts_with("INSERT INTO sync_status"))
             .expect("watermark update present");
 
-        match stmt.params().first() {
+        match stmt.params().get(2) {
             Some(crate::local_db::query::SqlValue::I64(v)) => {
                 assert_eq!(*v as u64, target_block);
             }
@@ -505,7 +515,8 @@ mod tests {
         // Only existing provides decimals
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            address: format!("0x{:x}", token),
+            orderbook_address: format!("0x{:x}", target.orderbook_address),
+            token_address: format!("0x{:x}", token),
             name: "E".into(),
             symbol: "E".into(),
             decimals: 9,
@@ -521,7 +532,7 @@ mod tests {
             .iter()
             .find(|s| s.sql().starts_with("INSERT INTO deposits"))
             .expect("deposit insert present");
-        let deposit_amount_param = stmt.params().get(7).expect("param 8 present");
+        let deposit_amount_param = stmt.params().get(9).expect("param 10 present");
         let expected = Float::from_fixed_decimal(U256::from(1000u64), 9)
             .unwrap()
             .as_hex();
@@ -616,7 +627,7 @@ mod tests {
             .iter()
             .find(|s| s.sql().starts_with("INSERT INTO deposits"))
             .expect("deposit insert present");
-        let deposit_amount_param = stmt.params().get(7).expect("param 8 present");
+        let deposit_amount_param = stmt.params().get(9).expect("param 10 present");
         let expected = Float::from_fixed_decimal(U256::from(1000u64), 18)
             .unwrap()
             .as_hex();
@@ -694,16 +705,16 @@ mod tests {
             .filter(|s| s.sql().starts_with("INSERT INTO raw_events"))
             .collect();
         assert_eq!(raws.len(), 2);
-        // Check param ?1 block_number and ?4 log_index are sorted ascending
+        // Check param ?3 block_number and ?6 log_index are sorted ascending
         let get_u = |stmt: &SqlStatement, idx: usize| match stmt.params().get(idx) {
             Some(crate::local_db::query::SqlValue::U64(v)) => *v,
             Some(crate::local_db::query::SqlValue::I64(v)) => *v as u64,
             other => panic!("unexpected param type: {other:?}"),
         };
-        let b1 = get_u(raws[0], 0);
-        let l1 = get_u(raws[0], 3);
-        let b2 = get_u(raws[1], 0);
-        let l2 = get_u(raws[1], 3);
+        let b1 = get_u(raws[0], 2);
+        let l1 = get_u(raws[0], 5);
+        let b2 = get_u(raws[1], 2);
+        let l2 = get_u(raws[1], 5);
         assert!(b1 <= b2);
         if b1 == b2 {
             assert!(l1 < l2);
@@ -741,9 +752,7 @@ mod tests {
             .iter()
             .any(|s| s.starts_with("INSERT INTO erc20_tokens")));
         assert!(!texts.iter().any(|s| s.starts_with("INSERT INTO deposits")));
-        assert!(texts
-            .iter()
-            .any(|s| s.contains("UPDATE sync_status SET last_synced_block")));
+        assert!(texts.iter().any(|s| s.contains("INSERT INTO sync_status")));
     }
 
     #[test]
@@ -756,7 +765,7 @@ mod tests {
         let count = batch
             .statements()
             .iter()
-            .filter(|s| s.sql().contains("UPDATE sync_status SET last_synced_block"))
+            .filter(|s| s.sql().starts_with("INSERT INTO sync_status"))
             .count();
         assert_eq!(count, 1);
     }
@@ -812,7 +821,7 @@ mod tests {
         let idx_watermark = batch
             .statements()
             .iter()
-            .position(|s| s.sql().contains("UPDATE sync_status SET last_synced_block"))
+            .position(|s| s.sql().starts_with("INSERT INTO sync_status"))
             .expect("watermark present");
         let idx_commit = batch
             .statements()
@@ -834,7 +843,8 @@ mod tests {
 
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            address: format!("0x{:x}", token),
+            orderbook_address: format!("0x{:x}", target.orderbook_address),
+            token_address: format!("0x{:x}", token),
             name: "Token".into(),
             symbol: "TKN".into(),
             decimals: 18,
@@ -885,7 +895,8 @@ mod tests {
 
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            address: format!("0x{:x}", token_a),
+            orderbook_address: format!("0x{:x}", target.orderbook_address),
+            token_address: format!("0x{:x}", token_a),
             name: "A".into(),
             symbol: "A".into(),
             decimals: 6,
@@ -913,9 +924,9 @@ mod tests {
         assert_eq!(deposits.len(), 2, "expected two deposit inserts");
 
         for stmt in deposits {
-            // token param is ?6 (index 5)
-            let token_param = stmt.params().get(5).expect("token param present");
-            let amount_param = stmt.params().get(7).expect("deposit_amount param present");
+            // token param is ?8 (index 7)
+            let token_param = stmt.params().get(7).expect("token param present");
+            let amount_param = stmt.params().get(9).expect("deposit_amount param present");
 
             match token_param {
                 crate::local_db::query::SqlValue::Text(addr)
@@ -963,17 +974,17 @@ mod tests {
             .find(|s| s.sql().starts_with("INSERT INTO withdrawals"))
             .expect("withdraw insert present");
 
-        // token param is ?6 (index 5)
-        match stmt.params().get(5) {
+        // token param is ?8 (index 7)
+        match stmt.params().get(7) {
             Some(crate::local_db::query::SqlValue::Text(v)) => {
                 assert_eq!(v, &format!("0x{:x}", token))
             }
             other => panic!("unexpected token param: {other:?}"),
         }
 
-        // withdraw_amount_uint256 is ?10 (index 9) and must be 32-byte hex of 1500
+        // withdraw_amount_uint256 is ?12 (index 11) and must be 32-byte hex of 1500
         let expected_uint256 = hex::encode_prefixed(U256::from(1500u64).to_be_bytes::<32>());
-        match stmt.params().get(9) {
+        match stmt.params().get(11) {
             Some(crate::local_db::query::SqlValue::Text(v)) => assert_eq!(v, &expected_uint256),
             other => panic!("unexpected withdraw_amount_uint256 param: {other:?}"),
         }
