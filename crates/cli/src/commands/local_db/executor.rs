@@ -1,14 +1,25 @@
 use async_trait::async_trait;
-use rain_orderbook_common::local_db::query::{FromDbJson, LocalDbQueryError, LocalDbQueryExecutor};
-use std::io::Write;
+use rain_orderbook_common::local_db::query::{
+    FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlValue,
+};
+use rusqlite::{types::ValueRef, Connection};
+use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::time::Duration;
 
-pub struct SqliteCliExecutor {
+pub struct RusqliteExecutor {
     db_path: PathBuf,
 }
 
-impl SqliteCliExecutor {
+fn sqlvalue_to_rusqlite(v: SqlValue) -> rusqlite::types::Value {
+    match v {
+        SqlValue::Text(t) => rusqlite::types::Value::Text(t),
+        SqlValue::I64(i) => rusqlite::types::Value::Integer(i),
+        SqlValue::Null => rusqlite::types::Value::Null,
+    }
+}
+
+impl RusqliteExecutor {
     pub fn new<P: AsRef<Path>>(db_path: P) -> Self {
         Self {
             db_path: db_path.as_ref().to_path_buf(),
@@ -17,65 +28,83 @@ impl SqliteCliExecutor {
 }
 
 #[async_trait(?Send)]
-impl LocalDbQueryExecutor for SqliteCliExecutor {
-    async fn query_text(&self, sql: &str) -> Result<String, LocalDbQueryError> {
-        let mut child = Command::new("sqlite3")
-            .arg(self.db_path.as_os_str())
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to spawn sqlite3: {e}")))?;
-
-        if let Some(stdin) = child.stdin.as_mut() {
-            stdin
-                .write_all(sql.as_bytes())
-                .map_err(|e| LocalDbQueryError::database(format!("Failed to write SQL: {e}")))?;
+impl LocalDbQueryExecutor for RusqliteExecutor {
+    async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+        let conn = Connection::open(&self.db_path)
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
+        conn.busy_timeout(Duration::from_millis(500))
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
+        if stmt.params().is_empty() {
+            conn.execute_batch(stmt.sql())
+                .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
+            Ok(String::new())
         } else {
-            return Err(LocalDbQueryError::database("Failed to open sqlite3 stdin"));
+            let mut s = conn.prepare(stmt.sql()).map_err(|e| {
+                LocalDbQueryError::database(format!("Failed to prepare query: {e}"))
+            })?;
+            let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
+            let params = rusqlite::params_from_iter(bound);
+            s.execute(params)
+                .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
+            Ok(String::new())
         }
-
-        let output = child
-            .wait_with_output()
-            .map_err(|e| LocalDbQueryError::database(format!("sqlite3 wait failed: {e}")))?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(LocalDbQueryError::database(format!(
-                "sqlite3 exited with status {}: {}",
-                output.status, stderr
-            )));
-        }
-        let stdout =
-            String::from_utf8(output.stdout).map_err(|_| LocalDbQueryError::invalid_response())?;
-        Ok(stdout)
     }
 
-    async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
+    async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
     where
         T: FromDbJson,
     {
-        let output = Command::new("sqlite3")
-            .arg("-json")
-            .arg(self.db_path.as_os_str())
-            .arg(sql)
-            .output()
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to run sqlite3: {e}")))?;
+        let conn = Connection::open(&self.db_path)
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
+        conn.busy_timeout(Duration::from_millis(500))
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(LocalDbQueryError::database(format!(
-                "sqlite3 exited with status {} for query {}: {}",
-                output.status, sql, stderr
-            )));
+        let mut s = conn
+            .prepare(stmt.sql())
+            .map_err(|e| LocalDbQueryError::database(format!("Failed to prepare query: {e}")))?;
+        let column_names: Vec<String> = (0..s.column_count())
+            .map(|i| {
+                let raw = s.column_name(i).unwrap_or("");
+                let trimmed = raw.trim();
+                if trimmed.is_empty() {
+                    format!("column_{}", i)
+                } else {
+                    trimmed.to_string()
+                }
+            })
+            .collect();
+
+        let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
+        let params = rusqlite::params_from_iter(bound);
+
+        let rows_iter = s
+            .query_map(params, |row| {
+                let mut obj = Map::with_capacity(column_names.len());
+                for (i, name) in column_names.iter().enumerate() {
+                    let v = match row.get_ref(i)? {
+                        ValueRef::Null => Value::Null,
+                        ValueRef::Integer(n) => json!(n),
+                        ValueRef::Real(f) => json!(f),
+                        ValueRef::Text(bytes) => match std::str::from_utf8(bytes) {
+                            Ok(s) => json!(s),
+                            Err(_) => json!(alloy::hex::encode_prefixed(bytes)),
+                        },
+                        ValueRef::Blob(bytes) => json!(alloy::hex::encode_prefixed(bytes)),
+                    };
+                    obj.insert(name.clone(), v);
+                }
+                Ok(Value::Object(obj))
+            })
+            .map_err(|e| LocalDbQueryError::database(format!("Query failed: {e}")))?;
+
+        let mut out: Vec<Value> = Vec::new();
+        for r in rows_iter {
+            let v = r.map_err(|e| LocalDbQueryError::database(format!("Row error: {e}")))?;
+            out.push(v);
         }
 
-        let stdout =
-            String::from_utf8(output.stdout).map_err(|_| LocalDbQueryError::invalid_response())?;
-        let trimmed = stdout.trim();
-        let payload = if trimmed.is_empty() { "[]" } else { trimmed };
-
-        serde_json::from_str::<T>(payload)
+        let json_value = Value::Array(out);
+        serde_json::from_value::<T>(json_value)
             .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
     }
 }
@@ -91,10 +120,10 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
-        exec.query_text(
+        let exec = RusqliteExecutor::new(&*db_path_str);
+        exec.query_text(&SqlStatement::new(
             "CREATE TABLE numbers (n INTEGER); INSERT INTO numbers (n) VALUES (1), (2);",
-        )
+        ))
         .await
         .unwrap();
 
@@ -103,7 +132,7 @@ mod tests {
             c: i64,
         }
         let rows: Vec<CountRow> = exec
-            .query_json("SELECT COUNT(*) AS c FROM numbers;")
+            .query_json(&SqlStatement::new("SELECT COUNT(*) AS c FROM numbers;"))
             .await
             .unwrap();
         assert_eq!(rows.len(), 1);
@@ -116,10 +145,12 @@ mod tests {
         let db_path = temp_dir.path().join("schema.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
-        exec.query_text("CREATE TABLE foo (id INTEGER); CREATE TABLE bar (id INTEGER);")
-            .await
-            .unwrap();
+        let exec = RusqliteExecutor::new(&*db_path_str);
+        exec.query_text(&SqlStatement::new(
+            "CREATE TABLE foo (id INTEGER); CREATE TABLE bar (id INTEGER);",
+        ))
+        .await
+        .unwrap();
 
         #[derive(serde::Deserialize)]
         struct TableNameRow {
@@ -127,7 +158,10 @@ mod tests {
         }
         const TABLE_QUERY: &str =
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';";
-        let rows: Vec<TableNameRow> = exec.query_json(TABLE_QUERY).await.unwrap();
+        let rows: Vec<TableNameRow> = exec
+            .query_json(&SqlStatement::new(TABLE_QUERY))
+            .await
+            .unwrap();
         let existing: std::collections::HashSet<String> = rows
             .into_iter()
             .map(|row| row.name.to_ascii_lowercase())
@@ -139,5 +173,77 @@ mod tests {
         };
         assert!(has(&["foo", "bar"]));
         assert!(!has(&["foo", "baz"]));
+    }
+
+    #[tokio::test]
+    async fn query_json_multi_column_rows() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("multi.db");
+        let db_path_str = db_path.to_string_lossy();
+
+        let exec = RusqliteExecutor::new(&*db_path_str);
+        exec.query_text(&SqlStatement::new(
+            r#"
+                CREATE TABLE people (
+                    id INTEGER,
+                    name TEXT,
+                    note BLOB
+                );
+                INSERT INTO people (id, name, note) VALUES
+                    (1, 'Alice', X'000102'),
+                    (2, 'Bob',   X'ff'),
+                    (3, 'Carol', NULL),
+                    (4, 'Дора',  X'c0'),
+                    (5, 'Eve',   X'');
+                "#,
+        ))
+        .await
+        .unwrap();
+
+        #[derive(serde::Deserialize, Debug, PartialEq, Eq)]
+        struct PersonRow {
+            id: i64,
+            name: String,
+            note: Option<String>,
+        }
+
+        let rows: Vec<PersonRow> = exec
+            .query_json(&SqlStatement::new(
+                "SELECT id, name, note FROM people ORDER BY id ASC;",
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(rows.len(), 5);
+        assert_eq!(
+            rows,
+            vec![
+                PersonRow {
+                    id: 1,
+                    name: "Alice".to_string(),
+                    note: Some("0x000102".to_string()),
+                },
+                PersonRow {
+                    id: 2,
+                    name: "Bob".to_string(),
+                    note: Some("0xff".to_string()),
+                },
+                PersonRow {
+                    id: 3,
+                    name: "Carol".to_string(),
+                    note: None,
+                },
+                PersonRow {
+                    id: 4,
+                    name: "Дора".to_string(),
+                    note: Some("0xc0".to_string()),
+                },
+                PersonRow {
+                    id: 5,
+                    name: "Eve".to_string(),
+                    note: Some("0x".to_string()),
+                },
+            ]
+        );
     }
 }

@@ -1,5 +1,6 @@
 use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
+use alloy::rpc::types::Filter;
 use alloy::transports::TransportError;
 use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider, ReadProviderError};
 use serde::{Deserialize, Serialize};
@@ -138,20 +139,8 @@ impl RpcClient {
         Ok(block_number)
     }
 
-    pub async fn get_logs(
-        &self,
-        from_block: &str,
-        to_block: &str,
-        address: &str,
-        topics: Option<Vec<Option<Vec<String>>>>,
-    ) -> Result<Vec<LogEntryResponse>, RpcClientError> {
-        let params = serde_json::json!([{
-            "fromBlock": from_block,
-            "toBlock": to_block,
-            "address": address,
-            "topics": topics,
-        }]);
-
+    pub async fn get_logs(&self, filter: &Filter) -> Result<Vec<LogEntryResponse>, RpcClientError> {
+        let params = serde_json::json!([filter]);
         self.provider
             .client()
             .request::<_, Vec<LogEntryResponse>>("eth_getLogs", params)
@@ -243,6 +232,9 @@ pub enum RpcClientError {
 
     #[error("Configuration error: {message}")]
     Config { message: String },
+
+    #[error("Invalid block range: start {start} > end {end}")]
+    InvalidBlockRange { start: u64, end: u64 },
 }
 
 impl From<TransportError> for RpcClientError {
@@ -254,6 +246,7 @@ impl From<TransportError> for RpcClientError {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
+    use alloy::hex;
     use httpmock::MockServer;
     use serde_json::json;
 
@@ -404,22 +397,31 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_logs_ok() {
+        use alloy::primitives::{Address, B256};
+        use alloy::rpc::types::Filter;
+        use serde_json::json;
+        use std::str::FromStr;
+
         let server = MockServer::start();
         let log_entry = sample_log_entry("0x64");
+
+        // Build typed inputs and expected wire values
+        let address = Address::from_str("0x0000000000000000000000000000000000000123").unwrap();
+        let expected_address = format!("{:#x}", address);
+        let mut topic_bytes = [0u8; 32];
+        topic_bytes[30] = 0x0a;
+        topic_bytes[31] = 0xbc;
+        let topic = B256::from(topic_bytes);
+        let expected_topic = format!("0x{}", hex::encode(topic.as_slice()));
+
         let mock = server.mock(|when, then| {
             when.method(httpmock::Method::POST)
                 .header("content-type", "application/json")
-                .json_body(json!({
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "eth_getLogs",
-                    "params": [{
-                        "fromBlock": "0x1",
-                        "toBlock": "0x2",
-                        "address": "0x123",
-                        "topics": [["0xabc"]]
-                    }]
-                }));
+                .body_contains("\"eth_getLogs\"")
+                .body_contains("\"fromBlock\":\"0x1\"")
+                .body_contains("\"toBlock\":\"0x2\"")
+                .body_contains(&expected_address)
+                .body_contains(&expected_topic);
             then.status(200)
                 .header("content-type", "application/json")
                 .body(logs_response_body(json!([log_entry])));
@@ -427,15 +429,16 @@ mod tests {
 
         let client =
             RpcClient::new_with_urls(vec![Url::parse(&server.base_url()).unwrap()]).unwrap();
-        let logs = client
-            .get_logs(
-                "0x1",
-                "0x2",
-                "0x123",
-                Some(vec![Some(vec!["0xabc".to_string()])]),
-            )
-            .await
-            .unwrap();
+
+        let filter_json = json!({
+            "fromBlock": "0x1",
+            "toBlock": "0x2",
+            "address": expected_address,
+            "topics": [[expected_topic]],
+        });
+        let filter: Filter = serde_json::from_value(filter_json).unwrap();
+
+        let logs = client.get_logs(&filter).await.unwrap();
 
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].block_number, "0x64");

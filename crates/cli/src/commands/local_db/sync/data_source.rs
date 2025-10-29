@@ -1,5 +1,5 @@
 use alloy::primitives::Address;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use rain_orderbook_common::{
     erc20::TokenInfo,
@@ -11,6 +11,7 @@ use rain_orderbook_common::{
     rpc_client::LogEntryResponse,
 };
 use std::collections::HashMap;
+use std::str::FromStr;
 use url::Url;
 
 #[async_trait]
@@ -62,9 +63,10 @@ impl TokenMetadataFetcher for DefaultTokenFetcher {
             return Ok(vec![]);
         }
 
-        let fetched = fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing)
-            .await
-            .map_err(|e| anyhow!(e))?;
+        let fetched =
+            fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing, &FetchConfig::default())
+                .await
+                .map_err(|e| anyhow!(e))?;
         Ok(fetched)
     }
 }
@@ -84,9 +86,15 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_events(self, orderbook_address, start_block, end_block)
-            .await
-            .map_err(|e| anyhow!(e))
+        <LocalDb>::fetch_orderbook_events(
+            self,
+            Address::from_str(orderbook_address)?,
+            start_block,
+            end_block,
+            &FetchConfig::default(),
+        )
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     async fn fetch_store_set_events(
@@ -95,9 +103,18 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_store_set_events(
+        let addresses: Vec<Address> = store_addresses
+            .iter()
+            .enumerate()
+            .map(|(idx, s)| {
+                Address::from_str(s).with_context(|| {
+                    format!("failed to parse store address at index {}: {}", idx, s)
+                })
+            })
+            .collect::<Result<_, _>>()?;
+        <LocalDb>::fetch_store_events(
             self,
-            store_addresses,
+            &addresses,
             start_block,
             end_block,
             &FetchConfig::default(),

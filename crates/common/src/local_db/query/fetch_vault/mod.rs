@@ -1,3 +1,4 @@
+use crate::local_db::query::{SqlStatement, SqlValue};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -23,11 +24,13 @@ pub struct LocalDbVault {
     pub output_orders: Option<String>,
 }
 
-pub fn build_fetch_vault_query(chain_id: u32, vault_id: &str, token: &str) -> String {
-    QUERY_TEMPLATE
-        .replace("'?vault_id'", &format!("'{}'", vault_id))
-        .replace("'?token'", &format!("'{}'", token))
-        .replace("'?chain_id'", &format!("'{}'", chain_id))
+pub fn build_fetch_vault_stmt(chain_id: u32, vault_id: &str, token: &str) -> SqlStatement {
+    let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
+    // Parameter order: ?1 chain_id, ?2 vault_id, ?3 token
+    stmt.push(SqlValue::I64(chain_id as i64));
+    stmt.push(SqlValue::Text(vault_id.to_string()));
+    stmt.push(SqlValue::Text(token.to_string()));
+    stmt
 }
 
 /// Parses the IO annotation string emitted by the database into a sorted list of
@@ -56,16 +59,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn builds_query_replacing_placeholders() {
-        let q = build_fetch_vault_query(10, "0x01", "0xabc");
-        assert!(!q.contains("'?vault_id'"));
-        assert!(!q.contains("'?token'"));
-        assert!(!q.contains("'?chain_id'"));
-        assert!(q.contains("et.chain_id = '10'"));
-        assert!(!q.contains("'?vault_id' AS vault_id"));
-        assert!(!q.contains("'?token' AS token"));
-        assert!(q.contains("'0x01'"));
-        assert!(q.contains("'0xabc'"));
+    fn builds_query_with_params() {
+        let stmt = build_fetch_vault_stmt(10, "0x01", "0xabc");
+        assert!(stmt.sql.contains("et.chain_id = ?1"));
+        assert!(stmt.sql.contains("?2 AS vault_id"));
+        assert!(stmt.sql.contains("?3    AS token"));
+        assert_eq!(stmt.params.len(), 3);
     }
 
     #[test]

@@ -118,9 +118,9 @@ mod tests {
     use tempfile::TempDir;
     use url::Url;
 
-    use crate::commands::local_db::executor::SqliteCliExecutor;
+    use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
-    use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
+    use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 
     const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
         block_number,
@@ -282,8 +282,10 @@ mod tests {
         let db_path = temp_dir.path().join("sync.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        let exec = RusqliteExecutor::new(&*db_path_str);
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
 
         let data_source = MockDataSource {
             sql_result: "INSERT INTO sync(last_synced_block) VALUES(?end_block)".to_string(),
@@ -326,8 +328,10 @@ mod tests {
         let db_path = temp_dir.path().join("prep.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        let exec = RusqliteExecutor::new(&*db_path_str);
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
 
         let token_addr = Address::from([0xaa; 20]);
         let decoded = vec![DecodedEventData {
@@ -422,8 +426,10 @@ mod tests {
         let db_path = temp_dir.path().join("prep.db");
         let db_path_str = db_path.to_string_lossy();
 
-        let exec = SqliteCliExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        let exec = RusqliteExecutor::new(&*db_path_str);
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
 
         let data_source = MockDataSource {
             sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),

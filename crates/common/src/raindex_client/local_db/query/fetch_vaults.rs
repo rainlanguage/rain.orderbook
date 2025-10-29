@@ -1,5 +1,5 @@
 use crate::local_db::query::fetch_vault::LocalDbVault;
-use crate::local_db::query::fetch_vaults::{build_fetch_vaults_query, FetchVaultsArgs};
+use crate::local_db::query::fetch_vaults::{build_fetch_vaults_stmt, FetchVaultsArgs};
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::raindex_client::vaults::GetVaultsFilters;
 
@@ -36,8 +36,8 @@ pub async fn fetch_vaults<E: LocalDbQueryExecutor + ?Sized>(
     chain_id: u32,
     args: FetchVaultsArgs,
 ) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
-    let sql = build_fetch_vaults_query(chain_id, &args);
-    exec.query_json(&sql).await
+    let stmt = build_fetch_vaults_stmt(chain_id, &args)?;
+    exec.query_json(&stmt).await
 }
 
 #[cfg(test)]
@@ -78,6 +78,7 @@ mod tests {
         use std::cell::RefCell;
         use std::rc::Rc;
         use wasm_bindgen_test::*;
+        use wasm_bindgen_utils::prelude::wasm_bindgen;
 
         #[wasm_bindgen_test]
         async fn wrapper_uses_builder_sql_exactly() {
@@ -86,9 +87,12 @@ mod tests {
             args.tokens = vec![" Tok'A ".into()];
             args.hide_zero_balance = true;
 
-            let expected_sql = build_fetch_vaults_query(137, &args);
+            let expected_stmt = build_fetch_vaults_stmt(137, &args).unwrap();
 
-            let store = Rc::new(RefCell::new(String::new()));
+            let store = Rc::new(RefCell::new((
+                String::new(),
+                wasm_bindgen::JsValue::UNDEFINED,
+            )));
             let callback = create_sql_capturing_callback("[]", store.clone());
             let exec = JsCallbackExecutor::new(&callback);
 
@@ -96,7 +100,7 @@ mod tests {
             assert!(res.is_ok());
 
             let captured = store.borrow().clone();
-            assert_eq!(captured, expected_sql);
+            assert_eq!(captured.0, expected_stmt.sql);
         }
     }
 }

@@ -64,13 +64,13 @@ NOT EXISTS (
         OR (e2.block_number = l.block_number AND e2.log_index > l.log_index))
 )
 AND (
-    '?filter_active' = 'all'
-    OR ('?filter_active' = 'active' AND l.event_type = 'AddOrderV3')
-    OR ('?filter_active' = 'inactive' AND l.event_type = 'RemoveOrderV3')
+    ?1 = 'all'
+    OR (?1 = 'active' AND l.event_type = 'AddOrderV3')
+    OR (?1 = 'inactive' AND l.event_type = 'RemoveOrderV3')
 )
-?filter_owners
-?filter_order_hash
-?filter_tokens
+/*OWNERS_CLAUSE*/
+/*ORDER_HASH_CLAUSE*/
+/*TOKENS_CLAUSE*/
 GROUP BY
 COALESCE(la.order_hash, l.order_hash),
 l.order_owner,
