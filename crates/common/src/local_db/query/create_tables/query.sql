@@ -272,11 +272,14 @@ CREATE INDEX idx_meta_block ON meta_events(chain_id, orderbook_address, block_nu
 CREATE TABLE erc20_tokens (
     chain_id INTEGER NOT NULL,
     orderbook_address TEXT NOT NULL,
+    token_address TEXT NOT NULL,
     name     TEXT    NOT NULL,
     symbol   TEXT    NOT NULL,
     decimals INTEGER NOT NULL,
-    PRIMARY KEY (chain_id, orderbook_address)
+    PRIMARY KEY (chain_id, orderbook_address, token_address)
 );
+CREATE INDEX idx_erc20_tokens_token
+    ON erc20_tokens(chain_id, orderbook_address, token_address);
 
 CREATE TABLE interpreter_store_sets (
     chain_id INTEGER NOT NULL,
