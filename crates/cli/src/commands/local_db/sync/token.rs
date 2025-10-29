@@ -1,4 +1,3 @@
-use alloy::hex;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use itertools::Itertools;
@@ -40,12 +39,8 @@ where
         });
     }
 
-    let addr_strings: Vec<String> = all_token_addrs
-        .iter()
-        .map(|a| hex::encode_prefixed(*a))
-        .collect();
     let existing_rows =
-        fetch_existing_tokens(db_path, chain_id, orderbook_address, &addr_strings).await?;
+        fetch_existing_tokens(db_path, chain_id, orderbook_address, &all_token_addrs).await?;
 
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
     let mut existing_lower: HashSet<String> = HashSet::new();

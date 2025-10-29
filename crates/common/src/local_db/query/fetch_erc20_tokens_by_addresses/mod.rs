@@ -1,4 +1,5 @@
 use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
+use alloy::{hex, primitives::Address};
 use serde::{Deserialize, Serialize};
 
 pub const FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL: &str = include_str!("query.sql");
@@ -6,21 +7,23 @@ pub const FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL: &str = include_str!("query.sql");
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Erc20TokenRow {
     pub chain_id: u32,
-    pub address: String,
+    pub orderbook_address: Address,
+    pub token_address: Address,
     pub name: String,
     pub symbol: String,
     pub decimals: u8,
 }
 
 const ADDRESSES_CLAUSE: &str = "/*ADDRESSES_CLAUSE*/";
-const ADDRESSES_CLAUSE_BODY: &str = "AND address IN ({list})";
+const ADDRESSES_CLAUSE_BODY: &str = "AND token_address IN ({list})";
 
 /// Builds the SQL statement used to load ERC20 metadata for the supplied
 /// addresses. Returns `Ok(None)` when the address list is empty to allow
 /// callers to short-circuit database work.
 pub fn build_fetch_stmt(
     chain_id: u32,
-    addresses: &[String],
+    orderbook_address: Address,
+    addresses: &[Address],
 ) -> Result<Option<SqlStatement>, SqlBuildError> {
     if addresses.is_empty() {
         return Ok(None);
@@ -29,11 +32,16 @@ pub fn build_fetch_stmt(
     let mut stmt = SqlStatement::new(FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL);
     // ?1: chain id
     stmt.push(chain_id as i64);
+    // ?2: orderbook address
+    stmt.push(orderbook_address.to_string());
     // IN list for addresses
     stmt.bind_list_clause(
         ADDRESSES_CLAUSE,
         ADDRESSES_CLAUSE_BODY,
-        addresses.iter().cloned().map(SqlValue::Text),
+        addresses
+            .iter()
+            .cloned()
+            .map(|a| SqlValue::Text(hex::encode_prefixed(a))),
     )?;
     Ok(Some(stmt))
 }
@@ -41,17 +49,20 @@ pub fn build_fetch_stmt(
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use alloy::hex;
     #[test]
     fn empty_addresses_returns_none() {
-        let q = build_fetch_stmt(1, &[]).unwrap();
+        let q = build_fetch_stmt(1, Address::from([0xbe; 20]), &[]).unwrap();
         assert!(q.is_none());
     }
 
     #[test]
     fn builds_in_clause_and_chain_id_with_params() {
-        let addrs = vec!["0xAbc".to_string(), "0xDef".to_string()];
-        let stmt = build_fetch_stmt(137, &addrs)
+        let address_a = Address::from([0xab; 20]);
+        let address_b = Address::from([0xcd; 20]);
+        let addrs = vec![address_a, address_b];
+        let orderbook = Address::from([0xbe; 20]);
+        let stmt = build_fetch_stmt(137, orderbook, &addrs)
             .expect("should build")
             .unwrap();
 
@@ -59,11 +70,18 @@ mod tests {
         assert!(stmt.sql.contains("WHERE chain_id = ?1"));
         assert!(!stmt.sql.contains(ADDRESSES_CLAUSE));
 
-        // Params: first chain id, then two addresses in order
-        assert_eq!(stmt.params.len(), 3);
+        // Params: chain id then addresses
+        assert_eq!(stmt.params.len(), 4);
         assert_eq!(stmt.params[0], SqlValue::I64(137));
-        assert_eq!(stmt.params[1], SqlValue::Text(addrs[0].clone()));
-        assert_eq!(stmt.params[2], SqlValue::Text(addrs[1].clone()));
+        assert_eq!(stmt.params[1], SqlValue::Text(orderbook.to_string()));
+        assert_eq!(
+            stmt.params[2],
+            SqlValue::Text(hex::encode_prefixed(addrs[0]))
+        );
+        assert_eq!(
+            stmt.params[3],
+            SqlValue::Text(hex::encode_prefixed(addrs[1]))
+        );
     }
 
     #[test]

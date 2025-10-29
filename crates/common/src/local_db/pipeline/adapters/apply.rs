@@ -1,9 +1,3 @@
-use std::collections::HashMap;
-use std::str::FromStr;
-
-use alloy::primitives::Address;
-use async_trait::async_trait;
-
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::DecodedEvent;
 use crate::local_db::insert::{
@@ -17,6 +11,9 @@ use crate::local_db::query::update_last_synced_block::build_update_last_synced_b
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
+use alloy::primitives::Address;
+use async_trait::async_trait;
+use std::collections::HashMap;
 
 /// Default implementation of the ApplyPipeline.
 ///
@@ -46,11 +43,7 @@ impl ApplyPipeline for DefaultApplyPipeline {
         // 1) Build decimals map from existing rows and the incoming upserts
         let decimals_by_token: HashMap<Address, u8> = existing_tokens
             .iter()
-            .filter_map(|row| {
-                Address::from_str(&row.token_address)
-                    .ok()
-                    .map(|addr| (addr, row.decimals))
-            })
+            .map(|row| (row.token_address, row.decimals))
             .chain(
                 tokens_to_upsert
                     .iter()
@@ -211,8 +204,8 @@ mod tests {
         // existing token with decimals 18
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            orderbook_address: format!("0x{:x}", target.orderbook_address),
-            token_address: format!("0x{:x}", token),
+            orderbook_address: target.orderbook_address,
+            token_address: token,
             name: "Token".into(),
             symbol: "TKN".into(),
             decimals: 18,
@@ -311,8 +304,8 @@ mod tests {
         // Existing says 6 decimals
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            orderbook_address: format!("0x{:x}", target.orderbook_address),
-            token_address: format!("0x{:x}", token),
+            orderbook_address: target.orderbook_address,
+            token_address: token,
             name: "Token".into(),
             symbol: "T6".into(),
             decimals: 6,
@@ -368,8 +361,8 @@ mod tests {
         // Existing has an invalid address string
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            orderbook_address: format!("0x{:x}", target.orderbook_address),
-            token_address: "not-an-address".into(),
+            orderbook_address: target.orderbook_address,
+            token_address: Address::ZERO,
             name: "Bad".into(),
             symbol: "BAD".into(),
             decimals: 6,
@@ -436,8 +429,8 @@ mod tests {
         let token_b = Address::from([2u8; 20]);
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            orderbook_address: format!("0x{:x}", target.orderbook_address),
-            token_address: format!("0x{:x}", token_a),
+            orderbook_address: target.orderbook_address,
+            token_address: token_a,
             name: "A".into(),
             symbol: "A".into(),
             decimals: 6,
@@ -515,8 +508,8 @@ mod tests {
         // Only existing provides decimals
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            orderbook_address: format!("0x{:x}", target.orderbook_address),
-            token_address: format!("0x{:x}", token),
+            orderbook_address: target.orderbook_address,
+            token_address: token,
             name: "E".into(),
             symbol: "E".into(),
             decimals: 9,
@@ -843,8 +836,8 @@ mod tests {
 
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            orderbook_address: format!("0x{:x}", target.orderbook_address),
-            token_address: format!("0x{:x}", token),
+            orderbook_address: target.orderbook_address,
+            token_address: token,
             name: "Token".into(),
             symbol: "TKN".into(),
             decimals: 18,
@@ -895,8 +888,8 @@ mod tests {
 
         let existing = vec![Erc20TokenRow {
             chain_id: target.chain_id as u32,
-            orderbook_address: format!("0x{:x}", target.orderbook_address),
-            token_address: format!("0x{:x}", token_a),
+            orderbook_address: target.orderbook_address,
+            token_address: token_a,
             name: "A".into(),
             symbol: "A".into(),
             decimals: 6,

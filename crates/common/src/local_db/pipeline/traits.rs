@@ -231,7 +231,7 @@ pub trait TokensPipeline {
         db: &DB,
         chain_id: u64,
         orderbook_address: Address,
-        token_addrs_lower: &[String],
+        token_addrs_lower: &[Address],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized;

@@ -3,12 +3,16 @@ use crate::local_db::query::fetch_last_synced_block::{
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::{LocalDb, LocalDbError};
+use alloy::primitives::Address;
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
 pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
+    chain_id: u32,
+    orderbook_address: Address,
 ) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
-    exec.query_json(&fetch_last_synced_block_stmt()).await
+    exec.query_json(&fetch_last_synced_block_stmt(chain_id, orderbook_address))
+        .await
 }
 
 #[wasm_export]
@@ -24,7 +28,8 @@ impl LocalDb {
         db_callback: js_sys::Function,
     ) -> Result<Vec<SyncStatusResponse>, LocalDbError> {
         let exec = crate::raindex_client::local_db::executor::JsCallbackExecutor::new(&db_callback);
-        fetch_last_synced_block(&exec)
+
+        fetch_last_synced_block(&exec, 0, Address::ZERO)
             .await
             .map_err(LocalDbError::from)
     }
@@ -41,14 +46,14 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_raw_sql_exactly() {
-        let expected_stmt = fetch_last_synced_block_stmt();
+        let expected_stmt = fetch_last_synced_block_stmt(0, Address::ZERO);
         let store = Rc::new(RefCell::new((
             String::new(),
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
-        let res = super::fetch_last_synced_block(&exec).await;
+        let res = super::fetch_last_synced_block(&exec, 0, Address::ZERO).await;
         assert!(res.is_ok());
         assert_eq!(store.borrow().clone().0, expected_stmt.sql);
     }

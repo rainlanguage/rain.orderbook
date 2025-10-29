@@ -607,22 +607,42 @@ impl RaindexClient {
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
         let fetch_args = filters.map(FetchOrdersArgs::from).unwrap_or_default();
-        let local_db_orders = fetch_orders(&executor, fetch_args).await?;
+        let orderbooks = self.get_orderbooks_by_chain_id(chain_id)?;
 
-        for local_db_order in &local_db_orders {
-            let input_vaults =
-                fetch_vaults_for_io_string(&executor, chain_id, &local_db_order.inputs).await?;
-            let output_vaults =
-                fetch_vaults_for_io_string(&executor, chain_id, &local_db_order.outputs).await?;
-
-            let order = RaindexOrder::try_from_local_db(
-                raindex_client.clone(),
+        for orderbook_cfg in orderbooks {
+            let local_db_orders = fetch_orders(
+                &executor,
                 chain_id,
-                local_db_order.clone(),
-                input_vaults,
-                output_vaults,
-            )?;
-            orders.push(order);
+                orderbook_cfg.address,
+                fetch_args.clone(),
+            )
+            .await?;
+
+            for local_db_order in &local_db_orders {
+                let input_vaults = fetch_vaults_for_io_string(
+                    &executor,
+                    chain_id,
+                    orderbook_cfg.address,
+                    &local_db_order.inputs,
+                )
+                .await?;
+                let output_vaults = fetch_vaults_for_io_string(
+                    &executor,
+                    chain_id,
+                    orderbook_cfg.address,
+                    &local_db_order.outputs,
+                )
+                .await?;
+
+                let order = RaindexOrder::try_from_local_db(
+                    raindex_client.clone(),
+                    chain_id,
+                    local_db_order.clone(),
+                    input_vaults,
+                    output_vaults,
+                )?;
+                orders.push(order);
+            }
         }
 
         Ok(orders)
@@ -727,19 +747,25 @@ impl RaindexClient {
             ..FetchOrdersArgs::default()
         };
 
-        let local_db_orders = fetch_orders(executor, fetch_args).await?;
+        let local_db_orders =
+            fetch_orders(executor, chain_id, orderbook_address, fetch_args).await?;
         let raindex_client = Rc::new(self.clone());
 
-        for local_db_order in local_db_orders {
-            let local_orderbook_address = Address::from_str(&local_db_order.orderbook_address)?;
-            if local_orderbook_address != orderbook_address {
-                continue;
-            }
-
-            let input_vaults =
-                fetch_vaults_for_io_string(executor, chain_id, &local_db_order.inputs).await?;
-            let output_vaults =
-                fetch_vaults_for_io_string(executor, chain_id, &local_db_order.outputs).await?;
+        if let Some(local_db_order) = local_db_orders.into_iter().next() {
+            let input_vaults = fetch_vaults_for_io_string(
+                executor,
+                chain_id,
+                orderbook_address,
+                &local_db_order.inputs,
+            )
+            .await?;
+            let output_vaults = fetch_vaults_for_io_string(
+                executor,
+                chain_id,
+                orderbook_address,
+                &local_db_order.outputs,
+            )
+            .await?;
 
             let order = RaindexOrder::try_from_local_db(
                 Rc::clone(&raindex_client),
@@ -1013,12 +1039,13 @@ mod tests {
 
             let callback = Closure::wrap(Box::new(move |sql: String, params: JsValue| -> JsValue {
                 if sql.contains("FROM order_events")
-                    && sql.contains("GROUP_CONCAT(CASE WHEN ios.io_type = 'input'")
+                    && sql.contains("GROUP_CONCAT(")
+                    && sql.contains("ios.io_type = 'input'")
                 {
                     return js_sys::JSON::parse(&orders_payload).unwrap();
                 }
 
-                if sql.contains("FLOAT_SUM(vd.delta)") {
+                if sql.contains("FLOAT_SUM(vd") {
                     // Serialize params and try to match against captured vault ids
                     let params_json = js_sys::JSON::stringify(&params)
                         .unwrap()

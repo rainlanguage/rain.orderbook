@@ -87,7 +87,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
 
     let existing_stores: Vec<StoreAddressRow> = db
-        .query_json(&fetch_store_addresses_stmt())
+        .query_json(&fetch_store_addresses_stmt(chain_id, orderbook_cfg.address))
         .await
         .map_err(LocalDbError::from)?;
     let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
@@ -245,13 +245,8 @@ async fn prepare_erc20_tokens_prefix(
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
 
     if !all_token_addrs.is_empty() {
-        let addr_strings: Vec<String> = all_token_addrs
-            .iter()
-            .map(|a| format!("0x{:x}", a))
-            .collect();
-
         let existing_rows: Vec<Erc20TokenRow> = if let Some(stmt) =
-            build_token_stmt(chain_id, orderbook_address, &addr_strings)
+            build_token_stmt(chain_id, orderbook_address, &all_token_addrs)
                 .map_err(|e| LocalDbError::CustomError(e.to_string()))?
         {
             db.query_json(&stmt).await.map_err(LocalDbError::from)?
@@ -261,10 +256,8 @@ async fn prepare_erc20_tokens_prefix(
 
         let mut existing_set: HashSet<Address> = HashSet::new();
         for row in existing_rows.iter() {
-            if let Ok(addr) = Address::from_str(&row.token_address) {
-                decimals_by_addr.insert(addr, row.decimals);
-                existing_set.insert(addr);
-            }
+            decimals_by_addr.insert(row.token_address, row.decimals);
+            existing_set.insert(row.token_address);
         }
 
         let missing_addrs: Vec<Address> = all_token_addrs
@@ -802,20 +795,20 @@ mod tests {
         #[tokio::test]
         async fn test_prepare_tokens_existing_only() {
             let chain_id = 9999u32;
-            let token = Address::from([0xAAu8; 20]);
+            let token_address = Address::from([0xAAu8; 20]);
             let orderbook_address = Address::from([0x55u8; 20]);
-            let events = vec![build_deposit_event(token)];
+            let events = vec![build_deposit_event(token_address)];
 
             // DB returns existing row for the token query
             let row = Erc20TokenRow {
                 chain_id,
-                orderbook_address: format!("0x{:x}", orderbook_address),
-                token_address: format!("0x{:x}", token),
+                orderbook_address,
+                token_address,
                 name: "Foo".into(),
                 symbol: "FOO".into(),
                 decimals: 6,
             };
-            let stmt = build_fetch_stmt(chain_id, orderbook_address, &[format!("0x{:x}", token)])
+            let stmt = build_fetch_stmt(chain_id, orderbook_address, &[token_address])
                 .expect("stmt")
                 .expect("some");
             let db = MockDb::new().with_json(
@@ -838,7 +831,7 @@ mod tests {
             .await
             .unwrap();
             assert!(out.tokens_prefix_sql.is_empty());
-            assert_eq!(out.decimals_by_addr.get(&token), Some(&6));
+            assert_eq!(out.decimals_by_addr.get(&token_address), Some(&6));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -855,7 +848,7 @@ mod tests {
             let events = vec![build_deposit_event(token)];
 
             // DB query returns empty so the token is considered missing
-            let stmt = build_fetch_stmt(1, orderbook_address, &[format!("0x{:x}", token)])
+            let stmt = build_fetch_stmt(1, orderbook_address, &[token])
                 .expect("stmt")
                 .expect("some");
             let db = MockDb::new().with_json(&stmt.sql, "[]");

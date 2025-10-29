@@ -74,10 +74,20 @@ pub(crate) async fn fetch_last_synced(
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
 }
 
-pub(crate) async fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
+pub(crate) async fn fetch_existing_store_addresses(
+    db_path: &str,
+    chain_id: u32,
+    orderbook_address: Address,
+) -> Result<Vec<String>> {
     let exec = RusqliteExecutor::new(db_path);
     let rows: Vec<StoreAddressRow> = exec
-        .query_json(&SqlStatement::new(STORE_ADDRESSES_QUERY))
+        .query_json(&SqlStatement::new_with_params(
+            STORE_ADDRESSES_QUERY,
+            [
+                SqlValue::from(chain_id as i64),
+                SqlValue::from(orderbook_address.to_string()),
+            ],
+        ))
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
     Ok(rows
@@ -123,7 +133,7 @@ pub(crate) async fn fetch_existing_tokens(
     db_path: &str,
     chain_id: u32,
     orderbook_address: Address,
-    addresses: &[String],
+    addresses: &[Address],
 ) -> Result<Vec<Erc20TokenRow>> {
     // Build a parameterized statement. When address list is empty, there is
     // nothing to fetch.
@@ -159,6 +169,7 @@ struct StoreAddressRow {
 mod tests {
     use super::*;
     use crate::commands::local_db::sync::data_source::SyncDataSource;
+    use std::str::FromStr;
     use tempfile::TempDir;
 
     #[test]
@@ -248,7 +259,10 @@ mod tests {
         .await
         .unwrap();
 
-        let stores = fetch_existing_store_addresses(&db_path_str).await.unwrap();
+        let orderbook = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
+        let stores = fetch_existing_store_addresses(&db_path_str, 1, orderbook)
+            .await
+            .unwrap();
         assert_eq!(stores, vec!["0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);
     }
 }

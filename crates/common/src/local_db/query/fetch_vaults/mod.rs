@@ -1,3 +1,5 @@
+use alloy::primitives::Address;
+
 use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
 use std::collections::HashSet;
 
@@ -18,15 +20,18 @@ const TOKENS_CLAUSE_BODY: &str = "\nAND lower(o.token) IN ({list})\n";
 
 const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
 const HIDE_ZERO_BALANCE_BODY: &str =
-    "\nAND NOT FLOAT_IS_ZERO(\n    COALESCE((\n      SELECT FLOAT_SUM(vd.delta)\n      FROM vault_deltas vd\n      WHERE vd.owner    = o.owner\n        AND vd.token    = o.token\n        AND vd.vault_id = o.vault_id\n    ), FLOAT_ZERO_HEX())\n  )\n\n";
+    "\nAND NOT FLOAT_IS_ZERO(\n    COALESCE((\n      SELECT FLOAT_SUM(vd.delta)\n      FROM vault_deltas vd\n      WHERE vd.chain_id = ?1\n        AND lower(vd.orderbook_address) = lower(?2)\n        AND vd.owner    = o.owner\n        AND vd.token    = o.token\n        AND vd.vault_id = o.vault_id\n    ), FLOAT_ZERO_HEX())\n  )\n\n";
 
 pub fn build_fetch_vaults_stmt(
     chain_id: u32,
+    orderbook_address: Address,
     args: &FetchVaultsArgs,
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
     // ?1: chain id
     stmt.push(SqlValue::I64(chain_id as i64));
+    // ?2: orderbook address
+    stmt.push(SqlValue::Text(orderbook_address.to_string()));
 
     // Owners list (trim, non-empty, lowercase) with order-preserving dedup
     let mut owners: Vec<String> = Vec::new();
@@ -87,12 +92,12 @@ mod tests {
     #[test]
     fn chain_id_and_no_filters() {
         let args = mk_args();
-        let stmt = build_fetch_vaults_stmt(1, &args).unwrap();
+        let stmt = build_fetch_vaults_stmt(1, Address::ZERO, &args).unwrap();
         assert!(stmt.sql.contains("et.chain_id = ?1"));
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
-        assert_eq!(stmt.params.len(), 1);
+        assert_eq!(stmt.params.len(), 2);
     }
 
     #[test]
@@ -101,14 +106,14 @@ mod tests {
         args.owners = vec![" 0xA ".into(), "O'Owner".into()];
         args.tokens = vec!["TOK'A".into()];
         args.hide_zero_balance = true;
-        let stmt = build_fetch_vaults_stmt(137, &args).unwrap();
+        let stmt = build_fetch_vaults_stmt(137, Address::ZERO, &args).unwrap();
 
         // Clauses inserted
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
         assert!(stmt.sql.contains("AND NOT FLOAT_IS_ZERO("));
-        // Params: chain id + owners + tokens
+        // Params: chain id + orderbook + owners + tokens
         assert!(!stmt.params.is_empty());
     }
 

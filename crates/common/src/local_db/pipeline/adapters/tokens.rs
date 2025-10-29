@@ -26,7 +26,7 @@ impl TokensPipeline for DefaultTokensPipeline {
         db: &DB,
         chain_id: u64,
         orderbook_address: Address,
-        token_addrs_lower: &[String],
+        token_addrs_lower: &[Address],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
@@ -133,8 +133,8 @@ mod tests {
         let token_addr = Address::from([0xac; 20]);
         let row = Erc20TokenRow {
             chain_id: 137,
-            orderbook_address: orderbook.to_string(),
-            token_address: token_addr.to_string(),
+            orderbook_address: orderbook,
+            token_address: token_addr,
             name: "Token".to_string(),
             symbol: "TKN".to_string(),
             decimals: 18,
@@ -147,10 +147,7 @@ mod tests {
             expect_addr_count: Some(2),
         };
         let pipeline = DefaultTokensPipeline::new();
-        let addrs = vec![
-            token_addr.to_string(),
-            Address::from([0xad; 20]).to_string(),
-        ];
+        let addrs = vec![token_addr, Address::from([0xad; 20])];
         let out = pipeline
             .load_existing(&db, 137, orderbook, &addrs)
             .await

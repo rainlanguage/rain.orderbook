@@ -312,8 +312,14 @@ impl RaindexVault {
                 let exec = JsCallbackExecutor::new(&db_cb);
                 let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
                 let token_address = self.token.address.to_string();
-                let local_changes =
-                    fetch_vault_balance_changes(&exec, &vault_id_hex, &token_address).await?;
+                let local_changes = fetch_vault_balance_changes(
+                    &exec,
+                    self.chain_id,
+                    self.orderbook,
+                    &vault_id_hex,
+                    &token_address,
+                )
+                .await?;
 
                 if !local_changes.is_empty() {
                     return local_changes
@@ -1190,24 +1196,34 @@ impl RaindexClient {
         chain_id: u32,
         filters: Option<GetVaultsFilters>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let fetch_args = filters
+        let fetch_args_template = filters
             .clone()
             .map(FetchVaultsArgs::from_filters)
             .unwrap_or_default();
 
-        let local_vaults = fetch_vaults(&executor, chain_id, fetch_args).await?;
         let mut vaults = Vec::new();
+        let orderbooks = self.get_orderbooks_by_chain_id(chain_id)?;
         let raindex_client = Rc::new(self.clone());
 
-        for local_vault in local_vaults {
-            let vault = RaindexVault::try_from_local_db(
-                Rc::clone(&raindex_client),
+        for orderbook_cfg in orderbooks {
+            let local_vaults = fetch_vaults(
+                &executor,
                 chain_id,
-                local_vault,
-                None,
-            )?;
+                orderbook_cfg.address,
+                fetch_args_template.clone(),
+            )
+            .await?;
 
-            vaults.push(vault);
+            for local_vault in local_vaults {
+                let vault = RaindexVault::try_from_local_db(
+                    Rc::clone(&raindex_client),
+                    chain_id,
+                    local_vault,
+                    None,
+                )?;
+
+                vaults.push(vault);
+            }
         }
 
         Ok(vaults)
@@ -1369,11 +1385,10 @@ impl RaindexClient {
             ..FetchVaultsArgs::default()
         };
 
-        let local_vaults = fetch_vaults(executor, chain_id, fetch_args).await?;
+        let local_vaults = fetch_vaults(executor, chain_id, orderbook_address, fetch_args).await?;
         let raindex_client = Rc::new(self.clone());
 
         let requested_id = vault_id.to_string().to_lowercase();
-        let requested_orderbook = orderbook_address.to_string().to_lowercase();
 
         for local_vault in local_vaults {
             let vault = RaindexVault::try_from_local_db(
@@ -1382,11 +1397,6 @@ impl RaindexClient {
                 local_vault,
                 None,
             )?;
-
-            let candidate_orderbook = vault.orderbook().to_string().to_lowercase();
-            if candidate_orderbook != requested_orderbook {
-                continue;
-            }
 
             let candidate_id = vault.id().to_string().to_lowercase();
             if candidate_id == requested_id {
