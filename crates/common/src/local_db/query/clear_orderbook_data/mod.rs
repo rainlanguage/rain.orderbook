@@ -3,11 +3,11 @@ use alloy::primitives::Address;
 
 pub const CLEAR_ORDERBOOK_DATA_SQL: &str = include_str!("query.sql");
 
-pub fn clear_orderbook_data_stmt(chain_id: u64, orderbook_address: Address) -> SqlStatement {
+pub fn clear_orderbook_data_stmt(chain_id: u32, orderbook_address: Address) -> SqlStatement {
     SqlStatement::new_with_params(
         CLEAR_ORDERBOOK_DATA_SQL,
         [
-            SqlValue::from(chain_id),
+            SqlValue::from(chain_id as u64),
             SqlValue::from(orderbook_address.to_string()),
         ],
     )
