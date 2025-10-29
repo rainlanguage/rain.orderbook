@@ -131,6 +131,11 @@ impl RaindexOrder {
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let chain_id = self.chain_id();
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&self.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = self.orderbook();
+
         if LocalDb::check_support(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
@@ -139,7 +144,7 @@ impl RaindexOrder {
                 let local_trades = fetch_order_trades(
                     &exec,
                     chain_id,
-                    Address::from_str(&self.orderbook().to_string())?,
+                    orderbook,
                     &order_hash,
                     start_timestamp,
                     end_timestamp,
@@ -244,6 +249,11 @@ impl RaindexOrder {
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
         let chain_id = self.chain_id();
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&self.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = self.orderbook();
+
         if LocalDb::check_support(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
@@ -252,7 +262,7 @@ impl RaindexOrder {
                 let count = fetch_order_trades_count(
                     &exec,
                     chain_id,
-                    Address::from_str(&self.orderbook().to_string())?,
+                    orderbook,
                     &order_hash,
                     start_timestamp,
                     end_timestamp,

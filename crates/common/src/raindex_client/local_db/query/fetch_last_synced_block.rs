@@ -1,8 +1,11 @@
+use std::str::FromStr;
+
 use crate::local_db::query::fetch_last_synced_block::{
     fetch_last_synced_block_stmt, SyncStatusResponse,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::{LocalDb, LocalDbError};
+use crate::raindex_client::local_db::executor::JsCallbackExecutor;
 use alloy::primitives::Address;
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
@@ -26,10 +29,12 @@ impl LocalDb {
         &self,
         #[wasm_export(param_description = "JavaScript function to execute database queries")]
         db_callback: js_sys::Function,
+        #[wasm_export(js_name = "chainId")] chain_id: u32,
+        #[wasm_export(js_name = "orderbookAddress", unchecked_param_type = "Address")]
+        orderbook_address: String,
     ) -> Result<Vec<SyncStatusResponse>, LocalDbError> {
-        let exec = crate::raindex_client::local_db::executor::JsCallbackExecutor::new(&db_callback);
-
-        fetch_last_synced_block(&exec, 0, Address::ZERO)
+        let exec = JsCallbackExecutor::new(&db_callback);
+        fetch_last_synced_block(&exec, chain_id, Address::from_str(&orderbook_address)?)
             .await
             .map_err(LocalDbError::from)
     }

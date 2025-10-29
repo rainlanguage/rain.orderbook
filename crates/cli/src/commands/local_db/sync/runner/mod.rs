@@ -415,8 +415,6 @@ mod tests {
         }
     }
 
-    const ORDERBOOK_HEX: &str = "0x1111111111111111111111111111111111111111";
-
     #[tokio::test]
     async fn run_appends_store_events() {
         let temp_dir = TempDir::new().unwrap();
@@ -460,7 +458,7 @@ mod tests {
 
         let params = SyncParams {
             chain_id: 1,
-            orderbook_address: ORDERBOOK_HEX,
+            orderbook_address: "0x1111111111111111111111111111111111111111",
             deployment_block: 150,
             start_block: None,
             end_block: Some(160),
@@ -533,7 +531,7 @@ mod tests {
         exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
             .await
             .unwrap();
-        exec.query_text(&SqlStatement::new(format!(
+        exec.query_text(&SqlStatement::new(
             r#"INSERT INTO interpreter_store_sets (
                 chain_id,
                 orderbook_address,
@@ -547,7 +545,7 @@ mod tests {
                 value
             ) VALUES (
                 1,
-                '{ORDERBOOK_HEX}',
+                '0x1111111111111111111111111111111111111111',
                 '0x2222222222222222222222222222222222222222',
                 '0x1',
                 0,
@@ -557,8 +555,8 @@ mod tests {
                 '0x0',
                 '0x0'
             );
-"#
-        )))
+"#,
+        ))
         .await
         .unwrap();
 
@@ -586,7 +584,7 @@ mod tests {
 
         let params = SyncParams {
             chain_id: 1,
-            orderbook_address: ORDERBOOK_HEX,
+            orderbook_address: "0x1111111111111111111111111111111111111111",
             deployment_block: 180,
             start_block: None,
             end_block: Some(185),
