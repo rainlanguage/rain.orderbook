@@ -2,6 +2,7 @@ use crate::local_db::pipeline::traits::BootstrapConfig;
 use crate::local_db::pipeline::traits::BootstrapPipeline;
 use crate::local_db::pipeline::traits::BootstrapState;
 use crate::local_db::pipeline::traits::TargetKey;
+use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -106,11 +107,34 @@ impl BootstrapPipeline for DefaultBootstrapAdapter {
         Ok(())
     }
 
-    async fn run<DB>(&self, _: &DB, _: Option<u32>, _: &BootstrapConfig) -> Result<(), LocalDbError>
+    async fn clear_orderbook_data<DB>(
+        &self,
+        db: &DB,
+        target: &TargetKey,
+    ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        Err(LocalDbError::MissingBootstrapImplementation)
+        db.query_text(&clear_orderbook_data_stmt(
+            target.chain_id,
+            target.orderbook_address,
+        ))
+        .await?;
+        Ok(())
+    }
+
+    async fn engine_run<DB>(&self, _: &DB, _: &BootstrapConfig) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        Err(LocalDbError::InvalidBootstrapImplementation)
+    }
+
+    async fn runner_run<DB>(&self, _: &DB, _: Option<u32>) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        Err(LocalDbError::InvalidBootstrapImplementation)
     }
 }
 
@@ -542,7 +566,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_returns_missing_impl() {
+    async fn engine_run_returns_missing_impl() {
         let adapter = DefaultBootstrapAdapter::new();
         let db = MockDb::default();
         let cfg = BootstrapConfig {
@@ -554,9 +578,21 @@ mod tests {
             latest_block: 0,
         };
 
-        let err = adapter.run(&db, None, &cfg).await.unwrap_err();
+        let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
         match err {
-            LocalDbError::MissingBootstrapImplementation => {}
+            LocalDbError::InvalidBootstrapImplementation => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn runner_run_returns_missing_impl() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let db = MockDb::default();
+
+        let err = adapter.runner_run(&db, None).await.unwrap_err();
+        match err {
+            LocalDbError::InvalidBootstrapImplementation => {}
             other => panic!("unexpected error: {other:?}"),
         }
     }
