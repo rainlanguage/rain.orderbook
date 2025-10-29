@@ -209,6 +209,22 @@
         "type": "indirect"
       }
     },
+    "nixpkgs-old": {
+      "locked": {
+        "lastModified": 1749104371,
+        "narHash": "sha256-m2NmOPd6XgBiskmUq/BS9Xxuf3z0ebnGVfSKNAO5NEM=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "48975d7f9b9960ed33c4e8561bcce20cc0c2de5b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "48975d7f9b9960ed33c4e8561bcce20cc0c2de5b",
+        "type": "github"
+      }
+    },
     "nixpkgs_2": {
       "locked": {
         "lastModified": 1714764285,
@@ -363,21 +379,22 @@
         "flake-utils": "flake-utils_7",
         "foundry": "foundry_2",
         "nixpkgs": "nixpkgs_6",
+        "nixpkgs-old": "nixpkgs-old",
         "rust-overlay": "rust-overlay_2",
         "solc": "solc_2"
       },
       "locked": {
-        "lastModified": 1761604672,
-        "narHash": "sha256-pGLbPrUNlLA20Tif0C3qiNszrNHiN9BmAsPaFMFUbow=",
+        "lastModified": 1761691469,
+        "narHash": "sha256-414jL0IpGHzOztZIvd/ePiPakus+OFZ51A1xlEVHhN4=",
         "owner": "rainlanguage",
         "repo": "rainix",
-        "rev": "d26f65d1a5de54996fa42ce0ca0d3d95ff44e2bc",
+        "rev": "d3fd31f0e4706984d1b26e63c179eccbdb1567ae",
         "type": "github"
       },
       "original": {
         "owner": "rainlanguage",
         "repo": "rainix",
-        "rev": "d26f65d1a5de54996fa42ce0ca0d3d95ff44e2bc",
+        "rev": "d3fd31f0e4706984d1b26e63c179eccbdb1567ae",
         "type": "github"
       }
     },
