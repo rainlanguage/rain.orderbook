@@ -2,14 +2,14 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix?rev=d3fd31f0e4706984d1b26e63c179eccbdb1567ae";
+    rainix.url = "github:rainlanguage/rainix?rev=8354e4956ed60f33135598750e4442f075a23c10";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs = { self, flake-utils, rainix, rain }:
     flake-utils.lib.eachDefaultSystem (system:
-      let 
+      let
         pkgs = rainix.pkgs.${system};
         old-pkgs = rainix.old-pkgs.${system};
       in rec {
