@@ -53,23 +53,12 @@ jobs:
           node-version: 22
           cache: "npm"
 
-      - run: nix develop -c rainix-sol-prelude
-        working-directory: lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float
-      - run: nix develop -c rainix-rs-prelude
-        working-directory: lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float
-      - run: nix develop -c forge build
-        working-directory: lib/rain.tofu.erc20-decimals
-      - run: nix develop -c rainix-sol-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop -c rainix-rs-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop -c rainix-sol-prelude
-        working-directory: lib/rain.interpreter/lib/rain.metadata
-      - run: nix develop -c rainix-rs-prelude
-        working-directory: lib/rain.interpreter/lib/rain.metadata
-      - run: nix develop -c rainix-sol-prelude
-      - run: nix develop -c rainix-rs-prelude
-      - run: nix develop -c raindex-prelude
+      - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+
+      - name: Remove Unused Artifacts
+        run: rm -rf ./target/debug
 
       - name: Test JS/TS Binding 1/2
         run: nix develop -c rainix-wasm-test
