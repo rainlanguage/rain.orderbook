@@ -21,6 +21,7 @@ import {OrderBookV5ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV5ArbOr
 import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
+import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -50,6 +51,10 @@ abstract contract ArbTest is Test {
     function buildArb(OrderBookV5ArbConfig memory config) internal virtual returns (address);
 
     constructor() {
+        // Put the TOFU decimals contract in place so that any calls to it
+        // succeed. This is because we don't have zoltu here.
+        vm.etch(address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT), type(TOFUTokenDecimals).runtimeCode);
+
         iInterpreter = IInterpreterV4(address(uint160(uint256(keccak256("interpreter.rain.test")))));
         vm.label(address(iInterpreter), "iInterpreter");
         iInterpreterStore = IInterpreterStoreV3(address(uint160(uint256(keccak256("interpreter.store.rain.test")))));
