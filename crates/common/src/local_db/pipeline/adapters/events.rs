@@ -1,13 +1,11 @@
+use alloy::primitives::Address;
 use async_trait::async_trait;
 use url::Url;
 
-use alloy::primitives::Address;
-
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
-use crate::local_db::{FetchConfig, LocalDb, LocalDbError};
-use crate::rpc_client::{BlockRange, LogEntryResponse};
-
 use crate::local_db::pipeline::EventsPipeline;
+use crate::local_db::{FetchConfig, LocalDb, LocalDbError};
+use crate::rpc_client::LogEntryResponse;
 
 /// Shared implementation of the EventsPipeline that delegates to LocalDb.
 ///
@@ -52,22 +50,24 @@ impl EventsPipeline for DefaultEventsPipeline {
     async fn fetch_orderbook(
         &self,
         orderbook_address: Address,
-        range: BlockRange,
+        from_block: u64,
+        to_block: u64,
         cfg: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         self.db
-            .fetch_orderbook_events(orderbook_address, range, cfg)
+            .fetch_orderbook_events(orderbook_address, from_block, to_block, cfg)
             .await
     }
 
     async fn fetch_stores(
         &self,
         store_addresses: &[Address],
-        range: BlockRange,
+        from_block: u64,
+        to_block: u64,
         cfg: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         self.db
-            .fetch_store_events(store_addresses, range, cfg)
+            .fetch_store_events(store_addresses, from_block, to_block, cfg)
             .await
     }
 
