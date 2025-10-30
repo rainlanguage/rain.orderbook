@@ -77,7 +77,7 @@ jobs:
       - name: Remove Test Artifacts
         run: |
           rm -rf ./target/debug
-          rm -rf ./target/wasm32-unnown-unknown/debug
+          rm -rf ./target/wasm32-unknown-unknown/debug
 
       - name: Test JS/TS Binding 2/2
         run: nix develop -c test-js-bindings
