@@ -1,10 +1,7 @@
 use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
+use alloy::rpc::types::Filter;
 use alloy::transports::TransportError;
-use alloy::{
-    hex,
-    primitives::{Address, B256},
-};
 use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider, ReadProviderError};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -87,50 +84,6 @@ impl std::fmt::Debug for RpcClient {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Topics(pub Option<Vec<Option<Vec<B256>>>>);
-impl Topics {
-    pub fn from_b256_list(list: Vec<B256>) -> Self {
-        Self(Some(vec![Some(list)]))
-    }
-
-    pub fn as_json(&self) -> Option<Vec<Option<Vec<String>>>> {
-        self.0.as_ref().map(|outer| {
-            outer
-                .iter()
-                .map(|maybe| {
-                    maybe.as_ref().map(|v| {
-                        v.iter()
-                            .map(|t| hex::encode_prefixed(t.as_slice()))
-                            .collect()
-                    })
-                })
-                .collect()
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct BlockRange {
-    pub start: u64,
-    pub end: u64,
-}
-impl BlockRange {
-    pub fn inclusive(start: u64, end: u64) -> Result<Self, RpcClientError> {
-        if start > end {
-            Err(RpcClientError::InvalidBlockRange { start, end })
-        } else {
-            Ok(Self { start, end })
-        }
-    }
-
-    pub fn as_json(&self) -> (String, String) {
-        let start_hex = format!("0x{:x}", self.start);
-        let end_hex = format!("0x{:x}", self.end);
-        (start_hex, end_hex)
-    }
-}
-
 impl RpcClient {
     pub fn new_with_urls(urls: Vec<Url>) -> Result<Self, RpcClientError> {
         if urls.is_empty() {
@@ -186,23 +139,8 @@ impl RpcClient {
         Ok(block_number)
     }
 
-    pub async fn get_logs(
-        &self,
-        address: Address,
-        topics: &Topics,
-        range: BlockRange,
-    ) -> Result<Vec<LogEntryResponse>, RpcClientError> {
-        let (from_block_hex, to_block_hex) = range.as_json();
-        let address_hex = hex::encode_prefixed(address);
-        let topics_str: Option<Vec<Option<Vec<String>>>> = topics.as_json();
-
-        let params = serde_json::json!([{
-            "fromBlock": from_block_hex,
-            "toBlock": to_block_hex,
-            "address": address_hex,
-            "topics": topics_str,
-        }]);
-
+    pub async fn get_logs(&self, filter: &Filter) -> Result<Vec<LogEntryResponse>, RpcClientError> {
+        let params = serde_json::json!([filter]);
         self.provider
             .client()
             .request::<_, Vec<LogEntryResponse>>("eth_getLogs", params)
@@ -308,6 +246,7 @@ impl From<TransportError> for RpcClientError {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
+    use alloy::hex;
     use httpmock::MockServer;
     use serde_json::json;
 
@@ -379,30 +318,6 @@ mod tests {
             url.unwrap_err(),
             RpcClientError::UnsupportedChainId { chain_id: 9999 }
         ));
-    }
-
-    #[test]
-    fn test_block_range_inclusive_valid() {
-        let range = BlockRange::inclusive(5_u64, 10_u64).expect("valid block range");
-        assert_eq!(range.start, 5);
-        assert_eq!(range.end, 10);
-    }
-
-    #[test]
-    fn test_block_range_inclusive_invalid() {
-        let err = BlockRange::inclusive(10_u64, 5_u64).unwrap_err();
-        assert!(matches!(
-            err,
-            RpcClientError::InvalidBlockRange { start: 10, end: 5 }
-        ));
-    }
-
-    #[test]
-    fn test_block_range_as_json() {
-        let range = BlockRange::inclusive(10_u64, 20_u64).expect("valid block range");
-        let (from_hex, to_hex) = range.as_json();
-        assert_eq!(from_hex, "0xa");
-        assert_eq!(to_hex, "0x14");
     }
 
     #[tokio::test]
@@ -483,6 +398,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_logs_ok() {
         use alloy::primitives::{Address, B256};
+        use alloy::rpc::types::Filter;
+        use serde_json::json;
         use std::str::FromStr;
 
         let server = MockServer::start();
@@ -500,17 +417,11 @@ mod tests {
         let mock = server.mock(|when, then| {
             when.method(httpmock::Method::POST)
                 .header("content-type", "application/json")
-                .json_body(json!({
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "eth_getLogs",
-                    "params": [{
-                        "fromBlock": "0x1",
-                        "toBlock": "0x2",
-                        "address": expected_address,
-                        "topics": [[expected_topic]]
-                    }]
-                }));
+                .body_contains("\"eth_getLogs\"")
+                .body_contains("\"fromBlock\":\"0x1\"")
+                .body_contains("\"toBlock\":\"0x2\"")
+                .body_contains(&expected_address)
+                .body_contains(&expected_topic);
             then.status(200)
                 .header("content-type", "application/json")
                 .body(logs_response_body(json!([log_entry])));
@@ -519,9 +430,15 @@ mod tests {
         let client =
             RpcClient::new_with_urls(vec![Url::parse(&server.base_url()).unwrap()]).unwrap();
 
-        let topics = Topics::from_b256_list(vec![topic]);
-        let range = BlockRange::inclusive(1, 2).expect("valid range");
-        let logs = client.get_logs(address, &topics, range).await.unwrap();
+        let filter_json = json!({
+            "fromBlock": "0x1",
+            "toBlock": "0x2",
+            "address": expected_address,
+            "topics": [[expected_topic]],
+        });
+        let filter: Filter = serde_json::from_value(filter_json).unwrap();
+
+        let logs = client.get_logs(&filter).await.unwrap();
 
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].block_number, "0x64");
