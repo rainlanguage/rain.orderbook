@@ -163,7 +163,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             // - reentrancy guard x3
             // - vault balance floats x2
             // - token decimals x2
-            assertTrue(reads.length == 6 || reads.length == 8, "reads");
+            assertTrue(reads.length == 5, "reads");
             // // - reentrancy guard x2
             // // - vault balance x1
             assertTrue(writes.length == 4 || writes.length == 3, "writes");

@@ -127,7 +127,12 @@ pub fn decode_events(
                     field: "topic0",
                     index,
                 })?;
-            if event.data.trim().is_empty() {
+            let trimmed_data = event.data.trim();
+            let data_without_prefix = trimmed_data
+                .strip_prefix("0x")
+                .or_else(|| trimmed_data.strip_prefix("0X"))
+                .unwrap_or(trimmed_data);
+            if data_without_prefix.trim().is_empty() {
                 return Err(DecodeError::MissingRequiredField {
                     field: "data",
                     index,
@@ -884,6 +889,21 @@ mod test_helpers {
             Err(DecodeError::MissingRequiredField { field, index })
                 if field == "data" && index == 0
         ));
+    }
+
+    #[test]
+    fn test_event_zero_length_hex_data() {
+        for hex_prefix in ["0x", "0X"] {
+            let mut event_no_data = create_add_order_v3_event_data();
+            event_no_data.data = hex_prefix.to_string();
+
+            let result = decode_events(&[event_no_data]);
+            assert!(matches!(
+                result,
+                Err(DecodeError::MissingRequiredField { field, index })
+                    if field == "data" && index == 0
+            ));
+        }
     }
 
     #[test]
