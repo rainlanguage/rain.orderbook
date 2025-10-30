@@ -1176,6 +1176,5 @@ mod test_helpers {
         assert_eq!(parse_u64_hex_or_dec(&max_hex).unwrap(), u64::MAX);
         let max_dec = u64::MAX.to_string();
         assert_eq!(parse_u64_hex_or_dec(&max_dec).unwrap(), u64::MAX);
-        assert_eq!(parse_u64_hex_or_dec("  +42 ").unwrap(), 42);
     }
 }

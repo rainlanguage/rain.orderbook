@@ -196,7 +196,7 @@ fn collect_all_store_addresses(
     let mut store_addresses: BTreeSet<Address> = collect_store_addresses(decoded_events);
 
     for row in existing_stores {
-        if !row.store_address.is_empty() {
+        if !row.store_address.is_zero() {
             store_addresses.insert(row.store_address);
         }
     }
