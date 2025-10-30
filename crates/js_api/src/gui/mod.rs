@@ -1879,7 +1879,7 @@ _ _: 0 0;
 
         let rainlang = gui.get_composed_rainlang().await.unwrap();
         let expected_rainlang =
-            "/* 0. calculate-io */\n_ _: 0 0;\n\n/* 1. handle-io */\n:;".to_string();
+            "/* 0. calculate-io */ \n_ _: 0 0;\n\n/* 1. handle-io */ \n:;".to_string();
         assert_eq!(rainlang, expected_rainlang);
     }
 
