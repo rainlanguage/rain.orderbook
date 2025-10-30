@@ -47,7 +47,9 @@
             name = "tauri-rs-test";
             body = ''
               set -euxo pipefail
-              cd tauri-app/src-tauri
+              cd tauri-app
+              ob-tauri-before-build
+              cd src-tauri
               cargo test
             '';
           };
@@ -59,6 +61,7 @@
 
               # Fix linting of generated types
               cd tauri-app && npm i && npm run lint
+              ob-tauri-dylibs
             '';
             additionalBuildInputs = [
               pkgs.wasm-bindgen-cli
@@ -180,6 +183,15 @@
 
 
               npm i && npm run build
+              ob-tauri-dylibs
+            '';
+          };
+
+          ob-tauri-dylibs = rainix.mkTask.${system} {
+            name = "ob-tauri-dylibs";
+            body = ''
+              set -euxo pipefail
+
               rm -rf lib
               mkdir -p lib
 
@@ -316,6 +328,7 @@
             packages.ob-tauri-before-bundle
             packages.ob-tauri-before-release
             packages.tauri-rs-test
+            packages.ob-tauri-dylibs
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs
