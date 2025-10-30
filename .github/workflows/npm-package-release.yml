@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   release:
-    if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
+    # if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
