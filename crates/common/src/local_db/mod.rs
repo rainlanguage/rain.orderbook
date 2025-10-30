@@ -19,6 +19,7 @@ use insert::{
 };
 use query::{LocalDbQueryError, SqlBuildError, SqlStatementBatch};
 use std::collections::HashMap;
+use std::num::ParseIntError;
 use url::Url;
 use wasm_bindgen_utils::prelude::*;
 
@@ -62,6 +63,12 @@ pub enum LocalDbError {
         value: String,
         #[source]
         source: ParseError,
+    },
+    #[error("Invalid block number '{value}'")]
+    InvalidBlockNumberString {
+        value: String,
+        #[source]
+        source: ParseIntError,
     },
 
     #[error("Events is not in expected array format")]
@@ -135,6 +142,12 @@ pub enum LocalDbError {
         last_indexed_block: u64,
         threshold: u64,
     },
+    #[error("Invalid log index '{value}'")]
+    InvalidLogIndex {
+        value: String,
+        #[source]
+        source: ParseIntError,
+    },
 }
 
 impl LocalDbError {
@@ -146,6 +159,9 @@ impl LocalDbError {
             LocalDbError::JsonParse(err) => format!("Failed to parse JSON response: {}", err),
             LocalDbError::MissingField { field } => format!("Missing expected field: {}", field),
             LocalDbError::InvalidBlockNumber { value, .. } => {
+                format!("Invalid block number provided: {}", value)
+            }
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
                 format!("Invalid block number provided: {}", value)
             }
             LocalDbError::InvalidEventsFormat => {
@@ -210,6 +226,9 @@ impl LocalDbError {
                 "Block sync threshold exceeded: latest block {}, last indexed block {}, threshold {}",
                 latest_block, last_indexed_block, threshold
             ),
+            LocalDbError::InvalidLogIndex { value, .. } => {
+                format!("Invalid log index provided: {}", value)
+            }
         }
     }
 }

@@ -1,8 +1,7 @@
 use super::{
     address_collectors::{collect_store_addresses, collect_token_addresses},
-    decode::{DecodedEvent, DecodedEventData},
+    decode::{sort_decoded_events_by_block_and_log, DecodedEvent, DecodedEventData},
     insert,
-    pipeline::engine::sort_events_by_block_and_log,
     query::{
         create_tables::REQUIRED_TABLES,
         fetch_erc20_tokens_by_addresses::{build_fetch_stmt as build_token_stmt, Erc20TokenRow},
@@ -214,7 +213,7 @@ fn merge_store_events(
     }
 
     decoded_events.append(store_events);
-    sort_events_by_block_and_log(decoded_events)?;
+    sort_decoded_events_by_block_and_log(decoded_events)?;
     Ok(())
 }
 
@@ -515,7 +514,7 @@ mod tests {
                 }),
             },
         ];
-        sort_events_by_block_and_log(&mut events).unwrap();
+        sort_decoded_events_by_block_and_log(&mut events).unwrap();
         assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
         assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
         assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
@@ -588,9 +587,11 @@ mod tests {
                 note: "".to_string(),
             }),
         }];
-        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
-        match err {
-            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
+        match &err {
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
+                assert_eq!(value, "0xZZ")
+            }
             other => panic!("unexpected error: {other:?}"),
         }
     }
@@ -608,9 +609,9 @@ mod tests {
                 note: "".to_string(),
             }),
         }];
-        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
-        match err {
-            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse log_index")),
+        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
+        match &err {
+            LocalDbError::InvalidLogIndex { value, .. } => assert_eq!(value, "not-a-number"),
             other => panic!("unexpected error: {other:?}"),
         }
     }
@@ -628,9 +629,11 @@ mod tests {
                 note: "".to_string(),
             }),
         }];
-        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
-        match err {
-            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
+        match &err {
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
+                assert_eq!(value, "123x")
+            }
             other => panic!("unexpected error: {other:?}"),
         }
     }
@@ -661,8 +664,10 @@ mod tests {
         }];
 
         let err = merge_store_events(&mut decoded, &mut store).unwrap_err();
-        match err {
-            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+        match &err {
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
+                assert_eq!(value, "garbage")
+            }
             other => panic!("unexpected error: {other:?}"),
         }
     }

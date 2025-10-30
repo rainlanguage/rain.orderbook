@@ -1,3 +1,4 @@
+use crate::local_db::LocalDbError;
 use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
@@ -246,9 +247,56 @@ fn decode_store_set_event(
     })
 }
 
+pub fn sort_decoded_events_by_block_and_log(
+    events: &mut [DecodedEventData<DecodedEvent>],
+) -> Result<(), LocalDbError> {
+    let mut keyed = Vec::with_capacity(events.len());
+    for (idx, event) in events.iter().enumerate() {
+        let block = parse_u64_hex_or_dec(&event.block_number).map_err(|err| {
+            LocalDbError::InvalidBlockNumberString {
+                value: event.block_number.clone(),
+                source: err,
+            }
+        })?;
+        let log_index = parse_u64_hex_or_dec(&event.log_index).map_err(|err| {
+            LocalDbError::InvalidLogIndex {
+                value: event.log_index.clone(),
+                source: err,
+            }
+        })?;
+        keyed.push((idx, block, log_index));
+    }
+
+    keyed.sort_by(|a, b| {
+        a.1.cmp(&b.1)
+            .then_with(|| a.2.cmp(&b.2))
+            .then_with(|| a.0.cmp(&b.0))
+    });
+
+    let original = events.to_vec();
+    for (position, (idx, _, _)) in keyed.into_iter().enumerate() {
+        events[position] = original[idx].clone();
+    }
+
+    Ok(())
+}
+
+fn parse_u64_hex_or_dec(value: &str) -> Result<u64, std::num::ParseIntError> {
+    let trimmed = value.trim();
+    if let Some(hex) = trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"))
+    {
+        u64::from_str_radix(hex, 16)
+    } else {
+        trimmed.parse::<u64>()
+    }
+}
+
 #[cfg(test)]
 mod test_helpers {
     use super::*;
+    use crate::local_db::LocalDbError;
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
@@ -260,6 +308,7 @@ mod test_helpers {
         IOrderBookV5::{EvaluableV4, OrderV4, IOV2},
         OrderBook::MetaV1_2,
     };
+    use std::str::FromStr;
 
     fn create_sample_order_v4() -> OrderV4 {
         OrderV4 {
@@ -1032,5 +1081,101 @@ mod test_helpers {
         let result = decode_events(&[clear_event]).unwrap();
         assert_eq!(result.len(), 1);
         assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
+    }
+
+    fn mk_event(block: &str, log_index: &str, tx: &str) -> DecodedEventData<DecodedEvent> {
+        DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: block.to_string(),
+            block_timestamp: "0x0".to_string(),
+            transaction_hash: Bytes::from_str(tx).unwrap(),
+            log_index: log_index.to_string(),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x".to_string(),
+                note: "".to_string(),
+            }),
+        }
+    }
+
+    #[test]
+    fn sort_events_by_block_and_log_orders_stably() {
+        let mut events = vec![
+            mk_event("0x2", "0x1", "0x10"),
+            mk_event("0x1", "0x2", "0x20"),
+            mk_event("0x1", "0x1", "0x30"),
+        ];
+        sort_decoded_events_by_block_and_log(&mut events).unwrap();
+        assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
+        assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
+        assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
+    }
+
+    #[test]
+    fn sort_events_preserves_relative_order_for_identical_keys() {
+        let mut events = vec![
+            mk_event("0x1", "0x1", "0x01"),
+            mk_event("0x1", "0x1", "0x02"),
+            mk_event("0x1", "0x1", "0x03"),
+        ];
+        let expected_order: Vec<_> = events
+            .iter()
+            .map(|event| event.transaction_hash.clone())
+            .collect();
+        sort_decoded_events_by_block_and_log(&mut events).unwrap();
+        let actual_order: Vec<_> = events
+            .iter()
+            .map(|event| event.transaction_hash.clone())
+            .collect();
+        assert_eq!(actual_order, expected_order);
+    }
+
+    #[test]
+    fn sort_events_returns_error_without_mutating_on_invalid_block() {
+        let mut events = vec![mk_event("bad-block", "0x1", "0x01")];
+        let expected_block = events[0].block_number.clone();
+        let expected_log = events[0].log_index.clone();
+        let expected_hash = events[0].transaction_hash.clone();
+        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
+        match err {
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
+                assert_eq!(value, "bad-block")
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+        assert_eq!(events[0].block_number, expected_block);
+        assert_eq!(events[0].log_index, expected_log);
+        assert_eq!(events[0].transaction_hash, expected_hash);
+    }
+
+    #[test]
+    fn sort_events_returns_error_without_mutating_on_invalid_log_index() {
+        let mut events = vec![mk_event("0x1", "oops", "0x01")];
+        let expected_block = events[0].block_number.clone();
+        let expected_log = events[0].log_index.clone();
+        let expected_hash = events[0].transaction_hash.clone();
+        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
+        match err {
+            LocalDbError::InvalidLogIndex { value, .. } => assert_eq!(value, "oops"),
+            other => panic!("unexpected error: {other:?}"),
+        }
+        assert_eq!(events[0].block_number, expected_block);
+        assert_eq!(events[0].log_index, expected_log);
+        assert_eq!(events[0].transaction_hash, expected_hash);
+    }
+
+    #[test]
+    fn parse_u64_hex_or_dec_variants() {
+        assert_eq!(parse_u64_hex_or_dec("0x0").unwrap(), 0);
+        assert_eq!(parse_u64_hex_or_dec("0x1a").unwrap(), 26);
+        assert_eq!(parse_u64_hex_or_dec("26").unwrap(), 26);
+        assert!(parse_u64_hex_or_dec("garbage").is_err());
+        assert_eq!(parse_u64_hex_or_dec("  0x2A  ").unwrap(), 42);
+        assert_eq!(parse_u64_hex_or_dec("0XFF").unwrap(), 255);
+        assert_eq!(parse_u64_hex_or_dec("  42 ").unwrap(), 42);
+        let max_hex = format!("0x{:x}", u64::MAX);
+        assert_eq!(parse_u64_hex_or_dec(&max_hex).unwrap(), u64::MAX);
+        let max_dec = u64::MAX.to_string();
+        assert_eq!(parse_u64_hex_or_dec(&max_dec).unwrap(), u64::MAX);
+        assert_eq!(parse_u64_hex_or_dec("  +42 ").unwrap(), 42);
     }
 }
