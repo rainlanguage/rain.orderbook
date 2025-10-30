@@ -700,6 +700,7 @@ mod tests {
         fetch_results: Mutex<VecDeque<TokenFetchResult>>,
         load_calls: Mutex<Vec<Vec<Address>>>,
         fetch_calls: Mutex<Vec<Vec<Address>>>,
+        fetch_rpc_calls: Mutex<Vec<Vec<Url>>>,
         barrier: Mutex<Option<Arc<Barrier>>>,
         load_completed: Mutex<bool>,
     }
@@ -722,6 +723,10 @@ mod tests {
 
         fn fetch_calls(&self) -> Vec<Vec<Address>> {
             self.inner.fetch_calls.lock().unwrap().clone()
+        }
+
+        fn fetch_rpc_calls(&self) -> Vec<Vec<Url>> {
+            self.inner.fetch_rpc_calls.lock().unwrap().clone()
         }
 
         fn set_barrier(&self, barrier: Arc<Barrier>) {
@@ -768,10 +773,15 @@ mod tests {
 
         async fn fetch_missing(
             &self,
-            _rpcs: &[Url],
+            rpcs: &[Url],
             missing: Vec<Address>,
             _cfg: &FetchConfig,
         ) -> TokenFetchResult {
+            self.inner
+                .fetch_rpc_calls
+                .lock()
+                .unwrap()
+                .push(rpcs.to_vec());
             self.inner.fetch_calls.lock().unwrap().push(missing);
             self.inner
                 .fetch_results
@@ -1311,6 +1321,155 @@ mod tests {
         harness.run(&base_inputs()).await.expect("run succeeds");
 
         assert!(harness.tokens.fetch_calls().is_empty());
+    }
+
+    #[tokio::test]
+    async fn run_fetches_orderbook_with_window_range() {
+        let harness = EngineHarness::new();
+        harness.events.set_latest_blocks(vec![Ok(200)]);
+        harness.window.set_results(vec![Ok((42, 123))]);
+        harness.events.push_orderbook_result(Ok(vec![log_entry(
+            base_target().orderbook_address,
+            42,
+            0,
+            1,
+        )]));
+        harness.events.push_decode_result(Ok(Vec::new()));
+        harness
+            .tokens
+            .set_load_existing_results(vec![Ok(Vec::new())]);
+        harness
+            .tokens
+            .set_fetch_missing_results(vec![Ok(Vec::new())]);
+
+        harness.run(&base_inputs()).await.expect("run succeeds");
+
+        let calls = harness.events.orderbook_calls();
+        assert_eq!(calls.len(), 1);
+        let (_addr, start, end) = calls[0];
+        assert_eq!(start, 42);
+        assert_eq!(end, 123);
+    }
+
+    #[tokio::test]
+    async fn run_fetches_store_logs_with_deduped_addresses() {
+        let harness = EngineHarness::new();
+        let store1 = addr(0xA1);
+        let store2 = addr(0xA2);
+        harness.db.set_store_responses(vec![Ok(vec![
+            StoreAddressRow {
+                store_address: store1,
+            },
+            StoreAddressRow {
+                store_address: Address::ZERO,
+            },
+            StoreAddressRow {
+                store_address: store2,
+            },
+        ])]);
+        harness.events.set_latest_blocks(vec![Ok(50)]);
+        harness.window.set_results(vec![Ok((10, 12))]);
+        harness.events.push_orderbook_result(Ok(vec![
+            log_entry(base_target().orderbook_address, 10, 0, 1),
+            log_entry(base_target().orderbook_address, 11, 0, 2),
+        ]));
+        harness.events.push_decode_result(Ok(vec![
+            add_order_event(10, 0, store1, addr(0x10), addr(0x11), 1),
+            // duplicate store in decoded events
+            add_order_event(11, 0, store1, addr(0x12), addr(0x13), 2),
+        ]));
+        harness
+            .events
+            .push_store_result(Ok(vec![log_entry(store1, 12, 0, 3)]));
+        harness
+            .events
+            .push_decode_result(Ok(vec![store_set_event(12, 0, store1, 3)]));
+        harness
+            .tokens
+            .set_load_existing_results(vec![Ok(Vec::new())]);
+        harness
+            .tokens
+            .set_fetch_missing_results(vec![Ok(Vec::new())]);
+
+        harness.run(&base_inputs()).await.expect("run succeeds");
+
+        let calls = harness.events.store_calls();
+        assert_eq!(calls.len(), 1);
+        let (addresses, start, end) = &calls[0];
+        assert_eq!((*start, *end), (10, 12));
+        // Expect deduped and sorted (BTreeSet ordering)
+        assert_eq!(addresses, &vec![store1, store2]);
+    }
+
+    #[tokio::test]
+    async fn run_fetches_missing_tokens_dedupes_and_records_rpcs() {
+        let harness = EngineHarness::new();
+        let token = addr(0x0A);
+        harness.events.set_latest_blocks(vec![Ok(60)]);
+        harness.window.set_results(vec![Ok((7, 9))]);
+        harness.events.push_orderbook_result(Ok(vec![
+            log_entry(base_target().orderbook_address, 7, 0, 1),
+            log_entry(base_target().orderbook_address, 8, 0, 2),
+        ]));
+        harness.events.push_decode_result(Ok(vec![
+            deposit_event(7, 0, token, 1),
+            // duplicate token should be deduped before fetch_missing
+            deposit_event(8, 0, token, 2),
+        ]));
+        harness
+            .tokens
+            .set_load_existing_results(vec![Ok(Vec::new())]);
+        harness
+            .tokens
+            .set_fetch_missing_results(vec![Ok(vec![(token, token_info("TOK"))])]);
+
+        let mut inputs = base_inputs();
+        inputs.metadata_rpcs = vec![
+            Url::parse("https://rpc1.example").unwrap(),
+            Url::parse("https://rpc2.example").unwrap(),
+        ];
+
+        harness.run(&inputs).await.expect("run succeeds");
+
+        let fetch_calls = harness.tokens.fetch_calls();
+        assert_eq!(fetch_calls.len(), 1);
+        assert_eq!(fetch_calls[0], vec![token]);
+
+        let rpc_calls = harness.tokens.fetch_rpc_calls();
+        assert_eq!(rpc_calls.len(), 1);
+        assert_eq!(rpc_calls[0], inputs.metadata_rpcs);
+    }
+
+    #[tokio::test]
+    async fn run_export_dump_receives_target_and_block() {
+        let harness = EngineHarness::new();
+        harness.events.set_latest_blocks(vec![Ok(1000)]);
+        harness.window.set_results(vec![Ok((100, 105))]);
+        harness.events.push_orderbook_result(Ok(vec![log_entry(
+            base_target().orderbook_address,
+            100,
+            0,
+            1,
+        )]));
+        harness
+            .events
+            .push_decode_result(Ok(vec![deposit_event(100, 0, addr(0x01), 1)]));
+        harness
+            .tokens
+            .set_load_existing_results(vec![Ok(Vec::new())]);
+        harness
+            .tokens
+            .set_fetch_missing_results(vec![Ok(Vec::new())]);
+
+        let inputs = base_inputs();
+        harness.run(&inputs).await.expect("run succeeds");
+
+        let calls = harness.apply.export_calls();
+        assert_eq!(calls.len(), 1);
+        let (target, end_block) = &calls[0];
+        assert_eq!(target.chain_id, inputs.target.chain_id);
+        assert_eq!(target.orderbook_address, inputs.target.orderbook_address);
+        assert_eq!(*end_block, 105);
     }
 
     #[tokio::test]
