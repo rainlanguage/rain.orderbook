@@ -97,7 +97,6 @@ jobs:
       - name: Run Rust tests with reduced debug artifacts
         run: nix develop .#tauri-shell --command tauri-rs-test
         env:
-          RUSTFLAGS: "-Cdebuginfo=0"
           CARGO_INCREMENTAL: 0
 
       - run: |
