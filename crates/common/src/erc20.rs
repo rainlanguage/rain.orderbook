@@ -99,7 +99,8 @@ impl ERC20 {
                 symbol,
             }),
             Err(MulticallError::CallFailed(bytes)) => {
-                let err = AbiDecodedErrorType::selector_registry_abi_decode(bytes.as_ref()).await;
+                let err =
+                    AbiDecodedErrorType::selector_registry_abi_decode(bytes.as_ref(), None).await;
                 match err {
                     Ok(err) => Err(Error::AbiDecodedErrorType {
                         msg: "Failed to decode token info".to_string(),
@@ -160,11 +161,14 @@ pub enum Error {
     ContractCallError(#[from] alloy::contract::Error),
     #[error("Multicall failed: {0}")]
     MulticallError(#[from] MulticallError),
+    #[error("Invalid retry max attempts")]
+    InvalidRetryMaxAttemps,
 }
 
 async fn handle_alloy_err(err: alloy::contract::Error, msg: &str) -> Error {
     if let Some(revert_data) = err.as_revert_data() {
-        let err = AbiDecodedErrorType::selector_registry_abi_decode(revert_data.as_ref()).await;
+        let err =
+            AbiDecodedErrorType::selector_registry_abi_decode(revert_data.as_ref(), None).await;
 
         match err {
             Ok(err) => {
