@@ -11,7 +11,7 @@ use alloy::primitives::ruint::ParseError;
 use alloy::primitives::{hex::FromHexError, Address};
 use alloy::rpc::types::FilterBlockError;
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
-pub use fetch::FetchConfig;
+pub use fetch::{FetchConfig, FetchConfigError};
 use insert::{
     decoded_events_to_sql as decoded_events_to_sql_impl,
     raw_events_to_sql as raw_events_to_sql_impl,
@@ -121,6 +121,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     ERC20Error(#[from] crate::erc20::Error),
+
+    #[error(transparent)]
+    FetchConfigError(#[from] FetchConfigError),
 }
 
 impl LocalDbError {
@@ -179,6 +182,7 @@ impl LocalDbError {
                 "Invalid retry configuration for max attemps".to_string()
             }
             LocalDbError::ERC20Error(err) => format!("ERC20 error: {}", err),
+            LocalDbError::FetchConfigError(err) => format!("Fetch configuration error: {}", err),
         }
     }
 }
