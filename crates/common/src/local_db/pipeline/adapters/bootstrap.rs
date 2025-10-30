@@ -174,6 +174,66 @@ mod tests {
         }
     }
 
+    struct RecordingTextExecutor {
+        result: Mutex<Option<Result<(), LocalDbError>>>,
+        captured_sql: Mutex<Vec<String>>,
+    }
+
+    impl RecordingTextExecutor {
+        fn new(result: Result<(), LocalDbError>) -> Self {
+            Self {
+                result: Mutex::new(Some(result)),
+                captured_sql: Mutex::new(Vec::new()),
+            }
+        }
+
+        fn succeed() -> Self {
+            Self::new(Ok(()))
+        }
+
+        fn fail(err: LocalDbError) -> Self {
+            Self::new(Err(err))
+        }
+
+        fn captured_sql(&self) -> Vec<String> {
+            self.captured_sql.lock().unwrap().clone()
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LocalDbQueryExecutor for RecordingTextExecutor {
+        async fn execute_batch(&self, _: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            panic!("execute_batch should not be called in these tests");
+        }
+
+        async fn query_json<T>(&self, _: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            panic!("query_json should not be called in these tests");
+        }
+
+        async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            self.captured_sql
+                .lock()
+                .unwrap()
+                .push(stmt.sql().to_string());
+
+            let outcome = self
+                .result
+                .lock()
+                .unwrap()
+                .take()
+                .expect("query_text called more than expected");
+
+            match outcome {
+                Ok(()) => Ok(String::from("ok")),
+                Err(LocalDbError::LocalDbQueryError(inner)) => Err(inner),
+                Err(err) => Err(LocalDbQueryError::database(err.to_string())),
+            }
+        }
+    }
+
     #[async_trait(?Send)]
     impl LocalDbQueryExecutor for MockDb {
         async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
@@ -566,7 +626,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn engine_run_returns_missing_impl() {
+    async fn engine_run_returns_invalid_bootstrap_implementation() {
         let adapter = DefaultBootstrapAdapter::new();
         let db = MockDb::default();
         let cfg = BootstrapConfig {
@@ -586,7 +646,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn runner_run_returns_missing_impl() {
+    async fn runner_run_returns_invalid_bootstrap_implementation() {
         let adapter = DefaultBootstrapAdapter::new();
         let db = MockDb::default();
 
@@ -595,5 +655,57 @@ mod tests {
             LocalDbError::InvalidBootstrapImplementation => {}
             other => panic!("unexpected error: {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn clear_orderbook_data_executes_expected_statement() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let target = TargetKey {
+            chain_id: 42161,
+            orderbook_address: Address::from([0x11; 20]),
+        };
+        let db = RecordingTextExecutor::succeed();
+
+        adapter
+            .clear_orderbook_data(&db, &target)
+            .await
+            .expect("clear_orderbook_data should succeed");
+
+        let captured = db.captured_sql();
+        assert_eq!(captured.len(), 1);
+        assert_eq!(
+            captured[0],
+            clear_orderbook_data_stmt(target.chain_id, target.orderbook_address).sql()
+        );
+    }
+
+    #[tokio::test]
+    async fn clear_orderbook_data_propagates_error() {
+        let adapter = DefaultBootstrapAdapter::new();
+        let target = TargetKey {
+            chain_id: 10,
+            orderbook_address: Address::from([0x22; 20]),
+        };
+        let inner_error = LocalDbQueryError::database("boom");
+        let db = RecordingTextExecutor::fail(LocalDbError::from(inner_error.clone()));
+
+        let err = adapter
+            .clear_orderbook_data(&db, &target)
+            .await
+            .expect_err("clear_orderbook_data should propagate error");
+
+        match err {
+            LocalDbError::LocalDbQueryError(actual) => {
+                assert_eq!(actual.to_string(), inner_error.to_string());
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+
+        let captured = db.captured_sql();
+        assert_eq!(captured.len(), 1);
+        assert_eq!(
+            captured[0],
+            clear_orderbook_data_stmt(target.chain_id, target.orderbook_address).sql()
+        );
     }
 }
