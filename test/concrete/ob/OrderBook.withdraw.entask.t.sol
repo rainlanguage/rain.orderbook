@@ -114,7 +114,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         }
         iOrderbook.withdraw3(address(iToken0), vaultId, targetAmount, actions);
         if (err.length == 0) {
-            checkReentrancyRW(7, 3);
+            checkReentrancyRW(6, 3);
             (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
             assertEq(reads.length, expectedReads);
             assertEq(writes.length, expectedWrites);
@@ -377,7 +377,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-vault-before() ",
-                depositAmount.toDecimalString(9),
+                depositAmount.toDecimalString(false),
                 ") \"vault before\");"
             )
         );
@@ -385,7 +385,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-vault-after() ",
-                depositAmount.sub(withdrawAmount).toDecimalString(9),
+                depositAmount.sub(withdrawAmount).toDecimalString(false),
                 ") \"balance after\");"
             )
         );
@@ -394,7 +394,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-target-amount() ",
-                targetAmount.toDecimalString(9),
+                targetAmount.toDecimalString(false),
                 ") \"target amount\");"
             )
         );

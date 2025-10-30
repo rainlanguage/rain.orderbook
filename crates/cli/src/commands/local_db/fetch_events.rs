@@ -2,7 +2,7 @@ use alloy::primitives::Address;
 use anyhow::Result;
 use clap::Parser;
 use rain_orderbook_common::local_db::{FetchConfig, LocalDb, LocalDbError};
-use rain_orderbook_common::rpc_client::{BlockRange, LogEntryResponse, RpcClientError};
+use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClientError};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -33,7 +33,8 @@ impl EventClient for LocalDb {
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         self.fetch_orderbook_events(
             Address::from_str(address)?,
-            BlockRange::inclusive(start_block, end_block)?,
+            start_block,
+            end_block,
             &FetchConfig::default(),
         )
         .await
