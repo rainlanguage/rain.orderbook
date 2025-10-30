@@ -7,10 +7,7 @@
 //! branch on environment.
 //!
 
-use async_trait::async_trait;
-use url::Url;
-
-use alloy::primitives::Address;
+pub mod adapters;
 
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
@@ -19,6 +16,9 @@ use crate::local_db::query::{
 };
 use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
+use alloy::primitives::Address;
+use async_trait::async_trait;
+use url::Url;
 
 /// Identifies the logical target (orderbook) for a sync cycle.
 ///
