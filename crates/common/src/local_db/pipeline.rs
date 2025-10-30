@@ -18,7 +18,7 @@ use crate::local_db::query::{
     fetch_erc20_tokens_by_addresses::Erc20TokenRow, LocalDbQueryExecutor, SqlStatementBatch,
 };
 use crate::local_db::{FetchConfig, LocalDbError};
-use crate::rpc_client::{BlockRange, LogEntryResponse};
+use crate::rpc_client::LogEntryResponse;
 
 /// Identifies the logical target (orderbook) for a sync cycle.
 ///
@@ -186,7 +186,8 @@ pub trait EventsPipeline {
     async fn fetch_orderbook(
         &self,
         orderbook_address: Address,
-        range: BlockRange,
+        from_block: u64,
+        to_block: u64,
         cfg: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError>;
 
@@ -194,7 +195,8 @@ pub trait EventsPipeline {
     async fn fetch_stores(
         &self,
         store_addresses: &[Address],
-        range: BlockRange,
+        from_block: u64,
+        to_block: u64,
         cfg: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError>;
 
