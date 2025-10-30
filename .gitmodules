@@ -7,3 +7,6 @@
 [submodule "lib/rain.interpreter"]
 	path = lib/rain.interpreter
 	url = https://github.com/rainlanguage/rain.interpreter
+[submodule "lib/rain.tofu.erc20-decimals"]
+	path = lib/rain.tofu.erc20-decimals
+	url = https://github.com/rainlanguage/rain.tofu.erc20-decimals

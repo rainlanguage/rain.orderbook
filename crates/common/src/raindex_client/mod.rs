@@ -312,7 +312,7 @@ pub enum RaindexError {
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
     #[error(transparent)]
-    LocalDbError(#[from] LocalDbError),
+    LocalDbError(#[from] Box<LocalDbError>),
     #[error(transparent)]
     LocalDbQueryError(#[from] LocalDbQueryError),
     #[error("Chain id: {0} is not supported for local database")]
@@ -322,6 +322,12 @@ pub enum RaindexError {
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<LocalDbError> for RaindexError {
+    fn from(err: LocalDbError) -> Self {
+        Self::LocalDbError(Box::new(err))
     }
 }
 
