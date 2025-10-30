@@ -28,7 +28,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
-          submodules: recursive
 
       - uses: nixbuild/nix-quick-install-action@v30
         with:
