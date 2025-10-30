@@ -1,3 +1,4 @@
+use crate::{erc20::Error as ERC20Error, local_db::LocalDbError};
 use backon::{ExponentialBuilder, Retryable};
 use std::{future::Future, time::Duration};
 
@@ -5,8 +6,26 @@ pub const DEFAULT_BASE_DELAY_MILLIS: u64 = 500;
 
 #[derive(Debug)]
 pub enum RetryError<E> {
-    Config { message: String },
+    InvalidMaxAttempts,
     Operation(E),
+}
+
+impl From<RetryError<LocalDbError>> for LocalDbError {
+    fn from(err: RetryError<LocalDbError>) -> Self {
+        match err {
+            RetryError::InvalidMaxAttempts => LocalDbError::InvalidRetryMaxAttemps,
+            RetryError::Operation(inner) => inner,
+        }
+    }
+}
+
+impl From<RetryError<ERC20Error>> for ERC20Error {
+    fn from(err: RetryError<ERC20Error>) -> Self {
+        match err {
+            RetryError::InvalidMaxAttempts => ERC20Error::InvalidRetryMaxAttemps,
+            RetryError::Operation(inner) => inner,
+        }
+    }
 }
 
 pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry>(
@@ -20,9 +39,7 @@ where
     ShouldRetry: Fn(&E) -> bool,
 {
     if max_attempts == 0 {
-        return Err(RetryError::Config {
-            message: format!("max_attempts must be > 0 (got {max_attempts})"),
-        });
+        return Err(RetryError::InvalidMaxAttempts);
     }
 
     let backoff = ExponentialBuilder::default()
@@ -127,9 +144,7 @@ mod tests {
         .unwrap_err();
 
         match err {
-            RetryError::Config { message } => {
-                assert!(message.contains("max_attempts"));
-            }
+            RetryError::InvalidMaxAttempts => {}
             other => panic!("expected config error, got {other:?}"),
         }
         assert_eq!(attempts.load(Ordering::SeqCst), 0);
