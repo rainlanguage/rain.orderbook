@@ -133,25 +133,25 @@ mod tests {
             })
         };
 
-        // mock iInterpreter() call
+        // mock I_INTERPRETER() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xf0cfdd37");
+            when.path("/rpc").body_contains("0x56fb83e9");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(1));
         });
 
-        // mock iStore() call
+        // mock I_STORE() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xc19423bc");
+            when.path("/rpc").body_contains("0x251ac32e");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(2));
         });
 
-        // mock iParser() call
+        // mock I_PARSER() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x24376855");
+            when.path("/rpc").body_contains("0xf79693f4");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(3));

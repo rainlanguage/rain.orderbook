@@ -899,9 +899,11 @@ fn generate_store_set_statement(
             SqlValue::from(context.block_timestamp),
             SqlValue::from(context.transaction_hash.to_owned()),
             SqlValue::from(context.log_index),
-            SqlValue::from(hex::encode_prefixed(decoded.namespace)),
-            SqlValue::from(hex::encode_prefixed(decoded.key)),
-            SqlValue::from(hex::encode_prefixed(decoded.value)),
+            SqlValue::from(hex::encode_prefixed(FixedBytes::<32>::from(
+                decoded.payload.namespace.to_be_bytes::<32>(),
+            ))),
+            SqlValue::from(hex::encode_prefixed(decoded.payload.key)),
+            SqlValue::from(hex::encode_prefixed(decoded.payload.value)),
         ],
     )
 }
@@ -974,6 +976,7 @@ mod tests {
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use rain_orderbook_bindings::IOrderBookV5::{
         ClearConfigV2, ClearStateChangeV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
     };
@@ -1149,9 +1152,11 @@ mod tests {
     fn sample_store_set_event() -> DecodedEventData<DecodedEvent> {
         let store = InterpreterStoreSetEvent {
             store_address: Address::from([0x30; 20]),
-            namespace: FixedBytes::<32>::from([0xaa; 32]),
-            key: FixedBytes::<32>::from([0xbb; 32]),
-            value: FixedBytes::<32>::from([0xcc; 32]),
+            payload: Set {
+                namespace: U256::from_be_bytes([0xaa; 32]),
+                key: FixedBytes::<32>::from([0xbb; 32]),
+                value: FixedBytes::<32>::from([0xcc; 32]),
+            },
         };
 
         build_event(
@@ -1189,7 +1194,6 @@ mod tests {
         let DecodedEvent::InterpreterStoreSet(decoded) = &event.decoded_data else {
             unreachable!()
         };
-
         let statement = generate_store_set_statement(&context, decoded.as_ref());
         assert!(statement
             .sql()
@@ -1204,14 +1208,18 @@ mod tests {
         assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_timestamp));
         assert!(matches!(params[3], SqlValue::Text(ref v) if v == context.transaction_hash));
         assert!(matches!(params[4], SqlValue::U64(v) if v == context.log_index));
+        assert!(matches!(
+            params[5],
+            SqlValue::Text(ref v)
+                if v == &hex::encode_prefixed(FixedBytes::<32>::from(
+                    decoded.payload.namespace.to_be_bytes::<32>(),
+                ))
+        ));
         assert!(
-            matches!(params[5], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.namespace))
+            matches!(params[6], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.key))
         );
         assert!(
-            matches!(params[6], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.key))
-        );
-        assert!(
-            matches!(params[7], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.value))
+            matches!(params[7], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.value))
         );
     }
 
