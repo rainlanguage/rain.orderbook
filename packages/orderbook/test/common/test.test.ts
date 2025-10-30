@@ -83,11 +83,9 @@ _ _: 0 0;
 		const dotrainOrder = res.value;
 		const result = await dotrainOrder.composeDeploymentToRainlang('some-deployment');
 		if (!result.value) assert.fail('expected to resolve, but failed');
-		const expected = `/* 0. calculate-io */
-_ _: 0 0;
-
-/* 1. handle-io */
-:;`;
+		const expected = ['/* 0. calculate-io */ ', '_ _: 0 0;', '', '/* 1. handle-io */ ', ':;'].join(
+			'\n'
+		);
 
 		assert.equal(result.value, expected);
 	});
@@ -106,11 +104,9 @@ scenarios:
 		const dotrainOrder = res.value;
 		const result = await dotrainOrder.composeScenarioToRainlang('config-scenario');
 		if (!result.value) assert.fail('expected to resolve, but failed');
-		const expected = `/* 0. calculate-io */
-_ _: 0 0;
-
-/* 1. handle-io */
-:;`;
+		const expected = ['/* 0. calculate-io */ ', '_ _: 0 0;', '', '/* 1. handle-io */ ', ':;'].join(
+			'\n'
+		);
 
 		assert.equal(result.value, expected);
 	});
