@@ -18,7 +18,7 @@ use self::{
 };
 
 use rain_orderbook_common::local_db::address_collectors::collect_store_addresses;
-use std::{collections::BTreeSet, str::FromStr};
+use std::str::FromStr;
 
 mod apply;
 mod window;
@@ -103,7 +103,7 @@ where
         println!("Decoded {} events", decoded_count);
 
         println!("Collecting interpreter store addresses");
-        let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded_events);
+        let mut store_addresses = collect_store_addresses(&decoded_events);
         let existing_stores = fetch_existing_store_addresses(
             self.db_path,
             params.chain_id,
@@ -113,7 +113,7 @@ where
         store_addresses.extend(existing_stores);
 
         if !store_addresses.is_empty() {
-            let store_list: Vec<String> = store_addresses.into_iter().collect();
+            let store_list: Vec<Address> = store_addresses.into_iter().collect();
             println!(
                 "Fetching interpreter store Set events for {} store(s)",
                 store_list.len()
@@ -266,7 +266,7 @@ mod tests {
         decode_responses: Mutex<Vec<Vec<DecodedEventData<DecodedEvent>>>>,
         sql_result: String,
         fetch_calls: Mutex<Vec<(String, u64, u64)>>,
-        fetch_store_calls: Mutex<Vec<(Vec<String>, u64, u64)>>,
+        fetch_store_calls: Mutex<Vec<(Vec<Address>, u64, u64)>>,
         sql_calls: Mutex<Vec<usize>>,
         decimals: Mutex<Vec<HashMap<Address, u8>>>,
         raw_statements: Vec<SqlStatement>,
@@ -295,7 +295,7 @@ mod tests {
 
         async fn fetch_store_set_events(
             &self,
-            store_addresses: &[String],
+            store_addresses: &[Address],
             start_block: u64,
             end_block: u64,
         ) -> Result<Vec<LogEntryResponse>> {
@@ -472,7 +472,7 @@ mod tests {
         assert_eq!(store_calls[0].2, 160);
         assert_eq!(
             store_calls[0].0,
-            vec!["0x1111111111111111111111111111111111111111".to_string()]
+            vec![Address::from_str("0x1111111111111111111111111111111111111111").unwrap()]
         );
 
         let sql_calls = data_source.sql_calls.lock().unwrap();
@@ -598,6 +598,6 @@ mod tests {
         assert_eq!(store_calls[0].2, 185);
         assert!(store_calls[0]
             .0
-            .contains(&"0x2222222222222222222222222222222222222222".to_string()));
+            .contains(&Address::from_str("0x2222222222222222222222222222222222222222").unwrap()));
     }
 }
