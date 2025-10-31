@@ -4,6 +4,7 @@ use wasm_bindgen_utils::result::WasmEncodedError;
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
 pub mod executor;
+pub mod pipeline;
 pub mod query;
 pub mod sync;
 

@@ -67,7 +67,7 @@ impl ApplyPipeline for DefaultApplyPipeline {
 
         // Token upserts for the missing set only
         if !tokens_to_upsert.is_empty() {
-            let upserts = build_token_upserts(target.chain_id as u32, tokens_to_upsert);
+            let upserts = build_token_upserts(target.chain_id, tokens_to_upsert);
             batch.extend(upserts);
         }
 

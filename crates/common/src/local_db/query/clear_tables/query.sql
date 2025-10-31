@@ -1,5 +1,7 @@
 BEGIN TRANSACTION;
 
+DROP TABLE IF EXISTS target_watermarks;
+DROP TABLE IF EXISTS db_metadata;
 DROP TABLE IF EXISTS context_values;
 DROP TABLE IF EXISTS take_order_contexts;
 DROP TABLE IF EXISTS take_orders;
