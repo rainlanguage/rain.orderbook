@@ -1,3 +1,4 @@
+use crate::erc20::TokenInfo;
 use crate::local_db::address_collectors::{collect_store_addresses, collect_token_addresses};
 use crate::local_db::decode::{
     sort_decoded_events_by_block_and_log, DecodedEvent, DecodedEventData,
@@ -6,6 +7,7 @@ use crate::local_db::pipeline::{
     ApplyPipeline, BootstrapConfig, BootstrapPipeline, EventsPipeline, StatusBus, SyncConfig,
     SyncOutcome, TargetKey, TokensPipeline, WindowPipeline,
 };
+use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, StoreAddressRow};
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::LocalDbError;
@@ -59,6 +61,81 @@ where
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
+        let latest_block = self.bootstrap_phase(db, input).await?;
+        let (start_block, target_block) = self.compute_window(db, input, latest_block).await?;
+        if start_block > target_block {
+            self.status.send("No work for current window").await?;
+            return Ok(SyncOutcome {
+                target: input.target.clone(),
+                start_block,
+                target_block,
+                fetched_logs: 0,
+                decoded_events: 0,
+            });
+        }
+
+        let (orderbook_logs, decoded_orderbook_events) = self
+            .gather_orderbook(input, start_block, target_block)
+            .await?;
+        let mut all_raw_logs = orderbook_logs;
+        let mut decoded_events = decoded_orderbook_events;
+
+        let (store_logs, mut decoded_store_events, existing_tokens, token_addresses) = self
+            .load_store_logs_and_existing_tokens(
+                db,
+                input,
+                start_block,
+                target_block,
+                &decoded_events,
+            )
+            .await?;
+
+        if !store_logs.is_empty() {
+            all_raw_logs.extend(store_logs);
+            decoded_events.append(&mut decoded_store_events);
+            sort_decoded_events_by_block_and_log(&mut decoded_events)?;
+        }
+
+        let tokens_to_upsert = self
+            .resolve_token_upserts(input, &token_addresses, &existing_tokens)
+            .await?;
+
+        self.apply_changes(
+            db,
+            ApplyContext {
+                target: &input.target,
+                target_block,
+                raw_logs: &all_raw_logs,
+                decoded_events: &decoded_events,
+                existing_tokens: &existing_tokens,
+                tokens_to_upsert: &tokens_to_upsert,
+            },
+        )
+        .await?;
+
+        Ok(SyncOutcome {
+            target: input.target.clone(),
+            start_block,
+            target_block,
+            fetched_logs: all_raw_logs.len(),
+            decoded_events: decoded_events.len(),
+        })
+    }
+}
+
+impl<B, W, E, T, A, S> SyncEngine<B, W, E, T, A, S>
+where
+    B: BootstrapPipeline,
+    W: WindowPipeline,
+    E: EventsPipeline,
+    T: TokensPipeline,
+    A: ApplyPipeline,
+    S: StatusBus,
+{
+    async fn bootstrap_phase<DB>(&self, db: &DB, input: &SyncInputs) -> Result<u64, LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
         self.status.send("Fetching latest block").await?;
         let latest_block = self.events.latest_block().await?;
 
@@ -74,22 +151,30 @@ where
             )
             .await?;
 
-        self.status.send("Computing sync window").await?;
-        let (start_block, target_block) = self
-            .window
-            .compute(db, &input.target, &input.cfg, latest_block)
-            .await?;
-        if start_block > target_block {
-            self.status.send("No work for current window").await?;
-            return Ok(SyncOutcome {
-                target: input.target.clone(),
-                start_block,
-                target_block,
-                fetched_logs: 0,
-                decoded_events: 0,
-            });
-        }
+        Ok(latest_block)
+    }
 
+    async fn compute_window<DB>(
+        &self,
+        db: &DB,
+        input: &SyncInputs,
+        latest_block: u64,
+    ) -> Result<(u64, u64), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        self.status.send("Computing sync window").await?;
+        self.window
+            .compute(db, &input.target, &input.cfg, latest_block)
+            .await
+    }
+
+    async fn gather_orderbook(
+        &self,
+        input: &SyncInputs,
+        start_block: u64,
+        target_block: u64,
+    ) -> Result<(Vec<LogEntryResponse>, Vec<DecodedEventData<DecodedEvent>>), LocalDbError> {
         self.status.send("Fetching orderbook logs").await?;
         let orderbook_logs = self
             .events
@@ -102,12 +187,31 @@ where
             .await?;
 
         self.status.send("Decoding orderbook logs").await?;
-        let mut decoded_events = self.events.decode(&orderbook_logs)?;
+        let decoded_events = self.events.decode(&orderbook_logs)?;
 
-        let mut all_raw_logs = orderbook_logs.clone();
+        Ok((orderbook_logs, decoded_events))
+    }
 
-        // Collect store addresses from decoded orderbook events and previously known stores.
-        let mut store_addresses = collect_store_addresses(&decoded_events);
+    async fn load_store_logs_and_existing_tokens<DB>(
+        &self,
+        db: &DB,
+        input: &SyncInputs,
+        start_block: u64,
+        target_block: u64,
+        decoded_events: &[DecodedEventData<DecodedEvent>],
+    ) -> Result<
+        (
+            Vec<LogEntryResponse>,
+            Vec<DecodedEventData<DecodedEvent>>,
+            Vec<Erc20TokenRow>,
+            BTreeSet<Address>,
+        ),
+        LocalDbError,
+    >
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        let mut store_addresses = collect_store_addresses(decoded_events);
         let existing_store_rows = load_known_store_addresses(db, &input.target).await?;
         for row in existing_store_rows {
             if !row.store_address.is_zero() {
@@ -115,11 +219,9 @@ where
             }
         }
 
-        // Collect token addresses from decoded orderbook events.
-        let token_addresses: BTreeSet<Address> = collect_token_addresses(&decoded_events);
+        let token_addresses: BTreeSet<Address> = collect_token_addresses(decoded_events);
         let token_addresses_vec: Vec<Address> = token_addresses.iter().copied().collect();
 
-        // Run token lookup and store log fetch in parallel.
         let tokens_fut = self.tokens.load_existing(
             db,
             input.target.chain_id,
@@ -127,18 +229,23 @@ where
             &token_addresses_vec,
         );
 
+        let store_addresses_vec: Vec<Address> = store_addresses.into_iter().collect();
         let store_fetch_fut = async {
-            if store_addresses.is_empty() {
+            if store_addresses_vec.is_empty() {
                 Ok::<(Vec<LogEntryResponse>, Vec<DecodedEventData<DecodedEvent>>), LocalDbError>((
                     Vec::new(),
                     Vec::new(),
                 ))
             } else {
                 self.status.send("Fetching interpreter store logs").await?;
-                let addresses = store_addresses.into_iter().collect::<Vec<Address>>();
                 let logs = self
                     .events
-                    .fetch_stores(&addresses, start_block, target_block, &input.cfg.fetch)
+                    .fetch_stores(
+                        &store_addresses_vec,
+                        start_block,
+                        target_block,
+                        &input.cfg.fetch,
+                    )
                     .await?;
                 self.status.send("Decoding interpreter store logs").await?;
                 let decoded = self.events.decode(&logs)?;
@@ -148,14 +255,22 @@ where
 
         let (existing_tokens_res, store_pair_res) = tokio::join!(tokens_fut, store_fetch_fut);
         let existing_tokens = existing_tokens_res?;
-        let (store_logs, mut decoded_store_events) = store_pair_res?;
+        let (store_logs, decoded_store_events) = store_pair_res?;
 
-        if !store_logs.is_empty() {
-            all_raw_logs.extend(store_logs);
-            decoded_events.append(&mut decoded_store_events);
-            sort_decoded_events_by_block_and_log(&mut decoded_events)?;
-        }
+        Ok((
+            store_logs,
+            decoded_store_events,
+            existing_tokens,
+            token_addresses,
+        ))
+    }
 
+    async fn resolve_token_upserts(
+        &self,
+        input: &SyncInputs,
+        token_addresses: &BTreeSet<Address>,
+        existing_tokens: &[Erc20TokenRow],
+    ) -> Result<Vec<(Address, TokenInfo)>, LocalDbError> {
         let existing_set = existing_tokens
             .iter()
             .map(|row| row.token_address)
@@ -165,23 +280,29 @@ where
             .copied()
             .filter(|addr| !existing_set.contains(addr))
             .collect::<Vec<Address>>();
-        let mut tokens_to_upsert = Vec::new();
-        if !missing_tokens.is_empty() {
-            self.status.send("Fetching missing token metadata").await?;
-            tokens_to_upsert = self
-                .tokens
-                .fetch_missing(&input.metadata_rpcs, missing_tokens, &input.cfg.fetch)
-                .await?;
+
+        if missing_tokens.is_empty() {
+            return Ok(Vec::new());
         }
 
+        self.status.send("Fetching missing token metadata").await?;
+        self.tokens
+            .fetch_missing(&input.metadata_rpcs, missing_tokens, &input.cfg.fetch)
+            .await
+    }
+
+    async fn apply_changes<DB>(&self, db: &DB, ctx: ApplyContext<'_>) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
         self.status.send("Building SQL batch").await?;
         let batch = self.apply.build_batch(
-            &input.target,
-            target_block,
-            &all_raw_logs,
-            &decoded_events,
-            &existing_tokens,
-            &tokens_to_upsert,
+            ctx.target,
+            ctx.target_block,
+            ctx.raw_logs,
+            ctx.decoded_events,
+            ctx.existing_tokens,
+            ctx.tokens_to_upsert,
         )?;
 
         self.status.send("Persisting to database").await?;
@@ -189,17 +310,18 @@ where
 
         self.status.send("Running post-sync export").await?;
         self.apply
-            .export_dump(db, &input.target, target_block)
-            .await?;
-
-        Ok(SyncOutcome {
-            target: input.target.clone(),
-            start_block,
-            target_block,
-            fetched_logs: all_raw_logs.len(),
-            decoded_events: decoded_events.len(),
-        })
+            .export_dump(db, ctx.target, ctx.target_block)
+            .await
     }
+}
+
+struct ApplyContext<'a> {
+    target: &'a TargetKey,
+    target_block: u64,
+    raw_logs: &'a [LogEntryResponse],
+    decoded_events: &'a [DecodedEventData<DecodedEvent>],
+    existing_tokens: &'a [Erc20TokenRow],
+    tokens_to_upsert: &'a [(Address, TokenInfo)],
 }
 
 async fn load_known_store_addresses<DB>(
