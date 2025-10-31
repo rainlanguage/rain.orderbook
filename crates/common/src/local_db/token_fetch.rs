@@ -3,8 +3,6 @@ use crate::local_db::{FetchConfig, LocalDbError};
 use crate::retry::{retry_with_backoff, RetryError};
 use alloy::primitives::Address;
 use futures::StreamExt;
-use std::sync::atomic::Ordering;
-use std::sync::{atomic::AtomicUsize, Arc};
 
 fn should_retry_token_error(err: &TokenError) -> bool {
     matches!(
@@ -28,33 +26,20 @@ pub async fn fetch_erc20_metadata_concurrent(
             let rpcs = rpcs.clone();
             async move {
                 let erc20 = ERC20::new(rpcs, addr);
-                let attempt_counter = Arc::new(AtomicUsize::new(0));
                 let result = retry_with_backoff(
                     || {
                         let erc20 = erc20.clone();
-                        let attempt_counter = Arc::clone(&attempt_counter);
-                        async move {
-                            attempt_counter.fetch_add(1, Ordering::Relaxed);
-                            erc20.token_info(None).await
-                        }
+                        async move { erc20.token_info(None).await }
                     },
                     max_attempts,
                     should_retry_token_error,
                 )
-                .await;
-
-                match result {
-                    Ok(info) => Ok((addr, info)),
-                    Err(RetryError::Operation(err)) => {
-                        let attempts = attempt_counter.load(Ordering::Relaxed);
-                        Err(LocalDbError::TokenMetadataFetchFailed {
-                            address: addr,
-                            attempts,
-                            source: Box::new(err),
-                        })
-                    }
-                    Err(RetryError::Config { message }) => Err(LocalDbError::Config { message }),
-                }
+                .await
+                .map_err(|e| match e {
+                    RetryError::InvalidMaxAttempts => LocalDbError::InvalidRetryMaxAttemps,
+                    RetryError::Operation(inner) => LocalDbError::ERC20Error(inner),
+                })?;
+                Ok((addr, result))
             }
         }))
         .buffer_unordered(concurrency)
@@ -75,7 +60,6 @@ pub async fn fetch_erc20_metadata_concurrent(
 mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
-        use crate::erc20::Error as TokenError;
         use crate::local_db::token_fetch::fetch_erc20_metadata_concurrent;
         use crate::local_db::{FetchConfig, LocalDbError};
         use alloy::primitives::Address;
@@ -106,23 +90,8 @@ mod tests {
             let res = fetch_erc20_metadata_concurrent(rpcs, addrs, &FetchConfig::default()).await;
             assert!(res.is_err());
             match res.err().unwrap() {
-                LocalDbError::TokenMetadataFetchFailed {
-                    address,
-                    attempts,
-                    source,
-                } => {
-                    assert_eq!(address, Address::ZERO);
-                    assert_eq!(attempts, FetchConfig::default().max_retry_attempts());
-                    assert!(
-                        matches!(
-                            source.as_ref(),
-                            TokenError::ReadProviderError(_) | TokenError::MulticallError(_)
-                        ),
-                        "unexpected source error: {:?}",
-                        source
-                    );
-                }
-                other => panic!("Expected TokenMetadataFetchFailed, got {other:?}"),
+                LocalDbError::ERC20Error(_) => {}
+                other => panic!("Expected ERC20Error, got {other:?}"),
             }
         }
     }
