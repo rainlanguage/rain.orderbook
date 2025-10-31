@@ -222,7 +222,7 @@ mod tests {
     use super::*;
     use crate::erc20::TokenInfo;
     use crate::local_db::decode::{
-        DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent, UnknownEventDecoded,
+        DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
     use crate::local_db::pipeline::{BootstrapState, FinalityConfig, TargetKey, WindowOverrides};
     use crate::local_db::query::{
@@ -421,10 +421,6 @@ mod tests {
         fn configs(&self) -> Vec<BootstrapConfig> {
             self.inner.configs.lock().unwrap().clone()
         }
-
-        fn set_results(&self, results: Vec<Result<(), LocalDbError>>) {
-            *self.inner.results.lock().unwrap() = VecDeque::from(results);
-        }
     }
 
     #[async_trait(?Send)]
@@ -566,7 +562,6 @@ mod tests {
         decode_results: Mutex<VecDeque<Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>>>,
         orderbook_calls: Mutex<Vec<(Address, u64, u64)>>,
         store_calls: Mutex<Vec<(Vec<Address>, u64, u64)>>,
-        decode_inputs: Mutex<Vec<Vec<LogEntryResponse>>>,
         store_barrier: Mutex<Option<Arc<Barrier>>>,
         store_completed: Mutex<bool>,
     }
@@ -601,10 +596,6 @@ mod tests {
 
         fn store_calls(&self) -> Vec<(Vec<Address>, u64, u64)> {
             self.inner.store_calls.lock().unwrap().clone()
-        }
-
-        fn decode_inputs(&self) -> Vec<Vec<LogEntryResponse>> {
-            self.inner.decode_inputs.lock().unwrap().clone()
         }
 
         fn set_store_barrier(&self, barrier: Arc<Barrier>) {
@@ -677,9 +668,8 @@ mod tests {
 
         fn decode(
             &self,
-            logs: &[LogEntryResponse],
+            _logs: &[LogEntryResponse],
         ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
-            self.inner.decode_inputs.lock().unwrap().push(logs.to_vec());
             self.inner
                 .decode_results
                 .lock()
@@ -796,8 +786,6 @@ mod tests {
 
     #[derive(Debug, Clone)]
     struct BuildCall {
-        target: TargetKey,
-        target_block: u64,
         raw_order: Vec<(String, String)>,
         decoded_order: Vec<(String, String)>,
         existing_tokens: Vec<Address>,
@@ -849,8 +837,8 @@ mod tests {
     impl ApplyPipeline for MockApply {
         fn build_batch(
             &self,
-            target: &TargetKey,
-            target_block: u64,
+            _target: &TargetKey,
+            _target_block: u64,
             raw_logs: &[LogEntryResponse],
             decoded_events: &[DecodedEventData<DecodedEvent>],
             existing_tokens: &[Erc20TokenRow],
@@ -871,8 +859,6 @@ mod tests {
             let upsert_tokens = tokens_to_upsert.iter().map(|(addr, _)| *addr).collect();
 
             self.inner.build_calls.lock().unwrap().push(BuildCall {
-                target: target.clone(),
-                target_block,
                 raw_order,
                 decoded_order,
                 existing_tokens,
@@ -936,14 +922,6 @@ mod tests {
             responses: Vec<Result<Vec<StoreAddressRow>, LocalDbQueryError>>,
         ) {
             *self.store_responses.lock().unwrap() = VecDeque::from(responses);
-        }
-
-        fn recorded_queries(&self) -> Vec<SqlStatement> {
-            self.query_statements.lock().unwrap().clone()
-        }
-
-        fn executed_batches(&self) -> Vec<SqlStatementBatch> {
-            self.executed_batches.lock().unwrap().clone()
         }
     }
 
@@ -1910,20 +1888,6 @@ mod tests {
 
         async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
             panic!("query_text should not be called");
-        }
-    }
-
-    fn mk_event(block: &str, log_index: &str, tx: &str) -> DecodedEventData<DecodedEvent> {
-        DecodedEventData {
-            event_type: EventType::Unknown,
-            block_number: block.to_string(),
-            block_timestamp: "0x0".to_string(),
-            transaction_hash: Bytes::from_str(tx).unwrap(),
-            log_index: log_index.to_string(),
-            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0x".to_string(),
-                note: "".to_string(),
-            }),
         }
     }
 
