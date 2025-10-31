@@ -1,7 +1,4 @@
-use crate::local_db::pipeline::traits::BootstrapConfig;
-use crate::local_db::pipeline::traits::BootstrapPipeline;
-use crate::local_db::pipeline::traits::BootstrapState;
-use crate::local_db::pipeline::traits::TargetKey;
+use crate::local_db::pipeline::{BootstrapConfig, BootstrapPipeline, BootstrapState, TargetKey};
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;

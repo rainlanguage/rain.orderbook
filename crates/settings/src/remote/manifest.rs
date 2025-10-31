@@ -20,8 +20,10 @@ pub async fn fetch(url: Url) -> Result<LocalDbManifest, FetchManifestError> {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
-    use alloy::primitives::address;
+    use alloy::primitives::{address, Bytes};
     use httpmock::MockServer;
 
     #[tokio::test]
@@ -37,7 +39,7 @@ networks:
       - address: "0x0000000000000000000000000000000000000001"
         dump-url: "http://example.com/dump1"
         end-block: 123
-        end-block-hash: "0xabc"
+        end-block-hash: "0x0abc"
         end-block-time-ms: 1000
 "#;
 
@@ -64,7 +66,10 @@ networks:
             address!("0x0000000000000000000000000000000000000001")
         );
         assert_eq!(net.orderbooks[0].end_block, 123);
-        assert_eq!(net.orderbooks[0].end_block_hash, "0xabc");
+        assert_eq!(
+            net.orderbooks[0].end_block_hash,
+            Bytes::from_str("0x0abc").unwrap()
+        );
         assert_eq!(net.orderbooks[0].end_block_time_ms, 1000);
 
         // find helper
@@ -87,7 +92,7 @@ networks:
       - address: "0x0000000000000000000000000000000000000002"
         dump-url: "http://example.com/dump2"
         end-block: 555
-        end-block-hash: "0xdef"
+        end-block-hash: "0x0def"
         end-block-time-ms: 2000
         extra-ob: ignored
 "#;

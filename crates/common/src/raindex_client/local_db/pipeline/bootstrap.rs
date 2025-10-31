@@ -1,7 +1,7 @@
 use crate::local_db::{
     pipeline::{
-        adapters::bootstrap::DefaultBootstrapAdapter,
-        traits::{BootstrapConfig, BootstrapPipeline, BootstrapState, TargetKey},
+        adapters::bootstrap::DefaultBootstrapAdapter, BootstrapConfig, BootstrapPipeline,
+        BootstrapState, TargetKey,
     },
     query::{
         fetch_target_watermark::{fetch_target_watermark_stmt, TargetWatermarkRow},
@@ -146,7 +146,7 @@ mod tests {
     use std::sync::Mutex;
 
     use super::*;
-    use crate::local_db::pipeline::traits::BootstrapConfig;
+    use crate::local_db::pipeline::BootstrapConfig;
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;

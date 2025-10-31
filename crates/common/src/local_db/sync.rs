@@ -14,7 +14,6 @@ use super::{
     token_fetch::fetch_erc20_metadata_concurrent,
     FetchConfig, LocalDb, LocalDbError,
 };
-use crate::rpc_client::BlockRange;
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
@@ -73,11 +72,14 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         last_synced_block.saturating_add(1)
     };
 
-    let range = BlockRange::inclusive(start_block, latest_block)?;
-
     status.send("Fetching latest onchain events...".to_string())?;
     let events = local_db
-        .fetch_orderbook_events(orderbook_cfg.address, range, &FetchConfig::default())
+        .fetch_orderbook_events(
+            orderbook_cfg.address,
+            start_block,
+            latest_block,
+            &FetchConfig::default(),
+        )
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
@@ -97,7 +99,12 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         .collect::<Result<_, _>>()?;
 
     let store_logs = local_db
-        .fetch_store_events(&store_addresses, range, &FetchConfig::default())
+        .fetch_store_events(
+            &store_addresses,
+            start_block,
+            latest_block,
+            &FetchConfig::default(),
+        )
         .await
         .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
@@ -339,8 +346,9 @@ mod tests {
         fetch_tables::{fetch_tables_stmt, TableResponse},
         LocalDbQueryError, SqlStatementBatch,
     };
-    use alloy::primitives::Bytes;
+    use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use async_trait::async_trait;
+    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
 
     struct MockDb {
         json_map: std::collections::HashMap<String, String>,
@@ -727,7 +735,6 @@ mod tests {
     #[test]
     fn test_collect_all_store_addresses_dedupe_merge() {
         use crate::local_db::query::fetch_store_addresses::StoreAddressRow;
-        use alloy::primitives::Address;
 
         let store_addr_event = Address::from([0x11u8; 20]);
         let decoded_events = vec![DecodedEventData {
@@ -739,9 +746,11 @@ mod tests {
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(
                 crate::local_db::decode::InterpreterStoreSetEvent {
                     store_address: store_addr_event,
-                    namespace: alloy::primitives::FixedBytes::from([0u8; 32]),
-                    key: alloy::primitives::FixedBytes::from([0u8; 32]),
-                    value: alloy::primitives::FixedBytes::from([0u8; 32]),
+                    payload: Set {
+                        namespace: U256::ZERO,
+                        key: FixedBytes::from([0u8; 32]),
+                        value: FixedBytes::from([0u8; 32]),
+                    },
                 },
             )),
         }];
@@ -770,7 +779,6 @@ mod tests {
             fetch_erc20_tokens_by_addresses::{build_fetch_stmt, Erc20TokenRow},
             SqlValue,
         };
-        use alloy::primitives::Address;
         use rain_orderbook_bindings::IOrderBookV5::DepositV2;
         use rain_orderbook_test_fixtures::LocalEvm;
         use url::Url;
