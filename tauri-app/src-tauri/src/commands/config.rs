@@ -28,6 +28,7 @@ pub async fn check_settings_errors(text: Vec<String>) -> CommandResult<()> {
     OrderbookYaml::new(
         text.clone(),
         OrderbookYamlValidation {
+            version: true,
             networks: true,
             remote_networks: false,
             tokens: false,
@@ -49,6 +50,7 @@ pub async fn check_dotrain_with_settings_errors(
     OrderbookYaml::new(
         settings.clone(),
         OrderbookYamlValidation {
+            version: true,
             networks: true,
             remote_networks: false,
             tokens: false,
