@@ -1,11 +1,13 @@
+use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
 use rain_orderbook_app_settings::network::NetworkCfg;
 use rain_orderbook_common::local_db::{
     query::{
         create_tables::{CREATE_TABLES_SQL, REQUIRED_TABLES},
-        fetch_erc20_tokens_by_addresses,
+        fetch_erc20_tokens_by_addresses::build_fetch_stmt,
         fetch_last_synced_block::FETCH_LAST_SYNCED_BLOCK_SQL,
         fetch_store_addresses::FETCH_STORE_ADDRESSES_SQL,
+        SqlValue,
     },
     LocalDb,
 };
@@ -52,19 +54,40 @@ pub(crate) async fn ensure_schema(db_path: &str) -> Result<bool> {
     Ok(true)
 }
 
-pub(crate) async fn fetch_last_synced(db_path: &str) -> Result<u64> {
+pub(crate) async fn fetch_last_synced(
+    db_path: &str,
+    chain_id: u32,
+    orderbook_address: &str,
+) -> Result<u64> {
     let exec = RusqliteExecutor::new(db_path);
+    let stmt = SqlStatement::new_with_params(
+        SYNC_STATUS_QUERY,
+        [
+            SqlValue::from(chain_id as u64),
+            SqlValue::from(orderbook_address.to_string()),
+        ],
+    );
     let rows: Vec<SyncStatusRow> = exec
-        .query_json(&SqlStatement::new(SYNC_STATUS_QUERY))
+        .query_json(&stmt)
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
     Ok(rows.first().map(|row| row.last_synced_block).unwrap_or(0))
 }
 
-pub(crate) async fn fetch_existing_store_addresses(db_path: &str) -> Result<Vec<String>> {
+pub(crate) async fn fetch_existing_store_addresses(
+    db_path: &str,
+    chain_id: u32,
+    orderbook_address: Address,
+) -> Result<Vec<String>> {
     let exec = RusqliteExecutor::new(db_path);
     let rows: Vec<StoreAddressRow> = exec
-        .query_json(&SqlStatement::new(STORE_ADDRESSES_QUERY))
+        .query_json(&SqlStatement::new_with_params(
+            STORE_ADDRESSES_QUERY,
+            [
+                SqlValue::from(chain_id as u64),
+                SqlValue::from(orderbook_address.to_string()),
+            ],
+        ))
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
     Ok(rows
@@ -109,11 +132,12 @@ pub(crate) fn build_local_db_from_network(
 pub(crate) async fn fetch_existing_tokens(
     db_path: &str,
     chain_id: u32,
-    addresses: &[String],
+    orderbook_address: Address,
+    addresses: &[Address],
 ) -> Result<Vec<Erc20TokenRow>> {
     // Build a parameterized statement. When address list is empty, there is
     // nothing to fetch.
-    let Some(stmt) = fetch_erc20_tokens_by_addresses::build_fetch_stmt(chain_id, addresses)
+    let Some(stmt) = build_fetch_stmt(chain_id, orderbook_address, addresses)
         .map_err(|e| anyhow!(e.to_string()))?
     else {
         return Ok(vec![]);
@@ -132,7 +156,7 @@ pub(crate) struct SyncStatusRow {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Erc20TokenRow {
-    pub(crate) address: String,
+    pub(crate) token_address: String,
     pub(crate) decimals: u8,
 }
 
@@ -145,6 +169,7 @@ struct StoreAddressRow {
 mod tests {
     use super::*;
     use crate::commands::local_db::sync::data_source::SyncDataSource;
+    use std::str::FromStr;
     use tempfile::TempDir;
 
     #[test]
@@ -191,7 +216,7 @@ mod tests {
                 .await
                 .unwrap();
         }
-        let value = fetch_last_synced(&db_path_str).await.unwrap();
+        let value = fetch_last_synced(&db_path_str, 1, "0xorder").await.unwrap();
         assert_eq!(value, 0);
     }
 
@@ -207,6 +232,8 @@ mod tests {
             .unwrap();
         exec.query_text(&SqlStatement::new(
             r#"INSERT INTO interpreter_store_sets (
+                chain_id,
+                orderbook_address,
                 store_address,
                 transaction_hash,
                 log_index,
@@ -216,6 +243,8 @@ mod tests {
                 key,
                 value
             ) VALUES (
+                1,
+                '0x1111111111111111111111111111111111111111',
                 '0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD',
                 '0x1',
                 0,
@@ -230,7 +259,10 @@ mod tests {
         .await
         .unwrap();
 
-        let stores = fetch_existing_store_addresses(&db_path_str).await.unwrap();
+        let orderbook = Address::from_str("0x1111111111111111111111111111111111111111").unwrap();
+        let stores = fetch_existing_store_addresses(&db_path_str, 1, orderbook)
+            .await
+            .unwrap();
         assert_eq!(stores, vec!["0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);
     }
 }

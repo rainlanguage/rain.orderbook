@@ -1,12 +1,14 @@
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::{build_fetch_stmt, Erc20TokenRow};
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use alloy::primitives::Address;
 
 pub async fn fetch_erc20_tokens_by_addresses<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     chain_id: u32,
-    addresses: &[String],
+    orderbook_address: Address,
+    addresses: &[Address],
 ) -> Result<Vec<Erc20TokenRow>, LocalDbQueryError> {
-    if let Some(stmt) = build_fetch_stmt(chain_id, addresses)? {
+    if let Some(stmt) = build_fetch_stmt(chain_id, orderbook_address, addresses)? {
         exec.query_json(&stmt).await
     } else {
         Ok(vec![])
@@ -20,6 +22,7 @@ mod wasm_tests {
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
     use std::cell::RefCell;
     use std::rc::Rc;
+    use std::str::FromStr;
     use wasm_bindgen_test::*;
     use wasm_bindgen_utils::prelude::*;
 
@@ -31,7 +34,7 @@ mod wasm_tests {
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
-        let res = super::fetch_erc20_tokens_by_addresses(&exec, 1, &[]).await;
+        let res = super::fetch_erc20_tokens_by_addresses(&exec, 1, Address::ZERO, &[]).await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_empty());
         assert!(store.borrow().0.is_empty());
@@ -39,8 +42,13 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
-        let addrs = vec!["0xA".to_string(), "B".to_string()];
-        let expected_stmt = build_fetch_stmt(10, &addrs).unwrap().unwrap();
+        let addrs = vec![
+            Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
+            Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap(),
+        ];
+        let expected_stmt = build_fetch_stmt(10, Address::ZERO, &addrs)
+            .unwrap()
+            .unwrap();
 
         let store = Rc::new(RefCell::new((
             String::new(),
@@ -49,7 +57,7 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = super::fetch_erc20_tokens_by_addresses(&exec, 10, &addrs).await;
+        let res = super::fetch_erc20_tokens_by_addresses(&exec, 10, Address::ZERO, &addrs).await;
         assert!(res.is_ok());
 
         let (captured_sql, captured_params) = store.borrow().clone();

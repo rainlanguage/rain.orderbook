@@ -44,7 +44,7 @@ mod tests {
         assert_eq!(stmt.sql(), FETCH_TARGET_WATERMARK_SQL);
         // Defensive: check placeholders and where clause shape
         let lower = stmt.sql().to_lowercase();
-        assert!(lower.contains("where chain_id = ?1 and orderbook_address = ?2"));
+        assert!(lower.contains("where chain_id = ?1 and lower(orderbook_address) = lower(?2)"));
     }
 
     #[test]

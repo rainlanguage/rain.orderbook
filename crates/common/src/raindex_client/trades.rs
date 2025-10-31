@@ -131,6 +131,11 @@ impl RaindexOrder {
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let chain_id = self.chain_id();
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&self.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = self.orderbook();
+
         if LocalDb::check_support(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
@@ -139,6 +144,7 @@ impl RaindexOrder {
                 let local_trades = fetch_order_trades(
                     &exec,
                     chain_id,
+                    orderbook,
                     &order_hash,
                     start_timestamp,
                     end_timestamp,
@@ -243,14 +249,25 @@ impl RaindexOrder {
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
         let chain_id = self.chain_id();
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&self.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = self.orderbook();
+
         if LocalDb::check_support(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
                 let exec = JsCallbackExecutor::new(&db_cb);
                 let order_hash = self.order_hash().to_string();
-                let count =
-                    fetch_order_trades_count(&exec, &order_hash, start_timestamp, end_timestamp)
-                        .await?;
+                let count = fetch_order_trades_count(
+                    &exec,
+                    chain_id,
+                    orderbook,
+                    &order_hash,
+                    start_timestamp,
+                    end_timestamp,
+                )
+                .await?;
                 return Ok(count);
             }
         }
@@ -575,19 +592,22 @@ mod test_helpers {
             }
 
             let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
-                if sql.contains("GROUP_CONCAT(CASE WHEN ios.io_type = 'input'") {
+                if sql.contains("FROM order_events")
+                    && sql.contains("GROUP_CONCAT(")
+                    && sql.contains("ios.io_type = 'input'")
+                {
                     return js_sys::JSON::parse(&orders_payload).unwrap();
                 }
 
-                if sql.contains("COUNT(*) AS trade_count") {
+                if sql.contains("SELECT COUNT(*) AS trade_count") {
                     return js_sys::JSON::parse(&trade_count_payload).unwrap();
                 }
 
-                if sql.contains("FROM take_orders") || sql.contains("FROM clear_v3_events") {
+                if sql.contains("AS trade_kind") {
                     return js_sys::JSON::parse(&trades_payload).unwrap();
                 }
 
-                if sql.contains("FLOAT_SUM(vd.delta)") {
+                if sql.contains("FLOAT_SUM(vd") {
                     for (needle, payload) in &vault_payloads {
                         if sql.contains(needle) {
                             return js_sys::JSON::parse(payload).unwrap();

@@ -1,4 +1,4 @@
-import type { RaindexClient, LocalDb } from '@rainlanguage/orderbook';
+import type { RaindexClient, LocalDb, Hex } from '@rainlanguage/orderbook';
 import type { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import {
 	dbSyncIsActive,
@@ -13,11 +13,20 @@ interface StartLocalDbSyncOptions {
 	raindexClient: RaindexClient;
 	localDb: SQLiteWasmDatabase;
 	chainId?: number;
+	orderbookAddress?: Hex;
 	intervalMs?: number;
 }
 
+// NOTE: This function will be replaced with a more robust solution
+// after we introduce the new sync logic in the Raindex client.
 export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
-	const { raindexClient, localDb, chainId = 42161, intervalMs = 10_000 } = options;
+	const {
+		raindexClient,
+		localDb,
+		chainId = 42161,
+		orderbookAddress = '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB',
+		intervalMs = 10_000
+	} = options;
 
 	const queryFn = localDb.query.bind(localDb);
 	// Ensure the Raindex client uses the WASM SQLite DB for its local queries
@@ -43,7 +52,7 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 
 	async function updateSyncStatus() {
 		try {
-			const statusResult = await localDbClient.getSyncStatus(queryFn);
+			const statusResult = await localDbClient.getSyncStatus(queryFn, chainId, orderbookAddress);
 			if (!statusResult.error && statusResult.value && statusResult.value.length > 0) {
 				const latestStatus = statusResult.value[statusResult.value.length - 1];
 				dbSyncLastBlock.set(latestStatus.last_synced_block?.toString?.() ?? null);
