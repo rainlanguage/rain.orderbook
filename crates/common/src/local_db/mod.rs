@@ -1,11 +1,12 @@
+pub mod address_collectors;
 pub mod decode;
 pub mod fetch;
 pub mod insert;
 pub mod query;
 pub mod sync;
 pub mod token_fetch;
-pub mod tokens;
 
+use crate::erc20::Error as TokenError;
 use crate::rpc_client::{LogEntryResponse, RpcClient, RpcClientError};
 use alloy::primitives::ruint::ParseError;
 use alloy::primitives::{hex::FromHexError, Address};
@@ -70,6 +71,14 @@ pub enum LocalDbError {
 
     #[error("Configuration error: {message}")]
     Config { message: String },
+
+    #[error("Failed to fetch token metadata for {address} after {attempts} attempts")]
+    TokenMetadataFetchFailed {
+        address: Address,
+        attempts: usize,
+        #[source]
+        source: Box<TokenError>,
+    },
 
     #[error("Event decoding error: {message}")]
     DecodeError { message: String },
@@ -141,6 +150,14 @@ impl LocalDbError {
                 "Events data is not in the expected array format".to_string()
             }
             LocalDbError::Timeout => "Network request timed out".to_string(),
+            LocalDbError::TokenMetadataFetchFailed {
+                address,
+                attempts,
+                source,
+            } => format!(
+                "Failed to fetch token metadata for {} after {} attempts: {}",
+                address, attempts, source
+            ),
             LocalDbError::Config { message } => format!("Configuration error: {}", message),
             LocalDbError::DecodeError { message } => format!("Event decoding error: {}", message),
             LocalDbError::InsertError { message } => {
