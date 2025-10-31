@@ -41,7 +41,7 @@ use wasm_bindgen_utils::{prelude::*, wasm_export};
 ///
 /// 1. **Registry Creation** → Fetches and parses registry file
 /// 2. **List Orders** → Get available order strategies with metadata
-/// 3. **List Deployments** → Get deployment options for selected order  
+/// 3. **List Deployments** → Get deployment options for selected order
 /// 4. **Create GUI** → Instantiate DotrainOrderGui with merged content
 ///
 /// ## Examples
@@ -591,15 +591,15 @@ mod tests {
 fixed-limit https://example.com/fixed-limit.rain
 auction-dca https://example.com/auction-dca.rain"#;
 
-    const MOCK_SETTINGS_CONTENT: &str = r#"version: 3
+    const MOCK_SETTINGS_CONTENT: &str = r#"version: 4
 networks:
   flare:
-    rpcs: 
+    rpcs:
       - https://rpc.ankr.com/flare
     chain-id: 14
     currency: FLR
   base:
-    rpcs: 
+    rpcs:
       - https://mainnet.base.org
     chain-id: 8453
     currency: ETH
@@ -981,7 +981,7 @@ _ _: 1 1;
             );
             assert_eq!(merged1, expected1);
 
-            assert!(merged1.starts_with("version: 3\nnetworks:"));
+            assert!(merged1.starts_with("version: 4\nnetworks:"));
             assert!(merged1.contains("\n\ngui:"));
             assert!(merged1.contains("_ _: 0 0;"));
 
@@ -993,7 +993,7 @@ _ _: 1 1;
             );
             assert_eq!(merged2, expected2);
 
-            assert!(merged2.starts_with("version: 3\nnetworks:"));
+            assert!(merged2.starts_with("version: 4\nnetworks:"));
             assert!(merged2.contains("\n\ngui:"));
             assert!(merged2.contains("_ _: 1 1;"));
 

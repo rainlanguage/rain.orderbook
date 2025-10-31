@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::local_db::pipeline::traits::{FinalityConfig, SyncConfig, TargetKey, WindowPipeline};
+use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowPipeline};
 use crate::local_db::query::fetch_last_synced_block::{
     fetch_last_synced_block_stmt, SyncStatusResponse,
 };
@@ -83,9 +83,7 @@ impl WindowPipeline for DefaultWindowPipeline {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::local_db::pipeline::traits::{
-        FinalityConfig, SyncConfig, TargetKey, WindowOverrides,
-    };
+    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowOverrides};
     use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlStatementBatch};
     use alloy::primitives::Address;
     use async_trait::async_trait;

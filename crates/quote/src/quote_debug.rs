@@ -74,7 +74,7 @@ impl QuoteDebugger {
         let mut abi_decoded_error = None;
         if res.exit_reason.is_revert() {
             abi_decoded_error =
-                Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
+                Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result, None).await);
         }
 
         Ok((res.try_into()?, abi_decoded_error))

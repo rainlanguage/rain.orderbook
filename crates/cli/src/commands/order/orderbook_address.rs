@@ -132,11 +132,15 @@ deployers:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
+local-db-remotes:
+    some-remote: https://example.com/localdb/arbitrum
+
 orderbooks:
     {}:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        local-db-remote: some-remote
         deployment-block: 12345
 
 tokens:
