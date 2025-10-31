@@ -1,6 +1,6 @@
 use super::{
     address_collectors::{collect_store_addresses, collect_token_addresses},
-    decode::{DecodedEvent, DecodedEventData},
+    decode::{sort_decoded_events_by_block_and_log, DecodedEvent, DecodedEventData},
     insert,
     query::{
         create_tables::REQUIRED_TABLES,
@@ -22,7 +22,6 @@ use std::collections::BTreeSet;
 use std::{
     collections::{HashMap, HashSet},
     io::Read,
-    str::FromStr,
 };
 
 pub const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/3d6deafeaa52525d56d89641c0cb3c997923ad21/local_db.sql.gz";
@@ -93,10 +92,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
         .await
         .map_err(LocalDbError::from)?;
     let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
-    let store_addresses: Vec<Address> = store_addresses_vec
-        .iter()
-        .map(|s| Address::from_str(s))
-        .collect::<Result<_, _>>()?;
+    let store_addresses: Vec<Address> = store_addresses_vec.into_iter().collect();
 
     let store_logs = local_db
         .fetch_store_events(
@@ -203,15 +199,12 @@ async fn get_last_synced_block(
 fn collect_all_store_addresses(
     decoded_events: &[DecodedEventData<DecodedEvent>],
     existing_stores: &[StoreAddressRow],
-) -> Vec<String> {
-    let mut store_addresses: BTreeSet<String> = collect_store_addresses(decoded_events)
-        .into_iter()
-        .map(|addr| addr.to_ascii_lowercase())
-        .collect();
+) -> Vec<Address> {
+    let mut store_addresses: BTreeSet<Address> = collect_store_addresses(decoded_events);
 
     for row in existing_stores {
         if !row.store_address.is_empty() {
-            store_addresses.insert(row.store_address.to_ascii_lowercase());
+            store_addresses.insert(row.store_address);
         }
     }
 
@@ -227,7 +220,7 @@ fn merge_store_events(
     }
 
     decoded_events.append(store_events);
-    sort_events_by_block_and_log(decoded_events)?;
+    sort_decoded_events_by_block_and_log(decoded_events)?;
     Ok(())
 }
 
@@ -291,52 +284,10 @@ async fn prepare_erc20_tokens_prefix(
     })
 }
 
-fn sort_events_by_block_and_log(
-    events: &mut [DecodedEventData<DecodedEvent>],
-) -> Result<(), LocalDbError> {
-    // Parse indices and associated numeric keys once, avoiding unwraps.
-    let mut keyed_indices: Vec<(usize, u64, u64)> = Vec::with_capacity(events.len());
-    for (idx, e) in events.iter().enumerate() {
-        let block = parse_u64_hex_or_dec(&e.block_number).map_err(|err| {
-            LocalDbError::CustomError(format!(
-                "failed to parse block_number '{}': {}",
-                e.block_number, err
-            ))
-        })?;
-        let log = parse_u64_hex_or_dec(&e.log_index).map_err(|err| {
-            LocalDbError::CustomError(format!(
-                "failed to parse log_index '{}': {}",
-                e.log_index, err
-            ))
-        })?;
-        keyed_indices.push((idx, block, log));
-    }
-
-    keyed_indices.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.2.cmp(&b.2)));
-
-    // Reorder events according to the sorted indices; Clone is available.
-    let original = events.to_vec();
-    for (pos, (idx, _, _)) in keyed_indices.into_iter().enumerate() {
-        events[pos] = original[idx].clone();
-    }
-
-    Ok(())
-}
-
-fn parse_u64_hex_or_dec(value: &str) -> Result<u64, std::num::ParseIntError> {
-    let trimmed = value.trim();
-    if let Some(hex) = trimmed
-        .strip_prefix("0x")
-        .or_else(|| trimmed.strip_prefix("0X"))
-    {
-        u64::from_str_radix(hex, 16)
-    } else {
-        trimmed.parse::<u64>()
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     use crate::local_db::decode::{DecodedEvent, DecodedEventData, EventType, UnknownEventDecoded};
     use crate::local_db::query::FromDbJson;
@@ -535,15 +486,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_u64_hex_or_dec_variants() {
-        assert_eq!(parse_u64_hex_or_dec("0x0").unwrap(), 0);
-        assert_eq!(parse_u64_hex_or_dec("0x1a").unwrap(), 26);
-        assert_eq!(parse_u64_hex_or_dec("26").unwrap(), 26);
-        assert!(parse_u64_hex_or_dec("garbage").is_err());
-        assert_eq!(parse_u64_hex_or_dec("  0x2A  ").unwrap(), 42);
-    }
-
-    #[test]
     fn test_sort_events_by_block_and_log() {
         let mut events = vec![
             DecodedEventData {
@@ -580,7 +522,7 @@ mod tests {
                 }),
             },
         ];
-        sort_events_by_block_and_log(&mut events).unwrap();
+        sort_decoded_events_by_block_and_log(&mut events).unwrap();
         assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
         assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
         assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
@@ -653,9 +595,11 @@ mod tests {
                 note: "".to_string(),
             }),
         }];
-        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
-        match err {
-            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
+        match &err {
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
+                assert_eq!(value, "0xZZ")
+            }
             other => panic!("unexpected error: {other:?}"),
         }
     }
@@ -673,9 +617,9 @@ mod tests {
                 note: "".to_string(),
             }),
         }];
-        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
-        match err {
-            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse log_index")),
+        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
+        match &err {
+            LocalDbError::InvalidLogIndex { value, .. } => assert_eq!(value, "not-a-number"),
             other => panic!("unexpected error: {other:?}"),
         }
     }
@@ -693,9 +637,11 @@ mod tests {
                 note: "".to_string(),
             }),
         }];
-        let err = sort_events_by_block_and_log(&mut events).unwrap_err();
-        match err {
-            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
+        match &err {
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
+                assert_eq!(value, "123x")
+            }
             other => panic!("unexpected error: {other:?}"),
         }
     }
@@ -726,8 +672,10 @@ mod tests {
         }];
 
         let err = merge_store_events(&mut decoded, &mut store).unwrap_err();
-        match err {
-            LocalDbError::CustomError(msg) => assert!(msg.contains("failed to parse block_number")),
+        match &err {
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
+                assert_eq!(value, "garbage")
+            }
             other => panic!("unexpected error: {other:?}"),
         }
     }
@@ -757,19 +705,19 @@ mod tests {
 
         let existing = vec![
             StoreAddressRow {
-                store_address: format!("0x{:X}", Address::from([0x22u8; 20])),
+                store_address: Address::from([0x22u8; 20]),
             },
             StoreAddressRow {
                 // duplicate of event address but different case to test normalization
-                store_address: format!("0x{:X}", store_addr_event),
+                store_address: store_addr_event,
             },
         ];
 
         let out = collect_all_store_addresses(&decoded_events, &existing);
         let set: std::collections::HashSet<_> = out.iter().cloned().collect();
         assert_eq!(set.len(), 2);
-        assert!(set.contains(&format!("0x{:x}", store_addr_event)));
-        assert!(set.contains(&format!("0x{:x}", Address::from([0x22u8; 20]))));
+        assert!(set.contains(&store_addr_event));
+        assert!(set.contains(&Address::from([0x22u8; 20])));
     }
 
     #[cfg(not(target_family = "wasm"))]

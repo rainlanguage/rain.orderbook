@@ -6,7 +6,7 @@ pub const FETCH_STORE_ADDRESSES_SQL: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StoreAddressRow {
-    pub store_address: String,
+    pub store_address: Address,
 }
 
 pub fn fetch_store_addresses_stmt(chain_id: u32, orderbook_address: Address) -> SqlStatement {
