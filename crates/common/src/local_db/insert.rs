@@ -1305,22 +1305,27 @@ mod tests {
         assert!(
             matches!(params[2], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.store_address))
         );
-        assert!(
-            matches!(params[3], SqlValue::Text(ref v) if v == &context.transaction_hash.to_string())
-        );
-        assert!(matches!(params[4], SqlValue::U64(v) if v == context.log_index));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_number));
         assert!(matches!(
-            params[5],
+            params[4],
+            SqlValue::U64(v) if v == context.block_timestamp
+        ));
+        assert!(
+            matches!(params[5], SqlValue::Text(ref v) if v == &context.transaction_hash.to_string())
+        );
+        assert!(matches!(params[6], SqlValue::U64(v) if v == context.log_index));
+        assert!(matches!(
+            params[7],
             SqlValue::Text(ref v)
                 if v == &hex::encode_prefixed(FixedBytes::<32>::from(
                     decoded.payload.namespace.to_be_bytes::<32>(),
                 ))
         ));
         assert!(
-            matches!(params[6], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.key))
+            matches!(params[8], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.key))
         );
         assert!(
-            matches!(params[7], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.value))
+            matches!(params[9], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.value))
         );
     }
 
