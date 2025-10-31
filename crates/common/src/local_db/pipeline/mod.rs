@@ -20,13 +20,15 @@ use alloy::primitives::Address;
 use async_trait::async_trait;
 use url::Url;
 
+use super::query::SqlStatement;
+
 /// Identifies the logical target (orderbook) for a sync cycle.
 ///
 /// Multi‑tenant writes/reads are always keyed by this structure.
 #[derive(Debug, Clone)]
 pub struct TargetKey {
     /// Chain id for the orderbook deployment.
-    pub chain_id: u64,
+    pub chain_id: u32,
     /// Address of the orderbook contract.
     pub orderbook_address: Address,
 }
@@ -83,21 +85,18 @@ pub struct SyncOutcome {
     pub decoded_events: usize,
 }
 
-/// Descriptor for a runner‑supplied seed dump to import during bootstrap.
-///
-/// The runner decides which dump to use (if any) by consulting a manifest
-/// or other policy and passes a reference here. Implementations can choose
-/// which artefact to consume (e.g., `.sql` vs `.sql.gz` vs copying `.db`).
 #[derive(Debug, Clone)]
-pub struct SeedDump {
-    /// End block of the dump. Used for sanity checks and status messages.
-    pub end_block: u64,
-    /// Optional path to a plain SQL file on disk.
-    pub sql_path: Option<String>,
-    /// Optional path to a gzipped SQL file on disk.
-    pub sql_gz_path: Option<String>,
-    /// Optional path to a ready‑to‑use database file.
-    pub db_path: Option<String>,
+pub struct BootstrapConfig {
+    pub target_key: TargetKey,
+    pub dump_stmt: Option<SqlStatement>,
+    pub latest_block: u64,
+}
+
+/// Bootstrap state snapshot used by environment orchestration to decide actions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BootstrapState {
+    pub has_required_tables: bool,
+    pub last_synced_block: Option<u64>,
 }
 
 /// Ensures the database is ready for incremental sync and applies optional
@@ -108,23 +107,39 @@ pub struct SeedDump {
 /// - Version gate via `db_metadata` (read/init, fail/reset on mismatch per
 ///   environment policy).
 ///
-/// Policy (environment‑specific examples):
-/// - Browser: consult manifest; if DB is empty or sufficiently behind a
-///   manifest dump, import a data‑only dump then continue incremental.
-/// - Producer: initialize a per‑target DB from the latest dump at start of
-///   run (fresh seed). If no dump, proceed with schema‑only and incremental.
+/// Implementors should orchestrate bootstrap via `run` and may use shared
+/// helpers for the lower-level operations exposed as trait methods here.
 #[async_trait(?Send)]
 pub trait BootstrapPipeline {
-    /// Executes bootstrap for `target` using the provided DB executor.
-    ///
-    /// The optional `seed_dump` is provided by the runner (already selected
-    /// from a manifest or other policy). Implementations must ensure schema
-    /// first, then import the seed if present, then finalize version gating.
+    async fn ensure_schema<DB>(
+        &self,
+        db: &DB,
+        db_schema_version: Option<u32>,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized;
+
+    async fn inspect_state<DB>(
+        &self,
+        db: &DB,
+        target_key: &TargetKey,
+    ) -> Result<BootstrapState, LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized;
+
+    async fn reset_db<DB>(
+        &self,
+        db: &DB,
+        db_schema_version: Option<u32>,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized;
+
     async fn run<DB>(
         &self,
         db: &DB,
-        target: &TargetKey,
-        seed_dump: Option<&SeedDump>,
+        db_schema_version: Option<u32>,
+        config: &BootstrapConfig,
     ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized;
