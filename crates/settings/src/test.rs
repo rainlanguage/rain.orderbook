@@ -1,3 +1,4 @@
+use crate::local_db_remotes::LocalDbRemoteCfg;
 use crate::*;
 use alloy::primitives::Address;
 use std::sync::{Arc, RwLock};
@@ -40,6 +41,7 @@ pub fn mock_orderbook() -> Arc<OrderbookCfg> {
             url: "https://subgraph.com".parse().unwrap(),
         }),
         network: mock_network(),
+        local_db_remote: Arc::new(LocalDbRemoteCfg::default()),
         deployment_block: 12345,
     })
 }

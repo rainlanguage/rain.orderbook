@@ -11,7 +11,7 @@ use crate::local_db::insert::{
     generate_erc20_token_statements as build_token_upserts,
     raw_events_to_statements as build_raw_event_sql,
 };
-use crate::local_db::pipeline::traits::{ApplyPipeline, TargetKey};
+use crate::local_db::pipeline::{ApplyPipeline, TargetKey};
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};

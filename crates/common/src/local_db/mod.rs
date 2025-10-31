@@ -11,6 +11,7 @@ use crate::erc20::Error as TokenError;
 use crate::rpc_client::{LogEntryResponse, RpcClient, RpcClientError};
 use alloy::primitives::ruint::ParseError;
 use alloy::primitives::{hex::FromHexError, Address};
+use alloy::rpc::types::FilterBlockError;
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::{FetchConfig, FetchConfigError};
 use insert::{
@@ -118,6 +119,27 @@ pub enum LocalDbError {
 
     #[error("Overflow when incrementing last_synced_block: {last_synced_block}")]
     LastSyncedBlockOverflow { last_synced_block: u64 },
+
+    #[error("Missing topics filter")]
+    MissingTopicsFilter,
+
+    #[error("Missing block filter: {0}")]
+    MissingBlockFilter(String),
+
+    #[error("Block number is not number: {0}")]
+    NonNumberBlockNumber(String),
+
+    #[error(transparent)]
+    FilterBlockError(#[from] FilterBlockError),
+
+    #[error("Invalid retry max attempts")]
+    InvalidRetryMaxAttemps,
+
+    #[error(transparent)]
+    ERC20Error(#[from] crate::erc20::Error),
+
+    #[error(transparent)]
+    FetchConfigError(#[from] FetchConfigError),
 }
 
 impl LocalDbError {
@@ -175,6 +197,19 @@ impl LocalDbError {
                 "Overflow when incrementing last_synced_block {}",
                 last_synced_block
             ),
+            LocalDbError::MissingTopicsFilter => "Topics are missing from the filter".to_string(),
+            LocalDbError::MissingBlockFilter(value) => {
+                format!("Missing block filter: {}", value)
+            }
+            LocalDbError::FilterBlockError(err) => format!("Filter block error: {}", err),
+            LocalDbError::NonNumberBlockNumber(value) => {
+                format!("Block number is not a valid number: {}", value)
+            }
+            LocalDbError::InvalidRetryMaxAttemps => {
+                "Invalid retry configuration for max attemps".to_string()
+            }
+            LocalDbError::ERC20Error(err) => format!("ERC20 error: {}", err),
+            LocalDbError::FetchConfigError(err) => format!("Fetch configuration error: {}", err),
         }
     }
 }
