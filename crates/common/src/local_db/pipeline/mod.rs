@@ -8,7 +8,6 @@
 //!
 
 pub mod adapters;
-pub mod engine;
 
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
