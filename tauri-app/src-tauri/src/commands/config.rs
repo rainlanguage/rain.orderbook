@@ -101,7 +101,7 @@ mod tests {
     use super::*;
 
     const DOTRAIN: &str = r#"
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
