@@ -18,8 +18,6 @@
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
-	import { startLocalDbSync } from '$lib/services/startLocalDbSync';
-	import { onDestroy, onMount } from 'svelte';
 
 	const { errorMessage, localDb, raindexClient } = $page.data;
 
