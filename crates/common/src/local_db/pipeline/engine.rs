@@ -221,7 +221,7 @@ where
 mod tests {
     use super::*;
     use crate::local_db::decode::{DecodedEvent, DecodedEventData, EventType, UnknownEventDecoded};
-    use crate::local_db::pipeline::traits::TargetKey;
+    use crate::local_db::pipeline::TargetKey;
     use crate::local_db::query::{
         fetch_store_addresses::StoreAddressRow, LocalDbQueryError, SqlStatement, SqlStatementBatch,
         SqlValue,
@@ -280,20 +280,6 @@ mod tests {
 
         async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
             panic!("query_text should not be called");
-        }
-    }
-
-    fn mk_event(block: &str, log_index: &str, tx: &str) -> DecodedEventData<DecodedEvent> {
-        DecodedEventData {
-            event_type: EventType::Unknown,
-            block_number: block.to_string(),
-            block_timestamp: "0x0".to_string(),
-            transaction_hash: Bytes::from_str(tx).unwrap(),
-            log_index: log_index.to_string(),
-            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0x".to_string(),
-                note: "".to_string(),
-            }),
         }
     }
 
