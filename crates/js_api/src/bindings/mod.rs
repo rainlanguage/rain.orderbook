@@ -1,6 +1,5 @@
 use alloy::hex::FromHexError;
 use alloy::primitives::bytes::Bytes;
-use alloy::sol_types::SolValue;
 use alloy::{
     primitives::{
         hex::{decode, encode_prefixed},
@@ -9,6 +8,7 @@ use alloy::{
     sol_types::SolCall,
 };
 use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, OrderV4, TakeOrdersConfigV4};
+use rain_orderbook_common::order_hash;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -40,7 +40,7 @@ pub fn get_order_hash(
     )]
     order: &OrderV4,
 ) -> Result<String, Error> {
-    Ok(encode_prefixed(main_keccak256(order.abi_encode())))
+    Ok(encode_prefixed(order_hash(order)))
 }
 
 /// Generates ABI-encoded calldata for the `takeOrders3()` function on the OrderBook smart contract.
