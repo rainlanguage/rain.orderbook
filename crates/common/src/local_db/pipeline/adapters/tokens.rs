@@ -1,5 +1,5 @@
 use crate::erc20::TokenInfo;
-use crate::local_db::pipeline::traits::TokensPipeline;
+use crate::local_db::pipeline::TokensPipeline;
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::{build_fetch_stmt, Erc20TokenRow};
 use crate::local_db::query::LocalDbQueryExecutor;
 use crate::local_db::token_fetch::fetch_erc20_metadata_concurrent;
@@ -315,8 +315,12 @@ mod tests {
                 .await
                 .expect_err("expected error");
             match err {
-                LocalDbError::TokenMetadataFetchFailed { address, .. } => {
-                    assert_eq!(address, Address::ZERO);
+                LocalDbError::ERC20Error(crate::erc20::Error::MulticallError(multicall_err)) => {
+                    use alloy::providers::MulticallError;
+                    assert!(
+                        matches!(multicall_err, MulticallError::TransportError(_)),
+                        "expected transport-related failure, got {multicall_err:?}"
+                    );
                 }
                 other => panic!("unexpected error variant: {other:?}"),
             }
@@ -336,8 +340,12 @@ mod tests {
                 .expect_err("expected overall error on partial failure");
 
             match err {
-                LocalDbError::TokenMetadataFetchFailed { address, .. } => {
-                    assert_eq!(address, bad);
+                LocalDbError::ERC20Error(crate::erc20::Error::MulticallError(multicall_err)) => {
+                    use alloy::providers::MulticallError;
+                    assert!(
+                        matches!(multicall_err, MulticallError::DecodeError(_)),
+                        "expected decode failure for invalid token address, got {multicall_err:?}"
+                    );
                 }
                 other => panic!("unexpected error variant: {other:?}"),
             }
