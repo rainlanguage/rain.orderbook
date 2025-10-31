@@ -343,7 +343,9 @@ mod tests {
         fetch_tables::{fetch_tables_stmt, TableResponse},
         LocalDbQueryError,
     };
+    use alloy::primitives::{Address, FixedBytes, U256};
     use async_trait::async_trait;
+    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
 
     struct MockDb {
         json_map: std::collections::HashMap<String, String>,
@@ -696,7 +698,6 @@ mod tests {
     #[test]
     fn test_collect_all_store_addresses_dedupe_merge() {
         use crate::local_db::query::fetch_store_addresses::StoreAddressRow;
-        use alloy::primitives::Address;
 
         let store_addr_event = Address::from([0x11u8; 20]);
         let decoded_events = vec![DecodedEventData {
@@ -708,9 +709,11 @@ mod tests {
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(
                 crate::local_db::decode::InterpreterStoreSetEvent {
                     store_address: store_addr_event,
-                    namespace: alloy::primitives::FixedBytes::from([0u8; 32]),
-                    key: alloy::primitives::FixedBytes::from([0u8; 32]),
-                    value: alloy::primitives::FixedBytes::from([0u8; 32]),
+                    payload: Set {
+                        namespace: U256::ZERO,
+                        key: FixedBytes::from([0u8; 32]),
+                        value: FixedBytes::from([0u8; 32]),
+                    },
                 },
             )),
         }];
@@ -738,7 +741,6 @@ mod tests {
         use crate::local_db::query::fetch_erc20_tokens_by_addresses::{
             build_fetch_stmt, Erc20TokenRow,
         };
-        use alloy::primitives::Address;
         use rain_orderbook_bindings::IOrderBookV5::DepositV2;
         use rain_orderbook_test_fixtures::LocalEvm;
         use url::Url;

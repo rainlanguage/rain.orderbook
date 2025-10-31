@@ -65,6 +65,7 @@ mod tests {
     use super::super::decode::InterpreterStoreSetEvent;
     use super::*;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use rain_orderbook_bindings::IOrderBookV5::{
         AddOrderV3, DepositV2, OrderV4, RemoveOrderV3, SignedContextV1, TakeOrderConfigV4,
         TakeOrderV3, WithdrawV2, IOV2,
@@ -228,9 +229,11 @@ mod tests {
 
         let store_event = InterpreterStoreSetEvent {
             store_address: Address::from([0x44; 20]),
-            namespace: FixedBytes::<32>::from([0xaa; 32]),
-            key: FixedBytes::<32>::from([0xbb; 32]),
-            value: FixedBytes::<32>::from([0xcc; 32]),
+            payload: Set {
+                namespace: U256::from_be_bytes([0xaa; 32]),
+                key: FixedBytes::<32>::from([0xbb; 32]),
+                value: FixedBytes::<32>::from([0xcc; 32]),
+            },
         };
 
         let events = vec![
