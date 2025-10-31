@@ -6,8 +6,8 @@
 	"author": "Rain Open Source Software Ltd",
 	"private": true,
 	"scripts": {
-		"dev": "npm run build -w @rainlanguage/orderbook && vite dev",
-		"build": "npm run build -w @rainlanguage/orderbook && vite build",
+		"dev": "vite dev",
+		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
