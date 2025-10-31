@@ -242,7 +242,7 @@
             body = ''
               set -euxo pipefail
 
-              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests
+              cargo build --profile release-wasm --target wasm32-unknown-unknown --lib -p rain_orderbook_js_api
             '';
           };
 
