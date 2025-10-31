@@ -220,16 +220,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::local_db::decode::{DecodedEvent, DecodedEventData, EventType, UnknownEventDecoded};
     use crate::local_db::pipeline::TargetKey;
     use crate::local_db::query::{
         fetch_store_addresses::StoreAddressRow, LocalDbQueryError, SqlStatement, SqlStatementBatch,
         SqlValue,
     };
-    use alloy::primitives::{Address, Bytes};
+    use alloy::primitives::Address;
     use async_trait::async_trait;
     use std::cell::RefCell;
-    use std::str::FromStr;
 
     struct MockExecutor {
         response: RefCell<Result<Vec<StoreAddressRow>, LocalDbQueryError>>,
