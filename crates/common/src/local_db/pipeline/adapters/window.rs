@@ -1,4 +1,4 @@
-use crate::local_db::pipeline::traits::{FinalityConfig, SyncConfig, TargetKey, WindowPipeline};
+use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowPipeline};
 use crate::local_db::query::fetch_target_watermark::{
     fetch_target_watermark_stmt, TargetWatermarkRow,
 };
@@ -85,9 +85,7 @@ impl WindowPipeline for DefaultWindowPipeline {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::local_db::pipeline::traits::{
-        FinalityConfig, SyncConfig, TargetKey, WindowOverrides,
-    };
+    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowOverrides};
     use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlStatementBatch};
     use alloy::primitives::Address;
     use async_trait::async_trait;

@@ -2,6 +2,7 @@ use crate::yaml::FieldErrorKind;
 use crate::*;
 use alloy::primitives::hex::FromHexError;
 use alloy::primitives::Address;
+use local_db_remotes::LocalDbRemoteCfg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::num::ParseIntError;
@@ -28,6 +29,7 @@ pub struct OrderbookCfg {
     pub address: Address,
     pub network: Arc<NetworkCfg>,
     pub subgraph: Arc<SubgraphCfg>,
+    pub local_db_remote: Arc<LocalDbRemoteCfg>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub label: Option<String>,
     pub deployment_block: u64,
@@ -86,6 +88,7 @@ impl YamlParsableHash for OrderbookCfg {
 
         let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), context)?;
         let subgraphs = SubgraphCfg::parse_all_from_yaml(documents.clone(), context)?;
+        let local_db_remotes = LocalDbRemoteCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -138,6 +141,25 @@ impl YamlParsableHash for OrderbookCfg {
 
                     let label = optional_string(orderbook_yaml, "label");
 
+                    let local_db_remote_name =
+                        match optional_string(orderbook_yaml, "local-db-remote") {
+                            Some(name) => name,
+                            None => orderbook_key.clone(),
+                        };
+                    let local_db_remote =
+                        local_db_remotes.get(&local_db_remote_name).ok_or_else(|| {
+                            YamlError::Field {
+                                kind: FieldErrorKind::InvalidValue {
+                                    field: "local-db-remote".to_string(),
+                                    reason: format!(
+                                        "Local DB remote '{}' not found",
+                                        local_db_remote_name
+                                    ),
+                                },
+                                location: location.clone(),
+                            }
+                        })?;
+
                     let deployment_block_str = require_string(
                         orderbook_yaml,
                         Some("deployment-block"),
@@ -160,6 +182,7 @@ impl YamlParsableHash for OrderbookCfg {
                         address,
                         network: Arc::new(network.clone()),
                         subgraph: Arc::new(subgraph.clone()),
+                        local_db_remote: Arc::new(local_db_remote.clone()),
                         label,
                         deployment_block,
                     };
@@ -194,6 +217,7 @@ impl Default for OrderbookCfg {
             address: Address::ZERO,
             network: Arc::new(NetworkCfg::default()),
             subgraph: Arc::new(SubgraphCfg::default()),
+            local_db_remote: Arc::new(LocalDbRemoteCfg::default()),
             label: None,
             deployment_block: 0,
         }
@@ -205,6 +229,7 @@ impl PartialEq for OrderbookCfg {
             && self.address == other.address
             && self.network == other.network
             && self.subgraph == other.subgraph
+            && self.local_db_remote == other.local_db_remote
             && self.label == other.label
             && self.deployment_block == other.deployment_block
     }
@@ -289,6 +314,8 @@ networks:
         chain-id: 1
 subgraphs:
     SomeSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 test: test
 "#;
         let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -312,6 +339,8 @@ networks:
         chain-id: 1
 subgraphs:
     SomeSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
 "#;
@@ -336,6 +365,8 @@ networks:
         chain-id: 1
 subgraphs:
     SomeSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
@@ -362,11 +393,14 @@ networks:
         chain-id: 1
 subgraphs:
     SomeSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 12345
 "#;
         let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -386,6 +420,8 @@ orderbooks:
     #[test]
     fn test_parse_orderbooks_from_yaml_multiple_files() {
         let yaml_one = r#"
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 networks:
     TestNetwork:
         rpcs:
@@ -398,6 +434,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 12345
 "#;
         let yaml_two = r#"
@@ -406,6 +443,7 @@ orderbooks:
         address: 0x0987654321098765432109876543210987654321
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 67890
 "#;
 
@@ -429,6 +467,8 @@ orderbooks:
     #[test]
     fn test_parse_orderbooks_from_yaml_duplicate_key() {
         let yaml_one = r#"
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 networks:
     TestNetwork:
         rpcs:
@@ -441,6 +481,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 12345
 "#;
         let yaml_two = r#"
@@ -449,6 +490,7 @@ orderbooks:
         address: 0x0987654321098765432109876543210987654321
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 67890
 "#;
 
@@ -472,10 +514,13 @@ networks:
         chain-id: 1
 subgraphs:
     mainnet: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
+        local-db-remote: mainnet
         deployment-block: 12345
 "#;
 
@@ -491,10 +536,13 @@ networks:
         chain-id: 1
 subgraphs:
     mainnet: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         deployment-block: 12345
+        local-db-remote: mainnet
 "#;
         let documents = vec![get_document(yaml)];
         let network_key = OrderbookCfg::parse_network_key(documents, "mainnet").unwrap();
@@ -576,11 +624,14 @@ networks:
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
 "#;
         let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
@@ -606,21 +657,26 @@ networks:
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook1:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 0
     TestOrderbook2:
         address: 0x0987654321098765432109876543210987654321
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 18446744073709551615
     TestOrderbook3:
         address: 0x1111111111111111111111111111111111111111
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 12345678
 "#;
         let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
@@ -649,11 +705,14 @@ networks:
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: -1
 "#;
         let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -680,11 +739,14 @@ networks:
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 18446744073709551616
 "#;
         let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -712,11 +774,14 @@ networks:
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: abc123
 "#;
         let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -743,11 +808,14 @@ networks:
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
         subgraph: TestSubgraph
+        local-db-remote: mainnet
         deployment-block: 123.45
 "#;
         let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -758,6 +826,121 @@ orderbooks:
                     field: "deployment-block".to_string(),
                     reason: "Failed to parse deployment block: invalid digit found in string"
                         .to_string(),
+                },
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_orderbook_local_db_remote_absent_defaults_to_orderbook_key() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+local-db-remotes:
+    TestOrderbook: https://example.com/localdb/testorderbook
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        deployment-block: 123
+"#;
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let ob = orderbooks.get("TestOrderbook").unwrap();
+        assert_eq!(ob.local_db_remote.key, "TestOrderbook");
+        assert_eq!(
+            ob.local_db_remote.url.to_string(),
+            "https://example.com/localdb/testorderbook"
+        );
+    }
+
+    #[test]
+    fn test_orderbook_local_db_remote_resolves() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        local-db-remote: mainnet
+        deployment-block: 123
+"#;
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let ob = orderbooks.get("TestOrderbook").unwrap();
+        assert_eq!(ob.local_db_remote.key, "mainnet");
+        assert_eq!(
+            ob.local_db_remote.url.to_string(),
+            "https://example.com/localdb/mainnet"
+        );
+    }
+
+    #[test]
+    fn test_orderbook_local_db_remote_not_found() {
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        local-db-remote: missing
+        deployment-block: 123
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
+orderbooks:
+    TestOrderbook:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+        subgraph: TestSubgraph
+        local-db-remote: missing
+        deployment-block: 123
+"#;
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "local-db-remote".to_string(),
+                    reason: "Local DB remote 'missing' not found".to_string(),
                 },
                 location: "orderbook 'TestOrderbook'".to_string(),
             }

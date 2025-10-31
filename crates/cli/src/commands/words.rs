@@ -529,6 +529,9 @@ scenarios:
         bindings:
             key1: 10
 
+local-db-remotes:
+    some-orderbook: https://example.com/localdb/arbitrum
+
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
