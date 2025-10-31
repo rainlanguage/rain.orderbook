@@ -2,14 +2,14 @@ use crate::local_db::address_collectors::{collect_store_addresses, collect_token
 use crate::local_db::decode::{
     sort_decoded_events_by_block_and_log, DecodedEvent, DecodedEventData,
 };
-use crate::local_db::pipeline::traits::{
+use crate::local_db::pipeline::{
     ApplyPipeline, BootstrapConfig, BootstrapPipeline, EventsPipeline, StatusBus, SyncConfig,
     SyncOutcome, TargetKey, TokensPipeline, WindowPipeline,
 };
 use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, StoreAddressRow};
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::LocalDbError;
-use crate::rpc_client::{BlockRange, LogEntryResponse};
+use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use std::collections::{BTreeSet, HashSet};
 use url::Url;
@@ -91,12 +91,12 @@ where
         }
 
         self.status.send("Fetching orderbook logs").await?;
-        let block_range = BlockRange::inclusive(start_block, target_block)?;
         let orderbook_logs = self
             .events
             .fetch_orderbook(
                 input.target.orderbook_address,
-                block_range,
+                start_block,
+                target_block,
                 &input.cfg.fetch,
             )
             .await?;
@@ -122,7 +122,7 @@ where
         // Run token lookup and store log fetch in parallel.
         let tokens_fut = self.tokens.load_existing(
             db,
-            u64::from(input.target.chain_id),
+            input.target.chain_id,
             input.target.orderbook_address,
             &token_addresses_vec,
         );
@@ -136,10 +136,9 @@ where
             } else {
                 self.status.send("Fetching interpreter store logs").await?;
                 let addresses = store_addresses.into_iter().collect::<Vec<Address>>();
-                let range = BlockRange::inclusive(start_block, target_block)?;
                 let logs = self
                     .events
-                    .fetch_stores(&addresses, range, &input.cfg.fetch)
+                    .fetch_stores(&addresses, start_block, target_block, &input.cfg.fetch)
                     .await?;
                 self.status.send("Decoding interpreter store logs").await?;
                 let decoded = self.events.decode(&logs)?;
@@ -225,9 +224,7 @@ mod tests {
     use crate::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent, UnknownEventDecoded,
     };
-    use crate::local_db::pipeline::traits::{
-        BootstrapState, FinalityConfig, TargetKey, WindowOverrides,
-    };
+    use crate::local_db::pipeline::{BootstrapState, FinalityConfig, TargetKey, WindowOverrides};
     use crate::local_db::query::{
         fetch_erc20_tokens_by_addresses::Erc20TokenRow, fetch_store_addresses::StoreAddressRow,
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
@@ -235,6 +232,7 @@ mod tests {
     use crate::local_db::FetchConfig;
     use alloy::primitives::{hex, Address, Bytes, FixedBytes, U256};
     use async_trait::async_trait;
+    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use serde_json;
     use std::cell::RefCell;
     use std::collections::VecDeque;
@@ -345,9 +343,11 @@ mod tests {
             log_index: hex_u64(log_index),
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
                 store_address: store,
-                namespace: FixedBytes::<32>::from([0xAA; 32]),
-                key: FixedBytes::<32>::from([0xBB; 32]),
-                value: FixedBytes::<32>::from([0xCC; 32]),
+                payload: Set {
+                    namespace: U256::from(0x1234),
+                    key: FixedBytes::<32>::from([0xBB; 32]),
+                    value: FixedBytes::<32>::from([0xCC; 32]),
+                },
             })),
         }
     }
@@ -630,13 +630,14 @@ mod tests {
         async fn fetch_orderbook(
             &self,
             orderbook_address: Address,
-            range: BlockRange,
+            from_block: u64,
+            to_block: u64,
             _cfg: &FetchConfig,
         ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
             self.inner.orderbook_calls.lock().unwrap().push((
                 orderbook_address,
-                range.start,
-                range.end,
+                from_block,
+                to_block,
             ));
             self.inner
                 .orderbook_results
@@ -649,13 +650,14 @@ mod tests {
         async fn fetch_stores(
             &self,
             store_addresses: &[Address],
-            range: BlockRange,
+            from_block: u64,
+            to_block: u64,
             _cfg: &FetchConfig,
         ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
             self.inner.store_calls.lock().unwrap().push((
                 store_addresses.to_vec(),
-                range.start,
-                range.end,
+                from_block,
+                to_block,
             ));
             let barrier = {
                 let store_barrier = self.inner.store_barrier.lock().unwrap();
@@ -743,7 +745,7 @@ mod tests {
         async fn load_existing<DB>(
             &self,
             _db: &DB,
-            _chain_id: u64,
+            _chain_id: u32,
             _orderbook_address: Address,
             token_addrs_lower: &[Address],
         ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
