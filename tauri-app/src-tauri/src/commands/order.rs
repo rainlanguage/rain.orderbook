@@ -605,7 +605,7 @@ _ _: 0 0;
         .await
         .unwrap();
 
-        let expected_rainlang = "/* 0. calculate-io */\n_ _: 0 0;\n\n/* 1. handle-io */\n:;";
+        let expected_rainlang = "/* 0. calculate-io */ \n_ _: 0 0;\n\n/* 1. handle-io */ \n:;";
         assert_eq!(actual_rainlang, expected_rainlang);
     }
 
