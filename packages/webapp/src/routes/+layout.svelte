@@ -33,22 +33,6 @@
 	});
 
 	let walletInitError: string | null = null;
-	let stopDbSync: (() => void) | undefined;
-
-	onMount(() => {
-		if (!browser || !raindexClient || !localDb) return;
-
-		stopDbSync = startLocalDbSync({
-			raindexClient,
-			localDb,
-			chainId: 42161,
-			intervalMs: 5_000
-		});
-	});
-
-	onDestroy(() => {
-		stopDbSync?.();
-	});
 
 	$: if (browser && window.navigator) {
 		initWallet().then((error) => {
