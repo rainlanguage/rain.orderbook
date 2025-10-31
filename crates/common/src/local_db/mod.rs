@@ -1,11 +1,12 @@
+pub mod address_collectors;
 pub mod decode;
 pub mod fetch;
 pub mod insert;
 pub mod query;
 pub mod sync;
 pub mod token_fetch;
-pub mod tokens;
 
+use crate::erc20::Error as TokenError;
 use crate::rpc_client::{LogEntryResponse, RpcClient, RpcClientError};
 use alloy::primitives::ruint::ParseError;
 use alloy::primitives::{hex::FromHexError, Address};
@@ -13,10 +14,10 @@ use alloy::rpc::types::FilterBlockError;
 use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
 pub use fetch::{FetchConfig, FetchConfigError};
 use insert::{
-    decoded_events_to_sql as decoded_events_to_sql_impl,
-    raw_events_to_sql as raw_events_to_sql_impl,
+    decoded_events_to_statements as decoded_events_to_statements_impl,
+    raw_events_to_statements as raw_events_to_statements_impl,
 };
-use query::LocalDbQueryError;
+use query::{LocalDbQueryError, SqlStatementBatch};
 use std::collections::HashMap;
 use url::Url;
 use wasm_bindgen_utils::prelude::*;
@@ -70,6 +71,14 @@ pub enum LocalDbError {
 
     #[error("Configuration error: {message}")]
     Config { message: String },
+
+    #[error("Failed to fetch token metadata for {address} after {attempts} attempts")]
+    TokenMetadataFetchFailed {
+        address: Address,
+        attempts: usize,
+        #[source]
+        source: Box<TokenError>,
+    },
 
     #[error("Event decoding error: {message}")]
     DecodeError { message: String },
@@ -141,6 +150,14 @@ impl LocalDbError {
                 "Events data is not in the expected array format".to_string()
             }
             LocalDbError::Timeout => "Network request timed out".to_string(),
+            LocalDbError::TokenMetadataFetchFailed {
+                address,
+                attempts,
+                source,
+            } => format!(
+                "Failed to fetch token metadata for {} after {} attempts: {}",
+                address, attempts, source
+            ),
             LocalDbError::Config { message } => format!("Configuration error: {}", message),
             LocalDbError::DecodeError { message } => format!("Event decoding error: {}", message),
             LocalDbError::InsertError { message } => {
@@ -234,25 +251,23 @@ impl LocalDb {
         })
     }
 
-    pub fn decoded_events_to_sql(
+    pub fn decoded_events_to_statements(
         &self,
         events: &[DecodedEventData<DecodedEvent>],
-        end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
-        prefix_sql: Option<&str>,
-    ) -> Result<String, LocalDbError> {
-        decoded_events_to_sql_impl(events, end_block, decimals_by_token, prefix_sql).map_err(
-            |err| LocalDbError::InsertError {
+    ) -> Result<SqlStatementBatch, LocalDbError> {
+        decoded_events_to_statements_impl(events, decimals_by_token).map_err(|err| {
+            LocalDbError::InsertError {
                 message: err.to_string(),
-            },
-        )
+            }
+        })
     }
 
-    pub fn raw_events_to_sql(
+    pub fn raw_events_to_statements(
         &self,
         raw_events: &[LogEntryResponse],
-    ) -> Result<String, LocalDbError> {
-        raw_events_to_sql_impl(raw_events).map_err(|err| LocalDbError::InsertError {
+    ) -> Result<SqlStatementBatch, LocalDbError> {
+        raw_events_to_statements_impl(raw_events).map_err(|err| LocalDbError::InsertError {
             message: err.to_string(),
         })
     }
@@ -322,7 +337,7 @@ mod bool_deserialize_tests {
     }
 
     #[test]
-    fn decoded_events_to_sql_maps_insert_errors() {
+    fn decoded_events_to_statements_maps_insert_errors() {
         let db = make_local_db();
         let event = deposit_event_with_invalid_block();
         let mut decimals = HashMap::new();
@@ -331,7 +346,7 @@ mod bool_deserialize_tests {
         }
 
         let err = db
-            .decoded_events_to_sql(&[event], 42, &decimals, None)
+            .decoded_events_to_statements(&[event], &decimals)
             .unwrap_err();
         match err {
             LocalDbError::InsertError { message } => {

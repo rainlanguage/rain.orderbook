@@ -140,7 +140,9 @@ mod tests {
 
     use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
-    use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
+    use rain_orderbook_common::local_db::query::{
+        LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+    };
 
     struct MockDataSource {
         latest_block: u64,
@@ -181,15 +183,13 @@ mod tests {
         fn events_to_sql(
             &self,
             _decoded_events: &[DecodedEventData<DecodedEvent>],
-            _end_block: u64,
             _decimals_by_token: &HashMap<Address, u8>,
-            _prefix_sql: &str,
-        ) -> Result<String> {
-            Ok(String::new())
+        ) -> Result<SqlStatementBatch> {
+            Ok(SqlStatementBatch::new())
         }
 
-        fn raw_events_to_sql(&self, _: &[LogEntryResponse]) -> Result<String> {
-            Ok(String::new())
+        fn raw_events_to_statements(&self, _: &[LogEntryResponse]) -> Result<SqlStatementBatch> {
+            Ok(SqlStatementBatch::new())
         }
 
         fn rpc_urls(&self) -> &[Url] {

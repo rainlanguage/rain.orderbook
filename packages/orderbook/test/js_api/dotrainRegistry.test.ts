@@ -14,15 +14,15 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 };
 
 const MOCK_SETTINGS_CONTENT = `
-version: 3
+version: 4
 networks:
   flare:
-    rpcs: 
+    rpcs:
       - https://mainnet.flare.org
     chain-id: 14
     currency: ETH
   base:
-    rpcs: 
+    rpcs:
       - https://mainnet.base.org
     chain-id: 8453
     currency: ETH
@@ -32,16 +32,20 @@ subgraphs:
 metaboards:
   flare: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn
   base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-base-0x59401C93/0.1/gn
+local-db-remotes:
+  remote: http://example.com
 orderbooks:
   flare:
     address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
     network: flare
     subgraph: flare
+    local-db-remote: remote
     deployment-block: 12345
   base:
     address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7
     network: base
     subgraph: base
+    local-db-remote: remote
     deployment-block: 12345
 deployers:
   flare:
