@@ -36,6 +36,7 @@ pub async fn check_settings_errors(text: Vec<String>) -> CommandResult<()> {
             orderbooks: true,
             metaboards: true,
             deployers: true,
+            local_db_remotes: true
         },
     )?;
     Ok(())
@@ -57,6 +58,7 @@ pub async fn check_dotrain_with_settings_errors(
             orderbooks: true,
             metaboards: true,
             deployers: true,
+            local_db_remotes: true
         },
     )?;
     let mut sources = vec![RainDocument::get_front_matter(&dotrain)
@@ -115,6 +117,9 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+local-db-remotes:
+    some-orderbook: http://example.com
 
 orderbooks:
     some-orderbook:

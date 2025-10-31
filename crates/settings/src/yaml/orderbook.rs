@@ -1,8 +1,9 @@
 use super::{cache::Cache, ValidationConfig, *};
 use crate::{
-    accounts::AccountCfg, metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg,
-    remote_tokens::RemoteTokensCfg, sentry::Sentry, spec_version::SpecVersion,
-    subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
+    accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, metaboard::MetaboardCfg,
+    remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg, sentry::Sentry,
+    spec_version::SpecVersion, subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg,
+    TokenCfg,
 };
 use alloy::primitives::Address;
 use serde::{
@@ -34,6 +35,7 @@ pub struct OrderbookYamlValidation {
     pub tokens: bool,
     pub remote_tokens: bool,
     pub subgraphs: bool,
+    pub local_db_remotes: bool,
     pub orderbooks: bool,
     pub metaboards: bool,
     pub deployers: bool,
@@ -46,6 +48,7 @@ impl OrderbookYamlValidation {
             tokens: true,
             remote_tokens: true,
             subgraphs: true,
+            local_db_remotes: true,
             orderbooks: true,
             metaboards: true,
             deployers: true,
@@ -67,6 +70,9 @@ impl ValidationConfig for OrderbookYamlValidation {
     }
     fn should_validate_subgraphs(&self) -> bool {
         self.subgraphs
+    }
+    fn should_validate_local_db_remotes(&self) -> bool {
+        self.local_db_remotes
     }
     fn should_validate_orderbooks(&self) -> bool {
         self.orderbooks
@@ -119,6 +125,9 @@ impl YamlParsable for OrderbookYaml {
         }
         if validate.should_validate_subgraphs() {
             SubgraphCfg::parse_all_from_yaml(documents.clone(), None)?;
+        }
+        if validate.should_validate_local_db_remotes() {
+            LocalDbRemoteCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
         if validate.should_validate_orderbooks() {
             OrderbookCfg::parse_all_from_yaml(documents.clone(), None)?;
@@ -235,6 +244,16 @@ impl OrderbookYaml {
     }
     pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
         SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None)
+    }
+
+    pub fn get_local_db_remote_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_local_db_remotes()?.keys().cloned().collect())
+    }
+    pub fn get_local_db_remotes(&self) -> Result<HashMap<String, LocalDbRemoteCfg>, YamlError> {
+        LocalDbRemoteCfg::parse_all_from_yaml(self.documents.clone(), None)
+    }
+    pub fn get_local_db_remote(&self, key: &str) -> Result<LocalDbRemoteCfg, YamlError> {
+        LocalDbRemoteCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -448,6 +467,8 @@ mod tests {
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
         secondary: https://api.thegraph.com/subgraphs/name/abc
+    local-db-remotes:
+        mainnet: https://example.com/localdb/mainnet
     metaboards:
         board1: https://meta.example.com/board1
         board2: https://meta.example.com/board2
@@ -456,6 +477,7 @@ mod tests {
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             label: Primary Orderbook
             deployment-block: 12345
     tokens:
@@ -483,6 +505,8 @@ mod tests {
             chain-id: 1
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    local-db-remotes:
+        orderbook1: https://example.com/localdb/mainnet
     metaboards:
         board1: https://meta.example.com/board1
     orderbooks:
@@ -850,22 +874,27 @@ test: test
             currency: ETH
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    local-db-remotes:
+        mainnet: https://example.com/localdb/mainnet
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             deployment-block: 12345
         other-orderbook:
             address: 0x1234567890123456789012345678901234567891
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             deployment-block: 12345
         polygon-orderbook:
             address: 0x0987654321098765432109876543210987654321
             network: polygon
             deployment-block: 12345
             subgraph: mainnet
+            local-db-remote: mainnet
     "#,
             spec_version = SpecVersion::current()
         );
@@ -956,22 +985,27 @@ test: test
             chain-id: 42161
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
+    local-db-remotes:
+        mainnet: https://example.com/localdb/mainnet
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             deployment-block: 12345
         other-orderbook:
             address: 0x1234567890123456789012345678901234567891
             network: mainnet
             subgraph: mainnet
+            local-db-remote: mainnet
             deployment-block: 12345
         polygon-orderbook:
             address: 0x0987654321098765432109876543210987654321
             network: polygon
             deployment-block: 12345
             subgraph: mainnet
+            local-db-remote: mainnet
     "#,
             spec_version = SpecVersion::current()
         );
@@ -995,5 +1029,66 @@ test: test
             err,
             YamlError::NotFound("orderbook with chain-id: 42161".to_string())
         );
+    }
+
+    #[test]
+    fn test_get_local_db_remote_keys() {
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
+
+        let keys = ob_yaml.get_local_db_remote_keys().unwrap();
+        assert_eq!(keys, vec!["mainnet".to_string()]);
+    }
+
+    #[test]
+    fn test_get_local_db_remotes_and_single_remote() {
+        let ob_yaml = OrderbookYaml::new(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+        )
+        .unwrap();
+
+        let remotes = ob_yaml.get_local_db_remotes().unwrap();
+        assert_eq!(remotes.len(), 1);
+        let remote = remotes.get("mainnet").unwrap();
+        assert_eq!(remote.key, "mainnet");
+        assert_eq!(
+            remote.url,
+            Url::parse("https://example.com/localdb/mainnet").unwrap()
+        );
+
+        // Also validate the getter for a single key
+        let single = ob_yaml.get_local_db_remote("mainnet").unwrap();
+        assert_eq!(single.key, "mainnet");
+        assert_eq!(
+            single.url,
+            Url::parse("https://example.com/localdb/mainnet").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_get_local_db_remote_missing_key_error() {
+        let yaml = format!(
+            r#"
+version: {version}
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+subgraphs:
+    mainnet: https://api.thegraph.com/subgraphs/name/xyz
+local-db-remotes:
+    mainnet: https://example.com/localdb/mainnet
+"#,
+            version = SpecVersion::current()
+        );
+
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let err = ob_yaml.get_local_db_remote("polygon").unwrap_err();
+        assert_eq!(err, YamlError::KeyNotFound("polygon".to_string()));
     }
 }
