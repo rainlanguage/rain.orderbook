@@ -1,10 +1,13 @@
 use anyhow::Result;
 use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
+use rain_orderbook_common::local_db::query::{
+    update_last_synced_block::build_update_last_synced_block_stmt, SqlStatementBatch,
+};
 use rain_orderbook_common::rpc_client::LogEntryResponse;
 use url::Url;
 
 use super::super::data_source::{SyncDataSource, TokenMetadataFetcher};
-use super::super::token::prepare_token_metadata;
+use super::super::token::{prepare_token_metadata, TokenPrepResult};
 
 pub(super) struct FetchResult {
     pub(super) events: Vec<LogEntryResponse>,
@@ -60,7 +63,7 @@ pub(super) async fn prepare_sql<D, T>(
     data_source: &D,
     token_fetcher: &T,
     params: PrepareSqlParams,
-) -> Result<String>
+) -> Result<SqlStatementBatch>
 where
     D: SyncDataSource + Send + Sync,
     T: TokenMetadataFetcher + Send + Sync,
@@ -80,7 +83,7 @@ where
         &metadata_rpc_urls
     };
 
-    let raw_events_sql = data_source.raw_events_to_sql(&raw_events)?;
+    let mut batch = data_source.raw_events_to_statements(&raw_events)?;
 
     let token_prep = prepare_token_metadata(
         &db_path,
@@ -90,18 +93,16 @@ where
         token_fetcher,
     )
     .await?;
+    let TokenPrepResult {
+        mut tokens_prefix_sql,
+        decimals_by_addr,
+    } = token_prep;
 
-    let mut combined_prefix = raw_events_sql;
-    if !token_prep.tokens_prefix_sql.is_empty() {
-        combined_prefix.push_str(&token_prep.tokens_prefix_sql);
-    }
+    tokens_prefix_sql.extend(data_source.events_to_sql(&decoded_events, &decimals_by_addr)?);
+    batch.extend(tokens_prefix_sql);
+    batch.add(build_update_last_synced_block_stmt(target_block));
 
-    data_source.events_to_sql(
-        &decoded_events,
-        target_block,
-        &token_prep.decimals_by_addr,
-        &combined_prefix,
-    )
+    Ok(batch.ensure_transaction())
 }
 
 #[cfg(test)]
@@ -120,7 +121,9 @@ mod tests {
 
     use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
-    use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
+    use rain_orderbook_common::local_db::query::{
+        LocalDbQueryExecutor, SqlStatement, SqlStatementBatch, SqlValue,
+    };
 
     const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
         block_number,
@@ -146,10 +149,9 @@ mod tests {
     struct MockDataSource {
         sql_result: String,
         rpc_urls: Vec<Url>,
-        captured_prefixes: Mutex<Vec<String>>,
         captured_events: Mutex<Vec<Vec<DecodedEventData<DecodedEvent>>>>,
         captured_decimals: Mutex<Vec<HashMap<Address, u8>>>,
-        raw_sql: String,
+        raw_statements: Vec<SqlStatement>,
         captured_raw: Mutex<Vec<Vec<LogEntryResponse>>>,
     }
 
@@ -187,14 +189,8 @@ mod tests {
         fn events_to_sql(
             &self,
             decoded_events: &[DecodedEventData<DecodedEvent>],
-            end_block: u64,
             decimals_by_token: &HashMap<Address, u8>,
-            prefix_sql: &str,
-        ) -> Result<String> {
-            self.captured_prefixes
-                .lock()
-                .unwrap()
-                .push(prefix_sql.to_string());
+        ) -> Result<SqlStatementBatch> {
             self.captured_events
                 .lock()
                 .unwrap()
@@ -204,24 +200,19 @@ mod tests {
                 .unwrap()
                 .push(decimals_by_token.clone());
 
-            let mut out = String::new();
-            if !prefix_sql.is_empty() {
-                out.push_str(prefix_sql);
-                if !prefix_sql.ends_with('\n') {
-                    out.push('\n');
-                }
+            let mut statements = Vec::new();
+            if !self.sql_result.is_empty() {
+                statements.push(SqlStatement::new(self.sql_result.clone()));
             }
-            out.push_str(
-                &self
-                    .sql_result
-                    .replace("?end_block", &end_block.to_string()),
-            );
-            Ok(out)
+            Ok(SqlStatementBatch::from(statements))
         }
 
-        fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
+        fn raw_events_to_statements(
+            &self,
+            raw_events: &[LogEntryResponse],
+        ) -> Result<SqlStatementBatch> {
             self.captured_raw.lock().unwrap().push(raw_events.to_vec());
-            Ok(self.raw_sql.clone())
+            Ok(SqlStatementBatch::from(self.raw_statements.clone()))
         }
 
         fn rpc_urls(&self) -> &[Url] {
@@ -245,10 +236,9 @@ mod tests {
         let data_source = MockDataSource {
             sql_result: String::new(),
             rpc_urls: vec![],
-            captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
-            raw_sql: String::new(),
+            raw_statements: Vec::new(),
             captured_raw: Mutex::new(vec![]),
         };
 
@@ -264,10 +254,9 @@ mod tests {
         let data_source = MockDataSource {
             sql_result: String::new(),
             rpc_urls: vec![],
-            captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
-            raw_sql: String::new(),
+            raw_statements: Vec::new(),
             captured_raw: Mutex::new(vec![]),
         };
 
@@ -290,10 +279,9 @@ mod tests {
         let data_source = MockDataSource {
             sql_result: "INSERT INTO sync(last_synced_block) VALUES(?end_block)".to_string(),
             rpc_urls: vec![Url::parse("http://example.com").unwrap()],
-            captured_prefixes: Mutex::new(vec![]),
             captured_events: Mutex::new(vec![]),
             captured_decimals: Mutex::new(vec![]),
-            raw_sql: RAW_SQL_STUB.to_string(),
+            raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             captured_raw: Mutex::new(vec![]),
         };
 
@@ -313,10 +301,12 @@ mod tests {
         .await
         .expect("prepare sql");
 
-        assert!(result.contains("INSERT INTO sync"));
-        let prefixes = data_source.captured_prefixes.lock().unwrap();
-        assert_eq!(prefixes.len(), 1);
-        assert!(prefixes[0].starts_with("INSERT INTO raw_events"));
+        let statements = result.statements();
+        let sync_stmt = statements
+            .iter()
+            .find(|stmt| stmt.sql().contains("INSERT INTO sync"))
+            .expect("sync insert statement");
+        assert!(sync_stmt.params().is_empty());
         let raw = data_source.captured_raw.lock().unwrap();
         assert_eq!(raw.len(), 1);
         assert!(raw[0].is_empty());
@@ -358,12 +348,11 @@ mod tests {
         };
 
         let data_source = MockDataSource {
-            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            sql_result: String::new(),
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
-            captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
             captured_decimals: Mutex::new(Vec::new()),
-            raw_sql: RAW_SQL_STUB.into(),
+            raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             captured_raw: Mutex::new(Vec::new()),
         };
 
@@ -380,7 +369,7 @@ mod tests {
             removed: false,
         }];
 
-        let sql = prepare_sql(
+        let batch = prepare_sql(
             &data_source,
             &mock_fetcher,
             PrepareSqlParams {
@@ -395,11 +384,33 @@ mod tests {
         .await
         .unwrap();
 
-        assert!(sql.contains("last_synced_block = 42"));
-
-        let prefixes = data_source.captured_prefixes.lock().unwrap();
-        assert_eq!(prefixes.len(), 1);
-        assert!(prefixes[0].starts_with("INSERT INTO raw_events"));
+        let update_stmt = batch
+            .statements()
+            .iter()
+            .find(|stmt| {
+                stmt.sql()
+                    .contains("UPDATE sync_status SET last_synced_block")
+            })
+            .expect("update statement");
+        assert!(matches!(
+            update_stmt.params().first(),
+            Some(SqlValue::I64(value)) if *value == 42
+        ));
+        let token_stmt = batch
+            .statements()
+            .iter()
+            .find(|stmt| stmt.sql().contains("INSERT INTO erc20_tokens"))
+            .expect("token insert statement");
+        let token_params = token_stmt.params();
+        assert_eq!(token_params.len(), 5);
+        assert_eq!(token_params[0], SqlValue::U64(1));
+        assert_eq!(
+            token_params[1],
+            SqlValue::Text(format!("0x{:x}", token_addr))
+        );
+        assert_eq!(token_params[2], SqlValue::Text("Token".to_string()));
+        assert_eq!(token_params[3], SqlValue::Text("TKN".to_string()));
+        assert_eq!(token_params[4], SqlValue::I64(18));
 
         let captured_events = data_source.captured_events.lock().unwrap();
         assert_eq!(captured_events.len(), 1);
@@ -432,17 +443,16 @@ mod tests {
             .unwrap();
 
         let data_source = MockDataSource {
-            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            sql_result: String::new(),
             rpc_urls: vec![Url::parse("http://localhost:1").unwrap()],
-            captured_prefixes: Mutex::new(Vec::new()),
             captured_events: Mutex::new(Vec::new()),
             captured_decimals: Mutex::new(Vec::new()),
-            raw_sql: String::new(),
+            raw_statements: Vec::new(),
             captured_raw: Mutex::new(Vec::new()),
         };
         let mock_fetcher = MockFetcher { metadata: vec![] };
 
-        let sql = prepare_sql(
+        let batch = prepare_sql(
             &data_source,
             &mock_fetcher,
             PrepareSqlParams {
@@ -457,9 +467,22 @@ mod tests {
         .await
         .unwrap();
 
-        assert!(sql.contains("last_synced_block = 75"));
-        let prefixes = data_source.captured_prefixes.lock().unwrap();
-        assert_eq!(prefixes.len(), 1);
-        assert!(prefixes[0].is_empty());
+        let update_stmt = batch
+            .statements()
+            .iter()
+            .find(|stmt| {
+                stmt.sql()
+                    .contains("UPDATE sync_status SET last_synced_block")
+            })
+            .expect("update statement");
+        assert!(matches!(
+            update_stmt.params().first(),
+            Some(SqlValue::I64(value)) if *value == 75
+        ));
+        let has_token_stmt = batch
+            .statements()
+            .iter()
+            .any(|stmt| stmt.sql().contains("INSERT INTO erc20_tokens"));
+        assert!(!has_token_stmt);
     }
 }

@@ -1,8 +1,5 @@
 use anyhow::Result;
-use rain_orderbook_common::local_db::{
-    decode::{DecodedEvent, DecodedEventData},
-    query::SqlStatement,
-};
+use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
 use url::Url;
 
 use super::{
@@ -135,7 +132,7 @@ where
         }
 
         println!("Preparing token metadata");
-        let sql = prepare_sql(
+        let sql_batch = prepare_sql(
             self.data_source,
             self.token_fetcher,
             PrepareSqlParams {
@@ -152,7 +149,7 @@ where
         println!("Generating SQL for {} events", decoded_count);
         println!("Applying SQL to {}", self.db_path);
         let exec = RusqliteExecutor::new(self.db_path);
-        exec.query_text(&SqlStatement::new(sql))
+        exec.execute_batch(&sql_batch)
             .await
             .map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
@@ -205,6 +202,7 @@ mod tests {
     use rain_orderbook_common::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
+    use rain_orderbook_common::local_db::query::{SqlStatement, SqlStatementBatch};
     use rain_orderbook_common::rpc_client::LogEntryResponse;
     use std::collections::HashMap;
     use std::sync::Mutex;
@@ -259,10 +257,9 @@ mod tests {
         sql_result: String,
         fetch_calls: Mutex<Vec<(String, u64, u64)>>,
         fetch_store_calls: Mutex<Vec<(Vec<String>, u64, u64)>>,
-        sql_calls: Mutex<Vec<(usize, u64)>>,
-        prefixes: Mutex<Vec<String>>,
+        sql_calls: Mutex<Vec<usize>>,
         decimals: Mutex<Vec<HashMap<Address, u8>>>,
-        raw_sql: String,
+        raw_statements: Vec<SqlStatement>,
         raw_calls: Mutex<Vec<Vec<LogEntryResponse>>>,
     }
 
@@ -314,38 +311,27 @@ mod tests {
         fn events_to_sql(
             &self,
             decoded_events: &[DecodedEventData<DecodedEvent>],
-            end_block: u64,
             decimals_by_token: &HashMap<Address, u8>,
-            prefix_sql: &str,
-        ) -> Result<String> {
-            self.sql_calls
-                .lock()
-                .unwrap()
-                .push((decoded_events.len(), end_block));
-            self.prefixes.lock().unwrap().push(prefix_sql.to_string());
+        ) -> Result<SqlStatementBatch> {
+            self.sql_calls.lock().unwrap().push(decoded_events.len());
             self.decimals
                 .lock()
                 .unwrap()
                 .push(decimals_by_token.clone());
 
-            let mut out = String::new();
-            if !prefix_sql.is_empty() {
-                out.push_str(prefix_sql);
-                if !prefix_sql.ends_with('\n') {
-                    out.push('\n');
-                }
+            let mut statements = Vec::new();
+            if !self.sql_result.is_empty() {
+                statements.push(SqlStatement::new(self.sql_result.clone()));
             }
-            out.push_str(
-                &self
-                    .sql_result
-                    .replace("?end_block", &end_block.to_string()),
-            );
-            Ok(out)
+            Ok(SqlStatementBatch::from(statements))
         }
 
-        fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
+        fn raw_events_to_statements(
+            &self,
+            raw_events: &[LogEntryResponse],
+        ) -> Result<SqlStatementBatch> {
             self.raw_calls.lock().unwrap().push(raw_events.to_vec());
-            Ok(self.raw_sql.clone())
+            Ok(SqlStatementBatch::from(self.raw_statements.clone()))
         }
 
         fn rpc_urls(&self) -> &[Url] {
@@ -437,13 +423,12 @@ mod tests {
             fetch_logs: vec![sample_log()],
             store_logs: vec![sample_store_log()],
             decode_responses: Mutex::new(vec![vec![base_event.clone()], vec![store_event.clone()]]),
-            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            sql_result: String::new(),
             fetch_calls: Mutex::new(vec![]),
             fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
-            prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
-            raw_sql: RAW_SQL_STUB.into(),
+            raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             raw_calls: Mutex::new(vec![]),
         };
 
@@ -480,7 +465,7 @@ mod tests {
 
         let sql_calls = data_source.sql_calls.lock().unwrap();
         assert_eq!(sql_calls.len(), 1);
-        assert_eq!(sql_calls[0].0, 2);
+        assert_eq!(sql_calls[0], 2);
 
         let raw_calls = data_source.raw_calls.lock().unwrap();
         assert_eq!(raw_calls.len(), 1);
@@ -499,9 +484,8 @@ mod tests {
             fetch_calls: Mutex::new(vec![]),
             fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
-            prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
-            raw_sql: String::new(),
+            raw_statements: Vec::new(),
             raw_calls: Mutex::new(vec![]),
         };
         let fetcher = TestFetcher {
@@ -568,13 +552,12 @@ mod tests {
             fetch_logs: vec![sample_log()],
             store_logs: vec![sample_store_log()],
             decode_responses: Mutex::new(vec![decoded]),
-            sql_result: "UPDATE sync_status SET last_synced_block = ?end_block".into(),
+            sql_result: String::new(),
             fetch_calls: Mutex::new(vec![]),
             fetch_store_calls: Mutex::new(vec![]),
             sql_calls: Mutex::new(vec![]),
-            prefixes: Mutex::new(vec![]),
             decimals: Mutex::new(vec![]),
-            raw_sql: RAW_SQL_STUB.into(),
+            raw_statements: vec![SqlStatement::new(RAW_SQL_STUB)],
             raw_calls: Mutex::new(vec![]),
         };
         let fetcher = TestFetcher {

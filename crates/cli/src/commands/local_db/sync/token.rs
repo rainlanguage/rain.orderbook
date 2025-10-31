@@ -2,9 +2,12 @@ use alloy::hex;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use itertools::Itertools;
-use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
-use rain_orderbook_common::local_db::insert::generate_erc20_tokens_sql;
 use rain_orderbook_common::local_db::tokens::collect_token_addresses;
+use rain_orderbook_common::local_db::{
+    decode::{DecodedEvent, DecodedEventData},
+    insert::generate_erc20_token_statements,
+    query::SqlStatementBatch,
+};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use url::Url;
@@ -12,7 +15,7 @@ use url::Url;
 use super::{data_source::TokenMetadataFetcher, storage::fetch_existing_tokens};
 
 pub(crate) struct TokenPrepResult {
-    pub(crate) tokens_prefix_sql: String,
+    pub(crate) tokens_prefix_sql: SqlStatementBatch,
     pub(crate) decimals_by_addr: HashMap<Address, u8>,
 }
 
@@ -31,7 +34,7 @@ where
 
     if all_token_addrs.is_empty() {
         return Ok(TokenPrepResult {
-            tokens_prefix_sql: String::new(),
+            tokens_prefix_sql: SqlStatementBatch::new(),
             decimals_by_addr: HashMap::new(),
         });
     }
@@ -62,7 +65,7 @@ where
 
     if missing_addrs.is_empty() {
         return Ok(TokenPrepResult {
-            tokens_prefix_sql: String::new(),
+            tokens_prefix_sql: SqlStatementBatch::new(),
             decimals_by_addr,
         });
     }
@@ -70,7 +73,7 @@ where
     println!("Fetching metadata for {} new token(s)", missing_addrs.len());
     let fetched = token_fetcher.fetch(rpc_urls, missing_addrs).await?;
 
-    let tokens_prefix_sql = generate_erc20_tokens_sql(chain_id, &fetched);
+    let tokens_prefix_sql = generate_erc20_token_statements(chain_id, &fetched);
     for (addr, info) in fetched.into_iter() {
         decimals_by_addr.insert(addr, info.decimals);
     }
