@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use super::{FromDbJson, LocalDbQueryError, SqlStatement};
+use super::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
 
 /// Backend-neutral executor for running SQL against the local DB backend.
 ///
@@ -9,6 +9,8 @@ use super::{FromDbJson, LocalDbQueryError, SqlStatement};
 /// via the `FromDbJson` bound.
 #[async_trait(?Send)]
 pub trait LocalDbQueryExecutor {
+    async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError>;
+
     async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
     where
         T: FromDbJson;

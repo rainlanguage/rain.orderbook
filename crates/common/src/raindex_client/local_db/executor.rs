@@ -1,6 +1,9 @@
 use super::*;
-use crate::local_db::query::{FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement};
+use crate::local_db::query::{
+    FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+};
 use async_trait::async_trait;
+use wasm_bindgen_utils::prelude::wasm_bindgen_futures::JsFuture;
 
 pub struct JsCallbackExecutor<'a> {
     callback: &'a js_sys::Function,
@@ -10,14 +13,8 @@ impl<'a> JsCallbackExecutor<'a> {
     pub fn new(callback: &'a js_sys::Function) -> Self {
         Self { callback }
     }
-}
 
-#[async_trait(?Send)]
-impl<'a> LocalDbQueryExecutor for JsCallbackExecutor<'a> {
-    async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
-        use wasm_bindgen_utils::prelude::{js_sys, wasm_bindgen_futures::JsFuture, JsValue};
-        use wasm_bindgen_utils::{prelude::serde_wasm_bindgen, result::WasmEncodedResult};
-
+    async fn invoke_statement(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
         // If there are no parameters, pass `undefined` to the JS callback
         // instead of an empty array to match the SDK's expected semantics.
         let js_params_val = if stmt.params.is_empty() {
@@ -57,6 +54,30 @@ impl<'a> LocalDbQueryExecutor for JsCallbackExecutor<'a> {
             }
         }
     }
+}
+
+#[async_trait(?Send)]
+impl<'a> LocalDbQueryExecutor for JsCallbackExecutor<'a> {
+    async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+        if !batch.is_transaction() {
+            return Err(LocalDbQueryError::database(
+                "SQL statement batch must be wrapped in a transaction",
+            ));
+        }
+
+        for stmt in batch {
+            if let Err(err) = self.invoke_statement(stmt).await {
+                let rollback_stmt = SqlStatement::new("ROLLBACK");
+                let _ = self.invoke_statement(&rollback_stmt).await;
+                return Err(err);
+            }
+        }
+        Ok(())
+    }
+
+    async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+        self.invoke_statement(stmt).await
+    }
 
     async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
     where
@@ -85,7 +106,7 @@ pub mod tests {
         use wasm_bindgen_test::*;
         use wasm_bindgen_utils::prelude::serde_wasm_bindgen;
         use wasm_bindgen_utils::prelude::JsValue;
-        use wasm_bindgen_utils::result::WasmEncodedResult;
+        use wasm_bindgen_utils::result::{WasmEncodedError, WasmEncodedResult};
 
         #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
         struct TestData {
@@ -223,6 +244,243 @@ pub mod tests {
                     crate::local_db::query::SqlValue::Text("abc".to_owned()),
                 ]
             );
+        }
+
+        #[wasm_bindgen_test]
+        async fn execute_batch_invokes_all_statements_in_order() {
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use wasm_bindgen::prelude::Closure;
+
+            let calls: Rc<RefCell<Vec<(String, JsValue)>>> = Rc::new(RefCell::new(Vec::new()));
+            let calls_clone = calls.clone();
+            let closure = Closure::wrap(Box::new(move |sql: String, params: JsValue| -> JsValue {
+                calls_clone.borrow_mut().push((sql, params.clone()));
+                let result = WasmEncodedResult::Success::<String> {
+                    value: String::new(),
+                    error: None,
+                };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            })
+                as Box<dyn FnMut(String, JsValue) -> JsValue>);
+
+            let callback: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+
+            let exec = JsCallbackExecutor::new(&callback);
+
+            let mut batch = SqlStatementBatch::new();
+            batch.add(SqlStatement::new("CREATE TABLE example (val INTEGER)"));
+            let mut insert = SqlStatement::new("INSERT INTO example (val) VALUES (?1)");
+            insert.push(42i64);
+            batch.add(insert);
+            batch.add(SqlStatement::new("DELETE FROM example WHERE val = 0"));
+
+            let batch = batch.ensure_transaction();
+
+            exec.execute_batch(&batch).await.unwrap();
+
+            let calls = calls.borrow();
+            assert_eq!(calls.len(), 5);
+
+            assert_eq!(calls[0].0, "BEGIN TRANSACTION");
+            assert!(calls[0].1.is_undefined());
+
+            assert_eq!(calls[1].0, "CREATE TABLE example (val INTEGER)");
+            assert!(calls[1].1.is_undefined());
+
+            assert_eq!(calls[2].0, "INSERT INTO example (val) VALUES (?1)");
+            let params_value = calls[2].1.clone();
+
+            assert_eq!(calls[3].0, "DELETE FROM example WHERE val = 0");
+            assert!(calls[3].1.is_undefined());
+
+            assert_eq!(calls[4].0, "COMMIT");
+            assert!(calls[4].1.is_undefined());
+            drop(calls);
+
+            let decoded: Vec<crate::local_db::query::SqlValue> =
+                serde_wasm_bindgen::from_value(params_value).unwrap();
+            assert_eq!(decoded, vec![crate::local_db::query::SqlValue::I64(42)]);
+        }
+
+        #[wasm_bindgen_test]
+        async fn execute_batch_rolls_back_on_failure_without_params() {
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use wasm_bindgen::prelude::Closure;
+            use wasm_bindgen_utils::prelude::JsValue;
+
+            let calls: Rc<RefCell<Vec<(String, JsValue)>>> = Rc::new(RefCell::new(Vec::new()));
+            let calls_clone = calls.clone();
+            let closure = Closure::wrap(Box::new(move |sql: String, params: JsValue| -> JsValue {
+                calls_clone.borrow_mut().push((sql.clone(), params));
+                let result: WasmEncodedResult<String> =
+                    if sql == "INSERT INTO rollback_test (value) VALUES ('fail')" {
+                        WasmEncodedResult::Err {
+                            value: None,
+                            error: WasmEncodedError {
+                                msg: "boom".to_string(),
+                                readable_msg: "boom".to_string(),
+                            },
+                        }
+                    } else {
+                        WasmEncodedResult::Success {
+                            value: String::new(),
+                            error: None,
+                        }
+                    };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            })
+                as Box<dyn FnMut(String, JsValue) -> JsValue>);
+            let callback: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+
+            let exec = JsCallbackExecutor::new(&callback);
+
+            let mut batch = SqlStatementBatch::new();
+            batch.add(SqlStatement::new("CREATE TABLE rollback_test (value TEXT)"));
+            batch.add(SqlStatement::new(
+                "INSERT INTO rollback_test (value) VALUES ('ok')",
+            ));
+            batch.add(SqlStatement::new(
+                "INSERT INTO rollback_test (value) VALUES ('fail')",
+            ));
+            let batch = batch.ensure_transaction();
+
+            let err = exec.execute_batch(&batch).await.unwrap_err();
+            assert!(matches!(err, LocalDbQueryError::Database { .. }));
+
+            let calls = calls.borrow();
+            assert_eq!(calls.len(), 5);
+            assert_eq!(calls[0].0, "BEGIN TRANSACTION");
+            assert_eq!(calls[1].0, "CREATE TABLE rollback_test (value TEXT)");
+            assert_eq!(
+                calls[2].0,
+                "INSERT INTO rollback_test (value) VALUES ('ok')"
+            );
+            assert_eq!(
+                calls[3].0,
+                "INSERT INTO rollback_test (value) VALUES ('fail')"
+            );
+            assert_eq!(calls[4].0, "ROLLBACK");
+            assert!(!calls.iter().any(|(sql, _)| sql == "COMMIT"));
+        }
+
+        #[wasm_bindgen_test]
+        async fn execute_batch_rolls_back_on_failure_with_params() {
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use wasm_bindgen::prelude::Closure;
+            use wasm_bindgen_utils::prelude::JsValue;
+
+            let calls: Rc<RefCell<Vec<(String, JsValue)>>> = Rc::new(RefCell::new(Vec::new()));
+            let calls_clone = calls.clone();
+            let seen_insert = Rc::new(RefCell::new(false));
+            let seen_insert_clone = seen_insert.clone();
+            let closure = Closure::wrap(Box::new(move |sql: String, params: JsValue| -> JsValue {
+                calls_clone.borrow_mut().push((sql.clone(), params.clone()));
+                let result: WasmEncodedResult<String> =
+                    if sql == "INSERT INTO rollback_param (id, value) VALUES (?1, ?2)" {
+                        let mut seen = seen_insert_clone.borrow_mut();
+                        if !*seen {
+                            *seen = true;
+                            WasmEncodedResult::Success {
+                                value: String::new(),
+                                error: None,
+                            }
+                        } else {
+                            WasmEncodedResult::Err {
+                                value: None,
+                                error: WasmEncodedError {
+                                    msg: "boom".to_string(),
+                                    readable_msg: "boom".to_string(),
+                                },
+                            }
+                        }
+                    } else {
+                        WasmEncodedResult::Success {
+                            value: String::new(),
+                            error: None,
+                        }
+                    };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            })
+                as Box<dyn FnMut(String, JsValue) -> JsValue>);
+            let callback: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+
+            let exec = JsCallbackExecutor::new(&callback);
+
+            let mut batch = SqlStatementBatch::new();
+            batch.add(SqlStatement::new(
+                "CREATE TABLE rollback_param (id INTEGER PRIMARY KEY, value TEXT)",
+            ));
+
+            let mut insert_ok =
+                SqlStatement::new("INSERT INTO rollback_param (id, value) VALUES (?1, ?2)");
+            insert_ok.push(1i64);
+            insert_ok.push("ok");
+            batch.add(insert_ok);
+
+            let mut insert_fail =
+                SqlStatement::new("INSERT INTO rollback_param (id, value) VALUES (?1, ?2)");
+            insert_fail.push(2i64);
+            insert_fail.push("fail");
+            batch.add(insert_fail);
+
+            let batch = batch.ensure_transaction();
+
+            let err = exec.execute_batch(&batch).await.unwrap_err();
+            assert!(matches!(err, LocalDbQueryError::Database { .. }));
+
+            let calls = calls.borrow();
+            assert_eq!(calls.len(), 5);
+            assert_eq!(calls[0].0, "BEGIN TRANSACTION");
+            assert_eq!(
+                calls[1].0,
+                "CREATE TABLE rollback_param (id INTEGER PRIMARY KEY, value TEXT)"
+            );
+            assert_eq!(
+                calls[2].0,
+                "INSERT INTO rollback_param (id, value) VALUES (?1, ?2)"
+            );
+            let params_ok: Vec<crate::local_db::query::SqlValue> =
+                serde_wasm_bindgen::from_value(calls[2].1.clone()).unwrap();
+            assert_eq!(
+                params_ok,
+                vec![
+                    crate::local_db::query::SqlValue::I64(1),
+                    crate::local_db::query::SqlValue::Text("ok".to_string())
+                ]
+            );
+            assert_eq!(
+                calls[3].0,
+                "INSERT INTO rollback_param (id, value) VALUES (?1, ?2)"
+            );
+            let params_fail: Vec<crate::local_db::query::SqlValue> =
+                serde_wasm_bindgen::from_value(calls[3].1.clone()).unwrap();
+            assert_eq!(
+                params_fail,
+                vec![
+                    crate::local_db::query::SqlValue::I64(2),
+                    crate::local_db::query::SqlValue::Text("fail".to_string())
+                ]
+            );
+            assert_eq!(calls[4].0, "ROLLBACK");
+            assert!(!calls.iter().any(|(sql, _)| sql == "COMMIT"));
+
+            assert!(*seen_insert.borrow());
+        }
+
+        #[wasm_bindgen_test]
+        async fn execute_batch_rejects_non_transactions() {
+            let callback = create_success_callback("");
+            let exec = JsCallbackExecutor::new(&callback);
+            let batch = SqlStatementBatch::from(vec![SqlStatement::new("SELECT 1")]);
+
+            let err = exec.execute_batch(&batch).await.unwrap_err();
+            assert!(matches!(err, LocalDbQueryError::Database { .. }));
         }
 
         #[wasm_bindgen_test]

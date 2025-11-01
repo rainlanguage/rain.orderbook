@@ -1,5 +1,5 @@
 pub const TEST_DOTRAIN: &str = r#"
-version: 3
+version: 4
 networks:
     mainnet:
         rpcs:

@@ -24,6 +24,7 @@ sol!(
 
 sol!(
     #![sol(all_derives = true)]
+    #![sol(extra_derives(serde::Serialize, serde::Deserialize))]
     IInterpreterStoreV3, "../../out/IInterpreterStoreV3.sol/IInterpreterStoreV3.json"
 );
 

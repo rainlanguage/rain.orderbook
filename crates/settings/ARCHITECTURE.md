@@ -120,11 +120,17 @@ All core configs implement `YamlParsableHash` unless noted, and each instance ca
 
 ### Orderbooks (`orderbook.rs`)
 
-- `OrderbookCfg { key, address, network: Arc<NetworkCfg>, subgraph: Arc<SubgraphCfg>, label?, deployment_block }`.
+- `OrderbookCfg { key, address, network: Arc<NetworkCfg>, subgraph: Arc<SubgraphCfg>, local_db_remote: Arc<LocalDbRemoteCfg>, label?, deployment_block }`.
 - Validators: `validate_address(&str) -> Address`, `validate_deployment_block(&str) -> u64`.
 - Lookup helpers: `parse_network_key(docs, orderbook_key)` returns the referenced network key or defaults to the orderbook key.
 - Parses with references to previously parsed networks and subgraphs; duplicates are rejected.
 - Error enum: `ParseOrderbookConfigSourceError` (invalid address, missing network/subgraph, block parse error) with readable messages.
+
+### Local DB Remotes (`local_db_remotes.rs`)
+
+- `local-db-remotes:` is a required top-level map. Each entry is parsed as `LocalDbRemoteCfg { key, url }`.
+- The `orderbooks[*].local-db-remote` field is optional. If omitted, it defaults to the orderbook's key. When provided explicitly, it must reference a defined remote key under `local-db-remotes`.
+  - See `src/orderbook.rs` for the implementation and tests, e.g. `test_orderbook_local_db_remote_absent_defaults_to_orderbook_key`, `test_orderbook_local_db_remote_resolves`, and `test_orderbook_local_db_remote_not_found`.
 
 ### Deployers (`deployer.rs`)
 
@@ -347,4 +353,3 @@ The crate ships extensive unit tests for every parser and update path, including
 ## Summary
 
 The settings crate provides a single, well‑typed interface over YAML configuration for the Rain Orderbook ecosystem: robust parsing across multiple files, strict validation with user‑friendly errors, safe in‑place updates, optional remote augmentation, contextual interpolation, GUI and chart DSLs, and WASM interop. Other crates consume these types to build CLIs, runtimes, and UIs without re‑implementing YAML logic.
-

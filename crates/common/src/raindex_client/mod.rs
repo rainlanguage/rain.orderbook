@@ -312,7 +312,7 @@ pub enum RaindexError {
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
     #[error(transparent)]
-    LocalDbError(#[from] LocalDbError),
+    LocalDbError(#[from] Box<LocalDbError>),
     #[error(transparent)]
     LocalDbQueryError(#[from] LocalDbQueryError),
     #[error("Chain id: {0} is not supported for local database")]
@@ -322,6 +322,12 @@ pub enum RaindexError {
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<LocalDbError> for RaindexError {
+    fn from(err: LocalDbError) -> Self {
+        Self::LocalDbError(Box::new(err))
     }
 }
 
@@ -494,17 +500,21 @@ subgraphs:
 metaboards:
     mainnet: https://api.thegraph.com/subgraphs/name/xyz
     polygon: https://api.thegraph.com/subgraphs/name/polygon
+local-db-remotes:
+    remote: https://example.com/localdb
 orderbooks:
     mainnet-orderbook:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
         subgraph: mainnet
+        local-db-remote: remote
         label: Primary Orderbook
         deployment-block: 12345
     polygon-orderbook:
         address: 0x0987654321098765432109876543210987654321
         network: polygon
         subgraph: polygon
+        local-db-remote: remote
         deployment-block: 12345
         label: Polygon Orderbook
 tokens:
@@ -560,11 +570,14 @@ subgraphs:
     arbitrum: https://arb.subgraph
 metaboards:
     arbitrum: https://arb.metaboard
+local-db-remotes:
+    remote: https://example.com/localdb
 orderbooks:
     arbitrum-orderbook:
         address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
         network: arbitrum
         subgraph: arbitrum
+        local-db-remote: remote
         deployment-block: 1
 tokens:
     tokena:
@@ -780,11 +793,14 @@ accounts:
         test-deployer:
             address: 0x2222222222222222222222222222222222222222
             network: isolated
+    local-db-remotes:
+        remote: https://example.com/localdb
     orderbooks:
         test-orderbook:
             address: 0x1111111111111111111111111111111111111111
             network: some-network
             subgraph: test
+            local-db-remote: remote
             label: Test Orderbook
             deployment-block: 12345
     "#,

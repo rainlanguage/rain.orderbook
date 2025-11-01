@@ -8,22 +8,92 @@ use alloy::rpc::types::Filter;
 use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_bindings::topics::{ORDERBOOK_EVENT_TOPICS, STORE_SET_TOPICS};
 use std::collections::{HashMap, HashSet};
+use thiserror::Error;
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum FetchConfigError {
+    #[error("chunk_size must be greater than zero (got {0})")]
+    ChunkSizeZero(u64),
+
+    #[error("max_concurrent_requests must be greater than zero (got {0})")]
+    MaxConcurrentRequestsZero(usize),
+
+    #[error("max_concurrent_blocks must be greater than zero (got {0})")]
+    MaxConcurrentBlocksZero(usize),
+
+    #[error("max_retry_attempts must be greater than zero (got {0})")]
+    MaxRetryAttemptsZero(usize),
+}
 
 #[derive(Debug, Clone)]
 pub struct FetchConfig {
-    pub chunk_size: u64,
-    pub max_concurrent_requests: usize,
-    pub max_concurrent_blocks: usize,
-    pub max_retry_attempts: usize,
+    chunk_size: u64,
+    max_concurrent_requests: usize,
+    max_concurrent_blocks: usize,
+    max_retry_attempts: usize,
+}
+
+impl FetchConfig {
+    pub const DEFAULT_CHUNK_SIZE: u64 = 5000;
+    pub const DEFAULT_MAX_CONCURRENT_REQUESTS: usize = 10;
+    pub const DEFAULT_MAX_CONCURRENT_BLOCKS: usize = 14;
+    pub const DEFAULT_MAX_RETRY_ATTEMPTS: usize = 3;
+
+    pub fn new(
+        chunk_size: u64,
+        max_concurrent_requests: usize,
+        max_concurrent_blocks: usize,
+        max_retry_attempts: usize,
+    ) -> Result<Self, FetchConfigError> {
+        if chunk_size == 0 {
+            return Err(FetchConfigError::ChunkSizeZero(chunk_size));
+        }
+        if max_concurrent_requests == 0 {
+            return Err(FetchConfigError::MaxConcurrentRequestsZero(
+                max_concurrent_requests,
+            ));
+        }
+        if max_concurrent_blocks == 0 {
+            return Err(FetchConfigError::MaxConcurrentBlocksZero(
+                max_concurrent_blocks,
+            ));
+        }
+        if max_retry_attempts == 0 {
+            return Err(FetchConfigError::MaxRetryAttemptsZero(max_retry_attempts));
+        }
+
+        Ok(Self {
+            chunk_size,
+            max_concurrent_requests,
+            max_concurrent_blocks,
+            max_retry_attempts,
+        })
+    }
+
+    pub fn chunk_size(&self) -> u64 {
+        self.chunk_size
+    }
+
+    pub fn max_concurrent_requests(&self) -> usize {
+        self.max_concurrent_requests
+    }
+
+    pub fn max_concurrent_blocks(&self) -> usize {
+        self.max_concurrent_blocks
+    }
+
+    pub fn max_retry_attempts(&self) -> usize {
+        self.max_retry_attempts
+    }
 }
 
 impl Default for FetchConfig {
     fn default() -> Self {
         Self {
-            chunk_size: 5000,
-            max_concurrent_requests: 10,
-            max_concurrent_blocks: 14,
-            max_retry_attempts: 3,
+            chunk_size: Self::DEFAULT_CHUNK_SIZE,
+            max_concurrent_requests: Self::DEFAULT_MAX_CONCURRENT_REQUESTS,
+            max_concurrent_blocks: Self::DEFAULT_MAX_CONCURRENT_BLOCKS,
+            max_retry_attempts: Self::DEFAULT_MAX_RETRY_ATTEMPTS,
         }
     }
 }
@@ -93,13 +163,13 @@ impl LocalDb {
             return Ok(HashMap::new());
         }
 
-        let concurrency = config.max_concurrent_blocks.max(1);
+        let concurrency = config.max_concurrent_blocks();
         let client = self.rpc_client().clone();
         let results: Vec<Result<(u64, String), LocalDbError>> =
             futures::stream::iter(block_numbers)
                 .map(|block_number| {
                     let client = client.clone();
-                    let max_attempts = config.max_retry_attempts;
+                    let max_attempts = config.max_retry_attempts();
                     async move {
                         let block_response = retry_with_backoff(
                             || {
@@ -230,12 +300,12 @@ impl LocalDb {
             return Ok(Vec::new());
         }
 
-        let concurrency = config.max_concurrent_requests.max(1);
+        let concurrency = config.max_concurrent_requests();
         let client = self.rpc_client().clone();
         let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(filters)
             .map(|filter| {
                 let client = client.clone();
-                let max_attempts = config.max_retry_attempts;
+                let max_attempts = config.max_retry_attempts();
 
                 async move {
                     let response = retry_with_backoff(
@@ -316,6 +386,46 @@ fn parse_block_number_str(block_number_str: &str) -> Result<u64, LocalDbError> {
 mod tests {
     #[cfg(not(target_family = "wasm"))]
     use super::*;
+
+    #[cfg(not(target_family = "wasm"))]
+    #[test]
+    fn fetch_config_new_rejects_zero_values() {
+        assert!(matches!(
+            FetchConfig::new(0, 1, 1, 1),
+            Err(FetchConfigError::ChunkSizeZero(0))
+        ));
+        assert!(matches!(
+            FetchConfig::new(1, 0, 1, 1),
+            Err(FetchConfigError::MaxConcurrentRequestsZero(0))
+        ));
+        assert!(matches!(
+            FetchConfig::new(1, 1, 0, 1),
+            Err(FetchConfigError::MaxConcurrentBlocksZero(0))
+        ));
+        assert!(matches!(
+            FetchConfig::new(1, 1, 1, 0),
+            Err(FetchConfigError::MaxRetryAttemptsZero(0))
+        ));
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[test]
+    fn fetch_config_default_values_are_valid() {
+        let default = FetchConfig::default();
+        assert_eq!(default.chunk_size(), FetchConfig::DEFAULT_CHUNK_SIZE);
+        assert_eq!(
+            default.max_concurrent_requests(),
+            FetchConfig::DEFAULT_MAX_CONCURRENT_REQUESTS
+        );
+        assert_eq!(
+            default.max_concurrent_blocks(),
+            FetchConfig::DEFAULT_MAX_CONCURRENT_BLOCKS
+        );
+        assert_eq!(
+            default.max_retry_attempts(),
+            FetchConfig::DEFAULT_MAX_RETRY_ATTEMPTS
+        );
+    }
 
     #[cfg(not(target_family = "wasm"))]
     mod tokio_tests {
@@ -864,10 +974,13 @@ mod tests {
             let err = db
                 .fetch_block_timestamps(
                     vec![1],
-                    &FetchConfig {
-                        max_retry_attempts: 1,
-                        ..Default::default()
-                    },
+                    &FetchConfig::new(
+                        FetchConfig::DEFAULT_CHUNK_SIZE,
+                        FetchConfig::DEFAULT_MAX_CONCURRENT_REQUESTS,
+                        FetchConfig::DEFAULT_MAX_CONCURRENT_BLOCKS,
+                        1,
+                    )
+                    .expect("fetch config parameters to be valid"),
                 )
                 .await
                 .unwrap_err();
@@ -900,10 +1013,13 @@ mod tests {
             let err = db
                 .fetch_block_timestamps(
                     vec![1],
-                    &FetchConfig {
-                        max_retry_attempts: 1,
-                        ..Default::default()
-                    },
+                    &FetchConfig::new(
+                        FetchConfig::DEFAULT_CHUNK_SIZE,
+                        FetchConfig::DEFAULT_MAX_CONCURRENT_REQUESTS,
+                        FetchConfig::DEFAULT_MAX_CONCURRENT_BLOCKS,
+                        1,
+                    )
+                    .expect("fetch config parameters to be valid"),
                 )
                 .await
                 .unwrap_err();
