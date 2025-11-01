@@ -7,6 +7,24 @@ pub struct StoreAddressRow {
     pub store_address: String,
 }
 
-pub fn fetch_store_addresses_sql() -> &'static str {
-    FETCH_STORE_ADDRESSES_SQL
+use crate::local_db::query::SqlStatement;
+
+pub fn fetch_store_addresses_stmt() -> SqlStatement {
+    SqlStatement::new(FETCH_STORE_ADDRESSES_SQL)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stmt_is_static_and_param_free() {
+        let stmt = fetch_store_addresses_stmt();
+        assert_eq!(stmt.sql, FETCH_STORE_ADDRESSES_SQL);
+        assert!(stmt.params.is_empty());
+        assert!(stmt
+            .sql
+            .to_lowercase()
+            .contains("select distinct lower(store_address)"));
+    }
 }

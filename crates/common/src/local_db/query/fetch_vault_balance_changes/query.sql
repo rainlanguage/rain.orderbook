@@ -23,8 +23,8 @@ SELECT
   ) AS running_balance
 FROM (
   SELECT
-    '?vault_id' AS vault_id,
-    '?token'                         AS token,
+    ?1 AS vault_id,
+    ?2                         AS token,
     COALESCE(
       /* most recent order touching this (token, vault) */
       (
@@ -33,8 +33,8 @@ FROM (
         JOIN order_events oe
           ON oe.transaction_hash = io.transaction_hash
          AND oe.log_index       = io.log_index
-        WHERE io.token    = '?token'
-          AND io.vault_id = '?vault_id'
+        WHERE lower(io.token)    = lower(?2)
+          AND lower(io.vault_id) = lower(?1)
         ORDER BY oe.block_number DESC
         LIMIT 1
       ),
@@ -43,13 +43,13 @@ FROM (
         SELECT owner FROM (
           SELECT d.sender AS owner, d.block_number
           FROM deposits d
-          WHERE d.token    = '?token'
-            AND d.vault_id = '?vault_id'
+          WHERE lower(d.token)    = lower(?2)
+            AND lower(d.vault_id) = lower(?1)
           UNION ALL
           SELECT w.sender AS owner, w.block_number
           FROM withdrawals w
-          WHERE w.token    = '?token'
-            AND w.vault_id = '?vault_id'
+          WHERE lower(w.token)    = lower(?2)
+            AND lower(w.vault_id) = lower(?1)
           ORDER BY block_number DESC
           LIMIT 1
         ) AS last_dw

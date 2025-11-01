@@ -11,9 +11,13 @@ pub mod fetch_tables;
 pub mod fetch_vault;
 pub mod fetch_vault_balance_changes;
 pub mod fetch_vaults;
+pub mod sql_statement;
+pub mod sql_statement_batch;
 pub mod update_last_synced_block;
 
 pub use executor::LocalDbQueryExecutor;
+pub use sql_statement::{SqlBuildError, SqlStatement, SqlValue};
+pub use sql_statement_batch::SqlStatementBatch;
 
 use serde::de::DeserializeOwned;
 use thiserror::Error;
@@ -31,6 +35,9 @@ pub enum LocalDbQueryError {
 
     #[error("Deserialization failed: {message}")]
     Deserialization { message: String },
+
+    #[error("SQL build failed: {source}")]
+    SqlBuild { source: SqlBuildError },
 }
 
 impl LocalDbQueryError {
@@ -48,6 +55,12 @@ impl LocalDbQueryError {
         Self::Deserialization {
             message: message.into(),
         }
+    }
+}
+
+impl From<SqlBuildError> for LocalDbQueryError {
+    fn from(e: SqlBuildError) -> Self {
+        LocalDbQueryError::SqlBuild { source: e }
     }
 }
 

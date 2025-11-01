@@ -2,9 +2,12 @@ use alloy::hex;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use itertools::Itertools;
-use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
-use rain_orderbook_common::local_db::insert::generate_erc20_tokens_sql;
-use rain_orderbook_common::local_db::tokens::collect_token_addresses;
+use rain_orderbook_common::local_db::address_collectors::collect_token_addresses;
+use rain_orderbook_common::local_db::{
+    decode::{DecodedEvent, DecodedEventData},
+    insert::generate_erc20_token_statements,
+    query::SqlStatementBatch,
+};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use url::Url;
@@ -12,7 +15,7 @@ use url::Url;
 use super::{data_source::TokenMetadataFetcher, storage::fetch_existing_tokens};
 
 pub(crate) struct TokenPrepResult {
-    pub(crate) tokens_prefix_sql: String,
+    pub(crate) tokens_prefix_sql: SqlStatementBatch,
     pub(crate) decimals_by_addr: HashMap<Address, u8>,
 }
 
@@ -31,7 +34,7 @@ where
 
     if all_token_addrs.is_empty() {
         return Ok(TokenPrepResult {
-            tokens_prefix_sql: String::new(),
+            tokens_prefix_sql: SqlStatementBatch::new(),
             decimals_by_addr: HashMap::new(),
         });
     }
@@ -62,7 +65,7 @@ where
 
     if missing_addrs.is_empty() {
         return Ok(TokenPrepResult {
-            tokens_prefix_sql: String::new(),
+            tokens_prefix_sql: SqlStatementBatch::new(),
             decimals_by_addr,
         });
     }
@@ -70,7 +73,7 @@ where
     println!("Fetching metadata for {} new token(s)", missing_addrs.len());
     let fetched = token_fetcher.fetch(rpc_urls, missing_addrs).await?;
 
-    let tokens_prefix_sql = generate_erc20_tokens_sql(chain_id, &fetched);
+    let tokens_prefix_sql = generate_erc20_token_statements(chain_id, &fetched);
     for (addr, info) in fetched.into_iter() {
         decimals_by_addr.insert(addr, info.decimals);
     }
@@ -94,7 +97,7 @@ mod tests {
 
     use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
-    use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
+    use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 
     struct NoopFetcher;
 
@@ -112,9 +115,11 @@ mod tests {
         let db_path_str = db_path.to_string_lossy();
 
         let exec = RusqliteExecutor::new(&*db_path_str);
-        exec.query_text(DEFAULT_SCHEMA_SQL).await.unwrap();
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
         exec
-            .query_text("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);")
+            .query_text(&SqlStatement::new("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);"))
             .await
             .unwrap();
 

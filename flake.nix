@@ -2,14 +2,14 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix?rev=d3fd31f0e4706984d1b26e63c179eccbdb1567ae";
+    rainix.url = "github:rainlanguage/rainix";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs = { self, flake-utils, rainix, rain }:
     flake-utils.lib.eachDefaultSystem (system:
-      let 
+      let
         pkgs = rainix.pkgs.${system};
         old-pkgs = rainix.old-pkgs.${system};
       in rec {
@@ -242,7 +242,7 @@
             body = ''
               set -euxo pipefail
 
-              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests
+              cargo build --profile release-wasm --target wasm32-unknown-unknown --lib -p rain_orderbook_js_api
             '';
           };
 

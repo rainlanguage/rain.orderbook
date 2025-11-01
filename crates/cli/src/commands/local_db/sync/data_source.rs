@@ -1,16 +1,18 @@
 use alloy::primitives::Address;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use rain_orderbook_common::{
     erc20::TokenInfo,
     local_db::{
         decode::{DecodedEvent, DecodedEventData},
+        query::SqlStatementBatch,
         token_fetch::fetch_erc20_metadata_concurrent,
         FetchConfig, LocalDb,
     },
     rpc_client::LogEntryResponse,
 };
 use std::collections::HashMap;
+use std::str::FromStr;
 use url::Url;
 
 #[async_trait]
@@ -35,11 +37,12 @@ pub(crate) trait SyncDataSource {
     fn events_to_sql(
         &self,
         decoded_events: &[DecodedEventData<DecodedEvent>],
-        end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
-        prefix_sql: &str,
-    ) -> Result<String>;
-    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String>;
+    ) -> Result<SqlStatementBatch>;
+    fn raw_events_to_statements(
+        &self,
+        raw_events: &[LogEntryResponse],
+    ) -> Result<SqlStatementBatch>;
     fn rpc_urls(&self) -> &[Url];
 }
 
@@ -62,9 +65,10 @@ impl TokenMetadataFetcher for DefaultTokenFetcher {
             return Ok(vec![]);
         }
 
-        let fetched = fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing)
-            .await
-            .map_err(|e| anyhow!(e))?;
+        let fetched =
+            fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing, &FetchConfig::default())
+                .await
+                .map_err(|e| anyhow!(e))?;
         Ok(fetched)
     }
 }
@@ -84,9 +88,15 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_events(self, orderbook_address, start_block, end_block)
-            .await
-            .map_err(|e| anyhow!(e))
+        <LocalDb>::fetch_orderbook_events(
+            self,
+            Address::from_str(orderbook_address)?,
+            start_block,
+            end_block,
+            &FetchConfig::default(),
+        )
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     async fn fetch_store_set_events(
@@ -95,9 +105,18 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_store_set_events(
+        let addresses: Vec<Address> = store_addresses
+            .iter()
+            .enumerate()
+            .map(|(idx, s)| {
+                Address::from_str(s).with_context(|| {
+                    format!("failed to parse store address at index {}: {}", idx, s)
+                })
+            })
+            .collect::<Result<_, _>>()?;
+        <LocalDb>::fetch_store_events(
             self,
-            store_addresses,
+            &addresses,
             start_block,
             end_block,
             &FetchConfig::default(),
@@ -116,22 +135,17 @@ impl SyncDataSource for LocalDb {
     fn events_to_sql(
         &self,
         decoded_events: &[DecodedEventData<DecodedEvent>],
-        end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
-        prefix_sql: &str,
-    ) -> Result<String> {
-        let prefix = if prefix_sql.is_empty() {
-            None
-        } else {
-            Some(prefix_sql)
-        };
-
-        <LocalDb>::decoded_events_to_sql(self, decoded_events, end_block, decimals_by_token, prefix)
+    ) -> Result<SqlStatementBatch> {
+        <LocalDb>::decoded_events_to_statements(self, decoded_events, decimals_by_token)
             .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 
-    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
-        <LocalDb>::raw_events_to_sql(self, raw_events)
+    fn raw_events_to_statements(
+        &self,
+        raw_events: &[LogEntryResponse],
+    ) -> Result<SqlStatementBatch> {
+        <LocalDb>::raw_events_to_statements(self, raw_events)
             .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 
