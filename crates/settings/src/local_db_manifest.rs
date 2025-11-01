@@ -17,7 +17,7 @@ pub struct LocalDbManifest {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ManifestNetwork {
-    pub chain_id: u64,
+    pub chain_id: u32,
     pub orderbooks: Vec<ManifestOrderbook>,
 }
 
@@ -31,7 +31,7 @@ pub struct ManifestOrderbook {
 }
 
 impl LocalDbManifest {
-    pub fn find(&self, chain_id: u64, address: Address) -> Option<&ManifestOrderbook> {
+    pub fn find(&self, chain_id: u32, address: Address) -> Option<&ManifestOrderbook> {
         self.networks
             .values()
             .find(|n| n.chain_id == chain_id)
@@ -142,7 +142,7 @@ fn parse_single_network(
 
     let _network_hash = require_hash(network_yaml, None, Some(location_network.clone()))?;
 
-    let chain_id = parse_positive_u64(
+    let chain_id = parse_positive_u32(
         &require_string(
             network_yaml,
             Some("chain-id"),
