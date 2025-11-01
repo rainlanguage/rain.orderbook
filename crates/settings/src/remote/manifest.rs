@@ -32,21 +32,13 @@ pub async fn fetch_multiple_manifests(urls: Vec<Url>) -> Result<ManifestMap, Fet
     }))
     .await?;
 
-    let mut manifests_by_url = ManifestMap::with_capacity(results.len());
-    let mut version: Option<u32> = None;
-
-    for (url, manifest) in results {
-        match version {
-            Some(version) if manifest.manifest_version != version => {
-                return Err(FetchManifestError::InconsistentManifestVersions { url });
-            }
-            Some(_) | None => {
-                version = version.or(Some(manifest.manifest_version));
-            }
-        }
-
-        manifests_by_url.insert(url, manifest);
-    }
+    let manifests_by_url =
+        results
+            .into_iter()
+            .fold(HashMap::new(), |mut acc: ManifestMap, (url, manifest)| {
+                acc.insert(url, manifest);
+                acc
+            });
 
     Ok(manifests_by_url)
 }
@@ -277,49 +269,5 @@ networks:
         assert_eq!(manifests.len(), 2);
         assert_eq!(manifests.get(&url_one).unwrap().manifest_version, 1);
         assert_eq!(manifests.get(&url_two).unwrap().manifest_version, 1);
-    }
-
-    #[tokio::test]
-    async fn test_fetch_multiple_manifests_version_mismatch() {
-        let server_one = MockServer::start_async().await;
-        let server_two = MockServer::start_async().await;
-
-        let yaml_one = r#"
-manifest-version: 1
-db-schema-version: 1
-networks: {}
-"#;
-
-        let yaml_two = r#"
-manifest-version: 2
-db-schema-version: 1
-networks: {}
-"#;
-
-        server_one
-            .mock_async(|when, then| {
-                when.method("GET").path("/");
-                then.status(200).body(yaml_one);
-            })
-            .await;
-
-        server_two
-            .mock_async(|when, then| {
-                when.method("GET").path("/");
-                then.status(200).body(yaml_two);
-            })
-            .await;
-
-        let url_one = Url::parse(&server_one.base_url()).unwrap();
-        let url_two = Url::parse(&server_two.base_url()).unwrap();
-
-        let err = fetch_multiple_manifests(vec![url_one.clone(), url_two.clone()])
-            .await
-            .unwrap_err();
-
-        match err {
-            FetchManifestError::InconsistentManifestVersions { url } => assert_eq!(url, url_two),
-            other => panic!("expected version mismatch error, got {other:?}"),
-        }
     }
 }

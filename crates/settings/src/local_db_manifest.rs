@@ -7,6 +7,7 @@ use strict_yaml_rust::StrictYaml;
 use url::Url;
 
 pub const MANIFEST_VERSION: u32 = 1;
+pub const DB_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocalDbManifest {
@@ -94,6 +95,19 @@ fn parse_manifest_header(doc: &StrictYaml, location_root: &str) -> Result<(u32, 
         "db-schema-version",
         location_root.to_string(),
     )?;
+
+    if db_schema_version != DB_SCHEMA_VERSION {
+        return Err(YamlError::Field {
+            kind: FieldErrorKind::InvalidValue {
+                field: "db-schema-version".to_string(),
+                reason: format!(
+                    "unsupported database schema version {}, expected {}",
+                    db_schema_version, DB_SCHEMA_VERSION
+                ),
+            },
+            location: location_root.to_string(),
+        });
+    }
 
     Ok((manifest_version, db_schema_version))
 }
@@ -234,13 +248,13 @@ mod tests {
         // OK header
         let yaml_ok = r#"
 manifest-version: 1
-db-schema-version: 7
+db-schema-version: 1
 networks: {}
 "#;
         let doc = load(yaml_ok);
         let (mv, sv) = parse_manifest_header(&doc, "manifest").expect("header parses");
         assert_eq!(mv, 1);
-        assert_eq!(sv, 7);
+        assert_eq!(sv, 1);
 
         // Incompatible manifest version
         let yaml_bad = r#"
@@ -255,6 +269,24 @@ networks: {}
                 location,
             } => {
                 assert_eq!(field, "manifest-version");
+                assert_eq!(location, "manifest");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+
+        // Incompatible db schema version
+        let yaml_bad_schema = r#"
+manifest-version: 1
+db-schema-version: 999
+networks: {}
+"#;
+        let err = parse_manifest_header(&load(yaml_bad_schema), "manifest").unwrap_err();
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, .. },
+                location,
+            } => {
+                assert_eq!(field, "db-schema-version");
                 assert_eq!(location, "manifest");
             }
             other => panic!("unexpected error: {other:?}"),
@@ -350,6 +382,26 @@ db-schema-version: 1
 "#;
         let err = parse_manifest_doc(&load(yaml)).unwrap_err();
         assert!(matches!(err, YamlError::Field { .. }));
+    }
+
+    #[test]
+    fn test_manifest_doc_rejects_mismatched_db_schema_version() {
+        let yaml = r#"
+manifest-version: 1
+db-schema-version: 999
+networks: {}
+"#;
+        let err = parse_manifest_doc(&load(yaml)).unwrap_err();
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, .. },
+                location,
+            } => {
+                assert_eq!(field, "db-schema-version");
+                assert_eq!(location, "manifest");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 
     #[test]
