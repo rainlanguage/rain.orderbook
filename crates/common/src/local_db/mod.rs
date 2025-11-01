@@ -51,9 +51,6 @@ pub enum LocalDbError {
     #[error("{0}")]
     CustomError(String),
 
-    #[error("Settings YAML was empty")]
-    EmptySettingsYaml,
-
     #[error(transparent)]
     SettingsYaml(#[from] YamlError),
 
@@ -199,7 +196,6 @@ impl LocalDbError {
     pub fn to_readable_msg(&self) -> String {
         match self {
             LocalDbError::CustomError(msg) => msg.clone(),
-            LocalDbError::EmptySettingsYaml => "Settings YAML was empty".to_string(),
             LocalDbError::SettingsYaml(err) => format!("Settings parsing failed: {}", err),
             LocalDbError::YamlScan(err) => format!("Settings YAML scan failed: {}", err),
             LocalDbError::Http(err) => format!("HTTP request failed: {}", err),
