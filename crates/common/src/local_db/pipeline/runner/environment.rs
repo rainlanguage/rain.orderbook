@@ -523,8 +523,7 @@ mod tests {
             Arc::new(|_orderbooks| Box::pin(async { Ok(HashMap::new()) }));
         let downloader: DumpDownloader = Arc::new(|_url| {
             Box::pin(async {
-                Err(LocalDbError::IoError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
+                Err(LocalDbError::IoError(std::io::Error::other(
                     "download failed",
                 )))
             })
