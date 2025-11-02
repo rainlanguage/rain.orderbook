@@ -5,12 +5,13 @@ use rain_orderbook_common::local_db::pipeline::{
         apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
         window::DefaultWindowPipeline,
     },
-    engine::{SyncEngine, SyncInputs},
+    engine::SyncInputs,
     runner::{
-        build_runner_targets, download_and_gunzip, get_manifests, lookup_manifest_entry,
-        parse_runner_settings, ParsedRunnerSettings, RunnerTarget,
+        build_runner_targets, lookup_manifest_entry, parse_runner_settings, ParsedRunnerSettings,
+        RunnerEnvironment, RunnerTarget,
     },
-    SyncOutcome,
+    ApplyPipeline, BootstrapPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline,
+    WindowPipeline,
 };
 use rain_orderbook_common::local_db::LocalDbError;
 use std::path::{Path, PathBuf};
@@ -23,19 +24,28 @@ use crate::commands::local_db::pipeline::{
     bootstrap::ProducerBootstrapAdapter, status::ProducerStatusBus,
 };
 
-#[derive(Debug)]
-pub struct ProducerRunner {
+use super::wiring::default_environment;
+
+pub struct ProducerRunner<B, W, E, T, A, S> {
     settings: ParsedRunnerSettings,
     targets: Vec<RunnerTarget>,
     out_root: PathBuf,
-    hypersync_token: String,
+    environment: RunnerEnvironment<B, W, E, T, A, S>,
 }
 
-impl ProducerRunner {
-    pub fn new(
+impl<B, W, E, T, A, S> ProducerRunner<B, W, E, T, A, S>
+where
+    B: BootstrapPipeline + 'static,
+    W: WindowPipeline + 'static,
+    E: EventsPipeline + 'static,
+    T: TokensPipeline + 'static,
+    A: ApplyPipeline + 'static,
+    S: StatusBus + 'static,
+{
+    pub fn with_environment(
         settings_yaml: String,
         out_root: PathBuf,
-        hypersync_token: String,
+        environment: RunnerEnvironment<B, W, E, T, A, S>,
     ) -> Result<Self, LocalDbError> {
         let settings = parse_runner_settings(&settings_yaml)?;
         let targets = build_runner_targets(&settings.orderbooks, &settings.syncs)?;
@@ -44,15 +54,19 @@ impl ProducerRunner {
             settings,
             targets,
             out_root,
-            hypersync_token,
+            environment,
         })
     }
 
     pub async fn run(&self) -> Result<ProducerRunReport, LocalDbError> {
-        let manifest_map = Arc::new(get_manifests(&self.settings.orderbooks).await?);
+        let manifest_map = Arc::new(
+            self.environment
+                .fetch_manifests(&self.settings.orderbooks)
+                .await?,
+        );
         let targets = self.targets.clone();
         let out_root = self.out_root.clone();
-        let hypersync_token = self.hypersync_token.clone();
+        let environment = self.environment.clone();
 
         let local = LocalSet::new();
         local
@@ -61,13 +75,18 @@ impl ProducerRunner {
                 for target in targets {
                     let manifest_map = Arc::clone(&manifest_map);
                     let out_root = out_root.clone();
-                    let hypersync_token = hypersync_token.clone();
+                    let environment = environment.clone();
                     tasks.spawn_local(async move {
                         let manifest_entry = lookup_manifest_entry(manifest_map.as_ref(), &target);
                         let chain_id = target.inputs.target.chain_id;
                         let orderbook_address = target.inputs.target.orderbook_address;
-                        match run_orderbook_job(target, manifest_entry, hypersync_token, out_root)
-                            .await
+                        match run_orderbook_job::<B, W, E, T, A, S>(
+                            target,
+                            manifest_entry,
+                            environment,
+                            out_root,
+                        )
+                        .await
                         {
                             Ok(outcome) => Ok(outcome),
                             Err(error) => Err(ProducerJobFailure {
@@ -116,6 +135,26 @@ impl ProducerRunner {
     }
 }
 
+impl
+    ProducerRunner<
+        ProducerBootstrapAdapter,
+        DefaultWindowPipeline,
+        DefaultEventsPipeline,
+        DefaultTokensPipeline,
+        DefaultApplyPipeline,
+        ProducerStatusBus,
+    >
+{
+    pub fn new(
+        settings_yaml: String,
+        out_root: PathBuf,
+        hypersync_token: String,
+    ) -> Result<Self, LocalDbError> {
+        let environment = default_environment(hypersync_token);
+        Self::with_environment(settings_yaml, out_root, environment)
+    }
+}
+
 #[derive(Debug)]
 pub struct ProducerOutcome {
     pub outcome: SyncOutcome,
@@ -143,12 +182,20 @@ pub struct ExportMetadata {
     pub end_block_time_ms: u64,
 }
 
-async fn run_orderbook_job(
+async fn run_orderbook_job<B, W, E, T, A, S>(
     target: RunnerTarget,
     manifest_entry: Option<ManifestOrderbook>,
-    hypersync_token: String,
+    environment: RunnerEnvironment<B, W, E, T, A, S>,
     out_root: PathBuf,
-) -> Result<ProducerOutcome, LocalDbError> {
+) -> Result<ProducerOutcome, LocalDbError>
+where
+    B: BootstrapPipeline + 'static,
+    W: WindowPipeline + 'static,
+    E: EventsPipeline + 'static,
+    T: TokensPipeline + 'static,
+    A: ApplyPipeline + 'static,
+    S: StatusBus + 'static,
+{
     let RunnerTarget {
         orderbook_key,
         manifest_url,
@@ -158,7 +205,7 @@ async fn run_orderbook_job(
 
     let inputs = match manifest_entry {
         Some(entry) => {
-            let dump_sql = download_and_gunzip(&entry.dump_url).await?;
+            let dump_sql = environment.download_dump(&entry.dump_url).await?;
             SyncInputs {
                 dump_str: Some(dump_sql),
                 ..inputs
@@ -178,15 +225,7 @@ async fn run_orderbook_job(
     ensure_clean_db(&db_path)?;
     let executor = RusqliteExecutor::new(&db_path);
 
-    let bootstrap = ProducerBootstrapAdapter::new();
-    let window = DefaultWindowPipeline::new();
-    let events =
-        DefaultEventsPipeline::with_hyperrpc(target.inputs.target.chain_id, hypersync_token)?;
-    let tokens = DefaultTokensPipeline::new();
-    let apply = DefaultApplyPipeline::new();
-    let status = ProducerStatusBus::new();
-
-    let engine = SyncEngine::new(bootstrap, window, events, tokens, apply, status);
+    let engine = environment.build_engine(&target)?.into_engine();
     let outcome = engine.run(&executor, &target.inputs).await?;
     let exported_dump = export_dump(&executor, &target, &out_root).await?;
 
