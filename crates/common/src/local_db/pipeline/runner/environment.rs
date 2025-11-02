@@ -155,7 +155,6 @@ mod tests {
     use rain_orderbook_app_settings::local_db_manifest::MANIFEST_VERSION;
     use rain_orderbook_app_settings::local_db_remotes::LocalDbRemoteCfg;
     use rain_orderbook_app_settings::orderbook::OrderbookCfg;
-    use rain_orderbook_app_settings::remote::manifest::ManifestMap;
     use rain_orderbook_app_settings::yaml::default_document;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -585,13 +584,44 @@ mod tests {
 
     #[test]
     fn build_engine_propagates_errors() {
-        let environment = RunnerEnvironment::new(
+        let builder: EngineBuilder<
+            StubBootstrap,
+            StubWindow,
+            StubEvents,
+            StubTokens,
+            StubApply,
+            StubStatus,
+        > = Arc::new(
+            |_target: &RunnerTarget| -> Result<
+                EnginePipelines<
+                    StubBootstrap,
+                    StubWindow,
+                    StubEvents,
+                    StubTokens,
+                    StubApply,
+                    StubStatus,
+                >,
+                LocalDbError,
+            > { Err(LocalDbError::InvalidBootstrapImplementation) },
+        );
+
+        let environment: RunnerEnvironment<
+            StubBootstrap,
+            StubWindow,
+            StubEvents,
+            StubTokens,
+            StubApply,
+            StubStatus,
+        > = RunnerEnvironment::new(
             Arc::new(|_orderbooks| Box::pin(async { Ok(HashMap::new()) })),
             Arc::new(|_url| Box::pin(async { Ok(String::new()) })),
-            Arc::new(|_target: &RunnerTarget| Err(LocalDbError::InvalidBootstrapImplementation)),
+            builder,
         );
-        let err = environment.build_engine(&sample_target()).unwrap_err();
-        assert!(matches!(err, LocalDbError::InvalidBootstrapImplementation));
+        let result = environment.build_engine(&sample_target());
+        assert!(
+            matches!(result, Err(LocalDbError::InvalidBootstrapImplementation)),
+            "expected InvalidBootstrapImplementation"
+        );
     }
 
     #[test]
