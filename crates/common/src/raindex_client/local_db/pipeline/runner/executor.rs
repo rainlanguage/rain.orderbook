@@ -1,3 +1,4 @@
+use super::leadership::{DefaultLeadership, Leadership};
 use super::wiring::default_environment;
 use crate::local_db::{
     pipeline::{
@@ -22,16 +23,17 @@ use rain_orderbook_app_settings::{
     local_db_manifest::DB_SCHEMA_VERSION, remote::manifest::ManifestMap,
 };
 
-pub struct ClientRunner<B, W, E, T, A, S> {
+pub struct ClientRunner<B, W, E, T, A, S, L> {
     settings: ParsedRunnerSettings,
     base_targets: Vec<RunnerTarget>,
     manifest_map: ManifestMap,
     manifests_loaded: bool,
     has_bootstrapped: bool,
     environment: RunnerEnvironment<B, W, E, T, A, S>,
+    leadership: L,
 }
 
-impl<B, W, E, T, A, S> ClientRunner<B, W, E, T, A, S>
+impl<B, W, E, T, A, S, L> ClientRunner<B, W, E, T, A, S, L>
 where
     B: BootstrapPipeline + 'static,
     W: WindowPipeline + 'static,
@@ -39,10 +41,12 @@ where
     T: TokensPipeline + 'static,
     A: ApplyPipeline + 'static,
     S: StatusBus + 'static,
+    L: Leadership + 'static,
 {
     pub fn with_environment(
         settings_yaml: String,
         environment: RunnerEnvironment<B, W, E, T, A, S>,
+        leadership: L,
     ) -> Result<Self, LocalDbError> {
         let settings = parse_runner_settings(&settings_yaml)?;
         let base_targets = build_runner_targets(&settings.orderbooks, &settings.syncs)?;
@@ -54,6 +58,7 @@ where
             manifests_loaded: false,
             has_bootstrapped: false,
             environment,
+            leadership,
         })
     }
 
@@ -61,24 +66,36 @@ where
     where
         DB: LocalDbQueryExecutor + ?Sized + Sync,
     {
+        let _leadership_guard = match self.leadership.acquire().await? {
+            Some(guard) => guard,
+            None => return Ok(vec![]),
+        };
+
+        let mut fetched_manifests = false;
         if !self.manifests_loaded {
             self.manifest_map = self
                 .environment
                 .fetch_manifests(&self.settings.orderbooks)
                 .await?;
-            self.manifests_loaded = true;
+            fetched_manifests = true;
         }
 
         let mut targets = self.base_targets.clone();
+        let needs_bootstrap = !self.has_bootstrapped;
 
-        if !self.has_bootstrapped {
+        if needs_bootstrap {
             let bootstrap = ClientBootstrapAdapter::new();
             bootstrap.runner_run(db, Some(DB_SCHEMA_VERSION)).await?;
             targets = self.provision_dumps(targets).await?;
         }
 
         let outcomes = self.execute_targets(db, targets).await?;
-        self.has_bootstrapped = true;
+        if fetched_manifests {
+            self.manifests_loaded = true;
+        }
+        if needs_bootstrap {
+            self.has_bootstrapped = true;
+        }
         Ok(outcomes)
     }
 
@@ -135,16 +152,18 @@ impl
         DefaultTokensPipeline,
         DefaultApplyPipeline,
         ClientStatusBus,
+        DefaultLeadership,
     >
 {
     pub fn new(settings_yaml: String) -> Result<Self, LocalDbError> {
         let environment = default_environment();
-        Self::with_environment(settings_yaml, environment)
+        Self::with_environment(settings_yaml, environment, DefaultLeadership::new())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::leadership::{Leadership, LeadershipGuard};
     use super::*;
     use crate::local_db::decode::{DecodedEvent, DecodedEventData};
     use crate::local_db::fetch::FetchConfig;
@@ -173,7 +192,7 @@ mod tests {
     use rain_orderbook_app_settings::remote::manifest::ManifestMap;
     use serde::Serialize;
     use serde_json::{json, Value};
-    use std::collections::HashMap;
+    use std::collections::{HashMap, VecDeque};
     use std::str::FromStr;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
@@ -188,6 +207,53 @@ mod tests {
 
     const ORDERBOOK_A: Address = address!("00000000000000000000000000000000000000a1");
     const ORDERBOOK_B: Address = address!("00000000000000000000000000000000000000b2");
+
+    #[derive(Clone, Default)]
+    struct AlwaysLeadership;
+
+    #[async_trait(?Send)]
+    impl Leadership for AlwaysLeadership {
+        async fn acquire(&self) -> Result<Option<LeadershipGuard>, LocalDbError> {
+            Ok(Some(LeadershipGuard::new_noop()))
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    enum LeadershipAction {
+        Grant,
+        Skip,
+        Fail(String),
+    }
+
+    #[derive(Clone)]
+    struct SequenceLeadership {
+        actions: Arc<Mutex<VecDeque<LeadershipAction>>>,
+    }
+
+    impl SequenceLeadership {
+        fn new(actions: Vec<LeadershipAction>) -> Self {
+            Self {
+                actions: Arc::new(Mutex::new(VecDeque::from(actions))),
+            }
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl Leadership for SequenceLeadership {
+        async fn acquire(&self) -> Result<Option<LeadershipGuard>, LocalDbError> {
+            let action = self
+                .actions
+                .lock()
+                .expect("actions lock poisoned")
+                .pop_front()
+                .unwrap_or_else(|| panic!("unexpected leadership acquire call"));
+            match action {
+                LeadershipAction::Grant => Ok(Some(LeadershipGuard::new_noop())),
+                LeadershipAction::Skip => Ok(None),
+                LeadershipAction::Fail(message) => Err(LocalDbError::CustomError(message)),
+            }
+        }
+    }
 
     #[derive(Clone, Default)]
     struct Telemetry {
@@ -945,7 +1011,11 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment = build_environment(ManifestMap::new(), HashMap::new(), 1, 1, telemetry);
 
-        let err = match ClientRunner::with_environment("invalid: [yaml".to_string(), environment) {
+        let err = match ClientRunner::with_environment(
+            "invalid: [yaml".to_string(),
+            environment,
+            AlwaysLeadership,
+        ) {
             Ok(_) => panic!("invalid yaml should fail"),
             Err(err) => err,
         };
@@ -977,7 +1047,8 @@ orderbooks:
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
         let settings = two_orderbooks_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
@@ -1007,7 +1078,8 @@ orderbooks:
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
         let settings = two_orderbooks_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
         let db_first = RecordingDb::default();
         prepare_db_for_targets(&db_first, &runner.base_targets);
@@ -1024,6 +1096,76 @@ orderbooks:
     }
 
     #[tokio::test]
+    async fn run_returns_empty_when_leadership_not_acquired() {
+        let telemetry = Telemetry::default();
+        let environment =
+            build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
+        let settings = two_orderbooks_settings_yaml();
+        let leadership = SequenceLeadership::new(vec![LeadershipAction::Skip]);
+        let mut runner = ClientRunner::with_environment(settings, environment, leadership).unwrap();
+
+        let db = RecordingDb::default();
+        prepare_db_baseline(&db);
+
+        let outcomes = runner.run(&db).await.expect("run succeeds");
+        assert!(outcomes.is_empty());
+        assert!(!runner.manifests_loaded);
+        assert!(!runner.has_bootstrapped);
+        assert_eq!(telemetry.manifest_fetch_count(), 0);
+        assert!(telemetry.dump_requests().is_empty());
+        assert_eq!(telemetry.builder_inits(), 0);
+    }
+
+    #[tokio::test]
+    async fn leadership_skip_then_grant_fetches_once() {
+        let telemetry = Telemetry::default();
+        let environment =
+            build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
+        let settings = two_orderbooks_settings_yaml();
+        let leadership =
+            SequenceLeadership::new(vec![LeadershipAction::Skip, LeadershipAction::Grant]);
+        let mut runner = ClientRunner::with_environment(settings, environment, leadership).unwrap();
+
+        let db_skip = RecordingDb::default();
+        prepare_db_baseline(&db_skip);
+        let outcomes_skip = runner.run(&db_skip).await.expect("skip run succeeds");
+        assert!(outcomes_skip.is_empty());
+        assert!(!runner.manifests_loaded);
+        assert!(!runner.has_bootstrapped);
+
+        let db_grant = RecordingDb::default();
+        prepare_db_for_targets(&db_grant, &runner.base_targets);
+        let outcomes = runner.run(&db_grant).await.expect("second run succeeds");
+        assert_eq!(outcomes.len(), 2);
+        assert!(runner.manifests_loaded);
+        assert!(runner.has_bootstrapped);
+        assert_eq!(telemetry.manifest_fetch_count(), 1);
+        assert_eq!(telemetry.dump_requests().len(), 2);
+        assert_eq!(telemetry.builder_inits(), 2);
+    }
+
+    #[tokio::test]
+    async fn leadership_error_is_propagated() {
+        let telemetry = Telemetry::default();
+        let environment =
+            build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
+        let settings = two_orderbooks_settings_yaml();
+        let leadership =
+            SequenceLeadership::new(vec![LeadershipAction::Fail("no leadership".into())]);
+        let mut runner = ClientRunner::with_environment(settings, environment, leadership).unwrap();
+
+        let db = RecordingDb::default();
+        prepare_db_baseline(&db);
+
+        let err = runner.run(&db).await.expect_err("run should fail");
+        matches!(err, LocalDbError::CustomError(message) if message == "no leadership");
+        assert!(!runner.manifests_loaded);
+        assert!(!runner.has_bootstrapped);
+        assert_eq!(telemetry.manifest_fetch_count(), 0);
+        assert!(telemetry.dump_requests().is_empty());
+    }
+
+    #[tokio::test]
     async fn provisioning_downloads_only_present_manifests() {
         let telemetry = Telemetry::default();
         let environment = build_environment(
@@ -1034,7 +1176,8 @@ orderbooks:
             telemetry.clone(),
         );
         let settings = two_orderbooks_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
@@ -1067,7 +1210,8 @@ orderbooks:
         let environment =
             build_environment(ManifestMap::new(), HashMap::new(), 1, 0, telemetry.clone());
         let settings = single_orderbook_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         runner.base_targets.clear();
 
         let db = RecordingDb::default();
@@ -1084,9 +1228,10 @@ orderbooks:
     async fn bootstrap_failure_leaves_runner_unbootstrapped() {
         let telemetry = Telemetry::default();
         let environment =
-            build_environment(manifest_for_a(), HashMap::new(), 1, 1, telemetry.clone());
+            build_environment(manifest_for_a(), HashMap::new(), 2, 1, telemetry.clone());
         let settings = single_orderbook_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
         let failing_db = RecordingDb::default();
         prepare_db_baseline(&failing_db);
@@ -1098,14 +1243,14 @@ orderbooks:
             LocalDbError::LocalDbQueryError(LocalDbQueryError::Database { .. })
         );
         assert!(!runner.has_bootstrapped);
-        assert!(runner.manifests_loaded);
+        assert!(!runner.manifests_loaded);
         assert!(telemetry.dump_requests().is_empty());
 
         let success_db = RecordingDb::default();
         prepare_db_for_targets(&success_db, &runner.base_targets);
         runner.run(&success_db).await.expect("retry succeeds");
         assert!(runner.has_bootstrapped);
-        assert_eq!(telemetry.manifest_fetch_count(), 1);
+        assert_eq!(telemetry.manifest_fetch_count(), 2);
         assert_eq!(telemetry.dump_requests().len(), 1);
     }
 
@@ -1134,7 +1279,8 @@ orderbooks:
         let engine_builder = engine_builder_for_behaviors(telemetry.clone(), HashMap::new());
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
         let settings = single_orderbook_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
         let db = RecordingDb::default();
         prepare_db_baseline(&db);
@@ -1185,14 +1331,15 @@ orderbooks:
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
 
         let settings = single_orderbook_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
         let err = runner.run(&db).await.expect_err("run should fail");
         matches!(err, LocalDbError::CustomError(message) if message == "download failed");
         assert!(!runner.has_bootstrapped);
-        assert!(runner.manifests_loaded);
+        assert!(!runner.manifests_loaded);
         assert_eq!(telemetry.dump_requests().len(), 1);
     }
 
@@ -1264,7 +1411,8 @@ orderbooks:
         };
 
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
@@ -1289,14 +1437,17 @@ orderbooks:
         let environment =
             build_environment(manifest_for_both(), behaviors, 1, 2, telemetry.clone());
         let settings = two_orderbooks_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
         let err = runner.run(&db).await.expect_err("run should fail");
         matches!(err, LocalDbError::CustomError(message) if message.starts_with("apply failed"));
         assert!(!runner.has_bootstrapped);
+        assert!(!runner.manifests_loaded);
         assert_eq!(telemetry.dump_requests().len(), 2);
+        assert_eq!(telemetry.manifest_fetch_count(), 1);
         assert!(telemetry
             .engine_runs()
             .iter()
@@ -1309,7 +1460,8 @@ orderbooks:
         let environment =
             build_environment(ManifestMap::new(), HashMap::new(), 1, 0, telemetry.clone());
         let settings = single_orderbook_settings_yaml();
-        let mut runner = ClientRunner::with_environment(settings, environment).unwrap();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
         assert_eq!(runner.base_targets.len(), 1);
         runner.base_targets[0].inputs.dump_str = Some("-- preloaded dump".to_string());
