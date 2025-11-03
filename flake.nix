@@ -261,7 +261,7 @@
               set -euxo pipefail
 
               cd crates/common
-              wasm-pack test --chrome --features browser-tests -- leadership::wasm_tests
+              wasm-pack test --headless --chrome --features browser-tests -- leadership::wasm_tests
             '';
             additionalBuildInputs = [
               pkgs.wasm-pack
