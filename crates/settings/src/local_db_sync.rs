@@ -1,3 +1,4 @@
+use crate::utils::{parse_positive_u32, parse_positive_u64};
 use crate::yaml::{
     context::Context, default_document, require_hash, require_string, FieldErrorKind, YamlError,
     YamlParsableHash,
@@ -27,81 +28,37 @@ pub struct LocalDbSyncCfg {
 impl_wasm_traits!(LocalDbSyncCfg);
 
 impl LocalDbSyncCfg {
-    fn parse_positive_u32(value: &str, field: &str, location: String) -> Result<u32, YamlError> {
-        let parsed: u32 = value
-            .parse()
-            .map_err(|e: std::num::ParseIntError| YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: field.to_string(),
-                    reason: e.to_string(),
-                },
-                location: location.clone(),
-            })?;
-        if parsed == 0 {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: field.to_string(),
-                    reason: "must be a positive integer".to_string(),
-                },
-                location,
-            });
-        }
-        Ok(parsed)
-    }
-
-    fn parse_positive_u64(value: &str, field: &str, location: String) -> Result<u64, YamlError> {
-        let parsed: u64 = value
-            .parse()
-            .map_err(|e: std::num::ParseIntError| YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: field.to_string(),
-                    reason: e.to_string(),
-                },
-                location: location.clone(),
-            })?;
-        if parsed == 0 {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: field.to_string(),
-                    reason: "must be a positive integer".to_string(),
-                },
-                location,
-            });
-        }
-        Ok(parsed)
-    }
-
     fn parse_sync_network_settings(
         network_key: &str,
         yaml: &StrictYaml,
     ) -> Result<LocalDbSyncCfg, YamlError> {
         let location = format!("local-db-sync.{}", network_key);
-        let batch_size = Self::parse_positive_u32(
+        let batch_size = parse_positive_u32(
             &require_string(yaml, Some("batch-size"), Some(location.clone()))?,
             "batch-size",
             location.clone(),
         )?;
-        let max_concurrent_batches = Self::parse_positive_u32(
+        let max_concurrent_batches = parse_positive_u32(
             &require_string(yaml, Some("max-concurrent-batches"), Some(location.clone()))?,
             "max-concurrent-batches",
             location.clone(),
         )?;
-        let retry_attempts = Self::parse_positive_u32(
+        let retry_attempts = parse_positive_u32(
             &require_string(yaml, Some("retry-attempts"), Some(location.clone()))?,
             "retry-attempts",
             location.clone(),
         )?;
-        let retry_delay_ms = Self::parse_positive_u64(
+        let retry_delay_ms = parse_positive_u64(
             &require_string(yaml, Some("retry-delay-ms"), Some(location.clone()))?,
             "retry-delay-ms",
             location.clone(),
         )?;
-        let rate_limit_delay_ms = Self::parse_positive_u64(
+        let rate_limit_delay_ms = parse_positive_u64(
             &require_string(yaml, Some("rate-limit-delay-ms"), Some(location.clone()))?,
             "rate-limit-delay-ms",
             location.clone(),
         )?;
-        let finality_depth = Self::parse_positive_u32(
+        let finality_depth = parse_positive_u32(
             &require_string(yaml, Some("finality-depth"), Some(location.clone()))?,
             "finality-depth",
             location,
