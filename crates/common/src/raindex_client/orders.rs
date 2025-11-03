@@ -1,11 +1,11 @@
 use super::local_db::executor::JsCallbackExecutor;
 use super::*;
+use crate::local_db::is_chain_supported_local_db;
 use crate::local_db::query::LocalDbQueryExecutor;
 use crate::local_db::query::{
     fetch_orders::{FetchOrdersArgs, LocalDbOrder},
     fetch_vault::LocalDbVault,
 };
-use crate::local_db::LocalDb;
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
 use crate::raindex_client::local_db::query::fetch_vault::fetch_vaults_for_io_string;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
@@ -517,7 +517,7 @@ impl RaindexClient {
 
         let (local_ids, sg_ids): (Vec<u32>, Vec<u32>) = all_ids
             .into_iter()
-            .partition(|&id| LocalDb::check_support(id));
+            .partition(|&id| is_chain_supported_local_db(id));
 
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
@@ -696,7 +696,7 @@ impl RaindexClient {
 
         let order_hash_hex = order_hash.to_string();
 
-        if LocalDb::check_support(chain_id) {
+        if is_chain_supported_local_db(chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
                 let exec = JsCallbackExecutor::new(&db_cb);
                 if let Some(order) = self
