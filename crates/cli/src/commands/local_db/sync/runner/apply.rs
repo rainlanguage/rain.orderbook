@@ -3,7 +3,7 @@ use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::local_db::query::{
     update_last_synced_block::build_update_last_synced_block_stmt, SqlStatementBatch,
 };
-use rain_orderbook_common::rpc_client::LogEntryResponse;
+use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClient};
 use url::Url;
 
 use super::super::data_source::{SyncDataSource, TokenMetadataFetcher};
@@ -77,17 +77,18 @@ where
         target_block,
     } = params;
 
-    let metadata_rpc_slice = if metadata_rpc_urls.is_empty() {
-        data_source.rpc_urls()
+    let metadata_rpcs = if metadata_rpc_urls.is_empty() {
+        data_source.rpc_urls().to_vec()
     } else {
-        &metadata_rpc_urls
+        metadata_rpc_urls
     };
+    let rpc_client = RpcClient::new_with_urls(metadata_rpcs)?;
 
     let mut batch = data_source.raw_events_to_statements(&raw_events)?;
 
     let token_prep = prepare_token_metadata(
         &db_path,
-        metadata_rpc_slice,
+        &rpc_client,
         chain_id,
         &decoded_events,
         token_fetcher,
@@ -113,7 +114,7 @@ mod tests {
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
     use rain_orderbook_common::erc20::TokenInfo;
     use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData, EventType};
-    use rain_orderbook_common::rpc_client::LogEntryResponse;
+    use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClient};
     use std::collections::HashMap;
     use std::sync::Mutex;
     use tempfile::TempDir;
@@ -226,7 +227,7 @@ mod tests {
 
     #[async_trait]
     impl TokenMetadataFetcher for MockFetcher {
-        async fn fetch(&self, _: &[Url], _: Vec<Address>) -> Result<Vec<(Address, TokenInfo)>> {
+        async fn fetch(&self, _: &RpcClient, _: Vec<Address>) -> Result<Vec<(Address, TokenInfo)>> {
             Ok(self.metadata.clone())
         }
     }
