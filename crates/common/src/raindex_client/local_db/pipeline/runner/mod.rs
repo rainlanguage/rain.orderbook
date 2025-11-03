@@ -1,4 +1,5 @@
 pub mod executor;
+mod leadership;
 pub mod wiring;
 
 pub use executor::ClientRunner;

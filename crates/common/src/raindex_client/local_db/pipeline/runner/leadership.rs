@@ -1,0 +1,292 @@
+use crate::local_db::LocalDbError;
+
+#[cfg(target_family = "wasm")]
+use js_sys::{Function, Object, Promise, Reflect};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_futures::JsFuture;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::prelude::*;
+#[cfg(target_family = "wasm")]
+use web_sys::window;
+
+#[cfg(target_family = "wasm")]
+const LOCK_NAME: &str = "local-db-sync-engine";
+
+/// Guard that keeps platform-specific leadership state alive for the duration of a run.
+pub struct LeadershipGuard {
+    #[cfg(target_family = "wasm")]
+    release_fn: Option<Function>,
+}
+
+impl LeadershipGuard {
+    fn noop() -> Self {
+        Self {
+            #[cfg(target_family = "wasm")]
+            release_fn: None,
+        }
+    }
+
+    #[cfg(target_family = "wasm")]
+    fn with_release(release_fn: Function) -> Self {
+        Self {
+            release_fn: Some(release_fn),
+        }
+    }
+}
+
+impl Drop for LeadershipGuard {
+    fn drop(&mut self) {
+        #[cfg(target_family = "wasm")]
+        if let Some(release_fn) = self.release_fn.take() {
+            let _ = release_fn.call0(&JsValue::UNDEFINED);
+        }
+    }
+}
+
+/// Attempts to establish leadership for the current runner invocation.
+/// Returns `None` when another leader is already active (browser Web Locks only).
+pub async fn acquire() -> Result<Option<LeadershipGuard>, LocalDbError> {
+    #[cfg(target_family = "wasm")]
+    {
+        match attempt_web_lock().await {
+            Ok(Some(guard)) => Ok(Some(guard)),
+            Ok(None) => Ok(None),
+            Err(_) => Ok(Some(LeadershipGuard::noop())),
+        }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    {
+        Ok(Some(LeadershipGuard::noop()))
+    }
+}
+
+#[cfg(target_family = "wasm")]
+async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    let window = match window() {
+        Some(window) => window,
+        None => return Ok(Some(LeadershipGuard::noop())),
+    };
+    let navigator = window.navigator();
+    let locks_value = Reflect::get(navigator.as_ref(), &JsValue::from_str("locks"))?;
+    if locks_value.is_undefined() || locks_value.is_null() {
+        return Ok(Some(LeadershipGuard::noop()));
+    }
+
+    let request_fn =
+        Reflect::get(&locks_value, &JsValue::from_str("request"))?.dyn_into::<Function>()?;
+
+    let options = Object::new();
+    Reflect::set(
+        &options,
+        &JsValue::from_str("name"),
+        &JsValue::from_str(LOCK_NAME),
+    )?;
+    Reflect::set(
+        &options,
+        &JsValue::from_str("mode"),
+        &JsValue::from_str("exclusive"),
+    )?;
+    Reflect::set(
+        &options,
+        &JsValue::from_str("ifAvailable"),
+        &JsValue::from_bool(true),
+    )?;
+
+    let acquired_resolver = Rc::new(RefCell::new(None::<Function>));
+    let release_resolver = Rc::new(RefCell::new(None::<Function>));
+
+    let acquired_promise = {
+        let acquired_resolver = Rc::clone(&acquired_resolver);
+        Promise::new(&mut move |resolve, _| {
+            acquired_resolver.borrow_mut().replace(resolve.clone());
+        })
+    };
+    let acquired_future = JsFuture::from(acquired_promise);
+
+    let callback_acquired = Rc::clone(&acquired_resolver);
+    let callback_release = Rc::clone(&release_resolver);
+    let callback = Closure::wrap(Box::new(move |lock: JsValue| -> JsValue {
+        if lock.is_undefined() || lock.is_null() {
+            if let Some(resolve) = callback_acquired.borrow_mut().take() {
+                let _ = resolve.call1(&JsValue::UNDEFINED, &JsValue::from_bool(false));
+            }
+            JsValue::UNDEFINED
+        } else {
+            if let Some(resolve) = callback_acquired.borrow_mut().take() {
+                let _ = resolve.call1(&JsValue::UNDEFINED, &JsValue::from_bool(true));
+            }
+            let release_resolver = Rc::clone(&callback_release);
+            Promise::new(&mut move |resolve, _| {
+                release_resolver.borrow_mut().replace(resolve.clone());
+            })
+            .into()
+        }
+    }) as Box<dyn FnMut(JsValue) -> JsValue>);
+
+    let request_result = request_fn.call2(
+        &locks_value,
+        &options.into(),
+        callback.as_ref().unchecked_ref(),
+    );
+
+    if request_result.is_err() {
+        // Drop the callback before propagating the error.
+        drop(callback);
+        return Err(request_result
+            .err()
+            .unwrap_or_else(|| JsValue::from_str("Web Locks request failed")));
+    }
+
+    let acquired_value = acquired_future.await?;
+    drop(callback);
+
+    if !acquired_value.as_bool().unwrap_or(false) {
+        return Ok(None);
+    }
+
+    let release_fn = match release_resolver.borrow_mut().take() {
+        Some(function) => function,
+        None => {
+            return Ok(Some(LeadershipGuard::noop()));
+        }
+    };
+
+    Ok(Some(LeadershipGuard::with_release(release_fn)))
+}
+
+#[cfg(all(test, not(target_family = "wasm")))]
+mod tests {
+    use super::*;
+    use futures::executor::block_on;
+
+    #[test]
+    fn acquire_returns_guard_in_native_env() {
+        let guard = block_on(acquire()).expect("acquire succeeds");
+        assert!(
+            guard.is_some(),
+            "guard should be present when Web Locks are unavailable"
+        );
+    }
+}
+
+#[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
+mod wasm_tests {
+    use super::*;
+    use js_sys::{Function, Object, Promise, Reflect};
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_test::*;
+    use web_sys::window;
+
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    struct LockStub {
+        hook: LockHook,
+        _request_closure: Closure<dyn FnMut(JsValue, JsValue) -> JsValue>,
+    }
+
+    enum LockHook {
+        Replace { navigator: web_sys::Navigator },
+        Patch { locks: Object, original_request: JsValue },
+    }
+
+    impl LockStub {
+        fn install(grant_lock: bool) -> Result<Self, JsValue> {
+            let window = window().ok_or_else(|| JsValue::from_str("window unavailable"))?;
+            let navigator = window.navigator();
+
+            let callback_result = if grant_lock {
+                JsValue::from(Object::new())
+            } else {
+                JsValue::UNDEFINED
+            };
+
+            let request_closure: Closure<dyn FnMut(JsValue, JsValue) -> JsValue> =
+                Closure::wrap(Box::new(move |_options: JsValue, cb: JsValue| -> JsValue {
+                    let callback: Function = cb.unchecked_into();
+                    let _ = callback.call1(&JsValue::UNDEFINED, &callback_result);
+                    Promise::resolve(&JsValue::UNDEFINED).into()
+                }) as Box<dyn FnMut(JsValue, JsValue) -> JsValue>);
+
+            let locks_value = Reflect::get(navigator.as_ref(), &JsValue::from_str("locks"))?;
+            let hook = if locks_value.is_undefined() || locks_value.is_null() {
+                let locks = Object::new();
+                Reflect::set(
+                    &locks,
+                    &JsValue::from_str("request"),
+                    request_closure.as_ref().unchecked_ref(),
+                )?;
+                Reflect::set(
+                    navigator.as_ref(),
+                    &JsValue::from_str("locks"),
+                    &locks.into(),
+                )?;
+
+                LockHook::Replace { navigator }
+            } else {
+                let locks: Object = locks_value.dyn_into()?;
+                let original_request = Reflect::get(&locks, &JsValue::from_str("request"))?;
+                Reflect::set(
+                    &locks,
+                    &JsValue::from_str("request"),
+                    request_closure.as_ref().unchecked_ref(),
+                )?;
+
+                LockHook::Patch {
+                    locks,
+                    original_request,
+                }
+            };
+
+            Ok(Self {
+                hook,
+                _request_closure: request_closure,
+            })
+        }
+    }
+
+    impl Drop for LockStub {
+        fn drop(&mut self) {
+            if let Some(window) = window() {
+                match &self.hook {
+                    LockHook::Replace { navigator } => {
+                        let _ =
+                            Reflect::delete_property(navigator.as_ref(), &JsValue::from_str("locks"));
+                    }
+                    LockHook::Patch {
+                        locks,
+                        original_request,
+                    } => {
+                        if original_request.is_undefined() || original_request.is_null() {
+                            let _ =
+                                Reflect::delete_property(locks, &JsValue::from_str("request"));
+                        } else {
+                            let _ = Reflect::set(
+                                locks,
+                                &JsValue::from_str("request"),
+                                original_request,
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn acquire_returns_guard_when_lock_granted() {
+        let _stub = LockStub::install(true).expect("stub install");
+        let guard = acquire().await.expect("acquire ok");
+        assert!(guard.is_some(), "expected guard when lock granted");
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn acquire_returns_none_when_lock_denied() {
+        let _stub = LockStub::install(false).expect("stub install");
+        let guard = acquire().await.expect("acquire ok");
+        assert!(guard.is_none(), "expected None when lock denied");
+    }
+}

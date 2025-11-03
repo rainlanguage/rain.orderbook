@@ -50,6 +50,10 @@ flate2 = "1.0.34"
 itertools = { workspace = true }
 async-trait = { workspace = true }
 
+[features]
+default = []
+browser-tests = []
+
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
 proptest = { workspace = true }
@@ -66,6 +70,9 @@ tokio = { workspace = true, features = [
 serde-wasm-bindgen = "0.4"
 getrandom = { workspace = true }
 wasm-bindgen-test = "0.3"
+web-sys = { version = "0.3", features = ["Window", "Navigator"] }
+js-sys = "0.3"
+wasm-bindgen-futures = "0.4"
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"
