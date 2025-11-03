@@ -258,8 +258,8 @@ async fn prepare_erc20_tokens_prefix(
             .collect();
 
         if !missing_addrs.is_empty() {
-            let rpcs = rpc_client.rpc_urls().to_vec();
-            let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs, config).await?;
+            let successes =
+                fetch_erc20_metadata_concurrent(rpc_client, missing_addrs, config).await?;
 
             tokens_prefix_sql = insert::generate_erc20_token_statements(chain_id, &successes);
 
