@@ -1,4 +1,5 @@
 use crate::local_db::LocalDbError;
+use async_trait::async_trait;
 
 #[cfg(target_family = "wasm")]
 use js_sys::{Function, Object, Promise, Reflect};
@@ -19,7 +20,8 @@ pub struct LeadershipGuard {
 }
 
 impl LeadershipGuard {
-    fn noop() -> Self {
+    /// Creates a guard that does not perform any release action when dropped.
+    pub fn new_noop() -> Self {
         Self {
             #[cfg(target_family = "wasm")]
             release_fn: None,
@@ -43,22 +45,51 @@ impl Drop for LeadershipGuard {
     }
 }
 
-/// Attempts to establish leadership for the current runner invocation.
-/// Returns `None` when another leader is already active (browser Web Locks only).
-pub async fn acquire() -> Result<Option<LeadershipGuard>, LocalDbError> {
-    #[cfg(target_family = "wasm")]
-    {
-        match attempt_web_lock().await {
-            Ok(Some(guard)) => Ok(Some(guard)),
-            Ok(None) => Ok(None),
-            Err(_) => Ok(Some(LeadershipGuard::noop())),
+#[async_trait(?Send)]
+pub trait Leadership {
+    /// Attempts to establish leadership for the current runner invocation.
+    ///
+    /// Returns `None` when another leader is already active (browser Web Locks only).
+    async fn acquire(&self) -> Result<Option<LeadershipGuard>, LocalDbError>;
+}
+
+#[derive(Clone, Debug)]
+pub struct DefaultLeadership;
+
+impl DefaultLeadership {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for DefaultLeadership {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait(?Send)]
+impl Leadership for DefaultLeadership {
+    async fn acquire(&self) -> Result<Option<LeadershipGuard>, LocalDbError> {
+        #[cfg(target_family = "wasm")]
+        {
+            match attempt_web_lock().await {
+                Ok(Some(guard)) => Ok(Some(guard)),
+                Ok(None) => Ok(None),
+                Err(_) => Ok(Some(LeadershipGuard::new_noop())),
+            }
+        }
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            Ok(Some(LeadershipGuard::new_noop()))
         }
     }
+}
 
-    #[cfg(not(target_family = "wasm"))]
-    {
-        Ok(Some(LeadershipGuard::noop()))
-    }
+/// Convenience helper for callers that do not yet inject a leadership strategy.
+pub async fn acquire() -> Result<Option<LeadershipGuard>, LocalDbError> {
+    DefaultLeadership::new().acquire().await
 }
 
 #[cfg(target_family = "wasm")]
@@ -68,12 +99,12 @@ async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
 
     let window = match window() {
         Some(window) => window,
-        None => return Ok(Some(LeadershipGuard::noop())),
+        None => return Ok(Some(LeadershipGuard::new_noop())),
     };
     let navigator = window.navigator();
     let locks_value = Reflect::get(navigator.as_ref(), &JsValue::from_str("locks"))?;
     if locks_value.is_undefined() || locks_value.is_null() {
-        return Ok(Some(LeadershipGuard::noop()));
+        return Ok(Some(LeadershipGuard::new_noop()));
     }
 
     let request_fn =
@@ -151,7 +182,7 @@ async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
     let release_fn = match release_resolver.borrow_mut().take() {
         Some(function) => function,
         None => {
-            return Ok(Some(LeadershipGuard::noop()));
+            return Ok(Some(LeadershipGuard::new_noop()));
         }
     };
 
@@ -161,14 +192,50 @@ async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
+    use async_trait::async_trait;
     use futures::executor::block_on;
 
     #[test]
     fn acquire_returns_guard_in_native_env() {
-        let guard = block_on(acquire()).expect("acquire succeeds");
+        let guard = block_on(DefaultLeadership::new().acquire()).expect("acquire succeeds");
         assert!(
             guard.is_some(),
             "guard should be present when Web Locks are unavailable"
+        );
+    }
+
+    struct DeterministicLeadership {
+        grant: bool,
+    }
+
+    #[async_trait(?Send)]
+    impl Leadership for DeterministicLeadership {
+        async fn acquire(&self) -> Result<Option<LeadershipGuard>, LocalDbError> {
+            if self.grant {
+                Ok(Some(LeadershipGuard::new_noop()))
+            } else {
+                Ok(None)
+            }
+        }
+    }
+
+    #[test]
+    fn stub_leadership_can_simulate_denied_lock() {
+        let leadership = DeterministicLeadership { grant: false };
+        let guard = block_on(leadership.acquire()).expect("acquire succeeds");
+        assert!(
+            guard.is_none(),
+            "stub leadership should be able to simulate missing guard"
+        );
+    }
+
+    #[test]
+    fn stub_leadership_can_simulate_granted_lock() {
+        let leadership = DeterministicLeadership { grant: true };
+        let guard = block_on(leadership.acquire()).expect("acquire succeeds");
+        assert!(
+            guard.is_some(),
+            "stub leadership should be able to simulate acquiring leadership"
         );
     }
 }
@@ -189,8 +256,13 @@ mod wasm_tests {
     }
 
     enum LockHook {
-        Replace { navigator: web_sys::Navigator },
-        Patch { locks: Object, original_request: JsValue },
+        Replace {
+            navigator: web_sys::Navigator,
+        },
+        Patch {
+            locks: Object,
+            original_request: JsValue,
+        },
     }
 
     impl LockStub {
@@ -209,7 +281,8 @@ mod wasm_tests {
                     let callback: Function = cb.unchecked_into();
                     let _ = callback.call1(&JsValue::UNDEFINED, &callback_result);
                     Promise::resolve(&JsValue::UNDEFINED).into()
-                }) as Box<dyn FnMut(JsValue, JsValue) -> JsValue>);
+                })
+                    as Box<dyn FnMut(JsValue, JsValue) -> JsValue>);
 
             let locks_value = Reflect::get(navigator.as_ref(), &JsValue::from_str("locks"))?;
             let hook = if locks_value.is_undefined() || locks_value.is_null() {
@@ -253,16 +326,17 @@ mod wasm_tests {
             if let Some(window) = window() {
                 match &self.hook {
                     LockHook::Replace { navigator } => {
-                        let _ =
-                            Reflect::delete_property(navigator.as_ref(), &JsValue::from_str("locks"));
+                        let _ = Reflect::delete_property(
+                            navigator.as_ref(),
+                            &JsValue::from_str("locks"),
+                        );
                     }
                     LockHook::Patch {
                         locks,
                         original_request,
                     } => {
                         if original_request.is_undefined() || original_request.is_null() {
-                            let _ =
-                                Reflect::delete_property(locks, &JsValue::from_str("request"));
+                            let _ = Reflect::delete_property(locks, &JsValue::from_str("request"));
                         } else {
                             let _ = Reflect::set(
                                 locks,
@@ -279,14 +353,20 @@ mod wasm_tests {
     #[wasm_bindgen_test(async)]
     async fn acquire_returns_guard_when_lock_granted() {
         let _stub = LockStub::install(true).expect("stub install");
-        let guard = acquire().await.expect("acquire ok");
+        let guard = DefaultLeadership::new()
+            .acquire()
+            .await
+            .expect("acquire ok");
         assert!(guard.is_some(), "expected guard when lock granted");
     }
 
     #[wasm_bindgen_test(async)]
     async fn acquire_returns_none_when_lock_denied() {
         let _stub = LockStub::install(false).expect("stub install");
-        let guard = acquire().await.expect("acquire ok");
+        let guard = DefaultLeadership::new()
+            .acquire()
+            .await
+            .expect("acquire ok");
         assert!(guard.is_none(), "expected None when lock denied");
     }
 }
