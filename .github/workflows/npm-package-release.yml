@@ -54,10 +54,18 @@ jobs:
 
       - run: ./prep-all.sh
         env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+
+      - name: Remove Unused Artifacts
+        run: rm -rf ./target/debug
 
       - name: Test JS/TS Binding 1/2
         run: nix develop -c rainix-wasm-test
+
+      - name: Remove Test Artifacts
+        run: |
+          rm -rf ./target/debug
+          rm -rf ./target/wasm32-unknown-unknown/debug
 
       - name: Test JS/TS Binding 2/2
         run: nix develop -c test-js-bindings
