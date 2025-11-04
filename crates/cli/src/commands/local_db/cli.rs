@@ -72,20 +72,36 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
         )?;
         for outcome in &report.successes {
             let target = &outcome.outcome.target;
-            writeln!(
-                writer,
-                "- chain {} orderbook {:#x}: start {} → target {} | logs {} | events {} | dump {} (end block {}, hash {}, time {})",
-                target.chain_id,
-                target.orderbook_address,
-                outcome.outcome.start_block,
-                outcome.outcome.target_block,
-                outcome.outcome.fetched_logs,
-                outcome.outcome.decoded_events,
-                outcome.exported_dump.dump_path.display(),
-                outcome.exported_dump.end_block,
-                outcome.exported_dump.end_block_hash,
-                outcome.exported_dump.end_block_time_ms,
-            )?;
+            match &outcome.exported_dump {
+                Some(export) => {
+                    writeln!(
+                        writer,
+                        "- chain {} orderbook {:#x}: start {} → target {} | logs {} | events {} | dump {} (end block {}, hash {}, time {})",
+                        target.chain_id,
+                        target.orderbook_address,
+                        outcome.outcome.start_block,
+                        outcome.outcome.target_block,
+                        outcome.outcome.fetched_logs,
+                        outcome.outcome.decoded_events,
+                        export.dump_path.display(),
+                        export.end_block,
+                        export.end_block_hash,
+                        export.end_block_time_ms,
+                    )?;
+                }
+                None => {
+                    writeln!(
+                        writer,
+                        "- chain {} orderbook {:#x}: start {} → target {} | logs {} | events {} | dump <none>",
+                        target.chain_id,
+                        target.orderbook_address,
+                        outcome.outcome.start_block,
+                        outcome.outcome.target_block,
+                        outcome.outcome.fetched_logs,
+                        outcome.outcome.decoded_events,
+                    )?;
+                }
+            }
         }
     }
 
@@ -183,7 +199,7 @@ mod tests {
                 fetched_logs: 123,
                 decoded_events: 456,
             },
-            exported_dump: ExportMetadata {
+            exported_dump: Some(ExportMetadata {
                 dump_path: PathBuf::from(format!(
                     "./local-db/{}/{}.db",
                     chain_id, runner_target.inputs.target.orderbook_address
@@ -191,7 +207,7 @@ mod tests {
                 end_block: 400,
                 end_block_hash: "0xdeadbeef".to_string(),
                 end_block_time_ms: 1_700_000_000,
-            },
+            }),
         }
     }
 
@@ -211,6 +227,22 @@ mod tests {
         assert!(output.contains("logs 123"));
         assert!(output.contains("events 456"));
         assert!(output.contains("All producer jobs completed successfully."));
+    }
+
+    #[test]
+    fn render_report_to_handles_missing_dump() {
+        let mut outcome = sample_outcome(10);
+        outcome.exported_dump = None;
+        let report = ProducerRunReport {
+            successes: vec![outcome],
+            failures: vec![],
+        };
+
+        let mut buffer = Vec::new();
+        render_report_to(&report, &mut buffer).expect("render succeeds");
+
+        let output = String::from_utf8(buffer).expect("utf8");
+        assert!(output.contains("dump <none>"));
     }
 
     #[test]
