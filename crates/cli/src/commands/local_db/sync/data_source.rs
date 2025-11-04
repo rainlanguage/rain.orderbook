@@ -4,12 +4,14 @@ use async_trait::async_trait;
 use rain_orderbook_common::{
     erc20::TokenInfo,
     local_db::{
-        decode::{DecodedEvent, DecodedEventData},
+        decode::{decode_events as decode_log_events, DecodedEvent, DecodedEventData},
+        fetch::{fetch_orderbook_events, fetch_store_events},
+        insert::{decoded_events_to_statements, raw_events_to_statements},
         query::SqlStatementBatch,
         token_fetch::fetch_erc20_metadata_concurrent,
-        FetchConfig, LocalDb,
+        FetchConfig,
     },
-    rpc_client::LogEntryResponse,
+    rpc_client::{LogEntryResponse, RpcClient},
 };
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -74,12 +76,9 @@ impl TokenMetadataFetcher for DefaultTokenFetcher {
 }
 
 #[async_trait]
-impl SyncDataSource for LocalDb {
+impl SyncDataSource for RpcClient {
     async fn latest_block(&self) -> Result<u64> {
-        self.rpc_client()
-            .get_latest_block_number()
-            .await
-            .map_err(|e| anyhow!(e))
+        self.get_latest_block_number().await.map_err(|e| anyhow!(e))
     }
 
     async fn fetch_events(
@@ -88,9 +87,10 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_orderbook_events(
+        let address = Address::from_str(orderbook_address)?;
+        fetch_orderbook_events(
             self,
-            Address::from_str(orderbook_address)?,
+            address,
             start_block,
             end_block,
             &FetchConfig::default(),
@@ -114,7 +114,7 @@ impl SyncDataSource for LocalDb {
                 })
             })
             .collect::<Result<_, _>>()?;
-        <LocalDb>::fetch_store_events(
+        fetch_store_events(
             self,
             &addresses,
             start_block,
@@ -129,7 +129,7 @@ impl SyncDataSource for LocalDb {
         &self,
         events: &[LogEntryResponse],
     ) -> Result<Vec<DecodedEventData<DecodedEvent>>> {
-        <LocalDb>::decode_events(self, events).map_err(|e| anyhow!(e))
+        decode_log_events(events).map_err(|e| anyhow!(e))
     }
 
     fn events_to_sql(
@@ -137,7 +137,7 @@ impl SyncDataSource for LocalDb {
         decoded_events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch> {
-        <LocalDb>::decoded_events_to_statements(self, decoded_events, decimals_by_token)
+        decoded_events_to_statements(decoded_events, decimals_by_token)
             .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 
@@ -145,12 +145,12 @@ impl SyncDataSource for LocalDb {
         &self,
         raw_events: &[LogEntryResponse],
     ) -> Result<SqlStatementBatch> {
-        <LocalDb>::raw_events_to_statements(self, raw_events)
+        raw_events_to_statements(raw_events)
             .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 
     fn rpc_urls(&self) -> &[Url] {
-        self.rpc_client().rpc_urls()
+        self.rpc_urls()
     }
 }
 

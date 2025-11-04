@@ -1,10 +1,10 @@
 use super::{local_db::executor::JsCallbackExecutor, *};
 use crate::local_db::{
+    is_chain_supported_local_db,
     query::{
         fetch_vault_balance_changes::LocalDbVaultBalanceChange, fetch_vaults::FetchVaultsArgs,
         LocalDbQueryExecutor,
     },
-    LocalDb,
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
 use crate::raindex_client::local_db::query::fetch_vaults::fetch_vaults;
@@ -307,7 +307,7 @@ impl RaindexVault {
         &self,
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        if LocalDb::check_support(self.chain_id) {
+        if is_chain_supported_local_db(self.chain_id) {
             if let Some(db_cb) = self.raindex_client.local_db_callback() {
                 let exec = JsCallbackExecutor::new(&db_cb);
                 let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
@@ -1102,7 +1102,7 @@ impl RaindexClient {
         let all_ids = ids.0;
         let (local_ids, sg_ids): (Vec<u32>, Vec<u32>) = all_ids
             .into_iter()
-            .partition(|&id| LocalDb::check_support(id));
+            .partition(|&id| is_chain_supported_local_db(id));
 
         let mut vaults: Vec<RaindexVault> = Vec::new();
 
@@ -1333,7 +1333,7 @@ impl RaindexClient {
             ));
         }
 
-        if LocalDb::check_support(chain_id) {
+        if is_chain_supported_local_db(chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
                 let exec = JsCallbackExecutor::new(&db_cb);
                 if let Some(vault) = self
