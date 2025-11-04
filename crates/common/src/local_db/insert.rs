@@ -827,7 +827,8 @@ fn generate_clear_v3_statement(
     ?17,
     ?18,
     ?19,
-    ?20
+    ?20,
+    ?21
 );
 "#,
         vec![
