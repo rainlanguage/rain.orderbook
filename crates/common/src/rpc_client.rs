@@ -16,32 +16,11 @@ pub struct RpcClient {
     provider: Arc<ReadProvider>,
 }
 
-/// Typed view of the block payload returned by HyperSync's `eth_getBlockByNumber`.
+/// Minimal block view required for timestamp backfilling.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockResponse {
-    pub mix_hash: Option<String>,
-    pub difficulty: String,
-    pub extra_data: String,
-    pub gas_limit: String,
-    pub gas_used: String,
-    pub hash: String,
-    pub logs_bloom: String,
-    pub miner: String,
-    pub nonce: String,
-    pub number: String,
-    pub parent_hash: String,
-    pub receipts_root: String,
-    pub sha3_uncles: String,
-    pub size: String,
-    pub state_root: String,
     pub timestamp: String,
-    pub total_difficulty: String,
-    pub transactions_root: String,
-    #[serde(default)]
-    pub uncles: Vec<String>,
-    #[serde(default)]
-    pub transactions: Vec<String>,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
 }
