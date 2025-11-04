@@ -14,7 +14,6 @@ use rain_orderbook_bindings::{
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
-use std::ops::Sub;
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use url::Url;
 
@@ -279,8 +278,8 @@ impl DotrainOrderGui {
 
     /// Generates approval calldatas for tokens that need increased allowances.
     ///
-    /// Automatically checks current allowances and generates approval calldata only
-    /// for tokens where the current allowance is insufficient for the planned deposits.
+    /// Automatically checks current allowances and generates approval calldata
+    /// whenever the on-chain allowance differs from the planned deposit amount.
     ///
     /// ## Examples
     ///
@@ -338,12 +337,10 @@ impl DotrainOrderGui {
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
             let allowance_float = Float::from_fixed_decimal(token_allowance.allowance, decimals)?;
 
-            if allowance_float.lt(*deposit_amount)? {
+            if !allowance_float.eq(*deposit_amount)? {
                 let calldata = approveCall {
                     spender: tx_args.orderbook_address,
-                    amount: deposit_amount
-                        .sub(allowance_float)?
-                        .to_fixed_decimal(decimals)?,
+                    amount: deposit_amount.to_fixed_decimal(decimals)?,
                 }
                 .abi_encode();
 

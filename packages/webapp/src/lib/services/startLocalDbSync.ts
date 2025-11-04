@@ -1,4 +1,5 @@
-import type { RaindexClient, LocalDb } from '@rainlanguage/orderbook';
+import { getSyncStatus } from '@rainlanguage/orderbook';
+import type { RaindexClient, SyncStatusResponse } from '@rainlanguage/orderbook';
 import type { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import {
 	dbSyncIsActive,
@@ -23,18 +24,6 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 	// Ensure the Raindex client uses the WASM SQLite DB for its local queries
 	raindexClient.setDbCallback(queryFn);
 
-	const localDbClientResult = raindexClient.getLocalDbClient(chainId);
-	if (localDbClientResult.error || !localDbClientResult.value) {
-		const msg = localDbClientResult.error?.readableMsg ?? 'Failed to get local DB client';
-		dbSyncStatus.set(msg);
-		return () => {
-			dbSyncIsActive.set(false);
-			dbSyncIsRunning.set(false);
-		};
-	}
-
-	const localDbClient: LocalDb = localDbClientResult.value;
-
 	let stopped = false;
 	let isSyncing = false;
 	let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -43,7 +32,7 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 
 	async function updateSyncStatus() {
 		try {
-			const statusResult = await localDbClient.getSyncStatus(queryFn);
+			const statusResult = await getSyncStatus(queryFn);
 			if (!statusResult.error && statusResult.value && statusResult.value.length > 0) {
 				const latestStatus = statusResult.value[statusResult.value.length - 1];
 				dbSyncLastBlock.set(latestStatus.last_synced_block?.toString?.() ?? null);
@@ -116,6 +105,15 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 
 if (import.meta.vitest) {
 	const { describe, it, expect, beforeEach, afterEach, vi } = import.meta.vitest;
+
+	vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+		return {
+			...(await importOriginal()),
+			getSyncStatus: vi.fn()
+		};
+	});
+
+	const mockedGetSyncStatus = vi.mocked(getSyncStatus);
 	type MockFn = ReturnType<typeof vi.fn>;
 	interface MockedStartOptions {
 		setDbCallback: MockFn;
@@ -146,7 +144,6 @@ if (import.meta.vitest) {
 	const createMocks = (): {
 		raindexClient: RaindexClient;
 		localDb: SQLiteWasmDatabase;
-		localDbClient: LocalDb;
 		deps: MockedStartOptions;
 	} => {
 		const setDbCallback = vi.fn();
@@ -164,14 +161,9 @@ if (import.meta.vitest) {
 			query
 		} as unknown as SQLiteWasmDatabase;
 
-		const localDbClient = {
-			getSyncStatus: vi.fn()
-		} as unknown as LocalDb;
-
 		return {
 			raindexClient,
 			localDb,
-			localDbClient,
 			deps: { setDbCallback, getLocalDbClient, syncLocalDatabase, query }
 		};
 	};
@@ -179,6 +171,8 @@ if (import.meta.vitest) {
 	describe('startLocalDbSync', () => {
 		beforeEach(() => {
 			vi.useFakeTimers();
+			mockedGetSyncStatus.mockReset();
+			mockedGetSyncStatus.mockResolvedValue({ error: undefined, value: [] });
 			resetStores();
 		});
 
@@ -187,21 +181,25 @@ if (import.meta.vitest) {
 			vi.useRealTimers();
 		});
 
-		it('returns cleanup when local DB client cannot be created', async () => {
+		it('initializes sync and returns cleanup function', async () => {
 			const { raindexClient, localDb, deps } = createMocks();
 
-			const failureMessage = 'Failed to create client';
-			deps.getLocalDbClient.mockReturnValue({
-				error: { readableMsg: failureMessage }
+			deps.syncLocalDatabase.mockResolvedValue({
+				error: undefined,
+				value: true
 			});
 
 			const stop = startLocalDbSync({ raindexClient, localDb, chainId: 999 });
 
 			expect(deps.setDbCallback).toHaveBeenCalledTimes(1);
 			expect(typeof deps.setDbCallback.mock.calls[0][0]).toBe('function');
-			expect(get(dbSyncStatus)).toBe(failureMessage);
-			expect(deps.syncLocalDatabase).not.toHaveBeenCalled();
-			expect(get(dbSyncIsActive)).toBe(false);
+			expect(get(dbSyncStatus)).toBe('Starting database sync...');
+			expect(get(dbSyncIsActive)).toBe(true);
+
+			await flushAsync();
+			await waitForSyncToSettle();
+
+			expect(deps.syncLocalDatabase).toHaveBeenCalledTimes(1);
 			expect(get(dbSyncIsRunning)).toBe(false);
 
 			dbSyncIsActive.set(true);
@@ -213,24 +211,28 @@ if (import.meta.vitest) {
 		});
 
 		it('performs bootstrap sync and schedules periodic syncing', async () => {
-			const { raindexClient, localDb, localDbClient, deps } = createMocks();
+			const { raindexClient, localDb, deps } = createMocks();
 
 			const updatedAt = '2024-01-01T00:00:00.000Z';
 			const statusUpdates: string[] = [];
 
-			localDbClient.getSyncStatus = vi.fn().mockResolvedValue({
-				error: null,
-				value: [{ last_synced_block: 123456n, updated_at: updatedAt }]
-			});
+			const syncStatus: SyncStatusResponse = {
+				id: 1,
+				last_synced_block: 123456,
+				updated_at: updatedAt
+			};
 
-			deps.getLocalDbClient.mockReturnValue({ value: localDbClient, error: null });
+			mockedGetSyncStatus.mockResolvedValue({
+				error: undefined,
+				value: [syncStatus]
+			});
 			deps.syncLocalDatabase.mockImplementation(
 				async (queryFn, statusCallback, incomingChainId) => {
 					statusUpdates.push('Syncing...');
 					statusCallback('Syncing...');
 					expect(incomingChainId).toBe(42161);
 					expect(queryFn).toBeTypeOf('function');
-					return { error: null, value: true };
+					return { error: undefined, value: true };
 				}
 			);
 
@@ -246,7 +248,7 @@ if (import.meta.vitest) {
 			expect(get(dbSyncLastBlock)).toBe('123456');
 			expect(get(dbSyncLastSyncTime)?.toISOString()).toBe(updatedAt);
 			expect(deps.syncLocalDatabase).toHaveBeenCalledTimes(1);
-			expect(localDbClient.getSyncStatus).toHaveBeenCalledTimes(2);
+			expect(mockedGetSyncStatus).toHaveBeenCalledTimes(2);
 
 			expect(vi.getTimerCount()).toBeGreaterThan(0);
 			await vi.advanceTimersByTimeAsync(10_000);
@@ -262,12 +264,11 @@ if (import.meta.vitest) {
 		});
 
 		it('surfaces sync errors and resets running state', async () => {
-			const { raindexClient, localDb, localDbClient, deps } = createMocks();
+			const { raindexClient, localDb, deps } = createMocks();
 
-			deps.getLocalDbClient.mockReturnValue({ value: localDbClient, error: null });
-			localDbClient.getSyncStatus = vi.fn().mockResolvedValue({ error: null, value: [] });
 			deps.syncLocalDatabase.mockResolvedValue({
-				error: { readableMsg: 'Sync failure', msg: 'raw failure' }
+				error: { readableMsg: 'Sync failure', msg: 'raw failure' },
+				value: undefined
 			});
 
 			const stop = startLocalDbSync({ raindexClient, localDb, intervalMs: 5000 });
@@ -278,7 +279,7 @@ if (import.meta.vitest) {
 			expect(get(dbSyncStatus)).toBe('Sync failure');
 			expect(get(dbSyncIsRunning)).toBe(false);
 			expect(get(dbSyncLastBlock)).toBeNull();
-			expect(localDbClient.getSyncStatus).toHaveBeenCalledTimes(1);
+			expect(mockedGetSyncStatus).toHaveBeenCalledTimes(1);
 			expect(deps.syncLocalDatabase).toHaveBeenCalledTimes(1);
 
 			stop();
