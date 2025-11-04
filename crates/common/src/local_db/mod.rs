@@ -1,5 +1,6 @@
 pub mod address_collectors;
 pub mod decode;
+pub mod export;
 pub mod fetch;
 pub mod insert;
 pub mod pipeline;
@@ -189,6 +190,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     FetchConfigError(#[from] FetchConfigError),
+
+    #[error(transparent)]
+    Export(#[from] export::ExportError),
 }
 
 impl LocalDbError {
@@ -291,6 +295,7 @@ impl LocalDbError {
             }
             LocalDbError::ERC20Error(err) => format!("ERC20 error: {}", err),
             LocalDbError::FetchConfigError(err) => format!("Fetch configuration error: {}", err),
+            LocalDbError::Export(err) => format!("Export error: {}", err),
         }
     }
 }
