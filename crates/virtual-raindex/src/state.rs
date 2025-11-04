@@ -2,10 +2,7 @@
 
 use std::collections::HashMap;
 
-use alloy::{
-    primitives::{keccak256, Address, B256, U256},
-    sol_types::SolValue,
-};
+use alloy::primitives::{Address, B256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::OrderV4;
 use rain_orderbook_common::utils::order_hash;
@@ -196,16 +193,10 @@ impl RaindexState {
     }
 }
 
-/// Derives the fully-qualified namespace for a Rain interpreter store namespace.
-pub fn derive_fqn(namespace: U256, caller: Address) -> B256 {
-    keccak256((namespace, caller).abi_encode())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, Bytes, U256};
-    use alloy::sol_types::SolValue;
+    use alloy::primitives::{Address, Bytes};
     use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, IOV2};
 
     fn parse_float(value: &str) -> Float {
@@ -371,11 +362,4 @@ mod tests {
             .expect("float eq for accumulated balance"));
     }
 
-    #[test]
-    fn derive_fqn_matches_expected_hash() {
-        let namespace = U256::from(42);
-        let caller = Address::repeat_byte(0xCA);
-        let expected = keccak256((namespace, caller).abi_encode());
-        assert_eq!(derive_fqn(namespace, caller), expected);
-    }
 }

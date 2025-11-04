@@ -1,20 +1,19 @@
 //! Helpers for constructing interpreter context grids passed to Rain evals.
 
-use alloy::primitives::{Address, B256, U256};
+use alloy::primitives::{Address, B256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, SignedContextV1, IOV2};
 use rain_orderbook_common::utils::order_hash;
 
-use crate::{cache::CodeCache, host, state};
+use crate::{cache::CodeCache, host};
 
-use super::{address_to_u256, u8_to_b256, VirtualRaindex};
+use super::{u8_to_b256, VirtualRaindex};
 
 pub(super) const CALLING_CONTEXT_COLUMNS: usize = 4;
 pub(super) const CONTEXT_CALLING_CONTEXT_COLUMN: usize = 1;
 pub(super) const CONTEXT_CALCULATIONS_COLUMN: usize = 2;
 pub(super) const CONTEXT_VAULT_INPUTS_COLUMN: usize = 3;
 pub(super) const CONTEXT_VAULT_OUTPUTS_COLUMN: usize = 4;
-pub(super) const HANDLE_IO_ENTRYPOINT: u64 = 1;
 pub(super) const CONTEXT_VAULT_IO_BALANCE_DIFF_ROW: usize = 5;
 
 pub(super) struct IOContext {
@@ -103,14 +102,6 @@ where
 
         context
     }
-}
-
-/// Returns the namespace tuple used for interpreter state writes for a given order.
-pub(super) fn namespace_for_order(order: &OrderV4, orderbook: Address) -> (U256, B256) {
-    let state_namespace = address_to_u256(order.owner);
-    let qualified = state::derive_fqn(state_namespace, orderbook);
-    let namespace = U256::from_be_slice(qualified.as_slice());
-    (namespace, qualified)
 }
 
 #[cfg(test)]

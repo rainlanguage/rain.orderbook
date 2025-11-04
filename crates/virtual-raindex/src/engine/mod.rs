@@ -13,6 +13,8 @@ use crate::{
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, TaskV2};
 
 pub(super) mod context;
+pub(super) mod calc;
+pub(super) mod eval;
 pub(super) mod mutations;
 pub(super) mod post_tasks;
 pub(super) mod quote;
@@ -143,11 +145,6 @@ where
     }
 }
 
-/// Converts an address into the `U256` namespace representation used by interpreter state.
-pub(super) fn address_to_u256(address: Address) -> alloy::primitives::U256 {
-    alloy::primitives::U256::from_be_slice(address.into_word().as_slice())
-}
-
 /// Convenience helper for encoding a `u8` value as a `B256` word.
 pub(super) fn u8_to_b256(value: u8) -> B256 {
     B256::from(U256::from(value))
@@ -162,7 +159,7 @@ mod unit_tests {
         host::{self, InterpreterHost},
         state::{self, StoreKey},
     };
-    use alloy::primitives::{Address, Bytes, B256, U256};
+    use alloy::primitives::{Address, Bytes, B256};
     use rain_interpreter_bindings::IInterpreterV4::EvalV4;
     use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
     use rain_orderbook_common::utils::order_hash;
@@ -274,18 +271,6 @@ mod unit_tests {
             RaindexError::OrderNotFound { order_hash } => assert_eq!(order_hash, missing_hash),
             other => panic!("unexpected error variant: {other:?}"),
         }
-    }
-
-    #[test]
-    fn address_to_u256_encodes_big_endian_bytes() {
-        let address = Address::repeat_byte(0x11);
-        let encoded = address_to_u256(address);
-
-        let mut expected_bytes = [0u8; 32];
-        expected_bytes[12..].fill(0x11);
-        let expected = U256::from_be_slice(&expected_bytes);
-
-        assert_eq!(encoded, expected);
     }
 
     #[test]

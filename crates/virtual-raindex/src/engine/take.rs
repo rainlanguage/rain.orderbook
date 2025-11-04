@@ -5,7 +5,7 @@ use std::{
     ops::{Mul, Neg},
 };
 
-use alloy::primitives::{Address, B256, U256};
+use alloy::primitives::{Address, B256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, SignedContextV1, IOV2};
 use rain_orderbook_common::utils::order_hash;
@@ -18,12 +18,16 @@ use crate::{
 };
 
 use super::{
+    calc::{calculate_order_io, OrderCalculation},
     context::{
-        namespace_for_order, IOContext, CONTEXT_CALCULATIONS_COLUMN, CONTEXT_VAULT_INPUTS_COLUMN,
-        CONTEXT_VAULT_IO_BALANCE_DIFF_ROW, CONTEXT_VAULT_OUTPUTS_COLUMN, HANDLE_IO_ENTRYPOINT,
+        CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF_ROW,
+        CONTEXT_VAULT_OUTPUTS_COLUMN,
     },
+    eval::{build_eval_call, EvalEntrypoint},
     VirtualRaindex,
 };
+
+use crate::store::{apply_store_writes, writes_to_pairs};
 
 use super::OrderRef;
 
@@ -72,19 +76,6 @@ pub struct TakeOrdersOutcome {
     pub taken: Vec<TakenOrder>,
     pub warnings: Vec<TakeOrderWarning>,
     pub mutations: Vec<RaindexMutation>,
-}
-
-/// Internal representation of calculate-io results for an order.
-#[derive(Clone)]
-struct OrderCalculation {
-    order: OrderV4,
-    io_ratio: Float,
-    output_max: Float,
-    context: Vec<Vec<B256>>,
-    namespace: U256,
-    qualified_namespace: B256,
-    store: Address,
-    calculate_writes: Vec<(B256, B256)>,
 }
 
 /// Simulates taking orders against the virtual state and returns the computed outcome.
@@ -233,7 +224,7 @@ where
 
     fn execute_order(&mut self, resolved_order: &OrderV4, take_order: &TakeOrder) -> Result<()> {
         let store_snapshot = self.working_state.store.clone();
-        let calculation = calculate_order_io_for_take(
+        let calculation = calculate_order_io(
             self.raindex,
             &self.working_state,
             &store_snapshot,
@@ -309,17 +300,17 @@ where
             &mut self.vault_deltas,
         )?;
 
-        if !calculation.calculate_writes.is_empty() {
+        if !calculation.store_writes.is_empty() {
             self.record_store_set(
                 calculation.store,
                 calculation.qualified_namespace,
-                &calculation.calculate_writes,
+                &calculation.store_writes,
             );
             apply_store_writes(
                 &mut self.working_state.store,
                 calculation.store,
                 calculation.qualified_namespace,
-                &calculation.calculate_writes,
+                &calculation.store_writes,
             );
         }
 
@@ -365,17 +356,16 @@ where
         context: Vec<Vec<B256>>,
         store_snapshot: &HashMap<StoreKey, B256>,
     ) -> Result<Vec<(B256, B256)>> {
+        let eval = build_eval_call(
+            &calculation.order,
+            calculation.namespace,
+            context,
+            EvalEntrypoint::HandleIo,
+        );
+
         let handle_outcome = self.raindex.interpreter_host.eval4(
             calculation.order.evaluable.interpreter,
-            &rain_interpreter_bindings::IInterpreterV4::EvalV4 {
-                store: calculation.store,
-                namespace: calculation.namespace,
-                bytecode: calculation.order.evaluable.bytecode.clone(),
-                sourceIndex: U256::from(HANDLE_IO_ENTRYPOINT),
-                context,
-                inputs: Vec::new(),
-                stateOverlay: Vec::new(),
-            },
+            &eval,
             store_snapshot,
             self.raindex.state.env,
         )?;
@@ -423,134 +413,6 @@ where
             mutations,
         }
     }
-}
-
-#[allow(clippy::too_many_arguments)]
-/// Executes calculate-io for a specific IO pair and returns the interpreter result.
-fn calculate_order_io_for_take<C, H>(
-    raindex: &VirtualRaindex<C, H>,
-    working_state: &state::RaindexState,
-    store_snapshot: &HashMap<StoreKey, B256>,
-    order: &OrderV4,
-    input_io_index: usize,
-    output_io_index: usize,
-    counterparty: Address,
-    signed_context: &[SignedContextV1],
-) -> Result<OrderCalculation>
-where
-    C: CodeCache,
-    H: host::InterpreterHost,
-{
-    raindex.code_cache.ensure_artifacts(order)?;
-
-    let input_io = &order.validInputs[input_io_index];
-    let output_io = &order.validOutputs[output_io_index];
-
-    let input_decimals = *working_state.token_decimals.get(&input_io.token).ok_or(
-        RaindexError::TokenDecimalMissing {
-            token: input_io.token,
-        },
-    )?;
-    let output_decimals = *working_state.token_decimals.get(&output_io.token).ok_or(
-        RaindexError::TokenDecimalMissing {
-            token: output_io.token,
-        },
-    )?;
-
-    let input_balance = working_state
-        .vault_balances
-        .get(&VaultKey::new(
-            order.owner,
-            input_io.token,
-            input_io.vaultId,
-        ))
-        .cloned()
-        .unwrap_or_default();
-    let output_balance = working_state
-        .vault_balances
-        .get(&VaultKey::new(
-            order.owner,
-            output_io.token,
-            output_io.vaultId,
-        ))
-        .cloned()
-        .unwrap_or_default();
-
-    let order_hash = order_hash(order);
-    let context = raindex.build_quote_context(
-        order_hash,
-        order.owner,
-        counterparty,
-        &IOContext {
-            io: input_io.clone(),
-            balance: input_balance,
-            decimals: input_decimals,
-        },
-        &IOContext {
-            io: output_io.clone(),
-            balance: output_balance,
-            decimals: output_decimals,
-        },
-        signed_context,
-    );
-
-    run_calculate_io(raindex, store_snapshot, order, context, output_balance)
-}
-
-/// Runs the interpreter calculate entrypoint and captures its outputs and writes.
-fn run_calculate_io<C, H>(
-    raindex: &VirtualRaindex<C, H>,
-    store_snapshot: &HashMap<StoreKey, B256>,
-    order: &OrderV4,
-    context: Vec<Vec<B256>>,
-    output_balance: Float,
-) -> Result<OrderCalculation>
-where
-    C: CodeCache,
-    H: host::InterpreterHost,
-{
-    let (namespace, qualified_namespace) = namespace_for_order(order, raindex.orderbook);
-
-    let eval = rain_interpreter_bindings::IInterpreterV4::EvalV4 {
-        store: order.evaluable.store,
-        namespace,
-        bytecode: order.evaluable.bytecode.clone(),
-        sourceIndex: U256::ZERO,
-        context: context.clone(),
-        inputs: Vec::new(),
-        stateOverlay: Vec::new(),
-    };
-
-    let outcome = raindex.interpreter_host.eval4(
-        order.evaluable.interpreter,
-        &eval,
-        store_snapshot,
-        raindex.state.env,
-    )?;
-
-    if outcome.stack.len() < 2 {
-        return Err(RaindexError::Unimplemented("calculate-io outputs"));
-    }
-
-    let io_ratio = Float::from_raw(outcome.stack[0]);
-    let mut output_max = Float::from_raw(outcome.stack[1]);
-    output_max = output_max.min(output_balance)?;
-
-    let mut context = context;
-    context[CONTEXT_CALCULATIONS_COLUMN - 1] = vec![output_max.get_inner(), io_ratio.get_inner()];
-
-    let calculate_writes = writes_to_pairs(&outcome.writes)?;
-
-    Ok(OrderCalculation {
-        order: order.clone(),
-        io_ratio,
-        output_max,
-        context,
-        namespace,
-        qualified_namespace,
-        store: order.evaluable.store,
-        calculate_writes,
-    })
 }
 
 /// Applies the taker input/output adjustments to the working state and records deltas.
@@ -611,33 +473,354 @@ fn validate_io_indices(take_order: &TakeOrder, order: &OrderV4) -> Result<()> {
     Ok(())
 }
 
-/// Applies store writes produced by interpreter executions onto the snapshot.
-pub(super) fn apply_store_writes(
-    store: &mut HashMap<StoreKey, B256>,
-    store_address: Address,
-    qualified: B256,
-    writes: &[(B256, B256)],
-) {
-    for (key, value) in writes {
-        store.insert(StoreKey::new(store_address, qualified, *key), *value);
-    }
-}
-
-/// Converts a flat write buffer into key/value pairs, ensuring even length.
-pub(super) fn writes_to_pairs(writes: &[B256]) -> Result<Vec<(B256, B256)>> {
-    if writes.len() % 2 != 0 {
-        return Err(RaindexError::Unimplemented(
-            "unpaired store write from interpreter",
-        ));
-    }
-
-    Ok(writes.chunks(2).map(|chunk| (chunk[0], chunk[1])).collect())
-}
-
 /// Sets the balance diff entry for a context column, resizing if needed.
 pub(super) fn set_balance_diff_column(column: &mut Vec<B256>, value: B256) {
     if column.len() < CONTEXT_VAULT_IO_BALANCE_DIFF_ROW {
         column.resize(CONTEXT_VAULT_IO_BALANCE_DIFF_ROW, B256::ZERO);
     }
     column[CONTEXT_VAULT_IO_BALANCE_DIFF_ROW - 1] = value;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        cache::CodeCache,
+        error::{RaindexError, Result},
+        host::{self, InterpreterHost},
+        state::{self, StoreKey, VaultKey},
+    };
+    use alloy::primitives::{Address, Bytes, B256, U256};
+    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
+    use std::{collections::HashMap, ops::Neg, sync::Arc};
+
+    #[derive(Default)]
+    struct NullCache;
+
+    impl CodeCache for NullCache {
+        fn interpreter(&self, _address: Address) -> Option<Arc<revm::state::Bytecode>> {
+            None
+        }
+
+        fn store(&self, _address: Address) -> Option<Arc<revm::state::Bytecode>> {
+            None
+        }
+
+        fn ensure_artifacts(&self, _order: &OrderV4) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    #[derive(Default)]
+    struct NullHost;
+
+    impl InterpreterHost for NullHost {
+        fn eval4(
+            &self,
+            _interpreter: Address,
+            _eval: &rain_interpreter_bindings::IInterpreterV4::EvalV4,
+            _store_snapshot: &HashMap<StoreKey, B256>,
+            _env: state::Env,
+        ) -> Result<host::EvalOutcome> {
+            Err(RaindexError::Unimplemented("test interpreter host"))
+        }
+    }
+
+    fn parse_float(value: &str) -> Float {
+        Float::parse(value.to_string()).expect("float parse")
+    }
+
+    fn test_raindex() -> VirtualRaindex<NullCache, NullHost> {
+        VirtualRaindex::new(
+            Address::repeat_byte(0xAB),
+            Arc::new(NullCache::default()),
+            Arc::new(NullHost::default()),
+        )
+    }
+
+    fn sample_order() -> OrderV4 {
+        OrderV4 {
+            owner: Address::repeat_byte(0x44),
+            evaluable: EvaluableV4 {
+                interpreter: Address::repeat_byte(0xAA),
+                store: Address::repeat_byte(0xBB),
+                bytecode: Bytes::from(vec![0u8]),
+            },
+            validInputs: vec![IOV2 {
+                token: Address::repeat_byte(0x10),
+                vaultId: B256::from([1u8; 32]),
+            }],
+            validOutputs: vec![IOV2 {
+                token: Address::repeat_byte(0x20),
+                vaultId: B256::from([2u8; 32]),
+            }],
+            nonce: B256::ZERO,
+        }
+    }
+
+    fn make_take_order(order: OrderRef) -> TakeOrder {
+        TakeOrder {
+            order,
+            input_io_index: 0,
+            output_io_index: 0,
+            signed_context: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn take_orders_processor_new_errors_without_orders() {
+        let raindex = test_raindex();
+        let config = TakeOrdersConfig {
+            orders: Vec::new(),
+            minimum_input: parse_float("0"),
+            maximum_input: parse_float("1"),
+            maximum_io_ratio: parse_float("1"),
+            taker: Address::ZERO,
+            data: Vec::new(),
+        };
+
+        let result = TakeOrdersProcessor::new(&raindex, config);
+
+        assert!(matches!(result, Err(RaindexError::NoOrders)));
+    }
+
+    #[test]
+    fn take_orders_processor_new_errors_with_zero_max_input() {
+        let raindex = test_raindex();
+        let order = sample_order();
+        let config = TakeOrdersConfig {
+            orders: vec![make_take_order(OrderRef::Inline(order))],
+            minimum_input: parse_float("0"),
+            maximum_input: Float::default(),
+            maximum_io_ratio: parse_float("1"),
+            taker: Address::ZERO,
+            data: Vec::new(),
+        };
+
+        let result = TakeOrdersProcessor::new(&raindex, config);
+
+        assert!(matches!(result, Err(RaindexError::ZeroMaximumInput)));
+    }
+
+    #[test]
+    fn take_orders_processor_new_initializes_expected_tokens() {
+        let raindex = test_raindex();
+        let order = sample_order();
+        let config = TakeOrdersConfig {
+            orders: vec![make_take_order(OrderRef::Inline(order.clone()))],
+            minimum_input: parse_float("0"),
+            maximum_input: parse_float("10"),
+            maximum_io_ratio: parse_float("1"),
+            taker: Address::repeat_byte(0x55),
+            data: Vec::new(),
+        };
+
+        let processor =
+            TakeOrdersProcessor::new(&raindex, config).expect("processor should be created");
+
+        assert_eq!(
+            processor.expected_input_token,
+            order.validInputs[0].token
+        );
+        assert_eq!(
+            processor.expected_output_token,
+            order.validOutputs[0].token
+        );
+    }
+
+    #[test]
+    fn validate_tokens_errors_on_self_trade() {
+        let raindex = test_raindex();
+        let mut order = sample_order();
+        order.validOutputs[0].token = order.validInputs[0].token;
+        let config = TakeOrdersConfig {
+            orders: vec![make_take_order(OrderRef::Inline(order.clone()))],
+            minimum_input: parse_float("0"),
+            maximum_input: parse_float("10"),
+            maximum_io_ratio: parse_float("2"),
+            taker: Address::repeat_byte(0x66),
+            data: Vec::new(),
+        };
+        let processor =
+            TakeOrdersProcessor::new(&raindex, config).expect("processor should initialize");
+        let take_order = make_take_order(OrderRef::Inline(order.clone()));
+
+        let err = processor
+            .validate_tokens(&order, &take_order)
+            .expect_err("self trade should error");
+
+        assert!(matches!(err, RaindexError::TokenSelfTrade));
+    }
+
+    #[test]
+    fn validate_tokens_errors_on_mismatched_tokens() {
+        let raindex = test_raindex();
+        let base_order = sample_order();
+        let config = TakeOrdersConfig {
+            orders: vec![make_take_order(OrderRef::Inline(base_order.clone()))],
+            minimum_input: parse_float("0"),
+            maximum_input: parse_float("10"),
+            maximum_io_ratio: parse_float("2"),
+            taker: Address::repeat_byte(0x77),
+            data: Vec::new(),
+        };
+        let processor =
+            TakeOrdersProcessor::new(&raindex, config).expect("processor should initialize");
+
+        let mut other_order = sample_order();
+        other_order.validInputs[0].token = Address::repeat_byte(0x99);
+        let take_order = make_take_order(OrderRef::Inline(other_order.clone()));
+
+        let err = processor
+            .validate_tokens(&other_order, &take_order)
+            .expect_err("mismatched tokens should error");
+
+        assert!(matches!(err, RaindexError::TokenMismatch));
+    }
+
+    #[test]
+    fn ensure_minimum_input_enforces_threshold() {
+        let raindex = test_raindex();
+        let order = sample_order();
+        let config = TakeOrdersConfig {
+            orders: vec![make_take_order(OrderRef::Inline(order))],
+            minimum_input: parse_float("5"),
+            maximum_input: parse_float("10"),
+            maximum_io_ratio: parse_float("2"),
+            taker: Address::repeat_byte(0x88),
+            data: Vec::new(),
+        };
+        let processor =
+            TakeOrdersProcessor::new(&raindex, config).expect("processor should initialize");
+
+        let err = processor
+            .ensure_minimum_input()
+            .expect_err("total input below minimum should error");
+
+        match err {
+            RaindexError::MinimumInputNotMet { minimum, actual } => {
+                assert!(
+                    minimum
+                        .eq(parse_float("5"))
+                        .expect("minimum comparison")
+                );
+                assert!(actual.is_zero().expect("actual zero"));
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn apply_vault_updates_mutates_state_and_records_deltas() {
+        let mut working_state = state::RaindexState::default();
+        let order = sample_order();
+        let input_io = order.validInputs[0].clone();
+        let output_io = order.validOutputs[0].clone();
+        let taker_output = parse_float("3");
+        let taker_input = parse_float("2");
+
+        let input_key = VaultKey::new(order.owner, input_io.token, input_io.vaultId);
+        let output_key = VaultKey::new(order.owner, output_io.token, output_io.vaultId);
+        let starting_input_balance = parse_float("10");
+        let starting_output_balance = parse_float("5");
+        working_state
+            .vault_balances
+            .insert(input_key, starting_input_balance.clone());
+        working_state
+            .vault_balances
+            .insert(output_key, starting_output_balance.clone());
+
+        let mut deltas = Vec::new();
+
+        apply_vault_updates(
+            &mut working_state,
+            &order,
+            &input_io,
+            &output_io,
+            taker_output.clone(),
+            taker_input.clone(),
+            &mut deltas,
+        )
+        .expect("apply vault updates should succeed");
+
+        let updated_input = working_state
+            .vault_balances
+            .get(&input_key)
+            .expect("input balance stored")
+            .clone();
+        let expected_input = (starting_input_balance.clone() + taker_output.clone())
+            .expect("expected input balance");
+        assert!(
+            updated_input
+                .eq(expected_input)
+                .expect("input balance eq")
+        );
+
+        let updated_output = working_state
+            .vault_balances
+            .get(&output_key)
+            .expect("output balance stored")
+            .clone();
+        let expected_negative = taker_input.clone().neg().expect("neg");
+        let expected_output = (starting_output_balance.clone() + expected_negative.clone())
+            .expect("expected output balance");
+        assert!(
+            updated_output
+                .eq(expected_output)
+                .expect("output balance eq")
+        );
+
+        assert_eq!(deltas.len(), 2);
+        assert_eq!(deltas[0].owner, order.owner);
+        assert_eq!(deltas[0].token, input_io.token);
+        assert_eq!(deltas[0].vault_id, input_io.vaultId);
+        assert_eq!(deltas[1].owner, order.owner);
+        assert_eq!(deltas[1].token, output_io.token);
+        assert_eq!(deltas[1].vault_id, output_io.vaultId);
+        assert!(
+            deltas[0]
+                .delta
+                .clone()
+                .eq(taker_output.clone())
+                .expect("delta input eq")
+        );
+        assert!(
+            deltas[1]
+                .delta
+                .clone()
+                .eq(expected_negative)
+                .expect("delta output eq")
+        );
+    }
+
+    #[test]
+    fn set_balance_diff_column_resizes_and_sets_value() {
+        let mut column = Vec::new();
+        let value = B256::from(U256::from(99_u64));
+
+        set_balance_diff_column(&mut column, value);
+
+        assert_eq!(column.len(), CONTEXT_VAULT_IO_BALANCE_DIFF_ROW);
+        assert_eq!(column[CONTEXT_VAULT_IO_BALANCE_DIFF_ROW - 1], value);
+
+        let replacement = B256::from(U256::from(123_u64));
+        set_balance_diff_column(&mut column, replacement);
+
+        assert_eq!(column[CONTEXT_VAULT_IO_BALANCE_DIFF_ROW - 1], replacement);
+    }
+
+    #[test]
+    fn validate_io_indices_errors_on_out_of_bounds() {
+        let order = sample_order();
+        let take_order = TakeOrder {
+            order: OrderRef::Inline(order.clone()),
+            input_io_index: 2,
+            output_io_index: 0,
+            signed_context: Vec::new(),
+        };
+
+        let err = validate_io_indices(&take_order, &order).expect_err("invalid index should error");
+
+        assert!(matches!(err, RaindexError::InvalidInputIndex { index: 2, len: 1 }));
+    }
 }

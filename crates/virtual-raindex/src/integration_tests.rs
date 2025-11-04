@@ -1,9 +1,10 @@
 use crate::{
     cache::StaticCodeCache,
     host::RevmInterpreterHost,
-    state::{self, StoreKey, VaultKey},
+    state::{StoreKey, VaultKey},
     Float, OrderRef, QuoteRequest, RaindexMutation, TakeOrder, TakeOrdersConfig,
     TokenDecimalEntry, VaultDelta, VirtualRaindex,
+    derive_fqn,
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::providers::{ext::AnvilApi, Provider};
@@ -640,7 +641,7 @@ impl Harness {
         let idx = target.index();
         let order = self.orders.get_mut(idx).expect("order state for target");
         let namespace = address_to_u256(self.owner);
-        let fqn = state::derive_fqn(namespace, self.orderbook_address);
+        let fqn = derive_fqn(namespace, self.orderbook_address);
         let fqn_u256 = U256::from_be_slice(fqn.as_slice());
 
         let snapshot = self.raindex.snapshot();

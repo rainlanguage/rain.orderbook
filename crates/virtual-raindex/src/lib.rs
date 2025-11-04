@@ -8,6 +8,7 @@ mod engine;
 mod error;
 pub mod host;
 mod state;
+mod store;
 
 pub use cache::{CodeCache, StaticCodeCache};
 pub use engine::{
@@ -18,9 +19,10 @@ pub use error::{BytecodeKind, RaindexError, Result};
 pub use host::RevmInterpreterHost;
 pub use rain_math_float::Float;
 pub use state::{
-    derive_fqn, Env, RaindexMutation, Snapshot, StoreKey, StoreKeyValue, StoreSet,
-    TokenDecimalEntry, VaultDelta, VaultKey,
+    Env, RaindexMutation, Snapshot, StoreKey, StoreKeyValue, StoreSet, TokenDecimalEntry,
+    VaultDelta, VaultKey,
 };
+pub use store::derive_fqn;
 
 #[cfg(test)]
 mod integration_tests;

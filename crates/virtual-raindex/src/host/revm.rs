@@ -20,6 +20,7 @@ use revm::{
 use crate::{
     cache::CodeCache,
     state::{Env, StoreKey},
+    store::build_state_overlay,
     BytecodeKind, RaindexError, Result,
 };
 
@@ -155,20 +156,6 @@ where
     }
 }
 
-/// Builds the state overlay vector expected by the interpreter for a namespace.
-fn build_state_overlay(
-    snapshot: &HashMap<StoreKey, B256>,
-    store_address: Address,
-    namespace: U256,
-) -> Vec<B256> {
-    let namespace = B256::from(namespace.to_be_bytes());
-    snapshot
-        .iter()
-        .filter(|(k, _)| k.store == store_address && k.fqn == namespace)
-        .flat_map(|(key, value)| [key.key, *value])
-        .collect()
-}
-
 /// Convenience helper for translating `Address` into the REVM representation.
 fn to_revm_address(address: Address) -> RevmAddress {
     RevmAddress::from_slice(address.as_slice())
@@ -178,38 +165,10 @@ fn to_revm_address(address: Address) -> RevmAddress {
 mod tests {
     use super::*;
     use crate::cache::StaticCodeCache;
-    use std::{collections::HashMap, sync::Arc};
+    use std::sync::Arc;
 
     fn make_address(byte: u8) -> Address {
         Address::from([byte; 20])
-    }
-
-    #[test]
-    fn build_state_overlay_filters_by_store_and_namespace() {
-        let store = make_address(0x11);
-        let other_store = make_address(0x22);
-        let namespace = U256::from(42);
-        let other_namespace = U256::from(7);
-        let namespace_fqn = B256::from(namespace.to_be_bytes());
-        let other_fqn = B256::from(other_namespace.to_be_bytes());
-
-        let key = B256::from([0xAA; 32]);
-        let value = B256::from([0xBB; 32]);
-
-        let mut snapshot = HashMap::new();
-        snapshot.insert(StoreKey::new(store, namespace_fqn, key), value);
-        snapshot.insert(
-            StoreKey::new(other_store, namespace_fqn, B256::from([0xCC; 32])),
-            B256::from([0xDD; 32]),
-        );
-        snapshot.insert(
-            StoreKey::new(store, other_fqn, B256::from([0xEE; 32])),
-            B256::from([0xFF; 32]),
-        );
-
-        let overlay = build_state_overlay(&snapshot, store, namespace);
-
-        assert_eq!(overlay, vec![key, value]);
     }
 
     #[test]

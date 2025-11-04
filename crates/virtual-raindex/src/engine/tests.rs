@@ -4,16 +4,14 @@ use super::{
         IOContext,
     },
     OrderRef, QuoteRequest, StoreOverride, TakeOrder, TakeOrderWarning, TakeOrdersConfig,
-    VirtualRaindex, address_to_u256,
+    VirtualRaindex,
 };
 use crate::{
     cache::{CodeCache, StaticCodeCache},
     error::{RaindexError, Result},
     host::{self, InterpreterHost},
-    state::{
-        derive_fqn, Env, RaindexMutation, StoreKey, StoreKeyValue, StoreSet, TokenDecimalEntry,
-        VaultDelta,
-    },
+    state::{Env, RaindexMutation, StoreKey, StoreKeyValue, StoreSet, TokenDecimalEntry, VaultDelta},
+    store::{address_to_u256, derive_fqn},
     RevmInterpreterHost, VaultKey,
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
@@ -1186,12 +1184,14 @@ fn quote_builds_expected_eval_context() {
     let order_hash = order_hash(&order);
     let output_balance = parse_float("5");
 
+    let write_key = B256::from([0xAA; 32]);
+    let write_value = B256::from([0xBB; 32]);
     let outcome = host::EvalOutcome {
         stack: vec![
             parse_float("0.5").get_inner(),
             parse_float("10").get_inner(),
         ],
-        writes: vec![B256::from([9u8; 32])],
+        writes: vec![write_key, write_value],
     };
     let host = Arc::new(RecordingHost::new(outcome));
     let cache = cache_with_code(&order);
@@ -1238,7 +1238,7 @@ fn quote_builds_expected_eval_context() {
         .quote(new_quote_request(OrderRef::ByHash(order_hash)))
         .expect("quote");
 
-    assert_eq!(quote.writes, vec![B256::from([9u8; 32])]);
+    assert_eq!(quote.writes, vec![write_key, write_value]);
     assert_eq!(quote.io_ratio.get_inner(), parse_float("0.5").get_inner());
     assert_eq!(quote.output_max.get_inner(), output_balance.get_inner());
 

@@ -11,7 +11,8 @@ use crate::{
     state::{self, StoreKey},
 };
 
-use super::{context::namespace_for_order, mutations::ensure_vault_entries, VirtualRaindex};
+use super::{mutations::ensure_vault_entries, VirtualRaindex};
+use crate::store::namespace_for_order;
 
 /// Adds an order to state and executes associated post tasks within the same transaction.
 pub(super) fn add_order<C, H>(
@@ -78,7 +79,8 @@ where
 
     let base_columns = raindex.build_post_context(order);
     let env = state.env;
-    let (_, qualified) = namespace_for_order(order, raindex.orderbook);
+    let store_namespace = namespace_for_order(order, raindex.orderbook);
+    let qualified = store_namespace.qualified;
 
     for task in post_tasks {
         if task.evaluable.bytecode.is_empty() {
@@ -89,7 +91,7 @@ where
 
         let eval = EvalV4 {
             store: task.evaluable.store,
-            namespace: U256::from_be_slice(qualified.as_slice()),
+            namespace: store_namespace.namespace,
             bytecode: task.evaluable.bytecode.clone(),
             sourceIndex: U256::ZERO,
             context,
@@ -119,10 +121,10 @@ mod tests {
     use super::*;
     use crate::{
         cache::StaticCodeCache,
-        engine::address_to_u256,
         error::{BytecodeKind, RaindexError, Result},
         host::{self, InterpreterHost},
         state::{self, StoreKey},
+        store::{address_to_u256, derive_fqn},
     };
     use alloy::primitives::{Address, Bytes, B256, U256};
     use rain_interpreter_bindings::IInterpreterV4::EvalV4;
@@ -325,7 +327,7 @@ mod tests {
         run_post_tasks(&raindex, &mut state, &order, &[task]).expect("writes succeed");
 
         let namespace = address_to_u256(order.owner);
-        let qualified = state::derive_fqn(namespace, raindex.orderbook_address());
+        let qualified = derive_fqn(namespace, raindex.orderbook_address());
         let store_key = StoreKey::new(order.evaluable.store, qualified, key);
 
         assert_eq!(state.store.get(&store_key), Some(&value));
