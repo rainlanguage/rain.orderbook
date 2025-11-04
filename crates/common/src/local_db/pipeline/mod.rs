@@ -260,8 +260,9 @@ pub trait ApplyPipeline {
         target_block: u64,
         raw_logs: &[LogEntryResponse],
         decoded_events: &[DecodedEventData<DecodedEvent>],
+        existing_tokens: &[Erc20TokenRow],
         tokens_to_upsert: &[(Address, TokenInfo)],
-    ) -> SqlStatementBatch;
+    ) -> Result<SqlStatementBatch, LocalDbError>;
 
     /// Persists the previously built batch. Implementations must assert that
     /// the input is wrapped in a transaction and return an error otherwise.
