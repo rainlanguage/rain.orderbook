@@ -165,6 +165,17 @@ impl RpcClient {
     }
 
     #[cfg(all(test, not(target_family = "wasm")))]
+    pub(crate) fn mock() -> Self {
+        let rpc_urls = vec![Url::parse("https://mock-url.com").unwrap()];
+        let provider = mk_read_provider(&rpc_urls).expect("failed to update provider");
+        RpcClient {
+            chain_id: None,
+            rpc_urls,
+            provider: Arc::new(provider),
+        }
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
     pub(crate) fn update_rpc_urls(&mut self, urls: Vec<Url>) {
         let provider = mk_read_provider(&urls).expect("failed to update provider");
         self.rpc_urls = urls;

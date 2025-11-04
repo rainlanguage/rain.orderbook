@@ -4,10 +4,9 @@
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from '@rainlanguage/sqlite-web';
-	import { type LocalDb } from '@rainlanguage/orderbook';
+	import { clearTables, getSyncStatus } from '@rainlanguage/orderbook';
 
 	let raindexClient = useRaindexClient();
-	let localDbClient = raindexClient.getLocalDbClient(42161).value as LocalDb;
 
 	let db: WasmEncodedResult<SQLiteWasmDatabase> | null = null;
 	let sqlQuery = '';
@@ -132,7 +131,7 @@
 		try {
 			error = '';
 			const queryFn = db.value.query.bind(db.value);
-			const statusResult = await localDbClient.getSyncStatus(queryFn);
+			const statusResult = await getSyncStatus(queryFn);
 
 			if (!statusResult.error && statusResult.value) {
 				const statusArray = statusResult.value;
@@ -356,7 +355,7 @@
 					</h4>
 					<div class="flex flex-wrap gap-2">
 						<Button
-							on:click={() => executeRaindexQuery(() => localDbClient.clearTables(queryFn))}
+							on:click={() => executeRaindexQuery(() => clearTables(queryFn))}
 							disabled={isLoading}
 							color="red"
 							size="sm"
