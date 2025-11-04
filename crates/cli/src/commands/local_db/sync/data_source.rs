@@ -50,8 +50,11 @@ pub(crate) trait SyncDataSource {
 
 #[async_trait]
 pub(crate) trait TokenMetadataFetcher {
-    async fn fetch(&self, rpcs: &[Url], missing: Vec<Address>)
-        -> Result<Vec<(Address, TokenInfo)>>;
+    async fn fetch(
+        &self,
+        rpc_client: &RpcClient,
+        missing: Vec<Address>,
+    ) -> Result<Vec<(Address, TokenInfo)>>;
 }
 
 pub(crate) struct DefaultTokenFetcher;
@@ -60,17 +63,16 @@ pub(crate) struct DefaultTokenFetcher;
 impl TokenMetadataFetcher for DefaultTokenFetcher {
     async fn fetch(
         &self,
-        rpcs: &[Url],
+        rpc_client: &RpcClient,
         missing: Vec<Address>,
     ) -> Result<Vec<(Address, TokenInfo)>> {
         if missing.is_empty() {
             return Ok(vec![]);
         }
 
-        let fetched =
-            fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing, &FetchConfig::default())
-                .await
-                .map_err(|e| anyhow!(e))?;
+        let fetched = fetch_erc20_metadata_concurrent(rpc_client, missing, &FetchConfig::default())
+            .await
+            .map_err(|e| anyhow!(e))?;
         Ok(fetched)
     }
 }
@@ -162,7 +164,10 @@ mod tests {
     async fn default_fetcher_short_circuits_on_empty_missing_set() {
         let fetcher = DefaultTokenFetcher;
         let result = fetcher
-            .fetch(&[], Vec::new())
+            .fetch(
+                &RpcClient::new_with_urls(vec![Url::parse("https://test.com").unwrap()]).unwrap(),
+                Vec::new(),
+            )
             .await
             .expect("empty fetch should succeed");
         assert!(result.is_empty());

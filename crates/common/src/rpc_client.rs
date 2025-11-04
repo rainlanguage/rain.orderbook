@@ -164,8 +164,8 @@ impl RpcClient {
             .map_err(|err| Self::map_transport_error(err, None))
     }
 
-    #[cfg(all(test, not(target_family = "wasm")))]
-    pub(crate) fn mock() -> Self {
+    #[cfg(test)]
+    pub fn mock() -> Self {
         let rpc_urls = vec![Url::parse("https://mock-url.com").unwrap()];
         let provider = mk_read_provider(&rpc_urls).expect("failed to update provider");
         RpcClient {
