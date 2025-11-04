@@ -1,6 +1,7 @@
 use crate::erc20::{Error as TokenError, TokenInfo, ERC20};
 use crate::local_db::{FetchConfig, LocalDbError};
 use crate::retry::{retry_with_backoff, RetryError};
+use crate::rpc_client::RpcClient;
 use alloy::primitives::Address;
 use futures::StreamExt;
 
@@ -14,7 +15,7 @@ fn should_retry_token_error(err: &TokenError) -> bool {
 }
 
 pub async fn fetch_erc20_metadata_concurrent(
-    rpcs: Vec<url::Url>,
+    rpc_client: &RpcClient,
     missing_addrs: Vec<Address>,
     config: &FetchConfig,
 ) -> Result<Vec<(Address, TokenInfo)>, LocalDbError> {
@@ -22,25 +23,22 @@ pub async fn fetch_erc20_metadata_concurrent(
     let max_attempts = config.max_retry_attempts();
 
     let results: Vec<Result<(Address, TokenInfo), LocalDbError>> =
-        futures::stream::iter(missing_addrs.into_iter().map(|addr| {
-            let rpcs = rpcs.clone();
-            async move {
-                let erc20 = ERC20::new(rpcs, addr);
-                let result = retry_with_backoff(
-                    || {
-                        let erc20 = erc20.clone();
-                        async move { erc20.token_info(None).await }
-                    },
-                    max_attempts,
-                    should_retry_token_error,
-                )
-                .await
-                .map_err(|e| match e {
-                    RetryError::InvalidMaxAttempts => LocalDbError::InvalidRetryMaxAttemps,
-                    RetryError::Operation(inner) => LocalDbError::ERC20Error(inner),
-                })?;
-                Ok((addr, result))
-            }
+        futures::stream::iter(missing_addrs.into_iter().map(|addr| async move {
+            let erc20 = ERC20::new(rpc_client.rpc_urls().to_vec(), addr);
+            let result = retry_with_backoff(
+                || {
+                    let erc20 = erc20.clone();
+                    async move { erc20.token_info(None).await }
+                },
+                max_attempts,
+                should_retry_token_error,
+            )
+            .await
+            .map_err(|e| match e {
+                RetryError::InvalidMaxAttempts => LocalDbError::InvalidRetryMaxAttemps,
+                RetryError::Operation(inner) => LocalDbError::ERC20Error(inner),
+            })?;
+            Ok((addr, result))
         }))
         .buffer_unordered(concurrency)
         .collect()
@@ -62,6 +60,7 @@ mod tests {
     mod non_wasm_tests {
         use crate::local_db::token_fetch::fetch_erc20_metadata_concurrent;
         use crate::local_db::{FetchConfig, LocalDbError};
+        use crate::rpc_client::RpcClient;
         use alloy::primitives::Address;
         use rain_orderbook_test_fixtures::LocalEvm;
         use url::Url;
@@ -73,7 +72,8 @@ mod tests {
             let token = local_evm.tokens[0].clone();
             let addrs = vec![*token.address()];
 
-            let out = fetch_erc20_metadata_concurrent(rpcs, addrs, &FetchConfig::default())
+            let rpc_client = RpcClient::new_with_urls(rpcs).unwrap();
+            let out = fetch_erc20_metadata_concurrent(&rpc_client, addrs, &FetchConfig::default())
                 .await
                 .unwrap();
             assert_eq!(out.len(), 1);
@@ -87,7 +87,9 @@ mod tests {
             let rpcs = vec![Url::parse("http://127.0.0.1:1").unwrap()];
             let addrs = vec![Address::ZERO];
 
-            let res = fetch_erc20_metadata_concurrent(rpcs, addrs, &FetchConfig::default()).await;
+            let rpc_client = RpcClient::new_with_urls(rpcs).unwrap();
+            let res =
+                fetch_erc20_metadata_concurrent(&rpc_client, addrs, &FetchConfig::default()).await;
             assert!(res.is_err());
             match res.err().unwrap() {
                 LocalDbError::ERC20Error(_) => {}

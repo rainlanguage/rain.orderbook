@@ -1,6 +1,7 @@
 use super::local_db::executor::JsCallbackExecutor;
 use super::*;
-use crate::local_db::{query::fetch_order_trades::LocalDbOrderTrade, LocalDb};
+use crate::local_db::is_chain_supported_local_db;
+use crate::local_db::query::fetch_order_trades::LocalDbOrderTrade;
 use crate::raindex_client::local_db::query::fetch_order_trades::fetch_order_trades;
 use crate::raindex_client::local_db::query::fetch_order_trades_count::fetch_order_trades_count;
 use crate::raindex_client::{
@@ -131,7 +132,7 @@ impl RaindexOrder {
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let chain_id = self.chain_id();
-        if LocalDb::check_support(chain_id) {
+        if is_chain_supported_local_db(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
                 let exec = JsCallbackExecutor::new(&db_cb);
@@ -243,7 +244,7 @@ impl RaindexOrder {
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
         let chain_id = self.chain_id();
-        if LocalDb::check_support(chain_id) {
+        if is_chain_supported_local_db(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
                 let exec = JsCallbackExecutor::new(&db_cb);
