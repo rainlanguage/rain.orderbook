@@ -19,12 +19,15 @@ use insert::{
     raw_events_to_statements as raw_events_to_statements_impl, InsertError,
 };
 use query::{LocalDbQueryError, SqlBuildError, SqlStatementBatch};
+use rain_orderbook_app_settings::remote::manifest::FetchManifestError;
+use rain_orderbook_app_settings::yaml::YamlError;
 use std::collections::HashMap;
 use std::num::ParseIntError;
+use strict_yaml_rust::ScanError;
+use tokio::task::JoinError;
 use url::Url;
 use wasm_bindgen_utils::prelude::*;
 
-pub const DATABASE_SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
 
 #[derive(Debug, Clone)]
@@ -47,6 +50,12 @@ pub enum LocalDbError {
     #[error("{0}")]
     CustomError(String),
 
+    #[error(transparent)]
+    SettingsYaml(#[from] YamlError),
+
+    #[error(transparent)]
+    YamlScan(#[from] ScanError),
+
     #[error("HTTP request failed")]
     Http(#[from] reqwest::Error),
 
@@ -58,6 +67,9 @@ pub enum LocalDbError {
 
     #[error("Missing field: {field}")]
     MissingField { field: String },
+
+    #[error("Missing local-db sync config for network '{network}'")]
+    MissingLocalDbSyncForNetwork { network: String },
 
     #[error("Invalid block number '{value}'")]
     InvalidBlockNumber {
@@ -109,6 +121,12 @@ pub enum LocalDbError {
 
     #[error("HTTP request failed with status: {status}")]
     HttpStatus { status: u16 },
+
+    #[error(transparent)]
+    ManifestFetch(#[from] FetchManifestError),
+
+    #[error("Task join error: {0}")]
+    TaskJoin(#[from] JoinError),
 
     #[error(transparent)]
     LocalDbQueryError(#[from] LocalDbQueryError),
@@ -177,6 +195,8 @@ impl LocalDbError {
     pub fn to_readable_msg(&self) -> String {
         match self {
             LocalDbError::CustomError(msg) => msg.clone(),
+            LocalDbError::SettingsYaml(err) => format!("Settings parsing failed: {}", err),
+            LocalDbError::YamlScan(err) => format!("Settings YAML scan failed: {}", err),
             LocalDbError::Http(err) => format!("HTTP request failed: {}", err),
             LocalDbError::Rpc(err) => format!("RPC error: {}", err),
             LocalDbError::JsonParse(err) => format!("Failed to parse JSON response: {}", err),
@@ -198,6 +218,10 @@ impl LocalDbError {
             } => format!(
                 "Failed to fetch token metadata for {} after {} attempts: {}",
                 address, attempts, source
+            ),
+            LocalDbError::MissingLocalDbSyncForNetwork { network } => format!(
+                "Missing local-db sync configuration for network '{}'",
+                network
             ),
             LocalDbError::Config { message } => format!("Configuration error: {}", message),
             LocalDbError::DecodeError { message } => format!("Event decoding error: {}", message),
@@ -222,6 +246,8 @@ impl LocalDbError {
             LocalDbError::HttpStatus { status } => {
                 format!("HTTP request failed with status code: {}", status)
             }
+            LocalDbError::ManifestFetch(err) => format!("Failed to fetch manifest: {}", err),
+            LocalDbError::TaskJoin(err) => format!("Task join error: {}", err),
             LocalDbError::LocalDbQueryError(err) => format!("Database query error: {}", err),
             LocalDbError::IoError(err) => format!("I/O error: {}", err),
             LocalDbError::FromHexError(err) => format!("Hex decoding error: {}", err),
