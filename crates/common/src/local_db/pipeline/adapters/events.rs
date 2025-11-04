@@ -1,5 +1,6 @@
-use alloy::primitives::Address;
+use alloy::primitives::{Address, Bytes};
 use async_trait::async_trait;
+use std::str::FromStr;
 use url::Url;
 
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
@@ -45,6 +46,20 @@ impl EventsPipeline for DefaultEventsPipeline {
             .get_latest_block_number()
             .await
             .map_err(Into::into)
+    }
+
+    async fn block_hash(&self, block_number: u64) -> Result<Bytes, LocalDbError> {
+        let block = self
+            .db
+            .rpc_client()
+            .get_block_by_number(block_number)
+            .await?
+            .ok_or_else(|| {
+                LocalDbError::CustomError(format!(
+                    "block {block_number} not found when fetching block hash"
+                ))
+            })?;
+        Ok(Bytes::from_str(&block.hash)?)
     }
 
     async fn fetch_orderbook(

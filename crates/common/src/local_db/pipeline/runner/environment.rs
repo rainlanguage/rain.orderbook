@@ -144,13 +144,14 @@ mod tests {
     use crate::local_db::pipeline::engine::SyncInputs;
     use crate::local_db::pipeline::runner::utils::parse_runner_settings;
     use crate::local_db::pipeline::{
-        BootstrapState, FinalityConfig, SyncConfig, TargetKey, WindowOverrides,
+        ApplyPipelineTargetInfo, BootstrapState, FinalityConfig, SyncConfig, TargetKey,
+        WindowOverrides,
     };
     use crate::local_db::query::sql_statement_batch::SqlStatementBatch;
     use crate::local_db::query::LocalDbQueryExecutor;
     use crate::local_db::LocalDbError;
     use crate::rpc_client::LogEntryResponse;
-    use alloy::primitives::{address, Address};
+    use alloy::primitives::{address, Address, Bytes};
     use async_trait::async_trait;
     use rain_orderbook_app_settings::local_db_manifest::MANIFEST_VERSION;
     use rain_orderbook_app_settings::local_db_remotes::LocalDbRemoteCfg;
@@ -360,6 +361,10 @@ mod tests {
         > {
             Ok(Vec::new())
         }
+
+        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
+            Ok(Bytes::from(vec![0u8; 32]))
+        }
     }
 
     #[async_trait(?Send)]
@@ -394,8 +399,7 @@ mod tests {
     impl crate::local_db::pipeline::ApplyPipeline for StubApply {
         fn build_batch(
             &self,
-            _target: &TargetKey,
-            _target_block: u64,
+            _target_info: &ApplyPipelineTargetInfo,
             _raw_logs: &[LogEntryResponse],
             _decoded_events: &[crate::local_db::decode::DecodedEventData<
                 crate::local_db::decode::DecodedEvent,

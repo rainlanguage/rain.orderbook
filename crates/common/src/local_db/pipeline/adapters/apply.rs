@@ -5,7 +5,7 @@ use crate::local_db::insert::{
     generate_erc20_token_statements as build_token_upserts,
     raw_events_to_statements as build_raw_event_sql,
 };
-use crate::local_db::pipeline::{ApplyPipeline, TargetKey};
+use crate::local_db::pipeline::{ApplyPipeline, ApplyPipelineTargetInfo};
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
@@ -33,8 +33,7 @@ impl DefaultApplyPipeline {
 impl ApplyPipeline for DefaultApplyPipeline {
     fn build_batch(
         &self,
-        target: &TargetKey,
-        target_block: u64,
+        target_info: &ApplyPipelineTargetInfo,
         raw_logs: &[LogEntryResponse],
         decoded_events: &[DecodedEventData<DecodedEvent>],
         existing_tokens: &[Erc20TokenRow],
@@ -55,20 +54,27 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let mut batch = SqlStatementBatch::new();
 
         // Raw events first
-        let raw_batch = build_raw_event_sql(target.chain_id, target.orderbook_address, raw_logs)?;
+        let raw_batch = build_raw_event_sql(
+            target_info.key.chain_id,
+            target_info.key.orderbook_address,
+            raw_logs,
+        )?;
         batch.extend(raw_batch);
 
         // Token upserts for the missing set only
         if !tokens_to_upsert.is_empty() {
-            let upserts =
-                build_token_upserts(target.chain_id, target.orderbook_address, tokens_to_upsert);
+            let upserts = build_token_upserts(
+                target_info.key.chain_id,
+                target_info.key.orderbook_address,
+                tokens_to_upsert,
+            );
             batch.extend(upserts);
         }
 
         // Decoded orderbook/store events
         let decoded_batch = build_decoded_event_sql(
-            target.chain_id,
-            target.orderbook_address,
+            target_info.key.chain_id,
+            target_info.key.orderbook_address,
             decoded_events,
             &decimals_by_token,
         )?;
@@ -76,10 +82,10 @@ impl ApplyPipeline for DefaultApplyPipeline {
 
         // Watermark update to target block
         batch.add(upsert_target_watermark_stmt(
-            target.chain_id as u64,
-            target.orderbook_address,
-            target_block,
-            None,
+            target_info.key.chain_id as u64,
+            target_info.key.orderbook_address,
+            target_info.block,
+            target_info.hash.clone(),
         ));
 
         // Ensure atomicity
@@ -99,8 +105,17 @@ impl ApplyPipeline for DefaultApplyPipeline {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use alloy::primitives::Bytes;
+
     use super::*;
-    use crate::local_db::query::{LocalDbQueryError, SqlStatement};
+    use crate::local_db::{
+        pipeline::TargetKey,
+        query::{LocalDbQueryError, SqlStatement, SqlValue},
+    };
+
+    const SAMPLE_HASH: &str = "0xdeadbeef";
 
     struct MockDb {
         // capture executed SQL for assertions
@@ -215,7 +230,17 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let batch = pipeline
-            .build_batch(&target, 123, &[], &decoded, &existing, &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 123,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("batch ok");
 
         assert!(
@@ -281,7 +306,17 @@ mod tests {
         let target = sample_target();
 
         let batch = pipeline
-            .build_batch(&target, 42, &[], &[], &[], &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 42,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         // Expect exactly BEGIN, UPDATE, COMMIT
@@ -327,7 +362,17 @@ mod tests {
 
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
-            .build_batch(&target, 100, &[], &decoded, &existing, &upserts)
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 100,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         // Find the deposit INSERT and inspect params; ?10 is deposit_amount
@@ -384,7 +429,17 @@ mod tests {
 
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
-            .build_batch(&target, 100, &[], &decoded, &existing, &upserts)
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 100,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -412,7 +467,17 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let err = pipeline
-            .build_batch(&target, 1, &[], &decoded, &[], &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 1,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &[],
+                &[],
+            )
             .unwrap_err();
 
         use crate::local_db::insert::InsertError;
@@ -450,7 +515,17 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&target, 1, &[], &[], &existing, &upserts)
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 1,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &[],
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         let upsert_stmts: Vec<_> = batch
@@ -481,7 +556,17 @@ mod tests {
 
         let target_block = 12345u64;
         let batch = pipeline
-            .build_batch(&target, target_block, &[], &[], &[], &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: target_block,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -498,6 +583,13 @@ mod tests {
                 assert_eq!(*v as u64, target_block);
             }
             other => panic!("unexpected watermark param: {other:?}"),
+        }
+
+        match stmt.params().get(3) {
+            Some(SqlValue::Text(v)) => {
+                assert_eq!(v, SAMPLE_HASH);
+            }
+            other => panic!("unexpected watermark hash param: {other:?}"),
         }
     }
 
@@ -522,7 +614,17 @@ mod tests {
 
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
-            .build_batch(&target, 100, &[], &decoded, &existing, &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 100,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -608,7 +710,17 @@ mod tests {
 
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
-            .build_batch(&target, 100, &[], &decoded, &[], &upserts)
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 100,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &[],
+                &upserts,
+            )
             .expect("batch ok");
 
         // Two upserts present
@@ -653,7 +765,17 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&target, 1, &[], &[], &[], &upserts)
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target.clone(),
+                    block: 1,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &[],
+                &[],
+                &upserts,
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -694,7 +816,17 @@ mod tests {
         let b = mk(10, 3);
 
         let batch = pipeline
-            .build_batch(&target, 10, &[a, b], &[], &[], &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 10,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[a, b],
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let raws: Vec<_> = batch
@@ -739,7 +871,17 @@ mod tests {
         let raw = [mk(1, 0), mk(1, 1)];
 
         let batch = pipeline
-            .build_batch(&target, 2, &raw, &[], &[], &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 2,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &raw,
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
@@ -760,7 +902,17 @@ mod tests {
         let pipeline = DefaultApplyPipeline::new();
         let target = sample_target();
         let batch = pipeline
-            .build_batch(&target, 77, &[], &[], &[], &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 77,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
         let count = batch
             .statements()
@@ -800,7 +952,17 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let batch = pipeline
-            .build_batch(&target, 9, &[mk_raw(9, 0)], &decoded, &[], &upserts)
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 9,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[mk_raw(9, 0)],
+                &decoded,
+                &[],
+                &upserts,
+            )
             .expect("batch ok");
 
         let idx_raw = batch
@@ -852,10 +1014,30 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let b1 = pipeline
-            .build_batch(&target, 5, &[], &decoded, &existing, &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target.clone(),
+                    block: 5,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("b1 ok");
         let b2 = pipeline
-            .build_batch(&target, 5, &[], &decoded, &existing, &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 5,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("b2 ok");
 
         assert_eq!(b1.statements().len(), b2.statements().len());
@@ -872,7 +1054,17 @@ mod tests {
         let token = Address::from([12u8; 20]);
 
         let batch = pipeline
-            .build_batch(&target, 5, &[], &[withdraw_event(token)], &[], &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 5,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &[withdraw_event(token)],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         assert!(batch
@@ -912,7 +1104,17 @@ mod tests {
 
         let decoded = vec![deposit_event(token_a), deposit_event(token_b)];
         let batch = pipeline
-            .build_batch(&target, 100, &[], &decoded, &existing, &upserts)
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 100,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &decoded,
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         // Collect deposit statements and check each token's deposit_amount uses the right decimals
@@ -965,7 +1167,17 @@ mod tests {
         let token = Address::from([15u8; 20]);
 
         let batch = pipeline
-            .build_batch(&target, 5, &[], &[withdraw_event(token)], &[], &[])
+            .build_batch(
+                &ApplyPipelineTargetInfo {
+                    key: target,
+                    block: 5,
+                    hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+                },
+                &[],
+                &[withdraw_event(token)],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let stmt = batch

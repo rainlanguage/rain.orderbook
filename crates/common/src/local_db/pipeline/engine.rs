@@ -1,3 +1,4 @@
+use super::ApplyPipelineTargetInfo;
 use crate::erc20::TokenInfo;
 use crate::local_db::address_collectors::{collect_store_addresses, collect_token_addresses};
 use crate::local_db::decode::{
@@ -103,8 +104,11 @@ where
         self.apply_changes(
             db,
             ApplyContext {
-                target: &input.target,
-                target_block,
+                target_info: &ApplyPipelineTargetInfo {
+                    key: input.target.clone(),
+                    block: target_block,
+                    hash: self.events.block_hash(target_block).await?.clone(),
+                },
                 raw_logs: &all_raw_logs,
                 decoded_events: &decoded_events,
                 existing_tokens: &existing_tokens,
@@ -297,8 +301,7 @@ where
     {
         self.status.send("Building SQL batch").await?;
         let batch = self.apply.build_batch(
-            ctx.target,
-            ctx.target_block,
+            ctx.target_info,
             ctx.raw_logs,
             ctx.decoded_events,
             ctx.existing_tokens,
@@ -310,14 +313,13 @@ where
 
         self.status.send("Running post-sync export").await?;
         self.apply
-            .export_dump(db, ctx.target, ctx.target_block)
+            .export_dump(db, &ctx.target_info.key, ctx.target_info.block)
             .await
     }
 }
 
 struct ApplyContext<'a> {
-    target: &'a TargetKey,
-    target_block: u64,
+    target_info: &'a ApplyPipelineTargetInfo,
     raw_logs: &'a [LogEntryResponse],
     decoded_events: &'a [DecodedEventData<DecodedEvent>],
     existing_tokens: &'a [Erc20TokenRow],
@@ -346,7 +348,9 @@ mod tests {
     use crate::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
-    use crate::local_db::pipeline::{BootstrapState, FinalityConfig, TargetKey, WindowOverrides};
+    use crate::local_db::pipeline::{
+        ApplyPipelineTargetInfo, BootstrapState, FinalityConfig, TargetKey, WindowOverrides,
+    };
     use crate::local_db::query::{
         fetch_erc20_tokens_by_addresses::Erc20TokenRow, fetch_store_addresses::StoreAddressRow,
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
@@ -682,6 +686,7 @@ mod tests {
         orderbook_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
         store_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
         decode_results: Mutex<VecDeque<Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>>>,
+        block_hashes: Mutex<VecDeque<Result<Bytes, LocalDbError>>>,
         orderbook_calls: Mutex<Vec<(Address, u64, u64)>>,
         store_calls: Mutex<Vec<(Vec<Address>, u64, u64)>>,
         store_barrier: Mutex<Option<Arc<Barrier>>>,
@@ -710,6 +715,10 @@ mod tests {
             result: Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>,
         ) {
             self.inner.decode_results.lock().unwrap().push_back(result);
+        }
+
+        fn push_block_hash(&self, result: Result<Bytes, LocalDbError>) {
+            self.inner.block_hashes.lock().unwrap().push_back(result);
         }
 
         fn orderbook_calls(&self) -> Vec<(Address, u64, u64)> {
@@ -798,6 +807,15 @@ mod tests {
                 .unwrap()
                 .pop_front()
                 .unwrap_or(Ok(Vec::new()))
+        }
+
+        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
+            self.inner
+                .block_hashes
+                .lock()
+                .unwrap()
+                .pop_front()
+                .unwrap_or_else(|| Ok("".into()))
         }
     }
 
@@ -912,6 +930,7 @@ mod tests {
         decoded_order: Vec<(String, String)>,
         existing_tokens: Vec<Address>,
         upsert_tokens: Vec<Address>,
+        end_block_hash: Bytes,
     }
 
     #[derive(Clone, Default)]
@@ -959,8 +978,7 @@ mod tests {
     impl ApplyPipeline for MockApply {
         fn build_batch(
             &self,
-            _target: &TargetKey,
-            _target_block: u64,
+            target_info: &ApplyPipelineTargetInfo,
             raw_logs: &[LogEntryResponse],
             decoded_events: &[DecodedEventData<DecodedEvent>],
             existing_tokens: &[Erc20TokenRow],
@@ -985,6 +1003,7 @@ mod tests {
                 decoded_order,
                 existing_tokens,
                 upsert_tokens,
+                end_block_hash: target_info.hash.clone(),
             });
 
             self.inner
@@ -1155,6 +1174,9 @@ mod tests {
         let store_logs = vec![log_entry(store, 12, 0, 3)];
 
         harness.events.set_latest_blocks(vec![Ok(12)]);
+        harness
+            .events
+            .push_block_hash(Ok(Bytes::from_str("0xdeadbeef").unwrap()));
         harness.window.set_results(vec![Ok((10, 12))]);
         harness
             .events
@@ -1221,6 +1243,7 @@ mod tests {
         );
         assert_eq!(build.existing_tokens, vec![token_a]);
         assert_eq!(build.upsert_tokens, vec![token_b]);
+        assert_eq!(build.end_block_hash, Bytes::from_str("0xdeadbeef").unwrap());
 
         assert_eq!(harness.apply.persist_calls().len(), 1);
         assert_eq!(harness.apply.export_calls().len(), 1);
