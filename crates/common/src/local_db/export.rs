@@ -27,9 +27,14 @@ pub enum ExportError {
 /// Export all data rows for a specific `(chain_id, orderbook_address)` from the
 /// local database as a SQL string containing data-only `INSERT` statements.
 ///
+/// Returns `Ok(None)` when no matching rows are found.
+///
 /// Tables that do not include both `chain_id` and `orderbook_address` columns,
 /// or that are explicitly skipped via [`SKIPPED_TABLES`], are ignored.
-pub async fn export_data_only<E>(executor: &E, target: &TargetKey) -> Result<String, LocalDbError>
+pub async fn export_data_only<E>(
+    executor: &E,
+    target: &TargetKey,
+) -> Result<Option<String>, LocalDbError>
 where
     E: LocalDbQueryExecutor + ?Sized,
 {
@@ -39,8 +44,6 @@ where
         .filter(|table| !SKIPPED_TABLES.contains(table));
 
     let mut inserts = String::new();
-    inserts.push_str("BEGIN;\n");
-
     let mut had_rows = false;
 
     for table in table_names {
@@ -59,16 +62,18 @@ where
         }
 
         let table_sql = build_insert_statements(table, &columns, &rows)?;
+        if !had_rows {
+            inserts.push_str("BEGIN;\n");
+            had_rows = true;
+        }
         inserts.push_str(&table_sql);
-        had_rows = true;
     }
 
-    inserts.push_str("COMMIT;\n");
-
     if had_rows {
-        Ok(inserts)
+        inserts.push_str("COMMIT;\n");
+        Ok(Some(inserts))
     } else {
-        Ok(String::from("BEGIN;\nCOMMIT;\n"))
+        Ok(None)
     }
 }
 
@@ -634,9 +639,18 @@ mod tests {
                 .unwrap(),
         };
 
-        let sql_main = export_data_only(&executor, &main_target).await.unwrap();
-        let sql_alt = export_data_only(&executor, &alt_target).await.unwrap();
-        let sql_other = export_data_only(&executor, &other_target).await.unwrap();
+        let sql_main = export_data_only(&executor, &main_target)
+            .await
+            .unwrap()
+            .expect("main target should have rows");
+        let sql_alt = export_data_only(&executor, &alt_target)
+            .await
+            .unwrap()
+            .expect("alt target should have rows");
+        let sql_other = export_data_only(&executor, &other_target)
+            .await
+            .unwrap()
+            .expect("other target should have rows");
 
         let expected_main = expected_dump(42161, main_target.orderbook_address, "main", 10);
         let expected_alt = expected_dump(42161, alt_target.orderbook_address, "alt", 20);
@@ -645,6 +659,22 @@ mod tests {
         assert_eq!(sql_main, expected_main, "main dump mismatch");
         assert_eq!(sql_alt, expected_alt, "alt dump mismatch");
         assert_eq!(sql_other, expected_other, "other dump mismatch");
+    }
+
+    #[tokio::test]
+    async fn export_returns_none_when_no_rows() {
+        let executor = TestExecutor::new();
+        let target = TargetKey {
+            chain_id: 1,
+            orderbook_address: Address::from_str("0x0000000000000000000000000000000000000ddd")
+                .unwrap(),
+        };
+
+        let export = export_data_only(&executor, &target).await.unwrap();
+        assert!(
+            export.is_none(),
+            "expected None when there are no rows for the target"
+        );
     }
 
     #[test]
@@ -671,7 +701,9 @@ mod tests {
             .expect("insert sync_status row");
         }
 
-        let sql = executor::block_on(export_data_only(&executor, &target)).unwrap();
+        let sql = executor::block_on(export_data_only(&executor, &target))
+            .unwrap()
+            .expect("target should have rows");
         let expected = expected_dump(42161, target.orderbook_address, "main", 10);
 
         assert_eq!(
