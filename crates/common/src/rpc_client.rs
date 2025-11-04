@@ -21,6 +21,7 @@ pub struct RpcClient {
 #[serde(rename_all = "camelCase")]
 pub struct BlockResponse {
     pub timestamp: String,
+    pub hash: String,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
 }
