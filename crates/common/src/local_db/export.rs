@@ -8,7 +8,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use thiserror::Error;
 
-const SKIPPED_TABLES: &[&str] = &["db_metadata", "target_watermarks", "sync_status"];
+const SKIPPED_TABLES: &[&str] = &["db_metadata", "sync_status"];
 
 #[derive(Debug, Deserialize)]
 struct TableInfoRow {
@@ -127,7 +127,7 @@ fn build_select_statement(
 
     let order_clause = order_columns.join(", ");
     let mut stmt = SqlStatement::new(format!(
-        "SELECT {columns_sql} FROM \"{table}\" WHERE chain_id = ?1 AND orderbook_address = ?2 ORDER BY {order_clause};"
+        "SELECT {columns_sql} FROM \"{table}\" WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2) ORDER BY {order_clause};"
     ));
     stmt.push(SqlValue::from(target.chain_id as u64));
     stmt.push(SqlValue::from(target.orderbook_address.to_string()));
@@ -601,6 +601,18 @@ mod tests {
             ],
         )
         .expect("insert interpreter_store_sets");
+
+        conn.execute(
+            "INSERT INTO target_watermarks (chain_id, orderbook_address, last_block, last_hash, updated_at) VALUES (?1, ?2, ?3, ?4, ?5);",
+            params![
+                chain,
+                orderbook.as_str(),
+                2_000 + base_idx,
+                format!("hash_{label}"),
+                format!("timestamp_{label}"),
+            ],
+        )
+        .expect("insert target_watermarks");
     }
 
     #[tokio::test]
@@ -653,11 +665,6 @@ mod tests {
             )
             .expect("insert db_metadata row");
             conn.execute(
-                "INSERT INTO target_watermarks (chain_id, orderbook_address, last_block, last_hash) VALUES (?1, ?2, ?3, ?4);",
-                params![target.chain_id as i64, orderbook.as_str(), 123_i64, "hash-main"],
-            )
-            .expect("insert target_watermarks row");
-            conn.execute(
                 "INSERT INTO sync_status (chain_id, orderbook_address, last_synced_block) VALUES (?1, ?2, ?3);",
                 params![target.chain_id as i64, orderbook.as_str(), 456_i64],
             )
@@ -670,6 +677,10 @@ mod tests {
         assert_eq!(
             sql, expected,
             "unexpected rows exported with skipped tables present"
+        );
+        assert!(
+            sql.contains("INSERT INTO \"target_watermarks\""),
+            "target_watermarks rows should be exported"
         );
         for table in SKIPPED_TABLES {
             assert!(
@@ -712,7 +723,7 @@ mod tests {
         let stmt = build_select_statement("deposits", &columns, &target);
         assert_eq!(
             stmt.sql(),
-            "SELECT \"orderbook_address\", \"chain_id\", \"alpha\", \"beta\" FROM \"deposits\" WHERE chain_id = ?1 AND orderbook_address = ?2 ORDER BY \"chain_id\", \"orderbook_address\", \"alpha\", \"beta\";"
+            "SELECT \"orderbook_address\", \"chain_id\", \"alpha\", \"beta\" FROM \"deposits\" WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2) ORDER BY \"chain_id\", \"orderbook_address\", \"alpha\", \"beta\";"
         );
         let params = stmt.params();
         assert_eq!(params.len(), 2);
@@ -806,8 +817,18 @@ mod tests {
 
         let meta_hex = format!("0x{}", hex::encode(label.as_bytes()));
         let orderbook = orderbook.to_string();
+        let watermark_block = 2_000 + base_idx;
 
         let mut out = String::from("BEGIN;\n");
+
+        out.push_str(&format!(
+            "INSERT INTO \"target_watermarks\" (\"chain_id\", \"orderbook_address\", \"last_block\", \"last_hash\", \"updated_at\") VALUES ({}, '{}', {}, 'hash_{}', 'timestamp_{}');\n",
+            chain_id,
+            orderbook,
+            watermark_block,
+            label,
+            label
+        ));
 
         out.push_str(&format!(
             "INSERT INTO \"raw_events\" (\"chain_id\", \"orderbook_address\", \"transaction_hash\", \"log_index\", \"block_number\", \"block_timestamp\", \"address\", \"topics\", \"data\", \"raw_json\") VALUES ({}, '{}', 'raw_tx_{}', {}, {}, {}, 'address_{}', '[\"topic_{}\"]', 'data_{}', '{{\"event\":\"raw_{}\"}}');\n",
