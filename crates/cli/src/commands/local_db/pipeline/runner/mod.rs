@@ -1,4 +1,5 @@
 pub mod environment;
+pub mod export;
 
 use crate::commands::local_db::executor::RusqliteExecutor;
 use crate::commands::local_db::pipeline::{
@@ -6,6 +7,8 @@ use crate::commands::local_db::pipeline::{
 };
 use alloy::primitives::Address;
 use environment::default_environment;
+use export::export_dump;
+pub use export::ExportMetadata;
 use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
 use rain_orderbook_common::local_db::pipeline::runner::environment::RunnerEnvironment;
 use rain_orderbook_common::local_db::pipeline::runner::remotes::lookup_manifest_entry;
@@ -159,7 +162,7 @@ impl
 #[derive(Debug)]
 pub struct ProducerOutcome {
     pub outcome: SyncOutcome,
-    pub exported_dump: ExportMetadata,
+    pub exported_dump: Option<ExportMetadata>,
 }
 
 #[derive(Debug)]
@@ -173,14 +176,6 @@ pub struct ProducerJobFailure {
     pub chain_id: Option<u32>,
     pub orderbook_address: Option<Address>,
     pub error: LocalDbError,
-}
-
-#[derive(Debug)]
-pub struct ExportMetadata {
-    pub dump_path: PathBuf,
-    pub end_block: u64,
-    pub end_block_hash: String,
-    pub end_block_time_ms: u64,
 }
 
 async fn run_orderbook_job<B, W, E, T, A, S>(
@@ -228,7 +223,7 @@ where
 
     let engine = environment.build_engine(&target)?.into_engine();
     let outcome = engine.run(&executor, &target.inputs).await?;
-    let exported_dump = export_dump(&executor, &target, &out_root).await?;
+    let exported_dump = export_dump(&executor, &target, &outcome, &out_root).await?;
 
     Ok(ProducerOutcome {
         outcome,
@@ -250,32 +245,6 @@ fn ensure_clean_db(path: &Path) -> Result<(), LocalDbError> {
     Ok(())
 }
 
-#[cfg(not(test))]
-async fn export_dump(
-    executor: &RusqliteExecutor,
-    target: &RunnerTarget,
-    out_root: &Path,
-) -> Result<ExportMetadata, LocalDbError> {
-    let _ = (executor, target, out_root);
-    todo!("implement producer export pipeline")
-}
-
-#[cfg(test)]
-async fn export_dump(
-    _executor: &RusqliteExecutor,
-    target: &RunnerTarget,
-    out_root: &Path,
-) -> Result<ExportMetadata, LocalDbError> {
-    let chain_folder = out_root.join(target.inputs.target.chain_id.to_string());
-    let filename = format!("{}-export.dump", target.inputs.target.orderbook_address);
-    Ok(ExportMetadata {
-        dump_path: chain_folder.join(filename),
-        end_block: target.inputs.cfg.deployment_block,
-        end_block_hash: "0xstub".to_string(),
-        end_block_time_ms: 0,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -290,8 +259,8 @@ mod tests {
         DumpFuture, EnginePipelines, ManifestFuture,
     };
     use rain_orderbook_common::local_db::pipeline::{
-        BootstrapConfig, BootstrapPipeline, BootstrapState, EventsPipeline, StatusBus,
-        TokensPipeline, WindowPipeline,
+        ApplyPipelineTargetInfo, BootstrapConfig, BootstrapPipeline, BootstrapState,
+        EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
     };
     use rain_orderbook_common::local_db::query::{
         LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
@@ -542,6 +511,10 @@ mod tests {
         > {
             Ok(Vec::new())
         }
+
+        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
+            Ok(Bytes::from(vec![0u8; 32]))
+        }
     }
 
     #[derive(Clone, Default)]
@@ -590,8 +563,7 @@ mod tests {
     impl ApplyPipeline for StubApply {
         fn build_batch(
             &self,
-            _target: &rain_orderbook_common::local_db::pipeline::TargetKey,
-            _target_block: u64,
+            _target_info: &ApplyPipelineTargetInfo,
             _raw_logs: &[rain_orderbook_common::rpc_client::LogEntryResponse],
             _decoded_events: &[rain_orderbook_common::local_db::decode::DecodedEventData<
                 rain_orderbook_common::local_db::decode::DecodedEvent,
@@ -1296,13 +1268,10 @@ orderbooks:
         assert_eq!(outcome.outcome.target.chain_id, 42161);
         assert_eq!(outcome.outcome.start_block, 0);
 
-        let chain_folder = outcome.outcome.target.chain_id.to_string();
-        let expected_filename = format!("{}-export.dump", outcome.outcome.target.orderbook_address);
-        let expected_path = temp_dir.path().join(chain_folder).join(expected_filename);
-        assert_eq!(outcome.exported_dump.dump_path, expected_path);
-        assert_eq!(outcome.exported_dump.end_block, 123);
-        assert_eq!(outcome.exported_dump.end_block_hash, "0xstub");
-        assert_eq!(outcome.exported_dump.end_block_time_ms, 0);
+        assert!(
+            outcome.exported_dump.is_none(),
+            "stub environment should not emit dumps"
+        );
     }
 
     #[tokio::test]
