@@ -87,7 +87,7 @@ mod tests {
     use super::*;
     use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowOverrides};
     use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlStatementBatch};
-    use alloy::primitives::Address;
+    use alloy::primitives::{Address, Bytes};
     use async_trait::async_trait;
     use std::str::FromStr;
 
@@ -130,8 +130,8 @@ mod tests {
                         chain_id,
                         orderbook_address: Address::from_str(&orderbook_address).unwrap(),
                         last_block: self.last_synced,
-                        last_hash: None,
-                        updated_at: None,
+                        last_hash: Bytes::from_str("0xbeef").unwrap(),
+                        updated_at: 1,
                     }])
                     .unwrap()
                 };

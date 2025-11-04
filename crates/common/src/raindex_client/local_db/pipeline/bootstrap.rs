@@ -175,6 +175,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::str::FromStr;
     use std::sync::Mutex;
 
     use super::*;
@@ -194,6 +195,7 @@ mod tests {
         LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
     use alloy::primitives::Address;
+    use alloy::primitives::Bytes;
     use async_trait::async_trait;
     use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
     use serde_json::json;
@@ -411,8 +413,8 @@ mod tests {
                     chain_id: runner_key().chain_id,
                     orderbook_address: runner_key().orderbook_address,
                     last_block: 1,
-                    last_hash: None,
-                    updated_at: None,
+                    last_hash: Bytes::from_str("0xbeef").unwrap(),
+                    updated_at: 1,
                 }]),
             )
             .with_json(&fetch_db_metadata_stmt(), json!([db_row]));
@@ -515,8 +517,8 @@ mod tests {
             chain_id: orderbook_key().chain_id,
             orderbook_address: orderbook_key().orderbook_address,
             last_block: last_synced,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         };
 
         let db = MockDb::default()
@@ -565,8 +567,8 @@ mod tests {
             chain_id: orderbook_key().chain_id,
             orderbook_address: orderbook_key().orderbook_address,
             last_block: last_synced,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         };
 
         let clear_stmt =
@@ -626,8 +628,8 @@ mod tests {
             chain_id: orderbook_key().chain_id,
             orderbook_address: orderbook_key().orderbook_address,
             last_block: last_synced,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         };
 
         let db = MockDb::default()
@@ -675,8 +677,8 @@ mod tests {
             chain_id: orderbook_key().chain_id,
             orderbook_address: orderbook_key().orderbook_address,
             last_block: last_synced,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         };
 
         let db = MockDb::default()

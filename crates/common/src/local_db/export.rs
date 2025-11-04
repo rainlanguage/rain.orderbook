@@ -3,6 +3,7 @@ use crate::local_db::query::{
     create_tables::REQUIRED_TABLES, LocalDbQueryExecutor, SqlStatement, SqlValue,
 };
 use crate::local_db::LocalDbError;
+use alloy::primitives::Address;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde_json::Value;
@@ -22,6 +23,12 @@ pub enum ExportError {
 
     #[error("Row is missing expected column '{column}'")]
     MissingColumn { column: String },
+
+    #[error("Missing target_watermarks row for chain {chain_id} orderbook {orderbook_address}")]
+    MissingTargetWatermark {
+        chain_id: u32,
+        orderbook_address: Address,
+    },
 }
 
 /// Export all data rows for a specific `(chain_id, orderbook_address)` from the
@@ -614,7 +621,7 @@ mod tests {
                 orderbook.as_str(),
                 2_000 + base_idx,
                 format!("hash_{label}"),
-                format!("timestamp_{label}"),
+                1_700_000_000_000i64 + base_idx * 1_000,
             ],
         )
         .expect("insert target_watermarks");
@@ -850,16 +857,17 @@ mod tests {
         let meta_hex = format!("0x{}", hex::encode(label.as_bytes()));
         let orderbook = orderbook.to_string();
         let watermark_block = 2_000 + base_idx;
+        let watermark_ms = 1_700_000_000_000i64 + base_idx * 1_000;
 
         let mut out = String::from("BEGIN;\n");
 
         out.push_str(&format!(
-            "INSERT INTO \"target_watermarks\" (\"chain_id\", \"orderbook_address\", \"last_block\", \"last_hash\", \"updated_at\") VALUES ({}, '{}', {}, 'hash_{}', 'timestamp_{}');\n",
+            "INSERT INTO \"target_watermarks\" (\"chain_id\", \"orderbook_address\", \"last_block\", \"last_hash\", \"updated_at\") VALUES ({}, '{}', {}, 'hash_{}', {});\n",
             chain_id,
             orderbook,
             watermark_block,
             label,
-            label
+            watermark_ms
         ));
 
         out.push_str(&format!(

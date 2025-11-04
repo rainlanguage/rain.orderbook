@@ -48,6 +48,7 @@ mod tests {
         assert!(lower.contains("(chain_id, orderbook_address, last_block, last_hash)"));
         assert!(lower.contains("values (?1, ?2, ?3, ?4)"));
         assert!(lower.contains("on conflict(chain_id, orderbook_address)"));
+        assert!(lower.contains("updated_at = (cast(strftime('%s', 'now') as integer) * 1000)"));
     }
 
     #[test]

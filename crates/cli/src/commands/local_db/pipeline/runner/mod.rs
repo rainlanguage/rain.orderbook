@@ -250,6 +250,7 @@ mod tests {
     use super::*;
     use alloy::primitives::{address, Address, Bytes};
     use async_trait::async_trait;
+    use flate2::read::GzDecoder;
     use rain_orderbook_app_settings::local_db_manifest::{
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
     };
@@ -302,6 +303,7 @@ mod tests {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum EngineBehavior {
         Success,
+        SuccessWithExport,
         Fail,
         Panic,
     }
@@ -310,13 +312,15 @@ mod tests {
     struct StubBootstrap {
         telemetry: Telemetry,
         panic_on_run: bool,
+        seed_export: bool,
     }
 
     impl StubBootstrap {
-        fn new(telemetry: Telemetry, panic_on_run: bool) -> Self {
+        fn new(telemetry: Telemetry, behavior: EngineBehavior) -> Self {
             Self {
                 telemetry,
-                panic_on_run,
+                panic_on_run: behavior == EngineBehavior::Panic,
+                seed_export: matches!(behavior, EngineBehavior::SuccessWithExport),
             }
         }
 
@@ -325,6 +329,31 @@ mod tests {
             DB: LocalDbQueryExecutor + ?Sized,
         {
             let mut batch = SqlStatementBatch::new();
+            batch.add(SqlStatement::new(
+                "CREATE TABLE IF NOT EXISTS target_watermarks (
+                    chain_id INTEGER NOT NULL,
+                    orderbook_address TEXT NOT NULL,
+                    last_block INTEGER NOT NULL DEFAULT 0,
+                    last_hash TEXT,
+                    updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
+                    PRIMARY KEY (chain_id, orderbook_address)
+                );",
+            ));
+            batch.add(SqlStatement::new(
+                "CREATE TABLE IF NOT EXISTS raw_events (
+                    chain_id INTEGER NOT NULL,
+                    orderbook_address TEXT NOT NULL,
+                    transaction_hash TEXT NOT NULL,
+                    log_index INTEGER NOT NULL,
+                    block_number INTEGER NOT NULL,
+                    block_timestamp INTEGER,
+                    address TEXT NOT NULL,
+                    topics TEXT NOT NULL,
+                    data TEXT NOT NULL,
+                    raw_json TEXT NOT NULL,
+                    PRIMARY KEY (chain_id, orderbook_address, transaction_hash, log_index)
+                );",
+            ));
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS order_events (
                     chain_id INTEGER,
@@ -339,8 +368,10 @@ mod tests {
                     store_address TEXT
                 );",
             ));
-            db.execute_batch(&batch.ensure_transaction()).await?;
-            Ok(())
+
+            db.execute_batch(&batch.ensure_transaction())
+                .await
+                .map_err(LocalDbError::from)
         }
     }
 
@@ -407,7 +438,33 @@ mod tests {
 
             let dump_stmt = config.dump_stmt.as_ref().map(|stmt| stmt.sql().to_string());
             self.telemetry.record_bootstrap_dump(dump_stmt);
-            self.ensure_tables(db).await
+            self.ensure_tables(db).await?;
+
+            if self.seed_export {
+                let target = &config.target_key;
+                let orderbook_address = target.orderbook_address.to_string();
+
+                let mut batch = SqlStatementBatch::new();
+                batch.add(SqlStatement::new(format!(
+                    "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
+                     VALUES ({}, '{}', '0xseedtx', 0, {}, 1_700_000_000, '{}', '[]', '0x00', '{{}}') \
+                     ON CONFLICT(chain_id, orderbook_address, transaction_hash, log_index) DO NOTHING;",
+                    target.chain_id, orderbook_address, config.latest_block, orderbook_address
+                )));
+                batch.add(SqlStatement::new(format!(
+                    "INSERT INTO target_watermarks (chain_id, orderbook_address, last_block, last_hash, updated_at) \
+                     VALUES ({}, '{}', {}, '0xfeedface', 1_700_000_000_000) \
+                     ON CONFLICT(chain_id, orderbook_address) DO UPDATE \
+                     SET last_block = excluded.last_block, \
+                         last_hash = excluded.last_hash, \
+                         updated_at = excluded.updated_at;",
+                    target.chain_id, orderbook_address, config.latest_block
+                )));
+
+                db.execute_batch(&batch.ensure_transaction()).await?;
+            }
+
+            Ok(())
         }
 
         async fn runner_run<DB>(
@@ -881,14 +938,13 @@ orderbooks:
                 .copied()
                 .unwrap_or(EngineBehavior::Success);
             let telemetry = telemetry_for_builder.clone();
-            let bootstrap =
-                StubBootstrap::new(telemetry.clone(), behavior == EngineBehavior::Panic);
+            let bootstrap = StubBootstrap::new(telemetry.clone(), behavior);
             let window = StubWindow::new(0, target.inputs.cfg.deployment_block);
             let events = StubEvents {
                 latest_block: target.inputs.cfg.deployment_block,
             };
             let tokens = StubTokens;
-            let apply = StubApply::new(behavior == EngineBehavior::Fail);
+            let apply = StubApply::new(matches!(behavior, EngineBehavior::Fail));
             let status = StubStatusBus::new(telemetry);
             Ok(EnginePipelines::new(
                 bootstrap, window, events, tokens, apply, status,
@@ -1263,7 +1319,9 @@ orderbooks:
         .expect("runner");
 
         let report = runner.run().await.expect("run completes");
-        assert_eq!(report.successes.len(), 1);
+        if report.successes.is_empty() {
+            panic!("expected success, got failures: {:?}", report.failures);
+        }
         let outcome = &report.successes[0];
         assert_eq!(outcome.outcome.target.chain_id, 42161);
         assert_eq!(outcome.outcome.start_block, 0);
@@ -1271,6 +1329,55 @@ orderbooks:
         assert!(
             outcome.exported_dump.is_none(),
             "stub environment should not emit dumps"
+        );
+    }
+
+    #[tokio::test]
+    async fn run_success_with_export_produces_dump() {
+        let yaml = settings_yaml_ok_only();
+        let mut behaviors = HashMap::new();
+        behaviors.insert("ok".to_string(), EngineBehavior::SuccessWithExport);
+        let (environment, _telemetry) = build_environment(HashMap::new(), behaviors);
+        let temp_dir = TempDir::new().unwrap();
+        let runner =
+            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
+                .expect("runner");
+
+        let report = runner.run().await.expect("run completes");
+        if report.successes.is_empty() {
+            panic!("expected success, got failures: {:?}", report.failures);
+        }
+        let outcome = &report.successes[0];
+
+        let metadata = outcome
+            .exported_dump
+            .as_ref()
+            .expect("export metadata to be present");
+        assert!(
+            metadata.dump_path.exists(),
+            "exported dump file should exist"
+        );
+        assert_eq!(metadata.end_block, outcome.outcome.target_block);
+        assert_eq!(metadata.end_block_hash, "0xfeedface");
+
+        let dump_bytes = std::fs::read(&metadata.dump_path).expect("read dump");
+        let mut decoder = GzDecoder::new(&dump_bytes[..]);
+        let mut dump_sql = String::new();
+        decoder
+            .read_to_string(&mut dump_sql)
+            .expect("decompress dump contents");
+
+        assert!(
+            dump_sql.contains("INSERT INTO \"target_watermarks\""),
+            "dump should include target_watermarks insert statements"
+        );
+        assert!(
+            dump_sql.contains("0xfeedface"),
+            "dump should preserve the watermark hash"
+        );
+        assert!(
+            dump_sql.contains("1700000000000"),
+            "dump should capture the watermark update timestamp as milliseconds"
         );
     }
 

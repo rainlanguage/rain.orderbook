@@ -1,7 +1,8 @@
 use crate::commands::local_db::executor::RusqliteExecutor;
 use alloy::primitives::hex::encode_prefixed;
-use chrono::NaiveDateTime;
-use rain_orderbook_common::local_db::export::export_data_only;
+use flate2::write::GzEncoder;
+use flate2::Compression;
+use rain_orderbook_common::local_db::export::{export_data_only, ExportError};
 use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
 use rain_orderbook_common::local_db::pipeline::SyncOutcome;
 use rain_orderbook_common::local_db::query::fetch_target_watermark::{
@@ -9,8 +10,9 @@ use rain_orderbook_common::local_db::query::fetch_target_watermark::{
 };
 use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
 use rain_orderbook_common::local_db::LocalDbError;
-use std::convert::TryFrom;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use tokio::fs::create_dir_all;
 
 #[derive(Debug)]
 pub struct ExportMetadata {
@@ -32,15 +34,12 @@ pub(super) async fn export_dump(
     };
 
     let chain_folder = out_root.join(target.inputs.target.chain_id.to_string());
-    tokio::fs::create_dir_all(&chain_folder).await?;
+    create_dir_all(&chain_folder).await?;
 
     let filename = format!("{}.sql.gz", target.inputs.target.orderbook_address);
     let dump_path = chain_folder.join(filename);
 
     let compressed = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, std::io::Error> {
-        use flate2::{write::GzEncoder, Compression};
-        use std::io::Write;
-
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(dump_sql.as_bytes())?;
         encoder.finish()
@@ -55,45 +54,17 @@ pub(super) async fn export_dump(
     );
     let rows: Vec<TargetWatermarkRow> = executor.query_json(&watermark_stmt).await?;
     let row = rows.into_iter().next().ok_or_else(|| {
-        LocalDbError::CustomError(format!(
-            "missing target_watermarks row for chain {} orderbook {:#x}",
-            target.inputs.target.chain_id, target.inputs.target.orderbook_address,
-        ))
+        LocalDbError::from(ExportError::MissingTargetWatermark {
+            chain_id: target.inputs.target.chain_id,
+            orderbook_address: target.inputs.target.orderbook_address,
+        })
     })?;
-
-    let last_hash = row.last_hash.ok_or_else(|| {
-        LocalDbError::CustomError(format!(
-            "missing last_hash in target_watermarks for chain {} orderbook {:#x}",
-            target.inputs.target.chain_id, target.inputs.target.orderbook_address,
-        ))
-    })?;
-    let end_block_hash = encode_prefixed(&last_hash);
-
-    let end_block_time_ms = match row.updated_at {
-        Some(ts) => {
-            let parsed =
-                NaiveDateTime::parse_from_str(&ts, "%Y-%m-%d %H:%M:%S").map_err(|error| {
-                    LocalDbError::CustomError(format!(
-                        "failed to parse updated_at '{ts}' for chain {} orderbook {:#x}: {error}",
-                        target.inputs.target.chain_id, target.inputs.target.orderbook_address,
-                    ))
-                })?;
-            let timestamp = parsed.and_utc().timestamp_millis();
-            u64::try_from(timestamp).map_err(|error| {
-                LocalDbError::CustomError(format!(
-                    "updated_at timestamp overflow for chain {} orderbook {:#x}: {error}",
-                    target.inputs.target.chain_id, target.inputs.target.orderbook_address,
-                ))
-            })?
-        }
-        None => 0,
-    };
 
     Ok(Some(ExportMetadata {
         dump_path,
         end_block: outcome.target_block,
-        end_block_hash,
-        end_block_time_ms,
+        end_block_hash: encode_prefixed(&row.last_hash),
+        end_block_time_ms: row.updated_at,
     }))
 }
 
@@ -145,7 +116,7 @@ mod tests {
 
         conn.execute(
             "INSERT INTO target_watermarks (chain_id, orderbook_address, last_block, last_hash) VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT(chain_id, orderbook_address) DO UPDATE SET last_block = excluded.last_block, last_hash = excluded.last_hash, updated_at = CURRENT_TIMESTAMP;",
+             ON CONFLICT(chain_id, orderbook_address) DO UPDATE SET last_block = excluded.last_block, last_hash = excluded.last_hash, updated_at = 1_700_000_000_000;",
             params![
                 chain_id as i64,
                 orderbook_str.as_str(),
