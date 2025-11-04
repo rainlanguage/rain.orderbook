@@ -175,9 +175,7 @@ mod tests {
     };
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
-    use crate::local_db::query::fetch_store_addresses::{
-        fetch_store_addresses_stmt, StoreAddressRow,
-    };
+    use crate::local_db::query::fetch_store_addresses::fetch_store_addresses_stmt;
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
@@ -202,8 +200,6 @@ mod tests {
     const NETWORK_KEY: &str = "anvil";
     const ORDERBOOK_KEY_A: &str = "ob-a";
     const ORDERBOOK_KEY_B: &str = "ob-b";
-    const REMOTE_KEY_A: &str = "remote-a";
-    const REMOTE_KEY_B: &str = "remote-b";
 
     const ORDERBOOK_A: Address = address!("00000000000000000000000000000000000000a1");
     const ORDERBOOK_B: Address = address!("00000000000000000000000000000000000000b2");
@@ -323,10 +319,6 @@ mod tests {
                 .push((orderbook_key.to_string(), message.to_string()));
         }
 
-        fn status_messages(&self) -> Vec<(String, String)> {
-            self.status_messages.lock().unwrap().clone()
-        }
-
         fn record_persist(&self) {
             self.persist_calls.fetch_add(1, Ordering::SeqCst);
         }
@@ -358,7 +350,7 @@ mod tests {
     #[derive(Default)]
     struct RecordingDbInner {
         json_map: Mutex<HashMap<String, JsonResponse>>,
-        text_map: Mutex<HashMap<String, TextResponse>>,
+        text_map: Mutex<HashMap<String, Result<String, LocalDbQueryError>>>,
         batch_calls: Mutex<Vec<Vec<String>>>,
         text_calls: Mutex<Vec<String>>,
     }
@@ -366,12 +358,6 @@ mod tests {
     #[derive(Clone)]
     enum JsonResponse {
         Value(Value),
-        Error(LocalDbQueryError),
-    }
-
-    #[derive(Clone)]
-    enum TextResponse {
-        Value(String),
         Error(LocalDbQueryError),
     }
 
@@ -408,7 +394,7 @@ mod tests {
                 .text_map
                 .lock()
                 .unwrap()
-                .insert(sql.to_string(), TextResponse::Error(err));
+                .insert(sql.to_string(), Err(err));
         }
 
         fn text_calls(&self) -> Vec<String> {
@@ -452,8 +438,8 @@ mod tests {
             self.inner.text_calls.lock().unwrap().push(sql.clone());
             let response = self.inner.text_map.lock().unwrap().get(&sql).cloned();
             match response {
-                Some(TextResponse::Value(value)) => Ok(value),
-                Some(TextResponse::Error(err)) => Err(err),
+                Some(Ok(value)) => Ok(value),
+                Some(Err(err)) => Err(err),
                 None => Ok("ok".to_string()),
             }
         }
@@ -1029,7 +1015,7 @@ orderbooks:
     #[test]
     fn default_environment_builds_engine_for_target() {
         let settings = single_orderbook_settings_yaml();
-        let mut runner = ClientRunner::new(settings).expect("runner builds with default env");
+        let runner = ClientRunner::new(settings).expect("runner builds with default env");
         assert_eq!(runner.base_targets.len(), 1);
 
         let target = runner.base_targets[0].clone();

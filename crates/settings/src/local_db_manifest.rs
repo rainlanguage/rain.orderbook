@@ -1,5 +1,7 @@
 use crate::utils::{parse_positive_u32, parse_positive_u64, parse_url};
-use crate::yaml::{require_hash, require_string, require_vec, FieldErrorKind, YamlError};
+use crate::yaml::{
+    optional_hash, require_hash, require_string, require_vec, FieldErrorKind, YamlError,
+};
 use alloy::primitives::{Address, Bytes};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -116,32 +118,33 @@ fn parse_networks(
     doc: &StrictYaml,
     location_root: &str,
 ) -> Result<HashMap<String, ManifestNetwork>, YamlError> {
-    let networks_hash = require_hash(doc, Some("networks"), Some(location_root.to_string()))?;
     let mut networks: HashMap<String, ManifestNetwork> = HashMap::new();
 
-    for (key_yaml, network_yaml) in networks_hash.iter() {
-        let network_key = key_yaml
-            .as_str()
-            .ok_or(YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "key".to_string(),
-                    expected: "a string".to_string(),
-                },
-                location: "manifest.networks".to_string(),
-            })?
-            .to_string();
-        if network_key.trim().is_empty() {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: "key".to_string(),
-                    reason: "network name must not be empty".to_string(),
-                },
-                location: "manifest.networks".to_string(),
-            });
-        }
+    if let Some(networks_hash) = optional_hash(doc, "networks") {
+        for (key_yaml, network_yaml) in networks_hash.iter() {
+            let network_key = key_yaml
+                .as_str()
+                .ok_or(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "key".to_string(),
+                        expected: "a string".to_string(),
+                    },
+                    location: "manifest.networks".to_string(),
+                })?
+                .to_string();
+            if network_key.trim().is_empty() {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidValue {
+                        field: "key".to_string(),
+                        reason: "network name must not be empty".to_string(),
+                    },
+                    location: "manifest.networks".to_string(),
+                });
+            }
 
-        let network = parse_single_network(&network_key, network_yaml, location_root)?;
-        networks.insert(network_key.clone(), network);
+            let network = parse_single_network(&network_key, network_yaml, location_root)?;
+            networks.insert(network_key.clone(), network);
+        }
     }
 
     Ok(networks)
@@ -375,13 +378,13 @@ networks: {}
     }
 
     #[test]
-    fn test_missing_networks() {
+    fn test_missing_networks_defaults_to_empty() {
         let yaml = r#"
 manifest-version: 1
 db-schema-version: 1
 "#;
-        let err = parse_manifest_doc(&load(yaml)).unwrap_err();
-        assert!(matches!(err, YamlError::Field { .. }));
+        let manifest = parse_manifest_doc(&load(yaml)).unwrap();
+        assert!(manifest.networks.is_empty());
     }
 
     #[test]
@@ -573,6 +576,27 @@ networks:
             parse_manifest_doc(&load(missing_end_time)).unwrap_err(),
             YamlError::Field { .. }
         ));
+    }
+
+    #[test]
+    fn test_networks_wrong_type_rejected() {
+        let yaml = r#"
+manifest-version: 1
+db-schema-version: 1
+networks: []
+"#;
+        let err = parse_manifest_doc(&load(yaml)).unwrap_err();
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType { field, expected },
+                location,
+            } => {
+                assert_eq!(field, "networks");
+                assert_eq!(expected, "a map");
+                assert_eq!(location, "manifest");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 
     #[test]

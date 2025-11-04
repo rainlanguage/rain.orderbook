@@ -1,0 +1,49 @@
+version: 4
+
+networks:
+  base:
+    rpcs:
+      - https://base-rpc.publicnode.com
+    chain-id: 8453
+    network-id: 8453
+    currency: ETH
+
+subgraphs:
+  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/2025-10-11-a62b/gn
+
+metaboards:
+  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/metadata-base/2025-07-06-594f/gn
+
+orderbooks:
+  base:
+    address: 0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775
+    network: base
+    subgraph: base
+    deployment-block: 36667253
+    local-db-remote: raindex
+
+deployers:
+  base:
+    address: 0x6557778Db274f04B9E9f39F8Ff2D621c2036e978
+    network: base
+  # bsc:
+  #   address: 0xA2f56F8F74B7d04d61f281BE6576b6155581dcBA
+  #   network: bsc
+  # linea:
+  #   address: 0xA2f56F8F74B7d04d61f281BE6576b6155581dcBA
+  #   network: linea
+  # ethereum:
+  #   address: 0xd19581a021f4704ad4eBfF68258e7A0a9DB1CD77
+  #   network: ethereum
+
+local-db-remotes:
+  raindex: https://raw.githubusercontent.com/findolor/local_db_remote/78784977d3bfc1f2cd788eb7af5bcb154fbd312b/manifest.yaml
+
+local-db-sync:
+  base:
+    batch-size: 3000
+    max-concurrent-batches: 15
+    retry-attempts: 3
+    retry-delay-ms: 1000
+    rate-limit-delay-ms: 5000
+    finality-depth: 50

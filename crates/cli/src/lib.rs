@@ -1,4 +1,4 @@
-use crate::commands::local_db::{DbDump, SyncLocalDb};
+use crate::commands::local_db::{pipeline::cli::SyncLocalDb, DbDump};
 use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;

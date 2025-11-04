@@ -445,6 +445,8 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
     let order_hash = hex::encode_prefixed(decoded.orderHash);
     let order_owner = hex::encode_prefixed(decoded.order.owner);
     let order_nonce = hex::encode_prefixed(decoded.order.nonce);
+    let interpreter_address = hex::encode_prefixed(decoded.order.evaluable.interpreter);
+    let store_address = hex::encode_prefixed(decoded.order.evaluable.store);
 
     SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
@@ -456,6 +458,8 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
     log_index,
     event_type,
     sender,
+    interpreter_address,
+    store_address,
     order_hash,
     order_owner,
     order_nonce,
@@ -472,7 +476,9 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
     ?8,
     ?9,
     ?10,
-    ?11
+    ?11,
+    ?12,
+    ?13
 );
 "#,
         vec![
@@ -483,6 +489,8 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
             SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
+            SqlValue::from(interpreter_address),
+            SqlValue::from(store_address),
             SqlValue::from(order_hash),
             SqlValue::from(order_owner),
             SqlValue::from(order_nonce),
@@ -504,6 +512,8 @@ fn generate_remove_order_statement(
     let order_hash = hex::encode_prefixed(decoded.orderHash);
     let order_owner = hex::encode_prefixed(decoded.order.owner);
     let order_nonce = hex::encode_prefixed(decoded.order.nonce);
+    let interpreter_address = hex::encode_prefixed(decoded.order.evaluable.interpreter);
+    let store_address = hex::encode_prefixed(decoded.order.evaluable.store);
 
     SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
@@ -515,6 +525,8 @@ fn generate_remove_order_statement(
     log_index,
     event_type,
     sender,
+    interpreter_address,
+    store_address,
     order_hash,
     order_owner,
     order_nonce,
@@ -531,7 +543,9 @@ fn generate_remove_order_statement(
     ?8,
     ?9,
     ?10,
-    ?11
+    ?11,
+    ?12,
+    ?13
 );
 "#,
         vec![
@@ -542,6 +556,8 @@ fn generate_remove_order_statement(
             SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
+            SqlValue::from(interpreter_address),
+            SqlValue::from(store_address),
             SqlValue::from(order_hash),
             SqlValue::from(order_owner),
             SqlValue::from(order_nonce),
