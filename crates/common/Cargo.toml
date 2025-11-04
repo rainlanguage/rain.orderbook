@@ -70,3 +70,6 @@ wasm-bindgen-test = "0.3"
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { workspace = true }
+
+[dev-dependencies]
+rusqlite = "0.31.0"
