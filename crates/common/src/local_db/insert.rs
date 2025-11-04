@@ -445,6 +445,8 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
     let order_hash = hex::encode_prefixed(decoded.orderHash);
     let order_owner = hex::encode_prefixed(decoded.order.owner);
     let order_nonce = hex::encode_prefixed(decoded.order.nonce);
+    let interpreter_address = hex::encode_prefixed(decoded.order.evaluable.interpreter);
+    let store_address = hex::encode_prefixed(decoded.order.evaluable.store);
 
     SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
@@ -456,6 +458,8 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
     log_index,
     event_type,
     sender,
+    interpreter_address,
+    store_address,
     order_hash,
     order_owner,
     order_nonce,
@@ -472,7 +476,9 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
     ?8,
     ?9,
     ?10,
-    ?11
+    ?11,
+    ?12,
+    ?13
 );
 "#,
         vec![
@@ -483,6 +489,8 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
             SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
+            SqlValue::from(interpreter_address),
+            SqlValue::from(store_address),
             SqlValue::from(order_hash),
             SqlValue::from(order_owner),
             SqlValue::from(order_nonce),
@@ -504,6 +512,8 @@ fn generate_remove_order_statement(
     let order_hash = hex::encode_prefixed(decoded.orderHash);
     let order_owner = hex::encode_prefixed(decoded.order.owner);
     let order_nonce = hex::encode_prefixed(decoded.order.nonce);
+    let interpreter_address = hex::encode_prefixed(decoded.order.evaluable.interpreter);
+    let store_address = hex::encode_prefixed(decoded.order.evaluable.store);
 
     SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
@@ -515,6 +525,8 @@ fn generate_remove_order_statement(
     log_index,
     event_type,
     sender,
+    interpreter_address,
+    store_address,
     order_hash,
     order_owner,
     order_nonce,
@@ -525,13 +537,15 @@ fn generate_remove_order_statement(
     ?3,
     ?4,
     ?5,
-    'RemoveOrderV3',
     ?6,
+    'RemoveOrderV3',
     ?7,
     ?8,
     ?9,
     ?10,
-    ?11
+    ?11,
+    ?12,
+    ?13
 );
 "#,
         vec![
@@ -542,6 +556,8 @@ fn generate_remove_order_statement(
             SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
+            SqlValue::from(interpreter_address),
+            SqlValue::from(store_address),
             SqlValue::from(order_hash),
             SqlValue::from(order_owner),
             SqlValue::from(order_nonce),
@@ -1136,6 +1152,23 @@ mod tests {
         )
     }
 
+    fn sample_remove_event() -> DecodedEventData<DecodedEvent> {
+        let remove = RemoveOrderV3 {
+            sender: Address::from([0x0b; 20]),
+            orderHash: FixedBytes::<32>::from([0x0c; 32]),
+            order: sample_order(),
+        };
+
+        build_event(
+            EventType::RemoveOrderV3,
+            "0x101",
+            "0x201",
+            "0xbb00",
+            "0x2",
+            DecodedEvent::RemoveOrderV3(Box::new(remove)),
+        )
+    }
+
     fn sample_clear_event() -> DecodedEventData<DecodedEvent> {
         let clear = ClearV3 {
             sender: Address::from([0x11; 20]),
@@ -1368,7 +1401,7 @@ mod tests {
     }
 
     #[test]
-    fn add_order_sql_includes_order_bytes() {
+    fn add_order_sql_includes_evaluable_addresses() {
         let event = sample_add_event();
         let context = event_context(1, Address::ZERO, &event).unwrap();
         let DecodedEvent::AddOrderV3(decoded) = &event.decoded_data else {
@@ -1376,9 +1409,11 @@ mod tests {
         };
         let statement = generate_add_order_statement(&context, decoded);
         assert!(statement.sql().contains("order_bytes"));
-        assert!(statement.sql().contains("?11"));
+        assert!(statement.sql().contains("interpreter_address"));
+        assert!(statement.sql().contains("store_address"));
+        assert!(statement.sql().contains("?13"));
         let params = statement.params();
-        assert_eq!(params.len(), 11);
+        assert_eq!(params.len(), 13);
         assert!(matches!(
             params[0],
             SqlValue::I64(v) if v == context.chain_id as i64
@@ -1387,8 +1422,15 @@ mod tests {
             params[1],
             SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
         ));
+        assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
+        let expected_sender = hex::encode_prefixed(decoded.sender);
+        assert!(matches!(params[6], SqlValue::Text(ref v) if v == &expected_sender));
+        let expected_interpreter = hex::encode_prefixed(decoded.order.evaluable.interpreter);
+        assert!(matches!(params[7], SqlValue::Text(ref v) if v == &expected_interpreter));
+        let expected_store = hex::encode_prefixed(decoded.order.evaluable.store);
+        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_store));
         let expected_bytes = hex::encode_prefixed(decoded.order.abi_encode());
-        assert!(matches!(params[10], SqlValue::Text(ref v) if v == &expected_bytes));
+        assert!(matches!(params[12], SqlValue::Text(ref v) if v == &expected_bytes));
         let ios_batch = generate_order_ios_statements(&context, &decoded.order);
         let expected_ios_len = decoded.order.validInputs.len() + decoded.order.validOutputs.len();
         assert_eq!(ios_batch.len(), expected_ios_len);
@@ -1396,6 +1438,35 @@ mod tests {
             .statements()
             .iter()
             .all(|stmt| stmt.sql().contains("INSERT INTO order_ios")));
+    }
+
+    #[test]
+    fn remove_order_sql_includes_evaluable_addresses() {
+        let event = sample_remove_event();
+        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let DecodedEvent::RemoveOrderV3(decoded) = &event.decoded_data else {
+            unreachable!()
+        };
+        let statement = generate_remove_order_statement(&context, decoded);
+        assert!(statement.sql().contains("'RemoveOrderV3'"));
+        assert!(statement.sql().contains("interpreter_address"));
+        assert!(statement.sql().contains("store_address"));
+        let params = statement.params();
+        assert_eq!(params.len(), 13);
+        assert!(matches!(params[0], SqlValue::I64(v) if v == context.chain_id as i64));
+        assert!(matches!(
+            params[1],
+            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+        ));
+        assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
+        let expected_sender = hex::encode_prefixed(decoded.sender);
+        assert!(matches!(params[6], SqlValue::Text(ref v) if v == &expected_sender));
+        let expected_interpreter = hex::encode_prefixed(decoded.order.evaluable.interpreter);
+        assert!(matches!(params[7], SqlValue::Text(ref v) if v == &expected_interpreter));
+        let expected_store = hex::encode_prefixed(decoded.order.evaluable.store);
+        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_store));
+        let expected_bytes = hex::encode_prefixed(decoded.order.abi_encode());
+        assert!(matches!(params[12], SqlValue::Text(ref v) if v == &expected_bytes));
     }
 
     #[test]
