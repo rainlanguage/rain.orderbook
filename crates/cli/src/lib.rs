@@ -1,27 +1,9 @@
-use crate::commands::local_db::{DbDump, SyncLocalDb};
 use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
+use commands::local_db::LocalDbCommands;
 use rain_orderbook_quote::cli::Quoter;
-
-#[derive(Subcommand)]
-#[command(about = "Local database operations")]
-pub enum LocalDb {
-    #[command(name = "dump")]
-    Dump(DbDump),
-    #[command(name = "sync")]
-    Sync(SyncLocalDb),
-}
-
-impl LocalDb {
-    pub async fn execute(self) -> Result<()> {
-        match self {
-            LocalDb::Dump(dump) => dump.execute().await,
-            LocalDb::Sync(cmd) => cmd.execute().await,
-        }
-    }
-}
 
 mod commands;
 mod execute;
@@ -51,7 +33,7 @@ pub enum Orderbook {
     Words(Words),
 
     #[command(name = "local-db", subcommand)]
-    LocalDb(LocalDb),
+    LocalDb(LocalDbCommands),
 }
 
 impl Orderbook {

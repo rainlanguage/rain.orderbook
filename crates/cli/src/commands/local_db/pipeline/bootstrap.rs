@@ -11,7 +11,6 @@ use rain_orderbook_common::local_db::{
 pub struct ProducerBootstrapAdapter;
 
 impl ProducerBootstrapAdapter {
-    #[cfg(test)]
     pub fn new() -> Self {
         Self {}
     }
