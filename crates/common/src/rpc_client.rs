@@ -92,6 +92,7 @@ impl RpcClient {
 
     pub fn build_hyper_url(chain_id: u32, api_token: &str) -> Result<Url, RpcClientError> {
         let base = match chain_id {
+            137 => "https://polygon.rpc.hypersync.xyz",
             8453 => "https://base.rpc.hypersync.xyz",
             42161 => "https://arbitrum.rpc.hypersync.xyz",
             _ => return Err(RpcClientError::UnsupportedChainId { chain_id }),
