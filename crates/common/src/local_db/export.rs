@@ -190,7 +190,7 @@ fn format_sql_value(value: &Value) -> Result<String, ExportError> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use crate::local_db::query::{
