@@ -36,7 +36,10 @@ pub(super) async fn export_dump(
     let chain_folder = out_root.join(target.inputs.target.chain_id.to_string());
     create_dir_all(&chain_folder).await?;
 
-    let filename = format!("{}.sql.gz", target.inputs.target.orderbook_address);
+    let filename = format!(
+        "{}-{}.sql.gz",
+        target.inputs.target.chain_id, target.inputs.target.orderbook_address
+    );
     let dump_path = chain_folder.join(filename);
 
     let compressed = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, std::io::Error> {
@@ -176,6 +179,17 @@ mod tests {
         assert_eq!(
             metadata.dump_path.extension().and_then(|ext| ext.to_str()),
             Some("gz")
+        );
+        let expected_file = format!(
+            "{}-{}.sql.gz",
+            chain_id, target.inputs.target.orderbook_address
+        );
+        assert_eq!(
+            metadata
+                .dump_path
+                .file_name()
+                .and_then(|name| name.to_str()),
+            Some(expected_file.as_str())
         );
 
         let gz_bytes = fs::read(&metadata.dump_path).await.expect("read dump file");

@@ -1,5 +1,6 @@
 pub mod environment;
 pub mod export;
+pub mod manifest;
 
 use crate::commands::local_db::executor::RusqliteExecutor;
 use crate::commands::local_db::pipeline::{
@@ -9,6 +10,7 @@ use alloy::primitives::Address;
 use environment::default_environment;
 use export::export_dump;
 pub use export::ExportMetadata;
+use manifest::{build_manifest, write_manifest_to_path};
 use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
 use rain_orderbook_common::local_db::pipeline::runner::environment::RunnerEnvironment;
 use rain_orderbook_common::local_db::pipeline::runner::remotes::lookup_manifest_entry;
@@ -21,19 +23,24 @@ use rain_orderbook_common::local_db::pipeline::{
         window::DefaultWindowPipeline,
     },
     engine::SyncInputs,
-    ApplyPipeline, BootstrapPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline,
-    WindowPipeline,
+    ApplyPipeline, BootstrapPipeline, EventsPipeline, StatusBus, SyncOutcome, TargetKey,
+    TokensPipeline, WindowPipeline,
 };
 use rain_orderbook_common::local_db::LocalDbError;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::task::{JoinSet, LocalSet};
-use tracing::error;
+use tracing::{error, warn};
+use url::Url;
 
 pub struct ProducerRunner<B, W, E, T, A, S> {
     settings: ParsedRunnerSettings,
     targets: Vec<RunnerTarget>,
+    target_lookup: HashMap<TargetKey, RunnerTarget>,
     out_root: PathBuf,
+    release_base_url: Url,
+    manifest_output_path: PathBuf,
     environment: RunnerEnvironment<B, W, E, T, A, S>,
 }
 
@@ -49,15 +56,26 @@ where
     pub fn with_environment(
         settings_yaml: String,
         out_root: PathBuf,
+        release_base_url: Url,
         environment: RunnerEnvironment<B, W, E, T, A, S>,
     ) -> Result<Self, LocalDbError> {
         let settings = parse_runner_settings(&settings_yaml)?;
         let targets = build_runner_targets(&settings.orderbooks, &settings.syncs)?;
 
+        let mut target_lookup = HashMap::with_capacity(targets.len());
+        for target in &targets {
+            target_lookup.insert(target.inputs.target.clone(), target.clone());
+        }
+
+        let manifest_output_path = out_root.join("manifest.yaml");
+
         Ok(Self {
             settings,
             targets,
+            target_lookup,
             out_root,
+            release_base_url,
+            manifest_output_path,
             environment,
         })
     }
@@ -73,7 +91,7 @@ where
         let environment = self.environment.clone();
 
         let local = LocalSet::new();
-        local
+        let report = local
             .run_until(async move {
                 let mut tasks = JoinSet::new();
                 for target in targets {
@@ -130,12 +148,34 @@ where
                         }
                     }
                 }
-                Ok(ProducerRunReport {
+                Ok::<ProducerRunReport, LocalDbError>(ProducerRunReport {
                     successes,
                     failures,
                 })
             })
-            .await
+            .await?;
+
+        if !report.failures.is_empty() {
+            warn!(
+                failures = report.failures.len(),
+                "skipping manifest write because one or more producer jobs failed"
+            );
+            return Ok(report);
+        }
+
+        if report.successes.is_empty() {
+            return Ok(report);
+        }
+
+        let manifest = build_manifest(
+            &report.successes,
+            &self.target_lookup,
+            &self.release_base_url,
+        )?;
+        let manifest_path = self.manifest_output_path.clone();
+        write_manifest_to_path(&manifest, manifest_path.as_path()).await?;
+
+        Ok(report)
     }
 }
 
@@ -152,10 +192,11 @@ impl
     pub fn new(
         settings_yaml: String,
         out_root: PathBuf,
+        release_base_url: Url,
         hypersync_token: String,
     ) -> Result<Self, LocalDbError> {
         let environment = default_environment(hypersync_token);
-        Self::with_environment(settings_yaml, out_root, environment)
+        Self::with_environment(settings_yaml, out_root, release_base_url, environment)
     }
 }
 
@@ -1012,6 +1053,7 @@ orderbooks:
         let runner = ProducerRunner::with_environment(
             yaml.clone(),
             temp_dir.path().to_path_buf(),
+            Url::parse("https://releases.example.com").unwrap(),
             environment,
         )
         .expect("runner to be constructed");
@@ -1029,6 +1071,7 @@ orderbooks:
         let result = ProducerRunner::with_environment(
             yaml.to_string(),
             temp_dir.path().to_path_buf(),
+            Url::parse("https://releases.example.com").unwrap(),
             environment,
         );
         match result {
@@ -1036,6 +1079,12 @@ orderbooks:
             Err(other) => panic!("unexpected error variant: {other:?}"),
             Ok(_) => panic!("expected invalid YAML to produce an error"),
         }
+    }
+
+    #[test]
+    fn with_environment_requires_valid_release_base_url() {
+        let invalid = Url::parse("ht%tp://bad-url");
+        assert!(invalid.is_err(), "expected invalid URL to fail parsing");
     }
 
     #[tokio::test]
@@ -1046,9 +1095,14 @@ orderbooks:
         behaviors.insert("fail".to_string(), EngineBehavior::Fail);
         let (environment, telemetry) = build_environment(manifest_for_ok_orderbook(), behaviors);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let report = runner.run().await.expect("run succeeds overall");
 
@@ -1090,9 +1144,14 @@ orderbooks:
         behaviors.insert("panic".to_string(), EngineBehavior::Panic);
         let (environment, _telemetry) = build_environment(HashMap::new(), behaviors);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let report = runner.run().await.expect("run completes");
         assert_eq!(report.successes.len(), 0);
@@ -1112,9 +1171,14 @@ orderbooks:
         behaviors.insert("panic".to_string(), EngineBehavior::Panic);
         let (environment, telemetry) = build_environment(manifest_for_ok_orderbook(), behaviors);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let report = runner.run().await.expect("run completes");
 
@@ -1174,9 +1238,14 @@ orderbooks:
         let engine_builder = engine_builder_for_behaviors(telemetry.clone(), behaviors);
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let err = runner
             .run()
@@ -1219,9 +1288,14 @@ orderbooks:
         let engine_builder = engine_builder_for_behaviors(telemetry.clone(), behaviors);
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let report = runner.run().await.expect("run completes");
         assert!(report.successes.is_empty());
@@ -1266,9 +1340,14 @@ orderbooks:
         );
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let report = runner.run().await.expect("run completes");
         assert!(report.successes.is_empty());
@@ -1292,9 +1371,14 @@ orderbooks:
         behaviors.insert("ok".to_string(), EngineBehavior::Success);
         let (environment, telemetry) = build_environment(HashMap::new(), behaviors);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let report = runner.run().await.expect("run completes");
         assert_eq!(report.successes.len(), 1);
@@ -1311,9 +1395,11 @@ orderbooks:
         behaviors.insert("ok".to_string(), EngineBehavior::Success);
         let (environment, _telemetry) = build_environment(manifest_for_ok_orderbook(), behaviors);
         let temp_dir = TempDir::new().unwrap();
+        let release_base = Url::parse("https://releases.example.com").unwrap();
         let runner = ProducerRunner::with_environment(
             yaml.clone(),
             temp_dir.path().to_path_buf(),
+            release_base,
             environment,
         )
         .expect("runner");
@@ -1339,9 +1425,14 @@ orderbooks:
         behaviors.insert("ok".to_string(), EngineBehavior::SuccessWithExport);
         let (environment, _telemetry) = build_environment(HashMap::new(), behaviors);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let report = runner.run().await.expect("run completes");
         if report.successes.is_empty() {
@@ -1357,6 +1448,16 @@ orderbooks:
             metadata.dump_path.exists(),
             "exported dump file should exist"
         );
+        let file_name = metadata
+            .dump_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .expect("dump file name");
+        let expected_file = format!(
+            "{}-{}.sql.gz",
+            outcome.outcome.target.chain_id, outcome.outcome.target.orderbook_address
+        );
+        assert_eq!(file_name, expected_file);
         assert_eq!(metadata.end_block, outcome.outcome.target_block);
         assert_eq!(metadata.end_block_hash, "0xfeedface");
 
@@ -1382,6 +1483,70 @@ orderbooks:
     }
 
     #[tokio::test]
+    async fn run_successes_write_manifest_file() {
+        let yaml = settings_yaml_two_success();
+        let mut behaviors = HashMap::new();
+        behaviors.insert("ok".to_string(), EngineBehavior::SuccessWithExport);
+        behaviors.insert("ok-second".to_string(), EngineBehavior::SuccessWithExport);
+        let (environment, _telemetry) = build_environment(HashMap::new(), behaviors);
+        let temp_dir = TempDir::new().unwrap();
+        let out_root = temp_dir.path().join("artifacts/manifests");
+        let release_base = Url::parse("https://cdn.example/releases/").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            out_root.clone(),
+            release_base.clone(),
+            environment,
+        )
+        .expect("runner");
+
+        let report = runner.run().await.expect("run completes");
+        assert!(report.failures.is_empty());
+        assert_eq!(report.successes.len(), 2);
+
+        let manifest_path = out_root.join("manifest.yaml");
+        assert!(
+            manifest_path.exists(),
+            "expected manifest file to be written"
+        );
+        let manifest_contents = std::fs::read_to_string(&manifest_path).expect("manifest readable");
+        let manifest_lower = manifest_contents.to_lowercase();
+        assert!(
+            manifest_lower.contains("manifest-version: \"1\""),
+            "manifest header missing"
+        );
+        let expected_base = "https://cdn.example/releases";
+        let first_address = "0x00000000000000000000000000000000000000a1";
+        let second_address = "0x00000000000000000000000000000000000000d4";
+        let first_dump = format!(
+            "dump-url: \"{}/42161-{}.sql.gz\"",
+            expected_base, first_address
+        );
+        let second_dump = format!(
+            "dump-url: \"{}/42161-{}.sql.gz\"",
+            expected_base, second_address
+        );
+        assert!(
+            manifest_lower.contains(&first_dump),
+            "first dump url missing: {manifest_contents}"
+        );
+        assert!(
+            manifest_lower.contains(&second_dump),
+            "second dump url missing: {manifest_contents}"
+        );
+        let first_index = manifest_lower
+            .find(first_address)
+            .expect("first address present");
+        let second_index = manifest_lower
+            .find(second_address)
+            .expect("second address present");
+        assert!(
+            first_index < second_index,
+            "expected orderbooks to be sorted by address"
+        );
+    }
+
+    #[tokio::test]
     async fn run_all_successes_report_no_failures() {
         let yaml = settings_yaml_two_success();
         let mut behaviors = HashMap::new();
@@ -1390,9 +1555,14 @@ orderbooks:
         let (environment, telemetry) =
             build_environment(manifest_for_two_ok_orderbooks(), behaviors);
         let temp_dir = TempDir::new().unwrap();
-        let runner =
-            ProducerRunner::with_environment(yaml, temp_dir.path().to_path_buf(), environment)
-                .expect("runner");
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
 
         let report = runner.run().await.expect("run completes");
         assert_eq!(report.successes.len(), 2);
@@ -1409,9 +1579,11 @@ orderbooks:
         behaviors.insert("ok".to_string(), EngineBehavior::Success);
         let (environment, _telemetry) = build_environment(HashMap::new(), behaviors);
         let temp_dir = TempDir::new().unwrap();
+        let release_base = Url::parse("https://releases.example.com").unwrap();
         let runner = ProducerRunner::with_environment(
             yaml.clone(),
             temp_dir.path().to_path_buf(),
+            release_base,
             environment,
         )
         .expect("runner");

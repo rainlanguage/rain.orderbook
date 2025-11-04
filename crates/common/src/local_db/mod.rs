@@ -94,6 +94,28 @@ pub enum LocalDbError {
     #[error("Configuration error: {message}")]
     Config { message: String },
 
+    #[error("Missing runner target for chain {chain_id} orderbook {orderbook_address}")]
+    MissingRunnerTarget {
+        chain_id: u32,
+        orderbook_address: Address,
+    },
+
+    #[error(
+        "Network '{network_key}' has mismatched chain ids (expected {expected}, found {found})"
+    )]
+    RunnerNetworkChainIdMismatch {
+        network_key: String,
+        expected: u32,
+        found: u32,
+    },
+
+    #[error("Failed to build dump url '{url}'")]
+    DumpUrlConstructionFailed {
+        url: String,
+        #[source]
+        source: url::ParseError,
+    },
+
     #[error("Failed to fetch token metadata for {address} after {attempts} attempts")]
     TokenMetadataFetchFailed {
         address: Address,
@@ -228,6 +250,24 @@ impl LocalDbError {
                 network
             ),
             LocalDbError::Config { message } => format!("Configuration error: {}", message),
+            LocalDbError::MissingRunnerTarget {
+                chain_id,
+                orderbook_address,
+            } => format!(
+                "Missing runner target for chain {} orderbook {:#x}",
+                chain_id, orderbook_address
+            ),
+            LocalDbError::RunnerNetworkChainIdMismatch {
+                network_key,
+                expected,
+                found,
+            } => format!(
+                "Network '{}' has mismatched chain ids (expected {}, found {})",
+                network_key, expected, found
+            ),
+            LocalDbError::DumpUrlConstructionFailed { url, source } => {
+                format!("Failed to build dump url '{}': {}", url, source)
+            }
             LocalDbError::DecodeError { message } => format!("Event decoding error: {}", message),
             LocalDbError::TableCheckFailed(err) => {
                 format!("Failed to check required tables: {}", err)

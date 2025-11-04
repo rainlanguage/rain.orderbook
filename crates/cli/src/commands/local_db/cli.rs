@@ -4,6 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 use std::io::{self, Write};
 use std::path::PathBuf;
+use url::Url;
 
 #[derive(Debug, Clone, Parser)]
 #[command(about = "Run the producer pipeline across all orderbooks in settings.yaml")]
@@ -29,6 +30,14 @@ pub struct RunPipeline {
         default_value = "./local-db"
     )]
     pub out_root: PathBuf,
+
+    #[clap(
+        long,
+        help = "Base URL for published dumps (e.g., https://example.com/releases)",
+        value_name = "URL",
+        value_parser = clap::value_parser!(Url)
+    )]
+    pub release_base_url: Url,
 }
 
 impl RunPipeline {
@@ -39,11 +48,12 @@ impl RunPipeline {
             settings_yaml,
             api_token,
             out_root,
+            release_base_url,
         } = self;
 
         std::fs::create_dir_all(&out_root)?;
 
-        let runner = ProducerRunner::new(settings_yaml, out_root, api_token)?;
+        let runner = ProducerRunner::new(settings_yaml, out_root, release_base_url, api_token)?;
         let report = runner.run().await?;
 
         render_report(&report);
@@ -161,8 +171,15 @@ mod tests {
 
     #[test]
     fn default_out_root_is_local_db() {
-        let command =
-            RunPipeline::parse_from(["sync", "--settings-yaml", "test", "--api-token", "token"]);
+        let command = RunPipeline::parse_from([
+            "sync",
+            "--settings-yaml",
+            "test",
+            "--api-token",
+            "token",
+            "--release-base-url",
+            "https://example.com/releases",
+        ]);
         assert_eq!(command.out_root, PathBuf::from("./local-db"));
     }
 
@@ -201,8 +218,8 @@ mod tests {
             },
             exported_dump: Some(ExportMetadata {
                 dump_path: PathBuf::from(format!(
-                    "./local-db/{}/{}.db",
-                    chain_id, runner_target.inputs.target.orderbook_address
+                    "./local-db/{}/{}-{}.sql.gz",
+                    chain_id, chain_id, runner_target.inputs.target.orderbook_address
                 )),
                 end_block: 400,
                 end_block_hash: "0xdeadbeef".to_string(),

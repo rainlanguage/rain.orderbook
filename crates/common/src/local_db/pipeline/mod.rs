@@ -26,7 +26,7 @@ use url::Url;
 /// Identifies the logical target (orderbook) for a sync cycle.
 ///
 /// Multi-tenant writes/reads are always keyed by this structure.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TargetKey {
     /// Chain id for the orderbook deployment.
     pub chain_id: u32,
