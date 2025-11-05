@@ -1,12 +1,15 @@
 name: Tauri Publish
 
 # This will trigger the action on each push to the `release` branch.
-on: [push]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   publish-tauri:
     # prevent releasing again on npm release commit and tag
-    # if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
+    if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
     permissions:
       id-token: write
       contents: write
