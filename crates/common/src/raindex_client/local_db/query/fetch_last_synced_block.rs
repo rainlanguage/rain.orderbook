@@ -2,7 +2,7 @@ use crate::local_db::query::fetch_last_synced_block::{
     fetch_last_synced_block_stmt, SyncStatusResponse,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
-use crate::local_db::{LocalDb, LocalDbError};
+use crate::local_db::LocalDbError;
 use wasm_bindgen_utils::{prelude::*, wasm_export};
 
 pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
@@ -11,23 +11,19 @@ pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
     exec.query_json(&fetch_last_synced_block_stmt()).await
 }
 
-#[wasm_export]
-impl LocalDb {
-    /// Returns the sync status rows from the local DB (via provided JS query callback)
-    #[wasm_export(
-        js_name = "getSyncStatus",
-        unchecked_return_type = "SyncStatusResponse[]"
-    )]
-    pub async fn get_sync_status(
-        &self,
-        #[wasm_export(param_description = "JavaScript function to execute database queries")]
-        db_callback: js_sys::Function,
-    ) -> Result<Vec<SyncStatusResponse>, LocalDbError> {
-        let exec = crate::raindex_client::local_db::executor::JsCallbackExecutor::new(&db_callback);
-        fetch_last_synced_block(&exec)
-            .await
-            .map_err(LocalDbError::from)
-    }
+/// Returns the sync status rows from the local DB (via provided JS query callback)
+#[wasm_export(
+    js_name = "getSyncStatus",
+    unchecked_return_type = "SyncStatusResponse[]"
+)]
+pub async fn get_sync_status(
+    #[wasm_export(param_description = "JavaScript function to execute database queries")]
+    db_callback: js_sys::Function,
+) -> Result<Vec<SyncStatusResponse>, LocalDbError> {
+    let exec = crate::raindex_client::local_db::executor::JsCallbackExecutor::new(&db_callback);
+    fetch_last_synced_block(&exec)
+        .await
+        .map_err(LocalDbError::from)
 }
 
 #[cfg(all(test, target_family = "wasm"))]
