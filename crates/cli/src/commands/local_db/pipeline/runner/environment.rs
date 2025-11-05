@@ -34,12 +34,13 @@ pub fn default_environment(
                 target.inputs.target.chain_id,
                 hypersync_token.clone(),
             )?;
+            let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
 
             Ok(EnginePipelines::new(
                 ProducerBootstrapAdapter::new(),
                 DefaultWindowPipeline::new(),
                 events,
-                DefaultTokensPipeline::new(),
+                tokens,
                 DefaultApplyPipeline::new(),
                 ProducerStatusBus::new(),
             ))

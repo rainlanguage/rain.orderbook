@@ -45,15 +45,10 @@ impl EventsPipeline for DefaultEventsPipeline {
 
     async fn block_hash(&self, block_number: u64) -> Result<Bytes, LocalDbError> {
         let block = self
-            .db
-            .rpc_client()
+            .rpc_client
             .get_block_by_number(block_number)
             .await?
-            .ok_or_else(|| {
-                LocalDbError::CustomError(format!(
-                    "block {block_number} not found when fetching block hash"
-                ))
-            })?;
+            .ok_or_else(|| LocalDbError::BlockHashNotFound { block_number })?;
         Ok(Bytes::from_str(&block.hash)?)
     }
 
@@ -137,7 +132,7 @@ mod tests {
 
         let err = pipe.decode(&[bad_log]).expect_err("expected decode error");
         match err {
-            LocalDbError::DecodeError { .. } => {}
+            LocalDbError::DecodeError(_) => {}
             other => panic!("unexpected error variant: {other:?}"),
         }
     }

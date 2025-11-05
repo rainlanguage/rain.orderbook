@@ -63,6 +63,8 @@ pub enum LocalDbError {
         #[source]
         source: ParseIntError,
     },
+    #[error("Block {block_number} not found when fetching block hash")]
+    BlockHashNotFound { block_number: u64 },
 
     #[error("Events is not in expected array format")]
     InvalidEventsFormat,
@@ -211,6 +213,10 @@ impl LocalDbError {
             LocalDbError::InvalidBlockNumberString { value, .. } => {
                 format!("Invalid block number provided: {}", value)
             }
+            LocalDbError::BlockHashNotFound { block_number } => format!(
+                "Block {} not found when fetching block hash",
+                block_number
+            ),
             LocalDbError::InvalidEventsFormat => {
                 "Events data is not in the expected array format".to_string()
             }
