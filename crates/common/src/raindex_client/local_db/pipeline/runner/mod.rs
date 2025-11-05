@@ -25,7 +25,7 @@ use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
 use environment::default_environment;
 use futures::future::try_join_all;
-use leadership::{DefaultLeadership, Leadership};
+use leadership::{DefaultLeadership, Leadership, LeadershipGuard};
 use rain_orderbook_app_settings::{
     local_db_manifest::DB_SCHEMA_VERSION, remote::manifest::ManifestMap,
 };
@@ -38,6 +38,7 @@ pub struct ClientRunner<B, W, E, T, A, S, L> {
     has_bootstrapped: bool,
     environment: RunnerEnvironment<B, W, E, T, A, S>,
     leadership: L,
+    leadership_guard: Option<LeadershipGuard>,
 }
 
 impl<B, W, E, T, A, S, L> ClientRunner<B, W, E, T, A, S, L>
@@ -66,6 +67,7 @@ where
             has_bootstrapped: false,
             environment,
             leadership,
+            leadership_guard: None,
         })
     }
 
@@ -73,10 +75,12 @@ where
     where
         DB: LocalDbQueryExecutor + ?Sized + Sync,
     {
-        let _leadership_guard = match self.leadership.acquire().await? {
-            Some(guard) => guard,
-            None => return Ok(vec![]),
-        };
+        if self.leadership_guard.is_none() {
+            match self.leadership.acquire().await? {
+                Some(guard) => self.leadership_guard = Some(guard),
+                None => return Ok(vec![]),
+            }
+        }
 
         let mut fetched_manifests = false;
         if !self.manifests_loaded {
@@ -218,6 +222,29 @@ mod tests {
     #[async_trait(?Send)]
     impl Leadership for AlwaysLeadership {
         async fn acquire(&self) -> Result<Option<LeadershipGuard>, LocalDbError> {
+            Ok(Some(LeadershipGuard::new_noop()))
+        }
+    }
+
+    #[derive(Clone, Default)]
+    struct CountingLeadership {
+        calls: Arc<AtomicUsize>,
+    }
+
+    impl CountingLeadership {
+        fn new() -> Self {
+            Self::default()
+        }
+
+        fn call_count(&self) -> usize {
+            self.calls.load(Ordering::SeqCst)
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl Leadership for CountingLeadership {
+        async fn acquire(&self) -> Result<Option<LeadershipGuard>, LocalDbError> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
             Ok(Some(LeadershipGuard::new_noop()))
         }
     }
@@ -1078,6 +1105,31 @@ orderbooks:
         assert_eq!(telemetry.manifest_fetch_count(), 1);
         assert_eq!(telemetry.dump_requests().len(), 2);
         assert_eq!(telemetry.builder_inits(), 4);
+    }
+
+    #[tokio::test]
+    async fn leadership_guard_reused_across_runs() {
+        let telemetry = Telemetry::default();
+        let environment =
+            build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
+        let settings = two_orderbooks_settings_yaml();
+        let leadership = CountingLeadership::new();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, leadership.clone()).unwrap();
+
+        let db_first = RecordingDb::default();
+        prepare_db_for_targets(&db_first, &runner.base_targets);
+        runner.run(&db_first).await.expect("first run succeeds");
+
+        let db_second = RecordingDb::default();
+        prepare_db_for_targets(&db_second, &runner.base_targets);
+        runner.run(&db_second).await.expect("second run succeeds");
+
+        assert_eq!(
+            leadership.call_count(),
+            1,
+            "leadership should be acquired only once per runner lifetime"
+        );
     }
 
     #[tokio::test]

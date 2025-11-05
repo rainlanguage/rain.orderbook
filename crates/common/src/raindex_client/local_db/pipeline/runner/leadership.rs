@@ -99,7 +99,9 @@ async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
 
     let window = match window() {
         Some(window) => window,
-        None => return Ok(Some(LeadershipGuard::new_noop())),
+        None => {
+            return Ok(Some(LeadershipGuard::new_noop()));
+        }
     };
     let navigator = window.navigator();
     let locks_value = Reflect::get(navigator.as_ref(), &JsValue::from_str("locks"))?;

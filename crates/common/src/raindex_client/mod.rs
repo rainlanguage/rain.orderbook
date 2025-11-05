@@ -274,10 +274,7 @@ impl RaindexClient {
     }
 
     fn local_db_callback(&self) -> Option<js_sys::Function> {
-        self.local_db_callback
-            .borrow()
-            .as_ref()
-            .cloned()
+        self.local_db_callback.borrow().as_ref().cloned()
     }
 }
 
