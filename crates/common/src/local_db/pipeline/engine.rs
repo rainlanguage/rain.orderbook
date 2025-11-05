@@ -287,7 +287,7 @@ where
 
         self.status.send("Fetching missing token metadata").await?;
         self.tokens
-            .fetch_missing(&input.metadata_rpcs, missing_tokens, &input.cfg.fetch)
+            .fetch_missing(missing_tokens, &input.cfg.fetch)
             .await
     }
 
@@ -814,7 +814,6 @@ mod tests {
         fetch_results: Mutex<VecDeque<TokenFetchResult>>,
         load_calls: Mutex<Vec<Vec<Address>>>,
         fetch_calls: Mutex<Vec<Vec<Address>>>,
-        fetch_rpc_calls: Mutex<Vec<Vec<Url>>>,
         barrier: Mutex<Option<Arc<Barrier>>>,
         load_completed: Mutex<bool>,
     }
@@ -837,10 +836,6 @@ mod tests {
 
         fn fetch_calls(&self) -> Vec<Vec<Address>> {
             self.inner.fetch_calls.lock().unwrap().clone()
-        }
-
-        fn fetch_rpc_calls(&self) -> Vec<Vec<Url>> {
-            self.inner.fetch_rpc_calls.lock().unwrap().clone()
         }
 
         fn set_barrier(&self, barrier: Arc<Barrier>) {
@@ -887,15 +882,9 @@ mod tests {
 
         async fn fetch_missing(
             &self,
-            rpcs: &[Url],
             missing: Vec<Address>,
             _cfg: &FetchConfig,
         ) -> TokenFetchResult {
-            self.inner
-                .fetch_rpc_calls
-                .lock()
-                .unwrap()
-                .push(rpcs.to_vec());
             self.inner.fetch_calls.lock().unwrap().push(missing);
             self.inner
                 .fetch_results
@@ -1504,7 +1493,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_fetches_missing_tokens_dedupes_and_records_rpcs() {
+    async fn run_fetches_missing_tokens_dedupes() {
         let harness = EngineHarness::new();
         let token = addr(0x0A);
         harness.events.set_latest_blocks(vec![Ok(60)]);
@@ -1536,10 +1525,6 @@ mod tests {
         let fetch_calls = harness.tokens.fetch_calls();
         assert_eq!(fetch_calls.len(), 1);
         assert_eq!(fetch_calls[0], vec![token]);
-
-        let rpc_calls = harness.tokens.fetch_rpc_calls();
-        assert_eq!(rpc_calls.len(), 1);
-        assert_eq!(rpc_calls[0], inputs.metadata_rpcs);
     }
 
     #[tokio::test]
