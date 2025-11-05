@@ -50,7 +50,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback(response, store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res =
             super::fetch_order_trades_count(&exec, 1, orderbook, order_hash, start, end).await;
@@ -68,7 +68,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res =
             super::fetch_order_trades_count(&exec, 1, Address::ZERO, "hash", None, None).await;
         assert!(res.is_ok());

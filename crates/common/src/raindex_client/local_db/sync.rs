@@ -47,7 +47,7 @@ impl RaindexClient {
         #[wasm_export(param_description = "The blockchain network ID to sync against")]
         chain_id: u32,
     ) -> Result<(), LocalDbError> {
-        let db_bridge = JsCallbackExecutor::new(&db_callback);
+        let db_bridge = JsCallbackExecutor::from_ref(&db_callback);
         let status_bridge = JsStatusReporter::new(&status_callback);
         let orderbooks =
             self.get_orderbooks_by_chain_id(chain_id)

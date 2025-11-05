@@ -309,7 +309,7 @@ impl RaindexVault {
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         if LocalDb::check_support(self.chain_id) {
             if let Some(db_cb) = self.raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
                 let token_address = self.token.address.to_string();
                 let local_changes = fetch_vault_balance_changes(
@@ -1119,7 +1119,7 @@ impl RaindexClient {
 
         if !local_ids.is_empty() {
             let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 self.get_vaults_local_db(exec, id, filters.clone())
             }))
             .await?;
@@ -1351,7 +1351,7 @@ impl RaindexClient {
 
         if LocalDb::check_support(chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 if let Some(vault) = self
                     .get_vault_local_db(&exec, chain_id, orderbook_address, &vault_id)
                     .await?

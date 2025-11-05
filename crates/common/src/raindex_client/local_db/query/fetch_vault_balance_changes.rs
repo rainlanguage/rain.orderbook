@@ -37,7 +37,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res = super::fetch_vault_balance_changes(&exec, 1, orderbook, vault_id, token).await;
         assert!(res.is_ok());
@@ -69,7 +69,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback(row_json, store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res = super::fetch_vault_balance_changes(&exec, 1, orderbook, vault_id, token).await;
         assert!(res.is_ok());

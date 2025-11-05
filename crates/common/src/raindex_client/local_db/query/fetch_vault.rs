@@ -59,7 +59,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res = super::fetch_vault(&exec, chain_id, orderbook, vault_id, token).await;
         assert!(res.is_ok());
@@ -85,7 +85,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback(row_json, store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res = super::fetch_vault(&exec, chain_id, orderbook, vault_id, token).await;
         assert!(res.is_ok());
@@ -101,7 +101,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         // None -> no calls, empty vec
         let none: Option<String> = None;
@@ -144,7 +144,7 @@ mod wasm_tests {
         closure.forget();
 
         // Act
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res = super::fetch_vaults_for_io_string(&exec, chain_id, Address::ZERO, &io).await;
         assert!(res.is_ok());
         let vaults = res.unwrap();

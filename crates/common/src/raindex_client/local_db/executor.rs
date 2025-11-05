@@ -1,17 +1,27 @@
 use super::*;
 use crate::local_db::query::{
-    FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+    FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch, SqlValue,
 };
 use async_trait::async_trait;
+use js_sys::{Array, BigInt};
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::JsFuture;
 
-pub struct JsCallbackExecutor<'a> {
-    callback: &'a js_sys::Function,
+#[derive(Clone)]
+pub struct JsCallbackExecutor {
+    callback: js_sys::Function,
 }
 
-impl<'a> JsCallbackExecutor<'a> {
-    pub fn new(callback: &'a js_sys::Function) -> Self {
+impl JsCallbackExecutor {
+    pub fn new(callback: js_sys::Function) -> Self {
         Self { callback }
+    }
+
+    pub fn from_ref(callback: &js_sys::Function) -> Self {
+        Self::new(callback.clone())
+    }
+
+    fn function(&self) -> &js_sys::Function {
+        &self.callback
     }
 
     async fn invoke_statement(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
@@ -20,12 +30,21 @@ impl<'a> JsCallbackExecutor<'a> {
         let js_params_val = if stmt.params.is_empty() {
             JsValue::UNDEFINED
         } else {
-            serde_wasm_bindgen::to_value(&stmt.as_js_params())
-                .map_err(|e| LocalDbQueryError::database(format!("encode params: {:?}", e)))?
+            let array = Array::new();
+            for param in stmt.params() {
+                let js_param = match param {
+                    SqlValue::Text(text) => JsValue::from_str(text),
+                    SqlValue::I64(value) => JsValue::from(BigInt::from(*value)),
+                    SqlValue::U64(value) => JsValue::from(BigInt::from(*value)),
+                    SqlValue::Null => JsValue::NULL,
+                };
+                array.push(&js_param);
+            }
+            JsValue::from(array)
         };
 
         let result = self
-            .callback
+            .function()
             .call2(
                 &JsValue::NULL,
                 &JsValue::from_str(&stmt.sql),
@@ -56,8 +75,12 @@ impl<'a> JsCallbackExecutor<'a> {
     }
 }
 
+// SAFETY: WASM builds run on a single thread; the wrapped JavaScript callback is only invoked on
+// that thread, so sharing the executor across async tasks is safe.
+unsafe impl Sync for JsCallbackExecutor {}
+
 #[async_trait(?Send)]
-impl<'a> LocalDbQueryExecutor for JsCallbackExecutor<'a> {
+impl LocalDbQueryExecutor for JsCallbackExecutor {
     async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
         if !batch.is_transaction() {
             return Err(LocalDbQueryError::database(
@@ -168,7 +191,7 @@ pub mod tests {
             ];
             let json_data = serde_json::to_string(&test_data).unwrap();
             let callback = create_success_callback(&json_data);
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
 
             let result: Result<Vec<TestData>, LocalDbQueryError> = exec
                 .query_json(&SqlStatement::new("SELECT * FROM users"))
@@ -183,7 +206,7 @@ pub mod tests {
         #[wasm_bindgen_test]
         async fn test_query_text_success() {
             let callback = create_success_callback("text-result");
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let val = exec
                 .query_text(&SqlStatement::new("SELECT 1"))
                 .await
@@ -199,7 +222,7 @@ pub mod tests {
 
             let store = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
             let callback = create_sql_capturing_callback("OK", store.clone());
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
 
             let _ = exec
                 .query_text(&SqlStatement::new("SELECT 42"))
@@ -219,7 +242,7 @@ pub mod tests {
 
             let store = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
             let callback = create_sql_capturing_callback("OK", store.clone());
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
 
             // Build a statement with parameters
             let mut stmt = SqlStatement::new("SELECT ?1, ?2");
@@ -267,7 +290,7 @@ pub mod tests {
             let callback: Function = closure.as_ref().clone().unchecked_into();
             closure.forget();
 
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
 
             let mut batch = SqlStatementBatch::new();
             batch.add(SqlStatement::new("CREATE TABLE example (val INTEGER)"));
@@ -336,7 +359,7 @@ pub mod tests {
             let callback: Function = closure.as_ref().clone().unchecked_into();
             closure.forget();
 
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
 
             let mut batch = SqlStatementBatch::new();
             batch.add(SqlStatement::new("CREATE TABLE rollback_test (value TEXT)"));
@@ -410,7 +433,7 @@ pub mod tests {
             let callback: Function = closure.as_ref().clone().unchecked_into();
             closure.forget();
 
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
 
             let mut batch = SqlStatementBatch::new();
             batch.add(SqlStatement::new(
@@ -476,7 +499,7 @@ pub mod tests {
         #[wasm_bindgen_test]
         async fn execute_batch_rejects_non_transactions() {
             let callback = create_success_callback("");
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let batch = SqlStatementBatch::from(vec![SqlStatement::new("SELECT 1")]);
 
             let err = exec.execute_batch(&batch).await.unwrap_err();
@@ -487,7 +510,7 @@ pub mod tests {
         async fn test_callback_throws() {
             // callback that throws synchronously
             let callback = Function::new_with_args("sql, params", "throw new Error('boom')");
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let err = exec
                 .query_text(&SqlStatement::new("SELECT 1"))
                 .await
@@ -504,7 +527,7 @@ pub mod tests {
             // callback returns a rejected Promise
             let callback =
                 Function::new_with_args("sql, params", "return Promise.reject('rejected')");
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let err = exec
                 .query_text(&SqlStatement::new("SELECT 1"))
                 .await
@@ -520,7 +543,7 @@ pub mod tests {
         async fn test_invalid_wrapper_yields_invalid_response() {
             // returns a plain string instead of WasmEncodedResult
             let callback = Function::new_with_args("sql, params", "return 'not-a-wrapper'");
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let res: Result<Vec<TestData>, LocalDbQueryError> =
                 exec.query_json(&SqlStatement::new("SELECT 1")).await;
             assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
@@ -547,7 +570,7 @@ pub mod tests {
             let callback: Function = closure.as_ref().clone().unchecked_into();
             closure.forget();
 
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let res: Result<Vec<TestData>, LocalDbQueryError> =
                 exec.query_json(&SqlStatement::new("SELECT 1")).await;
             assert!(matches!(

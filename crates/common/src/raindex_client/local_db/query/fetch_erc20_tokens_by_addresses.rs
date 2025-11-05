@@ -33,7 +33,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res = super::fetch_erc20_tokens_by_addresses(&exec, 1, Address::ZERO, &[]).await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_empty());
@@ -55,7 +55,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res = super::fetch_erc20_tokens_by_addresses(&exec, 10, Address::ZERO, &addrs).await;
         assert!(res.is_ok());

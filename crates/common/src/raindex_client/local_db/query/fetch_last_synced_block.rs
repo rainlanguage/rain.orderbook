@@ -33,7 +33,7 @@ impl LocalDb {
         #[wasm_export(js_name = "orderbookAddress", unchecked_param_type = "Address")]
         orderbook_address: String,
     ) -> Result<Vec<SyncStatusResponse>, LocalDbError> {
-        let exec = JsCallbackExecutor::new(&db_callback);
+        let exec = JsCallbackExecutor::from_ref(&db_callback);
         fetch_last_synced_block(&exec, chain_id, Address::from_str(&orderbook_address)?)
             .await
             .map_err(LocalDbError::from)
@@ -57,7 +57,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res = super::fetch_last_synced_block(&exec, 0, Address::ZERO).await;
         assert!(res.is_ok());
         assert_eq!(store.borrow().clone().0, expected_stmt.sql);

@@ -527,7 +527,7 @@ impl RaindexClient {
 
         if !local_ids.is_empty() {
             let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 self.get_orders_local_db(exec, id, filters.clone())
             }))
             .await?;
@@ -718,7 +718,7 @@ impl RaindexClient {
 
         if LocalDb::check_support(chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 if let Some(order) = self
                     .get_order_by_hash_local_db(&exec, chain_id, orderbook_address, &order_hash_hex)
                     .await?
