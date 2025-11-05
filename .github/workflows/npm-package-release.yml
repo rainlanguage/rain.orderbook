@@ -28,6 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
+          submodules: recursive
 
       - uses: nixbuild/nix-quick-install-action@v30
         with:
@@ -52,12 +53,34 @@ jobs:
           node-version: 22
           cache: "npm"
 
-      - run: ./prep-all.sh
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float
+      - run: nix develop -c forge build
+        working-directory: lib/rain.tofu.erc20-decimals
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-sol-prelude
+      - run: nix develop -c rainix-rs-prelude
+      - run: nix develop -c raindex-prelude
+
+      - name: Remove Unused Artifacts
+        run: rm -rf ./target/debug
 
       - name: Test JS/TS Binding 1/2
         run: nix develop -c rainix-wasm-test
+
+      - name: Remove Test Artifacts
+        run: |
+          rm -rf ./target/debug
+          rm -rf ./target/wasm32-unknown-unknown/debug
 
       - name: Test JS/TS Binding 2/2
         run: nix develop -c test-js-bindings

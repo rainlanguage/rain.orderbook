@@ -93,8 +93,6 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let stmts = batch.clone().ensure_transaction();
         db.execute_batch(&stmts).await.map_err(LocalDbError::from)
     }
-
-    // export_dump: default no-op via trait default
 }
 
 #[cfg(test)]
