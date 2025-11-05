@@ -2,10 +2,11 @@ use alloy::primitives::Address;
 use async_trait::async_trait;
 use url::Url;
 
-use crate::local_db::decode::{DecodedEvent, DecodedEventData};
+use crate::local_db::decode::{decode_events, DecodedEvent, DecodedEventData};
+use crate::local_db::fetch::{fetch_orderbook_events, fetch_store_events};
 use crate::local_db::pipeline::EventsPipeline;
-use crate::local_db::{FetchConfig, LocalDb, LocalDbError};
-use crate::rpc_client::LogEntryResponse;
+use crate::local_db::{FetchConfig, LocalDbError};
+use crate::rpc_client::{LogEntryResponse, RpcClient};
 
 /// Shared implementation of the EventsPipeline that delegates to LocalDb.
 ///
@@ -15,33 +16,27 @@ use crate::rpc_client::LogEntryResponse;
 /// - `from_local_db` if the runner builds a LocalDb externally
 #[derive(Debug, Clone)]
 pub struct DefaultEventsPipeline {
-    db: LocalDb,
+    rpc_client: RpcClient,
 }
 
 impl DefaultEventsPipeline {
     /// Constructs the pipeline using regular/public RPC URLs.
     pub fn with_regular_rpcs(rpcs: Vec<Url>) -> Result<Self, LocalDbError> {
-        let db = LocalDb::new_with_regular_rpcs(rpcs)?;
-        Ok(Self { db })
+        let rpc_client = RpcClient::new_with_urls(rpcs)?;
+        Ok(Self { rpc_client })
     }
 
     /// Constructs the pipeline using HyperRPC (producer path).
     pub fn with_hyperrpc(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
-        let db = LocalDb::new_with_hyper_rpc(chain_id, api_token)?;
-        Ok(Self { db })
-    }
-
-    /// Wraps an existing LocalDb instance provided by the runner.
-    pub fn from_local_db(db: LocalDb) -> Self {
-        Self { db }
+        let rpc_client = RpcClient::new_with_hyper_rpc(chain_id, &api_token)?;
+        Ok(Self { rpc_client })
     }
 }
 
 #[async_trait(?Send)]
 impl EventsPipeline for DefaultEventsPipeline {
     async fn latest_block(&self) -> Result<u64, LocalDbError> {
-        self.db
-            .rpc_client()
+        self.rpc_client
             .get_latest_block_number()
             .await
             .map_err(Into::into)
@@ -54,9 +49,14 @@ impl EventsPipeline for DefaultEventsPipeline {
         to_block: u64,
         cfg: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        self.db
-            .fetch_orderbook_events(orderbook_address, from_block, to_block, cfg)
-            .await
+        fetch_orderbook_events(
+            &self.rpc_client,
+            orderbook_address,
+            from_block,
+            to_block,
+            cfg,
+        )
+        .await
     }
 
     async fn fetch_stores(
@@ -66,63 +66,26 @@ impl EventsPipeline for DefaultEventsPipeline {
         to_block: u64,
         cfg: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        self.db
-            .fetch_store_events(store_addresses, from_block, to_block, cfg)
-            .await
+        fetch_store_events(&self.rpc_client, store_addresses, from_block, to_block, cfg).await
     }
 
     fn decode(
         &self,
         logs: &[LogEntryResponse],
     ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
-        self.db.decode_events(logs)
+        decode_events(logs).map_err(LocalDbError::DecodeError)
     }
 }
 
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
-    use crate::rpc_client::RpcClientError;
-
     use super::*;
-    use alloy::{
-        hex,
-        primitives::{Address, Bytes, FixedBytes},
-        sol_types::SolEvent,
-    };
+    use crate::rpc_client::RpcClientError;
+    use alloy::{hex, sol_types::SolEvent};
     use rain_orderbook_bindings::OrderBook::MetaV1_2;
 
     fn test_url() -> Url {
         Url::parse("http://localhost:8545").expect("valid test url")
-    }
-
-    fn make_meta_log() -> LogEntryResponse {
-        // Construct a minimal, valid MetaV1_2 event and encode it to bytes.
-        let sender = Address::from([24u8; 20]);
-        let subject_addr = Address::from([25u8; 20]);
-        let mut subject_bytes = [0u8; 32];
-        subject_bytes[12..32].copy_from_slice(&subject_addr[..]);
-        let event = MetaV1_2 {
-            sender,
-            subject: FixedBytes::<32>::from(subject_bytes),
-            meta: Bytes::from(vec![0x09, 0x0a, 0x0b, 0x0c, 0x0d]),
-        };
-
-        let encoded = event.encode_data();
-
-        LogEntryResponse {
-            address: format!("0x{:040x}", 0),
-            topics: vec![format!("0x{}", hex::encode(MetaV1_2::SIGNATURE_HASH))],
-            data: format!("0x{}", hex::encode(encoded)),
-            block_number: "0x1".to_string(),
-            block_timestamp: Some("0x2".to_string()),
-            transaction_hash: "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
-                .to_string(),
-            transaction_index: "0x0".to_string(),
-            block_hash: "0xbbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa"
-                .to_string(),
-            log_index: "0x0".to_string(),
-            removed: false,
-        }
     }
 
     #[test]
@@ -130,9 +93,6 @@ mod tests {
         // with_regular_rpcs
         let pipe = DefaultEventsPipeline::with_regular_rpcs(vec![test_url()])
             .expect("build with regular rpcs");
-        // from_local_db
-        let db = LocalDb::new_with_url(test_url());
-        let _pipe2 = DefaultEventsPipeline::from_local_db(db);
 
         // with_hyperrpc (uses supported chain id; token string is arbitrary)
         let _pipe3 = DefaultEventsPipeline::with_hyperrpc(42161, "token".to_string())
@@ -141,38 +101,8 @@ mod tests {
     }
 
     #[test]
-    fn decode_delegates_to_localdb() {
-        let pipe = DefaultEventsPipeline::from_local_db(LocalDb::new_with_url(test_url()));
-
-        let log = make_meta_log();
-        let via_db = LocalDb::new_with_url(test_url())
-            .decode_events(&[log.clone()])
-            .expect("db decode ok");
-        let via_pipe = pipe.decode(&[log]).expect("pipeline decode ok");
-
-        assert_eq!(via_db.len(), 1);
-        assert_eq!(via_pipe.len(), 1);
-        assert_eq!(via_db[0].event_type, via_pipe[0].event_type);
-
-        // Spot‑check decoded variant and fields are as expected
-        assert!(matches!(
-            via_pipe[0].decoded_data,
-            DecodedEvent::MetaV1_2(_)
-        ));
-        if let DecodedEvent::MetaV1_2(ev) = &via_pipe[0].decoded_data {
-            assert_eq!(ev.sender, Address::from([24u8; 20]));
-            // Subject is the 20‑byte address left‑padded to 32 bytes
-            let mut expected = [0u8; 32];
-            expected[12..32].copy_from_slice(&Address::from([25u8; 20])[..]);
-            assert_eq!(ev.subject, FixedBytes::<32>::from(expected));
-            assert_eq!(ev.meta.as_ref(), &[0x09, 0x0a, 0x0b, 0x0c, 0x0d]);
-        }
-    }
-
-    #[test]
     fn decode_propagates_decode_errors() {
-        let db = LocalDb::new_with_url(test_url());
-        let pipe = DefaultEventsPipeline::from_local_db(db);
+        let pipe = DefaultEventsPipeline::with_regular_rpcs(vec![test_url()]).unwrap();
 
         // Valid topic but empty data triggers a decode error path.
         let bad_log = LogEntryResponse {

@@ -1,7 +1,7 @@
-use super::{LocalDb, LocalDbError};
+use super::LocalDbError;
 use crate::{
     retry::retry_with_backoff,
-    rpc_client::{LogEntryResponse, RpcClientError},
+    rpc_client::{LogEntryResponse, RpcClient, RpcClientError},
 };
 use alloy::primitives::{Address, U256};
 use alloy::rpc::types::Filter;
@@ -98,246 +98,236 @@ impl Default for FetchConfig {
     }
 }
 
-impl LocalDb {
-    async fn collect_logs(
-        &self,
-        filter: &Filter,
-        config: &FetchConfig,
-    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        filter.block_option.ensure_valid_block_range()?;
+async fn collect_logs(
+    rpc_client: &RpcClient,
+    filter: &Filter,
+    config: &FetchConfig,
+) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+    filter.block_option.ensure_valid_block_range()?;
 
-        if filter.address.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let filters = Self::build_log_filters(filter, config)?;
-        if filters.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let mut events = self.fetch_logs_for_filters(filters, config).await?;
-
-        Self::sort_events_by_block_and_log(&mut events);
-        self.backfill_missing_timestamps(&mut events, config)
-            .await?;
-
-        Ok(events)
+    if filter.address.is_empty() {
+        return Ok(Vec::new());
     }
 
-    pub async fn fetch_orderbook_events(
-        &self,
-        address: Address,
-        from_block: u64,
-        to_block: u64,
-        config: &FetchConfig,
-    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        let filter = Filter::new()
-            .address(address)
-            .from_block(from_block)
-            .to_block(to_block)
-            .event_signature(ORDERBOOK_EVENT_TOPICS.to_vec());
-        self.collect_logs(&filter, config).await
+    let filters = build_log_filters(filter, config)?;
+    if filters.is_empty() {
+        return Ok(Vec::new());
     }
 
-    pub async fn fetch_store_events(
-        &self,
-        addresses: &[Address],
-        from_block: u64,
-        to_block: u64,
-        config: &FetchConfig,
-    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        let filter = Filter::new()
-            .address(addresses.to_vec())
-            .from_block(from_block)
-            .to_block(to_block)
-            .event_signature(STORE_SET_TOPICS.to_vec());
-        self.collect_logs(&filter, config).await
+    let mut events = fetch_logs_for_filters(rpc_client, filters, config).await?;
+
+    sort_events_by_block_and_log(&mut events);
+    backfill_missing_timestamps(rpc_client, &mut events, config).await?;
+
+    Ok(events)
+}
+
+pub async fn fetch_orderbook_events(
+    rpc_client: &RpcClient,
+    address: Address,
+    from_block: u64,
+    to_block: u64,
+    config: &FetchConfig,
+) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+    let filter = Filter::new()
+        .address(address)
+        .from_block(from_block)
+        .to_block(to_block)
+        .event_signature(ORDERBOOK_EVENT_TOPICS.to_vec());
+    collect_logs(rpc_client, &filter, config).await
+}
+
+pub async fn fetch_store_events(
+    rpc_client: &RpcClient,
+    addresses: &[Address],
+    from_block: u64,
+    to_block: u64,
+    config: &FetchConfig,
+) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+    let filter = Filter::new()
+        .address(addresses.to_vec())
+        .from_block(from_block)
+        .to_block(to_block)
+        .event_signature(STORE_SET_TOPICS.to_vec());
+    collect_logs(rpc_client, &filter, config).await
+}
+
+async fn fetch_block_timestamps(
+    rpc_client: &RpcClient,
+    block_numbers: Vec<u64>,
+    config: &FetchConfig,
+) -> Result<HashMap<u64, String>, LocalDbError> {
+    if block_numbers.is_empty() {
+        return Ok(HashMap::new());
     }
 
-    async fn fetch_block_timestamps(
-        &self,
-        block_numbers: Vec<u64>,
-        config: &FetchConfig,
-    ) -> Result<HashMap<u64, String>, LocalDbError> {
-        if block_numbers.is_empty() {
-            return Ok(HashMap::new());
-        }
+    let concurrency = config.max_concurrent_blocks();
+    let results: Vec<Result<(u64, String), LocalDbError>> = futures::stream::iter(block_numbers)
+        .map(|block_number| {
+            let client = rpc_client.clone();
+            let max_attempts = config.max_retry_attempts();
+            async move {
+                let block_response = retry_with_backoff(
+                    || {
+                        let client = client.clone();
+                        async move {
+                            client
+                                .get_block_by_number(block_number)
+                                .await
+                                .map_err(map_rpc_error)
+                        }
+                    },
+                    max_attempts,
+                    should_retry_local_db_error,
+                )
+                .await?;
 
-        let concurrency = config.max_concurrent_blocks();
-        let client = self.rpc_client().clone();
-        let results: Vec<Result<(u64, String), LocalDbError>> =
-            futures::stream::iter(block_numbers)
-                .map(|block_number| {
-                    let client = client.clone();
-                    let max_attempts = config.max_retry_attempts();
-                    async move {
-                        let block_response = retry_with_backoff(
-                            || {
-                                let client = client.clone();
-                                async move {
-                                    client
-                                        .get_block_by_number(block_number)
-                                        .await
-                                        .map_err(map_rpc_error)
-                                }
-                            },
-                            max_attempts,
-                            should_retry_local_db_error,
-                        )
-                        .await?;
+                let block_data = block_response.ok_or_else(|| LocalDbError::MissingField {
+                    field: "result".to_string(),
+                })?;
 
-                        let block_data =
-                            block_response.ok_or_else(|| LocalDbError::MissingField {
-                                field: "result".to_string(),
-                            })?;
-
-                        Ok((block_number, block_data.timestamp))
-                    }
-                })
-                .buffer_unordered(concurrency)
-                .collect()
-                .await;
-
-        results.into_iter().collect()
-    }
-
-    async fn backfill_missing_timestamps(
-        &self,
-        events: &mut [LogEntryResponse],
-        config: &FetchConfig,
-    ) -> Result<(), LocalDbError> {
-        let mut missing_blocks = HashSet::new();
-
-        for event in events.iter() {
-            let has_timestamp = event.block_timestamp.as_ref().is_some();
-
-            if !has_timestamp {
-                if let Ok(block_number) = extract_block_number_from_entry(event) {
-                    missing_blocks.insert(block_number);
-                }
+                Ok((block_number, block_data.timestamp))
             }
-        }
+        })
+        .buffer_unordered(concurrency)
+        .collect()
+        .await;
 
-        if missing_blocks.is_empty() {
-            return Ok(());
-        }
+    results.into_iter().collect()
+}
 
-        let block_numbers: Vec<u64> = missing_blocks.into_iter().collect();
-        let timestamps = self.fetch_block_timestamps(block_numbers, config).await?;
+async fn backfill_missing_timestamps(
+    rpc_client: &RpcClient,
+    events: &mut [LogEntryResponse],
+    config: &FetchConfig,
+) -> Result<(), LocalDbError> {
+    let mut missing_blocks = HashSet::new();
 
-        for event in events.iter_mut() {
-            let has_timestamp = event.block_timestamp.as_ref().is_some();
+    for event in events.iter() {
+        let has_timestamp = event.block_timestamp.as_ref().is_some();
 
-            if has_timestamp {
-                continue;
-            }
-
+        if !has_timestamp {
             if let Ok(block_number) = extract_block_number_from_entry(event) {
-                if let Some(timestamp) = timestamps.get(&block_number) {
-                    event.block_timestamp = Some(timestamp.clone());
-                }
+                missing_blocks.insert(block_number);
             }
         }
-
-        Ok(())
     }
 
-    fn build_log_filters(
-        filter: &Filter,
-        config: &FetchConfig,
-    ) -> Result<Vec<Filter>, LocalDbError> {
-        let chunk_size = config.chunk_size.max(1);
-        let chunk_span = chunk_size.saturating_sub(1);
-        let mut filters = Vec::new();
+    if missing_blocks.is_empty() {
+        return Ok(());
+    }
 
-        let from_block = filter
-            .block_option
-            .get_from_block()
-            .ok_or(LocalDbError::MissingBlockFilter("from".to_string()))?
-            .as_number()
-            .ok_or(LocalDbError::NonNumberBlockNumber("from".to_string()))?;
-        let to_block = filter
-            .block_option
-            .get_to_block()
-            .ok_or(LocalDbError::MissingBlockFilter("to".to_string()))?
-            .as_number()
-            .ok_or(LocalDbError::NonNumberBlockNumber("to".to_string()))?;
+    let block_numbers: Vec<u64> = missing_blocks.into_iter().collect();
+    let timestamps = fetch_block_timestamps(rpc_client, block_numbers, config).await?;
 
-        for &address in filter.address.iter() {
-            let mut current_block = from_block;
-            while current_block <= to_block {
-                let end = current_block.saturating_add(chunk_span).min(to_block);
+    for event in events.iter_mut() {
+        let has_timestamp = event.block_timestamp.as_ref().is_some();
 
-                let all_topics = filter.topics.clone();
-                let topics = all_topics
-                    .first()
-                    .ok_or(LocalDbError::MissingTopicsFilter)?;
+        if has_timestamp {
+            continue;
+        }
 
-                let mut filter = Filter::new()
-                    .address(address)
-                    .from_block(current_block)
-                    .to_block(end);
-                filter = filter.event_signature(topics.clone());
-                filters.push(filter);
-
-                if end == to_block || end == u64::MAX {
-                    break;
-                }
-
-                current_block = end.saturating_add(1);
+        if let Ok(block_number) = extract_block_number_from_entry(event) {
+            if let Some(timestamp) = timestamps.get(&block_number) {
+                event.block_timestamp = Some(timestamp.clone());
             }
         }
-
-        Ok(filters)
     }
 
-    async fn fetch_logs_for_filters(
-        &self,
-        filters: Vec<Filter>,
-        config: &FetchConfig,
-    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        if filters.is_empty() {
-            return Ok(Vec::new());
+    Ok(())
+}
+
+fn build_log_filters(filter: &Filter, config: &FetchConfig) -> Result<Vec<Filter>, LocalDbError> {
+    let chunk_size = config.chunk_size.max(1);
+    let chunk_span = chunk_size.saturating_sub(1);
+    let mut filters = Vec::new();
+
+    let from_block = filter
+        .block_option
+        .get_from_block()
+        .ok_or(LocalDbError::MissingBlockFilter("from".to_string()))?
+        .as_number()
+        .ok_or(LocalDbError::NonNumberBlockNumber("from".to_string()))?;
+    let to_block = filter
+        .block_option
+        .get_to_block()
+        .ok_or(LocalDbError::MissingBlockFilter("to".to_string()))?
+        .as_number()
+        .ok_or(LocalDbError::NonNumberBlockNumber("to".to_string()))?;
+
+    for &address in filter.address.iter() {
+        let mut current_block = from_block;
+        while current_block <= to_block {
+            let end = current_block.saturating_add(chunk_span).min(to_block);
+
+            let all_topics = filter.topics.clone();
+            let topics = all_topics
+                .first()
+                .ok_or(LocalDbError::MissingTopicsFilter)?;
+
+            let mut filter = Filter::new()
+                .address(address)
+                .from_block(current_block)
+                .to_block(end);
+            filter = filter.event_signature(topics.clone());
+            filters.push(filter);
+
+            if end == to_block || end == u64::MAX {
+                break;
+            }
+
+            current_block = end.saturating_add(1);
         }
-
-        let concurrency = config.max_concurrent_requests();
-        let client = self.rpc_client().clone();
-        let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(filters)
-            .map(|filter| {
-                let client = client.clone();
-                let max_attempts = config.max_retry_attempts();
-
-                async move {
-                    let response = retry_with_backoff(
-                        || {
-                            let client = client.clone();
-                            let filter = filter.clone();
-                            async move { client.get_logs(&filter).await.map_err(map_rpc_error) }
-                        },
-                        max_attempts,
-                        should_retry_local_db_error,
-                    )
-                    .await?;
-
-                    Ok::<_, LocalDbError>(response)
-                }
-            })
-            .buffer_unordered(concurrency)
-            .try_collect()
-            .await?;
-
-        Ok(results.into_iter().flatten().collect())
     }
 
-    fn sort_events_by_block_and_log(events: &mut [LogEntryResponse]) {
-        events.sort_by(|a, b| {
-            let block_a = extract_block_number_from_entry(a).unwrap_or(0);
-            let block_b = extract_block_number_from_entry(b).unwrap_or(0);
-            let log_a = parse_block_number_str(&a.log_index).unwrap_or(0);
-            let log_b = parse_block_number_str(&b.log_index).unwrap_or(0);
-            block_a.cmp(&block_b).then_with(|| log_a.cmp(&log_b))
-        });
+    Ok(filters)
+}
+
+async fn fetch_logs_for_filters(
+    rpc_client: &RpcClient,
+    filters: Vec<Filter>,
+    config: &FetchConfig,
+) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+    if filters.is_empty() {
+        return Ok(Vec::new());
     }
+
+    let concurrency = config.max_concurrent_requests();
+    let results: Vec<Vec<LogEntryResponse>> = futures::stream::iter(filters)
+        .map(|filter| {
+            let client = rpc_client.clone();
+            let max_attempts = config.max_retry_attempts();
+
+            async move {
+                let response = retry_with_backoff(
+                    || {
+                        let client = client.clone();
+                        let filter = filter.clone();
+                        async move { client.get_logs(&filter).await.map_err(map_rpc_error) }
+                    },
+                    max_attempts,
+                    should_retry_local_db_error,
+                )
+                .await?;
+
+                Ok::<_, LocalDbError>(response)
+            }
+        })
+        .buffer_unordered(concurrency)
+        .try_collect()
+        .await?;
+
+    Ok(results.into_iter().flatten().collect())
+}
+
+fn sort_events_by_block_and_log(events: &mut [LogEntryResponse]) {
+    events.sort_by(|a, b| {
+        let block_a = extract_block_number_from_entry(a).unwrap_or(0);
+        let block_b = extract_block_number_from_entry(b).unwrap_or(0);
+        let log_a = parse_block_number_str(&a.log_index).unwrap_or(0);
+        let log_b = parse_block_number_str(&b.log_index).unwrap_or(0);
+        block_a.cmp(&block_b).then_with(|| log_a.cmp(&log_b))
+    });
 }
 
 fn map_rpc_error(error: RpcClientError) -> LocalDbError {
@@ -493,7 +483,6 @@ mod tests {
         #[tokio::test]
         async fn fetch_orderbook_events_fetches_and_sorts() {
             let server = MockServer::start();
-            let url = Url::from_str(&server.url("/")).unwrap();
 
             let response_body = json!({
                 "jsonrpc": "2.0",
@@ -558,24 +547,21 @@ mod tests {
                     .body(block_response_two);
             });
 
-            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
-            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
-
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let events = db
-                .fetch_orderbook_events(
-                    addr,
-                    1,
-                    2,
-                    &FetchConfig {
-                        chunk_size: 1000,
-                        max_concurrent_requests: 1,
-                        max_concurrent_blocks: 1,
-                        max_retry_attempts: 1,
-                    },
-                )
-                .await
-                .unwrap();
+            let events = fetch_orderbook_events(
+                &RpcClient::new_with_urls(vec![Url::parse(&server.url("/")).unwrap()]).unwrap(),
+                addr,
+                1,
+                2,
+                &FetchConfig {
+                    chunk_size: 1000,
+                    max_concurrent_requests: 1,
+                    max_concurrent_blocks: 1,
+                    max_retry_attempts: 1,
+                },
+            )
+            .await
+            .unwrap();
 
             assert_eq!(events.len(), 2);
             assert_eq!(events[0].block_number, "0x1");
@@ -586,19 +572,22 @@ mod tests {
 
         #[tokio::test]
         async fn fetch_store_events_returns_empty_for_no_addresses() {
-            let db = LocalDb::default();
             let addresses: Vec<Address> = vec![];
-            let events = db
-                .fetch_store_events(&addresses, 0, 10, &FetchConfig::default())
-                .await
-                .unwrap();
+            let events = fetch_store_events(
+                &RpcClient::mock(),
+                &addresses,
+                0,
+                10,
+                &FetchConfig::default(),
+            )
+            .await
+            .unwrap();
             assert!(events.is_empty());
         }
 
         #[tokio::test]
         async fn fetch_store_events_handles_duplicates_and_sorts() {
             let server = MockServer::start();
-            let url = Url::from_str(&server.url("/")).unwrap();
 
             let logs_response = json!({
                 "jsonrpc": "2.0",
@@ -643,24 +632,21 @@ mod tests {
                     .body(logs_response.to_string());
             });
 
-            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
-            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
-
             let addresses = vec![addr, addr, addr];
-            let events = db
-                .fetch_store_events(
-                    &addresses,
-                    1,
-                    2,
-                    &FetchConfig {
-                        chunk_size: 1000,
-                        max_concurrent_requests: 1,
-                        max_concurrent_blocks: 1,
-                        max_retry_attempts: 1,
-                    },
-                )
-                .await
-                .unwrap();
+            let events = fetch_store_events(
+                &RpcClient::new_with_urls(vec![Url::parse(&server.url("/")).unwrap()]).unwrap(),
+                &addresses,
+                1,
+                2,
+                &FetchConfig {
+                    chunk_size: 1000,
+                    max_concurrent_requests: 1,
+                    max_concurrent_blocks: 1,
+                    max_retry_attempts: 1,
+                },
+            )
+            .await
+            .unwrap();
 
             assert_eq!(events.len(), 2);
             assert_eq!(events[0].block_number, "0x1");
@@ -674,12 +660,11 @@ mod tests {
 
         #[tokio::test]
         async fn fetch_store_events_returns_error_for_inverted_range() {
-            let db = LocalDb::default();
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let err = db
-                .fetch_store_events(&[addr], 10, 1, &FetchConfig::default())
-                .await
-                .unwrap_err();
+            let err =
+                fetch_store_events(&RpcClient::mock(), &[addr], 10, 1, &FetchConfig::default())
+                    .await
+                    .unwrap_err();
             match err {
                 LocalDbError::FilterBlockError(FilterBlockError::FromBlockGreaterThanToBlock {
                     from,
@@ -695,7 +680,6 @@ mod tests {
         #[tokio::test]
         async fn backfill_missing_timestamps_adds_missing_blocks() {
             let server = MockServer::start();
-            let url = Url::from_str(&server.url("/")).unwrap();
 
             server.mock(|when, then| {
                 when.method(POST).path("/").json_body(json!({
@@ -709,17 +693,18 @@ mod tests {
                     .body(sample_block_response("0x1", Some("0x10")));
             });
 
-            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
-            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
-
             let mut events = vec![
                 make_log_entry_basic("0x1", None),
                 make_log_entry_basic("0x2", Some("0x20")),
             ];
 
-            db.backfill_missing_timestamps(&mut events, &FetchConfig::default())
-                .await
-                .unwrap();
+            backfill_missing_timestamps(
+                &RpcClient::new_with_urls(vec![Url::parse(&server.url("/")).unwrap()]).unwrap(),
+                &mut events,
+                &FetchConfig::default(),
+            )
+            .await
+            .unwrap();
 
             assert_eq!(events[0].block_timestamp.as_deref(), Some("0x10"));
             assert_eq!(events[1].block_timestamp.as_deref(), Some("0x20"));
@@ -727,12 +712,11 @@ mod tests {
 
         #[tokio::test]
         async fn fetch_orderbook_events_returns_error_for_inverted_range() {
-            let db = LocalDb::default();
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let err = db
-                .fetch_orderbook_events(addr, 10, 1, &FetchConfig::default())
-                .await
-                .unwrap_err();
+            let err =
+                fetch_orderbook_events(&RpcClient::mock(), addr, 10, 1, &FetchConfig::default())
+                    .await
+                    .unwrap_err();
             match err {
                 LocalDbError::FilterBlockError(FilterBlockError::FromBlockGreaterThanToBlock {
                     from,
@@ -748,7 +732,6 @@ mod tests {
         #[tokio::test]
         async fn fetch_orderbook_events_sorts_numeric_log_index_within_block() {
             let server = MockServer::start();
-            let url = Url::from_str(&server.url("/")).unwrap();
 
             let response_body = json!({
                 "jsonrpc": "2.0",
@@ -816,23 +799,21 @@ mod tests {
             });
 
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
-            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let events = db
-                .fetch_orderbook_events(
-                    addr,
-                    1,
-                    1,
-                    &FetchConfig {
-                        chunk_size: 1000,
-                        max_concurrent_requests: 1,
-                        max_concurrent_blocks: 1,
-                        max_retry_attempts: 1,
-                    },
-                )
-                .await
-                .unwrap();
+            let events = fetch_orderbook_events(
+                &RpcClient::new_with_urls(vec![Url::parse(&server.url("/")).unwrap()]).unwrap(),
+                addr,
+                1,
+                1,
+                &FetchConfig {
+                    chunk_size: 1000,
+                    max_concurrent_requests: 1,
+                    max_concurrent_blocks: 1,
+                    max_retry_attempts: 1,
+                },
+            )
+            .await
+            .unwrap();
 
             assert_eq!(events.len(), 3);
             // Expect numeric sort of logIndex within the same block: 0x2, 0xA, 0x10
@@ -897,7 +878,7 @@ mod tests {
                 .to_block(10)
                 .event_signature(STORE_SET_TOPICS.to_vec());
 
-            let filters = LocalDb::build_log_filters(
+            let filters = build_log_filters(
                 &filter,
                 &FetchConfig {
                     chunk_size: 3,
@@ -928,7 +909,7 @@ mod tests {
                 .to_block(end)
                 .event_signature(STORE_SET_TOPICS.to_vec());
 
-            let filters = LocalDb::build_log_filters(
+            let filters = build_log_filters(
                 &filter,
                 &FetchConfig {
                     chunk_size: 100,
@@ -945,9 +926,7 @@ mod tests {
 
         #[tokio::test]
         async fn fetch_block_timestamps_empty_input_returns_empty_map() {
-            let db = LocalDb::default();
-            let map = db
-                .fetch_block_timestamps(vec![], &FetchConfig::default())
+            let map = fetch_block_timestamps(&RpcClient::mock(), vec![], &FetchConfig::default())
                 .await
                 .unwrap();
             assert!(map.is_empty());
@@ -956,7 +935,6 @@ mod tests {
         #[tokio::test]
         async fn fetch_block_timestamps_missing_result_field() {
             let server = MockServer::start();
-            let url = Url::from_str(&server.url("/")).unwrap();
 
             server.mock(|when, then| {
                 when.method(POST)
@@ -968,22 +946,19 @@ mod tests {
                     .body(json!({"jsonrpc":"2.0","id":1,"result":null}).to_string());
             });
 
-            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
-            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
-
-            let err = db
-                .fetch_block_timestamps(
-                    vec![1],
-                    &FetchConfig::new(
-                        FetchConfig::DEFAULT_CHUNK_SIZE,
-                        FetchConfig::DEFAULT_MAX_CONCURRENT_REQUESTS,
-                        FetchConfig::DEFAULT_MAX_CONCURRENT_BLOCKS,
-                        1,
-                    )
-                    .expect("fetch config parameters to be valid"),
+            let err = fetch_block_timestamps(
+                &RpcClient::new_with_urls(vec![Url::parse(&server.url("/")).unwrap()]).unwrap(),
+                vec![1],
+                &FetchConfig::new(
+                    FetchConfig::DEFAULT_CHUNK_SIZE,
+                    FetchConfig::DEFAULT_MAX_CONCURRENT_REQUESTS,
+                    FetchConfig::DEFAULT_MAX_CONCURRENT_BLOCKS,
+                    1,
                 )
-                .await
-                .unwrap_err();
+                .expect("fetch config parameters to be valid"),
+            )
+            .await
+            .unwrap_err();
 
             match err {
                 LocalDbError::MissingField { field } => assert_eq!(field, "result"),
@@ -994,7 +969,6 @@ mod tests {
         #[tokio::test]
         async fn fetch_block_timestamps_missing_timestamp_maps_to_json_error() {
             let server = MockServer::start();
-            let url = Url::from_str(&server.url("/")).unwrap();
 
             // Respond with a block object missing the required `timestamp` field
             server.mock(|when, then| {
@@ -1007,22 +981,19 @@ mod tests {
                     .body(sample_block_response("0x1", None));
             });
 
-            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
-            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
-
-            let err = db
-                .fetch_block_timestamps(
-                    vec![1],
-                    &FetchConfig::new(
-                        FetchConfig::DEFAULT_CHUNK_SIZE,
-                        FetchConfig::DEFAULT_MAX_CONCURRENT_REQUESTS,
-                        FetchConfig::DEFAULT_MAX_CONCURRENT_BLOCKS,
-                        1,
-                    )
-                    .expect("fetch config parameters to be valid"),
+            let err = fetch_block_timestamps(
+                &RpcClient::new_with_urls(vec![Url::parse(&server.url("/")).unwrap()]).unwrap(),
+                vec![1],
+                &FetchConfig::new(
+                    FetchConfig::DEFAULT_CHUNK_SIZE,
+                    FetchConfig::DEFAULT_MAX_CONCURRENT_REQUESTS,
+                    FetchConfig::DEFAULT_MAX_CONCURRENT_BLOCKS,
+                    1,
                 )
-                .await
-                .unwrap_err();
+                .expect("fetch config parameters to be valid"),
+            )
+            .await
+            .unwrap_err();
 
             match err {
                 LocalDbError::JsonParse(_) => {}
@@ -1033,7 +1004,6 @@ mod tests {
         #[tokio::test]
         async fn fetch_store_events_chunking_multiple_filters_merged_and_sorted() {
             let server = MockServer::start();
-            let url = Url::from_str(&server.url("/")).unwrap();
 
             // Job 1: from 0x1 to 0x1
             server.mock(|when, then| {
@@ -1096,23 +1066,21 @@ mod tests {
             });
 
             let addr = Address::from_str("0x0000000000000000000000000000000000000abc").unwrap();
-            let mut db = LocalDb::new_with_regular_rpc(url).unwrap();
-            db.update_rpc_urls(vec![Url::from_str(&server.url("/")).unwrap()]);
 
-            let events = db
-                .fetch_store_events(
-                    &[addr],
-                    1,
-                    2,
-                    &FetchConfig {
-                        chunk_size: 1, // forces per-block filters
-                        max_concurrent_requests: 2,
-                        max_concurrent_blocks: 1,
-                        max_retry_attempts: 1,
-                    },
-                )
-                .await
-                .unwrap();
+            let events = fetch_store_events(
+                &RpcClient::new_with_urls(vec![Url::parse(&server.url("/")).unwrap()]).unwrap(),
+                &[addr],
+                1,
+                2,
+                &FetchConfig {
+                    chunk_size: 1, // forces per-block filters
+                    max_concurrent_requests: 2,
+                    max_concurrent_blocks: 1,
+                    max_retry_attempts: 1,
+                },
+            )
+            .await
+            .unwrap();
 
             assert_eq!(events.len(), 2);
             assert_eq!(events[0].block_number, "0x1");

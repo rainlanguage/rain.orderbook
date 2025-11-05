@@ -19,7 +19,6 @@ use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use async_trait::async_trait;
-use url::Url;
 
 /// Identifies the logical target (orderbook) for a sync cycle.
 ///
@@ -272,7 +271,6 @@ pub trait TokensPipeline {
     /// Fetches metadata for missing tokens using the supplied RPC endpoints.
     async fn fetch_missing(
         &self,
-        rpcs: &[Url],
         missing: Vec<Address>,
         cfg: &FetchConfig,
     ) -> Result<Vec<(Address, TokenInfo)>, LocalDbError>;
