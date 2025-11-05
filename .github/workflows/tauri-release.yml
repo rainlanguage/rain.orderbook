@@ -97,6 +97,7 @@ jobs:
         run: nix develop .#tauri-shell --command tauri-rs-test
         env:
           CARGO_INCREMENTAL: 0
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - run: |
           rm -rf target
