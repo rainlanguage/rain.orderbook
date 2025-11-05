@@ -210,7 +210,7 @@ mod tests {
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
     use rain_orderbook_common::local_db::query::{SqlStatement, SqlStatementBatch};
-    use rain_orderbook_common::rpc_client::LogEntryResponse;
+    use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClient};
     use std::collections::HashMap;
     use std::sync::Mutex;
     use tempfile::TempDir;
@@ -251,7 +251,7 @@ mod tests {
     impl TokenMetadataFetcher for TestFetcher {
         async fn fetch(
             &self,
-            _: &[Url],
+            _: &RpcClient,
             missing: Vec<Address>,
         ) -> Result<Vec<(Address, TokenInfo)>> {
             self.calls.lock().unwrap().push(missing.clone());

@@ -1,21 +1,18 @@
 use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
 use rain_orderbook_app_settings::network::NetworkCfg;
-use rain_orderbook_common::local_db::{
-    query::{
-        create_tables::{CREATE_TABLES_SQL, REQUIRED_TABLES},
-        fetch_erc20_tokens_by_addresses::build_fetch_stmt,
-        fetch_last_synced_block::FETCH_LAST_SYNCED_BLOCK_SQL,
-        fetch_store_addresses::FETCH_STORE_ADDRESSES_SQL,
-        SqlValue,
-    },
-    LocalDb,
+use rain_orderbook_common::local_db::query::{
+    create_tables::{CREATE_TABLES_SQL, REQUIRED_TABLES},
+    fetch_erc20_tokens_by_addresses::build_fetch_stmt,
+    fetch_last_synced_block::FETCH_LAST_SYNCED_BLOCK_SQL,
+    fetch_store_addresses::FETCH_STORE_ADDRESSES_SQL,
+    LocalDbQueryExecutor, SqlStatement, SqlValue,
 };
+use rain_orderbook_common::rpc_client::RpcClient;
 use serde::Deserialize;
 use url::Url;
 
 use crate::commands::local_db::executor::RusqliteExecutor;
-use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 
 pub(crate) const DEFAULT_SCHEMA_SQL: &str = CREATE_TABLES_SQL;
 pub(crate) const SYNC_STATUS_QUERY: &str = FETCH_LAST_SYNCED_BLOCK_SQL;
@@ -107,7 +104,7 @@ pub(crate) fn build_local_db_from_network(
     chain_id: u32,
     network: &NetworkCfg,
     api_token: &str,
-) -> Result<(LocalDb, Vec<Url>)> {
+) -> Result<(RpcClient, Vec<Url>)> {
     if network.chain_id != chain_id {
         return Err(anyhow!(
             "Chain ID mismatch: CLI provided {} but network '{}' is configured for {}",
@@ -125,8 +122,8 @@ pub(crate) fn build_local_db_from_network(
     }
 
     let metadata_rpcs = network.rpcs.clone();
-    let local_db = LocalDb::new_with_hyper_rpc(chain_id, api_token.to_string())?;
-    Ok((local_db, metadata_rpcs))
+    let rpc_client = RpcClient::new_with_hyper_rpc(chain_id, api_token)?;
+    Ok((rpc_client, metadata_rpcs))
 }
 
 pub(crate) async fn fetch_existing_tokens(
@@ -168,7 +165,6 @@ struct StoreAddressRow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::local_db::sync::data_source::SyncDataSource;
     use std::str::FromStr;
     use tempfile::TempDir;
 
@@ -183,12 +179,12 @@ mod tests {
         ];
 
         let api_token = "hyper-token";
-        let (local_db, metadata_rpcs) =
+        let (rpc_client, metadata_rpcs) =
             build_local_db_from_network(42161, &network, api_token).expect("network rpcs");
 
         assert_eq!(metadata_rpcs, network.rpcs);
 
-        let event_urls = local_db.rpc_urls();
+        let event_urls = rpc_client.rpc_urls();
         assert_eq!(event_urls.len(), 1);
         assert_eq!(event_urls[0].host_str(), Some("arbitrum.rpc.hypersync.xyz"));
         assert!(event_urls[0].as_str().ends_with(&format!("/{api_token}")));

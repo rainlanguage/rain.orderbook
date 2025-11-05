@@ -11,8 +11,6 @@ use rain_math_float::{Float, FloatError};
 use rain_orderbook_bindings::IERC20::approveCall;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::allowanceCall};
 use serde::{Deserialize, Serialize};
-#[cfg(not(target_family = "wasm"))]
-use std::ops::Sub;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -94,14 +92,11 @@ impl DepositArgs {
             .await?;
         let current_allowance_float = Float::from_fixed_decimal(current_allowance, self.decimals)?;
 
-        // If more allowance is required, then call approve for the difference
-        if current_allowance_float.lt(self.amount)? {
+        // If allowance differs from desired amount, overwrite it with the target value
+        if !current_allowance_float.eq(self.amount)? {
             let approve_call = approveCall {
                 spender: transaction_args.orderbook_address,
-                amount: self
-                    .amount
-                    .sub(current_allowance_float)?
-                    .to_fixed_decimal(self.decimals)?,
+                amount: self.amount.to_fixed_decimal(self.decimals)?,
             };
             let params =
                 transaction_args.try_into_write_contract_parameters(approve_call, self.token)?;
