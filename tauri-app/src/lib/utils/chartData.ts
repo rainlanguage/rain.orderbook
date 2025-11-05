@@ -1,4 +1,4 @@
-import type { FuzzResultFlat } from '@rainlanguage/orderbook';
+import { Float, type FuzzResultFlat } from '@rainlanguage/orderbook';
 import { hexToBigInt, type Hex, formatUnits } from 'viem';
 
 export type TransformedHexAndFormattedData = { [key: string]: [number, Hex] };
@@ -17,7 +17,12 @@ export const transformData = (fuzzResult: FuzzResultFlat): TransformedHexAndForm
   });
 };
 
-export type TransformedPlotData = { [key: string]: number };
+export type PlotDataValue = {
+  float: Float;
+  formatted: string;
+  value: number;
+};
+export type TransformedPlotData = { [key: string]: PlotDataValue };
 
 export const transformDataForPlot = (fuzzResult: FuzzResultFlat): TransformedPlotData[] => {
   if (fuzzResult.data.rows.some((row) => row.length !== fuzzResult.data.columnNames.length)) {
@@ -26,10 +31,36 @@ export const transformDataForPlot = (fuzzResult: FuzzResultFlat): TransformedPlo
   return fuzzResult.data.rows.map((row) => {
     const rowObject: TransformedPlotData = {};
     fuzzResult.data.columnNames.forEach((columnName, index) => {
-      rowObject[columnName] = +formatUnits(hexToBigInt(row[index] as Hex), 18);
+      rowObject[columnName] = decodeRainFloat(row[index] as Hex, columnName);
     });
     return rowObject;
   });
+};
+
+const decodeRainFloat = (value: Hex, columnName: string): PlotDataValue => {
+  const floatResult = Float.tryFromBigint(hexToBigInt(value));
+  if (floatResult?.error || !floatResult?.value) {
+    const message = floatResult?.error?.readableMsg ?? floatResult?.error?.msg ?? 'Unknown error';
+    throw new Error(`Failed to parse ${columnName} value: ${message}`);
+  }
+
+  const formattedResult = floatResult.value.format();
+  if (formattedResult.error || !formattedResult.value) {
+    const message =
+      formattedResult.error?.readableMsg ?? formattedResult.error?.msg ?? 'Unknown error';
+    throw new Error(`Failed to format ${columnName} value: ${message}`);
+  }
+
+  const numericValue = Number(formattedResult.value);
+  if (!Number.isFinite(numericValue)) {
+    throw new Error(`Value for ${columnName} is not a finite number: ${formattedResult.value}`);
+  }
+
+  return {
+    float: floatResult.value,
+    formatted: formattedResult.value as string,
+    value: numericValue,
+  };
 };
 
 if (import.meta.vitest) {
