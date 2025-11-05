@@ -1,5 +1,6 @@
 pub mod environment;
 pub mod leadership;
+pub mod scheduler;
 
 use crate::local_db::{
     pipeline::{
