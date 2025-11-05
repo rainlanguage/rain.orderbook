@@ -5,7 +5,6 @@ pub mod fetch;
 pub mod insert;
 pub mod pipeline;
 pub mod query;
-pub mod sync;
 pub mod token_fetch;
 
 use crate::erc20::Error as TokenError;
