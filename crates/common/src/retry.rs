@@ -16,6 +16,15 @@ pub enum RetryError<E> {
     Operation(E),
 }
 
+#[inline]
+fn ensure_max_attempts<E>(max_attempts: usize) -> Result<(), RetryError<E>> {
+    if max_attempts == 0 {
+        Err(RetryError::InvalidMaxAttempts)
+    } else {
+        Ok(())
+    }
+}
+
 impl From<RetryError<LocalDbError>> for LocalDbError {
     fn from(err: RetryError<LocalDbError>) -> Self {
         match err {
@@ -45,9 +54,7 @@ where
     Fut: Future<Output = Result<T, E>>,
     ShouldRetry: Fn(&E) -> bool,
 {
-    if max_attempts == 0 {
-        return Err(RetryError::InvalidMaxAttempts);
-    }
+    ensure_max_attempts::<E>(max_attempts)?;
 
     let backoff = ExponentialBuilder::default()
         .with_min_delay(Duration::from_millis(DEFAULT_BASE_DELAY_MILLIS))
@@ -72,9 +79,7 @@ where
     Fut: Future<Output = Result<T, E>>,
     ShouldRetry: Fn(&E) -> bool,
 {
-    if max_attempts == 0 {
-        return Err(RetryError::InvalidMaxAttempts);
-    }
+    ensure_max_attempts::<E>(max_attempts)?;
 
     let mut delay_ms = DEFAULT_BASE_DELAY_MILLIS;
 
@@ -190,5 +195,121 @@ mod tests {
             other => panic!("expected config error, got {other:?}"),
         }
         assert_eq!(attempts.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn ensure_max_attempts_rejects_zero() {
+        let err = super::ensure_max_attempts::<TestError>(0).unwrap_err();
+        assert!(matches!(err, RetryError::InvalidMaxAttempts));
+    }
+
+    #[test]
+    fn ensure_max_attempts_allows_positive_values() {
+        assert!(super::ensure_max_attempts::<TestError>(1).is_ok());
+    }
+}
+
+#[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
+mod wasm_tests {
+    use super::*;
+    use std::cell::Cell;
+    use std::rc::Rc;
+    use wasm_bindgen_test::*;
+
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    #[derive(Debug)]
+    enum TestError {
+        Rpc,
+        Json,
+    }
+
+    #[wasm_bindgen_test]
+    async fn retries_and_succeeds_after_transient_error() {
+        let attempts = Rc::new(Cell::new(0));
+        let operation_attempts = attempts.clone();
+
+        let result = retry_with_backoff(
+            move || {
+                let attempts = operation_attempts.clone();
+                async move {
+                    let current = attempts.get();
+                    attempts.set(current + 1);
+                    if current == 0 {
+                        Err(TestError::Rpc)
+                    } else {
+                        Ok(42u32)
+                    }
+                }
+            },
+            3,
+            |err| matches!(err, TestError::Rpc),
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 42);
+        assert_eq!(attempts.get(), 2);
+    }
+
+    #[wasm_bindgen_test]
+    async fn stops_after_max_attempts() {
+        let attempts = Rc::new(Cell::new(0));
+        let operation_attempts = attempts.clone();
+
+        let err = retry_with_backoff(
+            move || {
+                let attempts = operation_attempts.clone();
+                async move {
+                    let current = attempts.get();
+                    attempts.set(current + 1);
+                    Err::<(), _>(TestError::Rpc)
+                }
+            },
+            2,
+            |err| matches!(err, TestError::Rpc),
+        )
+        .await
+        .unwrap_err();
+
+        match err {
+            RetryError::Operation(TestError::Rpc) => {}
+            other => panic!("expected Rpc error, got {other:?}"),
+        }
+        assert_eq!(attempts.get(), 2);
+    }
+
+    #[wasm_bindgen_test]
+    async fn does_not_retry_non_retryable_error() {
+        let attempts = Rc::new(Cell::new(0));
+        let operation_attempts = attempts.clone();
+
+        let err = retry_with_backoff(
+            move || {
+                let attempts = operation_attempts.clone();
+                async move {
+                    let current = attempts.get();
+                    attempts.set(current + 1);
+                    Err::<(), _>(TestError::Json)
+                }
+            },
+            3,
+            |err| matches!(err, TestError::Rpc),
+        )
+        .await
+        .unwrap_err();
+
+        match err {
+            RetryError::Operation(TestError::Json) => {}
+            other => panic!("expected Json error, got {other:?}"),
+        }
+        assert_eq!(attempts.get(), 1);
+    }
+
+    #[wasm_bindgen_test]
+    fn ensure_max_attempts_behavior() {
+        let err = super::ensure_max_attempts::<TestError>(0).unwrap_err();
+        assert!(matches!(err, RetryError::InvalidMaxAttempts));
+        assert!(super::ensure_max_attempts::<TestError>(1).is_ok());
     }
 }

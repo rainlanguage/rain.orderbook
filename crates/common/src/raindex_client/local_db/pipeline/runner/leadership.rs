@@ -246,7 +246,11 @@ mod tests {
 mod wasm_tests {
     use super::*;
     use js_sys::{Function, Object, Promise, Reflect};
+    use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
+    use wasm_bindgen::prelude::Closure;
     use wasm_bindgen::JsCast;
+    use wasm_bindgen_futures::JsFuture;
     use wasm_bindgen_test::*;
     use web_sys::window;
 
@@ -255,6 +259,9 @@ mod wasm_tests {
     struct LockStub {
         hook: LockHook,
         _request_closure: Closure<dyn FnMut(JsValue, JsValue) -> JsValue>,
+        release_promise: Rc<RefCell<Option<Promise>>>,
+        release_invoked: Rc<Cell<bool>>,
+        _release_then: Rc<RefCell<Option<Closure<dyn FnMut(JsValue)>>>>,
     }
 
     enum LockHook {
@@ -278,11 +285,39 @@ mod wasm_tests {
                 JsValue::UNDEFINED
             };
 
+            let release_promise = Rc::new(RefCell::new(None::<Promise>));
+            let release_invoked = Rc::new(Cell::new(false));
+            let release_then = Rc::new(RefCell::new(None::<Closure<dyn FnMut(JsValue)>>));
+
+            let promise_cell = Rc::clone(&release_promise);
+            let flag_cell = Rc::clone(&release_invoked);
+            let then_cell = Rc::clone(&release_then);
+
             let request_closure: Closure<dyn FnMut(JsValue, JsValue) -> JsValue> =
                 Closure::wrap(Box::new(move |_options: JsValue, cb: JsValue| -> JsValue {
                     let callback: Function = cb.unchecked_into();
-                    let _ = callback.call1(&JsValue::UNDEFINED, &callback_result);
-                    Promise::resolve(&JsValue::UNDEFINED).into()
+                    let promise_js = match callback.call1(&JsValue::UNDEFINED, &callback_result) {
+                        Ok(value) => value,
+                        Err(_) => return Promise::resolve(&JsValue::UNDEFINED).into(),
+                    };
+
+                    if let Some(promise) = promise_js.dyn_ref::<Promise>() {
+                        let promise = promise.clone();
+                        promise_cell.borrow_mut().replace(promise.clone());
+
+                        let flag = Rc::clone(&flag_cell);
+                        let then_closure: Closure<dyn FnMut(JsValue)> =
+                            Closure::wrap(Box::new(move |_value: JsValue| {
+                                flag.set(true);
+                            })
+                                as Box<dyn FnMut(JsValue)>);
+                        let _ = promise.then(&then_closure);
+                        *then_cell.borrow_mut() = Some(then_closure);
+
+                        promise.into()
+                    } else {
+                        Promise::resolve(&JsValue::UNDEFINED).into()
+                    }
                 })
                     as Box<dyn FnMut(JsValue, JsValue) -> JsValue>);
 
@@ -319,7 +354,20 @@ mod wasm_tests {
             Ok(Self {
                 hook,
                 _request_closure: request_closure,
+                release_promise,
+                release_invoked,
+                _release_then: release_then,
             })
+        }
+
+        async fn await_release(&self) {
+            if let Some(promise) = self.release_promise.borrow().clone() {
+                let _ = JsFuture::from(promise).await;
+            }
+        }
+
+        fn release_called(&self) -> bool {
+            self.release_invoked.get()
         }
     }
 
@@ -370,5 +418,23 @@ mod wasm_tests {
             .await
             .expect("acquire ok");
         assert!(guard.is_none(), "expected None when lock denied");
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn guard_drop_invokes_release_callback() {
+        let stub = LockStub::install(true).expect("stub install");
+        {
+            let guard_opt = DefaultLeadership::new()
+                .acquire()
+                .await
+                .expect("acquire ok");
+            let guard = guard_opt.expect("expected guard when lock granted");
+            drop(guard);
+        }
+        stub.await_release().await;
+        assert!(
+            stub.release_called(),
+            "expected release callback to run when guard dropped"
+        );
     }
 }

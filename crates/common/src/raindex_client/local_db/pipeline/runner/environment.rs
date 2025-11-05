@@ -36,3 +36,88 @@ pub fn default_environment() -> RunnerEnvironment<
         }),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::local_db::fetch::FetchConfig;
+    use crate::local_db::pipeline::engine::SyncInputs;
+    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowOverrides};
+    use crate::local_db::LocalDbError;
+    use crate::rpc_client::RpcClientError;
+    use alloy::primitives::address;
+    use url::Url;
+
+    fn sample_target(metadata_rpcs: Vec<Url>) -> RunnerTarget {
+        let fetch = FetchConfig::new(1, 1, 1, 1).expect("fetch config");
+        RunnerTarget {
+            orderbook_key: "client-book".to_string(),
+            manifest_url: Url::parse("https://manifests.example/client.yaml").unwrap(),
+            network_key: "client".to_string(),
+            inputs: SyncInputs {
+                target: TargetKey {
+                    chain_id: 1,
+                    orderbook_address: address!("00000000000000000000000000000000000000c1"),
+                },
+                metadata_rpcs,
+                cfg: SyncConfig {
+                    deployment_block: 0,
+                    fetch,
+                    finality: FinalityConfig { depth: 0 },
+                    window_overrides: WindowOverrides::default(),
+                },
+                dump_str: None,
+            },
+        }
+    }
+
+    #[test]
+    fn build_engine_uses_regular_rpcs() {
+        let env = default_environment();
+        let target = sample_target(vec![Url::parse("https://rpc.client.example/anvil").unwrap()]);
+        let engine = env.build_engine(&target).expect("engine available");
+
+        let events_debug = format!("{:?}", engine.events);
+        assert!(
+            events_debug.contains("chain_id: None"),
+            "expected regular RPC client debug; got {events_debug}"
+        );
+        assert!(
+            events_debug.contains("https://rpc.client.example/***"),
+            "expected redacted regular RPC URL in debug repr; got {events_debug}"
+        );
+    }
+
+    #[test]
+    fn build_engine_requires_metadata_rpcs() {
+        let env = default_environment();
+        let target = sample_target(Vec::new());
+        match env.build_engine(&target) {
+            Err(LocalDbError::Rpc(RpcClientError::Config { message })) => {
+                assert_eq!(message, "at least one RPC URL is required");
+            }
+            Err(other) => panic!("unexpected error variant: {other:?}"),
+            Ok(_) => panic!("expected missing RPC URLs to fail"),
+        }
+    }
+
+    #[test]
+    fn build_engine_preserves_rpc_order() {
+        let env = default_environment();
+        let target = sample_target(vec![
+            Url::parse("https://alpha.client.example/rpc-one").unwrap(),
+            Url::parse("https://beta.client.example/rpc-two").unwrap(),
+        ]);
+        let engine = env.build_engine(&target).expect("engine available");
+
+        let events_debug = format!("{:?}", engine.events);
+        assert!(
+            events_debug.contains("https://alpha.client.example/***"),
+            "expected first RPC URL redacted in debug; got {events_debug}"
+        );
+        assert!(
+            events_debug.contains("https://beta.client.example/***"),
+            "expected second RPC URL redacted in debug; got {events_debug}"
+        );
+    }
+}
