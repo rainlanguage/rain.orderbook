@@ -62,10 +62,10 @@ impl SyncLocalDb {
             );
         }
 
-        let (local_db, metadata_rpc_urls) =
+        let (rpc_client, metadata_rpc_urls) =
             build_local_db_from_network(chain_id, primary_orderbook.network.as_ref(), &api_token)?;
         let token_fetcher = DefaultTokenFetcher;
-        let runner = SyncRunner::new(&db_path, &local_db, metadata_rpc_urls, &token_fetcher);
+        let runner = SyncRunner::new(&db_path, &rpc_client, metadata_rpc_urls, &token_fetcher);
         let params = SyncParams {
             chain_id,
             orderbook_address: &orderbook_address,
