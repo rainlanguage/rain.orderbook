@@ -255,6 +255,19 @@
             '';
           };
 
+          rainix-wasm-browser-test = rainix.mkTask.${system} {
+            name = "rainix-wasm-browser-test";
+            body = ''
+              set -euxo pipefail
+
+              cd crates/common
+              wasm-pack test --headless --chrome --features browser-tests -- leadership::wasm_tests
+            '';
+            additionalBuildInputs = [
+              pkgs.wasm-pack
+            ];
+          };
+
           js-install = rainix.mkTask.${system} {
             name = "js-install";
             body = ''
@@ -292,6 +305,7 @@
             packages.ob-rs-test
             packages.rainix-wasm-artifacts
             packages.rainix-wasm-test
+            packages.rainix-wasm-browser-test
             packages.js-install
             packages.build-js-bindings
             packages.test-js-bindings
