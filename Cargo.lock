@@ -6862,7 +6862,6 @@ dependencies = [
  "getrandom 0.2.16",
  "httpmock",
  "itertools 0.14.0",
- "js-sys",
  "once_cell",
  "proptest",
  "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
