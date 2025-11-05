@@ -88,6 +88,27 @@ jobs:
 
       - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
+      - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
+        working-directory: ./tauri-app
+        env:
+          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+      - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
+        working-directory: ./tauri-app
+
+      - name: Reset workspace target before Rust tests
+        run: |
+          rm -rf target
+          rm -rf tauri-app/src-tauri/target
+
+      - name: Run Rust tests with reduced debug artifacts
+        run: nix develop .#tauri-shell --command tauri-rs-test
+        env:
+          CARGO_INCREMENTAL: 0
+
+      - run: |
+          rm -rf target
+          rm -rf tauri-app/src-tauri/target
+
       - run: nix develop .#tauri-shell --command ob-tauri-before-release
         working-directory: ./tauri-app
         env:
