@@ -72,10 +72,6 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		};
 	}
 
-	if (localDb && raindexClient) {
-		raindexClient.setDbCallback(localDb.query.bind(localDb));
-	}
-
 	return {
 		stores: {
 			selectedChainIds: writable<number[]>([]),

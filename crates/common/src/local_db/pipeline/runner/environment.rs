@@ -382,7 +382,6 @@ mod tests {
 
         async fn fetch_missing(
             &self,
-            _rpcs: &[Url],
             _missing: Vec<Address>,
             _cfg: &crate::local_db::FetchConfig,
         ) -> Result<Vec<(Address, TokenInfo)>, LocalDbError> {

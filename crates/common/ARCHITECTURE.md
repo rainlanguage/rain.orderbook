@@ -57,7 +57,7 @@ Target gating is used extensively:
 ### 3) Deposit / Approve
 - `DepositArgs` holds token, vaultId, `Float` amount, and decimals.
 - `read_allowance` uses a readable provider to query ERC20 allowance.
-- If allowance is insufficient, `execute_approve` submits an ERC20 `approve` for the deficit.
+- If allowance differs from the desired amount, `execute_approve` submits an ERC20 `approve` that overwrites the allowance with the target value.
 - `execute_deposit` builds and submits `deposit3` with the exact `Float` amount converted to fixed decimal units.
 - Both execution functions accept a status callback for progress.
 
@@ -223,7 +223,7 @@ Where functionality cannot run in WASM, equivalent calldata generation methods a
   1) Fetch `SgOrder` from subgraph; convert to `removeOrder3Call` and execute or export calldata.
 
 - Deposit/Withdraw:
-  1) For deposit, check allowance and approve if needed; call `deposit3`.
+  1) For deposit, check allowance and, when it differs from the intended amount, approve the exact target before calling `deposit3`.
   2) For withdraw, construct `withdraw3` calldata or execute; batch multiple via `RaindexVaultsList::get_withdraw_calldata`.
 
 - Explore orderbook data in a UI:
