@@ -36,6 +36,8 @@ jobs:
             task: rainix-wasm-artifacts
           - os: ubuntu-latest
             task: rainix-wasm-test
+          - os: ubuntu-latest
+            task: rainix-wasm-browser-test
           # Testing JS/TS bindings doesnt need to run on multiple platforms
           - os: ubuntu-latest
             task: test-js-bindings
