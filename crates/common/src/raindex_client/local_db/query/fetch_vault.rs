@@ -43,7 +43,7 @@ mod wasm_tests {
     use wasm_bindgen::prelude::Closure;
     use wasm_bindgen::JsCast;
     use wasm_bindgen_test::*;
-    use wasm_bindgen_utils::prelude::serde_wasm_bindgen::{from_value, to_value};
+    use wasm_bindgen_utils::prelude::serde_wasm_bindgen::to_value;
     use wasm_bindgen_utils::prelude::*;
 
     #[wasm_bindgen_test]
@@ -151,21 +151,68 @@ mod wasm_tests {
         assert_eq!(vaults.len(), 2);
 
         // Assert both SQLs fired in sorted order by io index
-        let captured = calls.borrow().clone();
-        let captured: Vec<(String, Vec<SqlValue>)> = captured
-            .into_iter()
-            .map(|(sql, params)| {
-                let params_vec: Vec<SqlValue> =
-                    from_value(params).expect("SQL params should deserialize");
-                (sql, params_vec)
-            })
-            .collect();
+        let captured = calls.borrow();
         let expected1 = build_fetch_vault_stmt(chain_id, Address::ZERO, "v1", "t1");
         let expected2 = build_fetch_vault_stmt(chain_id, Address::ZERO, "v2", "t2");
-        let expected = vec![
-            (expected1.sql().to_string(), expected1.params().to_vec()),
-            (expected2.sql().to_string(), expected2.params().to_vec()),
-        ];
-        assert_eq!(captured, expected);
+        let expected = vec![expected1, expected2];
+
+        assert_eq!(captured.len(), expected.len());
+        for ((sql, params), stmt) in captured.iter().zip(expected.iter()) {
+            assert_eq!(sql, stmt.sql());
+            if stmt.params().is_empty() {
+                assert!(params.is_undefined());
+            } else {
+                assert!(
+                    js_sys::Array::is_array(params),
+                    "expected params array for {sql}"
+                );
+                let params_array = js_sys::Array::from(params);
+                assert_eq!(
+                    params_array.length(),
+                    stmt.params().len() as u32,
+                    "param length mismatch for {sql}"
+                );
+                for (idx, expected_param) in stmt.params().iter().enumerate() {
+                    let value = params_array.get(idx as u32);
+                    match expected_param {
+                        SqlValue::Text(expected_text) => {
+                            assert_eq!(
+                                value.as_string().unwrap(),
+                                *expected_text,
+                                "text param mismatch at index {idx} for {sql}"
+                            );
+                        }
+                        SqlValue::U64(expected_num) => {
+                            let bigint = value
+                                .dyn_into::<js_sys::BigInt>()
+                                .expect("numeric params should be BigInt");
+                            let numeric = bigint.to_string(10).unwrap().as_string().unwrap();
+                            assert_eq!(
+                                numeric,
+                                expected_num.to_string(),
+                                "numeric param mismatch at index {idx} for {sql}"
+                            );
+                        }
+                        SqlValue::I64(expected_num) => {
+                            let bigint = value
+                                .dyn_into::<js_sys::BigInt>()
+                                .expect("numeric params should be BigInt");
+                            let numeric = bigint.to_string(10).unwrap().as_string().unwrap();
+                            assert_eq!(
+                                numeric,
+                                expected_num.to_string(),
+                                "numeric param mismatch at index {idx} for {sql}"
+                            );
+                        }
+                        SqlValue::Null => {
+                            assert!(
+                                value.is_null(),
+                                "null param mismatch at index {idx} for {sql}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -64,26 +64,56 @@ mod wasm_tests {
         assert_eq!(captured_sql, expected_stmt.sql);
 
         // Also assert parameters are encoded and passed as expected
-        // The executor passes `undefined` when empty, otherwise an array via serde_wasm_bindgen
+        // The executor passes `undefined` when empty, otherwise an array with Text / BigInt entries
         if expected_stmt.params().is_empty() {
             assert!(captured_params.is_undefined());
         } else {
-            // Encode expected params to JsValue the same way the callback receives them
-            let expected_js_params = wasm_bindgen_utils::prelude::serde_wasm_bindgen::to_value(
-                &expected_stmt.as_js_params(),
-            )
-            .expect("encode expected params");
+            use wasm_bindgen::JsCast;
 
-            // Compare as JSON strings to ensure deep structural equality
-            let expected_json = js_sys::JSON::stringify(&expected_js_params)
-                .unwrap()
-                .as_string()
-                .unwrap();
-            let captured_json = js_sys::JSON::stringify(&captured_params)
-                .unwrap()
-                .as_string()
-                .unwrap();
-            assert_eq!(captured_json, expected_json);
+            assert!(
+                js_sys::Array::is_array(&captured_params),
+                "expected params array"
+            );
+            let captured_array = js_sys::Array::from(&captured_params);
+            assert_eq!(captured_array.length(), expected_stmt.params().len() as u32);
+
+            for (idx, expected_param) in expected_stmt.params().iter().enumerate() {
+                let value = captured_array.get(idx as u32);
+                match expected_param {
+                    crate::local_db::query::SqlValue::Text(expected) => {
+                        assert_eq!(
+                            value.as_string().unwrap(),
+                            *expected,
+                            "text param mismatch at index {idx}"
+                        );
+                    }
+                    crate::local_db::query::SqlValue::U64(expected) => {
+                        let bigint = value
+                            .dyn_into::<js_sys::BigInt>()
+                            .expect("numeric params should be BigInt");
+                        let numeric = bigint.to_string(10).unwrap().as_string().unwrap();
+                        assert_eq!(
+                            numeric,
+                            expected.to_string(),
+                            "numeric param mismatch at index {idx}"
+                        );
+                    }
+                    crate::local_db::query::SqlValue::I64(expected) => {
+                        let bigint = value
+                            .dyn_into::<js_sys::BigInt>()
+                            .expect("numeric params should be BigInt");
+                        let numeric = bigint.to_string(10).unwrap().as_string().unwrap();
+                        assert_eq!(
+                            numeric,
+                            expected.to_string(),
+                            "numeric param mismatch at index {idx}"
+                        );
+                    }
+                    crate::local_db::query::SqlValue::Null => {
+                        assert!(value.is_null(), "null param mismatch at index {idx}");
+                    }
+                }
+            }
         }
     }
 }

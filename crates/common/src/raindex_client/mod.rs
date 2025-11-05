@@ -602,7 +602,7 @@ accounts:
         yamls: Vec<String>,
         callback: js_sys::Function,
     ) -> RaindexClient {
-        let mut client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
+        let client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
         client.set_local_db_callback(callback).unwrap();
         client
     }

@@ -257,15 +257,17 @@ pub mod tests {
             assert!(Array::is_array(&captured_params));
 
             // Decode and assert expected contents and length
-            let decoded: Vec<crate::local_db::query::SqlValue> =
-                serde_wasm_bindgen::from_value(captured_params).unwrap();
-            assert_eq!(decoded.len(), 2);
+            let decoded = Array::from(&captured_params);
+            assert_eq!(decoded.length(), 2);
+
+            let first = decoded.get(0).dyn_into::<BigInt>().unwrap();
+            assert_eq!(first.to_string(10).unwrap().as_string().unwrap(), "123");
+
+            let second = decoded.get(1);
             assert_eq!(
-                decoded,
-                vec![
-                    crate::local_db::query::SqlValue::I64(123),
-                    crate::local_db::query::SqlValue::Text("abc".to_owned()),
-                ]
+                second.as_string().unwrap(),
+                "abc",
+                "expected text param in position 2"
             );
         }
 
@@ -322,9 +324,11 @@ pub mod tests {
             assert!(calls[4].1.is_undefined());
             drop(calls);
 
-            let decoded: Vec<crate::local_db::query::SqlValue> =
-                serde_wasm_bindgen::from_value(params_value).unwrap();
-            assert_eq!(decoded, vec![crate::local_db::query::SqlValue::I64(42)]);
+            assert!(Array::is_array(&params_value));
+            let decoded = Array::from(&params_value);
+            assert_eq!(decoded.length(), 1);
+            let first = decoded.get(0).dyn_into::<BigInt>().unwrap();
+            assert_eq!(first.to_string(10).unwrap().as_string().unwrap(), "42");
         }
 
         #[wasm_bindgen_test]
@@ -468,28 +472,24 @@ pub mod tests {
                 calls[2].0,
                 "INSERT INTO rollback_param (id, value) VALUES (?1, ?2)"
             );
-            let params_ok: Vec<crate::local_db::query::SqlValue> =
-                serde_wasm_bindgen::from_value(calls[2].1.clone()).unwrap();
-            assert_eq!(
-                params_ok,
-                vec![
-                    crate::local_db::query::SqlValue::I64(1),
-                    crate::local_db::query::SqlValue::Text("ok".to_string())
-                ]
-            );
+            assert!(Array::is_array(&calls[2].1));
+            let params_ok = Array::from(&calls[2].1);
+            assert_eq!(params_ok.length(), 2);
+            let first = params_ok.get(0).dyn_into::<BigInt>().unwrap();
+            assert_eq!(first.to_string(10).unwrap().as_string().unwrap(), "1");
+            let second = params_ok.get(1);
+            assert_eq!(second.as_string().unwrap(), "ok");
             assert_eq!(
                 calls[3].0,
                 "INSERT INTO rollback_param (id, value) VALUES (?1, ?2)"
             );
-            let params_fail: Vec<crate::local_db::query::SqlValue> =
-                serde_wasm_bindgen::from_value(calls[3].1.clone()).unwrap();
-            assert_eq!(
-                params_fail,
-                vec![
-                    crate::local_db::query::SqlValue::I64(2),
-                    crate::local_db::query::SqlValue::Text("fail".to_string())
-                ]
-            );
+            assert!(Array::is_array(&calls[3].1));
+            let params_fail = Array::from(&calls[3].1);
+            assert_eq!(params_fail.length(), 2);
+            let first = params_fail.get(0).dyn_into::<BigInt>().unwrap();
+            assert_eq!(first.to_string(10).unwrap().as_string().unwrap(), "2");
+            let second = params_fail.get(1);
+            assert_eq!(second.as_string().unwrap(), "fail");
             assert_eq!(calls[4].0, "ROLLBACK");
             assert!(!calls.iter().any(|(sql, _)| sql == "COMMIT"));
 
