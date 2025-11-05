@@ -53,6 +53,8 @@ backon = "0.4.4"
 flate2 = "1.0.34"
 itertools = { workspace = true }
 async-trait = { workspace = true }
+web-sys = { version = "0.3", features = ["Window", "Navigator", "console"] }
+gloo-timers = { version = "0.2", features = ["futures"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
@@ -70,8 +72,8 @@ tokio = { workspace = true, features = [
 serde-wasm-bindgen = "0.4"
 getrandom = { workspace = true }
 wasm-bindgen-test = "0.3"
-web-sys = { version = "0.3", features = ["Window", "Navigator"] }
 wasm-bindgen-futures = "0.4"
+gloo-timers = { version = "0.2", features = ["futures"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"
