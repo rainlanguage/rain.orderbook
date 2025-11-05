@@ -6862,6 +6862,7 @@ dependencies = [
  "getrandom 0.2.16",
  "httpmock",
  "itertools 0.14.0",
+ "js-sys",
  "once_cell",
  "proptest",
  "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
@@ -6891,8 +6892,10 @@ dependencies = [
  "tower",
  "tracing",
  "url",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
+ "web-sys",
 ]
 
 [[package]]
