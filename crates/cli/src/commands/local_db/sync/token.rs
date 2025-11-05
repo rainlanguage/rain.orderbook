@@ -8,9 +8,9 @@ use rain_orderbook_common::local_db::{
     insert::generate_erc20_token_statements,
     query::SqlStatementBatch,
 };
+use rain_orderbook_common::rpc_client::RpcClient;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
-use url::Url;
 
 use super::{data_source::TokenMetadataFetcher, storage::fetch_existing_tokens};
 
@@ -21,7 +21,7 @@ pub(crate) struct TokenPrepResult {
 
 pub(crate) async fn prepare_token_metadata<T>(
     db_path: &str,
-    rpc_urls: &[Url],
+    rpc_client: &RpcClient,
     chain_id: u32,
     decoded_events: &[DecodedEventData<DecodedEvent>],
     token_fetcher: &T,
@@ -71,7 +71,7 @@ where
     }
 
     println!("Fetching metadata for {} new token(s)", missing_addrs.len());
-    let fetched = token_fetcher.fetch(rpc_urls, missing_addrs).await?;
+    let fetched = token_fetcher.fetch(rpc_client, missing_addrs).await?;
 
     let tokens_prefix_sql = generate_erc20_token_statements(chain_id, &fetched);
     for (addr, info) in fetched.into_iter() {
@@ -103,7 +103,7 @@ mod tests {
 
     #[async_trait]
     impl TokenMetadataFetcher for NoopFetcher {
-        async fn fetch(&self, _: &[Url], _: Vec<Address>) -> Result<Vec<(Address, TokenInfo)>> {
+        async fn fetch(&self, _: &RpcClient, _: Vec<Address>) -> Result<Vec<(Address, TokenInfo)>> {
             panic!("fetch should not be called")
         }
     }
@@ -138,8 +138,9 @@ mod tests {
             })),
         }];
 
-        let rpc_urls = vec![Url::parse("http://localhost:1").unwrap()];
-        let prep = prepare_token_metadata(&db_path_str, &rpc_urls, 1, &decoded, &NoopFetcher)
+        let rpc_client =
+            RpcClient::new_with_urls(vec![Url::parse("https://test.com").unwrap()]).unwrap();
+        let prep = prepare_token_metadata(&db_path_str, &rpc_client, 1, &decoded, &NoopFetcher)
             .await
             .unwrap();
         assert!(prep.tokens_prefix_sql.is_empty());

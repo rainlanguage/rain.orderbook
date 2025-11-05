@@ -4,18 +4,29 @@ use crate::local_db::query::fetch_erc20_tokens_by_addresses::{build_fetch_stmt, 
 use crate::local_db::query::LocalDbQueryExecutor;
 use crate::local_db::token_fetch::fetch_erc20_metadata_concurrent;
 use crate::local_db::{FetchConfig, LocalDbError};
+use crate::rpc_client::RpcClient;
 use alloy::primitives::Address;
 use async_trait::async_trait;
 use url::Url;
 
 /// Default implementation of the TokensPipeline that delegates to the
 /// existing concurrent ERC-20 metadata fetcher and query builders.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct DefaultTokensPipeline;
+#[derive(Debug, Clone)]
+pub struct DefaultTokensPipeline {
+    rpc_client: RpcClient,
+}
 
 impl DefaultTokensPipeline {
-    pub const fn new() -> Self {
-        Self
+    pub fn new(urls: Vec<Url>) -> Result<Self, LocalDbError> {
+        let rpc_client = RpcClient::new_with_urls(urls)?;
+        Ok(Self { rpc_client })
+    }
+
+    #[cfg(test)]
+    pub fn mock() -> Self {
+        let rpc_client =
+            RpcClient::new_with_urls(vec![Url::parse("https://test.com").unwrap()]).unwrap();
+        Self { rpc_client }
     }
 }
 
@@ -39,11 +50,10 @@ impl TokensPipeline for DefaultTokensPipeline {
 
     async fn fetch_missing(
         &self,
-        rpcs: &[Url],
         missing: Vec<Address>,
         cfg: &FetchConfig,
     ) -> Result<Vec<(Address, TokenInfo)>, LocalDbError> {
-        fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing, cfg).await
+        fetch_erc20_metadata_concurrent(&self.rpc_client, missing, cfg).await
     }
 }
 
@@ -137,7 +147,7 @@ mod tests {
             fail_query: false,
             return_malformed_json: false,
         };
-        let pipeline = DefaultTokensPipeline::new();
+        let pipeline = DefaultTokensPipeline::mock();
         let out = pipeline.load_existing(&db, 137, &[]).await.expect("ok");
         assert!(out.is_empty());
     }
@@ -160,7 +170,7 @@ mod tests {
             fail_query: false,
             return_malformed_json: false,
         };
-        let pipeline = DefaultTokensPipeline::new();
+        let pipeline = DefaultTokensPipeline::mock();
         let addrs = vec!["0xabc".to_string(), "0xdef".to_string()];
         let out = pipeline.load_existing(&db, 137, &addrs).await.expect("ok");
         assert_eq!(out, vec![row]);
@@ -177,7 +187,7 @@ mod tests {
             fail_query: true,
             return_malformed_json: false,
         };
-        let pipeline = DefaultTokensPipeline::new();
+        let pipeline = DefaultTokensPipeline::mock();
         let err = pipeline
             .load_existing(&db, 1, &["0xabc".into()])
             .await
@@ -202,7 +212,7 @@ mod tests {
             fail_query: false,
             return_malformed_json: true,
         };
-        let pipeline = DefaultTokensPipeline::new();
+        let pipeline = DefaultTokensPipeline::mock();
         let err = pipeline
             .load_existing(&db, 1, &["0xabc".into()])
             .await
@@ -227,7 +237,7 @@ mod tests {
             fail_query: false,
             return_malformed_json: false,
         };
-        let pipeline = DefaultTokensPipeline::new();
+        let pipeline = DefaultTokensPipeline::mock();
         let addrs = vec![
             "0xabc".to_string(),
             "0xabc".to_string(),
@@ -236,27 +246,6 @@ mod tests {
         // We only care that params keep duplicates in order; rows are empty
         let out = pipeline.load_existing(&db, 137, &addrs).await.expect("ok");
         assert!(out.is_empty());
-    }
-
-    #[tokio::test]
-    async fn fetch_missing_empty_returns_empty() {
-        let pipeline = DefaultTokensPipeline::new();
-        // No RPCs needed since missing is empty
-        let out = pipeline
-            .fetch_missing(&[], Vec::new(), &FetchConfig::default())
-            .await
-            .expect("ok");
-        assert!(out.is_empty());
-    }
-
-    #[tokio::test]
-    async fn fetch_missing_with_empty_rpcs_and_nonempty_missing_errors() {
-        let pipeline = DefaultTokensPipeline::new();
-        // With no RPCs and at least one missing address, expect an error
-        let res = pipeline
-            .fetch_missing(&[], vec![Address::ZERO], &FetchConfig::default())
-            .await;
-        assert!(res.is_err(), "expected error when RPCs are empty");
     }
 
     #[cfg(not(target_family = "wasm"))]
@@ -272,9 +261,9 @@ mod tests {
             let token = local_evm.tokens[0].clone();
             let addr: Address = *token.address();
 
-            let pipeline = DefaultTokensPipeline::new();
+            let pipeline = DefaultTokensPipeline::new(vec![url]).unwrap();
             let out = pipeline
-                .fetch_missing(&[url], vec![addr], &FetchConfig::default())
+                .fetch_missing(vec![addr], &FetchConfig::default())
                 .await
                 .expect("fetch ok");
 
@@ -294,9 +283,9 @@ mod tests {
             let a0: Address = *t0.address();
             let a1: Address = *t1.address();
 
-            let pipeline = DefaultTokensPipeline::new();
+            let pipeline = DefaultTokensPipeline::new(vec![url]).unwrap();
             let mut out = pipeline
-                .fetch_missing(&[url], vec![a0, a1], &FetchConfig::default())
+                .fetch_missing(vec![a0, a1], &FetchConfig::default())
                 .await
                 .expect("fetch ok");
             out.sort_by_key(|(a, _)| *a);
@@ -309,9 +298,10 @@ mod tests {
         #[tokio::test]
         async fn fetch_missing_failure_bubbles_error() {
             let bad_url = Url::parse("http://127.0.0.1:1").unwrap();
-            let pipeline = DefaultTokensPipeline::new();
+
+            let pipeline = DefaultTokensPipeline::new(vec![bad_url]).unwrap();
             let err = pipeline
-                .fetch_missing(&[bad_url], vec![Address::ZERO], &FetchConfig::default())
+                .fetch_missing(vec![Address::ZERO], &FetchConfig::default())
                 .await
                 .expect_err("expected error");
             match err {
@@ -333,9 +323,9 @@ mod tests {
             let good = *local_evm.tokens[0].address();
             let bad = Address::ZERO; // not a valid token contract in the fixture
 
-            let pipeline = DefaultTokensPipeline::new();
+            let pipeline = DefaultTokensPipeline::new(vec![url]).unwrap();
             let err = pipeline
-                .fetch_missing(&[url], vec![good, bad], &FetchConfig::default())
+                .fetch_missing(vec![good, bad], &FetchConfig::default())
                 .await
                 .expect_err("expected overall error on partial failure");
 
