@@ -29,7 +29,7 @@ use tokio::task::JoinError;
 use url::Url;
 use wasm_bindgen_utils::prelude::*;
 
-const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
+const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[137, 8453, 42161];
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
