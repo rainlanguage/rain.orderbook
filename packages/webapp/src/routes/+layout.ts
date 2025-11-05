@@ -90,7 +90,8 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			activeTokens: writable<Address[]>([])
 		},
 		localDb,
-		raindexClient
+		raindexClient,
+		settingsYamlText
 	};
 };
 
