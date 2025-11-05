@@ -1,6 +1,12 @@
 use crate::{erc20::Error as ERC20Error, local_db::LocalDbError};
+use std::future::Future;
+
+#[cfg(not(target_family = "wasm"))]
 use backon::{ExponentialBuilder, Retryable};
-use std::{future::Future, time::Duration};
+#[cfg(target_family = "wasm")]
+use gloo_timers::future::TimeoutFuture;
+#[cfg(not(target_family = "wasm"))]
+use std::time::Duration;
 
 pub const DEFAULT_BASE_DELAY_MILLIS: u64 = 500;
 
@@ -28,6 +34,7 @@ impl From<RetryError<ERC20Error>> for ERC20Error {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry>(
     operation: F,
     max_attempts: usize,
@@ -54,7 +61,42 @@ where
         .await
 }
 
-#[cfg(test)]
+#[cfg(target_family = "wasm")]
+pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry>(
+    operation: F,
+    max_attempts: usize,
+    should_retry: ShouldRetry,
+) -> Result<T, RetryError<E>>
+where
+    F: Fn() -> Fut,
+    Fut: Future<Output = Result<T, E>>,
+    ShouldRetry: Fn(&E) -> bool,
+{
+    if max_attempts == 0 {
+        return Err(RetryError::InvalidMaxAttempts);
+    }
+
+    let mut delay_ms = DEFAULT_BASE_DELAY_MILLIS;
+
+    for attempt in 0..max_attempts {
+        match operation().await {
+            Ok(value) => return Ok(value),
+            Err(err) => {
+                if attempt + 1 >= max_attempts || !should_retry(&err) {
+                    return Err(RetryError::Operation(err));
+                }
+
+                let delay = delay_ms.min(u64::from(u32::MAX)) as u32;
+                TimeoutFuture::new(delay).await;
+                delay_ms = delay_ms.saturating_mul(2);
+            }
+        }
+    }
+
+    Err(RetryError::InvalidMaxAttempts)
+}
+
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
