@@ -38,7 +38,7 @@
 		raindexClient.startLocalDbScheduler(settingsYamlText);
 	});
 	onDestroy(() => {
-		if (raindexClient) return;
+		if (!raindexClient) return;
 		raindexClient.stopLocalDbScheduler();
 	});
 
