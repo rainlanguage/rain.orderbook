@@ -44,7 +44,7 @@ const decodeRainFloat = (value: Hex, columnName: string): PlotDataValue => {
     throw new Error(`Failed to parse ${columnName} value: ${message}`);
   }
 
-  const formattedResult = floatResult.value.format();
+  const formattedResult = floatResult.value.formatWithScientific(false);
   if (formattedResult.error || !formattedResult.value) {
     const message =
       formattedResult.error?.readableMsg ?? formattedResult.error?.msg ?? 'Unknown error';
