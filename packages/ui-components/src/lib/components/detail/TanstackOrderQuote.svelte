@@ -107,7 +107,7 @@
 
 		<TableBody>
 			{#if $orderQuoteQuery.data && $orderQuoteQuery.data.length > 0}
-				{#each $orderQuoteQuery.data as item}
+				{#each $orderQuoteQuery.data as item, index}
 					{#if item.success && item.data}
 						<TableBodyRow data-testid="bodyRow">
 							<TableBodyCell>{item.pair.pairName}</TableBodyCell>
@@ -138,19 +138,20 @@
 					{:else if !item.success && item.error}
 						<TableBodyRow>
 							<TableBodyCell>{item.pair.pairName}</TableBodyCell>
-							<TableBodyCell colspan="2" class="flex flex-col justify-start text-gray-400">
-								<Tooltip triggeredBy="#quote-error">
+							<TableBodyCell colspan="3" class="text-sm text-red-500 dark:text-red-400">
+								<Tooltip
+									triggeredBy={`#quote-error-${index}`}
+									customClass="max-w-sm whitespace-pre-wrap break-words"
+								>
 									{item.error}
 								</Tooltip>
 								<div
-									id="quote-error"
-									class="overflow-x cursor-pointer self-start border-dotted border-red-500"
+									id={`quote-error-${index}`}
+									class="max-w-xl truncate cursor-pointer self-start border-dotted border-red-500 pr-2"
 								>
-									Error fetching quote
+									{item.error}
 								</div>
 							</TableBodyCell>
-							<TableBodyCell />
-							<TableBodyCell />
 							<TableBodyCell>
 								{#if handleQuoteDebugModal}
 									<button
