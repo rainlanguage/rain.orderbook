@@ -23,7 +23,7 @@
 		logoLight,
 		WalletConnect,
 		TransactionList,
-		LocalDbStatusBadge
+		LocalDbStatusCard
 	} from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
@@ -112,18 +112,7 @@
 				<WalletConnect {appKitModal} {connected} classes="w-full" />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
-				<li
-					class="rounded-lg border border-gray-200 bg-white px-3 py-3 dark:border-gray-700 dark:bg-gray-900"
-				>
-					<div class="flex items-center justify-between">
-						<span
-							class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
-						>
-							Local DB Indexer
-						</span>
-						<LocalDbStatusBadge status={$localDbStatus} />
-					</div>
-				</li>
+				<LocalDbStatusCard status={$localDbStatus.status} error={$localDbStatus.error} />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
 				<SidebarItem

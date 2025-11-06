@@ -1,34 +1,51 @@
 import { render, cleanup, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { vi, describe, it, expect, afterEach } from 'vitest';
-import Sidebar from '../lib/components/Sidebar.svelte';
 import { writable } from 'svelte/store';
+import Sidebar from '../lib/components/Sidebar.svelte';
+import { localDbStatus } from '../lib/stores/localDbStatus';
 
-vi.mock('@rainlanguage/ui-components', async () => {
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@rainlanguage/ui-components')>();
 	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return {
+		...actual,
 		ButtonDarkMode: MockComponent,
 		logoLight: 'mock-logo-light.svg',
 		logoDark: 'mock-logo-dark.svg',
 		IconTelegram: MockComponent,
 		IconExternalLink: MockComponent,
 		WalletConnect: MockComponent,
-		TransactionList: MockComponent,
-		LocalDbStatusBadge: MockComponent
+		TransactionList: MockComponent
 	};
 });
 
 vi.mock('svelte/store', async (importOriginal) => {
 	return {
 		...((await importOriginal()) as object),
-		writable: (value: unknown) => ({
-			subscribe: (run: (val: unknown) => void) => {
-				run(value);
-				return () => {};
-			},
-			set: vi.fn()
-		})
+		writable: (value: unknown) => {
+			let current = value;
+			const subscribers = new Set<(val: unknown) => void>();
+			return {
+				subscribe: (run: (val: unknown) => void) => {
+					subscribers.add(run);
+					run(current);
+					return () => {
+						subscribers.delete(run);
+					};
+				},
+				set: vi.fn((next: unknown) => {
+					current = next;
+					subscribers.forEach((run) => run(current));
+				}),
+				update: vi.fn((updater: (cur: unknown) => unknown) => {
+					current = updater(current);
+					subscribers.forEach((run) => run(current));
+				})
+			};
+		}
 	};
 });
+
 
 const mockWindowSize = (width: number) => {
 	Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: width });
@@ -38,6 +55,7 @@ const mockWindowSize = (width: number) => {
 describe('Sidebar', () => {
 	afterEach(() => {
 		cleanup();
+		localDbStatus.set({ status: 'active', error: undefined });
 	});
 
 	it('renders correctly with colorTheme store', async () => {
@@ -112,5 +130,20 @@ describe('Sidebar', () => {
 			const sidebar = screen.getByTestId('sidebar');
 			expect(sidebar.hidden).toBe(true);
 		});
+	});
+
+	it('renders the local DB error message when status fails', () => {
+		mockWindowSize(1025);
+		const mockColorTheme = writable('light');
+		const mockPage = {
+			url: { pathname: '/' }
+		};
+
+		localDbStatus.set({ status: 'failure', error: 'Runner error occurred' });
+
+		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
+
+		const errorBadge = screen.getByTestId('local-db-error');
+		expect(errorBadge).toHaveTextContent('Runner error occurred');
 	});
 });
