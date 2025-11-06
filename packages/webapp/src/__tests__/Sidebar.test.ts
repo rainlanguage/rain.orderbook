@@ -12,15 +12,17 @@ vi.mock('@rainlanguage/ui-components', async () => {
 		IconTelegram: MockComponent,
 		IconExternalLink: MockComponent,
 		WalletConnect: MockComponent,
-		TransactionList: MockComponent
+		TransactionList: MockComponent,
+		LocalDbStatusBadge: MockComponent
 	};
 });
 
 vi.mock('svelte/store', async (importOriginal) => {
 	return {
 		...((await importOriginal()) as object),
-		writable: () => ({
-			subscribe: () => {
+		writable: (value: unknown) => ({
+			subscribe: (run: (val: unknown) => void) => {
+				run(value);
 				return () => {};
 			},
 			set: vi.fn()
