@@ -21,6 +21,7 @@
 	import { onMount } from 'svelte';
 	import type { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 	import type { RaindexClient } from '@rainlanguage/orderbook';
+	import { localDbStatus } from '$lib/stores/localDbStatus';
 
 	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data as {
 		errorMessage: string | null;
@@ -42,7 +43,7 @@
 
 	onMount(() => {
 		if (!browser || !raindexClient || !localDb) return;
-		raindexClient.startLocalDbScheduler(settingsYamlText);
+		raindexClient.startLocalDbScheduler(settingsYamlText, localDbStatus.set);
 	});
 
 	$: if (browser && window.navigator) {
