@@ -3,7 +3,6 @@ use crate::local_db::query::fetch_orders::{
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::raindex_client::orders::GetOrdersFilters;
-use alloy::primitives::Address;
 
 impl From<GetOrdersFilters> for FetchOrdersArgs {
     fn from(filters: GetOrdersFilters) -> Self {
@@ -33,17 +32,16 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
             owners,
             order_hash,
             tokens,
+            ..FetchOrdersArgs::default()
         }
     }
 }
 
 pub async fn fetch_orders<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    chain_id: u32,
-    orderbook_address: Address,
     args: FetchOrdersArgs,
 ) -> Result<Vec<LocalDbOrder>, LocalDbQueryError> {
-    let stmt = build_fetch_orders_stmt(chain_id, orderbook_address, &args)?;
+    let stmt = build_fetch_orders_stmt(&args)?;
     exec.query_json(&stmt).await
 }
 
@@ -85,6 +83,7 @@ mod tests {
         use super::*;
         use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
         use crate::raindex_client::local_db::executor::JsCallbackExecutor;
+        use alloy::primitives::Address;
         use std::cell::RefCell;
         use std::rc::Rc;
         use wasm_bindgen::prelude::Closure;
@@ -104,8 +103,10 @@ mod tests {
             args.owners = vec![" 0xAbC ".into(), "O'Owner".into()];
             args.tokens = vec![" Tok'A ".into()];
             args.order_hash = Some(" 0xHash ' ".into());
+            args.chain_ids = vec![137];
+            args.orderbook_addresses = vec![orderbook()];
 
-            let expected_stmt = build_fetch_orders_stmt(137, orderbook(), &args).unwrap();
+            let expected_stmt = build_fetch_orders_stmt(&args).unwrap();
 
             let store = Rc::new(RefCell::new((
                 String::new(),
@@ -115,7 +116,7 @@ mod tests {
             let exec = JsCallbackExecutor::from_ref(&callback);
 
             // Act
-            let res = super::fetch_orders(&exec, 137, orderbook(), args).await;
+            let res = super::fetch_orders(&exec, args).await;
 
             // Assert
             assert!(res.is_ok());
@@ -148,9 +149,12 @@ mod tests {
             let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
             closure.forget();
 
-            let args = FetchOrdersArgs::default();
+            let args = FetchOrdersArgs {
+                chain_ids: vec![1],
+                ..FetchOrdersArgs::default()
+            };
             let exec = JsCallbackExecutor::from_ref(&callback);
-            let res = super::fetch_orders(&exec, 1, orderbook(), args).await;
+            let res = super::fetch_orders(&exec, args).await;
             assert!(res.is_err());
             let err = res.err().unwrap();
             let msg = err.to_string();
@@ -160,8 +164,11 @@ mod tests {
         #[wasm_bindgen_test]
         async fn invalid_json_yields_deserialization_error() {
             // Build args and expected SQL
-            let args = FetchOrdersArgs::default();
-            let expected_stmt = build_fetch_orders_stmt(1, orderbook(), &args).unwrap();
+            let args = FetchOrdersArgs {
+                chain_ids: vec![1],
+                ..FetchOrdersArgs::default()
+            };
+            let expected_stmt = build_fetch_orders_stmt(&args).unwrap();
 
             // Callback returns Success with invalid JSON payload
             let store = Rc::new(RefCell::new((
@@ -171,7 +178,7 @@ mod tests {
             let callback = create_sql_capturing_callback("not-json", store.clone());
 
             let exec = JsCallbackExecutor::from_ref(&callback);
-            let res = super::fetch_orders(&exec, 1, orderbook(), args).await;
+            let res = super::fetch_orders(&exec, args).await;
             assert!(matches!(
                 res,
                 Err(LocalDbQueryError::Deserialization { .. })
@@ -199,9 +206,12 @@ mod tests {
             let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
             closure.forget();
 
-            let args = FetchOrdersArgs::default();
+            let args = FetchOrdersArgs {
+                chain_ids: vec![1],
+                ..FetchOrdersArgs::default()
+            };
             let exec = JsCallbackExecutor::from_ref(&callback);
-            let res = super::fetch_orders(&exec, 1, orderbook(), args).await;
+            let res = super::fetch_orders(&exec, args).await;
             assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
         }
     }

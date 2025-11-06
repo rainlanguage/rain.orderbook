@@ -7,6 +7,7 @@ use tsify::Tsify;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 pub mod executor;
+pub mod orders;
 pub mod pipeline;
 pub mod query;
 
