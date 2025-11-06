@@ -10,5 +10,17 @@
             "address": "0x8a3C8E610d827093F7437E0C45EFa648563c0dDA",
             "startBlock": 76772162
         }
+    },
+    "base": {
+        "OrderBook": {
+            "address": "0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775",
+            "startBlock": 36667253
+        }
+    },
+    "flare": {
+        "OrderBook": {
+            "address": "0x8Dbc50485e7C6994923B9A2c603a2B6b2d8Eef64",
+            "startBlock": 49782578
+        }
     }
 }
