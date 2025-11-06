@@ -115,7 +115,10 @@ impl RaindexClient {
 mod wasm_tests {
     use super::*;
     use gloo_timers::future::TimeoutFuture;
-    use rain_orderbook_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
+    use rain_orderbook_app_settings::yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlParsable,
+    };
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen::prelude::Closure;

@@ -15,10 +15,9 @@ use std::cell::Cell;
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
-use wasm_bindgen_utils::prelude::js_sys::Function;
-use wasm_bindgen_utils::prelude::serde_wasm_bindgen;
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::spawn_local;
-use wasm_bindgen_utils::prelude::JsValue;
+use wasm_bindgen_utils::prelude::*;
+use web_sys::js_sys::Function;
 
 const DEFAULT_INTERVAL_MS: u32 = 10_000;
 
@@ -137,14 +136,12 @@ fn emit_status(callback: Option<&Function>, status: LocalDbStatusSnapshot) {
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
+    use crate::raindex_client::local_db::LocalDbStatus;
     use gloo_timers::future::TimeoutFuture;
     use std::cell::{Cell, RefCell};
     use std::collections::VecDeque;
     use std::rc::Rc;
-    use wasm_bindgen::prelude::Closure;
     use wasm_bindgen_test::*;
-
-    use crate::raindex_client::local_db::LocalDbStatus;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
