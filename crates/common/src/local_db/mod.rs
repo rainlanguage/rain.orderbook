@@ -90,6 +90,11 @@ pub enum LocalDbError {
     #[error(transparent)]
     SqlBuildError(#[from] SqlBuildError),
 
+    #[error(transparent)]
+    InsertError(#[from] InsertError),
+
+    #[error("Overflow when incrementing last_synced_block: {last_synced_block}")]
+    LastSyncedBlockOverflow { last_synced_block: u64 },
     #[error("Missing topics filter")]
     MissingTopicsFilter,
 
@@ -113,9 +118,6 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     DecodeError(#[from] DecodeError),
-
-    #[error(transparent)]
-    InsertError(#[from] InsertError),
 }
 
 impl LocalDbError {
@@ -143,9 +145,6 @@ impl LocalDbError {
             ),
             LocalDbError::Config { message } => format!("Configuration error: {}", message),
             LocalDbError::DecodeError(err) => format!("Event decoding error: {}", err),
-            LocalDbError::InsertError(err) => {
-                format!("Database insertion error: {}", err)
-            }
             LocalDbError::TableCheckFailed(err) => {
                 format!("Failed to check required tables: {}", err)
             }
@@ -171,6 +170,11 @@ impl LocalDbError {
             LocalDbError::IoError(err) => format!("I/O error: {}", err),
             LocalDbError::FromHexError(err) => format!("Hex decoding error: {}", err),
             LocalDbError::SqlBuildError(err) => format!("SQL build error: {}", err),
+            LocalDbError::InsertError(err) => format!("Data insertion error: {}", err),
+            LocalDbError::LastSyncedBlockOverflow { last_synced_block } => format!(
+                "Overflow when incrementing last_synced_block {}",
+                last_synced_block
+            ),
             LocalDbError::MissingTopicsFilter => "Topics are missing from the filter".to_string(),
             LocalDbError::MissingBlockFilter(value) => {
                 format!("Missing block filter: {}", value)
