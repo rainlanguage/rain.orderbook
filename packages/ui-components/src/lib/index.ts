@@ -67,6 +67,7 @@ export { default as ValidOrdersSection } from './components/deployment/ValidOrde
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 export { default as TransactionList } from './components/transactions/TransactionList.svelte';
 export { default as FixedBottomTransaction } from './components/transactions/FixedBottomTransaction.svelte';
+export { default as LocalDbStatusCard } from './components/LocalDbStatusCard.svelte';
 export { default as LocalDbStatusBadge } from './components/LocalDbStatusBadge.svelte';
 
 //Types

@@ -132,7 +132,7 @@ describe('Sidebar', () => {
 		});
 	});
 
-	it('renders the local DB error message when status fails', () => {
+	it('renders copy button for local DB failures', () => {
 		mockWindowSize(1025);
 		const mockColorTheme = writable('light');
 		const mockPage = {
@@ -143,7 +143,9 @@ describe('Sidebar', () => {
 
 		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
 
-		const errorBadge = screen.getByTestId('local-db-error');
-		expect(errorBadge).toHaveTextContent('Runner error occurred');
+		const copyButton = screen.getByTestId('local-db-error-copy');
+		expect(copyButton).toBeInTheDocument();
+		expect(copyButton).toHaveTextContent('Copy error details');
+		expect(screen.queryByTestId('local-db-error')).not.toBeInTheDocument();
 	});
 });
