@@ -10,12 +10,16 @@
       ? Number(metricDatum.value.toPrecision(metric.precision)).toString()
       : metricDatum.formatted
     : undefined;
+  $: metricValueWithUnits =
+    metricValueText != null
+      ? `${metric?.['unit-prefix'] ?? ''}${metricValueText}${metric?.['unit-suffix'] ?? ''}`
+      : undefined;
 </script>
 
 <div class="flex h-full w-full flex-col items-center justify-between border p-4">
   <span>{metric.label}</span>
-  <span class="text-2xl">
-    {(metric?.['unit-prefix'] ?? '') + (metricValueText ?? '') + (metric?.['unit-suffix'] ?? '')}
+  <span class="block w-full truncate text-center text-2xl" title={metricValueWithUnits}>
+    {metricValueWithUnits ?? ''}
   </span>
 
   {#if metric?.description}
