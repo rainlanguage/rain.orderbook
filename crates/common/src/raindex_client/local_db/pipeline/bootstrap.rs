@@ -180,7 +180,7 @@ mod tests {
 
     use super::*;
     use crate::local_db::pipeline::BootstrapConfig;
-    use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
+    use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_batch;
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -571,10 +571,9 @@ mod tests {
             updated_at: 1,
         };
 
-        let clear_stmt =
-            clear_orderbook_data_stmt(orderbook_key().chain_id, orderbook_key().orderbook_address);
-
-        let db = MockDb::default()
+        let clear_batch =
+            clear_orderbook_data_batch(orderbook_key().chain_id, orderbook_key().orderbook_address);
+        let mut db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
                 &fetch_target_watermark_stmt(
@@ -592,8 +591,11 @@ mod tests {
                     updated_at: None
                 }]),
             )
-            .with_text(&clear_stmt, "cleared")
             .with_text(&dump_stmt, "dumped");
+
+        for stmt in clear_batch.statements() {
+            db = db.with_text(stmt, "cleared");
+        }
 
         let cfg = BootstrapConfig {
             target_key: orderbook_key(),
@@ -604,9 +606,13 @@ mod tests {
         adapter.engine_run(&db, &cfg).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 2);
-        assert_eq!(calls[0], clear_stmt.sql().to_string());
-        assert_eq!(calls[1], dump_stmt.sql().to_string());
+        let mut expected: Vec<String> = clear_batch
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
+        expected.push(dump_stmt.sql().to_string());
+        assert_eq!(calls, expected);
     }
 
     #[tokio::test]

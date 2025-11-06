@@ -302,6 +302,7 @@ mod tests {
     struct BootstrapRecord {
         orderbook_key: String,
         dump_sql: Option<String>,
+        latest_block: u64,
     }
 
     impl Telemetry {
@@ -334,13 +335,19 @@ mod tests {
             self.engine_runs.lock().unwrap().clone()
         }
 
-        fn record_bootstrap(&self, orderbook_key: String, dump_sql: Option<String>) {
+        fn record_bootstrap(
+            &self,
+            orderbook_key: String,
+            dump_sql: Option<String>,
+            latest_block: u64,
+        ) {
             self.bootstrap_records
                 .lock()
                 .unwrap()
                 .push(BootstrapRecord {
                     orderbook_key,
                     dump_sql,
+                    latest_block,
                 });
         }
 
@@ -542,8 +549,11 @@ mod tests {
             DB: LocalDbQueryExecutor + ?Sized,
         {
             let dump_sql = config.dump_stmt.as_ref().map(|stmt| stmt.sql().to_string());
-            self.telemetry
-                .record_bootstrap(self.orderbook_key.clone(), dump_sql);
+            self.telemetry.record_bootstrap(
+                self.orderbook_key.clone(),
+                dump_sql,
+                config.latest_block,
+            );
             Ok(())
         }
 
@@ -1081,6 +1091,12 @@ orderbooks:
             .dump_sql
             .as_ref()
             .is_some_and(|sql| sql.starts_with("-- dump for "))));
+        let latest_blocks: HashMap<String, u64> = records
+            .iter()
+            .map(|record| (record.orderbook_key.clone(), record.latest_block))
+            .collect();
+        assert_eq!(latest_blocks.get(ORDERBOOK_KEY_A), Some(&111));
+        assert_eq!(latest_blocks.get(ORDERBOOK_KEY_B), Some(&222));
         assert_eq!(db.batch_calls().len(), 2);
     }
 
@@ -1233,12 +1249,14 @@ orderbooks:
             .dump_sql
             .as_ref()
             .is_some_and(|sql| sql.contains("-- dump for")));
+        assert_eq!(record_a.latest_block, 111);
 
         let record_b = records
             .iter()
             .find(|r| r.orderbook_key == ORDERBOOK_KEY_B)
             .expect("record for ob-b");
         assert!(record_b.dump_sql.is_none());
+        assert_eq!(record_b.latest_block, 0);
     }
 
     #[tokio::test]
@@ -1514,5 +1532,6 @@ orderbooks:
         let record = &records[0];
         assert_eq!(record.orderbook_key, ORDERBOOK_KEY_A);
         assert_eq!(record.dump_sql.as_deref(), Some("-- preloaded dump"));
+        assert_eq!(record.latest_block, 0);
     }
 }

@@ -80,6 +80,7 @@ pub fn build_runner_targets(
                 window_overrides: WindowOverrides::default(),
             },
             dump_str: None,
+            manifest_end_block: 0,
         };
 
         targets.push(RunnerTarget {

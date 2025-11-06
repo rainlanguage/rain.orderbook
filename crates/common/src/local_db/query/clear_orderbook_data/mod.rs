@@ -1,16 +1,31 @@
-use crate::local_db::query::{SqlStatement, SqlValue};
+use crate::local_db::query::create_tables::REQUIRED_TABLES;
+use crate::local_db::query::{SqlStatement, SqlStatementBatch, SqlValue};
 use alloy::primitives::Address;
 
 pub const CLEAR_ORDERBOOK_DATA_SQL: &str = include_str!("query.sql");
 
-pub fn clear_orderbook_data_stmt(chain_id: u32, orderbook_address: Address) -> SqlStatement {
-    SqlStatement::new_with_params(
-        CLEAR_ORDERBOOK_DATA_SQL,
-        [
-            SqlValue::from(chain_id as u64),
-            SqlValue::from(orderbook_address.to_string()),
-        ],
-    )
+pub fn clear_orderbook_data_batch(chain_id: u32, orderbook_address: Address) -> SqlStatementBatch {
+    let chain_val = SqlValue::from(chain_id as u64);
+    let address_val = SqlValue::from(orderbook_address.to_string());
+
+    let statements: Vec<SqlStatement> = REQUIRED_TABLES
+        .iter()
+        .copied()
+        .filter(|table| *table != "db_metadata")
+        .map(|table| {
+            SqlStatement::new_with_params(
+                format!(
+                    "DELETE FROM {table}\nWHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2)"
+                ),
+                [
+                    chain_val.clone(),
+                    address_val.clone(),
+                ],
+            )
+        })
+        .collect();
+
+    SqlStatementBatch::from(statements).ensure_transaction()
 }
 
 #[cfg(test)]
@@ -33,15 +48,38 @@ mod tests {
     }
 
     #[test]
-    fn stmt_binds_expected_params() {
-        let addr = Address::from([0x11; 20]);
-        let stmt = clear_orderbook_data_stmt(137, addr);
+    fn batch_wraps_transaction_and_matches_tables() {
+        let chain_id = 999u32;
+        let addr = Address::from([0xAA; 20]);
+        let batch = clear_orderbook_data_batch(chain_id, addr);
 
-        assert_eq!(stmt.sql(), CLEAR_ORDERBOOK_DATA_SQL);
-        assert_eq!(
-            stmt.params(),
-            &[SqlValue::U64(137), SqlValue::Text(addr.to_string()),]
-        );
+        let expected_tables: Vec<&str> = REQUIRED_TABLES
+            .iter()
+            .copied()
+            .filter(|table| *table != "db_metadata")
+            .collect();
+
+        assert!(batch.is_transaction());
+        assert_eq!(batch.len(), expected_tables.len() + 2); // BEGIN + deletes + COMMIT
+
+        let statements = batch.statements();
+        assert_eq!(statements.first().unwrap().sql(), "BEGIN TRANSACTION");
+        assert_eq!(statements.last().unwrap().sql(), "COMMIT");
+
+        for (idx, table) in expected_tables.iter().enumerate() {
+            let stmt = &statements[idx + 1];
+            let expected_sql = format!(
+                "DELETE FROM {table}\nWHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2)"
+            );
+            assert_eq!(stmt.sql(), expected_sql);
+            assert_eq!(
+                stmt.params(),
+                &[
+                    SqlValue::U64(chain_id as u64),
+                    SqlValue::Text(addr.to_string())
+                ]
+            );
+        }
     }
 
     #[test]
