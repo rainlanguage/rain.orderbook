@@ -5,15 +5,7 @@
   export let data: TransformedPlotData[];
 
   $: metricDatum = data?.[0]?.[metric.value];
-  $: metricValueText = metricDatum
-    ? metric?.precision != null
-      ? Number(metricDatum.value.toPrecision(metric.precision)).toString()
-      : metricDatum.formatted
-    : undefined;
-  $: metricValueWithUnits =
-    metricValueText != null
-      ? `${metric?.['unit-prefix'] ?? ''}${metricValueText}${metric?.['unit-suffix'] ?? ''}`
-      : undefined;
+  $: metricValueWithUnits = `${metric?.['unit-prefix'] ?? ''}${metricDatum.formatted}${metric?.['unit-suffix'] ?? ''}`;
 </script>
 
 <div class="flex h-full w-full flex-col items-center justify-between border p-4">
