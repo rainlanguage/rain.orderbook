@@ -8,6 +8,7 @@ use crate::local_db::LocalDbError;
 use crate::raindex_client::local_db::executor::JsCallbackExecutor;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
+use crate::raindex_client::local_db::LocalDbStatusSnapshot;
 use futures::channel::oneshot;
 use gloo_timers::future::TimeoutFuture;
 use std::cell::Cell;
@@ -15,7 +16,9 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use wasm_bindgen_utils::prelude::js_sys::Function;
+use wasm_bindgen_utils::prelude::serde_wasm_bindgen;
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::spawn_local;
+use wasm_bindgen_utils::prelude::JsValue;
 
 const DEFAULT_INTERVAL_MS: u32 = 10_000;
 
@@ -63,12 +66,23 @@ impl SchedulerHandle {
 pub fn start(
     settings_yaml: String,
     db_callback: Function,
+    status_callback: Option<Function>,
 ) -> Result<SchedulerHandle, LocalDbError> {
     let runner = ClientRunner::new(settings_yaml)?;
-    Ok(start_with_runner(runner, db_callback, DEFAULT_INTERVAL_MS))
+    Ok(start_with_runner(
+        runner,
+        db_callback,
+        status_callback,
+        DEFAULT_INTERVAL_MS,
+    ))
 }
 
-fn start_with_runner<R>(runner: R, db_callback: Function, interval_ms: u32) -> SchedulerHandle
+fn start_with_runner<R>(
+    runner: R,
+    db_callback: Function,
+    status_callback: Option<Function>,
+    interval_ms: u32,
+) -> SchedulerHandle
 where
     R: SchedulerRunner + 'static,
 {
@@ -76,15 +90,25 @@ where
     let (done_tx, done_rx) = oneshot::channel();
 
     let stop_flag_task = Rc::clone(&stop_flag);
+    let status_callback = status_callback.map(Rc::new);
+
     spawn_local(async move {
         let mut runner = runner;
         let db_executor = JsCallbackExecutor::new(db_callback);
+        emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::active());
         loop {
             if stop_flag_task.get() {
                 break;
             }
 
-            let _ = runner.run_once(&db_executor).await;
+            emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::syncing());
+            match runner.run_once(&db_executor).await {
+                Ok(_) => emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::active()),
+                Err(err) => emit_status(
+                    status_callback.as_deref(),
+                    LocalDbStatusSnapshot::failure(err.to_readable_msg()),
+                ),
+            }
 
             if stop_flag_task.get() {
                 break;
@@ -102,6 +126,14 @@ where
     }
 }
 
+fn emit_status(callback: Option<&Function>, status: LocalDbStatusSnapshot) {
+    if let Some(callback) = callback {
+        if let Ok(value) = serde_wasm_bindgen::to_value(&status) {
+            let _ = callback.call1(&JsValue::NULL, &value);
+        }
+    }
+}
+
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
@@ -109,12 +141,21 @@ mod wasm_tests {
     use std::cell::{Cell, RefCell};
     use std::collections::VecDeque;
     use std::rc::Rc;
+    use wasm_bindgen::prelude::Closure;
     use wasm_bindgen_test::*;
+
+    use crate::raindex_client::local_db::LocalDbStatus;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
     fn noop_callback() -> Function {
         Function::new_no_args("return undefined;")
+    }
+
+    impl SchedulerHandle {
+        pub(crate) fn stop_flag_ptr(&self) -> *const Cell<bool> {
+            Rc::as_ptr(&self.stop_flag)
+        }
     }
 
     struct RecordingRunner {
@@ -157,7 +198,7 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn start_returns_error_for_invalid_yaml() {
-        let result = start("not yaml".to_string(), noop_callback());
+        let result = start("not yaml".to_string(), noop_callback(), None);
         assert!(result.is_err());
     }
 
@@ -166,7 +207,7 @@ mod wasm_tests {
         let calls = Rc::new(Cell::new(0));
         let failures = Rc::new(Cell::new(0));
         let runner = RecordingRunner::new(Rc::clone(&calls), Rc::clone(&failures), vec![]);
-        let handle = start_with_runner(runner, noop_callback(), 1);
+        let handle = start_with_runner(runner, noop_callback(), None, 1);
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(3).await;
@@ -183,7 +224,7 @@ mod wasm_tests {
         let failures = Rc::new(Cell::new(0));
         let runner =
             RecordingRunner::new(Rc::clone(&calls), Rc::clone(&failures), vec![true, false]);
-        let handle = start_with_runner(runner, noop_callback(), 1);
+        let handle = start_with_runner(runner, noop_callback(), None, 1);
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(5).await;
@@ -199,11 +240,61 @@ mod wasm_tests {
         let calls = Rc::new(Cell::new(0));
         let failures = Rc::new(Cell::new(0));
         let runner = RecordingRunner::new(Rc::clone(&calls), Rc::clone(&failures), vec![]);
-        let handle = start_with_runner(runner, noop_callback(), 1);
+        let handle = start_with_runner(runner, noop_callback(), None, 1);
 
         handle.stop().await;
 
         assert_eq!(calls.get(), 0);
         assert_eq!(failures.get(), 0);
+    }
+
+    #[wasm_bindgen_test]
+    async fn scheduler_emits_status_transitions() {
+        let calls = Rc::new(Cell::new(0));
+        let failures = Rc::new(Cell::new(0));
+        let runner =
+            RecordingRunner::new(Rc::clone(&calls), Rc::clone(&failures), vec![true, false]);
+
+        let statuses = Rc::new(RefCell::new(Vec::new()));
+        let status_callback = {
+            let statuses = Rc::clone(&statuses);
+            let closure = Closure::wrap(Box::new(move |value: JsValue| {
+                let snapshot: LocalDbStatusSnapshot =
+                    serde_wasm_bindgen::from_value(value).expect("valid status value");
+                statuses.borrow_mut().push(snapshot);
+            }) as Box<dyn FnMut(JsValue)>);
+            let function: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+            function
+        };
+
+        let handle = start_with_runner(runner, noop_callback(), Some(status_callback), 1);
+
+        TimeoutFuture::new(0).await;
+        TimeoutFuture::new(5).await;
+
+        handle.stop().await;
+
+        let recorded = statuses.borrow();
+        assert!(
+            recorded
+                .iter()
+                .any(|snapshot| snapshot.status == LocalDbStatus::Failure),
+            "expected failure status"
+        );
+        assert!(
+            recorded
+                .iter()
+                .filter(|snapshot| snapshot.status == LocalDbStatus::Active)
+                .count()
+                >= 2,
+            "expected Active status at least twice"
+        );
+        assert!(
+            recorded
+                .iter()
+                .any(|snapshot| snapshot.status == LocalDbStatus::Syncing),
+            "expected Syncing status"
+        );
     }
 }
