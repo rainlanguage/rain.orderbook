@@ -12,7 +12,11 @@
   let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 
   $: metricDatum = data?.[0]?.[metric.value];
-  $: metricValueWithUnits = `${metric?.['unit-prefix'] ?? ''}${metricDatum.formatted}${metric?.['unit-suffix'] ?? ''}`;
+  $: metricFormattedValue = metricDatum?.formatted ?? '';
+  $: metricValueWithUnits =
+    metricFormattedValue === ''
+      ? ''
+      : `${metric?.['unit-prefix'] ?? ''}${metricFormattedValue}${metric?.['unit-suffix'] ?? ''}`;
   $: tooltipMessage = copied ? 'Copied!' : 'Click to copy value';
 
   function showTooltip() {
@@ -35,11 +39,10 @@
 
     try {
       await writeText(metricValueWithUnits);
-    } catch (error) {
+    } catch {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(metricValueWithUnits);
       } else {
-        console.error('Unable to copy metric value', error);
         return;
       }
     }
@@ -69,7 +72,7 @@
       type="button"
       class="relative flex w-full items-center justify-center gap-2 rounded bg-transparent px-2 py-1 text-2xl transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 dark:hover:bg-slate-800"
       aria-label={`Copy ${metric.label} value`}
-      title={metricValueWithUnits}
+      title={metricValueWithUnits || ''}
       on:click={copyMetricValue}
       on:mouseenter={showTooltip}
       on:mouseleave={hideTooltip}
