@@ -18,17 +18,10 @@
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
-	import { onMount } from 'svelte';
-	import type { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
-	import type { RaindexClient } from '@rainlanguage/orderbook';
+	import { onDestroy, onMount } from 'svelte';
 	import { localDbStatus } from '$lib/stores/localDbStatus';
 
-	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data as {
-		errorMessage: string | null;
-		localDb: SQLiteWasmDatabase;
-		raindexClient: RaindexClient;
-		settingsYamlText: string;
-	};
+	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -44,6 +37,10 @@
 	onMount(() => {
 		if (!browser || !raindexClient || !localDb) return;
 		raindexClient.startLocalDbScheduler(settingsYamlText, localDbStatus.set);
+	});
+	onDestroy(() => {
+		if (!raindexClient) return;
+		raindexClient.stopLocalDbScheduler();
 	});
 
 	$: if (browser && window.navigator) {
