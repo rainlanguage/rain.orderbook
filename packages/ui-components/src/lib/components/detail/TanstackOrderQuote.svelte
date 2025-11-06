@@ -75,6 +75,7 @@
 			{/if}
 			<span></span>
 			<Refresh
+				data-testid="refresh-button"
 				class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
 				on:click={refreshQuotes}
 				spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}
@@ -147,7 +148,7 @@
 								</Tooltip>
 								<div
 									id={`quote-error-${index}`}
-									class="max-w-xl truncate cursor-pointer self-start border-dotted border-red-500 pr-2"
+									class="max-w-xl cursor-pointer self-start truncate border-dotted border-red-500 pr-2"
 								>
 									{item.error}
 								</div>

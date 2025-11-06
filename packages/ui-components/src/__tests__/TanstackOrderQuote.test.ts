@@ -187,8 +187,8 @@ describe('TanstackOrderQuote component', () => {
 		});
 
 		await waitFor(() => {
-			const errorCell = screen.getByText((content) => content.includes('Error fetching quote'));
-			expect(errorCell).toBeInTheDocument();
+			const errorNodes = screen.queryAllByText(/Network error/);
+			expect(errorNodes.length).toBeGreaterThan(0);
 		});
 	});
 
