@@ -1230,7 +1230,7 @@ ${dotrain}`;
 			assert.equal(
 				// @ts-expect-error - result is valid
 				result.Calldatas[0].calldata,
-				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
 			);
 
 			// Test no deposits case
@@ -1240,6 +1240,40 @@ ${dotrain}`;
 				await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
 			);
 			assert.equal(emptyResult, 'NoDeposits');
+		});
+
+		it('overwrites approvals when allowance is higher than deposit', async () => {
+			// decimal call
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
+			// allowance - 5000 * 10^18
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000010f0cf064dd59200000'
+				);
+
+			gui.unsetDeposit('token1');
+			await gui.setDeposit('token2', '2000');
+
+			const result = extractWasmEncodedData<ApprovalCalldataResult>(
+				await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
+			);
+
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas.length, 1);
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas[0].token, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
+			assert.equal(
+				// @ts-expect-error - result is valid
+				result.Calldatas[0].calldata,
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000006c6b935b8bbd400000'
+			);
 		});
 
 		it('generates deposit calldatas', async () => {
@@ -1782,7 +1816,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(result.approvals.length, 1);
 			assert.equal(
 				result.approvals[0].calldata,
-				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
 			assert.equal(result.deploymentCalldata.length, 3018);

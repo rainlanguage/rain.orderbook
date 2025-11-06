@@ -4,7 +4,7 @@ use crate::local_db::query::fetch_last_synced_block::{
     fetch_last_synced_block_stmt, SyncStatusResponse,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
-use crate::local_db::{LocalDb, LocalDbError};
+use crate::local_db::LocalDbError;
 use crate::raindex_client::local_db::executor::JsCallbackExecutor;
 use alloy::primitives::Address;
 use wasm_bindgen_utils::{prelude::*, wasm_export};
@@ -18,26 +18,22 @@ pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
         .await
 }
 
-#[wasm_export]
-impl LocalDb {
-    /// Returns the sync status rows from the local DB (via provided JS query callback)
-    #[wasm_export(
-        js_name = "getSyncStatus",
-        unchecked_return_type = "SyncStatusResponse[]"
-    )]
-    pub async fn get_sync_status(
-        &self,
-        #[wasm_export(param_description = "JavaScript function to execute database queries")]
-        db_callback: js_sys::Function,
-        #[wasm_export(js_name = "chainId")] chain_id: u32,
-        #[wasm_export(js_name = "orderbookAddress", unchecked_param_type = "Address")]
-        orderbook_address: String,
-    ) -> Result<Vec<SyncStatusResponse>, LocalDbError> {
-        let exec = JsCallbackExecutor::from_ref(&db_callback);
-        fetch_last_synced_block(&exec, chain_id, Address::from_str(&orderbook_address)?)
-            .await
-            .map_err(LocalDbError::from)
-    }
+/// Returns the sync status rows from the local DB (via provided JS query callback)
+#[wasm_export(
+    js_name = "getSyncStatus",
+    unchecked_return_type = "SyncStatusResponse[]"
+)]
+pub async fn get_sync_status(
+    #[wasm_export(param_description = "JavaScript function to execute database queries")]
+    db_callback: js_sys::Function,
+    #[wasm_export(js_name = "chainId")] chain_id: u32,
+    #[wasm_export(js_name = "orderbookAddress", unchecked_param_type = "Address")]
+    orderbook_address: String,
+) -> Result<Vec<SyncStatusResponse>, LocalDbError> {
+    let exec = JsCallbackExecutor::from_ref(&db_callback);
+    fetch_last_synced_block(&exec, chain_id, Address::from_str(&orderbook_address)?)
+        .await
+        .map_err(LocalDbError::from)
 }
 
 #[cfg(all(test, target_family = "wasm"))]

@@ -638,7 +638,6 @@ mod tests {
 
         async fn fetch_missing(
             &self,
-            _rpcs: &[Url],
             _missing: Vec<Address>,
             _cfg: &FetchConfig,
         ) -> Result<Vec<(Address, rain_orderbook_common::erc20::TokenInfo)>, LocalDbError> {
