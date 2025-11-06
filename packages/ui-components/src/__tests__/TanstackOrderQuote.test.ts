@@ -22,6 +22,8 @@ vi.mock('$lib/queries/queryClient', async (importOriginal) => ({
 }));
 
 const mockErrToast = vi.fn();
+const mockAddToast = vi.fn();
+let clipboardWriteText: ReturnType<typeof vi.fn>;
 
 describe('TanstackOrderQuote component', () => {
 	const mockOrder: RaindexOrder = {
@@ -32,9 +34,17 @@ describe('TanstackOrderQuote component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
+		mockErrToast.mockReset();
+		mockAddToast.mockReset();
+		clipboardWriteText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(window.navigator, 'clipboard', {
+			value: { writeText: clipboardWriteText },
+			configurable: true
+		});
 		(useToasts as Mock).mockReturnValue({
 			toasts: writable([]),
 			errToast: mockErrToast,
+			addToast: mockAddToast,
 			removeToast: vi.fn()
 		});
 	});
@@ -264,6 +274,43 @@ describe('TanstackOrderQuote component', () => {
 
 		await waitFor(() => {
 			expect(mockErrToast).toHaveBeenCalledWith('Failed to refresh');
+		});
+	});
+
+	it('copies the quote error to the clipboard and notifies the user', async () => {
+		(mockOrder.getQuotes as Mock).mockResolvedValueOnce({
+			value: [
+				{
+					success: false,
+					block_number: '0x123',
+					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
+					data: undefined,
+					error: 'Failed to calculate quote'
+				}
+			]
+		});
+
+		const queryClient = new QueryClient();
+
+		render(TanstackOrderQuote, {
+			props: {
+				order: mockOrder,
+				handleQuoteDebugModal: vi.fn()
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		const copyButton = await screen.findByRole('button', { name: 'Copy quote error' });
+		await fireEvent.click(copyButton);
+
+		await waitFor(() => {
+			expect(clipboardWriteText).toHaveBeenCalledWith('Failed to calculate quote');
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Copied quote error',
+				type: 'success',
+				color: 'green'
+			});
+			expect(mockErrToast).not.toHaveBeenCalled();
 		});
 	});
 });

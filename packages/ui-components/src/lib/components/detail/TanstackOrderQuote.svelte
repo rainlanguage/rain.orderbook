@@ -15,7 +15,7 @@
 		TableHead,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
+	import { BugOutline, ClipboardOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 	import Tooltip from '../Tooltip.svelte';
 
 	export let order: RaindexOrder;
@@ -32,13 +32,36 @@
 	let enabled = true;
 
 	const queryClient = useQueryClient();
-	const { errToast } = useToasts();
+	const { errToast, addToast } = useToasts();
 
 	const refreshQuotes = async () => {
 		try {
 			await invalidateTanstackQueries(queryClient, [order.id, QKEY_ORDER_QUOTE + order.id]);
 		} catch {
 			errToast('Failed to refresh');
+		}
+	};
+
+	const copyQuoteError = async (error?: string) => {
+		if (!error) {
+			errToast('No quote error to copy');
+			return;
+		}
+		try {
+			if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+				throw new Error('Clipboard API unavailable');
+			}
+			await navigator.clipboard.writeText(error);
+			addToast({
+				message: 'Copied quote error',
+				type: 'success',
+				color: 'green'
+			});
+		} catch (copyError) {
+			errToast(
+				'Failed to copy quote error',
+				copyError instanceof Error ? copyError.message : undefined
+			);
 		}
 	};
 
@@ -146,11 +169,21 @@
 								>
 									{item.error}
 								</Tooltip>
-								<div
-									id={`quote-error-${index}`}
-									class="max-w-xl cursor-pointer self-start truncate border-dotted border-red-500 pr-2"
-								>
-									{item.error}
+								<div class="flex items-start gap-2">
+									<button
+										type="button"
+										class="mt-0.5 rounded border border-transparent p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+										aria-label="Copy quote error"
+										on:click={() => copyQuoteError(item.error)}
+									>
+										<ClipboardOutline size="sm" />
+									</button>
+									<div
+										id={`quote-error-${index}`}
+										class="max-w-xl cursor-pointer self-start truncate border-dotted border-red-500 pr-2"
+									>
+										{item.error}
+									</div>
 								</div>
 							</TableBodyCell>
 							<TableBodyCell>
