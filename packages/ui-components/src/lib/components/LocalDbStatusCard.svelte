@@ -17,14 +17,12 @@
 	};
 </script>
 
-<svelte:element
+<div
 	class="rounded-lg border border-gray-200 bg-white px-3 py-3 dark:border-gray-700 dark:bg-gray-900"
 	data-testid="local-db-status-card"
 >
 	<div class="flex items-center justify-between">
-		<span
-			class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
-		>
+		<span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
 			{label}
 		</span>
 		<LocalDbStatusBadge {status} />
@@ -40,4 +38,4 @@
 			{copied ? 'Copied!' : 'Copy error details'}
 		</button>
 	{/if}
-</svelte:element>
+</div>
