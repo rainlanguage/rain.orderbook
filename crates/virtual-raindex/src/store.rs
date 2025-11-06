@@ -22,7 +22,10 @@ pub(crate) struct StoreNamespace {
 
 impl StoreNamespace {
     pub const fn new(namespace: U256, qualified: B256) -> Self {
-        Self { namespace, qualified }
+        Self {
+            namespace,
+            qualified,
+        }
     }
 }
 
@@ -183,8 +186,14 @@ mod tests {
         let store_address = Address::repeat_byte(0xAA);
         let qualified = B256::from([0x11; 32]);
         let writes = vec![
-            (B256::from(U256::from(1_u64)), B256::from(U256::from(10_u64))),
-            (B256::from(U256::from(2_u64)), B256::from(U256::from(20_u64))),
+            (
+                B256::from(U256::from(1_u64)),
+                B256::from(U256::from(10_u64)),
+            ),
+            (
+                B256::from(U256::from(2_u64)),
+                B256::from(U256::from(20_u64)),
+            ),
         ];
 
         apply_store_writes(&mut store, store_address, qualified, &writes);
@@ -244,10 +253,7 @@ mod tests {
             StoreKey::new(other_store, namespace_fqn, key),
             B256::from([0xCC; 32]),
         );
-        snapshot.insert(
-            StoreKey::new(store, other_fqn, key),
-            B256::from([0xDD; 32]),
-        );
+        snapshot.insert(StoreKey::new(store, other_fqn, key), B256::from([0xDD; 32]));
 
         let overlay = build_state_overlay(&snapshot, store, namespace);
 

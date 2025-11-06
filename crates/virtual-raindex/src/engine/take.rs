@@ -618,14 +618,8 @@ mod tests {
         let processor =
             TakeOrdersProcessor::new(&raindex, config).expect("processor should be created");
 
-        assert_eq!(
-            processor.expected_input_token,
-            order.validInputs[0].token
-        );
-        assert_eq!(
-            processor.expected_output_token,
-            order.validOutputs[0].token
-        );
+        assert_eq!(processor.expected_input_token, order.validInputs[0].token);
+        assert_eq!(processor.expected_output_token, order.validOutputs[0].token);
     }
 
     #[test]
@@ -699,11 +693,7 @@ mod tests {
 
         match err {
             RaindexError::MinimumInputNotMet { minimum, actual } => {
-                assert!(
-                    minimum
-                        .eq(parse_float("5"))
-                        .expect("minimum comparison")
-                );
+                assert!(minimum.eq(parse_float("5")).expect("minimum comparison"));
                 assert!(actual.is_zero().expect("actual zero"));
             }
             other => panic!("unexpected error: {other:?}"),
@@ -750,11 +740,7 @@ mod tests {
             .clone();
         let expected_input = (starting_input_balance.clone() + taker_output.clone())
             .expect("expected input balance");
-        assert!(
-            updated_input
-                .eq(expected_input)
-                .expect("input balance eq")
-        );
+        assert!(updated_input.eq(expected_input).expect("input balance eq"));
 
         let updated_output = working_state
             .vault_balances
@@ -764,11 +750,9 @@ mod tests {
         let expected_negative = taker_input.clone().neg().expect("neg");
         let expected_output = (starting_output_balance.clone() + expected_negative.clone())
             .expect("expected output balance");
-        assert!(
-            updated_output
-                .eq(expected_output)
-                .expect("output balance eq")
-        );
+        assert!(updated_output
+            .eq(expected_output)
+            .expect("output balance eq"));
 
         assert_eq!(deltas.len(), 2);
         assert_eq!(deltas[0].owner, order.owner);
@@ -777,20 +761,16 @@ mod tests {
         assert_eq!(deltas[1].owner, order.owner);
         assert_eq!(deltas[1].token, output_io.token);
         assert_eq!(deltas[1].vault_id, output_io.vaultId);
-        assert!(
-            deltas[0]
-                .delta
-                .clone()
-                .eq(taker_output.clone())
-                .expect("delta input eq")
-        );
-        assert!(
-            deltas[1]
-                .delta
-                .clone()
-                .eq(expected_negative)
-                .expect("delta output eq")
-        );
+        assert!(deltas[0]
+            .delta
+            .clone()
+            .eq(taker_output.clone())
+            .expect("delta input eq"));
+        assert!(deltas[1]
+            .delta
+            .clone()
+            .eq(expected_negative)
+            .expect("delta output eq"));
     }
 
     #[test]
@@ -821,6 +801,9 @@ mod tests {
 
         let err = validate_io_indices(&take_order, &order).expect_err("invalid index should error");
 
-        assert!(matches!(err, RaindexError::InvalidInputIndex { index: 2, len: 1 }));
+        assert!(matches!(
+            err,
+            RaindexError::InvalidInputIndex { index: 2, len: 1 }
+        ));
     }
 }

@@ -242,7 +242,10 @@ mod tests {
             .get(&to_revm_address(store))
             .and_then(|account| account.info());
 
-        assert!(interpreter_account.is_some(), "interpreter should be cached");
+        assert!(
+            interpreter_account.is_some(),
+            "interpreter should be cached"
+        );
         assert!(store_account.is_some(), "store should be cached");
     }
 }

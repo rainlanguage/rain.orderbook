@@ -12,8 +12,8 @@ use crate::{
 };
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, TaskV2};
 
-pub(super) mod context;
 pub(super) mod calc;
+pub(super) mod context;
 pub(super) mod eval;
 pub(super) mod mutations;
 pub(super) mod post_tasks;

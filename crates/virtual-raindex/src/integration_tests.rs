@@ -1,10 +1,10 @@
 use crate::{
     cache::StaticCodeCache,
+    derive_fqn,
     host::RevmInterpreterHost,
     state::{StoreKey, VaultKey},
-    Float, OrderRef, QuoteRequest, RaindexMutation, TakeOrder, TakeOrdersConfig,
-    TokenDecimalEntry, VaultDelta, VirtualRaindex,
-    derive_fqn,
+    Float, OrderRef, QuoteRequest, RaindexMutation, TakeOrder, TakeOrdersConfig, TokenDecimalEntry,
+    VaultDelta, VirtualRaindex,
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::providers::{ext::AnvilApi, Provider};
@@ -17,8 +17,7 @@ use rain_orderbook_test_fixtures::LocalEvm;
 use rain_orderbook_test_fixtures::Orderbook::{
     self, EvaluableV4 as OnchainEvaluable, OrderConfigV4 as OnchainOrderConfig,
     QuoteV2 as OnchainQuoteV2, TakeOrderConfigV4 as OnchainTakeOrderConfig,
-    TakeOrdersConfigV4 as OnchainTakeOrdersConfig, TaskV2 as OnchainTaskV2,
-    IOV2 as OnchainIOV2,
+    TakeOrdersConfigV4 as OnchainTakeOrdersConfig, TaskV2 as OnchainTaskV2, IOV2 as OnchainIOV2,
 };
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -129,16 +128,14 @@ fn action_strategy() -> impl Strategy<Value = Vec<Action>> {
     let order = prop_oneof![Just(OrderTarget::Primary), Just(OrderTarget::Secondary)];
     let deposit =
         (order.clone(), 1u8..=4).prop_map(|(target, amount)| Action::Deposit(target, amount));
-    let take =
-        (order.clone(), 1u8..=3).prop_map(|(target, amount)| Action::Take(target, amount));
+    let take = (order.clone(), 1u8..=3).prop_map(|(target, amount)| Action::Take(target, amount));
     let quote = order.clone().prop_map(Action::Quote);
     let advance = (1u16..=600).prop_map(Action::AdvanceTime);
 
-    prop::collection::vec(prop_oneof![deposit, take.clone(), quote, advance], 6..=12)
-        .prop_filter(
-            "available actions must include at least one take",
-            move |actions| actions.iter().any(|a| matches!(a, Action::Take(_, _))),
-        )
+    prop::collection::vec(prop_oneof![deposit, take.clone(), quote, advance], 6..=12).prop_filter(
+        "available actions must include at least one take",
+        move |actions| actions.iter().any(|a| matches!(a, Action::Take(_, _))),
+    )
 }
 
 struct OrderState {
@@ -757,11 +754,7 @@ impl Harness {
         }
     }
 
-    fn onchain_take_config(
-        &self,
-        target: OrderTarget,
-        amount: Float,
-    ) -> OnchainTakeOrdersConfig {
+    fn onchain_take_config(&self, target: OrderTarget, amount: Float) -> OnchainTakeOrdersConfig {
         let order = &self.orders[target.index()];
         OnchainTakeOrdersConfig {
             orders: vec![OnchainTakeOrderConfig {
@@ -791,9 +784,8 @@ fn build_rainlang(
             script.push_str("/* 0. calculate-io */\n_ _: 1 1;\n\n/* 1. handle-io */\n");
         }
         OrderTemplate::VaultBalance => {
-            script.push_str(
-                "/* 0. calculate-io */\n_ _: 1 context<3 3>();\n\n/* 1. handle-io */\n",
-            );
+            script
+                .push_str("/* 0. calculate-io */\n_ _: 1 context<3 3>();\n\n/* 1. handle-io */\n");
         }
     }
 

@@ -78,6 +78,9 @@ mod tests {
         assert_eq!(eval.context, context);
         assert_eq!(eval.inputs.len(), 0);
         assert_eq!(eval.stateOverlay.len(), 0);
-        assert_eq!(eval.sourceIndex, U256::from(EvalEntrypoint::HandleIo.source_index()));
+        assert_eq!(
+            eval.sourceIndex,
+            U256::from(EvalEntrypoint::HandleIo.source_index())
+        );
     }
 }

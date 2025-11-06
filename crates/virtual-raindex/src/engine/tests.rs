@@ -1,7 +1,7 @@
 use super::{
     context::{
-        CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_OUTPUTS_COLUMN,
-        IOContext,
+        IOContext, CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_VAULT_INPUTS_COLUMN,
+        CONTEXT_VAULT_OUTPUTS_COLUMN,
     },
     OrderRef, QuoteRequest, StoreOverride, TakeOrder, TakeOrderWarning, TakeOrdersConfig,
     VirtualRaindex,
@@ -10,7 +10,9 @@ use crate::{
     cache::{CodeCache, StaticCodeCache},
     error::{RaindexError, Result},
     host::{self, InterpreterHost},
-    state::{Env, RaindexMutation, StoreKey, StoreKeyValue, StoreSet, TokenDecimalEntry, VaultDelta},
+    state::{
+        Env, RaindexMutation, StoreKey, StoreKeyValue, StoreSet, TokenDecimalEntry, VaultDelta,
+    },
     store::{address_to_u256, derive_fqn},
     RevmInterpreterHost, VaultKey,
 };

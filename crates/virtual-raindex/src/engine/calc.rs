@@ -104,13 +104,7 @@ where
         signed_context,
     );
 
-    run_calculate_io(
-        raindex,
-        store_snapshot,
-        order,
-        context,
-        output_balance,
-    )
+    run_calculate_io(raindex, store_snapshot, order, context, output_balance)
 }
 
 fn run_calculate_io<C, H>(

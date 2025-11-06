@@ -361,5 +361,4 @@ mod tests {
             .eq(parse_float("5.5"))
             .expect("float eq for accumulated balance"));
     }
-
 }

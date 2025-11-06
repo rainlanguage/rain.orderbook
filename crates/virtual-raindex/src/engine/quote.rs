@@ -4,16 +4,10 @@ use alloy::primitives::{Address, B256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::SignedContextV1;
 
-use crate::{
-    cache::CodeCache,
-    error::RaindexError,
-    host,
-    state::StoreKey,
-    store,
-};
+use crate::{cache::CodeCache, error::RaindexError, host, state::StoreKey, store};
 
-use super::{calc::calculate_order_io, VirtualRaindex};
 use super::OrderRef;
+use super::{calc::calculate_order_io, VirtualRaindex};
 
 /// Temporary overlay applied to interpreter store reads during evaluation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -131,10 +125,7 @@ where
     }
 
     let mut store_snapshot = raindex.state.store.clone();
-    store::apply_overrides(
-        &mut store_snapshot,
-        overrides.into_iter().map(Into::into),
-    );
+    store::apply_overrides(&mut store_snapshot, overrides.into_iter().map(Into::into));
 
     let calculation = calculate_order_io(
         raindex,

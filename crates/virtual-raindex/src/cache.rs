@@ -129,9 +129,9 @@ mod tests {
                     "cached bytecode trailing byte should be zero padding"
                 );
             }
-            std::cmp::Ordering::Less => panic!(
-                "cached bytecode {actual:?} shorter than original {expected:?}"
-            ),
+            std::cmp::Ordering::Less => {
+                panic!("cached bytecode {actual:?} shorter than original {expected:?}")
+            }
         }
     }
 
@@ -142,21 +142,17 @@ mod tests {
         let interpreter_code = vec![0xAA, 0xBB, 0xCC];
         let store_code = vec![0x11, 0x22];
 
-        let cache = StaticCodeCache::with_pair(
-            interpreter,
-            &interpreter_code,
-            store,
-            &store_code,
-        );
+        let cache = StaticCodeCache::with_pair(interpreter, &interpreter_code, store, &store_code);
 
         let cached_interpreter = cache
             .interpreter(interpreter)
             .expect("interpreter bytecode should be cached");
-        assert_cached_code(cached_interpreter.bytecode().as_ref(), interpreter_code.as_slice());
+        assert_cached_code(
+            cached_interpreter.bytecode().as_ref(),
+            interpreter_code.as_slice(),
+        );
 
-        let cached_store = cache
-            .store(store)
-            .expect("store bytecode should be cached");
+        let cached_store = cache.store(store).expect("store bytecode should be cached");
         assert_cached_code(cached_store.bytecode().as_ref(), store_code.as_slice());
     }
 
