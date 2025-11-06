@@ -122,6 +122,7 @@ where
                 if let Some(entry) = lookup_manifest_entry(manifest_map, &target) {
                     let dump_sql = environment.download_dump(&entry.dump_url).await?;
                     target.inputs.dump_str = Some(dump_sql);
+                    target.inputs.manifest_end_block = entry.end_block;
                 }
                 Ok::<RunnerTarget, LocalDbError>(target)
             }
@@ -661,7 +662,6 @@ mod tests {
 
         async fn fetch_missing(
             &self,
-            _rpcs: &[Url],
             _missing: Vec<Address>,
             _cfg: &FetchConfig,
         ) -> Result<Vec<(Address, crate::erc20::TokenInfo)>, LocalDbError> {

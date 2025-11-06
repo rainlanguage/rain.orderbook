@@ -200,6 +200,7 @@ mod tests {
             metadata_rpcs: Vec::new(),
             cfg: sync_config,
             dump_str: None,
+            manifest_end_block: 1,
         };
         let runner_target = RunnerTarget {
             orderbook_key: "test".to_string(),

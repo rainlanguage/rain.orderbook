@@ -35,6 +35,7 @@ pub struct SyncInputs {
     pub metadata_rpcs: Vec<Url>,
     pub cfg: SyncConfig,
     pub dump_str: Option<String>,
+    pub manifest_end_block: u64,
 }
 
 impl<B, W, E, T, A, S> SyncEngine<B, W, E, T, A, S>
@@ -150,7 +151,7 @@ where
                 &BootstrapConfig {
                     target_key: input.target.clone(),
                     dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
-                    latest_block,
+                    latest_block: input.manifest_end_block,
                 },
             )
             .await?;
@@ -496,6 +497,7 @@ mod tests {
                 window_overrides: WindowOverrides::default(),
             },
             dump_str: None,
+            manifest_end_block: 1,
         }
     }
 

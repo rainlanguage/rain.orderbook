@@ -24,12 +24,13 @@ pub fn default_environment() -> RunnerEnvironment<
         Arc::new(|target: &RunnerTarget| {
             let events =
                 DefaultEventsPipeline::with_regular_rpcs(target.inputs.metadata_rpcs.clone())?;
+            let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
 
             Ok(EnginePipelines::new(
                 ClientBootstrapAdapter::new(),
                 DefaultWindowPipeline::new(),
                 events,
-                DefaultTokensPipeline::new(),
+                tokens,
                 DefaultApplyPipeline::new(),
                 ClientStatusBus::new(),
             ))
@@ -67,6 +68,7 @@ mod tests {
                     window_overrides: WindowOverrides::default(),
                 },
                 dump_str: None,
+                manifest_end_block: 1,
             },
         }
     }

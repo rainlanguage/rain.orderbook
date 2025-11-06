@@ -135,6 +135,7 @@ mod tests {
                     window_overrides: WindowOverrides::default(),
                 },
                 dump_str: None,
+                manifest_end_block: 1,
             },
         }
     }
