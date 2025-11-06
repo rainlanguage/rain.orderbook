@@ -73,7 +73,6 @@ serde-wasm-bindgen = "0.4"
 getrandom = { workspace = true }
 wasm-bindgen-test = "0.3"
 wasm-bindgen-futures = "0.4"
-gloo-timers = { version = "0.2", features = ["futures"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"

@@ -82,13 +82,12 @@ where
             }
         }
 
-        let mut fetched_manifests = false;
         if !self.manifests_loaded {
             self.manifest_map = self
                 .environment
                 .fetch_manifests(&self.settings.orderbooks)
                 .await?;
-            fetched_manifests = true;
+            self.manifests_loaded = true;
         }
 
         let mut targets = self.base_targets.clone();
@@ -98,15 +97,10 @@ where
             let bootstrap = ClientBootstrapAdapter::new();
             bootstrap.runner_run(db, Some(DB_SCHEMA_VERSION)).await?;
             targets = self.provision_dumps(targets).await?;
+            self.has_bootstrapped = true;
         }
 
         let outcomes = self.execute_targets(db, targets).await?;
-        if fetched_manifests {
-            self.manifests_loaded = true;
-        }
-        if needs_bootstrap {
-            self.has_bootstrapped = true;
-        }
         Ok(outcomes)
     }
 
@@ -1298,14 +1292,14 @@ orderbooks:
             LocalDbError::LocalDbQueryError(LocalDbQueryError::Database { .. })
         );
         assert!(!runner.has_bootstrapped);
-        assert!(!runner.manifests_loaded);
+        assert!(runner.manifests_loaded);
         assert!(telemetry.dump_requests().is_empty());
 
         let success_db = RecordingDb::default();
         prepare_db_for_targets(&success_db, &runner.base_targets);
         runner.run(&success_db).await.expect("retry succeeds");
         assert!(runner.has_bootstrapped);
-        assert_eq!(telemetry.manifest_fetch_count(), 2);
+        assert_eq!(telemetry.manifest_fetch_count(), 1);
         assert_eq!(telemetry.dump_requests().len(), 1);
     }
 
@@ -1394,7 +1388,7 @@ orderbooks:
         let err = runner.run(&db).await.expect_err("run should fail");
         matches!(err, LocalDbError::CustomError(message) if message == "download failed");
         assert!(!runner.has_bootstrapped);
-        assert!(!runner.manifests_loaded);
+        assert!(runner.manifests_loaded);
         assert_eq!(telemetry.dump_requests().len(), 1);
     }
 
@@ -1474,7 +1468,7 @@ orderbooks:
 
         let err = runner.run(&db).await.expect_err("run should fail");
         matches!(err, LocalDbError::CustomError(message) if message == "builder failed");
-        assert!(!runner.has_bootstrapped);
+        assert!(runner.has_bootstrapped);
         assert_eq!(telemetry.dump_requests().len(), 2);
         let engine_runs = telemetry.engine_runs();
         assert!(
@@ -1499,8 +1493,8 @@ orderbooks:
 
         let err = runner.run(&db).await.expect_err("run should fail");
         matches!(err, LocalDbError::CustomError(message) if message.starts_with("apply failed"));
-        assert!(!runner.has_bootstrapped);
-        assert!(!runner.manifests_loaded);
+        assert!(runner.has_bootstrapped);
+        assert!(runner.manifests_loaded);
         assert_eq!(telemetry.dump_requests().len(), 2);
         assert_eq!(telemetry.manifest_fetch_count(), 1);
         assert!(telemetry

@@ -1,20 +1,22 @@
+import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
+import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
+import { REMOTE_SETTINGS_URL } from '$lib/constants';
 import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
-import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
-import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
-import { REMOTE_SETTINGS_URL } from '$lib/constants';
 
 export interface LayoutData {
 	errorMessage?: string;
 	stores: AppStoresInterface | null;
 	raindexClient: RaindexClient | null;
+	localDb: SQLiteWasmDatabase | null;
+	settingsYamlText: string;
 }
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let errorMessage: string | undefined;
-	let settingsYamlText: string;
+	let settingsYamlText = '';
 
 	try {
 		const response = await fetch(REMOTE_SETTINGS_URL);
@@ -27,7 +29,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		return {
 			errorMessage,
 			stores: null,
-			raindexClient: null
+			raindexClient: null,
+			localDb: null,
+			settingsYamlText
 		};
 	}
 
@@ -38,7 +42,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			return {
 				errorMessage: raindexClientRes.error.readableMsg,
 				stores: null,
-				raindexClient: null
+				raindexClient: null,
+				localDb: null,
+				settingsYamlText
 			};
 		} else {
 			raindexClient = raindexClientRes.value;
@@ -47,7 +53,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		return {
 			errorMessage: 'Error initializing RaindexClient: ' + (error as Error).message,
 			stores: null,
-			raindexClient: null
+			raindexClient: null,
+			localDb: null,
+			settingsYamlText
 		};
 	}
 
@@ -59,7 +67,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			return {
 				errorMessage: 'Error initializing local database: ' + localDbRes.error.readableMsg,
 				stores: null,
-				raindexClient: null
+				raindexClient: null,
+				localDb: null,
+				settingsYamlText
 			};
 		} else {
 			localDb = localDbRes.value;
@@ -68,7 +78,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		return {
 			errorMessage: 'Error initializing local database: ' + (error as Error).message,
 			stores: null,
-			raindexClient: null
+			raindexClient: null,
+			localDb: null,
+			settingsYamlText
 		};
 	}
 
