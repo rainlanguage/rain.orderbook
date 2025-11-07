@@ -1,16 +1,11 @@
 use crate::local_db::{
-    pipeline::{
-        adapters::bootstrap::DefaultBootstrapAdapter, BootstrapConfig, BootstrapPipeline,
-        BootstrapState, TargetKey,
-    },
+    pipeline::{BootstrapConfig, BootstrapPipeline, BootstrapState},
     query::{
         fetch_target_watermark::{fetch_target_watermark_stmt, TargetWatermarkRow},
         LocalDbQueryExecutor,
     },
-    LocalDbError,
+    LocalDbError, OrderbookIdentifier,
 };
-
-const BLOCK_NUMBER_THRESHOLD: u64 = 10_000;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ClientBootstrapAdapter;
@@ -24,13 +19,15 @@ impl ClientBootstrapAdapter {
         &self,
         latest_block: u64,
         last_synced_block: Option<u64>,
+        block_number_threshold: u32,
     ) -> Result<(), LocalDbError> {
         if let Some(last_block) = last_synced_block {
-            if latest_block.saturating_sub(last_block) > BLOCK_NUMBER_THRESHOLD {
+            let threshold = u64::from(block_number_threshold);
+            if latest_block.saturating_sub(last_block) > threshold {
                 return Err(LocalDbError::BlockSyncThresholdExceeded {
                     latest_block,
                     last_indexed_block: last_block,
-                    threshold: BLOCK_NUMBER_THRESHOLD,
+                    threshold,
                 });
             }
         }
@@ -41,59 +38,16 @@ impl ClientBootstrapAdapter {
     async fn is_fresh_db<E: LocalDbQueryExecutor + ?Sized>(
         self,
         db: &E,
-        target_key: &TargetKey,
+        ob_id: &OrderbookIdentifier,
     ) -> Result<bool, LocalDbError> {
-        let rows: Vec<TargetWatermarkRow> = db
-            .query_json(&fetch_target_watermark_stmt(
-                target_key.chain_id,
-                target_key.orderbook_address,
-            ))
-            .await?;
+        let rows: Vec<TargetWatermarkRow> =
+            db.query_json(&fetch_target_watermark_stmt(ob_id)).await?;
         Ok(rows.is_empty())
     }
 }
 
 #[async_trait::async_trait(?Send)]
 impl BootstrapPipeline for ClientBootstrapAdapter {
-    async fn ensure_schema<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .ensure_schema(db, db_schema_version)
-            .await
-    }
-
-    async fn inspect_state<DB>(
-        &self,
-        db: &DB,
-        target_key: &TargetKey,
-    ) -> Result<BootstrapState, LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .inspect_state(db, target_key)
-            .await
-    }
-
-    async fn reset_db<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .reset_db(db, db_schema_version)
-            .await
-    }
-
     async fn run<DB>(
         &self,
         db: &DB,
@@ -106,7 +60,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
         let BootstrapState {
             has_required_tables,
             last_synced_block,
-        } = self.inspect_state(db, &config.target_key).await?;
+        } = self.inspect_state(db, &config.ob_id).await?;
 
         if !has_required_tables {
             self.reset_db(db, db_schema_version).await?;
@@ -122,12 +76,16 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
         }
 
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
-            if self.is_fresh_db(db, &config.target_key).await? {
+            if self.is_fresh_db(db, &config.ob_id).await? {
                 db.query_text(dump_stmt).await?;
                 return Ok(());
             }
 
-            match self.check_threshold(config.latest_block, last_synced_block) {
+            match self.check_threshold(
+                config.latest_block,
+                last_synced_block,
+                config.block_number_threshold,
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     self.reset_db(db, db_schema_version).await?;
@@ -164,6 +122,8 @@ mod tests {
     use alloy::primitives::Address;
     use async_trait::async_trait;
     use serde_json::json;
+
+    const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
     #[derive(Default)]
     struct MockDb {
@@ -219,8 +179,8 @@ mod tests {
         }
     }
 
-    fn target_key() -> TargetKey {
-        TargetKey {
+    fn sample_ob_id() -> OrderbookIdentifier {
+        OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         }
@@ -228,9 +188,10 @@ mod tests {
 
     fn cfg_with_dump(latest_block: u64) -> BootstrapConfig {
         BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         }
     }
 
@@ -254,9 +215,10 @@ mod tests {
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -294,15 +256,19 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([])) // triggers reset
             // inspect_state will look for watermark since table exists
-            .with_json(&fetch_target_watermark_stmt(1, Address::ZERO), json!([]))
+            .with_json(
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
+                json!([]),
+            )
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -345,15 +311,19 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([db_row])) // mismatch triggers reset
             // inspect_state will look for watermark since table exists
-            .with_json(&fetch_target_watermark_stmt(1, Address::ZERO), json!([]))
+            .with_json(
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
+                json!([]),
+            )
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -384,7 +354,10 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
             // fresh DB check: no rows
-            .with_json(&fetch_target_watermark_stmt(1, Address::ZERO), json!([]))
+            .with_json(
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
+                json!([]),
+            )
             // reset + dump
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
@@ -392,9 +365,10 @@ mod tests {
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 100,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -432,7 +406,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row.clone()]),
             )
             // ensure_schema ok
@@ -485,7 +459,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row]),
             )
             // ensure_schema ok
@@ -505,9 +479,10 @@ mod tests {
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -535,7 +510,7 @@ mod tests {
         .unwrap();
 
         let last_synced = 100_000u64;
-        let latest = last_synced + BLOCK_NUMBER_THRESHOLD; // exactly at threshold
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD); // exactly at threshold
         let watermark_row = TargetWatermarkRow {
             chain_id: 1,
             orderbook_address: Address::ZERO,
@@ -547,7 +522,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row]),
             )
             // ensure_schema ok
@@ -588,7 +563,7 @@ mod tests {
         .unwrap();
 
         let last_synced = 200_000u64;
-        let latest = last_synced + BLOCK_NUMBER_THRESHOLD + 1; // exceed threshold
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 1; // exceed threshold
         let watermark_row = TargetWatermarkRow {
             chain_id: 1,
             orderbook_address: Address::ZERO,
@@ -600,7 +575,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row]),
             )
             // ensure_schema ok
@@ -615,9 +590,10 @@ mod tests {
             );
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: latest,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -655,14 +631,15 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row]),
             ); // intentionally omit fetch_db_metadata to force ensure_schema error
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block: 2,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         let err = adapter
@@ -698,7 +675,10 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             // inspect_state watermark read (empty -> fresh after reset)
-            .with_json(&fetch_target_watermark_stmt(1, Address::ZERO), json!([]))
+            .with_json(
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
+                json!([]),
+            )
             // ensure_schema -> missing metadata row
             .with_json(&fetch_db_metadata_stmt(), json!([]))
             // reset + dump
@@ -708,9 +688,10 @@ mod tests {
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 1,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter

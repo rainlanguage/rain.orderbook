@@ -13,7 +13,7 @@ use super::{
         LocalDbQueryError, SqlStatement, SqlStatementBatch,
     },
     token_fetch::fetch_erc20_metadata_concurrent,
-    FetchConfig, LocalDbError,
+    FetchConfig, LocalDbError, OrderbookIdentifier,
 };
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
@@ -55,7 +55,9 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     }
 
     let chain_id = orderbook_cfg.network.chain_id;
-    let last_synced_block = get_last_synced_block(db, chain_id, orderbook_cfg.address)
+    let ob_id = OrderbookIdentifier::new(chain_id, orderbook_cfg.address);
+
+    let last_synced_block = get_last_synced_block(db, &ob_id)
         .await
         .map_err(LocalDbError::SyncStatusReadFailed)?;
     status.send(format!("Last synced block: {}", last_synced_block))?;
@@ -87,7 +89,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     let mut decoded_events = decode_events(&events)?;
 
     let existing_stores: Vec<StoreAddressRow> = db
-        .query_json(&fetch_store_addresses_stmt(chain_id, orderbook_cfg.address))
+        .query_json(&fetch_store_addresses_stmt(&ob_id))
         .await
         .map_err(LocalDbError::from)?;
     let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
@@ -114,8 +116,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     let prep = prepare_erc20_tokens_prefix(
         db,
         &rpc_client,
-        chain_id,
-        orderbook_cfg.address,
+        &ob_id,
         &decoded_events,
         &FetchConfig::default(),
     )
@@ -126,20 +127,12 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     let mut batch = SqlStatementBatch::new();
     batch.extend(prep.tokens_prefix_sql);
 
-    let events_batch = decoded_events_to_statements(
-        chain_id,
-        orderbook_cfg.address,
-        &decoded_events,
-        &prep.decimals_by_addr,
-    )
-    .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(LocalDbError::from(e))))?;
+    let events_batch =
+        decoded_events_to_statements(&ob_id, &decoded_events, &prep.decimals_by_addr)
+            .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(LocalDbError::from(e))))?;
 
     batch.extend(events_batch);
-    batch.add(build_update_last_synced_block_stmt(
-        chain_id,
-        orderbook_cfg.address,
-        latest_block,
-    ));
+    batch.add(build_update_last_synced_block_stmt(&ob_id, latest_block));
 
     let sql_batch = batch.ensure_transaction();
 
@@ -186,12 +179,10 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
 
 async fn get_last_synced_block(
     db: &impl LocalDbQueryExecutor,
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
 ) -> Result<u64, LocalDbQueryError> {
-    let results: Vec<SyncStatusResponse> = db
-        .query_json(&fetch_last_synced_block_stmt(chain_id, orderbook_address))
-        .await?;
+    let results: Vec<SyncStatusResponse> =
+        db.query_json(&fetch_last_synced_block_stmt(ob_id)).await?;
     Ok(results.first().map(|r| r.last_synced_block).unwrap_or(0))
 }
 
@@ -234,8 +225,7 @@ struct TokenPrepResult {
 async fn prepare_erc20_tokens_prefix(
     db: &impl LocalDbQueryExecutor,
     rpc_client: &RpcClient,
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     decoded_events: &[DecodedEventData<DecodedEvent>],
     config: &FetchConfig,
 ) -> Result<TokenPrepResult, LocalDbError> {
@@ -248,7 +238,7 @@ async fn prepare_erc20_tokens_prefix(
 
     if !all_token_addrs.is_empty() {
         let existing_rows: Vec<Erc20TokenRow> = if let Some(stmt) =
-            build_token_stmt(chain_id, orderbook_address, &all_token_addrs)
+            build_token_stmt(ob_id, &all_token_addrs)
                 .map_err(|e| LocalDbError::CustomError(e.to_string()))?
         {
             db.query_json(&stmt).await.map_err(LocalDbError::from)?
@@ -271,8 +261,7 @@ async fn prepare_erc20_tokens_prefix(
             let successes =
                 fetch_erc20_metadata_concurrent(rpc_client, missing_addrs, config).await?;
 
-            tokens_prefix_sql =
-                insert::generate_erc20_token_statements(chain_id, orderbook_address, &successes);
+            tokens_prefix_sql = insert::generate_erc20_token_statements(ob_id, &successes);
 
             for (addr, info) in successes.iter() {
                 decimals_by_addr.insert(*addr, info.decimals);
@@ -483,6 +472,7 @@ mod tests {
     async fn test_get_last_synced_block_exists() {
         let chain_id = 42161u32;
         let orderbook_address = Address::from([0x77u8; 20]);
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
         let sync_data = vec![SyncStatusResponse {
             chain_id,
             orderbook_address: format!("0x{:x}", orderbook_address),
@@ -490,12 +480,10 @@ mod tests {
             updated_at: Some("2024-01-01T00:00:00Z".to_string()),
         }];
         let db = MockDb::new().with_json(
-            &fetch_last_synced_block_stmt(chain_id, orderbook_address).sql,
+            &fetch_last_synced_block_stmt(&ob_id).sql,
             &serde_json::to_string(&sync_data).unwrap(),
         );
-        let val = get_last_synced_block(&db, chain_id, orderbook_address)
-            .await
-            .unwrap();
+        let val = get_last_synced_block(&db, &ob_id).await.unwrap();
         assert_eq!(val, 12345);
     }
 
@@ -503,13 +491,9 @@ mod tests {
     async fn test_get_last_synced_block_empty() {
         let chain_id = 1u32;
         let orderbook_address = Address::from([0x88u8; 20]);
-        let db = MockDb::new().with_json(
-            &fetch_last_synced_block_stmt(chain_id, orderbook_address).sql,
-            "[]",
-        );
-        let val = get_last_synced_block(&db, chain_id, orderbook_address)
-            .await
-            .unwrap();
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
+        let db = MockDb::new().with_json(&fetch_last_synced_block_stmt(&ob_id).sql, "[]");
+        let val = get_last_synced_block(&db, &ob_id).await.unwrap();
         assert_eq!(val, 0);
     }
 
@@ -517,12 +501,9 @@ mod tests {
     async fn test_get_last_synced_block_query_fails() {
         let chain_id = 1u32;
         let orderbook_address = Address::from([0x99u8; 20]);
-        let db = MockDb::new()
-            .with_error(&fetch_last_synced_block_stmt(chain_id, orderbook_address).sql);
-        let err = get_last_synced_block(&db, chain_id, orderbook_address)
-            .await
-            .err()
-            .unwrap();
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
+        let db = MockDb::new().with_error(&fetch_last_synced_block_stmt(&ob_id).sql);
+        let err = get_last_synced_block(&db, &ob_id).await.err().unwrap();
         match err {
             LocalDbQueryError::Database { .. } => {}
             other => panic!("unexpected error variant: {other:?}"),
@@ -801,6 +782,7 @@ mod tests {
             let token_address = Address::from([0xAAu8; 20]);
             let orderbook_address = Address::from([0x55u8; 20]);
             let events = vec![build_deposit_event(token_address)];
+            let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
 
             // DB returns existing row for the token query
             let row = Erc20TokenRow {
@@ -811,7 +793,7 @@ mod tests {
                 symbol: "FOO".into(),
                 decimals: 6,
             };
-            let stmt = build_fetch_stmt(chain_id, orderbook_address, &[token_address])
+            let stmt = build_fetch_stmt(&ob_id, &[token_address])
                 .expect("stmt")
                 .expect("some");
             let db = MockDb::new().with_json(
@@ -825,8 +807,7 @@ mod tests {
             let out = prepare_erc20_tokens_prefix(
                 &db,
                 &rpc_client,
-                chain_id,
-                orderbook_address,
+                &ob_id,
                 &events,
                 &FetchConfig::default(),
             )
@@ -850,7 +831,7 @@ mod tests {
             let events = vec![build_deposit_event(token)];
 
             // DB query returns empty so the token is considered missing
-            let stmt = build_fetch_stmt(1, orderbook_address, &[token])
+            let stmt = build_fetch_stmt(&OrderbookIdentifier::new(1, orderbook_address), &[token])
                 .expect("stmt")
                 .expect("some");
             let db = MockDb::new().with_json(&stmt.sql, "[]");
@@ -858,8 +839,7 @@ mod tests {
             let out = prepare_erc20_tokens_prefix(
                 &db,
                 &rpc_client,
-                1,
-                orderbook_address,
+                &OrderbookIdentifier::new(1, orderbook_address),
                 &events,
                 &FetchConfig::default(),
             )

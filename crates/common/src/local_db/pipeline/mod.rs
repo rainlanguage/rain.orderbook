@@ -8,7 +8,9 @@
 //!
 
 pub mod adapters;
+pub use adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState};
 
+use super::OrderbookIdentifier;
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
 use crate::local_db::query::{
@@ -18,19 +20,6 @@ use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use async_trait::async_trait;
-
-use super::query::SqlStatement;
-
-/// Identifies the logical target (orderbook) for a sync cycle.
-///
-/// Multi‑tenant writes/reads are always keyed by this structure.
-#[derive(Debug, Clone)]
-pub struct TargetKey {
-    /// Chain id for the orderbook deployment.
-    pub chain_id: u32,
-    /// Address of the orderbook contract.
-    pub orderbook_address: Address,
-}
 
 /// Optional manual window overrides usually supplied by CLI/producer.
 ///
@@ -71,9 +60,9 @@ pub struct SyncConfig {
 
 /// Coarse execution summary for a single sync cycle.
 #[derive(Debug, Clone)]
-pub struct SyncOutcome {
+pub struct SyncOutcome<'a> {
     /// Target that was synced.
-    pub target: TargetKey,
+    pub ob_id: &'a OrderbookIdentifier,
     /// Start block (inclusive) that was used.
     pub start_block: u64,
     /// Target block (inclusive) that was used.
@@ -82,66 +71,6 @@ pub struct SyncOutcome {
     pub fetched_logs: usize,
     /// Count of decoded events materialized during the cycle.
     pub decoded_events: usize,
-}
-
-#[derive(Debug, Clone)]
-pub struct BootstrapConfig {
-    pub target_key: TargetKey,
-    pub dump_stmt: Option<SqlStatement>,
-    pub latest_block: u64,
-}
-
-/// Bootstrap state snapshot used by environment orchestration to decide actions.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BootstrapState {
-    pub has_required_tables: bool,
-    pub last_synced_block: Option<u64>,
-}
-
-/// Ensures the database is ready for incremental sync and applies optional
-/// data‑only seed dumps per environment policy.
-///
-/// Responsibilities (concrete):
-/// - Ensure schema tables exist. Dumps must not include DDL.
-/// - Version gate via `db_metadata` (read/init, fail/reset on mismatch per
-///   environment policy).
-///
-/// Implementors should orchestrate bootstrap via `run` and may use shared
-/// helpers for the lower-level operations exposed as trait methods here.
-#[async_trait(?Send)]
-pub trait BootstrapPipeline {
-    async fn ensure_schema<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn inspect_state<DB>(
-        &self,
-        db: &DB,
-        target_key: &TargetKey,
-    ) -> Result<BootstrapState, LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn reset_db<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn run<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-        config: &BootstrapConfig,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
 }
 
 /// Coarse‑grained progress/status publishing.
@@ -174,7 +103,7 @@ pub trait WindowPipeline {
     async fn compute<DB>(
         &self,
         db: &DB,
-        target: &TargetKey,
+        ob_id: &OrderbookIdentifier,
         cfg: &SyncConfig,
         latest_block: u64,
     ) -> Result<(u64, u64), LocalDbError>
@@ -237,8 +166,7 @@ pub trait TokensPipeline {
     async fn load_existing<DB>(
         &self,
         db: &DB,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         token_addrs_lower: &[Address],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where
@@ -272,7 +200,7 @@ pub trait ApplyPipeline {
     /// atomic execution (the caller will ensure single‑writer semantics).
     fn build_batch(
         &self,
-        target: &TargetKey,
+        ob_id: &OrderbookIdentifier,
         target_block: u64,
         raw_logs: &[LogEntryResponse],
         decoded_events: &[DecodedEventData<DecodedEvent>],
@@ -291,7 +219,7 @@ pub trait ApplyPipeline {
     async fn export_dump<DB>(
         &self,
         _db: &DB,
-        _target: &TargetKey,
+        _ob_id: &OrderbookIdentifier,
         _end_block: u64,
     ) -> Result<(), LocalDbError>
     where

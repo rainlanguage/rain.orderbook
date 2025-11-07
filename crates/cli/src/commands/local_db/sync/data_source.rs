@@ -9,7 +9,7 @@ use rain_orderbook_common::{
         insert::{decoded_events_to_statements, raw_events_to_statements},
         query::SqlStatementBatch,
         token_fetch::fetch_erc20_metadata_concurrent,
-        FetchConfig,
+        FetchConfig, OrderbookIdentifier,
     },
     rpc_client::{LogEntryResponse, RpcClient},
 };
@@ -38,15 +38,13 @@ pub(crate) trait SyncDataSource {
     ) -> Result<Vec<DecodedEventData<DecodedEvent>>>;
     fn events_to_sql(
         &self,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         decoded_events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch>;
     fn raw_events_to_statements(
         &self,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         raw_events: &[LogEntryResponse],
     ) -> Result<SqlStatementBatch>;
     fn rpc_urls(&self) -> &[Url];
@@ -140,27 +138,20 @@ impl SyncDataSource for RpcClient {
 
     fn events_to_sql(
         &self,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         decoded_events: &[DecodedEventData<DecodedEvent>],
         decimals_by_token: &HashMap<Address, u8>,
     ) -> Result<SqlStatementBatch> {
-        decoded_events_to_statements(
-            chain_id,
-            orderbook_address,
-            decoded_events,
-            decimals_by_token,
-        )
-        .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
+        decoded_events_to_statements(ob_id, decoded_events, decimals_by_token)
+            .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 
     fn raw_events_to_statements(
         &self,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         raw_events: &[LogEntryResponse],
     ) -> Result<SqlStatementBatch> {
-        raw_events_to_statements(chain_id, orderbook_address, raw_events)
+        raw_events_to_statements(ob_id, raw_events)
             .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 
