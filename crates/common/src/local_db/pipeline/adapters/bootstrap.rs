@@ -18,6 +18,7 @@ pub struct BootstrapConfig {
     pub target_key: TargetKey,
     pub dump_stmt: Option<SqlStatement>,
     pub latest_block: u64,
+    pub block_number_threshold: u32,
 }
 
 /// Bootstrap state snapshot used by environment orchestration to decide actions.
@@ -579,6 +580,7 @@ mod tests {
             },
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: 10_000,
         };
 
         let err = adapter.run(&db, None, &cfg).await.unwrap_err();
