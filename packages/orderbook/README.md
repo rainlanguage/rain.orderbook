@@ -41,22 +41,165 @@ npm install @rainlanguage/orderbook
 
 ## Quick Start
 
+### Example configuration used in this guide
+
+All of the code snippets below reuse the same fixed-limit dotrain/settings source. The portion before `---` represents the shared orderbook and dotrain YAML, and Rainlang lives after the separator.
+
+> **Heads-up:** These values are purely illustrative. Before deploying anything, pull the canonical strategies and settings from [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies) to mirror what our web apps run in production.
+
+```ts
+const FIXED_LIMIT_SOURCE = `
+version: 4
+
+networks:
+  base:
+    rpcs:
+      - https://base-rpc.publicnode.com
+    chain-id: 8453
+    network-id: 8453
+    currency: ETH
+
+metaboards:
+  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/metadata-base/2025-07-06-594f/gn
+
+subgraphs:
+  base: https://example.com/subgraph
+
+local-db-remotes:
+  raindex: https://example.com/subgraph
+
+orderbooks:
+  base:
+    network: base
+    address: 0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775
+    deployment-block: 36667253
+    subgraph: base
+    local-db-remote: raindex
+
+tokens:
+  usdc:
+    network: base
+    address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+    decimals: 6
+    label: USD Coin
+    symbol: USDC
+  weth:
+    network: base
+    address: 0x4200000000000000000000000000000000000006
+    decimals: 18
+    label: Wrapped Ether
+    symbol: WETH
+
+deployers:
+  base:
+    network: base
+    address: 0x6557778Db274f04B9E9f39F8Ff2D621c2036e978
+
+orders:
+  fixed-limit:
+    orderbook: base
+    inputs:
+      - token: usdc
+        vault-id: 1
+    outputs:
+      - token: weth
+        vault-id: 1
+    deployer: base
+
+scenarios:
+  base:
+    orderbook: base
+    runs: 1
+    bindings:
+      raindex-subparser: 0x22839F16281E67E5Fd395fAFd1571e820CbD46cB
+      fixed-io-output-token: 0x4200000000000000000000000000000000000006
+
+deployments:
+  base:
+    order: fixed-limit
+    scenario: base
+
+using-tokens-from:
+  - https://tokens.coingecko.com/base/all.json
+
+gui:
+  name: Fixed limit
+  description: Deploy a USDC -> WETH limit order on Base.
+  short-description: Deploy a USDC -> WETH limit order on Base.
+  deployments:
+    base:
+      name: Base
+      description: Deploy a limit order on Base.
+      deposits:
+        - token: usdc
+          presets:
+            - "0"
+            - "100"
+            - "1000"
+      fields:
+        - binding: fixed-io
+          name: USDC per WETH
+          description: Fixed exchange rate (USDC received per 1 WETH sold)
+          presets:
+            - value: "1800"
+            - value: "1850"
+            - value: "1900"
+        - binding: amount-per-trade
+          name: Amount per trade
+          description: USDC spent per fill
+          presets:
+            - value: "100"
+            - value: "250"
+            - value: "500"
+      select-tokens:
+        - key: input-token
+          name: Token to Buy
+          description: Select the token you want to purchase
+        - key: output-token
+          name: Token to Sell
+          description: Select the token you want to sell
+
+---
+#raindex-subparser !The subparser to use.
+
+#fixed-io !The io ratio for the limit order.
+#fixed-io-output-token !The output token that the fixed io is for. If this doesn't match the runtime output then the fixed-io will be inverted.
+
+#calculate-io
+using-words-from raindex-subparser
+max-output: max-positive-value(),
+io: if(
+  equal-to(
+    output-token()
+    fixed-io-output-token
+  )
+  fixed-io
+  inv(fixed-io)
+);
+
+#handle-io
+:;
+
+#handle-add-order
+:;
+`;
+
+const ORDERBOOK_SETTINGS = FIXED_LIMIT_SOURCE.split('---')[0];
+```
+
 ### 1. Create a raindex client
 
 This first snippet does three things: (1) load one or more settings YAML strings (these describe networks, accounts, and subgraph URLs), (2) feed those sources into `RaindexClient.new` so the WASM layer can parse and validate them, and (3) unwrap the resulting `WasmEncodedResult` so downstream samples can call the client with standard JS error handling expectations.
 
 ```ts
-import fs from 'node:fs/promises';
 import { RaindexClient } from '@rainlanguage/orderbook';
 
-const yamlSources = [await fs.readFile('./settings.yaml', 'utf8')];
-
-const clientResult = RaindexClient.new(yamlSources);
+const clientResult = RaindexClient.new([ORDERBOOK_SETTINGS]);
 if (clientResult.error) throw new Error(clientResult.error.readableMsg);
 const client = clientResult.value;
 ```
 
-Pass `true` as the second argument to `OrderbookYaml.new` / `RaindexClient.new` when you want strict schema validation.
+Pass `true` as the second argument to `RaindexClient.new` when you want strict schema validation.
 
 ### 2. Query orders with filters & pagination
 
@@ -65,7 +208,7 @@ Here we scope the query by chain IDs and typical filters (owner, token, activity
 ```ts
 import type { ChainIds, GetOrdersFilters } from '@rainlanguage/orderbook';
 
-const chainIds: ChainIds = [1, 137, 8453];
+const chainIds: ChainIds = [8453];
 const filters: GetOrdersFilters = {
   owners: ['0x1234...'],
   active: true,
@@ -96,6 +239,22 @@ Additional helpers worth wiring up:
 - `client.getAddOrdersForTransaction(...)` / `client.getRemoveOrdersForTransaction(...)` – diff deployments and removals by transaction hash.
 - `client.getTransaction(orderbookAddress, txHash)` – inspect who sent a transaction, the block number, and timestamp.
 
+#### Fetch a single order by hash
+
+```ts
+const orderResult = await client.getOrderByHash(
+  8453, // Base
+  '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
+  '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12'
+);
+if (orderResult.error) throw new Error(orderResult.error.readableMsg);
+const order = orderResult.value; // RaindexOrder
+
+const vaultsList = order.vaultsList;
+const removeCalldataResult = await order.getRemoveCalldata();
+if (removeCalldataResult.error) throw new Error(removeCalldataResult.error.readableMsg);
+```
+
 ### 3. Work with vaults & Floats
 
 Vault workflows usually require combining filters, inspecting the returned `RaindexVaultsList`, and then producing calldata or math-heavy amounts. This example chains those steps: fetch vaults, narrow the list to withdrawable entries, pull history, parse human inputs with `Float`, and finally build deposit/withdraw/approval payloads while checking allowances.
@@ -108,7 +267,7 @@ const vaultFilters: GetVaultsFilters = {
   hideZeroBalance: true
 };
 
-const vaultsResult = await client.getVaults([14], vaultFilters, 1);
+const vaultsResult = await client.getVaults([8453], vaultFilters, 1);
 if (vaultsResult.error) throw new Error(vaultsResult.error.readableMsg);
 const vaultsList = vaultsResult.value; // RaindexVaultsList
 
@@ -140,9 +299,24 @@ const allowance = allowanceResult.value;
 
 `RaindexVaultsList` also exposes `getWithdrawCalldata()` (builds a multicall to empty every vault with a balance), `pickByIds([...])`, and `concat(otherList)` if you need to restructure vault groups before submitting a transaction.
 
+#### Fetch a single vault
+
+```ts
+const vaultResult = await client.getVault(
+  8453,
+  '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
+  '0x01'
+);
+if (vaultResult.error) throw new Error(vaultResult.error.readableMsg);
+const vault = vaultResult.value; // RaindexVault
+
+const balanceChangesResult = await vault.getBalanceChanges();
+if (balanceChangesResult.error) throw new Error(balanceChangesResult.error.readableMsg);
+```
+
 ### 4. Generate quotes & calldata
 
-Once you have hydrated orders, you typically need deterministic hashes plus calldata builders. The snippet below hashes an order struct, generates take-orders calldata, asks an order for its removal calldata, and fetches quotes—mirroring the usual “inspect → prepare transaction → submit” flow.
+Once you have hydrated orders, you typically need deterministic hashes plus calldata builders. The snippet below hashes an order struct, generates take-orders calldata, asks an order for its removal calldata, and fetches quotes—mirroring the usual “inspect -> prepare transaction -> submit” flow.
 
 ```ts
 import { getOrderHash, getTakeOrders3Calldata } from '@rainlanguage/orderbook';
@@ -197,73 +371,14 @@ The SDK merges the shared settings YAML with each order’s `.rain` content befo
 
 ### Build a deployment GUI
 
-Any dotrain file that includes a `gui:` block plus the usual settings YAML is enough to drive `DotrainOrderGui`. The minimal structure looks like this (trimmed for clarity):
-
-```yaml
-<orderbook and dotrain configuration>
-
-gui:
-  name: Fixed limit
-  deployments:
-    base-prod:
-      name: Buy WETH with USDC on Base.
-      deposits:
-        - token: usdc
-      fields:
-        - binding: max-price
-          name: Max price (USDC)
-          default: "1825"
-networks:
-  base:
-    chain-id: 8453
-    rpcs:
-      - https://base-mainnet.g.alchemy.com/v2/<key>
-tokens:
-  usdc:
-    network: base
-    address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
-    decimals: 6
-  weth:
-    network: base
-    address: 0x4200000000000000000000000000000000000006
-    decimals: 18
-deployers:
-  ops:
-    network: base
-    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-orderbooks:
-  base-main:
-    network: base
-    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
-    subgraph: https://api.studio.thegraph.com/query/<id>
-scenarios:
-  prod:
-    deployer: ops
-orders:
-  fixed-limit:
-    inputs:
-      - token: usdc
-    outputs:
-      - token: weth
-    deployer: ops
-    orderbook: base-main
-deployments:
-  base-prod:
-    scenario: prod
-    order: fixed-limit
-
----
-
-<orderlogic>
-```
+Any dotrain file that includes a `gui:` block plus the usual settings YAML is enough to drive `DotrainOrderGui`. The `FIXED_LIMIT_SOURCE` constant declared earlier already includes the required networks/tokens/deployers plus a full `gui` definition, so you can reference it directly (or trim it to your own bindings) instead of copying pieces of `settings.yaml` inline in this guide. Always cross-check the source you feed in with the latest definitions in [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies); that repository tracks the real configurations our UI ships with.
 
 With that single source string (read from disk or built dynamically) you can drive the full GUI workflow:
 
 ```ts
-import fs from 'node:fs/promises';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
-const dotrainWithGui = await fs.readFile('./fixed-limit-gui.rain', 'utf8');
+const dotrainWithGui = FIXED_LIMIT_SOURCE;
 
 const deploymentsResult = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
 if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);
@@ -285,11 +400,14 @@ const depositsResult = gui.getDeposits();
 if (depositsResult.error) throw new Error(depositsResult.error.readableMsg);
 const deposits = depositsResult.value;
 
-await gui.setSelectToken('input-token', '0xUSDC');
-const fieldResult = gui.setFieldValue('max-price', '1850');
+await gui.setSelectToken('input-token', '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'); // USDC
+await gui.setSelectToken('output-token', '0x4200000000000000000000000000000000000006'); // WETH
+const fieldResult = gui.setFieldValue('fixed-io', '1850');
 if (fieldResult.error) throw new Error(fieldResult.error.readableMsg);
-await gui.setDeposit('input-token', '5000');
-const vaultIdResult = gui.setVaultId('input', 'input-token', '42');
+const amountResult = gui.setFieldValue('amount-per-trade', '250');
+if (amountResult.error) throw new Error(amountResult.error.readableMsg);
+await gui.setDeposit('usdc', '5000');
+const vaultIdResult = gui.setVaultId(true, 0, '42');
 if (vaultIdResult.error) throw new Error(vaultIdResult.error.readableMsg);
 
 const allowancesResult = await gui.checkAllowances('0xOwner');
@@ -327,7 +445,7 @@ const registryResult = await DotrainRegistry.new('https://example.com/registry.t
 if (registryResult.error) throw new Error(registryResult.error.readableMsg);
 const registry = registryResult.value;
 
-const guiSourceResult = await registry.getGui('fixed-limit', 'base-prod');
+const guiSourceResult = await registry.getGui('fixed-limit', 'base');
 if (guiSourceResult.error) throw new Error(guiSourceResult.error.readableMsg);
 const guiFromRegistry = guiSourceResult.value;
 
@@ -336,16 +454,12 @@ const guiFromRegistry = guiSourceResult.value;
 
 ### Work directly with dotrain files
 
-If you just need Rainlang composition (no GUI state), read the dotrain text plus shared settings yourself, instantiate a `DotrainOrder`, and then ask it to compose scenario/deployment/post-task Rainlang. The example calls each of those steps so you can see how to bridge raw files into executable Rainlang strings.
+If you just need Rainlang composition (no GUI state), read the dotrain text plus shared settings yourself, instantiate a `DotrainOrder`, and then ask it to compose scenario/deployment/post-task Rainlang. The example below reuses `FIXED_LIMIT_SOURCE`, but you can replace it with the contents of any `.rain` file.
 
 ```ts
-import fs from 'node:fs/promises';
 import { DotrainOrder } from '@rainlanguage/orderbook';
 
-const dotrainText = await fs.readFile('./orders/dca.rain', 'utf8');
-const sharedSettingsYaml = await fs.readFile('./settings.yaml', 'utf8');
-
-const dotrainResult = await DotrainOrder.create(dotrainText, [sharedSettingsYaml]);
+const dotrainResult = await DotrainOrder.create(FIXED_LIMIT_SOURCE, [ORDERBOOK_SETTINGS]);
 if (dotrainResult.error) throw new Error(dotrainResult.error.readableMsg);
 const dotrain = dotrainResult.value;
 
@@ -363,13 +477,10 @@ if (!postTaskResult.error) console.log(postTaskResult.value);
 
 - `getOrderHash`, `keccak256`, `keccak256HexString` – deterministic hashing helpers for Rain orders or arbitrary payloads.
 - `Float` – arbitrary-precision arithmetic with parsing, formatting, comparisons, math ops, fixed-decimal conversions, and helpers like `Float.zero()` or `.formatWithRange(...)`.
-- `OrderbookYaml` – minimal helper for parsing YAML sources and looking up orderbook configs by address.
 - `RaindexClient.getAllAccounts()` / `getAllVaultTokens()` – introspect accounts and ERC20 metadata defined in your YAML or discovered via subgraphs.
 - `clearTables`, `getSyncStatus`, `RaindexClient.syncLocalDatabase`, `RaindexClient.setDbCallback` – plug in a persistent cache for offline apps.
 - `RaindexVaultsList.getWithdrawCalldata()` – multicall builder that withdraws every vault with a balance.
 - `RaindexOrder.convertToSgOrder()` – convert WASM order representations back into the raw subgraph schema when you need to interop with other tooling.
-
-Type definitions are published in `dist/*/index.d.ts`; use them for richer TS inference in your apps.
 
 ## Error handling pattern
 
