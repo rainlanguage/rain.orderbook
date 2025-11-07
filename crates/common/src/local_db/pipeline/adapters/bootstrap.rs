@@ -7,25 +7,37 @@ use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
 use crate::local_db::query::fetch_target_watermark::TargetWatermarkRow;
 use crate::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::LocalDbError;
 use crate::local_db::DATABASE_SCHEMA_VERSION;
 use std::collections::HashSet;
 
-/// Default adapter that exposes the shared bootstrap helpers via the
-/// BootstrapPipeline trait. Environment runners can provide
-/// their own adapter overriding `run` while reusing these helpers.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct DefaultBootstrapAdapter;
-
-impl DefaultBootstrapAdapter {
-    pub const fn new() -> Self {
-        Self
-    }
+#[derive(Debug, Clone)]
+pub struct BootstrapConfig {
+    pub target_key: TargetKey,
+    pub dump_stmt: Option<SqlStatement>,
+    pub latest_block: u64,
 }
 
-#[async_trait::async_trait(?Send)]
-impl BootstrapPipeline for DefaultBootstrapAdapter {
+/// Bootstrap state snapshot used by environment orchestration to decide actions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BootstrapState {
+    pub has_required_tables: bool,
+    pub last_synced_block: Option<u64>,
+}
+
+/// Ensures the database is ready for incremental sync and applies optional
+/// data‑only seed dumps per environment policy.
+///
+/// Responsibilities (concrete):
+/// - Ensure schema tables exist. Dumps must not include DDL.
+/// - Version gate via `db_metadata` (read/init, fail/reset on mismatch per
+///   environment policy).
+///
+/// Implementors should orchestrate bootstrap via `run` and may use shared
+/// helpers for the lower-level operations exposed as trait methods here.
+#[async_trait(?Send)]
+pub trait BootstrapPipeline {
     async fn ensure_schema<DB>(
         &self,
         db: &DB,
@@ -103,7 +115,12 @@ impl BootstrapPipeline for DefaultBootstrapAdapter {
         Ok(())
     }
 
-    async fn run<DB>(&self, _: &DB, _: Option<u32>, _: &BootstrapConfig) -> Result<(), LocalDbError>
+    async fn run<DB>(
+        &self,
+        db: &DB,
+        db_schema_version: Option<u32>,
+        config: &BootstrapConfig,
+    ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {

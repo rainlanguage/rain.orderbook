@@ -84,66 +84,6 @@ pub struct SyncOutcome {
     pub decoded_events: usize,
 }
 
-#[derive(Debug, Clone)]
-pub struct BootstrapConfig {
-    pub target_key: TargetKey,
-    pub dump_stmt: Option<SqlStatement>,
-    pub latest_block: u64,
-}
-
-/// Bootstrap state snapshot used by environment orchestration to decide actions.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BootstrapState {
-    pub has_required_tables: bool,
-    pub last_synced_block: Option<u64>,
-}
-
-/// Ensures the database is ready for incremental sync and applies optional
-/// data‑only seed dumps per environment policy.
-///
-/// Responsibilities (concrete):
-/// - Ensure schema tables exist. Dumps must not include DDL.
-/// - Version gate via `db_metadata` (read/init, fail/reset on mismatch per
-///   environment policy).
-///
-/// Implementors should orchestrate bootstrap via `run` and may use shared
-/// helpers for the lower-level operations exposed as trait methods here.
-#[async_trait(?Send)]
-pub trait BootstrapPipeline {
-    async fn ensure_schema<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn inspect_state<DB>(
-        &self,
-        db: &DB,
-        target_key: &TargetKey,
-    ) -> Result<BootstrapState, LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn reset_db<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn run<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-        config: &BootstrapConfig,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-}
-
 /// Coarse‑grained progress/status publishing.
 ///
 /// Keep messages short and stable; a richer typed snapshot can be layered on
