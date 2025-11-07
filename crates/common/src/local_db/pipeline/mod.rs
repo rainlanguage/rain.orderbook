@@ -8,6 +8,7 @@
 //!
 
 pub mod adapters;
+pub use adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState};
 
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
@@ -18,8 +19,6 @@ use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use async_trait::async_trait;
-
-use super::query::SqlStatement;
 
 /// Identifies the logical target (orderbook) for a sync cycle.
 ///

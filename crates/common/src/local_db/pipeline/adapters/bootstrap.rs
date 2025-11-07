@@ -1,4 +1,4 @@
-use crate::local_db::pipeline::{BootstrapConfig, BootstrapPipeline, BootstrapState, TargetKey};
+use crate::local_db::pipeline::TargetKey;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -10,6 +10,7 @@ use crate::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::LocalDbError;
 use crate::local_db::DATABASE_SCHEMA_VERSION;
+use async_trait::async_trait;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
@@ -117,9 +118,9 @@ pub trait BootstrapPipeline {
 
     async fn run<DB>(
         &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-        config: &BootstrapConfig,
+        _db: &DB,
+        _db_schema_version: Option<u32>,
+        _config: &BootstrapConfig,
     ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
@@ -164,6 +165,18 @@ mod tests {
         }
     }
 
+    #[derive(Default, Clone, Copy)]
+    struct TestBootstrapPipeline;
+
+    impl TestBootstrapPipeline {
+        fn new() -> Self {
+            Self
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl BootstrapPipeline for TestBootstrapPipeline {}
+
     #[async_trait(?Send)]
     impl LocalDbQueryExecutor for MockDb {
         async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
@@ -197,7 +210,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_ok_with_matching_version() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db_row = DbMetadataRow {
             id: 1,
             db_schema_version: DATABASE_SCHEMA_VERSION,
@@ -211,7 +224,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_err_on_mismatch() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db_row = DbMetadataRow {
             id: 1,
             db_schema_version: DATABASE_SCHEMA_VERSION + 1,
@@ -232,7 +245,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_honors_override_ok() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let override_version = DATABASE_SCHEMA_VERSION + 7;
         let db_row = DbMetadataRow {
             id: 1,
@@ -250,7 +263,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_honors_override_mismatch() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let row_version = DATABASE_SCHEMA_VERSION + 3;
         let db_row = DbMetadataRow {
             id: 1,
@@ -275,7 +288,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_err_on_missing_row() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([]));
         let err = adapter.ensure_schema(&db, None).await.unwrap_err();
         match err {
@@ -286,7 +299,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_tables_and_last_synced_block() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         // Provide all required tables
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
@@ -324,7 +337,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_missing_tables_means_not_ready_and_no_watermark_query() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default().with_json(&fetch_tables_stmt(), json!([]));
         let target_key = TargetKey {
             chain_id: 1,
@@ -337,7 +350,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_missing_only_watermark_table() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         // All required tables except `target_watermarks`.
         let names: Vec<&str> = REQUIRED_TABLES
             .iter()
@@ -367,7 +380,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_watermark_table_present_but_empty() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
                 .iter()
@@ -396,7 +409,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_table_names_case_insensitive() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
                 .iter()
@@ -438,7 +451,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_propagates_fetch_tables_error() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default(); // no json for fetch_tables_stmt()
         let target_key = TargetKey {
             chain_id: 1,
@@ -453,7 +466,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_propagates_watermark_query_error() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         // Include all required tables so it attempts the watermark query.
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
@@ -480,7 +493,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_db_runs_clear_create_and_insert() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
@@ -505,7 +518,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_db_uses_default_version_when_none() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
@@ -523,7 +536,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_db_uses_custom_version_when_some() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let custom_version = DATABASE_SCHEMA_VERSION + 9;
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
@@ -539,7 +552,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_db_propagates_errors() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         // Only the first statement is present; second will fail.
         let db = MockDb::default().with_text(&clear_tables_stmt(), "ok");
 
@@ -557,7 +570,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_returns_missing_impl() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default();
         let cfg = BootstrapConfig {
             target_key: TargetKey {
