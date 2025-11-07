@@ -1,8 +1,5 @@
 use rain_orderbook_common::local_db::{
-    pipeline::{
-        adapters::bootstrap::DefaultBootstrapAdapter, BootstrapConfig, BootstrapPipeline,
-        BootstrapState, TargetKey,
-    },
+    pipeline::{BootstrapConfig, BootstrapPipeline},
     query::LocalDbQueryExecutor,
     LocalDbError,
 };
@@ -19,45 +16,6 @@ impl ProducerBootstrapAdapter {
 
 #[async_trait::async_trait(?Send)]
 impl BootstrapPipeline for ProducerBootstrapAdapter {
-    async fn ensure_schema<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .ensure_schema(db, db_schema_version)
-            .await
-    }
-
-    async fn inspect_state<DB>(
-        &self,
-        db: &DB,
-        target_key: &TargetKey,
-    ) -> Result<BootstrapState, LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .inspect_state(db, target_key)
-            .await
-    }
-
-    async fn reset_db<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .reset_db(db, db_schema_version)
-            .await
-    }
-
     async fn run<DB>(
         &self,
         db: &DB,
@@ -85,7 +43,7 @@ mod tests {
     use super::*;
     use alloy::primitives::Address;
     use async_trait::async_trait;
-    use rain_orderbook_common::local_db::pipeline::BootstrapConfig;
+    use rain_orderbook_common::local_db::pipeline::{BootstrapConfig, TargetKey};
     use rain_orderbook_common::local_db::query::clear_tables::clear_tables_stmt;
     use rain_orderbook_common::local_db::query::create_tables::create_tables_stmt;
     use rain_orderbook_common::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
