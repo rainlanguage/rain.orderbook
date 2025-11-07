@@ -523,8 +523,6 @@ mod tests {
             chain-id: 1
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    local-db-remotes:
-        orderbook1: https://example.com/localdb/mainnet
     metaboards:
         board1: https://meta.example.com/board1
     orderbooks:
@@ -892,8 +890,6 @@ test: test
             currency: ETH
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    local-db-remotes:
-        mainnet: https://example.com/localdb/mainnet
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
@@ -1003,8 +999,6 @@ test: test
             chain-id: 42161
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    local-db-remotes:
-        mainnet: https://example.com/localdb/mainnet
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
@@ -1099,8 +1093,6 @@ networks:
         chain-id: 1
 subgraphs:
     mainnet: https://api.thegraph.com/subgraphs/name/xyz
-local-db-remotes:
-    mainnet: https://example.com/localdb/mainnet
 "#,
             version = SpecVersion::current()
         );

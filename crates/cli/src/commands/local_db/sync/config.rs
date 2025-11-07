@@ -49,8 +49,6 @@ orderbooks:
     network: arbitrum
     subgraph: arbitrum
     deployment-block: "123"
-local-db-remotes:
-  arbitrum: https://example.com/localdb/arbitrum
 "#;
 
     #[test]
