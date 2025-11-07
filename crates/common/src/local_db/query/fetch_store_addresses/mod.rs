@@ -2,6 +2,7 @@ use crate::local_db::{
     query::{SqlStatement, SqlValue},
     OrderbookIdentifier,
 };
+use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 
 pub const FETCH_STORE_ADDRESSES_SQL: &str = include_str!("query.sql");
@@ -23,8 +24,6 @@ pub fn fetch_store_addresses_stmt(ob_id: &OrderbookIdentifier) -> SqlStatement {
 
 #[cfg(test)]
 mod tests {
-    use alloy::primitives::Address;
-
     use super::*;
 
     #[test]

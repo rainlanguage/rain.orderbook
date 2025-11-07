@@ -225,9 +225,10 @@ mod tests {
         let db = MockDb::default().with_text(&clear_tables_stmt(), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: 1,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();

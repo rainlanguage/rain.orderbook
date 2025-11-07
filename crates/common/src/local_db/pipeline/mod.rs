@@ -14,8 +14,7 @@ use super::OrderbookIdentifier;
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
 use crate::local_db::query::{
-    fetch_erc20_tokens_by_addresses::Erc20TokenRow, LocalDbQueryExecutor, SqlStatement,
-    SqlStatementBatch,
+    fetch_erc20_tokens_by_addresses::Erc20TokenRow, LocalDbQueryExecutor, SqlStatementBatch,
 };
 use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;

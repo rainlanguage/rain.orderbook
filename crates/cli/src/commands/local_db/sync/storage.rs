@@ -73,7 +73,7 @@ pub(crate) async fn fetch_last_synced(db_path: &str, ob_id: &OrderbookIdentifier
 pub(crate) async fn fetch_existing_store_addresses(
     db_path: &str,
     ob_id: &OrderbookIdentifier,
-) -> Result<Vec<String>> {
+) -> Result<Vec<Address>> {
     let exec = RusqliteExecutor::new(db_path);
     let rows: Vec<StoreAddressRow> = exec
         .query_json(&SqlStatement::new_with_params(
@@ -85,10 +85,7 @@ pub(crate) async fn fetch_existing_store_addresses(
         ))
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
-    Ok(rows
-        .into_iter()
-        .map(|r| r.store_address)
-        .collect::<Vec<Address>>())
+    Ok(rows.into_iter().map(|r| r.store_address).collect())
 }
 
 pub(crate) fn build_local_db_from_network(
