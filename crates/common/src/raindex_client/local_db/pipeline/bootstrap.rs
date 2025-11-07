@@ -7,8 +7,6 @@ use crate::local_db::{
     LocalDbError,
 };
 
-const BLOCK_NUMBER_THRESHOLD: u64 = 10_000;
-
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ClientBootstrapAdapter;
 
@@ -21,13 +19,15 @@ impl ClientBootstrapAdapter {
         &self,
         latest_block: u64,
         last_synced_block: Option<u64>,
+        block_number_threshold: u32,
     ) -> Result<(), LocalDbError> {
         if let Some(last_block) = last_synced_block {
-            if latest_block.saturating_sub(last_block) > BLOCK_NUMBER_THRESHOLD {
+            let threshold = u64::from(block_number_threshold);
+            if latest_block.saturating_sub(last_block) > threshold {
                 return Err(LocalDbError::BlockSyncThresholdExceeded {
                     latest_block,
                     last_indexed_block: last_block,
-                    threshold: BLOCK_NUMBER_THRESHOLD,
+                    threshold,
                 });
             }
         }
@@ -85,7 +85,11 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
                 return Ok(());
             }
 
-            match self.check_threshold(config.latest_block, last_synced_block) {
+            match self.check_threshold(
+                config.latest_block,
+                last_synced_block,
+                config.block_number_threshold,
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     self.reset_db(db, db_schema_version).await?;
@@ -122,6 +126,8 @@ mod tests {
     use alloy::primitives::Address;
     use async_trait::async_trait;
     use serde_json::json;
+
+    const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
     #[derive(Default)]
     struct MockDb {
@@ -189,6 +195,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         }
     }
 
@@ -215,6 +222,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -261,6 +269,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -312,6 +321,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -353,6 +363,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 100,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -466,6 +477,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -493,7 +505,7 @@ mod tests {
         .unwrap();
 
         let last_synced = 100_000u64;
-        let latest = last_synced + BLOCK_NUMBER_THRESHOLD; // exactly at threshold
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD); // exactly at threshold
         let watermark_row = TargetWatermarkRow {
             chain_id: 1,
             orderbook_address: Address::ZERO,
@@ -546,7 +558,7 @@ mod tests {
         .unwrap();
 
         let last_synced = 200_000u64;
-        let latest = last_synced + BLOCK_NUMBER_THRESHOLD + 1; // exceed threshold
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 1; // exceed threshold
         let watermark_row = TargetWatermarkRow {
             chain_id: 1,
             orderbook_address: Address::ZERO,
@@ -576,6 +588,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: None,
             latest_block: latest,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -621,6 +634,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block: 2,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         let err = adapter
@@ -669,6 +683,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 1,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
