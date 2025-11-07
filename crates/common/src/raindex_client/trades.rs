@@ -1,7 +1,7 @@
 use super::local_db::executor::JsCallbackExecutor;
 use super::*;
-use crate::local_db::is_chain_supported_local_db;
 use crate::local_db::query::fetch_order_trades::LocalDbOrderTrade;
+use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::raindex_client::local_db::query::fetch_order_trades::fetch_order_trades;
 use crate::raindex_client::local_db::query::fetch_order_trades_count::fetch_order_trades_count;
 use crate::raindex_client::{
@@ -144,8 +144,7 @@ impl RaindexOrder {
                 let order_hash = self.order_hash().to_string();
                 let local_trades = fetch_order_trades(
                     &exec,
-                    chain_id,
-                    orderbook,
+                    &OrderbookIdentifier::new(chain_id, orderbook),
                     &order_hash,
                     start_timestamp,
                     end_timestamp,
@@ -262,8 +261,7 @@ impl RaindexOrder {
                 let order_hash = self.order_hash().to_string();
                 let count = fetch_order_trades_count(
                     &exec,
-                    chain_id,
-                    orderbook,
+                    &OrderbookIdentifier::new(chain_id, orderbook),
                     &order_hash,
                     start_timestamp,
                     end_timestamp,
@@ -639,8 +637,10 @@ mod test_helpers {
 
             let order = client
                 .get_order_by_hash(
-                    42161,
-                    Address::from_str(&fixture.orderbook_address).unwrap(),
+                    &OrderbookIdentifier::new(
+                        42161,
+                        Address::from_str(&fixture.orderbook_address).unwrap(),
+                    ),
                     Bytes::from_str(&fixture.order_hash).unwrap(),
                 )
                 .await
@@ -735,8 +735,10 @@ mod test_helpers {
 
             let order = client
                 .get_order_by_hash(
-                    42161,
-                    Address::from_str(&fixture.orderbook_address).unwrap(),
+                    &OrderbookIdentifier::new(
+                        42161,
+                        Address::from_str(&fixture.orderbook_address).unwrap(),
+                    ),
                     Bytes::from_str(&fixture.order_hash).unwrap(),
                 )
                 .await
@@ -754,7 +756,10 @@ mod test_helpers {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::{
+            local_db::OrderbookIdentifier,
+            raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS},
+        };
         use alloy::primitives::Bytes;
         use httpmock::MockServer;
         use rain_math_float::Float;
@@ -1080,8 +1085,10 @@ mod test_helpers {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -1265,8 +1272,10 @@ mod test_helpers {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -1444,8 +1453,10 @@ mod test_helpers {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await

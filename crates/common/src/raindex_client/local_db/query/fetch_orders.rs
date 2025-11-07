@@ -2,8 +2,8 @@ use crate::local_db::query::fetch_orders::{
     build_fetch_orders_stmt, FetchOrdersActiveFilter, FetchOrdersArgs, LocalDbOrder,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::orders::GetOrdersFilters;
-use alloy::primitives::Address;
 
 impl From<GetOrdersFilters> for FetchOrdersArgs {
     fn from(filters: GetOrdersFilters) -> Self {
@@ -39,11 +39,10 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
 
 pub async fn fetch_orders<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     args: FetchOrdersArgs,
 ) -> Result<Vec<LocalDbOrder>, LocalDbQueryError> {
-    let stmt = build_fetch_orders_stmt(chain_id, orderbook_address, &args)?;
+    let stmt = build_fetch_orders_stmt(ob_id, &args)?;
     exec.query_json(&stmt).await
 }
 
@@ -105,7 +104,9 @@ mod tests {
             args.tokens = vec![" Tok'A ".into()];
             args.order_hash = Some(" 0xHash ' ".into());
 
-            let expected_stmt = build_fetch_orders_stmt(137, orderbook(), &args).unwrap();
+            let expected_stmt =
+                build_fetch_orders_stmt(&OrderbookIdentifier::new(137, orderbook()), &args)
+                    .unwrap();
 
             let store = Rc::new(RefCell::new((
                 String::new(),
@@ -115,7 +116,8 @@ mod tests {
             let exec = JsCallbackExecutor::new(&callback);
 
             // Act
-            let res = super::fetch_orders(&exec, 137, orderbook(), args).await;
+            let res =
+                super::fetch_orders(&exec, &OrderbookIdentifier::new(137, orderbook()), args).await;
 
             // Assert
             assert!(res.is_ok());
@@ -150,7 +152,8 @@ mod tests {
 
             let args = FetchOrdersArgs::default();
             let exec = JsCallbackExecutor::new(&callback);
-            let res = super::fetch_orders(&exec, 1, orderbook(), args).await;
+            let res =
+                super::fetch_orders(&exec, &OrderbookIdentifier::new(1, orderbook()), args).await;
             assert!(res.is_err());
             let err = res.err().unwrap();
             let msg = err.to_string();
@@ -161,7 +164,8 @@ mod tests {
         async fn invalid_json_yields_deserialization_error() {
             // Build args and expected SQL
             let args = FetchOrdersArgs::default();
-            let expected_stmt = build_fetch_orders_stmt(1, orderbook(), &args).unwrap();
+            let expected_stmt =
+                build_fetch_orders_stmt(&OrderbookIdentifier::new(1, orderbook()), &args).unwrap();
 
             // Callback returns Success with invalid JSON payload
             let store = Rc::new(RefCell::new((
@@ -171,7 +175,8 @@ mod tests {
             let callback = create_sql_capturing_callback("not-json", store.clone());
 
             let exec = JsCallbackExecutor::new(&callback);
-            let res = super::fetch_orders(&exec, 1, orderbook(), args).await;
+            let res =
+                super::fetch_orders(&exec, &OrderbookIdentifier::new(1, orderbook()), args).await;
             assert!(matches!(
                 res,
                 Err(LocalDbQueryError::Deserialization { .. })
@@ -201,7 +206,8 @@ mod tests {
 
             let args = FetchOrdersArgs::default();
             let exec = JsCallbackExecutor::new(&callback);
-            let res = super::fetch_orders(&exec, 1, orderbook(), args).await;
+            let res =
+                super::fetch_orders(&exec, &OrderbookIdentifier::new(1, orderbook()), args).await;
             assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
         }
     }
