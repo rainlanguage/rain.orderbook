@@ -114,7 +114,10 @@ module.exports.buildEsm = function (pkg) {
     let esm = fs.readFileSync(`./temp/web/${pkg}/${pkg}.js`, {
         encoding: 'utf-8'
     });
+
+    // remove unused wasm import as we import the wasm through json
     esm = esm.replaceAll(`module_or_path = new URL('${pkg}_bg.wasm', import.meta.url);`, "");
+
     esm = esm.replace(`export { initSync };
 export default __wbg_init;`,
         `import { Buffer } from 'buffer';
