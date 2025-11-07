@@ -167,7 +167,7 @@ Every `RaindexOrder` exposes `vaultsList`, `inputsList`, `outputsList`, and `inp
 
 ### Load remote strategies with `DotrainRegistry`
 
-Registry usage always starts by instantiating the registry from a remote manifest, then exploring what orders/deployments it exposes. The following snippet reflects that flow: fetch registry → list menu metadata → drill into a deployment group so a GUI or CLI can present options.
+If you maintain a hosted registry, instantiate the helper, inspect what it exposes, and pull down any dotrain/GUI definitions you need:
 
 ```ts
 import { DotrainRegistry } from '@rainlanguage/orderbook';
@@ -185,7 +185,7 @@ if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg
 const deployments = deploymentsResult.value;
 ```
 
-Registry files follow the format:
+Registry manifests follow the format:
 
 ```
 https://example.com/shared-settings.yaml
@@ -197,13 +197,79 @@ The SDK merges the shared settings YAML with each order’s `.rain` content befo
 
 ### Build a deployment GUI
 
-The GUI helper manages a stateful wizard: fetch GUI config, load selectable tokens, register deposits/vault choices, and finally generate allowances, deposits, and deployment calldata. The code block intentionally walks that lifecycle in order so you can mirror it in a form-driven UI.
+Any dotrain file that includes a `gui:` block plus the usual settings YAML is enough to drive `DotrainOrderGui`. The minimal structure looks like this (trimmed for clarity):
+
+```yaml
+<orderbook and dotrain configuration>
+
+gui:
+  name: Fixed limit
+  deployments:
+    base-prod:
+      name: Buy WETH with USDC on Base.
+      deposits:
+        - token: usdc
+      fields:
+        - binding: max-price
+          name: Max price (USDC)
+          default: "1825"
+networks:
+  base:
+    chain-id: 8453
+    rpcs:
+      - https://base-mainnet.g.alchemy.com/v2/<key>
+tokens:
+  usdc:
+    network: base
+    address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+    decimals: 6
+  weth:
+    network: base
+    address: 0x4200000000000000000000000000000000000006
+    decimals: 18
+deployers:
+  ops:
+    network: base
+    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+  base-main:
+    network: base
+    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+    subgraph: https://api.studio.thegraph.com/query/<id>
+scenarios:
+  prod:
+    deployer: ops
+orders:
+  fixed-limit:
+    inputs:
+      - token: usdc
+    outputs:
+      - token: weth
+    deployer: ops
+    orderbook: base-main
+deployments:
+  base-prod:
+    scenario: prod
+    order: fixed-limit
+
+---
+
+<orderlogic>
+```
+
+With that single source string (read from disk or built dynamically) you can drive the full GUI workflow:
 
 ```ts
-const guiResult = await registry.getGui(
-  'fixed-limit',
-  'flare-prod',
-);
+import fs from 'node:fs/promises';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
+
+const dotrainWithGui = await fs.readFile('./fixed-limit-gui.rain', 'utf8');
+
+const deploymentsResult = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
+if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);
+const [firstDeployment] = deploymentsResult.value;
+
+const guiResult = await DotrainOrderGui.newWithDeployment(dotrainWithGui, firstDeployment);
 if (guiResult.error) throw new Error(guiResult.error.readableMsg);
 const gui = guiResult.value;
 
@@ -219,10 +285,10 @@ const depositsResult = gui.getDeposits();
 if (depositsResult.error) throw new Error(depositsResult.error.readableMsg);
 const deposits = depositsResult.value;
 
-await gui.setSelectToken('input-token', '0xUSDT');
-const fieldResult = gui.setFieldValue('amount-per-trade', '50');
+await gui.setSelectToken('input-token', '0xUSDC');
+const fieldResult = gui.setFieldValue('max-price', '1850');
 if (fieldResult.error) throw new Error(fieldResult.error.readableMsg);
-await gui.setDeposit('input-token', '1000');
+await gui.setDeposit('input-token', '5000');
 const vaultIdResult = gui.setVaultId('input', 'input-token', '42');
 if (vaultIdResult.error) throw new Error(vaultIdResult.error.readableMsg);
 
@@ -250,11 +316,27 @@ if (!serializedStateResult.error) {
 }
 ```
 
-Restore the workflow later with `DotrainOrderGui.newFromState(dotrainText, serializedState, callback)` if you want to bypass the registry fetch.
+Serialize the GUI state and later revive it with `DotrainOrderGui.newFromState(dotrainText, serializedState, callback)` if you want to skip re-entering form choices.
+
+After you have a local GUI-aware dotrain source, you can also fetch equivalent sources from a registry and run the same flow:
+
+```ts
+import { DotrainRegistry } from '@rainlanguage/orderbook';
+
+const registryResult = await DotrainRegistry.new('https://example.com/registry.txt');
+if (registryResult.error) throw new Error(registryResult.error.readableMsg);
+const registry = registryResult.value;
+
+const guiSourceResult = await registry.getGui('fixed-limit', 'base-prod');
+if (guiSourceResult.error) throw new Error(guiSourceResult.error.readableMsg);
+const guiFromRegistry = guiSourceResult.value;
+
+// guiFromRegistry is just dotrain text with a gui block, so reuse the DotrainOrderGui steps above.
+```
 
 ### Work directly with dotrain files
 
-If you bypass the registry entirely, you read dotrain text + shared settings yourself, instantiate a `DotrainOrder`, and then ask it to compose scenario/deployment/post-task Rainlang. The example calls each of those steps so you can see how to bridge raw files into executable Rainlang strings.
+If you just need Rainlang composition (no GUI state), read the dotrain text plus shared settings yourself, instantiate a `DotrainOrder`, and then ask it to compose scenario/deployment/post-task Rainlang. The example calls each of those steps so you can see how to bridge raw files into executable Rainlang strings.
 
 ```ts
 import fs from 'node:fs/promises';
