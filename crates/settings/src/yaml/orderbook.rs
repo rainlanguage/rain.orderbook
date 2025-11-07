@@ -1185,18 +1185,12 @@ local-db-sync:
     }
 
     #[test]
-    fn test_get_local_db_syncs_missing_section_errors() {
+    fn test_get_local_db_syncs_missing_section_is_ok() {
         let yaml = r#"test: test"#;
         let ob_yaml =
             OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
 
-        let err = ob_yaml.get_local_db_syncs().unwrap_err();
-        assert_eq!(
-            err,
-            YamlError::Field {
-                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
-                location: "root".to_string(),
-            }
-        );
+        let syncs = ob_yaml.get_local_db_syncs().unwrap();
+        assert!(syncs.is_empty());
     }
 }
