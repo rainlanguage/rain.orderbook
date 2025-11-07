@@ -10,6 +10,7 @@
 pub mod adapters;
 pub use adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState};
 
+use super::OrderbookIdentifier;
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
 use crate::local_db::query::{
@@ -19,8 +20,6 @@ use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use async_trait::async_trait;
-
-use super::OrderbookIdentifier;
 
 /// Optional manual window overrides usually supplied by CLI/producer.
 ///
@@ -61,9 +60,9 @@ pub struct SyncConfig {
 
 /// Coarse execution summary for a single sync cycle.
 #[derive(Debug, Clone)]
-pub struct SyncOutcome {
+pub struct SyncOutcome<'a> {
     /// Target that was synced.
-    pub ob_id: OrderbookIdentifier,
+    pub ob_id: &'a OrderbookIdentifier,
     /// Start block (inclusive) that was used.
     pub start_block: u64,
     /// Target block (inclusive) that was used.
@@ -167,8 +166,7 @@ pub trait TokensPipeline {
     async fn load_existing<DB>(
         &self,
         db: &DB,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         token_addrs_lower: &[Address],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where

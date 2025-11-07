@@ -56,31 +56,21 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let mut batch = SqlStatementBatch::new();
 
         // Raw events first
-        let raw_batch = build_raw_event_sql(ob_id.chain_id, ob_id.orderbook_address, raw_logs)?;
+        let raw_batch = build_raw_event_sql(ob_id, raw_logs)?;
         batch.extend(raw_batch);
 
         // Token upserts for the missing set only
         if !tokens_to_upsert.is_empty() {
-            let upserts =
-                build_token_upserts(ob_id.chain_id, ob_id.orderbook_address, tokens_to_upsert);
+            let upserts = build_token_upserts(ob_id, tokens_to_upsert);
             batch.extend(upserts);
         }
 
         // Decoded orderbook/store events
-        let decoded_batch = build_decoded_event_sql(
-            ob_id.chain_id,
-            ob_id.orderbook_address,
-            decoded_events,
-            &decimals_by_token,
-        )?;
+        let decoded_batch = build_decoded_event_sql(ob_id, decoded_events, &decimals_by_token)?;
         batch.extend(decoded_batch);
 
         // Watermark update to target block
-        batch.add(build_update_last_synced_block_stmt(
-            ob_id.chain_id,
-            ob_id.orderbook_address,
-            target_block,
-        ));
+        batch.add(build_update_last_synced_block_stmt(ob_id, target_block));
 
         // Ensure atomicity
         Ok(batch.ensure_transaction())
@@ -148,10 +138,7 @@ mod tests {
     }
 
     fn sample_ob_id() -> OrderbookIdentifier {
-        OrderbookIdentifier {
-            chain_id: 137,
-            orderbook_address: Address::from([0u8; 20]),
-        }
+        OrderbookIdentifier::new(137, Address::from([0u8; 20]))
     }
 
     fn deposit_event(addr: Address) -> DecodedEventData<DecodedEvent> {

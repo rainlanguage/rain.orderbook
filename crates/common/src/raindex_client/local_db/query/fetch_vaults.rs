@@ -1,8 +1,8 @@
 use crate::local_db::query::fetch_vault::LocalDbVault;
 use crate::local_db::query::fetch_vaults::{build_fetch_vaults_stmt, FetchVaultsArgs};
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::vaults::GetVaultsFilters;
-use alloy::primitives::Address;
 
 impl FetchVaultsArgs {
     pub fn from_filters(filters: GetVaultsFilters) -> Self {
@@ -34,11 +34,10 @@ impl From<GetVaultsFilters> for FetchVaultsArgs {
 
 pub async fn fetch_vaults<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     args: FetchVaultsArgs,
 ) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
-    let stmt = build_fetch_vaults_stmt(chain_id, orderbook_address, &args)?;
+    let stmt = build_fetch_vaults_stmt(ob_id, &args)?;
     exec.query_json(&stmt).await
 }
 
@@ -90,7 +89,8 @@ mod tests {
             args.hide_zero_balance = true;
 
             let orderbook = Address::from([0x44; 20]);
-            let expected_stmt = build_fetch_vaults_stmt(137, orderbook, &args).unwrap();
+            let expected_stmt =
+                build_fetch_vaults_stmt(&OrderbookIdentifier::new(137, orderbook), &args).unwrap();
 
             let store = Rc::new(RefCell::new((
                 String::new(),
@@ -99,7 +99,8 @@ mod tests {
             let callback = create_sql_capturing_callback("[]", store.clone());
             let exec = JsCallbackExecutor::new(&callback);
 
-            let res = super::fetch_vaults(&exec, 137, orderbook, args).await;
+            let res =
+                super::fetch_vaults(&exec, &OrderbookIdentifier::new(137, orderbook), args).await;
             assert!(res.is_ok());
 
             let captured = store.borrow().clone();

@@ -40,12 +40,8 @@ impl ClientBootstrapAdapter {
         db: &E,
         ob_id: &OrderbookIdentifier,
     ) -> Result<bool, LocalDbError> {
-        let rows: Vec<TargetWatermarkRow> = db
-            .query_json(&fetch_target_watermark_stmt(
-                ob_id.chain_id,
-                ob_id.orderbook_address,
-            ))
-            .await?;
+        let rows: Vec<TargetWatermarkRow> =
+            db.query_json(&fetch_target_watermark_stmt(ob_id)).await?;
         Ok(rows.is_empty())
     }
 }
@@ -260,7 +256,10 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([])) // triggers reset
             // inspect_state will look for watermark since table exists
-            .with_json(&fetch_target_watermark_stmt(1, Address::ZERO), json!([]))
+            .with_json(
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
+                json!([]),
+            )
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
@@ -312,7 +311,10 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([db_row])) // mismatch triggers reset
             // inspect_state will look for watermark since table exists
-            .with_json(&fetch_target_watermark_stmt(1, Address::ZERO), json!([]))
+            .with_json(
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
+                json!([]),
+            )
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
@@ -352,7 +354,10 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
             // fresh DB check: no rows
-            .with_json(&fetch_target_watermark_stmt(1, Address::ZERO), json!([]))
+            .with_json(
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
+                json!([]),
+            )
             // reset + dump
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
@@ -401,7 +406,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row.clone()]),
             )
             // ensure_schema ok
@@ -454,7 +459,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row]),
             )
             // ensure_schema ok
@@ -517,7 +522,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row]),
             )
             // ensure_schema ok
@@ -570,7 +575,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row]),
             )
             // ensure_schema ok
@@ -626,7 +631,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(1, Address::ZERO),
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
                 json!([watermark_row]),
             ); // intentionally omit fetch_db_metadata to force ensure_schema error
 
@@ -670,7 +675,10 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             // inspect_state watermark read (empty -> fresh after reset)
-            .with_json(&fetch_target_watermark_stmt(1, Address::ZERO), json!([]))
+            .with_json(
+                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
+                json!([]),
+            )
             // ensure_schema -> missing metadata row
             .with_json(&fetch_db_metadata_stmt(), json!([]))
             // reset + dump

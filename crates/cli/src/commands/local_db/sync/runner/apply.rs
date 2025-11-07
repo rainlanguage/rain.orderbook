@@ -1,9 +1,9 @@
-use alloy::primitives::Address;
 use anyhow::Result;
 use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::local_db::query::{
     update_last_synced_block::build_update_last_synced_block_stmt, SqlStatementBatch,
 };
+use rain_orderbook_common::local_db::OrderbookIdentifier;
 use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClient};
 use url::Url;
 
@@ -54,8 +54,7 @@ where
 pub(super) struct PrepareSqlParams {
     pub(super) db_path: String,
     pub(super) metadata_rpc_urls: Vec<Url>,
-    pub(super) chain_id: u32,
-    pub(super) orderbook_address: Address,
+    pub(super) ob_id: OrderbookIdentifier,
     pub(super) decoded_events: Vec<DecodedEventData<DecodedEvent>>,
     pub(super) raw_events: Vec<LogEntryResponse>,
     pub(super) target_block: u64,
@@ -73,8 +72,7 @@ where
     let PrepareSqlParams {
         db_path,
         metadata_rpc_urls,
-        chain_id,
-        orderbook_address,
+        ob_id,
         decoded_events,
         raw_events,
         target_block,
@@ -87,14 +85,12 @@ where
     };
     let rpc_client = RpcClient::new_with_urls(metadata_rpcs)?;
 
-    let mut batch =
-        data_source.raw_events_to_statements(chain_id, orderbook_address, &raw_events)?;
+    let mut batch = data_source.raw_events_to_statements(&ob_id, &raw_events)?;
 
     let token_prep = prepare_token_metadata(
         &db_path,
         &rpc_client,
-        chain_id,
-        orderbook_address,
+        &ob_id,
         &decoded_events,
         token_fetcher,
     )
@@ -105,17 +101,12 @@ where
     } = token_prep;
 
     tokens_prefix_sql.extend(data_source.events_to_sql(
-        chain_id,
-        orderbook_address,
+        &ob_id,
         &decoded_events,
         &decimals_by_addr,
     )?);
     batch.extend(tokens_prefix_sql);
-    batch.add(build_update_last_synced_block_stmt(
-        chain_id,
-        orderbook_address,
-        target_block,
-    ));
+    batch.add(build_update_last_synced_block_stmt(&ob_id, target_block));
 
     Ok(batch.ensure_transaction())
 }
@@ -207,8 +198,7 @@ mod tests {
 
         fn events_to_sql(
             &self,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             decoded_events: &[DecodedEventData<DecodedEvent>],
             decimals_by_token: &HashMap<Address, u8>,
         ) -> Result<SqlStatementBatch> {
@@ -230,8 +220,7 @@ mod tests {
 
         fn raw_events_to_statements(
             &self,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             raw_events: &[LogEntryResponse],
         ) -> Result<SqlStatementBatch> {
             self.captured_raw.lock().unwrap().push(raw_events.to_vec());
@@ -315,8 +304,7 @@ mod tests {
             PrepareSqlParams {
                 db_path: db_path_str.to_string(),
                 metadata_rpc_urls: vec![],
-                chain_id: 1,
-                orderbook_address: Address::from([0x11; 20]),
+                ob_id: OrderbookIdentifier::new(1, Address::from([0x11; 20])),
                 decoded_events: vec![],
                 raw_events: vec![],
                 target_block: 100,
@@ -399,8 +387,7 @@ mod tests {
             PrepareSqlParams {
                 db_path: db_path_str.to_string(),
                 metadata_rpc_urls: data_source.rpc_urls().to_vec(),
-                chain_id: 1,
-                orderbook_address: Address::from([0x44; 20]),
+                ob_id: OrderbookIdentifier::new(1, Address::from([0x44; 20])),
                 decoded_events: decoded,
                 raw_events,
                 target_block: 42,
@@ -488,8 +475,7 @@ mod tests {
             PrepareSqlParams {
                 db_path: db_path_str.to_string(),
                 metadata_rpc_urls: data_source.rpc_urls().to_vec(),
-                chain_id: 1,
-                orderbook_address: Address::from([0x55; 20]),
+                ob_id: OrderbookIdentifier::new(1, Address::from([0x55; 20])),
                 decoded_events: vec![],
                 raw_events: vec![],
                 target_block: 75,

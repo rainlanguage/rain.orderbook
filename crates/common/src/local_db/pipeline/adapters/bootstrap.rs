@@ -83,12 +83,8 @@ pub trait BootstrapPipeline {
             .all(|&t| existing_set.contains(&t.to_ascii_lowercase()));
 
         let last_synced_block = if existing_set.contains("target_watermarks") {
-            let rows: Vec<TargetWatermarkRow> = db
-                .query_json(&fetch_target_watermark_stmt(
-                    ob_id.chain_id,
-                    ob_id.orderbook_address,
-                ))
-                .await?;
+            let rows: Vec<TargetWatermarkRow> =
+                db.query_json(&fetch_target_watermark_stmt(ob_id)).await?;
             rows.first().map(|r| r.last_block)
         } else {
             None
@@ -313,11 +309,8 @@ mod tests {
         .unwrap();
 
         // Watermark row present
-        let ob_id = OrderbookIdentifier {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        };
-        let watermark_stmt = fetch_target_watermark_stmt(ob_id.chain_id, ob_id.orderbook_address);
+        let ob_id = OrderbookIdentifier::new(1, Address::ZERO);
+        let watermark_stmt = fetch_target_watermark_stmt(&ob_id);
         let watermark_json = json!([TargetWatermarkRow {
             chain_id: ob_id.chain_id,
             orderbook_address: ob_id.orderbook_address,
@@ -339,10 +332,7 @@ mod tests {
     async fn inspect_state_missing_tables_means_not_ready_and_no_watermark_query() {
         let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default().with_json(&fetch_tables_stmt(), json!([]));
-        let ob_id = OrderbookIdentifier {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        };
+        let ob_id = OrderbookIdentifier::new(1, Address::ZERO);
         let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(!state.has_required_tables);
         assert_eq!(state.last_synced_block, None);
@@ -391,11 +381,8 @@ mod tests {
         )
         .unwrap();
 
-        let ob_id = OrderbookIdentifier {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        };
-        let watermark_stmt = fetch_target_watermark_stmt(ob_id.chain_id, ob_id.orderbook_address);
+        let ob_id = OrderbookIdentifier::new(1, Address::ZERO);
+        let watermark_stmt = fetch_target_watermark_stmt(&ob_id);
 
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
@@ -425,11 +412,8 @@ mod tests {
         )
         .unwrap();
 
-        let ob_id = OrderbookIdentifier {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        };
-        let watermark_stmt = fetch_target_watermark_stmt(ob_id.chain_id, ob_id.orderbook_address);
+        let ob_id = OrderbookIdentifier::new(1, Address::ZERO);
+        let watermark_stmt = fetch_target_watermark_stmt(&ob_id);
         let watermark_json = json!([TargetWatermarkRow {
             chain_id: ob_id.chain_id,
             orderbook_address: ob_id.orderbook_address,

@@ -99,10 +99,7 @@ mod tests {
     }
 
     fn sample_ob_id() -> OrderbookIdentifier {
-        OrderbookIdentifier {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        }
+        OrderbookIdentifier::new(1, Address::ZERO)
     }
 
     #[tokio::test]
