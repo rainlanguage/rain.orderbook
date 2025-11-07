@@ -41,19 +41,13 @@ npm install @rainlanguage/orderbook
 
 ## Quick Start
 
-All SDK calls return `WasmEncodedResult<T>`; always check `.error` before touching `.value`.
-
-### 1. Load orderbook settings & create a client
+### 1. Create a raindex client
 
 ```ts
 import fs from 'node:fs/promises';
-import { OrderbookYaml, RaindexClient } from '@rainlanguage/orderbook';
+import { RaindexClient } from '@rainlanguage/orderbook';
 
 const yamlSources = [await fs.readFile('./settings.yaml', 'utf8')];
-
-const orderbookResult = OrderbookYaml.new(yamlSources, true);
-if (orderbookResult.error) throw new Error(orderbookResult.error.readableMsg);
-const orderbookYaml = orderbookResult.value;
 
 const clientResult = RaindexClient.new(yamlSources);
 if (clientResult.error) throw new Error(clientResult.error.readableMsg);
@@ -160,29 +154,6 @@ if (quotesResult.error) throw new Error(quotesResult.error.readableMsg);
 ```
 
 Every `RaindexOrder` exposes `vaultsList`, `inputsList`, `outputsList`, and `inputsOutputsList`, so you can quickly scope which vault IDs map to which IO leg before building calldata.
-
-### 5. Optional: sync a local cache
-
-```ts
-import { clearTables, getSyncStatus } from '@rainlanguage/orderbook';
-
-const db = createLocalDb(); // e.g., SQLite, IndexedDB, Dexie …
-const dbCallback = (query: string, params?: unknown[]) => db.execute(query, params);
-
-const setDbResult = client.setDbCallback(dbCallback);
-if (setDbResult.error) throw new Error(setDbResult.error.readableMsg);
-
-const syncResult = await client.syncLocalDatabase(dbCallback, status => console.log(status), 137);
-if (syncResult.error) throw new Error(syncResult.error.readableMsg);
-
-const syncStatus = await getSyncStatus(dbCallback);
-if (!syncStatus.error) console.log(syncStatus.value);
-
-const clearResult = await clearTables(dbCallback);
-if (clearResult.error) throw new Error(clearResult.error.readableMsg);
-```
-
-The provided callbacks let you plug in whatever persistence layer makes sense (IndexedDB in browsers, SQLite in desktop apps, etc.), while the SDK drives schema creation and synchronization.
 
 ## Dotrain authoring & deployment flows
 
