@@ -2,6 +2,7 @@ use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use itertools::Itertools;
 use rain_orderbook_common::local_db::address_collectors::collect_token_addresses;
+use rain_orderbook_common::local_db::OrderbookIdentifier;
 use rain_orderbook_common::local_db::{
     decode::{DecodedEvent, DecodedEventData},
     insert::generate_erc20_token_statements,
@@ -21,8 +22,7 @@ pub(crate) struct TokenPrepResult {
 pub(crate) async fn prepare_token_metadata<T>(
     db_path: &str,
     rpc_client: &RpcClient,
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     decoded_events: &[DecodedEventData<DecodedEvent>],
     token_fetcher: &T,
 ) -> Result<TokenPrepResult>
@@ -39,8 +39,7 @@ where
         });
     }
 
-    let existing_rows =
-        fetch_existing_tokens(db_path, chain_id, orderbook_address, &all_token_addrs).await?;
+    let existing_rows = fetch_existing_tokens(db_path, ob_id, &all_token_addrs).await?;
 
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
     let mut existing_lower: HashSet<String> = HashSet::new();
@@ -70,7 +69,7 @@ where
     println!("Fetching metadata for {} new token(s)", missing_addrs.len());
     let fetched = token_fetcher.fetch(rpc_client, missing_addrs).await?;
 
-    let tokens_prefix_sql = generate_erc20_token_statements(chain_id, orderbook_address, &fetched);
+    let tokens_prefix_sql = generate_erc20_token_statements(ob_id, &fetched);
     for (addr, info) in fetched.into_iter() {
         decimals_by_addr.insert(addr, info.decimals);
     }
@@ -142,8 +141,7 @@ mod tests {
         let prep = prepare_token_metadata(
             &db_path_str,
             &rpc_client,
-            1,
-            orderbook_address,
+            &OrderbookIdentifier::new(1, orderbook_address),
             &decoded,
             &NoopFetcher,
         )
