@@ -152,11 +152,7 @@ mod tests {
 
     fn new_raindex() -> VirtualRaindex<NullCache, NullHost> {
         let orderbook = Address::repeat_byte(0xAB);
-        VirtualRaindex::new(
-            orderbook,
-            Arc::new(NullCache::default()),
-            Arc::new(NullHost::default()),
-        )
+        VirtualRaindex::new(orderbook, Arc::new(NullCache), Arc::new(NullHost))
     }
 
     fn parse_float(value: &str) -> Float {

@@ -199,11 +199,7 @@ mod unit_tests {
 
     fn test_raindex() -> VirtualRaindex<NullCache, NullHost> {
         let orderbook = Address::repeat_byte(0xAB);
-        VirtualRaindex::new(
-            orderbook,
-            Arc::new(NullCache::default()),
-            Arc::new(NullHost::default()),
-        )
+        VirtualRaindex::new(orderbook, Arc::new(NullCache), Arc::new(NullHost))
     }
 
     fn sample_order(owner_byte: u8) -> OrderV4 {

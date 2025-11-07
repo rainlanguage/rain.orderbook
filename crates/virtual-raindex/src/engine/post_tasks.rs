@@ -338,7 +338,7 @@ mod tests {
     fn run_post_tasks_maps_errors_to_revm_execution() {
         let order = test_order();
         let cache = cache_with_code(&order);
-        let host = Arc::new(FailingHost::default());
+        let host = Arc::new(FailingHost);
         let raindex = VirtualRaindex::new(Address::ZERO, Arc::clone(&cache), host);
         let mut state = raindex.state.clone();
 

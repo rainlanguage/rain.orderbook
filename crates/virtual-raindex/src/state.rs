@@ -204,23 +204,23 @@ mod tests {
     }
 
     fn sample_order(owner_byte: u8, nonce_byte: u8) -> OrderV4 {
-        let mut order = OrderV4::default();
-        order.owner = Address::repeat_byte(owner_byte);
-        order.nonce = B256::from([nonce_byte; 32]);
-        order.evaluable = EvaluableV4 {
-            interpreter: Address::repeat_byte(0xF1),
-            store: Address::repeat_byte(0xF2),
-            bytecode: Bytes::default(),
-        };
-        order.validInputs = vec![IOV2 {
-            token: Address::repeat_byte(0x11),
-            vaultId: B256::from([0xAA; 32]),
-        }];
-        order.validOutputs = vec![IOV2 {
-            token: Address::repeat_byte(0x22),
-            vaultId: B256::from([0xBB; 32]),
-        }];
-        order
+        OrderV4 {
+            owner: Address::repeat_byte(owner_byte),
+            evaluable: EvaluableV4 {
+                interpreter: Address::repeat_byte(0xF1),
+                store: Address::repeat_byte(0xF2),
+                bytecode: Bytes::default(),
+            },
+            validInputs: vec![IOV2 {
+                token: Address::repeat_byte(0x11),
+                vaultId: B256::from([0xAA; 32]),
+            }],
+            validOutputs: vec![IOV2 {
+                token: Address::repeat_byte(0x22),
+                vaultId: B256::from([0xBB; 32]),
+            }],
+            nonce: B256::from([nonce_byte; 32]),
+        }
     }
 
     #[test]

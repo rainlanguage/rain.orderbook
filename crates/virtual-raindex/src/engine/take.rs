@@ -158,7 +158,7 @@ where
             expected_output_token,
             total_input: Float::default(),
             total_output: Float::default(),
-            remaining_input: config.maximum_input.clone(),
+            remaining_input: config.maximum_input,
             taken: Vec::new(),
             warnings: Vec::new(),
             vault_deltas: Vec::new(),
@@ -235,10 +235,7 @@ where
             &take_order.signed_context,
         )?;
 
-        if calculation
-            .io_ratio
-            .gt(self.config.maximum_io_ratio.clone())?
-        {
+        if calculation.io_ratio.gt(self.config.maximum_io_ratio)? {
             self.warnings.push(TakeOrderWarning::RatioExceeded {
                 order_hash: order_hash(resolved_order),
             });
@@ -252,10 +249,7 @@ where
             return Ok(());
         }
 
-        let taker_input = calculation
-            .output_max
-            .clone()
-            .min(self.remaining_input.clone())?;
+        let taker_input = calculation.output_max.min(self.remaining_input)?;
         if taker_input.is_zero()? {
             return Ok(());
         }
@@ -270,11 +264,11 @@ where
         take_order: &TakeOrder,
         taker_input: Float,
     ) -> Result<()> {
-        let taker_output = calculation.io_ratio.clone().mul(taker_input.clone())?;
+        let taker_output = calculation.io_ratio.mul(taker_input)?;
 
-        self.total_input = (self.total_input + taker_input.clone())?;
-        self.total_output = (self.total_output + taker_output.clone())?;
-        self.remaining_input = (self.remaining_input - taker_input.clone())?;
+        self.total_input = (self.total_input + taker_input)?;
+        self.total_output = (self.total_output + taker_output)?;
+        self.remaining_input = (self.remaining_input - taker_input)?;
 
         let input_io = &resolved_order.validInputs[take_order.input_io_index];
         let output_io = &resolved_order.validOutputs[take_order.output_io_index];
@@ -295,8 +289,8 @@ where
             resolved_order,
             input_io,
             output_io,
-            taker_output.clone(),
-            taker_input.clone(),
+            taker_output,
+            taker_input,
             &mut self.vault_deltas,
         )?;
 
@@ -341,10 +335,10 @@ where
     }
 
     fn ensure_minimum_input(&self) -> Result<()> {
-        if self.total_input.lt(self.config.minimum_input.clone())? {
+        if self.total_input.lt(self.config.minimum_input)? {
             return Err(RaindexError::MinimumInputNotMet {
-                minimum: self.config.minimum_input.clone(),
-                actual: self.total_input.clone(),
+                minimum: self.config.minimum_input,
+                actual: self.total_input,
             });
         }
         Ok(())
@@ -533,8 +527,8 @@ mod tests {
     fn test_raindex() -> VirtualRaindex<NullCache, NullHost> {
         VirtualRaindex::new(
             Address::repeat_byte(0xAB),
-            Arc::new(NullCache::default()),
-            Arc::new(NullHost::default()),
+            Arc::new(NullCache),
+            Arc::new(NullHost),
         )
     }
 
@@ -715,10 +709,10 @@ mod tests {
         let starting_output_balance = parse_float("5");
         working_state
             .vault_balances
-            .insert(input_key, starting_input_balance.clone());
+            .insert(input_key, starting_input_balance);
         working_state
             .vault_balances
-            .insert(output_key, starting_output_balance.clone());
+            .insert(output_key, starting_output_balance);
 
         let mut deltas = Vec::new();
 
@@ -727,29 +721,27 @@ mod tests {
             &order,
             &input_io,
             &output_io,
-            taker_output.clone(),
-            taker_input.clone(),
+            taker_output,
+            taker_input,
             &mut deltas,
         )
         .expect("apply vault updates should succeed");
 
-        let updated_input = working_state
+        let updated_input = *working_state
             .vault_balances
             .get(&input_key)
-            .expect("input balance stored")
-            .clone();
-        let expected_input = (starting_input_balance.clone() + taker_output.clone())
-            .expect("expected input balance");
+            .expect("input balance stored");
+        let expected_input =
+            (starting_input_balance + taker_output).expect("expected input balance");
         assert!(updated_input.eq(expected_input).expect("input balance eq"));
 
-        let updated_output = working_state
+        let updated_output = *working_state
             .vault_balances
             .get(&output_key)
-            .expect("output balance stored")
-            .clone();
-        let expected_negative = taker_input.clone().neg().expect("neg");
-        let expected_output = (starting_output_balance.clone() + expected_negative.clone())
-            .expect("expected output balance");
+            .expect("output balance stored");
+        let expected_negative = taker_input.neg().expect("neg");
+        let expected_output =
+            (starting_output_balance + expected_negative).expect("expected output balance");
         assert!(updated_output
             .eq(expected_output)
             .expect("output balance eq"));
@@ -761,14 +753,9 @@ mod tests {
         assert_eq!(deltas[1].owner, order.owner);
         assert_eq!(deltas[1].token, output_io.token);
         assert_eq!(deltas[1].vault_id, output_io.vaultId);
-        assert!(deltas[0]
-            .delta
-            .clone()
-            .eq(taker_output.clone())
-            .expect("delta input eq"));
+        assert!(deltas[0].delta.eq(taker_output).expect("delta input eq"));
         assert!(deltas[1]
             .delta
-            .clone()
             .eq(expected_negative)
             .expect("delta output eq"));
     }
