@@ -43,6 +43,8 @@ npm install @rainlanguage/orderbook
 
 ### 1. Create a raindex client
 
+This first snippet does three things: (1) load one or more settings YAML strings (these describe networks, accounts, and subgraph URLs), (2) feed those sources into `RaindexClient.new` so the WASM layer can parse and validate them, and (3) unwrap the resulting `WasmEncodedResult` so downstream samples can call the client with standard JS error handling expectations.
+
 ```ts
 import fs from 'node:fs/promises';
 import { RaindexClient } from '@rainlanguage/orderbook';
@@ -57,6 +59,8 @@ const client = clientResult.value;
 Pass `true` as the second argument to `OrderbookYaml.new` / `RaindexClient.new` when you want strict schema validation.
 
 ### 2. Query orders with filters & pagination
+
+Here we scope the query by chain IDs and typical filters (owner, token, activity flag), ask the client to hydrate matching orders, and then walk the richer helpers on a single `RaindexOrder`—vault listings, trades, quotes, and detail lookups—to show how pagination + follow-up queries hang together.
 
 ```ts
 import type { ChainIds, GetOrdersFilters } from '@rainlanguage/orderbook';
@@ -93,6 +97,8 @@ Additional helpers worth wiring up:
 - `client.getTransaction(orderbookAddress, txHash)` – inspect who sent a transaction, the block number, and timestamp.
 
 ### 3. Work with vaults & Floats
+
+Vault workflows usually require combining filters, inspecting the returned `RaindexVaultsList`, and then producing calldata or math-heavy amounts. This example chains those steps: fetch vaults, narrow the list to withdrawable entries, pull history, parse human inputs with `Float`, and finally build deposit/withdraw/approval payloads while checking allowances.
 
 ```ts
 import { Float, type GetVaultsFilters } from '@rainlanguage/orderbook';
@@ -136,6 +142,8 @@ const allowance = allowanceResult.value;
 
 ### 4. Generate quotes & calldata
 
+Once you have hydrated orders, you typically need deterministic hashes plus calldata builders. The snippet below hashes an order struct, generates take-orders calldata, asks an order for its removal calldata, and fetches quotes—mirroring the usual “inspect → prepare transaction → submit” flow.
+
 ```ts
 import { getOrderHash, getTakeOrders3Calldata } from '@rainlanguage/orderbook';
 
@@ -158,6 +166,8 @@ Every `RaindexOrder` exposes `vaultsList`, `inputsList`, `outputsList`, and `inp
 ## Dotrain authoring & deployment flows
 
 ### Load remote strategies with `DotrainRegistry`
+
+Registry usage always starts by instantiating the registry from a remote manifest, then exploring what orders/deployments it exposes. The following snippet reflects that flow: fetch registry → list menu metadata → drill into a deployment group so a GUI or CLI can present options.
 
 ```ts
 import { DotrainRegistry } from '@rainlanguage/orderbook';
@@ -186,6 +196,8 @@ dca https://example.com/orders/dca.rain
 The SDK merges the shared settings YAML with each order’s `.rain` content before you ever build a GUI.
 
 ### Build a deployment GUI
+
+The GUI helper manages a stateful wizard: fetch GUI config, load selectable tokens, register deposits/vault choices, and finally generate allowances, deposits, and deployment calldata. The code block intentionally walks that lifecycle in order so you can mirror it in a form-driven UI.
 
 ```ts
 const guiResult = await registry.getGui(
@@ -241,6 +253,8 @@ if (!serializedStateResult.error) {
 Restore the workflow later with `DotrainOrderGui.newFromState(dotrainText, serializedState, callback)` if you want to bypass the registry fetch.
 
 ### Work directly with dotrain files
+
+If you bypass the registry entirely, you read dotrain text + shared settings yourself, instantiate a `DotrainOrder`, and then ask it to compose scenario/deployment/post-task Rainlang. The example calls each of those steps so you can see how to bridge raw files into executable Rainlang strings.
 
 ```ts
 import fs from 'node:fs/promises';
