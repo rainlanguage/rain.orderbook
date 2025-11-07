@@ -407,7 +407,7 @@ if (fieldResult.error) throw new Error(fieldResult.error.readableMsg);
 const amountResult = gui.setFieldValue('amount-per-trade', '250');
 if (amountResult.error) throw new Error(amountResult.error.readableMsg);
 await gui.setDeposit('usdc', '5000');
-const vaultIdResult = gui.setVaultId(true, 0, '42');
+const vaultIdResult = gui.setVaultId('input', 'usdc', '42');
 if (vaultIdResult.error) throw new Error(vaultIdResult.error.readableMsg);
 
 const allowancesResult = await gui.checkAllowances('0xOwner');
@@ -449,7 +449,8 @@ const guiSourceResult = await registry.getGui('fixed-limit', 'base');
 if (guiSourceResult.error) throw new Error(guiSourceResult.error.readableMsg);
 const guiFromRegistry = guiSourceResult.value;
 
-// guiFromRegistry is just dotrain text with a gui block, so reuse the DotrainOrderGui steps above.
+// guiFromRegistry is already a DotrainOrderGui instance, so you can reuse
+// the same GUI helper steps shown above (select tokens, deposits, calldata, etc.).
 ```
 
 ### Work directly with dotrain files
@@ -487,13 +488,9 @@ if (!postTaskResult.error) console.log(postTaskResult.value);
 Every exported function returns a `WasmEncodedResult<T>`:
 
 ```ts
-interface WasmEncodedResult<T> {
-  value?: T;
-  error?: {
-    msg: unknown;
-    readableMsg: string;
-  };
-}
+type WasmEncodedResult<T> =
+  | { value: T; error: undefined }
+  | { value: undefined; error: { msg: string; readableMsg: string } };
 
 const result = await client.getVault(14, '0xOrderbook', '0x01');
 if (result.error) {
