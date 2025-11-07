@@ -1,20 +1,24 @@
-use crate::local_db::query::{SqlStatement, SqlValue};
-use alloy::primitives::Address;
+use crate::local_db::{
+    query::{SqlStatement, SqlValue},
+    OrderbookIdentifier,
+};
 
 pub const CLEAR_ORDERBOOK_DATA_SQL: &str = include_str!("query.sql");
 
-pub fn clear_orderbook_data_stmt(chain_id: u64, orderbook_address: Address) -> SqlStatement {
+pub fn clear_orderbook_data_stmt(ob_id: &OrderbookIdentifier) -> SqlStatement {
     SqlStatement::new_with_params(
         CLEAR_ORDERBOOK_DATA_SQL,
         [
-            SqlValue::from(chain_id),
-            SqlValue::from(orderbook_address.to_string()),
+            SqlValue::from(ob_id.chain_id as u64),
+            SqlValue::from(ob_id.orderbook_address.to_string()),
         ],
     )
 }
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
     use std::collections::HashSet;
@@ -35,7 +39,7 @@ mod tests {
     #[test]
     fn stmt_binds_expected_params() {
         let addr = Address::from([0x11; 20]);
-        let stmt = clear_orderbook_data_stmt(137, addr);
+        let stmt = clear_orderbook_data_stmt(&OrderbookIdentifier::new(137, addr));
 
         assert_eq!(stmt.sql(), CLEAR_ORDERBOOK_DATA_SQL);
         assert_eq!(
