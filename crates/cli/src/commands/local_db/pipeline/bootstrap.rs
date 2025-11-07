@@ -52,6 +52,8 @@ mod tests {
     };
     use rain_orderbook_common::local_db::DATABASE_SCHEMA_VERSION;
 
+    const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
+
     #[derive(Default)]
     struct MockDb {
         text_map: HashMap<String, String>,
@@ -115,6 +117,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -154,6 +157,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter
@@ -195,6 +199,7 @@ mod tests {
             target_key: target_key(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         // Expect error due to missing dump mapping, after successful reset
