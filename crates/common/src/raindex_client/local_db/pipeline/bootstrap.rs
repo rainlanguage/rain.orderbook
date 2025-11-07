@@ -1,10 +1,10 @@
 use crate::local_db::{
-    pipeline::{BootstrapConfig, BootstrapPipeline, BootstrapState, TargetKey},
+    pipeline::{BootstrapConfig, BootstrapPipeline, BootstrapState},
     query::{
         fetch_target_watermark::{fetch_target_watermark_stmt, TargetWatermarkRow},
         LocalDbQueryExecutor,
     },
-    LocalDbError,
+    LocalDbError, OrderbookIdentifier,
 };
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -38,12 +38,12 @@ impl ClientBootstrapAdapter {
     async fn is_fresh_db<E: LocalDbQueryExecutor + ?Sized>(
         self,
         db: &E,
-        target_key: &TargetKey,
+        ob_id: &OrderbookIdentifier,
     ) -> Result<bool, LocalDbError> {
         let rows: Vec<TargetWatermarkRow> = db
             .query_json(&fetch_target_watermark_stmt(
-                target_key.chain_id,
-                target_key.orderbook_address,
+                ob_id.chain_id,
+                ob_id.orderbook_address,
             ))
             .await?;
         Ok(rows.is_empty())
@@ -64,7 +64,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
         let BootstrapState {
             has_required_tables,
             last_synced_block,
-        } = self.inspect_state(db, &config.target_key).await?;
+        } = self.inspect_state(db, &config.ob_id).await?;
 
         if !has_required_tables {
             self.reset_db(db, db_schema_version).await?;
@@ -80,7 +80,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
         }
 
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
-            if self.is_fresh_db(db, &config.target_key).await? {
+            if self.is_fresh_db(db, &config.ob_id).await? {
                 db.query_text(dump_stmt).await?;
                 return Ok(());
             }
@@ -183,8 +183,8 @@ mod tests {
         }
     }
 
-    fn target_key() -> TargetKey {
-        TargetKey {
+    fn sample_ob_id() -> OrderbookIdentifier {
+        OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         }
@@ -192,7 +192,7 @@ mod tests {
 
     fn cfg_with_dump(latest_block: u64) -> BootstrapConfig {
         BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -219,7 +219,7 @@ mod tests {
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -266,7 +266,7 @@ mod tests {
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -318,7 +318,7 @@ mod tests {
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -360,7 +360,7 @@ mod tests {
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 100,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -474,7 +474,7 @@ mod tests {
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -585,7 +585,7 @@ mod tests {
             );
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -631,7 +631,7 @@ mod tests {
             ); // intentionally omit fetch_db_metadata to force ensure_schema error
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block: 2,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -680,7 +680,7 @@ mod tests {
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 1,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,

@@ -226,6 +226,12 @@ impl LocalDbError {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct OrderbookIdentifier {
+    pub chain_id: u32,
+    pub orderbook_address: Address,
+}
+
 pub fn is_chain_supported_local_db(chain_id: u32) -> bool {
     SUPPORTED_LOCAL_DB_CHAINS.contains(&chain_id)
 }

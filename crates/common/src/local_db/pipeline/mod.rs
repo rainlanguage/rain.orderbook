@@ -20,16 +20,7 @@ use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use async_trait::async_trait;
 
-/// Identifies the logical target (orderbook) for a sync cycle.
-///
-/// Multi‑tenant writes/reads are always keyed by this structure.
-#[derive(Debug, Clone)]
-pub struct TargetKey {
-    /// Chain id for the orderbook deployment.
-    pub chain_id: u32,
-    /// Address of the orderbook contract.
-    pub orderbook_address: Address,
-}
+use super::OrderbookIdentifier;
 
 /// Optional manual window overrides usually supplied by CLI/producer.
 ///
@@ -72,7 +63,7 @@ pub struct SyncConfig {
 #[derive(Debug, Clone)]
 pub struct SyncOutcome {
     /// Target that was synced.
-    pub target: TargetKey,
+    pub ob_id: OrderbookIdentifier,
     /// Start block (inclusive) that was used.
     pub start_block: u64,
     /// Target block (inclusive) that was used.
@@ -113,7 +104,7 @@ pub trait WindowPipeline {
     async fn compute<DB>(
         &self,
         db: &DB,
-        target: &TargetKey,
+        ob_id: &OrderbookIdentifier,
         cfg: &SyncConfig,
         latest_block: u64,
     ) -> Result<(u64, u64), LocalDbError>
@@ -211,7 +202,7 @@ pub trait ApplyPipeline {
     /// atomic execution (the caller will ensure single‑writer semantics).
     fn build_batch(
         &self,
-        target: &TargetKey,
+        ob_id: &OrderbookIdentifier,
         target_block: u64,
         raw_logs: &[LogEntryResponse],
         decoded_events: &[DecodedEventData<DecodedEvent>],
@@ -230,7 +221,7 @@ pub trait ApplyPipeline {
     async fn export_dump<DB>(
         &self,
         _db: &DB,
-        _target: &TargetKey,
+        _ob_id: &OrderbookIdentifier,
         _end_block: u64,
     ) -> Result<(), LocalDbError>
     where

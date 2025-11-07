@@ -1,4 +1,3 @@
-use crate::local_db::pipeline::TargetKey;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -9,13 +8,14 @@ use crate::local_db::query::fetch_target_watermark::TargetWatermarkRow;
 use crate::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::LocalDbError;
+use crate::local_db::OrderbookIdentifier;
 use crate::local_db::DATABASE_SCHEMA_VERSION;
 use async_trait::async_trait;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
 pub struct BootstrapConfig {
-    pub target_key: TargetKey,
+    pub ob_id: OrderbookIdentifier,
     pub dump_stmt: Option<SqlStatement>,
     pub latest_block: u64,
     pub block_number_threshold: u32,
@@ -67,7 +67,7 @@ pub trait BootstrapPipeline {
     async fn inspect_state<DB>(
         &self,
         db: &DB,
-        target_key: &TargetKey,
+        ob_id: &OrderbookIdentifier,
     ) -> Result<BootstrapState, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
@@ -85,8 +85,8 @@ pub trait BootstrapPipeline {
         let last_synced_block = if existing_set.contains("target_watermarks") {
             let rows: Vec<TargetWatermarkRow> = db
                 .query_json(&fetch_target_watermark_stmt(
-                    target_key.chain_id,
-                    target_key.orderbook_address,
+                    ob_id.chain_id,
+                    ob_id.orderbook_address,
                 ))
                 .await?;
             rows.first().map(|r| r.last_block)
@@ -313,15 +313,14 @@ mod tests {
         .unwrap();
 
         // Watermark row present
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
-        let watermark_stmt =
-            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+        let watermark_stmt = fetch_target_watermark_stmt(ob_id.chain_id, ob_id.orderbook_address);
         let watermark_json = json!([TargetWatermarkRow {
-            chain_id: target_key.chain_id,
-            orderbook_address: target_key.orderbook_address,
+            chain_id: ob_id.chain_id,
+            orderbook_address: ob_id.orderbook_address,
             last_block: 123,
             last_hash: None,
             updated_at: None,
@@ -331,7 +330,7 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&watermark_stmt, watermark_json);
 
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(state.has_required_tables);
         assert_eq!(state.last_synced_block, Some(123));
     }
@@ -340,11 +339,11 @@ mod tests {
     async fn inspect_state_missing_tables_means_not_ready_and_no_watermark_query() {
         let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default().with_json(&fetch_tables_stmt(), json!([]));
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(!state.has_required_tables);
         assert_eq!(state.last_synced_block, None);
     }
@@ -370,11 +369,11 @@ mod tests {
         .unwrap();
 
         let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(!state.has_required_tables);
         assert_eq!(state.last_synced_block, None);
     }
@@ -392,18 +391,17 @@ mod tests {
         )
         .unwrap();
 
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
-        let watermark_stmt =
-            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+        let watermark_stmt = fetch_target_watermark_stmt(ob_id.chain_id, ob_id.orderbook_address);
 
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&watermark_stmt, json!([]));
 
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(state.has_required_tables);
         assert_eq!(state.last_synced_block, None);
     }
@@ -427,15 +425,14 @@ mod tests {
         )
         .unwrap();
 
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
-        let watermark_stmt =
-            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+        let watermark_stmt = fetch_target_watermark_stmt(ob_id.chain_id, ob_id.orderbook_address);
         let watermark_json = json!([TargetWatermarkRow {
-            chain_id: target_key.chain_id,
-            orderbook_address: target_key.orderbook_address,
+            chain_id: ob_id.chain_id,
+            orderbook_address: ob_id.orderbook_address,
             last_block: 42,
             last_hash: None,
             updated_at: None,
@@ -445,7 +442,7 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&watermark_stmt, watermark_json);
 
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(state.has_required_tables);
         assert_eq!(state.last_synced_block, Some(42));
     }
@@ -454,11 +451,11 @@ mod tests {
     async fn inspect_state_propagates_fetch_tables_error() {
         let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default(); // no json for fetch_tables_stmt()
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
-        let err = adapter.inspect_state(&db, &target_key).await.unwrap_err();
+        let err = adapter.inspect_state(&db, &ob_id).await.unwrap_err();
         match err {
             LocalDbError::LocalDbQueryError(..) => {}
             other => panic!("unexpected error: {other:?}"),
@@ -480,12 +477,12 @@ mod tests {
         .unwrap();
 
         let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
         // Intentionally do not provide json for watermark_stmt -> should error
-        let err = adapter.inspect_state(&db, &target_key).await.unwrap_err();
+        let err = adapter.inspect_state(&db, &ob_id).await.unwrap_err();
         match err {
             LocalDbError::LocalDbQueryError(..) => {}
             other => panic!("unexpected error: {other:?}"),
@@ -574,7 +571,7 @@ mod tests {
         let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default();
         let cfg = BootstrapConfig {
-            target_key: TargetKey {
+            ob_id: OrderbookIdentifier {
                 chain_id: 1,
                 orderbook_address: Address::ZERO,
             },
