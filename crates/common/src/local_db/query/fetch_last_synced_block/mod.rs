@@ -1,6 +1,5 @@
 use super::SqlValue;
-use crate::local_db::query::SqlStatement;
-use alloy::primitives::Address;
+use crate::local_db::{query::SqlStatement, OrderbookIdentifier};
 use serde::{Deserialize, Serialize};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
@@ -22,12 +21,12 @@ pub struct SyncStatusResponse {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(SyncStatusResponse);
 
-pub fn fetch_last_synced_block_stmt(chain_id: u32, orderbook_address: Address) -> SqlStatement {
+pub fn fetch_last_synced_block_stmt(ob_id: &OrderbookIdentifier) -> SqlStatement {
     SqlStatement::new_with_params(
         FETCH_LAST_SYNCED_BLOCK_SQL,
         [
-            SqlValue::from(chain_id as u64),
-            SqlValue::from(orderbook_address.to_string()),
+            SqlValue::from(ob_id.chain_id as u64),
+            SqlValue::from(ob_id.orderbook_address.to_string()),
         ],
     )
 }
@@ -36,12 +35,12 @@ pub fn fetch_last_synced_block_stmt(chain_id: u32, orderbook_address: Address) -
 mod tests {
     use super::*;
     use crate::local_db::query::SqlValue;
-    use alloy::hex;
+    use alloy::{hex, primitives::Address};
 
     #[test]
     fn stmt_is_static_and_param_free() {
         let addr = Address::from([0x22u8; 20]);
-        let stmt = fetch_last_synced_block_stmt(42161, addr);
+        let stmt = fetch_last_synced_block_stmt(&OrderbookIdentifier::new(42161, addr));
         assert_eq!(stmt.sql, FETCH_LAST_SYNCED_BLOCK_SQL);
         assert_eq!(stmt.params.len(), 2);
         assert_eq!(stmt.params[0], SqlValue::U64(42161));

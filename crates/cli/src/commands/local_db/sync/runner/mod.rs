@@ -1,6 +1,9 @@
 use alloy::primitives::Address;
 use anyhow::Result;
-use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
+use rain_orderbook_common::local_db::{
+    decode::{DecodedEvent, DecodedEventData},
+    OrderbookIdentifier,
+};
 use url::Url;
 
 use super::{
@@ -106,8 +109,10 @@ where
         let mut store_addresses = collect_store_addresses(&decoded_events);
         let existing_stores = fetch_existing_store_addresses(
             self.db_path,
-            params.chain_id,
-            Address::from_str(params.orderbook_address)?,
+            &OrderbookIdentifier::new(
+                params.chain_id,
+                Address::from_str(params.orderbook_address)?,
+            ),
         )
         .await?;
         store_addresses.extend(existing_stores);
@@ -144,8 +149,10 @@ where
             PrepareSqlParams {
                 db_path: self.db_path.to_string(),
                 metadata_rpc_urls: self.metadata_rpcs().to_vec(),
-                chain_id: params.chain_id,
-                orderbook_address: Address::from_str(params.orderbook_address)?,
+                ob_id: OrderbookIdentifier::new(
+                    params.chain_id,
+                    Address::from_str(params.orderbook_address)?,
+                ),
                 decoded_events,
                 raw_events,
                 target_block: window.target_block,
@@ -321,8 +328,7 @@ mod tests {
 
         fn events_to_sql(
             &self,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             decoded_events: &[DecodedEventData<DecodedEvent>],
             decimals_by_token: &HashMap<Address, u8>,
         ) -> Result<SqlStatementBatch> {
@@ -341,8 +347,7 @@ mod tests {
 
         fn raw_events_to_statements(
             &self,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             raw_events: &[LogEntryResponse],
         ) -> Result<SqlStatementBatch> {
             self.raw_calls.lock().unwrap().push(raw_events.to_vec());
