@@ -3,6 +3,8 @@ use crate::local_db::query::SqlStatement;
 pub const CREATE_TABLES_SQL: &str = include_str!("query.sql");
 
 pub const REQUIRED_TABLES: &[&str] = &[
+    "db_metadata",
+    "target_watermarks",
     "sync_status",
     "raw_events",
     "deposits",

@@ -1,5 +1,23 @@
 BEGIN TRANSACTION;
 
+-- Global DB metadata (singleton)
+CREATE TABLE IF NOT EXISTS db_metadata (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    db_schema_version INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Per-target watermarks keyed by (chain_id, orderbook_address)
+CREATE TABLE IF NOT EXISTS target_watermarks (
+    chain_id INTEGER NOT NULL,
+    orderbook_address TEXT NOT NULL,
+    last_block INTEGER NOT NULL DEFAULT 0,
+    last_hash TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (chain_id, orderbook_address)
+);
+
 CREATE TABLE IF NOT EXISTS sync_status (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     last_synced_block INTEGER NOT NULL DEFAULT 0,

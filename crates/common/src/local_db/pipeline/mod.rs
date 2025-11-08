@@ -8,6 +8,7 @@
 //!
 
 pub mod adapters;
+pub use adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState};
 
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
@@ -25,7 +26,7 @@ use async_trait::async_trait;
 #[derive(Debug, Clone)]
 pub struct TargetKey {
     /// Chain id for the orderbook deployment.
-    pub chain_id: u64,
+    pub chain_id: u32,
     /// Address of the orderbook contract.
     pub orderbook_address: Address,
 }
@@ -80,53 +81,6 @@ pub struct SyncOutcome {
     pub fetched_logs: usize,
     /// Count of decoded events materialized during the cycle.
     pub decoded_events: usize,
-}
-
-/// Descriptor for a runner‑supplied seed dump to import during bootstrap.
-///
-/// The runner decides which dump to use (if any) by consulting a manifest
-/// or other policy and passes a reference here. Implementations can choose
-/// which artefact to consume (e.g., `.sql` vs `.sql.gz` vs copying `.db`).
-#[derive(Debug, Clone)]
-pub struct SeedDump {
-    /// End block of the dump. Used for sanity checks and status messages.
-    pub end_block: u64,
-    /// Optional path to a plain SQL file on disk.
-    pub sql_path: Option<String>,
-    /// Optional path to a gzipped SQL file on disk.
-    pub sql_gz_path: Option<String>,
-    /// Optional path to a ready‑to‑use database file.
-    pub db_path: Option<String>,
-}
-
-/// Ensures the database is ready for incremental sync and applies optional
-/// data‑only seed dumps per environment policy.
-///
-/// Responsibilities (concrete):
-/// - Ensure schema tables exist. Dumps must not include DDL.
-/// - Version gate via `db_metadata` (read/init, fail/reset on mismatch per
-///   environment policy).
-///
-/// Policy (environment‑specific examples):
-/// - Browser: consult manifest; if DB is empty or sufficiently behind a
-///   manifest dump, import a data‑only dump then continue incremental.
-/// - Producer: initialize a per‑target DB from the latest dump at start of
-///   run (fresh seed). If no dump, proceed with schema‑only and incremental.
-#[async_trait(?Send)]
-pub trait BootstrapPipeline {
-    /// Executes bootstrap for `target` using the provided DB executor.
-    ///
-    /// The optional `seed_dump` is provided by the runner (already selected
-    /// from a manifest or other policy). Implementations must ensure schema
-    /// first, then import the seed if present, then finalize version gating.
-    async fn run<DB>(
-        &self,
-        db: &DB,
-        target: &TargetKey,
-        seed_dump: Option<&SeedDump>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
 }
 
 /// Coarse‑grained progress/status publishing.
