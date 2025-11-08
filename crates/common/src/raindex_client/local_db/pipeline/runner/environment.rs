@@ -43,8 +43,8 @@ mod tests {
     use super::*;
     use crate::local_db::fetch::FetchConfig;
     use crate::local_db::pipeline::engine::SyncInputs;
-    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowOverrides};
-    use crate::local_db::LocalDbError;
+    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
+    use crate::local_db::{LocalDbError, OrderbookIdentifier};
     use crate::rpc_client::RpcClientError;
     use alloy::primitives::address;
     use url::Url;
@@ -56,7 +56,7 @@ mod tests {
             manifest_url: Url::parse("https://manifests.example/client.yaml").unwrap(),
             network_key: "client".to_string(),
             inputs: SyncInputs {
-                target: TargetKey {
+                ob_id: OrderbookIdentifier {
                     chain_id: 1,
                     orderbook_address: address!("00000000000000000000000000000000000000c1"),
                 },
@@ -68,6 +68,7 @@ mod tests {
                     window_overrides: WindowOverrides::default(),
                 },
                 dump_str: None,
+                block_number_threshold: 10000,
                 manifest_end_block: 1,
             },
         }

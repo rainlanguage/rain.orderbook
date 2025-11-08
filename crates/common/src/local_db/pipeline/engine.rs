@@ -1573,9 +1573,9 @@ mod tests {
 
         let calls = harness.apply.export_calls();
         assert_eq!(calls.len(), 1);
-        let (target, end_block) = &calls[0];
-        assert_eq!(target.chain_id, inputs.ob_id.chain_id);
-        assert_eq!(target.orderbook_address, inputs.ob_id.orderbook_address);
+        let (ob_id, end_block) = &calls[0];
+        assert_eq!(ob_id.chain_id, ob_id.chain_id);
+        assert_eq!(ob_id.orderbook_address, ob_id.orderbook_address);
         assert_eq!(*end_block, 105);
     }
 
