@@ -1,16 +1,20 @@
 use alloy::primitives::Address;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use rain_orderbook_common::{
     erc20::TokenInfo,
     local_db::{
-        decode::{DecodedEvent, DecodedEventData},
+        decode::{decode_events as decode_log_events, DecodedEvent, DecodedEventData},
+        fetch::{fetch_orderbook_events, fetch_store_events},
+        insert::{decoded_events_to_statements, raw_events_to_statements},
+        query::SqlStatementBatch,
         token_fetch::fetch_erc20_metadata_concurrent,
-        FetchConfig, LocalDb,
+        FetchConfig,
     },
-    rpc_client::LogEntryResponse,
+    rpc_client::{LogEntryResponse, RpcClient},
 };
 use std::collections::HashMap;
+use std::str::FromStr;
 use url::Url;
 
 #[async_trait]
@@ -35,18 +39,22 @@ pub(crate) trait SyncDataSource {
     fn events_to_sql(
         &self,
         decoded_events: &[DecodedEventData<DecodedEvent>],
-        end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
-        prefix_sql: &str,
-    ) -> Result<String>;
-    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String>;
+    ) -> Result<SqlStatementBatch>;
+    fn raw_events_to_statements(
+        &self,
+        raw_events: &[LogEntryResponse],
+    ) -> Result<SqlStatementBatch>;
     fn rpc_urls(&self) -> &[Url];
 }
 
 #[async_trait]
 pub(crate) trait TokenMetadataFetcher {
-    async fn fetch(&self, rpcs: &[Url], missing: Vec<Address>)
-        -> Result<Vec<(Address, TokenInfo)>>;
+    async fn fetch(
+        &self,
+        rpc_client: &RpcClient,
+        missing: Vec<Address>,
+    ) -> Result<Vec<(Address, TokenInfo)>>;
 }
 
 pub(crate) struct DefaultTokenFetcher;
@@ -55,14 +63,14 @@ pub(crate) struct DefaultTokenFetcher;
 impl TokenMetadataFetcher for DefaultTokenFetcher {
     async fn fetch(
         &self,
-        rpcs: &[Url],
+        rpc_client: &RpcClient,
         missing: Vec<Address>,
     ) -> Result<Vec<(Address, TokenInfo)>> {
         if missing.is_empty() {
             return Ok(vec![]);
         }
 
-        let fetched = fetch_erc20_metadata_concurrent(rpcs.to_vec(), missing)
+        let fetched = fetch_erc20_metadata_concurrent(rpc_client, missing, &FetchConfig::default())
             .await
             .map_err(|e| anyhow!(e))?;
         Ok(fetched)
@@ -70,12 +78,9 @@ impl TokenMetadataFetcher for DefaultTokenFetcher {
 }
 
 #[async_trait]
-impl SyncDataSource for LocalDb {
+impl SyncDataSource for RpcClient {
     async fn latest_block(&self) -> Result<u64> {
-        self.rpc_client()
-            .get_latest_block_number()
-            .await
-            .map_err(|e| anyhow!(e))
+        self.get_latest_block_number().await.map_err(|e| anyhow!(e))
     }
 
     async fn fetch_events(
@@ -84,9 +89,16 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_events(self, orderbook_address, start_block, end_block)
-            .await
-            .map_err(|e| anyhow!(e))
+        let address = Address::from_str(orderbook_address)?;
+        fetch_orderbook_events(
+            self,
+            address,
+            start_block,
+            end_block,
+            &FetchConfig::default(),
+        )
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     async fn fetch_store_set_events(
@@ -95,9 +107,18 @@ impl SyncDataSource for LocalDb {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        <LocalDb>::fetch_store_set_events(
+        let addresses: Vec<Address> = store_addresses
+            .iter()
+            .enumerate()
+            .map(|(idx, s)| {
+                Address::from_str(s).with_context(|| {
+                    format!("failed to parse store address at index {}: {}", idx, s)
+                })
+            })
+            .collect::<Result<_, _>>()?;
+        fetch_store_events(
             self,
-            store_addresses,
+            &addresses,
             start_block,
             end_block,
             &FetchConfig::default(),
@@ -110,33 +131,28 @@ impl SyncDataSource for LocalDb {
         &self,
         events: &[LogEntryResponse],
     ) -> Result<Vec<DecodedEventData<DecodedEvent>>> {
-        <LocalDb>::decode_events(self, events).map_err(|e| anyhow!(e))
+        decode_log_events(events).map_err(|e| anyhow!(e))
     }
 
     fn events_to_sql(
         &self,
         decoded_events: &[DecodedEventData<DecodedEvent>],
-        end_block: u64,
         decimals_by_token: &HashMap<Address, u8>,
-        prefix_sql: &str,
-    ) -> Result<String> {
-        let prefix = if prefix_sql.is_empty() {
-            None
-        } else {
-            Some(prefix_sql)
-        };
-
-        <LocalDb>::decoded_events_to_sql(self, decoded_events, end_block, decimals_by_token, prefix)
+    ) -> Result<SqlStatementBatch> {
+        decoded_events_to_statements(decoded_events, decimals_by_token)
             .map_err(|e| anyhow!("Failed to generate SQL: {}", e))
     }
 
-    fn raw_events_to_sql(&self, raw_events: &[LogEntryResponse]) -> Result<String> {
-        <LocalDb>::raw_events_to_sql(self, raw_events)
+    fn raw_events_to_statements(
+        &self,
+        raw_events: &[LogEntryResponse],
+    ) -> Result<SqlStatementBatch> {
+        raw_events_to_statements(raw_events)
             .map_err(|e| anyhow!("Failed to generate raw events SQL: {}", e))
     }
 
     fn rpc_urls(&self) -> &[Url] {
-        self.rpc_client().rpc_urls()
+        self.rpc_urls()
     }
 }
 
@@ -148,7 +164,10 @@ mod tests {
     async fn default_fetcher_short_circuits_on_empty_missing_set() {
         let fetcher = DefaultTokenFetcher;
         let result = fetcher
-            .fetch(&[], Vec::new())
+            .fetch(
+                &RpcClient::new_with_urls(vec![Url::parse("https://test.com").unwrap()]).unwrap(),
+                Vec::new(),
+            )
             .await
             .expect("empty fetch should succeed");
         assert!(result.is_empty());

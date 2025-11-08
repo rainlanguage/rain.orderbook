@@ -1,5 +1,7 @@
 pub mod clear_tables;
 pub mod create_tables;
+pub mod executor;
+pub mod fetch_db_metadata;
 pub mod fetch_erc20_tokens_by_addresses;
 pub mod fetch_last_synced_block;
 pub mod fetch_order_trades;
@@ -7,10 +9,19 @@ pub mod fetch_order_trades_count;
 pub mod fetch_orders;
 pub mod fetch_store_addresses;
 pub mod fetch_tables;
+pub mod fetch_target_watermark;
 pub mod fetch_vault;
 pub mod fetch_vault_balance_changes;
 pub mod fetch_vaults;
+pub mod insert_db_metadata;
+pub mod sql_statement;
+pub mod sql_statement_batch;
 pub mod update_last_synced_block;
+pub mod upsert_target_watermark;
+
+pub use executor::LocalDbQueryExecutor;
+pub use sql_statement::{SqlBuildError, SqlStatement, SqlValue};
+pub use sql_statement_batch::SqlStatementBatch;
 
 use serde::de::DeserializeOwned;
 use thiserror::Error;
@@ -28,6 +39,9 @@ pub enum LocalDbQueryError {
 
     #[error("Deserialization failed: {message}")]
     Deserialization { message: String },
+
+    #[error("SQL build failed: {source}")]
+    SqlBuild { source: SqlBuildError },
 }
 
 impl LocalDbQueryError {
@@ -45,6 +59,12 @@ impl LocalDbQueryError {
         Self::Deserialization {
             message: message.into(),
         }
+    }
+}
+
+impl From<SqlBuildError> for LocalDbQueryError {
+    fn from(e: SqlBuildError) -> Self {
+        LocalDbQueryError::SqlBuild { source: e }
     }
 }
 

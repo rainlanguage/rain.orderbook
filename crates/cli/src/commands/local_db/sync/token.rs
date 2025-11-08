@@ -2,23 +2,26 @@ use alloy::hex;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use itertools::Itertools;
-use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
-use rain_orderbook_common::local_db::insert::generate_erc20_tokens_sql;
-use rain_orderbook_common::local_db::tokens::collect_token_addresses;
+use rain_orderbook_common::local_db::address_collectors::collect_token_addresses;
+use rain_orderbook_common::local_db::{
+    decode::{DecodedEvent, DecodedEventData},
+    insert::generate_erc20_token_statements,
+    query::SqlStatementBatch,
+};
+use rain_orderbook_common::rpc_client::RpcClient;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
-use url::Url;
 
 use super::{data_source::TokenMetadataFetcher, storage::fetch_existing_tokens};
 
 pub(crate) struct TokenPrepResult {
-    pub(crate) tokens_prefix_sql: String,
+    pub(crate) tokens_prefix_sql: SqlStatementBatch,
     pub(crate) decimals_by_addr: HashMap<Address, u8>,
 }
 
 pub(crate) async fn prepare_token_metadata<T>(
     db_path: &str,
-    rpc_urls: &[Url],
+    rpc_client: &RpcClient,
     chain_id: u32,
     decoded_events: &[DecodedEventData<DecodedEvent>],
     token_fetcher: &T,
@@ -31,7 +34,7 @@ where
 
     if all_token_addrs.is_empty() {
         return Ok(TokenPrepResult {
-            tokens_prefix_sql: String::new(),
+            tokens_prefix_sql: SqlStatementBatch::new(),
             decimals_by_addr: HashMap::new(),
         });
     }
@@ -40,7 +43,7 @@ where
         .iter()
         .map(|a| hex::encode_prefixed(*a))
         .collect();
-    let existing_rows = fetch_existing_tokens(db_path, chain_id, &addr_strings)?;
+    let existing_rows = fetch_existing_tokens(db_path, chain_id, &addr_strings).await?;
 
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
     let mut existing_lower: HashSet<String> = HashSet::new();
@@ -62,15 +65,15 @@ where
 
     if missing_addrs.is_empty() {
         return Ok(TokenPrepResult {
-            tokens_prefix_sql: String::new(),
+            tokens_prefix_sql: SqlStatementBatch::new(),
             decimals_by_addr,
         });
     }
 
     println!("Fetching metadata for {} new token(s)", missing_addrs.len());
-    let fetched = token_fetcher.fetch(rpc_urls, missing_addrs).await?;
+    let fetched = token_fetcher.fetch(rpc_client, missing_addrs).await?;
 
-    let tokens_prefix_sql = generate_erc20_tokens_sql(chain_id, &fetched);
+    let tokens_prefix_sql = generate_erc20_token_statements(chain_id, &fetched);
     for (addr, info) in fetched.into_iter() {
         decimals_by_addr.insert(addr, info.decimals);
     }
@@ -92,14 +95,15 @@ mod tests {
     use tempfile::TempDir;
     use url::Url;
 
-    use crate::commands::local_db::sqlite::sqlite_execute;
+    use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
+    use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 
     struct NoopFetcher;
 
     #[async_trait]
     impl TokenMetadataFetcher for NoopFetcher {
-        async fn fetch(&self, _: &[Url], _: Vec<Address>) -> Result<Vec<(Address, TokenInfo)>> {
+        async fn fetch(&self, _: &RpcClient, _: Vec<Address>) -> Result<Vec<(Address, TokenInfo)>> {
             panic!("fetch should not be called")
         }
     }
@@ -110,12 +114,14 @@ mod tests {
         let db_path = temp_dir.path().join("tokens.db");
         let db_path_str = db_path.to_string_lossy();
 
-        sqlite_execute(&db_path_str, DEFAULT_SCHEMA_SQL).unwrap();
-        sqlite_execute(
-            &db_path_str,
-            "INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);",
-        )
-        .unwrap();
+        let exec = RusqliteExecutor::new(&*db_path_str);
+        exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
+            .await
+            .unwrap();
+        exec
+            .query_text(&SqlStatement::new("INSERT INTO erc20_tokens (chain_id, address, name, symbol, decimals) VALUES (1, '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'A', 'A', 18);"))
+            .await
+            .unwrap();
 
         let token_addr = Address::from([0xaa; 20]);
         let decoded = vec![DecodedEventData {
@@ -132,8 +138,9 @@ mod tests {
             })),
         }];
 
-        let rpc_urls = vec![Url::parse("http://localhost:1").unwrap()];
-        let prep = prepare_token_metadata(&db_path_str, &rpc_urls, 1, &decoded, &NoopFetcher)
+        let rpc_client =
+            RpcClient::new_with_urls(vec![Url::parse("https://test.com").unwrap()]).unwrap();
+        let prep = prepare_token_metadata(&db_path_str, &rpc_client, 1, &decoded, &NoopFetcher)
             .await
             .unwrap();
         assert!(prep.tokens_prefix_sql.is_empty());

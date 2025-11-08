@@ -1,21 +1,21 @@
 use super::{
-    decode::{DecodedEvent, DecodedEventData},
-    insert,
+    address_collectors::{collect_store_addresses, collect_token_addresses},
+    decode::{decode_events, DecodedEvent, DecodedEventData},
+    fetch::{fetch_orderbook_events, fetch_store_events},
+    insert::{self, decoded_events_to_statements},
     query::{
         create_tables::REQUIRED_TABLES,
-        fetch_erc20_tokens_by_addresses::{build_fetch_query as build_token_query, Erc20TokenRow},
-        fetch_last_synced_block::{fetch_last_synced_block_sql, SyncStatusResponse},
-        fetch_store_addresses::{fetch_store_addresses_sql, StoreAddressRow},
-        fetch_tables::{fetch_tables_sql, TableResponse},
-        update_last_synced_block::build_update_last_synced_block_query,
-        FromDbJson, LocalDbQueryError,
+        fetch_erc20_tokens_by_addresses::{build_fetch_stmt as build_token_stmt, Erc20TokenRow},
+        fetch_last_synced_block::{fetch_last_synced_block_stmt, SyncStatusResponse},
+        fetch_store_addresses::{fetch_store_addresses_stmt, StoreAddressRow},
+        fetch_tables::{fetch_tables_stmt, TableResponse},
+        update_last_synced_block::build_update_last_synced_block_stmt,
+        LocalDbQueryError, SqlStatement, SqlStatementBatch,
     },
     token_fetch::fetch_erc20_metadata_concurrent,
-    tokens::{collect_store_addresses, collect_token_addresses},
-    FetchConfig, LocalDb, LocalDbError,
+    FetchConfig, LocalDbError,
 };
 use alloy::primitives::Address;
-use async_trait::async_trait;
 use flate2::read::GzDecoder;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use reqwest::Client;
@@ -28,20 +28,13 @@ use std::{
 
 pub const DUMP_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/3d6deafeaa52525d56d89641c0cb3c997923ad21/local_db.sql.gz";
 
-#[async_trait(?Send)]
-pub trait Database {
-    async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
-    where
-        T: FromDbJson;
-
-    async fn query_text(&self, sql: &str) -> Result<String, LocalDbQueryError>;
-}
+use crate::{local_db::query::LocalDbQueryExecutor, rpc_client::RpcClient};
 
 pub trait StatusSink {
     fn send(&self, message: String) -> Result<(), LocalDbError>;
 }
 
-pub async fn sync_database_with_services<D: Database, S: StatusSink>(
+pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>(
     orderbook_cfg: &OrderbookCfg,
     db: &D,
     status: &S,
@@ -56,7 +49,9 @@ pub async fn sync_database_with_services<D: Database, S: StatusSink>(
     if !has_tables {
         status.send("Initializing database tables and importing data...".to_string())?;
         let dump_sql = download_and_decompress_dump().await?;
-        db.query_text(&dump_sql).await.map_err(LocalDbError::from)?;
+        db.query_text(&SqlStatement::new(dump_sql))
+            .await
+            .map_err(LocalDbError::from)?;
     }
 
     let last_synced_block = get_last_synced_block(db)
@@ -65,10 +60,9 @@ pub async fn sync_database_with_services<D: Database, S: StatusSink>(
     status.send(format!("Last synced block: {}", last_synced_block))?;
 
     let chain_id = orderbook_cfg.network.chain_id;
-    let local_db = LocalDb::new_with_regular_rpcs(orderbook_cfg.network.rpcs.clone())?;
+    let rpc_client = RpcClient::new_with_urls(orderbook_cfg.network.rpcs.clone())?;
 
-    let latest_block = local_db
-        .rpc_client()
+    let latest_block = rpc_client
         .get_latest_block_number()
         .await
         .map_err(LocalDbError::from)?;
@@ -80,67 +74,66 @@ pub async fn sync_database_with_services<D: Database, S: StatusSink>(
     };
 
     status.send("Fetching latest onchain events...".to_string())?;
-    let events = local_db
-        .fetch_events(
-            &orderbook_cfg.address.to_string(),
-            start_block,
-            latest_block,
-        )
-        .await
-        .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
+    let events = fetch_orderbook_events(
+        &rpc_client,
+        orderbook_cfg.address,
+        start_block,
+        latest_block,
+        &FetchConfig::default(),
+    )
+    .await
+    .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
     status.send("Decoding fetched events...".to_string())?;
-    let mut decoded_events = local_db
-        .decode_events(&events)
-        .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
+    let mut decoded_events = decode_events(&events)?;
 
     let existing_stores: Vec<StoreAddressRow> = db
-        .query_json(fetch_store_addresses_sql())
+        .query_json(&fetch_store_addresses_stmt())
         .await
         .map_err(LocalDbError::from)?;
     let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
+    let store_addresses: Vec<Address> = store_addresses_vec
+        .iter()
+        .map(|s| Address::from_str(s))
+        .collect::<Result<_, _>>()?;
 
-    let store_logs = local_db
-        .fetch_store_set_events(
-            &store_addresses_vec,
-            start_block,
-            latest_block,
-            &FetchConfig::default(),
-        )
-        .await
-        .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
+    let store_logs = fetch_store_events(
+        &rpc_client,
+        &store_addresses,
+        start_block,
+        latest_block,
+        &FetchConfig::default(),
+    )
+    .await
+    .map_err(|e| LocalDbError::FetchEventsFailed(Box::new(e)))?;
 
-    let mut decoded_store_events = local_db
-        .decode_events(&store_logs)
-        .map_err(|e| LocalDbError::DecodeEventsFailed(Box::new(e)))?;
+    let mut decoded_store_events = decode_events(&store_logs)?;
 
     merge_store_events(&mut decoded_events, &mut decoded_store_events)?;
 
     status.send("Populating token information...".to_string())?;
-    let prep = prepare_erc20_tokens_prefix(db, &local_db, chain_id, &decoded_events).await?;
+    let prep = prepare_erc20_tokens_prefix(
+        db,
+        &rpc_client,
+        chain_id,
+        &decoded_events,
+        &FetchConfig::default(),
+    )
+    .await?;
 
     status.send("Populating database...".to_string())?;
-    let prefix_sql = if prep.tokens_prefix_sql.is_empty() {
-        None
-    } else {
-        Some(prep.tokens_prefix_sql.as_str())
-    };
 
-    let sql_commands = local_db
-        .decoded_events_to_sql(
-            &decoded_events,
-            latest_block,
-            &prep.decimals_by_addr,
-            prefix_sql,
-        )
-        .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(e)))?;
+    let mut batch = SqlStatementBatch::new();
+    batch.extend(prep.tokens_prefix_sql);
 
-    db.query_text(&sql_commands)
-        .await
-        .map_err(LocalDbError::from)?;
+    let events_batch = decoded_events_to_statements(&decoded_events, &prep.decimals_by_addr)?;
 
-    let update_sql = build_update_last_synced_block_query(latest_block);
-    db.query_text(&update_sql)
+    batch.extend(events_batch);
+    batch.add(build_update_last_synced_block_stmt(latest_block));
+
+    let sql_batch = batch.ensure_transaction();
+
+    db.execute_batch(&sql_batch)
         .await
         .map_err(LocalDbError::from)?;
 
@@ -148,8 +141,8 @@ pub async fn sync_database_with_services<D: Database, S: StatusSink>(
     Ok(())
 }
 
-async fn check_required_tables(db: &impl Database) -> Result<bool, LocalDbQueryError> {
-    let tables: Vec<TableResponse> = db.query_json(fetch_tables_sql()).await?;
+async fn check_required_tables(db: &impl LocalDbQueryExecutor) -> Result<bool, LocalDbQueryError> {
+    let tables: Vec<TableResponse> = db.query_json(&fetch_tables_stmt()).await?;
     let existing_table_names: HashSet<String> = tables
         .into_iter()
         .map(|t| t.name.to_ascii_lowercase())
@@ -181,8 +174,8 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     Ok(decompressed)
 }
 
-async fn get_last_synced_block(db: &impl Database) -> Result<u64, LocalDbQueryError> {
-    let results: Vec<SyncStatusResponse> = db.query_json(fetch_last_synced_block_sql()).await?;
+async fn get_last_synced_block(db: &impl LocalDbQueryExecutor) -> Result<u64, LocalDbQueryError> {
+    let results: Vec<SyncStatusResponse> = db.query_json(&fetch_last_synced_block_stmt()).await?;
     Ok(results.first().map(|r| r.last_synced_block).unwrap_or(0))
 }
 
@@ -218,21 +211,22 @@ fn merge_store_events(
 }
 
 struct TokenPrepResult {
-    tokens_prefix_sql: String,
+    tokens_prefix_sql: SqlStatementBatch,
     decimals_by_addr: HashMap<Address, u8>,
 }
 
 async fn prepare_erc20_tokens_prefix(
-    db: &impl Database,
-    local_db: &LocalDb,
+    db: &impl LocalDbQueryExecutor,
+    rpc_client: &RpcClient,
     chain_id: u32,
     decoded_events: &[DecodedEventData<DecodedEvent>],
+    config: &FetchConfig,
 ) -> Result<TokenPrepResult, LocalDbError> {
     let address_set = collect_token_addresses(decoded_events);
     let mut all_token_addrs: Vec<Address> = address_set.into_iter().collect();
     all_token_addrs.sort();
 
-    let mut tokens_prefix_sql = String::new();
+    let mut tokens_prefix_sql = SqlStatementBatch::new();
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
 
     if !all_token_addrs.is_empty() {
@@ -241,12 +235,14 @@ async fn prepare_erc20_tokens_prefix(
             .map(|a| format!("0x{:x}", a))
             .collect();
 
-        let existing_rows: Vec<Erc20TokenRow> =
-            if let Some(sql) = build_token_query(chain_id, &addr_strings) {
-                db.query_json(&sql).await.map_err(LocalDbError::from)?
-            } else {
-                Vec::new()
-            };
+        let existing_rows: Vec<Erc20TokenRow> = if let Some(stmt) =
+            build_token_stmt(chain_id, &addr_strings)
+                .map_err(|e| LocalDbError::CustomError(e.to_string()))?
+        {
+            db.query_json(&stmt).await.map_err(LocalDbError::from)?
+        } else {
+            Vec::new()
+        };
 
         let mut existing_set: HashSet<Address> = HashSet::new();
         for row in existing_rows.iter() {
@@ -262,10 +258,10 @@ async fn prepare_erc20_tokens_prefix(
             .collect();
 
         if !missing_addrs.is_empty() {
-            let rpcs = local_db.rpc_client().rpc_urls().to_vec();
-            let successes = fetch_erc20_metadata_concurrent(rpcs, missing_addrs).await?;
+            let successes =
+                fetch_erc20_metadata_concurrent(rpc_client, missing_addrs, config).await?;
 
-            tokens_prefix_sql = insert::generate_erc20_tokens_sql(chain_id, &successes);
+            tokens_prefix_sql = insert::generate_erc20_token_statements(chain_id, &successes);
 
             for (addr, info) in successes.iter() {
                 decimals_by_addr.insert(*addr, info.decimals);
@@ -327,13 +323,16 @@ fn parse_u64_hex_or_dec(value: &str) -> Result<u64, std::num::ParseIntError> {
 mod tests {
     use super::*;
     use crate::local_db::decode::{DecodedEvent, DecodedEventData, EventType, UnknownEventDecoded};
+    use crate::local_db::query::FromDbJson;
     use crate::local_db::query::{
         create_tables::REQUIRED_TABLES,
-        fetch_last_synced_block::{fetch_last_synced_block_sql, SyncStatusResponse},
-        fetch_tables::{fetch_tables_sql, TableResponse},
-        LocalDbQueryError,
+        fetch_last_synced_block::{fetch_last_synced_block_stmt, SyncStatusResponse},
+        fetch_tables::{fetch_tables_stmt, TableResponse},
+        LocalDbQueryError, SqlStatementBatch,
     };
+    use alloy::primitives::{Address, FixedBytes, U256};
     use async_trait::async_trait;
+    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
 
     struct MockDb {
         json_map: std::collections::HashMap<String, String>,
@@ -365,11 +364,19 @@ mod tests {
     }
 
     #[async_trait(?Send)]
-    impl Database for MockDb {
-        async fn query_json<T>(&self, sql: &str) -> Result<T, LocalDbQueryError>
+    impl LocalDbQueryExecutor for MockDb {
+        async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            for stmt in batch {
+                let _ = self.query_text(stmt).await?;
+            }
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
         where
             T: FromDbJson,
         {
+            let sql = &stmt.sql;
             if self.err_on.contains(sql) {
                 return Err(LocalDbQueryError::database("forced error"));
             }
@@ -380,7 +387,8 @@ mod tests {
                 .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
         }
 
-        async fn query_text(&self, sql: &str) -> Result<String, LocalDbQueryError> {
+        async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            let sql = &stmt.sql;
             if self.err_on.contains(sql) {
                 return Err(LocalDbQueryError::database("forced error"));
             }
@@ -400,7 +408,7 @@ mod tests {
             })
             .collect();
         let json_data = serde_json::to_string(&table_data).unwrap();
-        let db = MockDb::new().with_json(fetch_tables_sql(), &json_data);
+        let db = MockDb::new().with_json(&fetch_tables_stmt().sql, &json_data);
 
         let has_tables = check_required_tables(&db).await.unwrap();
         assert!(has_tables);
@@ -417,7 +425,7 @@ mod tests {
             },
         ];
         let json_data = serde_json::to_string(&table_data).unwrap();
-        let db = MockDb::new().with_json(fetch_tables_sql(), &json_data);
+        let db = MockDb::new().with_json(&fetch_tables_stmt().sql, &json_data);
 
         let has_tables = check_required_tables(&db).await.unwrap();
         assert!(!has_tables);
@@ -425,14 +433,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_required_tables_empty_db() {
-        let db = MockDb::new().with_json(fetch_tables_sql(), "[]");
+        let db = MockDb::new().with_json(&fetch_tables_stmt().sql, "[]");
         let has_tables = check_required_tables(&db).await.unwrap();
         assert!(!has_tables);
     }
 
     #[tokio::test]
     async fn test_check_required_tables_query_fails() {
-        let db = MockDb::new().with_error(fetch_tables_sql());
+        let db = MockDb::new().with_error(&fetch_tables_stmt().sql);
         let err = check_required_tables(&db).await.err().unwrap();
         match err {
             LocalDbQueryError::Database { .. } => {}
@@ -455,7 +463,7 @@ mod tests {
             name: "extra_table_2".to_string(),
         });
         let json_data = serde_json::to_string(&table_data).unwrap();
-        let db = MockDb::new().with_json(fetch_tables_sql(), &json_data);
+        let db = MockDb::new().with_json(&fetch_tables_stmt().sql, &json_data);
         let has_tables = check_required_tables(&db).await.unwrap();
         assert!(has_tables);
     }
@@ -468,7 +476,7 @@ mod tests {
             updated_at: Some("2024-01-01T00:00:00Z".to_string()),
         }];
         let db = MockDb::new().with_json(
-            fetch_last_synced_block_sql(),
+            &fetch_last_synced_block_stmt().sql,
             &serde_json::to_string(&sync_data).unwrap(),
         );
         let val = get_last_synced_block(&db).await.unwrap();
@@ -477,14 +485,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_last_synced_block_empty() {
-        let db = MockDb::new().with_json(fetch_last_synced_block_sql(), "[]");
+        let db = MockDb::new().with_json(&fetch_last_synced_block_stmt().sql, "[]");
         let val = get_last_synced_block(&db).await.unwrap();
         assert_eq!(val, 0);
     }
 
     #[tokio::test]
     async fn test_get_last_synced_block_query_fails() {
-        let db = MockDb::new().with_error(fetch_last_synced_block_sql());
+        let db = MockDb::new().with_error(&fetch_last_synced_block_stmt().sql);
         let err = get_last_synced_block(&db).await.err().unwrap();
         match err {
             LocalDbQueryError::Database { .. } => {}
@@ -684,7 +692,6 @@ mod tests {
     #[test]
     fn test_collect_all_store_addresses_dedupe_merge() {
         use crate::local_db::query::fetch_store_addresses::StoreAddressRow;
-        use alloy::primitives::Address;
 
         let store_addr_event = Address::from([0x11u8; 20]);
         let decoded_events = vec![DecodedEventData {
@@ -696,9 +703,11 @@ mod tests {
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(
                 crate::local_db::decode::InterpreterStoreSetEvent {
                     store_address: store_addr_event,
-                    namespace: alloy::primitives::FixedBytes::from([0u8; 32]),
-                    key: alloy::primitives::FixedBytes::from([0u8; 32]),
-                    value: alloy::primitives::FixedBytes::from([0u8; 32]),
+                    payload: Set {
+                        namespace: U256::ZERO,
+                        key: FixedBytes::from([0u8; 32]),
+                        value: FixedBytes::from([0u8; 32]),
+                    },
                 },
             )),
         }];
@@ -723,10 +732,10 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod prepare_tokens_tests {
         use super::*;
-        use crate::local_db::query::fetch_erc20_tokens_by_addresses::{
-            build_fetch_query, Erc20TokenRow,
+        use crate::local_db::query::{
+            fetch_erc20_tokens_by_addresses::{build_fetch_stmt, Erc20TokenRow},
+            SqlValue,
         };
-        use alloy::primitives::Address;
         use rain_orderbook_bindings::IOrderBookV5::DepositV2;
         use rain_orderbook_test_fixtures::LocalEvm;
         use url::Url;
@@ -762,17 +771,26 @@ mod tests {
                 symbol: "FOO".into(),
                 decimals: 6,
             };
-            let sql = build_fetch_query(chain_id, &[format!("0x{:x}", token)]).expect("sql");
-            let db =
-                MockDb::new().with_json(&sql, &serde_json::to_string(&vec![row.clone()]).unwrap());
+            let stmt = build_fetch_stmt(chain_id, &[format!("0x{:x}", token)])
+                .expect("stmt")
+                .expect("some");
+            let db = MockDb::new().with_json(
+                &stmt.sql,
+                &serde_json::to_string(&vec![row.clone()]).unwrap(),
+            );
 
-            // LocalDb not used on existing-only path, but needs to exist
-            let local_db =
-                LocalDb::new_with_regular_rpcs(vec![]).unwrap_or_else(|_| LocalDb::default());
+            let rpc_client =
+                RpcClient::new_with_urls(vec![Url::parse("https://test.com").unwrap()]).unwrap();
 
-            let out = prepare_erc20_tokens_prefix(&db, &local_db, chain_id, &events)
-                .await
-                .unwrap();
+            let out = prepare_erc20_tokens_prefix(
+                &db,
+                &rpc_client,
+                chain_id,
+                &events,
+                &FetchConfig::default(),
+            )
+            .await
+            .unwrap();
             assert!(out.tokens_prefix_sql.is_empty());
             assert_eq!(out.decimals_by_addr.get(&token), Some(&6));
         }
@@ -782,23 +800,35 @@ mod tests {
             let local_evm = LocalEvm::new_with_tokens(1).await;
             let rpc_url = Url::parse(&local_evm.url()).unwrap();
 
-            // Use LocalDb that points to the local EVM so metadata fetch succeeds
-            let local_db = LocalDb::new_with_url(rpc_url);
+            // Use RpcClient that points to the local EVM so metadata fetch succeeds
+            let rpc_client = RpcClient::new_with_urls(vec![rpc_url]).unwrap();
 
             // Use the fixture token address from the local EVM for the event
             let token = *local_evm.tokens[0].address();
             let events = vec![build_deposit_event(token)];
 
             // DB query returns empty so the token is considered missing
-            let sql = build_fetch_query(1, &[format!("0x{:x}", token)]).expect("sql");
-            let db = MockDb::new().with_json(&sql, "[]");
+            let stmt = build_fetch_stmt(1, &[format!("0x{:x}", token)])
+                .expect("stmt")
+                .expect("some");
+            let db = MockDb::new().with_json(&stmt.sql, "[]");
 
-            let out = prepare_erc20_tokens_prefix(&db, &local_db, 1, &events)
-                .await
-                .unwrap();
+            let out =
+                prepare_erc20_tokens_prefix(&db, &rpc_client, 1, &events, &FetchConfig::default())
+                    .await
+                    .unwrap();
             assert!(!out.tokens_prefix_sql.is_empty());
-            assert!(out.tokens_prefix_sql.contains("erc20_tokens"));
-            assert!(out.tokens_prefix_sql.contains(&format!("0x{:x}", token)));
+            let statements = out.tokens_prefix_sql.statements();
+            assert_eq!(statements.len(), 1);
+            let stmt = &statements[0];
+            assert!(stmt.sql().contains("INSERT INTO erc20_tokens"));
+            let params = stmt.params();
+            assert_eq!(params.len(), 5);
+            assert!(matches!(params[0], SqlValue::U64(1u64)));
+            assert!(matches!(
+                &params[1],
+                SqlValue::Text(address) if address == &format!("0x{:x}", token)
+            ));
             assert_eq!(out.decimals_by_addr.get(&token), Some(&18));
         }
     }

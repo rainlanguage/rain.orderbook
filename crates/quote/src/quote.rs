@@ -77,13 +77,18 @@ impl QuoteTarget {
         gas: Option<u64>,
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
-        Ok(
-            batch_quote(&[self.clone()], rpcs, block_number, gas, multicall_address)
-                .await?
-                .into_iter()
-                .next()
-                .unwrap(),
+        Ok(batch_quote(
+            &[self.clone()],
+            rpcs,
+            block_number,
+            gas,
+            multicall_address,
+            None,
         )
+        .await?
+        .into_iter()
+        .next()
+        .unwrap())
     }
 
     /// Validate the quote target
@@ -116,7 +121,7 @@ impl BatchQuoteTarget {
         gas: Option<u64>,
         multicall_address: Option<Address>,
     ) -> Result<Vec<QuoteResult>, Error> {
-        batch_quote(&self.0, rpcs, block_number, gas, multicall_address).await
+        batch_quote(&self.0, rpcs, block_number, gas, multicall_address, None).await
     }
 }
 
@@ -182,8 +187,15 @@ impl QuoteSpec {
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
         let quote_target = self.get_quote_target_from_subgraph(subgraph_url).await?;
-        let quote_result =
-            batch_quote(&[quote_target], rpcs, block_number, gas, multicall_address).await?;
+        let quote_result = batch_quote(
+            &[quote_target],
+            rpcs,
+            block_number,
+            gas,
+            multicall_address,
+            None,
+        )
+        .await?;
 
         Ok(quote_result.into_iter().next().unwrap())
     }
@@ -263,7 +275,15 @@ impl BatchQuoteSpec {
             .filter_map(|v| v.clone())
             .collect();
         let mut quote_results = VecDeque::from(
-            batch_quote(&quote_targets, rpcs, block_number, gas, multicall_address).await?,
+            batch_quote(
+                &quote_targets,
+                rpcs,
+                block_number,
+                gas,
+                multicall_address,
+                None,
+            )
+            .await?,
         );
 
         // fill the array with quote results and invalid quote targets following

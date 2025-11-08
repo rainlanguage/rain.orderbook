@@ -89,7 +89,7 @@
         - `get_deposits_as_map()` and `get_vaults_and_deposits()` resolve deposit amounts by token/address and match them to order outputs + vaults.
       - Allowance/approvals:
         - `checkAllowances(owner) -> AllowancesResult`: queries current allowances for each deposit token against the orderbook.
-        - `generateApprovalCalldatas(owner) -> ApprovalCalldataResult`: compares allowances to required deposit amounts; emits ERC‑20 `approve` calldatas only when needed.
+        - `generateApprovalCalldatas(owner) -> ApprovalCalldataResult`: compares allowances to desired deposit amounts and, when they differ, emits ERC‑20 `approve` calldatas that set the allowance to the exact target value.
       - Deposits:
         - `generateDepositCalldatas() -> DepositCalldataResult`: builds `deposit3` calldatas for non-zero deposits using vault IDs (fetches decimals on-chain if missing in YAML).
       - Add order:
@@ -190,4 +190,3 @@
 
 **Summary**
 - `rain_orderbook_js_api` is the JS/WASM gateway for building, validating, and deploying Rain Orderbook orders from YAML+Rainlang definitions. It centralizes: YAML parsing and validation, user input state, token selection and metadata, field and deposit validation, vault ID management, transaction calldata generation (approvals, deposits, add order, multicall), registry-driven content fetching, and robust error handling—exposed as a typed, ergonomic TypeScript surface.
-
