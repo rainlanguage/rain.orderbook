@@ -1,4 +1,4 @@
-use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState};
+use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline};
 use super::{
     ApplyPipeline, ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, SyncOutcome,
     TokensPipeline, WindowPipeline,
@@ -561,7 +561,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _target_key: &OrderbookIdentifier,
+            _ob_id: &OrderbookIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,

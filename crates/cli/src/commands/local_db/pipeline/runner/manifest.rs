@@ -2,8 +2,7 @@ use super::ProducerOutcome;
 use alloy::primitives::{Address, Bytes};
 use rain_orderbook_app_settings::local_db_manifest::{LocalDbManifest, ManifestOrderbook};
 use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
-use rain_orderbook_common::local_db::pipeline::TargetKey;
-use rain_orderbook_common::local_db::LocalDbError;
+use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
 use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
@@ -13,7 +12,7 @@ use url::Url;
 /// Builds a manifest from successful producer outcomes.
 pub fn build_manifest(
     successes: &[ProducerOutcome],
-    target_lookup: &HashMap<TargetKey, RunnerTarget>,
+    target_lookup: &HashMap<OrderbookIdentifier, RunnerTarget>,
     release_base_url: &Url,
 ) -> Result<LocalDbManifest, LocalDbError> {
     let mut per_network: HashMap<String, (u32, Vec<ManifestOrderbook>)> = HashMap::new();
@@ -23,22 +22,22 @@ pub fn build_manifest(
             Some(export) => export,
             None => continue,
         };
-        let target_key = &outcome.outcome.target;
+        let ob_id = &outcome.outcome.ob_id;
         let runner_target =
             target_lookup
-                .get(target_key)
+                .get(ob_id)
                 .ok_or_else(|| LocalDbError::MissingRunnerTarget {
-                    chain_id: target_key.chain_id,
-                    orderbook_address: target_key.orderbook_address,
+                    chain_id: ob_id.chain_id,
+                    orderbook_address: ob_id.orderbook_address,
                 })?;
 
-        let chain_id = target_key.chain_id;
+        let chain_id = ob_id.chain_id;
         let network_key = runner_target.network_key.clone();
-        let dump_url = build_dump_url(release_base_url, chain_id, target_key.orderbook_address)?;
+        let dump_url = build_dump_url(release_base_url, chain_id, ob_id.orderbook_address)?;
         let end_block_hash = Bytes::from_str(export.end_block_hash.as_str())?;
 
         let manifest_orderbook = ManifestOrderbook {
-            address: target_key.orderbook_address,
+            address: ob_id.orderbook_address,
             dump_url,
             end_block: export.end_block,
             end_block_hash,
@@ -110,9 +109,9 @@ mod tests {
     use alloy::primitives::address;
     use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
     use rain_orderbook_common::local_db::pipeline::{
-        FinalityConfig, SyncConfig, SyncOutcome, TargetKey, WindowOverrides,
+        FinalityConfig, SyncConfig, SyncOutcome, WindowOverrides,
     };
-    use rain_orderbook_common::local_db::FetchConfig;
+    use rain_orderbook_common::local_db::{FetchConfig, OrderbookIdentifier};
     use std::collections::HashMap;
     use tempfile::TempDir;
 
@@ -123,7 +122,7 @@ mod tests {
             manifest_url: Url::parse("https://example.com/manifest.yaml").unwrap(),
             network_key: network_key.to_string(),
             inputs: SyncInputs {
-                target: TargetKey {
+                ob_id: OrderbookIdentifier {
                     chain_id,
                     orderbook_address: address,
                 },
@@ -135,14 +134,15 @@ mod tests {
                     window_overrides: WindowOverrides::default(),
                 },
                 dump_str: None,
+                block_number_threshold: 0,
             },
         }
     }
 
-    fn sample_outcome(target: &TargetKey, dump_suffix: &str) -> ProducerOutcome {
+    fn sample_outcome(target: &OrderbookIdentifier, dump_suffix: &str) -> ProducerOutcome {
         ProducerOutcome {
             outcome: SyncOutcome {
-                target: target.clone(),
+                ob_id: target.clone(),
                 start_block: 0,
                 target_block: 1234,
                 fetched_logs: 10,
@@ -159,16 +159,16 @@ mod tests {
 
     #[test]
     fn build_manifest_skips_missing_exported_dump() {
-        let target_included = TargetKey {
+        let target_included = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: address!("0x0000000000000000000000000000000000000aa1"),
         };
-        let target_skipped = TargetKey {
+        let target_skipped = OrderbookIdentifier {
             chain_id: 10,
             orderbook_address: address!("0x0000000000000000000000000000000000000bb2"),
         };
 
-        let mut lookup: HashMap<TargetKey, RunnerTarget> = HashMap::new();
+        let mut lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
             target_included.clone(),
             sample_runner_target(
@@ -214,16 +214,16 @@ mod tests {
 
     #[test]
     fn build_manifest_happy_path_multiple_networks() {
-        let target_a = TargetKey {
+        let target_a = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: address!("0x0000000000000000000000000000000000000Aa1"),
         };
-        let target_b = TargetKey {
+        let target_b = OrderbookIdentifier {
             chain_id: 10,
             orderbook_address: address!("0x0000000000000000000000000000000000000Bb2"),
         };
 
-        let mut lookup: HashMap<TargetKey, RunnerTarget> = HashMap::new();
+        let mut lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
             target_a.clone(),
             sample_runner_target("anvil", target_a.chain_id, target_a.orderbook_address),
@@ -267,16 +267,16 @@ mod tests {
 
     #[test]
     fn build_manifest_errors_on_chain_id_mismatch() {
-        let target_a = TargetKey {
+        let target_a = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: address!("0x0000000000000000000000000000000000000cc1"),
         };
-        let target_b = TargetKey {
+        let target_b = OrderbookIdentifier {
             chain_id: 10,
             orderbook_address: address!("0x0000000000000000000000000000000000000cc2"),
         };
 
-        let mut lookup: HashMap<TargetKey, RunnerTarget> = HashMap::new();
+        let mut lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
             target_a.clone(),
             sample_runner_target("shared", target_a.chain_id, target_a.orderbook_address),
@@ -311,16 +311,16 @@ mod tests {
 
     #[test]
     fn build_manifest_sorts_orderbooks_within_network() {
-        let target_a = TargetKey {
+        let target_a = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: address!("0x0000000000000000000000000000000000000aa2"),
         };
-        let target_b = TargetKey {
+        let target_b = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: address!("0x0000000000000000000000000000000000000aa1"),
         };
 
-        let mut lookup: HashMap<TargetKey, RunnerTarget> = HashMap::new();
+        let mut lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
             target_a.clone(),
             sample_runner_target("anvil", target_a.chain_id, target_a.orderbook_address),
@@ -352,12 +352,12 @@ mod tests {
 
     #[test]
     fn build_manifest_errors_on_missing_target() {
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: address!("0x0000000000000000000000000000000000000aa1"),
         };
-        let lookup: HashMap<TargetKey, RunnerTarget> = HashMap::new();
-        let successes = vec![sample_outcome(&target, "dump.sql.gz")];
+        let lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
+        let successes = vec![sample_outcome(&ob_id, "dump.sql.gz")];
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
 
@@ -368,8 +368,8 @@ mod tests {
                 chain_id,
                 orderbook_address,
             } => {
-                assert_eq!(chain_id, target.chain_id);
-                assert_eq!(orderbook_address, target.orderbook_address);
+                assert_eq!(chain_id, ob_id.chain_id);
+                assert_eq!(orderbook_address, ob_id.orderbook_address);
             }
             other => panic!("unexpected error variant: {other:?}"),
         }
@@ -377,18 +377,18 @@ mod tests {
 
     #[test]
     fn build_manifest_errors_on_invalid_end_block_hash() {
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: address!("0x0000000000000000000000000000000000000dd1"),
         };
 
-        let mut lookup: HashMap<TargetKey, RunnerTarget> = HashMap::new();
+        let mut lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
-            target.clone(),
-            sample_runner_target("arbitrum", target.chain_id, target.orderbook_address),
+            ob_id.clone(),
+            sample_runner_target("arbitrum", ob_id.chain_id, ob_id.orderbook_address),
         );
 
-        let mut invalid_outcome = sample_outcome(&target, "dump.sql.gz");
+        let mut invalid_outcome = sample_outcome(&ob_id, "dump.sql.gz");
         invalid_outcome
             .exported_dump
             .as_mut()
@@ -418,16 +418,16 @@ mod tests {
 
     #[test]
     fn build_manifest_orders_networks_alphabetically() {
-        let target_devnet = TargetKey {
+        let target_devnet = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: address!("0x0000000000000000000000000000000000000aa1"),
         };
-        let target_testnet = TargetKey {
+        let target_testnet = OrderbookIdentifier {
             chain_id: 10,
             orderbook_address: address!("0x0000000000000000000000000000000000000bb1"),
         };
 
-        let mut lookup: HashMap<TargetKey, RunnerTarget> = HashMap::new();
+        let mut lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
             target_devnet.clone(),
             sample_runner_target(
@@ -481,16 +481,16 @@ mod tests {
 
     #[tokio::test]
     async fn write_manifest_to_path_writes_yaml() {
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: address!("0x0000000000000000000000000000000000000aa1"),
         };
-        let mut lookup: HashMap<TargetKey, RunnerTarget> = HashMap::new();
+        let mut lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
-            target.clone(),
-            sample_runner_target("anvil", target.chain_id, target.orderbook_address),
+            ob_id.clone(),
+            sample_runner_target("anvil", ob_id.chain_id, ob_id.orderbook_address),
         );
-        let successes = vec![sample_outcome(&target, "dump.sql.gz")];
+        let successes = vec![sample_outcome(&ob_id, "dump.sql.gz")];
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
         let manifest =

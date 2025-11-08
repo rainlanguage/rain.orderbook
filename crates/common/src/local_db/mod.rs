@@ -324,7 +324,7 @@ impl LocalDbError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OrderbookIdentifier {
     pub chain_id: u32,
     pub orderbook_address: Address,

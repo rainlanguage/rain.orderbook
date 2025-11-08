@@ -31,7 +31,7 @@ pub fn default_environment(
         default_dump_downloader(),
         Arc::new(move |target: &RunnerTarget| {
             let events = DefaultEventsPipeline::with_hyperrpc(
-                target.inputs.target.chain_id,
+                target.inputs.ob_id.chain_id,
                 hypersync_token.clone(),
             )?;
             let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
@@ -54,10 +54,8 @@ mod tests {
     use alloy::primitives::address;
     use rain_orderbook_common::local_db::fetch::FetchConfig;
     use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
-    use rain_orderbook_common::local_db::pipeline::{
-        FinalityConfig, SyncConfig, TargetKey, WindowOverrides,
-    };
-    use rain_orderbook_common::local_db::LocalDbError;
+    use rain_orderbook_common::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
+    use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
     use rain_orderbook_common::rpc_client::RpcClientError;
     use url::Url;
 
@@ -68,10 +66,10 @@ mod tests {
             manifest_url: Url::parse("https://manifests.example/default.yaml").unwrap(),
             network_key: "anvil".to_string(),
             inputs: SyncInputs {
-                target: TargetKey {
+                ob_id: OrderbookIdentifier::new(
                     chain_id,
-                    orderbook_address: address!("00000000000000000000000000000000000000a1"),
-                },
+                    address!("00000000000000000000000000000000000000a1"),
+                ),
                 metadata_rpcs: vec![Url::parse("https://rpc.example/anvil").unwrap()],
                 cfg: SyncConfig {
                     deployment_block: 100,
@@ -80,6 +78,7 @@ mod tests {
                     window_overrides: WindowOverrides::default(),
                 },
                 dump_str: None,
+                block_number_threshold: 0,
             },
         }
     }

@@ -81,14 +81,14 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
             report.successes.len()
         )?;
         for outcome in &report.successes {
-            let target = &outcome.outcome.target;
+            let ob_id = &outcome.outcome.ob_id;
             match &outcome.exported_dump {
                 Some(export) => {
                     writeln!(
                         writer,
                         "- chain {} orderbook {:#x}: start {} → target {} | logs {} | events {} | dump {} (end block {}, hash {}, time {})",
-                        target.chain_id,
-                        target.orderbook_address,
+                        ob_id.chain_id,
+                        ob_id.orderbook_address,
                         outcome.outcome.start_block,
                         outcome.outcome.target_block,
                         outcome.outcome.fetched_logs,
@@ -103,8 +103,8 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
                     writeln!(
                         writer,
                         "- chain {} orderbook {:#x}: start {} → target {} | logs {} | events {} | dump <none>",
-                        target.chain_id,
-                        target.orderbook_address,
+                        ob_id.chain_id,
+                        ob_id.orderbook_address,
                         outcome.outcome.start_block,
                         outcome.outcome.target_block,
                         outcome.outcome.fetched_logs,
@@ -165,9 +165,9 @@ mod tests {
     use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
     use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
     use rain_orderbook_common::local_db::pipeline::{
-        FinalityConfig, SyncConfig, SyncOutcome, TargetKey, WindowOverrides,
+        FinalityConfig, SyncConfig, SyncOutcome, WindowOverrides,
     };
-    use rain_orderbook_common::local_db::{FetchConfig, LocalDbError};
+    use rain_orderbook_common::local_db::{FetchConfig, LocalDbError, OrderbookIdentifier};
 
     #[test]
     fn default_out_root_is_local_db() {
@@ -184,10 +184,10 @@ mod tests {
     }
 
     fn sample_outcome(chain_id: u32) -> ProducerOutcome {
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier::new(
             chain_id,
-            orderbook_address: address!("0000000000000000000000000000000000000a11"),
-        };
+            address!("0000000000000000000000000000000000000a11"),
+        );
         let fetch = FetchConfig::new(10, 5, 2, 1).unwrap();
         let sync_config = SyncConfig {
             deployment_block: 100,
@@ -196,10 +196,11 @@ mod tests {
             window_overrides: WindowOverrides::default(),
         };
         let inputs = SyncInputs {
-            target: target.clone(),
+            ob_id: ob_id.clone(),
             metadata_rpcs: Vec::new(),
             cfg: sync_config,
             dump_str: None,
+            block_number_threshold: 0,
         };
         let runner_target = RunnerTarget {
             orderbook_key: "test".to_string(),
@@ -210,7 +211,7 @@ mod tests {
 
         ProducerOutcome {
             outcome: SyncOutcome {
-                target: runner_target.inputs.target.clone(),
+                ob_id: runner_target.inputs.ob_id.clone(),
                 start_block: 200,
                 target_block: 400,
                 fetched_logs: 123,
@@ -219,7 +220,7 @@ mod tests {
             exported_dump: Some(ExportMetadata {
                 dump_path: PathBuf::from(format!(
                     "./local-db/{}/{}-{}.sql.gz",
-                    chain_id, chain_id, runner_target.inputs.target.orderbook_address
+                    chain_id, chain_id, runner_target.inputs.ob_id.orderbook_address
                 )),
                 end_block: 400,
                 end_block_hash: "0xdeadbeef".to_string(),

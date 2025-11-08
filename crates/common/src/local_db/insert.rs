@@ -1439,7 +1439,7 @@ mod tests {
     #[test]
     fn remove_order_sql_includes_evaluable_addresses() {
         let event = sample_remove_event();
-        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::RemoveOrderV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1449,10 +1449,13 @@ mod tests {
         assert!(statement.sql().contains("store_address"));
         let params = statement.params();
         assert_eq!(params.len(), 13);
-        assert!(matches!(params[0], SqlValue::I64(v) if v == context.chain_id as i64));
+        assert!(matches!(
+            params[0],
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
+        ));
         assert!(matches!(
             params[1],
-            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
         ));
         assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
         let expected_sender = hex::encode_prefixed(decoded.sender);
