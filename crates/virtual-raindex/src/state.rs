@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use alloy::primitives::{Address, B256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::OrderV4;
-use rain_orderbook_common::utils::order_hash;
+use rain_orderbook_common::utils::order_hash::order_hash;
 
 /// Shared environmental information for the Virtual Raindex.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

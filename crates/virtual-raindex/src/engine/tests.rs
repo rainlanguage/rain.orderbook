@@ -21,7 +21,7 @@ use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_interpreter_test_fixtures::{Interpreter, LocalEvm, Store};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, TaskV2, IOV2};
-use rain_orderbook_common::utils::order_hash;
+use rain_orderbook_common::utils::order_hash::order_hash;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -201,6 +201,35 @@ fn batch_recurses_and_preserves_missing_fields() {
             block_number: 1,
             timestamp: 2
         }
+    );
+}
+
+#[test]
+fn nested_set_orders_prepare_context() {
+    let order = test_order();
+    let cache = cache_with_code(&order);
+    let interpreter = Arc::new(RecordingHost::new(host::EvalOutcome::default()));
+    let mut raindex = VirtualRaindex::new(order.owner, cache, interpreter);
+
+    let nested = RaindexMutation::Batch(vec![RaindexMutation::Batch(vec![
+        RaindexMutation::SetOrders {
+            orders: vec![order.clone()],
+        },
+    ])]);
+
+    raindex
+        .apply_mutations(&[nested])
+        .expect("nested set orders should succeed");
+
+    let snapshot = raindex.snapshot();
+    let expected_key = VaultKey::new(
+        order.owner,
+        order.validOutputs[0].token,
+        order.validOutputs[0].vaultId,
+    );
+    assert!(
+        snapshot.vault_balances.contains_key(&expected_key),
+        "ensure_order_context should seed output vault balance entry"
     );
 }
 

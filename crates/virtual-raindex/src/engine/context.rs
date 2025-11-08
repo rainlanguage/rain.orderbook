@@ -3,7 +3,7 @@
 use alloy::primitives::{Address, B256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, SignedContextV1, IOV2};
-use rain_orderbook_common::utils::order_hash;
+use rain_orderbook_common::utils::order_hash::order_hash;
 
 use crate::{cache::CodeCache, host};
 
@@ -33,7 +33,6 @@ where
         vec![vec![order_hash, order.owner.into_word()]]
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(super) fn build_quote_context(
         &self,
         order_hash: B256,

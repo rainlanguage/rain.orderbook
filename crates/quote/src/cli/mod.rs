@@ -154,7 +154,7 @@ mod tests {
     use httpmock::{Method::POST, MockServer};
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return, OrderV4, IOV2};
-    use rain_orderbook_common::utils::order_hash;
+    use rain_orderbook_common::utils::order_hash::order_hash;
     use serde_json::json;
     use std::{fs::read_to_string, str::FromStr};
     use tempfile::NamedTempFile;

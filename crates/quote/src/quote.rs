@@ -300,7 +300,7 @@ mod tests {
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, QuoteV2, IOV2};
-    use rain_orderbook_common::utils::order_hash;
+    use rain_orderbook_common::utils::order_hash::order_hash;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{json, Value};
 

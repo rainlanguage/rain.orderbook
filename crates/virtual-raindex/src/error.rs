@@ -46,6 +46,8 @@ pub enum RaindexError {
     TokenMismatch,
     /// Raised when the total input from take orders is less than the configured minimum.
     MinimumInputNotMet { minimum: Float, actual: Float },
+    /// Raised when calculate-io interpreter output stack does not contain IO ratio and output max.
+    CalculateIoOutputsMissing { stack_len: usize },
 }
 
 impl From<FloatError> for RaindexError {
@@ -103,6 +105,10 @@ impl fmt::Display for RaindexError {
                     "take orders minimum input {min} not satisfied (actual {act})"
                 )
             }
+            RaindexError::CalculateIoOutputsMissing { stack_len } => write!(
+                f,
+                "calculate-io must return at least two stack values (ratio, output max); received {stack_len}"
+            ),
         }
     }
 }

@@ -37,9 +37,9 @@ where
     }
 }
 
-/// Adds empty vault balance entries for every output vault referenced by the order.
+/// Adds empty vault balance entries for every vault referenced by the order.
 pub(super) fn ensure_vault_entries(state: &mut state::RaindexState, order: &OrderV4) {
-    for io in &order.validOutputs {
+    for io in order.validInputs.iter().chain(order.validOutputs.iter()) {
         state
             .vault_balances
             .entry(VaultKey::new(order.owner, io.token, io.vaultId))

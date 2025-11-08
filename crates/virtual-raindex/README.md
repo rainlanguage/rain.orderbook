@@ -33,7 +33,7 @@ The crate is organised by concern:
   post-task execution.
 - `host` – interpreter host abstractions and the REVM-backed implementation.
 - `state` – virtual state representation and mutation mechanics.
-- `types` – request/response payloads shared by the engine.
+- `store` – interpreter namespace helpers, overlays, and write application utils.
 - `integration_tests.rs` – black-box tests covering typical quote/take flows.
 
 ## Getting Started
@@ -86,7 +86,7 @@ The crate ships with integration coverage that exercises the quote and take
 pipelines. Run the suite with:
 
 ```bash
-cargo test -p virtual-raindex
+nix develop -c cargo test -p virtual-raindex
 ```
 
 If you are planning to embed the Virtual Raindex in another service, review the

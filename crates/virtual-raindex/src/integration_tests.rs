@@ -12,7 +12,7 @@ use alloy::rpc::types::BlockNumberOrTag;
 use proptest::prelude::*;
 use rain_interpreter_test_fixtures::{Interpreter, Store};
 use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, TaskV2, IOV2};
-use rain_orderbook_common::utils::order_hash;
+use rain_orderbook_common::utils::order_hash::order_hash;
 use rain_orderbook_test_fixtures::LocalEvm;
 use rain_orderbook_test_fixtures::Orderbook::{
     self, EvaluableV4 as OnchainEvaluable, OrderConfigV4 as OnchainOrderConfig,

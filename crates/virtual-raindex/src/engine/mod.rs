@@ -12,11 +12,11 @@ use crate::{
 };
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, TaskV2};
 
+pub(super) mod add_order;
 pub(super) mod calc;
 pub(super) mod context;
 pub(super) mod eval;
 pub(super) mod mutations;
-pub(super) mod post_tasks;
 pub(super) mod quote;
 pub(super) mod take;
 
@@ -89,13 +89,7 @@ where
         self.prepare_mutations(mutations)?;
 
         let mut draft = self.state.clone();
-        for mutation in mutations {
-            if let RaindexMutation::SetOrders { orders } = mutation {
-                for order in orders {
-                    self.ensure_order_context(&mut draft, order)?;
-                }
-            }
-        }
+        self.prepare_order_contexts(&mut draft, mutations)?;
 
         draft.apply_mutations(mutations)?;
         self.state = draft;
@@ -122,7 +116,7 @@ where
 
     /// Adds an order and executes any provided post tasks mutating state atomically.
     pub fn add_order(&mut self, order: OrderV4, post_tasks: Vec<TaskV2>) -> Result<()> {
-        post_tasks::add_order(self, order, post_tasks)
+        add_order::add_order(self, order, post_tasks)
     }
 }
 
@@ -150,6 +144,31 @@ pub(super) fn u8_to_b256(value: u8) -> B256 {
     B256::from(U256::from(value))
 }
 
+impl<C, H> VirtualRaindex<C, H>
+where
+    C: CodeCache,
+    H: host::InterpreterHost,
+{
+    fn prepare_order_contexts(
+        &self,
+        state: &mut state::RaindexState,
+        mutations: &[RaindexMutation],
+    ) -> Result<()> {
+        for mutation in mutations {
+            match mutation {
+                RaindexMutation::SetOrders { orders } => {
+                    for order in orders {
+                        self.ensure_order_context(state, order)?;
+                    }
+                }
+                RaindexMutation::Batch(batch) => self.prepare_order_contexts(state, batch)?,
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod unit_tests {
     use super::*;
@@ -162,7 +181,7 @@ mod unit_tests {
     use alloy::primitives::{Address, Bytes, B256};
     use rain_interpreter_bindings::IInterpreterV4::EvalV4;
     use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
-    use rain_orderbook_common::utils::order_hash;
+    use rain_orderbook_common::utils::order_hash::order_hash;
     use std::{collections::HashMap, sync::Arc};
 
     #[derive(Default)]

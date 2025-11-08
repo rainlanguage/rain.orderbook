@@ -8,7 +8,7 @@ use std::{
 use alloy::primitives::{Address, B256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::{OrderV4, SignedContextV1, IOV2};
-use rain_orderbook_common::utils::order_hash;
+use rain_orderbook_common::utils::order_hash::order_hash;
 
 use crate::{
     cache::CodeCache,
