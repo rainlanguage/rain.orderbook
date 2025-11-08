@@ -1,5 +1,7 @@
-use crate::local_db::query::{SqlStatement, SqlValue};
-use alloy::primitives::Address;
+use crate::local_db::{
+    query::{SqlStatement, SqlValue},
+    OrderbookIdentifier,
+};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -26,16 +28,15 @@ pub struct LocalDbVault {
 }
 
 pub fn build_fetch_vault_stmt(
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     vault_id: &str,
     token: &str,
 ) -> SqlStatement {
     SqlStatement::new_with_params(
         QUERY_TEMPLATE,
         [
-            SqlValue::from(chain_id as u64),
-            SqlValue::from(orderbook_address.to_string()),
+            SqlValue::from(ob_id.chain_id as u64),
+            SqlValue::from(ob_id.orderbook_address.to_string()),
             SqlValue::from(vault_id.trim().to_string()),
             SqlValue::from(token.trim().to_string()),
         ],
@@ -65,11 +66,17 @@ pub fn parse_io_indexed_pairs(io: &Option<String>) -> Vec<(usize, String, String
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
 
     #[test]
     fn builds_query_with_params() {
-        let stmt = build_fetch_vault_stmt(10, Address::ZERO, "0x01", "0xabc");
+        let stmt = build_fetch_vault_stmt(
+            &OrderbookIdentifier::new(10, Address::ZERO),
+            "0x01",
+            "0xabc",
+        );
         assert!(stmt.sql.contains("et.chain_id = ?1"));
         assert!(stmt.sql.contains("?3 AS vault_id"));
         assert!(stmt.sql.contains("?4 AS token"));

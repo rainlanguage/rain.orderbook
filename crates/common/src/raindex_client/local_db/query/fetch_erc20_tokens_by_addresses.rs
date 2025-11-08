@@ -1,14 +1,14 @@
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::{build_fetch_stmt, Erc20TokenRow};
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use crate::local_db::OrderbookIdentifier;
 use alloy::primitives::Address;
 
 pub async fn fetch_erc20_tokens_by_addresses<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     addresses: &[Address],
 ) -> Result<Vec<Erc20TokenRow>, LocalDbQueryError> {
-    if let Some(stmt) = build_fetch_stmt(chain_id, orderbook_address, addresses)? {
+    if let Some(stmt) = build_fetch_stmt(ob_id, addresses)? {
         exec.query_json(&stmt).await
     } else {
         Ok(vec![])
@@ -34,7 +34,12 @@ mod wasm_tests {
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::from_ref(&callback);
-        let res = super::fetch_erc20_tokens_by_addresses(&exec, 1, Address::ZERO, &[]).await;
+        let res = super::fetch_erc20_tokens_by_addresses(
+            &exec,
+            &OrderbookIdentifier::new(1, Address::ZERO),
+            &[],
+        )
+        .await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_empty());
         assert!(store.borrow().0.is_empty());
@@ -46,7 +51,7 @@ mod wasm_tests {
             Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
             Address::from_str("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap(),
         ];
-        let expected_stmt = build_fetch_stmt(10, Address::ZERO, &addrs)
+        let expected_stmt = build_fetch_stmt(&OrderbookIdentifier::new(10, Address::ZERO), &addrs)
             .unwrap()
             .unwrap();
 
@@ -57,7 +62,12 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::from_ref(&callback);
 
-        let res = super::fetch_erc20_tokens_by_addresses(&exec, 10, Address::ZERO, &addrs).await;
+        let res = super::fetch_erc20_tokens_by_addresses(
+            &exec,
+            &OrderbookIdentifier::new(10, Address::ZERO),
+            &addrs,
+        )
+        .await;
         assert!(res.is_ok());
 
         let (captured_sql, captured_params) = store.borrow().clone();

@@ -1,8 +1,5 @@
 use rain_orderbook_common::local_db::{
-    pipeline::{
-        adapters::bootstrap::DefaultBootstrapAdapter, BootstrapConfig, BootstrapPipeline,
-        BootstrapState, TargetKey,
-    },
+    pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline},
     query::LocalDbQueryExecutor,
     LocalDbError,
 };
@@ -18,58 +15,6 @@ impl ProducerBootstrapAdapter {
 
 #[async_trait::async_trait(?Send)]
 impl BootstrapPipeline for ProducerBootstrapAdapter {
-    async fn ensure_schema<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .ensure_schema(db, db_schema_version)
-            .await
-    }
-
-    async fn inspect_state<DB>(
-        &self,
-        db: &DB,
-        target_key: &TargetKey,
-    ) -> Result<BootstrapState, LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .inspect_state(db, target_key)
-            .await
-    }
-
-    async fn reset_db<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .reset_db(db, db_schema_version)
-            .await
-    }
-
-    async fn clear_orderbook_data<DB>(
-        &self,
-        db: &DB,
-        target: &TargetKey,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        DefaultBootstrapAdapter::new()
-            .clear_orderbook_data(db, target)
-            .await
-    }
-
     async fn engine_run<DB>(&self, db: &DB, config: &BootstrapConfig) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
@@ -100,13 +45,15 @@ mod tests {
     use alloy::primitives::Address;
     use async_trait::async_trait;
     use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
-    use rain_orderbook_common::local_db::pipeline::BootstrapConfig;
     use rain_orderbook_common::local_db::query::clear_tables::clear_tables_stmt;
     use rain_orderbook_common::local_db::query::create_tables::create_tables_stmt;
     use rain_orderbook_common::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
     use rain_orderbook_common::local_db::query::{
         FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
+    use rain_orderbook_common::local_db::OrderbookIdentifier;
+
+    const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
     #[derive(Default)]
     struct MockDb {
@@ -152,11 +99,8 @@ mod tests {
         }
     }
 
-    fn target_key() -> TargetKey {
-        TargetKey {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        }
+    fn sample_ob_id() -> OrderbookIdentifier {
+        OrderbookIdentifier::new(1, Address::ZERO)
     }
 
     #[tokio::test]
@@ -168,9 +112,10 @@ mod tests {
             .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -202,9 +147,10 @@ mod tests {
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -238,9 +184,10 @@ mod tests {
             .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
         // Expect error due to missing dump mapping, after successful reset
@@ -271,9 +218,10 @@ mod tests {
         let db = MockDb::default().with_text(&clear_tables_stmt(), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: 1,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();

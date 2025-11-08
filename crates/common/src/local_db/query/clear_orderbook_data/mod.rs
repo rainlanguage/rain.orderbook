@@ -1,12 +1,12 @@
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
 use crate::local_db::query::{SqlStatement, SqlStatementBatch, SqlValue};
-use alloy::primitives::Address;
+use crate::local_db::OrderbookIdentifier;
 
 pub const CLEAR_ORDERBOOK_DATA_SQL: &str = include_str!("query.sql");
 
-pub fn clear_orderbook_data_batch(chain_id: u32, orderbook_address: Address) -> SqlStatementBatch {
-    let chain_val = SqlValue::from(chain_id as u64);
-    let address_val = SqlValue::from(orderbook_address.to_string());
+pub fn clear_orderbook_data_batch(ob_id: &OrderbookIdentifier) -> SqlStatementBatch {
+    let chain_val = SqlValue::from(ob_id.chain_id as u64);
+    let address_val = SqlValue::from(ob_id.orderbook_address.to_string());
 
     let statements: Vec<SqlStatement> = REQUIRED_TABLES
         .iter()
@@ -30,6 +30,8 @@ pub fn clear_orderbook_data_batch(chain_id: u32, orderbook_address: Address) -> 
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
     use std::collections::HashSet;
@@ -51,7 +53,7 @@ mod tests {
     fn batch_wraps_transaction_and_matches_tables() {
         let chain_id = 999u32;
         let addr = Address::from([0xAA; 20]);
-        let batch = clear_orderbook_data_batch(chain_id, addr);
+        let batch = clear_orderbook_data_batch(&OrderbookIdentifier::new(chain_id, addr));
 
         let expected_tables: Vec<&str> = REQUIRED_TABLES
             .iter()

@@ -1,4 +1,7 @@
-use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
+use crate::local_db::{
+    query::{SqlBuildError, SqlStatement, SqlValue},
+    OrderbookIdentifier,
+};
 use alloy::{hex, primitives::Address};
 use serde::{Deserialize, Serialize};
 
@@ -21,8 +24,7 @@ const ADDRESSES_CLAUSE_BODY: &str = "AND token_address IN ({list})";
 /// addresses. Returns `Ok(None)` when the address list is empty to allow
 /// callers to short-circuit database work.
 pub fn build_fetch_stmt(
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     addresses: &[Address],
 ) -> Result<Option<SqlStatement>, SqlBuildError> {
     if addresses.is_empty() {
@@ -31,9 +33,9 @@ pub fn build_fetch_stmt(
 
     let mut stmt = SqlStatement::new(FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL);
     // ?1: chain id
-    stmt.push(chain_id as i64);
+    stmt.push(ob_id.chain_id as i64);
     // ?2: orderbook address
-    stmt.push(orderbook_address.to_string());
+    stmt.push(ob_id.orderbook_address.to_string());
     // IN list for addresses
     stmt.bind_list_clause(
         ADDRESSES_CLAUSE,
@@ -52,7 +54,8 @@ mod tests {
     use alloy::hex;
     #[test]
     fn empty_addresses_returns_none() {
-        let q = build_fetch_stmt(1, Address::from([0xbe; 20]), &[]).unwrap();
+        let q =
+            build_fetch_stmt(&OrderbookIdentifier::new(1, Address::from([0xbe; 20])), &[]).unwrap();
         assert!(q.is_none());
     }
 
@@ -62,7 +65,7 @@ mod tests {
         let address_b = Address::from([0xcd; 20]);
         let addrs = vec![address_a, address_b];
         let orderbook = Address::from([0xbe; 20]);
-        let stmt = build_fetch_stmt(137, orderbook, &addrs)
+        let stmt = build_fetch_stmt(&OrderbookIdentifier::new(137, orderbook), &addrs)
             .expect("should build")
             .unwrap();
 

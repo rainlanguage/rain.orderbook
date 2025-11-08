@@ -1,5 +1,7 @@
-use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
-use alloy::primitives::Address;
+use crate::local_db::{
+    query::{SqlBuildError, SqlStatement, SqlValue},
+    OrderbookIdentifier,
+};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -17,16 +19,15 @@ const END_TS_CLAUSE: &str = "/*END_TS_CLAUSE*/";
 const END_TS_BODY: &str = "\nAND block_timestamp <= {param}\n";
 
 pub fn build_fetch_trade_count_stmt(
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     order_hash: &str,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
     // ?1: chain id, ?2: orderbook address, ?3: order hash
-    stmt.push(SqlValue::I64(chain_id as i64));
-    stmt.push(SqlValue::Text(orderbook_address.to_string()));
+    stmt.push(SqlValue::I64(ob_id.chain_id as i64));
+    stmt.push(SqlValue::Text(ob_id.orderbook_address.to_string()));
     stmt.push(SqlValue::Text(order_hash.trim().to_string()));
     // Optional time filters
     if let (Some(start), Some(end)) = (start_timestamp, end_timestamp) {
@@ -66,13 +67,19 @@ pub fn extract_trade_count(rows: &[LocalDbTradeCountRow]) -> u64 {
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
 
     #[test]
     fn builds_with_time_filters() {
-        let stmt =
-            build_fetch_trade_count_stmt(137, Address::ZERO, "0xABC'DEF", Some(1000), Some(2000))
-                .unwrap();
+        let stmt = build_fetch_trade_count_stmt(
+            &OrderbookIdentifier::new(137, Address::ZERO),
+            "0xABC'DEF",
+            Some(1000),
+            Some(2000),
+        )
+        .unwrap();
         // Time filter clauses present
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
         assert!(!stmt.sql.contains(END_TS_CLAUSE));
@@ -87,7 +94,13 @@ mod tests {
 
     #[test]
     fn builds_without_time_filters_when_none() {
-        let stmt = build_fetch_trade_count_stmt(1, Address::ZERO, "hash", None, None).unwrap();
+        let stmt = build_fetch_trade_count_stmt(
+            &OrderbookIdentifier::new(1, Address::ZERO),
+            "hash",
+            None,
+            None,
+        )
+        .unwrap();
         assert!(!stmt.sql.contains("block_timestamp >="));
         assert!(!stmt.sql.contains("block_timestamp <="));
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
