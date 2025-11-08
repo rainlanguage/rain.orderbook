@@ -19,6 +19,7 @@ use insert::InsertError;
 use query::{LocalDbQueryError, SqlBuildError};
 use rain_orderbook_app_settings::remote::manifest::FetchManifestError;
 use rain_orderbook_app_settings::yaml::YamlError;
+use std::array::TryFromSliceError;
 use std::num::ParseIntError;
 use strict_yaml_rust::ScanError;
 use tokio::task::JoinError;
@@ -195,6 +196,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     DecodeError(#[from] DecodeError),
+
+    #[error(transparent)]
+    TryFromSliceError(#[from] TryFromSliceError),
 }
 
 impl LocalDbError {
@@ -320,6 +324,7 @@ impl LocalDbError {
             LocalDbError::ERC20Error(err) => format!("ERC20 error: {}", err),
             LocalDbError::FetchConfigError(err) => format!("Fetch configuration error: {}", err),
             LocalDbError::Export(err) => format!("Export error: {}", err),
+            LocalDbError::TryFromSliceError(err) => format!("TryFromSlice error: {}", err),
         }
     }
 }

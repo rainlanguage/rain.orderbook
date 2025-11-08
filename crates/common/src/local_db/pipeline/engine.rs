@@ -13,7 +13,7 @@ use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, 
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, B256};
 use std::collections::{BTreeSet, HashSet};
 use url::Url;
 
@@ -102,13 +102,16 @@ where
             .resolve_token_upserts(input, &token_addresses, &existing_tokens)
             .await?;
 
+        let target_hash_bytes = self.events.block_hash(target_block).await?;
+        let target_hash = B256::try_from(target_hash_bytes.as_ref())?;
+
         self.apply_changes(
             db,
             ApplyContext {
                 target_info: &ApplyPipelineTargetInfo {
                     ob_id: input.ob_id.clone(),
                     block: target_block,
-                    hash: self.events.block_hash(target_block).await?.clone(),
+                    hash: target_hash,
                 },
                 raw_logs: &all_raw_logs,
                 decoded_events: &decoded_events,
@@ -811,7 +814,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .pop_front()
-                .unwrap_or_else(|| Ok("".into()))
+                .unwrap_or_else(|| Ok(Bytes::from_static(&[0u8; 32])))
         }
     }
 
@@ -987,7 +990,7 @@ mod tests {
                 decoded_order,
                 existing_tokens,
                 upsert_tokens,
-                end_block_hash: target_info.hash.clone(),
+                end_block_hash: target_info.hash.into(),
             });
 
             self.inner
@@ -1160,7 +1163,7 @@ mod tests {
         harness.events.set_latest_blocks(vec![Ok(12)]);
         harness
             .events
-            .push_block_hash(Ok(Bytes::from_str("0xdeadbeef").unwrap()));
+            .push_block_hash(Ok(Bytes::from_static(&[1u8; 32])));
         harness.window.set_results(vec![Ok((10, 12))]);
         harness
             .events
@@ -1227,7 +1230,7 @@ mod tests {
         );
         assert_eq!(build.existing_tokens, vec![token_a]);
         assert_eq!(build.upsert_tokens, vec![token_b]);
-        assert_eq!(build.end_block_hash, Bytes::from_str("0xdeadbeef").unwrap());
+        assert_eq!(build.end_block_hash, Bytes::from_static(&[1u8; 32]));
 
         assert_eq!(harness.apply.persist_calls().len(), 1);
         assert_eq!(harness.apply.export_calls().len(), 1);

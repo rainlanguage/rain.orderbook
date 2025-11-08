@@ -72,7 +72,7 @@ impl ApplyPipeline for DefaultApplyPipeline {
         batch.add(upsert_target_watermark_stmt(
             &target_info.ob_id,
             target_info.block,
-            target_info.hash.clone(),
+            target_info.hash.into(),
         ));
 
         // Ensure atomicity
@@ -90,21 +90,19 @@ impl ApplyPipeline for DefaultApplyPipeline {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use alloy::primitives::Bytes;
-
     use super::*;
     use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlValue};
     use crate::local_db::OrderbookIdentifier;
+    use alloy::primitives::{b256, B256};
 
-    const SAMPLE_HASH: &str = "0xdeadbeef";
+    const SAMPLE_HASH_B256: B256 =
+        b256!("0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000");
 
     fn build_target_info(ob_id: &OrderbookIdentifier, block: u64) -> ApplyPipelineTargetInfo {
         ApplyPipelineTargetInfo {
             ob_id: ob_id.clone(),
             block,
-            hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+            hash: SAMPLE_HASH_B256,
         }
     }
 
@@ -523,7 +521,7 @@ mod tests {
 
         match stmt.params().get(3) {
             Some(SqlValue::Text(v)) => {
-                assert_eq!(v, SAMPLE_HASH);
+                assert_eq!(v, &SAMPLE_HASH_B256.to_string());
             }
             other => panic!("unexpected watermark hash param: {other:?}"),
         }
