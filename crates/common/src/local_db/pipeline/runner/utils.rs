@@ -1,7 +1,7 @@
 use crate::local_db::fetch::FetchConfig;
 use crate::local_db::pipeline::engine::SyncInputs;
-use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowOverrides};
-use crate::local_db::LocalDbError;
+use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
+use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use rain_orderbook_app_settings::local_db_sync::LocalDbSyncCfg;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use rain_orderbook_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
@@ -68,10 +68,7 @@ pub fn build_runner_targets(
                 })?;
         let (fetch, finality) = map_sync_to_engine(sync_cfg)?;
         let inputs = SyncInputs {
-            target: TargetKey {
-                chain_id: orderbook.network.chain_id,
-                orderbook_address: orderbook.address,
-            },
+            ob_id: OrderbookIdentifier::new(orderbook.network.chain_id, orderbook.address),
             metadata_rpcs: orderbook.network.rpcs.clone(),
             cfg: SyncConfig {
                 deployment_block: orderbook.deployment_block,
@@ -80,6 +77,7 @@ pub fn build_runner_targets(
                 window_overrides: WindowOverrides::default(),
             },
             dump_str: None,
+            block_number_threshold: sync_cfg.bootstrap_block_threshold,
         };
 
         targets.push(RunnerTarget {
@@ -147,6 +145,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 50
     finality-depth: 12
+    bootstrap-block-threshold: 10000
   network-b:
     batch-size: 20
     max-concurrent-batches: 2
@@ -154,6 +153,7 @@ local-db-sync:
     retry-delay-ms: 200
     rate-limit-delay-ms: 100
     finality-depth: 24
+    bootstrap-block-threshold: 5000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
@@ -259,6 +259,7 @@ orderbooks:
             retry_delay_ms: 0,
             rate_limit_delay_ms: 0,
             finality_depth: 32,
+            bootstrap_block_threshold: 100,
         };
 
         let (fetch, finality) = map_sync_to_engine(&sync).expect("map succeeds");
@@ -309,9 +310,9 @@ orderbooks:
             .find(|t| t.orderbook_key == "ob-a")
             .expect("target for ob-a exists");
         assert_eq!(target_a.network_key, "network-a");
-        assert_eq!(target_a.inputs.target.chain_id, 1);
+        assert_eq!(target_a.inputs.ob_id.chain_id, 1);
         assert_eq!(
-            target_a.inputs.target.orderbook_address,
+            target_a.inputs.ob_id.orderbook_address,
             address!("00000000000000000000000000000000000000a1")
         );
         assert_eq!(target_a.inputs.cfg.deployment_block, 111);
@@ -367,11 +368,11 @@ orderbooks:
         let input_b = inputs
             .iter()
             .find(|input| {
-                input.target.orderbook_address
+                input.ob_id.orderbook_address
                     == address!("00000000000000000000000000000000000000b2")
             })
             .expect("input for ob-b exists");
-        assert_eq!(input_b.target.chain_id, 2);
+        assert_eq!(input_b.ob_id.chain_id, 2);
         assert_eq!(input_b.cfg.fetch.max_concurrent_requests(), 2);
     }
 
