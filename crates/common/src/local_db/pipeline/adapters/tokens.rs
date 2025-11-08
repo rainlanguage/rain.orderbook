@@ -3,7 +3,7 @@ use crate::local_db::pipeline::TokensPipeline;
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::{build_fetch_stmt, Erc20TokenRow};
 use crate::local_db::query::LocalDbQueryExecutor;
 use crate::local_db::token_fetch::fetch_erc20_metadata_concurrent;
-use crate::local_db::{FetchConfig, LocalDbError};
+use crate::local_db::{FetchConfig, LocalDbError, OrderbookIdentifier};
 use crate::rpc_client::RpcClient;
 use alloy::primitives::Address;
 use async_trait::async_trait;
@@ -35,14 +35,13 @@ impl TokensPipeline for DefaultTokensPipeline {
     async fn load_existing<DB>(
         &self,
         db: &DB,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         token_addrs_lower: &[Address],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        let Some(stmt) = build_fetch_stmt(chain_id, orderbook_address, token_addrs_lower)? else {
+        let Some(stmt) = build_fetch_stmt(ob_id, token_addrs_lower)? else {
             return Ok(vec![]);
         };
         let rows: Vec<Erc20TokenRow> = db.query_json(&stmt).await?;
@@ -164,7 +163,7 @@ mod tests {
         };
         let pipeline = DefaultTokensPipeline::mock();
         let out = pipeline
-            .load_existing(&db, 137, orderbook, &[])
+            .load_existing(&db, &OrderbookIdentifier::new(137, orderbook), &[])
             .await
             .expect("ok");
         assert!(out.is_empty());
@@ -199,7 +198,7 @@ mod tests {
         let pipeline = DefaultTokensPipeline::mock();
         let addrs = vec![token_addr, other_addr];
         let out = pipeline
-            .load_existing(&db, 137, orderbook, &addrs)
+            .load_existing(&db, &OrderbookIdentifier::new(137, orderbook), &addrs)
             .await
             .expect("ok");
         assert_eq!(out, vec![row]);
@@ -221,7 +220,7 @@ mod tests {
         };
         let pipeline = DefaultTokensPipeline::mock();
         let err = pipeline
-            .load_existing(&db, 1, orderbook, &[token_addr])
+            .load_existing(&db, &OrderbookIdentifier::new(1, orderbook), &[token_addr])
             .await
             .expect_err("should fail");
         match err {
@@ -249,7 +248,7 @@ mod tests {
         };
         let pipeline = DefaultTokensPipeline::mock();
         let err = pipeline
-            .load_existing(&db, 1, orderbook, &[token_addr])
+            .load_existing(&db, &OrderbookIdentifier::new(1, orderbook), &[token_addr])
             .await
             .expect_err("should fail");
         match err {
@@ -284,7 +283,7 @@ mod tests {
         let addrs = vec![addr_a, addr_a, addr_b];
         // We only care that params keep duplicates in order; rows are empty
         let out = pipeline
-            .load_existing(&db, 137, orderbook, &addrs)
+            .load_existing(&db, &OrderbookIdentifier::new(137, orderbook), &addrs)
             .await
             .expect("ok");
         assert!(out.is_empty());

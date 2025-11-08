@@ -1,4 +1,8 @@
+use std::str::FromStr;
+
+use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
+use rain_orderbook_common::local_db::OrderbookIdentifier;
 
 use super::super::data_source::SyncDataSource;
 use super::super::storage::fetch_last_synced;
@@ -38,8 +42,14 @@ pub(super) async fn compute_sync_window<D>(
 where
     D: SyncDataSource + Send + Sync,
 {
-    let last_synced_block =
-        fetch_last_synced(db_path, params.chain_id, params.orderbook_address).await?;
+    let last_synced_block = fetch_last_synced(
+        db_path,
+        &OrderbookIdentifier::new(
+            params.chain_id,
+            Address::from_str(params.orderbook_address)?,
+        ),
+    )
+    .await?;
 
     let mut start_block = params
         .start_block
@@ -184,8 +194,7 @@ mod tests {
 
         fn events_to_sql(
             &self,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             _decoded_events: &[DecodedEventData<DecodedEvent>],
             _decimals_by_token: &HashMap<Address, u8>,
         ) -> Result<SqlStatementBatch> {
@@ -194,8 +203,7 @@ mod tests {
 
         fn raw_events_to_statements(
             &self,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             _: &[LogEntryResponse],
         ) -> Result<SqlStatementBatch> {
             Ok(SqlStatementBatch::new())
@@ -251,8 +259,7 @@ mod tests {
             .await
             .unwrap();
         exec.query_text(&build_update_last_synced_block_stmt(
-            1,
-            Address::from([0x11; 20]),
+            &OrderbookIdentifier::new(1, Address::from([0x11; 20])),
             80,
         ))
         .await

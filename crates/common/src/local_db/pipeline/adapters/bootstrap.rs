@@ -1,4 +1,3 @@
-use crate::local_db::pipeline::{BootstrapConfig, BootstrapPipeline, BootstrapState, TargetKey};
 use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
@@ -8,25 +7,40 @@ use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
 use crate::local_db::query::fetch_target_watermark::TargetWatermarkRow;
 use crate::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
-use crate::local_db::query::LocalDbQueryExecutor;
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::LocalDbError;
+use crate::local_db::OrderbookIdentifier;
+use async_trait::async_trait;
 use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
 use std::collections::HashSet;
 
-/// Default adapter that exposes the shared bootstrap helpers via the
-/// BootstrapPipeline trait. Environment runners can provide
-/// their own adapter overriding `run` while reusing these helpers.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct DefaultBootstrapAdapter;
-
-impl DefaultBootstrapAdapter {
-    pub const fn new() -> Self {
-        Self
-    }
+#[derive(Debug, Clone)]
+pub struct BootstrapConfig {
+    pub ob_id: OrderbookIdentifier,
+    pub dump_stmt: Option<SqlStatement>,
+    pub latest_block: u64,
+    pub block_number_threshold: u32,
 }
 
-#[async_trait::async_trait(?Send)]
-impl BootstrapPipeline for DefaultBootstrapAdapter {
+/// Bootstrap state snapshot used by environment orchestration to decide actions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BootstrapState {
+    pub has_required_tables: bool,
+    pub last_synced_block: Option<u64>,
+}
+
+/// Ensures the database is ready for incremental sync and applies optional
+/// data‑only seed dumps per environment policy.
+///
+/// Responsibilities (concrete):
+/// - Ensure schema tables exist. Dumps must not include DDL.
+/// - Version gate via `db_metadata` (read/init, fail/reset on mismatch per
+///   environment policy).
+///
+/// Implementors should orchestrate bootstrap via `run` and may use shared
+/// helpers for the lower-level operations exposed as trait methods here.
+#[async_trait(?Send)]
+pub trait BootstrapPipeline {
     async fn ensure_schema<DB>(
         &self,
         db: &DB,
@@ -54,7 +68,7 @@ impl BootstrapPipeline for DefaultBootstrapAdapter {
     async fn inspect_state<DB>(
         &self,
         db: &DB,
-        target_key: &TargetKey,
+        ob_id: &OrderbookIdentifier,
     ) -> Result<BootstrapState, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
@@ -70,12 +84,8 @@ impl BootstrapPipeline for DefaultBootstrapAdapter {
             .all(|&t| existing_set.contains(&t.to_ascii_lowercase()));
 
         let last_synced_block = if existing_set.contains("target_watermarks") {
-            let rows: Vec<TargetWatermarkRow> = db
-                .query_json(&fetch_target_watermark_stmt(
-                    target_key.chain_id,
-                    target_key.orderbook_address,
-                ))
-                .await?;
+            let rows: Vec<TargetWatermarkRow> =
+                db.query_json(&fetch_target_watermark_stmt(ob_id)).await?;
             rows.first().map(|r| r.last_block)
         } else {
             None
@@ -107,16 +117,12 @@ impl BootstrapPipeline for DefaultBootstrapAdapter {
     async fn clear_orderbook_data<DB>(
         &self,
         db: &DB,
-        target: &TargetKey,
+        ob_id: &OrderbookIdentifier,
     ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        db.query_text(&clear_orderbook_data_stmt(
-            target.chain_id,
-            target.orderbook_address,
-        ))
-        .await?;
+        db.query_text(&clear_orderbook_data_stmt(ob_id)).await?;
         Ok(())
     }
 
@@ -231,6 +237,18 @@ mod tests {
         }
     }
 
+    #[derive(Default, Clone, Copy)]
+    struct TestBootstrapPipeline;
+
+    impl TestBootstrapPipeline {
+        fn new() -> Self {
+            Self
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl BootstrapPipeline for TestBootstrapPipeline {}
+
     #[async_trait(?Send)]
     impl LocalDbQueryExecutor for MockDb {
         async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
@@ -264,7 +282,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_ok_with_matching_version() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db_row = DbMetadataRow {
             id: 1,
             db_schema_version: DB_SCHEMA_VERSION,
@@ -278,7 +296,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_err_on_mismatch() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db_row = DbMetadataRow {
             id: 1,
             db_schema_version: DB_SCHEMA_VERSION + 1,
@@ -299,7 +317,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_honors_override_ok() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let override_version = DB_SCHEMA_VERSION + 7;
         let db_row = DbMetadataRow {
             id: 1,
@@ -317,7 +335,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_honors_override_mismatch() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let row_version = DB_SCHEMA_VERSION + 3;
         let db_row = DbMetadataRow {
             id: 1,
@@ -342,7 +360,7 @@ mod tests {
 
     #[tokio::test]
     async fn ensure_schema_err_on_missing_row() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([]));
         let err = adapter.ensure_schema(&db, None).await.unwrap_err();
         match err {
@@ -353,7 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_tables_and_last_synced_block() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         // Provide all required tables
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
@@ -366,15 +384,11 @@ mod tests {
         .unwrap();
 
         // Watermark row present
-        let target_key = TargetKey {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        };
-        let watermark_stmt =
-            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+        let ob_id = OrderbookIdentifier::new(1, Address::ZERO);
+        let watermark_stmt = fetch_target_watermark_stmt(&ob_id);
         let watermark_json = json!([TargetWatermarkRow {
-            chain_id: target_key.chain_id,
-            orderbook_address: target_key.orderbook_address,
+            chain_id: ob_id.chain_id,
+            orderbook_address: ob_id.orderbook_address,
             last_block: 123,
             last_hash: None,
             updated_at: None,
@@ -384,27 +398,24 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&watermark_stmt, watermark_json);
 
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(state.has_required_tables);
         assert_eq!(state.last_synced_block, Some(123));
     }
 
     #[tokio::test]
     async fn inspect_state_missing_tables_means_not_ready_and_no_watermark_query() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default().with_json(&fetch_tables_stmt(), json!([]));
-        let target_key = TargetKey {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        };
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let ob_id = OrderbookIdentifier::new(1, Address::ZERO);
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(!state.has_required_tables);
         assert_eq!(state.last_synced_block, None);
     }
 
     #[tokio::test]
     async fn inspect_state_missing_only_watermark_table() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         // All required tables except `target_watermarks`.
         let names: Vec<&str> = REQUIRED_TABLES
             .iter()
@@ -423,18 +434,18 @@ mod tests {
         .unwrap();
 
         let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(!state.has_required_tables);
         assert_eq!(state.last_synced_block, None);
     }
 
     #[tokio::test]
     async fn inspect_state_watermark_table_present_but_empty() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
                 .iter()
@@ -445,25 +456,21 @@ mod tests {
         )
         .unwrap();
 
-        let target_key = TargetKey {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        };
-        let watermark_stmt =
-            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+        let ob_id = OrderbookIdentifier::new(1, Address::ZERO);
+        let watermark_stmt = fetch_target_watermark_stmt(&ob_id);
 
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&watermark_stmt, json!([]));
 
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(state.has_required_tables);
         assert_eq!(state.last_synced_block, None);
     }
 
     #[tokio::test]
     async fn inspect_state_table_names_case_insensitive() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
                 .iter()
@@ -480,15 +487,11 @@ mod tests {
         )
         .unwrap();
 
-        let target_key = TargetKey {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        };
-        let watermark_stmt =
-            fetch_target_watermark_stmt(target_key.chain_id, target_key.orderbook_address);
+        let ob_id = OrderbookIdentifier::new(1, Address::ZERO);
+        let watermark_stmt = fetch_target_watermark_stmt(&ob_id);
         let watermark_json = json!([TargetWatermarkRow {
-            chain_id: target_key.chain_id,
-            orderbook_address: target_key.orderbook_address,
+            chain_id: ob_id.chain_id,
+            orderbook_address: ob_id.orderbook_address,
             last_block: 42,
             last_hash: None,
             updated_at: None,
@@ -498,20 +501,20 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&watermark_stmt, watermark_json);
 
-        let state = adapter.inspect_state(&db, &target_key).await.unwrap();
+        let state = adapter.inspect_state(&db, &ob_id).await.unwrap();
         assert!(state.has_required_tables);
         assert_eq!(state.last_synced_block, Some(42));
     }
 
     #[tokio::test]
     async fn inspect_state_propagates_fetch_tables_error() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default(); // no json for fetch_tables_stmt()
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
-        let err = adapter.inspect_state(&db, &target_key).await.unwrap_err();
+        let err = adapter.inspect_state(&db, &ob_id).await.unwrap_err();
         match err {
             LocalDbError::LocalDbQueryError(..) => {}
             other => panic!("unexpected error: {other:?}"),
@@ -520,7 +523,7 @@ mod tests {
 
     #[tokio::test]
     async fn inspect_state_propagates_watermark_query_error() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         // Include all required tables so it attempts the watermark query.
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
@@ -533,12 +536,12 @@ mod tests {
         .unwrap();
 
         let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
-        let target_key = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::ZERO,
         };
         // Intentionally do not provide json for watermark_stmt -> should error
-        let err = adapter.inspect_state(&db, &target_key).await.unwrap_err();
+        let err = adapter.inspect_state(&db, &ob_id).await.unwrap_err();
         match err {
             LocalDbError::LocalDbQueryError(..) => {}
             other => panic!("unexpected error: {other:?}"),
@@ -547,7 +550,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_db_runs_clear_create_and_insert() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
@@ -570,7 +573,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_db_uses_default_version_when_none() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
@@ -585,7 +588,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_db_uses_custom_version_when_some() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let custom_version = DB_SCHEMA_VERSION + 9;
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
@@ -601,7 +604,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_db_propagates_errors() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         // Only the first statement is present; second will fail.
         let db = MockDb::default().with_text(&clear_tables_stmt(), "ok");
 
@@ -619,15 +622,13 @@ mod tests {
 
     #[tokio::test]
     async fn engine_run_returns_invalid_bootstrap_implementation() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default();
         let cfg = BootstrapConfig {
-            target_key: TargetKey {
-                chain_id: 1,
-                orderbook_address: Address::ZERO,
-            },
+            ob_id: OrderbookIdentifier::new(1, Address::ZERO),
             dump_stmt: None,
             latest_block: 0,
+            block_number_threshold: 10_000,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
@@ -639,7 +640,7 @@ mod tests {
 
     #[tokio::test]
     async fn runner_run_returns_invalid_bootstrap_implementation() {
-        let adapter = DefaultBootstrapAdapter::new();
+        let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default();
 
         let err = adapter.runner_run(&db, None).await.unwrap_err();
@@ -651,11 +652,8 @@ mod tests {
 
     #[tokio::test]
     async fn clear_orderbook_data_executes_expected_statement() {
-        let adapter = DefaultBootstrapAdapter::new();
-        let target = TargetKey {
-            chain_id: 42161,
-            orderbook_address: Address::from([0x11; 20]),
-        };
+        let adapter = TestBootstrapPipeline::new();
+        let target = OrderbookIdentifier::new(42161, Address::from([0x11; 20]));
         let db = RecordingTextExecutor::succeed();
 
         adapter
@@ -665,19 +663,13 @@ mod tests {
 
         let captured = db.captured_sql();
         assert_eq!(captured.len(), 1);
-        assert_eq!(
-            captured[0],
-            clear_orderbook_data_stmt(target.chain_id, target.orderbook_address).sql()
-        );
+        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
     }
 
     #[tokio::test]
     async fn clear_orderbook_data_propagates_error() {
-        let adapter = DefaultBootstrapAdapter::new();
-        let target = TargetKey {
-            chain_id: 10,
-            orderbook_address: Address::from([0x22; 20]),
-        };
+        let adapter = TestBootstrapPipeline::new();
+        let target = OrderbookIdentifier::new(10, Address::from([0x22; 20]));
         let inner_error = LocalDbQueryError::database("boom");
         let db = RecordingTextExecutor::fail(LocalDbError::from(inner_error.clone()));
 
@@ -695,9 +687,6 @@ mod tests {
 
         let captured = db.captured_sql();
         assert_eq!(captured.len(), 1);
-        assert_eq!(
-            captured[0],
-            clear_orderbook_data_stmt(target.chain_id, target.orderbook_address).sql()
-        );
+        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
     }
 }

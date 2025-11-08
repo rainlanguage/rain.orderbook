@@ -2,30 +2,28 @@ use crate::local_db::query::fetch_vault::{
     build_fetch_vault_stmt, parse_io_indexed_pairs, LocalDbVault,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
-use alloy::primitives::Address;
+use crate::local_db::OrderbookIdentifier;
 
 pub async fn fetch_vault<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     vault_id: &str,
     token: &str,
 ) -> Result<Option<LocalDbVault>, LocalDbQueryError> {
-    let stmt = build_fetch_vault_stmt(chain_id, orderbook_address, vault_id, token);
+    let stmt = build_fetch_vault_stmt(ob_id, vault_id, token);
     let rows: Vec<LocalDbVault> = exec.query_json(&stmt).await?;
     Ok(rows.into_iter().next())
 }
 
 pub async fn fetch_vaults_for_io_string<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     io: &Option<String>,
 ) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
     let ios = parse_io_indexed_pairs(io);
     let mut vaults = Vec::with_capacity(ios.len());
     for (_, vault_id, token) in ios.iter() {
-        if let Some(v) = fetch_vault(exec, chain_id, orderbook_address, vault_id, token).await? {
+        if let Some(v) = fetch_vault(exec, ob_id, vault_id, token).await? {
             vaults.push(v);
         }
     }
@@ -38,6 +36,7 @@ mod wasm_tests {
     use crate::local_db::query::SqlValue;
     use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
+    use alloy::primitives::Address;
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen::prelude::Closure;
@@ -52,7 +51,11 @@ mod wasm_tests {
         let vault_id = "0x01";
         let token = "0xabc";
         let orderbook = Address::from([0x11; 20]);
-        let expected_stmt = build_fetch_vault_stmt(chain_id, orderbook, vault_id, token);
+        let expected_stmt = build_fetch_vault_stmt(
+            &OrderbookIdentifier::new(chain_id, orderbook),
+            vault_id,
+            token,
+        );
 
         let store = Rc::new(RefCell::new((
             String::new(),
@@ -61,7 +64,13 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = super::fetch_vault(&exec, chain_id, orderbook, vault_id, token).await;
+        let res = super::fetch_vault(
+            &exec,
+            &OrderbookIdentifier::new(chain_id, orderbook),
+            vault_id,
+            token,
+        )
+        .await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_none());
 
@@ -75,7 +84,11 @@ mod wasm_tests {
         let vault_id = "0x01";
         let token = "0xabc";
         let orderbook = Address::from([0x22; 20]);
-        let expected_stmt = build_fetch_vault_stmt(chain_id, orderbook, vault_id, token);
+        let expected_stmt = build_fetch_vault_stmt(
+            &OrderbookIdentifier::new(chain_id, orderbook),
+            vault_id,
+            token,
+        );
 
         // Single row JSON for LocalDbVault
         let row_json = r#"[{"vaultId":"1","token":"t","owner":"o","orderbookAddress":"ob","tokenName":"N","tokenSymbol":"S","tokenDecimals":18,"balance":"0x0","inputOrders":null,"outputOrders":null}]"#;
@@ -87,7 +100,13 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback(row_json, store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = super::fetch_vault(&exec, chain_id, orderbook, vault_id, token).await;
+        let res = super::fetch_vault(
+            &exec,
+            &OrderbookIdentifier::new(chain_id, orderbook),
+            vault_id,
+            token,
+        )
+        .await;
         assert!(res.is_ok());
         let row = res.unwrap();
         assert!(row.is_some());
@@ -105,13 +124,23 @@ mod wasm_tests {
 
         // None -> no calls, empty vec
         let none: Option<String> = None;
-        let res = super::fetch_vaults_for_io_string(&exec, 1, Address::ZERO, &none).await;
+        let res = super::fetch_vaults_for_io_string(
+            &exec,
+            &OrderbookIdentifier::new(1, Address::ZERO),
+            &none,
+        )
+        .await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_empty());
 
         // Empty -> also no valid ios, empty vec
         let empty = Some(String::new());
-        let res = super::fetch_vaults_for_io_string(&exec, 1, Address::ZERO, &empty).await;
+        let res = super::fetch_vaults_for_io_string(
+            &exec,
+            &OrderbookIdentifier::new(1, Address::ZERO),
+            &empty,
+        )
+        .await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_empty());
     }
@@ -145,7 +174,12 @@ mod wasm_tests {
 
         // Act
         let exec = JsCallbackExecutor::new(&callback);
-        let res = super::fetch_vaults_for_io_string(&exec, chain_id, Address::ZERO, &io).await;
+        let res = super::fetch_vaults_for_io_string(
+            &exec,
+            &OrderbookIdentifier::new(chain_id, Address::ZERO),
+            &io,
+        )
+        .await;
         assert!(res.is_ok());
         let vaults = res.unwrap();
         assert_eq!(vaults.len(), 2);
@@ -160,8 +194,16 @@ mod wasm_tests {
                 (sql, params_vec)
             })
             .collect();
-        let expected1 = build_fetch_vault_stmt(chain_id, Address::ZERO, "v1", "t1");
-        let expected2 = build_fetch_vault_stmt(chain_id, Address::ZERO, "v2", "t2");
+        let expected1 = build_fetch_vault_stmt(
+            &OrderbookIdentifier::new(chain_id, Address::ZERO),
+            "v1",
+            "t1",
+        );
+        let expected2 = build_fetch_vault_stmt(
+            &OrderbookIdentifier::new(chain_id, Address::ZERO),
+            "v2",
+            "t2",
+        );
         let expected = vec![
             (expected1.sql().to_string(), expected1.params().to_vec()),
             (expected2.sql().to_string(), expected2.params().to_vec()),

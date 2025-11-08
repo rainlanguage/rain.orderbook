@@ -26,17 +26,31 @@ keep=(
   -k PUBLIC_WALLETCONNECT_PROJECT_ID
 )
 
-echo "Preparing base setup..."
-./prep-base.sh
+echo "Installing Forge dependencies..."
+nix develop -c forge install
 
-echo "Setting up UI components..."
-nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
-nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
+echo "Setting up rain.math.float..."
+nix develop -i ${keep[@]} -c bash \
+  -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-sol-prelude)'
+nix develop -i ${keep[@]} -c bash \
+  -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-rs-prelude)'
 
-echo "Building packages..."
-nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
-nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
-nix develop -i ${keep[@]} -c bash -c '(npm run build -w tauri-app)'
+echo "Setting up rain.tofu.erc20-decimals..."
+(cd lib/rain.tofu.erc20-decimals && nix develop -c forge build)
+
+echo "Setting up rain.interpreter..."
+nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-sol-prelude)'
+nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-rs-prelude)'
+(cd lib/rain.interpreter && nix develop -i ${keep[@]} -c bash -c i9r-prelude)
+
+echo "Setting up rain.metadata..."
+nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata && rainix-sol-prelude)'
+nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata && rainix-rs-prelude)'
+
+echo "Setting up main project dependencies..."
+nix develop -i ${keep[@]} -c rainix-sol-prelude
+nix develop -i ${keep[@]} -c rainix-rs-prelude
+nix develop -i ${keep[@]} -c raindex-prelude
 
 # Temporarily disable command echoing
 set +x
@@ -50,12 +64,7 @@ NC='\033[0m' # No Color
 # Print the completion message
 printf "\033[0;32m" # Set text to green
 printf "╔════════════════════════════════════════════════════════════════════════╗\n"
-printf "║                            Setup Complete!                             ║\n"
-printf "╠════════════════════════════════════════════════════════════════════════╣\n"
-printf "║                          How to run the apps:                          ║\n"
-printf "║                                                                        ║\n"
-printf "║  To run webapp:     cd packages/webapp && nix develop -c npm run dev   ║\n"
-printf "║  To run tauri app:  nix develop .#tauri-shell -c cargo tauri dev       ║\n"
+printf "║                          Base Setup Complete!                          ║\n"
 printf "╚════════════════════════════════════════════════════════════════════════╝\n"
 printf "\033[0m" # Reset text color
 

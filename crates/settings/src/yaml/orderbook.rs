@@ -1121,6 +1121,7 @@ local-db-sync:
     retry-delay-ms: 4
     rate-limit-delay-ms: 5
     finality-depth: 6
+    bootstrap-block-threshold: 7
 "#;
         let ob_yaml =
             OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
@@ -1138,6 +1139,7 @@ local-db-sync:
         assert_eq!(cfg.retry_delay_ms, 4);
         assert_eq!(cfg.rate_limit_delay_ms, 5);
         assert_eq!(cfg.finality_depth, 6);
+        assert_eq!(cfg.bootstrap_block_threshold, 7);
     }
 
     #[test]
@@ -1151,6 +1153,7 @@ local-db-sync:
     retry-delay-ms: 40
     rate-limit-delay-ms: 50
     finality-depth: 60
+    bootstrap-block-threshold: 70
 "#;
         let ob_yaml =
             OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
@@ -1163,6 +1166,7 @@ local-db-sync:
         assert_eq!(cfg.retry_delay_ms, 40);
         assert_eq!(cfg.rate_limit_delay_ms, 50);
         assert_eq!(cfg.finality_depth, 60);
+        assert_eq!(cfg.bootstrap_block_threshold, 70);
     }
 
     #[test]
@@ -1176,6 +1180,7 @@ local-db-sync:
     retry-delay-ms: 4
     rate-limit-delay-ms: 5
     finality-depth: 6
+    bootstrap-block-threshold: 7
 "#;
         let ob_yaml =
             OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();

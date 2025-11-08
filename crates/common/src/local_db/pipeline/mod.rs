@@ -11,27 +11,16 @@ pub mod adapters;
 pub mod engine;
 pub mod runner;
 
+use super::OrderbookIdentifier;
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
 use crate::local_db::query::{
-    fetch_erc20_tokens_by_addresses::Erc20TokenRow, LocalDbQueryExecutor, SqlStatement,
-    SqlStatementBatch,
+    fetch_erc20_tokens_by_addresses::Erc20TokenRow, LocalDbQueryExecutor, SqlStatementBatch,
 };
 use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use async_trait::async_trait;
-
-/// Identifies the logical target (orderbook) for a sync cycle.
-///
-/// Multi-tenant writes/reads are always keyed by this structure.
-#[derive(Debug, Clone)]
-pub struct TargetKey {
-    /// Chain id for the orderbook deployment.
-    pub chain_id: u32,
-    /// Address of the orderbook contract.
-    pub orderbook_address: Address,
-}
 
 /// Optional manual window overrides usually supplied by CLI/producer.
 ///
@@ -74,7 +63,7 @@ pub struct SyncConfig {
 #[derive(Debug, Clone)]
 pub struct SyncOutcome {
     /// Target that was synced.
-    pub target: TargetKey,
+    pub ob_id: OrderbookIdentifier,
     /// Start block (inclusive) that was used.
     pub start_block: u64,
     /// Target block (inclusive) that was used.
@@ -85,92 +74,7 @@ pub struct SyncOutcome {
     pub decoded_events: usize,
 }
 
-#[derive(Debug, Clone)]
-pub struct BootstrapConfig {
-    pub target_key: TargetKey,
-    pub dump_stmt: Option<SqlStatement>,
-    pub latest_block: u64,
-}
-
-/// Bootstrap state snapshot used by environment orchestration to decide actions.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BootstrapState {
-    pub has_required_tables: bool,
-    pub last_synced_block: Option<u64>,
-}
-
-/// Ensures the database is ready for incremental sync and applies optional
-/// data-only seed dumps per environment policy.
-///
-/// Responsibilities (concrete):
-/// - Ensure schema tables exist. Dumps must not include DDL.
-/// - Version gate via `db_metadata` (read/init, fail/reset on mismatch per
-///   environment policy).
-///
-/// Implementors orchestrate bootstrap by composing the helper hooks exposed
-/// here. Environment-specific runners typically call `engine_run` during a
-/// sync cycle and `runner_run` during process start-up; `run` remains
-/// available for alternative orchestrators.
-#[async_trait(?Send)]
-pub trait BootstrapPipeline {
-    async fn ensure_schema<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn inspect_state<DB>(
-        &self,
-        db: &DB,
-        target_key: &TargetKey,
-    ) -> Result<BootstrapState, LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn reset_db<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn clear_orderbook_data<DB>(
-        &self,
-        db: &DB,
-        target: &TargetKey,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn engine_run<DB>(&self, db: &DB, config: &BootstrapConfig) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn runner_run<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized;
-
-    async fn run<DB>(
-        &self,
-        _db: &DB,
-        _db_schema_version: Option<u32>,
-        _config: &BootstrapConfig,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        Err(LocalDbError::InvalidBootstrapImplementation)
-    }
-}
-
-/// Coarse-grained progress/status publishing.
+/// Coarse‑grained progress/status publishing.
 ///
 /// Keep messages short and stable; a richer typed snapshot can be layered on
 /// top without changing the pipeline contracts.
@@ -200,7 +104,7 @@ pub trait WindowPipeline {
     async fn compute<DB>(
         &self,
         db: &DB,
-        target: &TargetKey,
+        ob_id: &OrderbookIdentifier,
         cfg: &SyncConfig,
         latest_block: u64,
     ) -> Result<(u64, u64), LocalDbError>
@@ -263,8 +167,7 @@ pub trait TokensPipeline {
     async fn load_existing<DB>(
         &self,
         db: &DB,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         token_addrs_lower: &[Address],
     ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
     where
@@ -298,7 +201,7 @@ pub trait ApplyPipeline {
     /// atomic execution (the caller will ensure single-writer semantics).
     fn build_batch(
         &self,
-        target: &TargetKey,
+        ob_id: &OrderbookIdentifier,
         target_block: u64,
         raw_logs: &[LogEntryResponse],
         decoded_events: &[DecodedEventData<DecodedEvent>],
@@ -317,7 +220,7 @@ pub trait ApplyPipeline {
     async fn export_dump<DB>(
         &self,
         _db: &DB,
-        _target: &TargetKey,
+        _ob_id: &OrderbookIdentifier,
         _end_block: u64,
     ) -> Result<(), LocalDbError>
     where
