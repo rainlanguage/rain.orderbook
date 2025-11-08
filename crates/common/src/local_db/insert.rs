@@ -1,5 +1,6 @@
 use super::decode::{DecodedEvent, DecodedEventData, InterpreterStoreSetEvent};
 use super::query::{SqlStatement, SqlStatementBatch, SqlValue};
+use super::OrderbookIdentifier;
 use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
 use alloy::primitives::Bytes;
 use alloy::sol_types::SolValue;
@@ -76,8 +77,7 @@ fn vault_id_by_index<'a>(
 }
 
 struct EventContext {
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: OrderbookIdentifier,
     block_number: u64,
     block_timestamp: u64,
     transaction_hash: Bytes,
@@ -85,13 +85,11 @@ struct EventContext {
 }
 
 fn event_context(
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     event: &DecodedEventData<DecodedEvent>,
 ) -> Result<EventContext, InsertError> {
     Ok(EventContext {
-        chain_id,
-        orderbook_address,
+        ob_id: ob_id.clone(),
         block_number: hex_to_decimal(&event.block_number)?,
         block_timestamp: hex_to_decimal(&event.block_timestamp)?,
         transaction_hash: event.transaction_hash.clone(),
@@ -100,15 +98,14 @@ fn event_context(
 }
 
 pub fn decoded_events_to_statements(
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     events: &[DecodedEventData<DecodedEvent>],
     decimals_by_token: &HashMap<Address, u8>,
 ) -> Result<SqlStatementBatch, InsertError> {
     let mut batch = SqlStatementBatch::new();
 
     for event in events {
-        let context = event_context(chain_id, orderbook_address, event)?;
+        let context = event_context(ob_id, event)?;
         match &event.decoded_data {
             DecodedEvent::DepositV2(decoded) => {
                 batch.add(generate_deposit_statement(
@@ -163,8 +160,7 @@ pub fn decoded_events_to_statements(
 }
 
 pub fn raw_events_to_statements(
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     raw_events: &[LogEntryResponse],
 ) -> Result<SqlStatementBatch, InsertError> {
     struct RawEventRow<'a> {
@@ -236,8 +232,8 @@ pub fn raw_events_to_statements(
 );
 "#,
             vec![
-                SqlValue::from(chain_id as u64),
-                SqlValue::from(orderbook_address.to_string()),
+                SqlValue::from(ob_id.chain_id as u64),
+                SqlValue::from(ob_id.orderbook_address.to_string()),
                 SqlValue::from(row.block_number),
                 block_timestamp,
                 SqlValue::from(row.event.transaction_hash.clone()),
@@ -255,8 +251,7 @@ pub fn raw_events_to_statements(
 
 /// Build upsert SQL for erc20_tokens. Only include successfully fetched tokens.
 pub fn generate_erc20_token_statements(
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     tokens: &[(Address, TokenInfo)],
 ) -> SqlStatementBatch {
     let mut batch = SqlStatementBatch::new();
@@ -282,8 +277,8 @@ pub fn generate_erc20_token_statements(
         ON CONFLICT(chain_id, orderbook_address, token_address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;
         "#,
             [
-                SqlValue::from(chain_id as u64),
-                SqlValue::from(orderbook_address.to_string()),
+                SqlValue::from(ob_id.chain_id as u64),
+                SqlValue::from(ob_id.orderbook_address.to_string()),
                 SqlValue::from(token_hex),
                 SqlValue::from(info.name.clone()),
                 SqlValue::from(info.symbol.clone()),
@@ -362,8 +357,8 @@ fn generate_deposit_statement(
 );
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
             SqlValue::from(transaction_hash.to_string()),
@@ -419,8 +414,8 @@ fn generate_withdraw_statement(context: &EventContext, decoded: &WithdrawV2) -> 
 );
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
             SqlValue::from(transaction_hash.to_string()),
@@ -482,8 +477,8 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
 );
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
             SqlValue::from(transaction_hash.to_string()),
@@ -549,8 +544,8 @@ fn generate_remove_order_statement(
 );
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
             SqlValue::from(transaction_hash.to_string()),
@@ -615,8 +610,8 @@ fn generate_take_order_statement(
 );
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
             SqlValue::from(transaction_hash.to_string()),
@@ -667,8 +662,8 @@ fn generate_take_order_context_statements(
         batch.add(SqlStatement::new_with_params(
             INSERT_CONTEXT_SQL,
             vec![
-                SqlValue::from(context.chain_id as i64),
-                SqlValue::from(context.orderbook_address.to_string()),
+                SqlValue::from(context.ob_id.chain_id as i64),
+                SqlValue::from(context.ob_id.orderbook_address.to_string()),
                 SqlValue::from(transaction_hash.to_string()),
                 SqlValue::from(log_index),
                 SqlValue::from(context_index as u64),
@@ -712,8 +707,8 @@ fn generate_take_order_context_value_statements(
             batch.add(SqlStatement::new_with_params(
                 INSERT_VALUE_SQL,
                 vec![
-                    SqlValue::from(context.chain_id as i64),
-                    SqlValue::from(context.orderbook_address.to_string()),
+                    SqlValue::from(context.ob_id.chain_id as i64),
+                    SqlValue::from(context.ob_id.orderbook_address.to_string()),
                     SqlValue::from(transaction_hash.to_string()),
                     SqlValue::from(log_index),
                     SqlValue::from(context_index as u64),
@@ -832,8 +827,8 @@ fn generate_clear_v3_statement(
 );
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
             SqlValue::from(transaction_hash.to_string()),
@@ -896,8 +891,8 @@ fn generate_after_clear_statement(context: &EventContext, decoded: &AfterClearV2
 );
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
             SqlValue::from(transaction_hash.to_string()),
@@ -944,8 +939,8 @@ fn generate_meta_statement(context: &EventContext, decoded: &MetaV1_2) -> SqlSta
 );
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
             SqlValue::from(transaction_hash.to_string()),
@@ -993,8 +988,8 @@ fn generate_store_set_statement(
     value = excluded.value;
 "#,
         vec![
-            SqlValue::from(context.chain_id as i64),
-            SqlValue::from(context.orderbook_address.to_string()),
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(hex::encode_prefixed(decoded.store_address)),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
@@ -1039,8 +1034,8 @@ fn generate_order_ios_statements(context: &EventContext, order: &OrderV4) -> Sql
         batch.add(SqlStatement::new_with_params(
             INSERT_IO_SQL,
             vec![
-                SqlValue::from(context.chain_id as i64),
-                SqlValue::from(context.orderbook_address.to_string()),
+                SqlValue::from(context.ob_id.chain_id as i64),
+                SqlValue::from(context.ob_id.orderbook_address.to_string()),
                 SqlValue::from(transaction_hash.to_string()),
                 SqlValue::from(log_index),
                 SqlValue::from(index as u64),
@@ -1055,8 +1050,8 @@ fn generate_order_ios_statements(context: &EventContext, order: &OrderV4) -> Sql
         batch.add(SqlStatement::new_with_params(
             INSERT_IO_SQL,
             vec![
-                SqlValue::from(context.chain_id as i64),
-                SqlValue::from(context.orderbook_address.to_string()),
+                SqlValue::from(context.ob_id.chain_id as i64),
+                SqlValue::from(context.ob_id.orderbook_address.to_string()),
                 SqlValue::from(transaction_hash.to_string()),
                 SqlValue::from(log_index),
                 SqlValue::from(index as u64),
@@ -1317,7 +1312,7 @@ mod tests {
     #[test]
     fn store_set_sql_generation() {
         let event = sample_store_set_event();
-        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::InterpreterStoreSet(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1330,11 +1325,11 @@ mod tests {
         assert_eq!(params.len(), 10);
         assert!(matches!(
             params[0],
-            SqlValue::I64(v) if v == context.chain_id as i64
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
         ));
         assert!(matches!(
             params[1],
-            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
         ));
         assert!(
             matches!(params[2], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.store_address))
@@ -1366,7 +1361,7 @@ mod tests {
     #[test]
     fn deposit_statement_generation() {
         let event = sample_deposit_event();
-        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::DepositV2(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1380,11 +1375,11 @@ mod tests {
         assert_eq!(params.len(), 11);
         assert!(matches!(
             params[0],
-            SqlValue::I64(v) if v == context.chain_id as i64
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
         ));
         assert!(matches!(
             params[1],
-            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
         ));
         assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
         assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
@@ -1404,7 +1399,7 @@ mod tests {
     #[test]
     fn add_order_sql_includes_evaluable_addresses() {
         let event = sample_add_event();
-        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::AddOrderV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1417,11 +1412,11 @@ mod tests {
         assert_eq!(params.len(), 13);
         assert!(matches!(
             params[0],
-            SqlValue::I64(v) if v == context.chain_id as i64
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
         ));
         assert!(matches!(
             params[1],
-            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
         ));
         assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
         let expected_sender = hex::encode_prefixed(decoded.sender);
@@ -1473,7 +1468,7 @@ mod tests {
     #[test]
     fn take_order_sql_generation() {
         let event = sample_take_event();
-        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::TakeOrderV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1484,11 +1479,11 @@ mod tests {
         assert_eq!(params.len(), 13);
         assert!(matches!(
             params[0],
-            SqlValue::I64(v) if v == context.chain_id as i64
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
         ));
         assert!(matches!(
             params[1],
-            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
         ));
         assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
         assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
@@ -1521,7 +1516,7 @@ mod tests {
     #[test]
     fn after_clear_sql_generation() {
         let event = sample_after_clear_event();
-        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::AfterClearV2(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1534,11 +1529,11 @@ mod tests {
         assert_eq!(params.len(), 11);
         assert!(matches!(
             params[0],
-            SqlValue::I64(v) if v == context.chain_id as i64
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
         ));
         assert!(matches!(
             params[1],
-            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
         ));
         assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
         assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
@@ -1555,7 +1550,7 @@ mod tests {
     #[test]
     fn meta_sql_generation() {
         let event = sample_meta_event();
-        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::MetaV1_2(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1566,11 +1561,11 @@ mod tests {
         assert_eq!(params.len(), 9);
         assert!(matches!(
             params[0],
-            SqlValue::I64(v) if v == context.chain_id as i64
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
         ));
         assert!(matches!(
             params[1],
-            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
         ));
         assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
         assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
@@ -1586,7 +1581,7 @@ mod tests {
     #[test]
     fn clear_v3_sql_generation() {
         let event = sample_clear_event();
-        let context = event_context(1, Address::ZERO, &event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::ClearV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1597,11 +1592,11 @@ mod tests {
         assert_eq!(params.len(), 21);
         assert!(matches!(
             params[0],
-            SqlValue::I64(v) if v == context.chain_id as i64
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
         ));
         assert!(matches!(
             params[1],
-            SqlValue::Text(ref v) if v == &context.orderbook_address.to_string()
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
         ));
         assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
         assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
@@ -1630,8 +1625,7 @@ mod tests {
             decimals.insert(deposit.token, 6);
         }
         let batch = decoded_events_to_statements(
-            1,
-            Address::from([0x11; 20]),
+            &OrderbookIdentifier::new(1, Address::from([0x11; 20])),
             &[deposit_event, clear_event],
             &decimals,
         )
@@ -1656,8 +1650,7 @@ mod tests {
             }),
         );
         let batch = decoded_events_to_statements(
-            1,
-            Address::from([0x11; 20]),
+            &OrderbookIdentifier::new(1, Address::from([0x11; 20])),
             &[unknown_event],
             &HashMap::new(),
         )
@@ -1691,7 +1684,8 @@ mod tests {
         ];
 
         let orderbook = Address::from([0x11; 20]);
-        let batch = generate_erc20_token_statements(1, orderbook, &tokens);
+        let batch =
+            generate_erc20_token_statements(&OrderbookIdentifier::new(1, orderbook), &tokens);
         assert_eq!(batch.len(), tokens.len());
 
         for (statement, (expected_addr, expected_info)) in
@@ -1772,7 +1766,8 @@ mod tests {
         )];
 
         let orderbook = Address::from([0x22; 20]);
-        let batch = generate_erc20_token_statements(5, orderbook, &tokens);
+        let batch =
+            generate_erc20_token_statements(&OrderbookIdentifier::new(5, orderbook), &tokens);
         assert_eq!(batch.len(), 1);
         let statement = &batch.statements()[0];
         let sql = statement.sql();
@@ -1846,7 +1841,9 @@ mod tests {
         ];
 
         let orderbook_address = Address::from([0x10; 20]);
-        let batch = raw_events_to_statements(1, orderbook_address, &events).unwrap();
+        let batch =
+            raw_events_to_statements(&OrderbookIdentifier::new(1, orderbook_address), &events)
+                .unwrap();
         assert_eq!(batch.len(), 3);
 
         let hashes: Vec<_> = batch
@@ -1895,7 +1892,10 @@ mod tests {
             removed: false,
         }];
 
-        let result = raw_events_to_statements(1, Address::from([0x10; 20]), &events);
+        let result = raw_events_to_statements(
+            &OrderbookIdentifier::new(1, Address::from([0x10; 20])),
+            &events,
+        );
         assert!(matches!(result, Err(InsertError::HexParseError { .. })));
     }
 }

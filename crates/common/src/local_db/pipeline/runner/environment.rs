@@ -1,8 +1,9 @@
 use super::remotes::{download_and_gunzip, get_manifests};
 use super::utils::RunnerTarget;
+use crate::local_db::pipeline::adapters::bootstrap::BootstrapPipeline;
 use crate::local_db::pipeline::engine::SyncEngine;
 use crate::local_db::pipeline::{
-    ApplyPipeline, BootstrapPipeline, EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
+    ApplyPipeline, EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
 };
 use crate::local_db::LocalDbError;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
@@ -141,15 +142,17 @@ mod tests {
     use super::*;
     use crate::erc20::TokenInfo;
     use crate::local_db::fetch::FetchConfig;
+    use crate::local_db::pipeline::adapters::bootstrap::{
+        BootstrapConfig, BootstrapPipeline, BootstrapState,
+    };
     use crate::local_db::pipeline::engine::SyncInputs;
     use crate::local_db::pipeline::runner::utils::parse_runner_settings;
     use crate::local_db::pipeline::{
-        ApplyPipelineTargetInfo, BootstrapState, FinalityConfig, SyncConfig, TargetKey,
-        WindowOverrides,
+        ApplyPipelineTargetInfo, FinalityConfig, SyncConfig, WindowOverrides,
     };
     use crate::local_db::query::sql_statement_batch::SqlStatementBatch;
     use crate::local_db::query::LocalDbQueryExecutor;
-    use crate::local_db::LocalDbError;
+    use crate::local_db::{LocalDbError, OrderbookIdentifier};
     use crate::rpc_client::LogEntryResponse;
     use alloy::primitives::{address, Address, Bytes};
     use async_trait::async_trait;
@@ -180,7 +183,7 @@ mod tests {
             manifest_url: Url::parse("https://example.com/manifest.yaml").unwrap(),
             network_key: "network-a".to_string(),
             inputs: SyncInputs {
-                target: TargetKey {
+                ob_id: OrderbookIdentifier {
                     chain_id: 1,
                     orderbook_address: address!("0000000000000000000000000000000000000001"),
                 },
@@ -192,6 +195,7 @@ mod tests {
                     window_overrides: WindowOverrides::default(),
                 },
                 dump_str: None,
+                block_number_threshold: 100,
             },
         }
     }
@@ -242,7 +246,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _target_key: &TargetKey,
+            _target_key: &OrderbookIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -267,7 +271,7 @@ mod tests {
         async fn clear_orderbook_data<DB>(
             &self,
             _db: &DB,
-            _target: &TargetKey,
+            _target: &OrderbookIdentifier,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -278,7 +282,7 @@ mod tests {
         async fn engine_run<DB>(
             &self,
             _db: &DB,
-            _config: &crate::local_db::pipeline::BootstrapConfig,
+            _config: &BootstrapConfig,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -296,18 +300,6 @@ mod tests {
         {
             Ok(())
         }
-
-        async fn run<DB>(
-            &self,
-            _db: &DB,
-            _db_schema_version: Option<u32>,
-            _config: &crate::local_db::pipeline::BootstrapConfig,
-        ) -> Result<(), LocalDbError>
-        where
-            DB: LocalDbQueryExecutor + ?Sized,
-        {
-            Ok(())
-        }
     }
 
     #[async_trait(?Send)]
@@ -315,7 +307,7 @@ mod tests {
         async fn compute<DB>(
             &self,
             _db: &DB,
-            _target: &TargetKey,
+            _target: &OrderbookIdentifier,
             _cfg: &SyncConfig,
             latest_block: u64,
         ) -> Result<(u64, u64), LocalDbError>
@@ -372,8 +364,7 @@ mod tests {
         async fn load_existing<DB>(
             &self,
             _db: &DB,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             _token_addrs_lower: &[Address],
         ) -> Result<
             Vec<crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow>,
@@ -692,6 +683,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 50
     finality-depth: 12
+    bootstrap-block-threshold: 10000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
