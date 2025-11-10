@@ -244,18 +244,23 @@ Additional helpers worth wiring up:
 After you submit an `execute`/`addOrders` transaction you immediately have the transaction hash, but the subgraph still needs a few blocks to index the resulting order. Rather than re-querying every order and diffing manually, poll `client.getAddOrdersForTransaction` with that hash until it returns at least one `RaindexOrder`.
 
 ```ts
+import type { RaindexClient } from '@rainlanguage/orderbook';
+
 const POLL_INTERVAL_MS = 5_000;
 const MAX_ATTEMPTS = 12;
 
-async function waitForOrderFromTx({
-  chainId,
-  orderbookAddress,
-  txHash
-}: {
-  chainId: number;
-  orderbookAddress: string;
-  txHash: string;
-}) {
+async function waitForOrderFromTx(
+  client: RaindexClient,
+  {
+    chainId,
+    orderbookAddress,
+    txHash
+  }: {
+    chainId: number;
+    orderbookAddress: string;
+    txHash: string;
+  }
+) {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const result = await client.getAddOrdersForTransaction(chainId, orderbookAddress, txHash);
     if (result.error) throw new Error(result.error.readableMsg);
@@ -269,7 +274,7 @@ async function waitForOrderFromTx({
 }
 
 const txReceipt = await executeOrder(...);
-const raindexOrder = await waitForOrderFromTx({
+const raindexOrder = await waitForOrderFromTx(client, {
   chainId: 8453,
   orderbookAddress: '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
   txHash: txReceipt.transactionHash
@@ -472,6 +477,45 @@ if (!serializedStateResult.error) {
 ```
 
 Serialize the GUI state and later revive it with `DotrainOrderGui.newFromState(dotrainText, serializedState, callback)` if you want to skip re-entering form choices.
+
+#### Deploy with wallet + fetch your order
+
+`gui.getDeploymentTransactionArgs(owner)` returns a `DeploymentTransactionArgs` struct with:
+
+- `approvals: ExtendedApprovalCalldata[]` (each item contains `token`, `calldata`, and the token `symbol` for UX)
+- `deploymentCalldata: Hex` – a multicall that performs deposits (if required) and adds the order in one transaction
+- `orderbookAddress: string` – destination for the multicall
+- `chainId: number` – network you must connect your wallet to
+
+A typical deployment flow is:
+
+1. Run `getDeploymentTransactionArgs`
+2. Submit every approval in series (skip when `approvals` is empty)
+3. Submit the deployment calldata
+4. Poll `client.getAddOrdersForTransaction` (the helper shown earlier) with the deployment hash until the subgraph surfaces your `RaindexOrder`
+
+```ts
+import type { RaindexClient } from '@rainlanguage/orderbook';
+
+const deploymentArgsResult = await gui.getDeploymentTransactionArgs(owner);
+if (deploymentArgsResult.error) throw new Error(deploymentArgsResult.error.readableMsg);
+const { approvals, deploymentCalldata, orderbookAddress, chainId } = deploymentArgsResult.value;
+
+// Assume sendTransaction({ to, data }) and waitForReceipt(hash) come from your wallet stack.
+for (const approval of approvals) {
+  const approvalHash = await sendTransaction({ to: approval.token, data: approval.calldata });
+  await waitForReceipt(approvalHash);
+}
+
+const deploymentHash = await sendTransaction({ to: orderbookAddress, data: deploymentCalldata });
+await waitForReceipt(deploymentHash);
+
+const raindexOrder = await waitForOrderFromTx(client as RaindexClient, {
+  chainId,
+  orderbookAddress,
+  txHash: deploymentHash
+});
+```
 
 After you have a local GUI-aware dotrain source, you can also fetch equivalent sources from a registry and run the same flow:
 
