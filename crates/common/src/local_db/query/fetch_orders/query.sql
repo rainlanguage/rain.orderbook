@@ -12,6 +12,7 @@ SELECT
       THEN json_object(
         'ioIndex', ios.io_index,
         'vault', json_object(
+          'chainId', ios.chain_id,
           'vaultId', ios.vault_id,
           'token', ios.token,
           'owner', COALESCE(vo.owner, lower(l.order_owner)),
@@ -32,6 +33,7 @@ SELECT
       THEN json_object(
         'ioIndex', ios.io_index,
         'vault', json_object(
+          'chainId', ios.chain_id,
           'vaultId', ios.vault_id,
           'token', ios.token,
           'owner', COALESCE(vo.owner, lower(l.order_owner)),
