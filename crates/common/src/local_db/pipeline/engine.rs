@@ -95,7 +95,7 @@ where
         if !store_logs.is_empty() {
             all_raw_logs.extend(store_logs);
             decoded_events.append(&mut decoded_store_events);
-            sort_decoded_events_by_block_and_log(&mut decoded_events)?;
+            sort_decoded_events_by_block_and_log(&mut decoded_events);
         }
 
         let tokens_to_upsert = self
@@ -383,12 +383,12 @@ mod tests {
             address: hex::encode_prefixed(address),
             topics: vec!["0x1".into()],
             data: "0x01".into(),
-            block_number: hex_u64(block),
-            block_timestamp: Some(hex_u64(block + 100)),
+            block_number: U256::from(block),
+            block_timestamp: Some(U256::from(block + 100)),
             transaction_hash: format!("0x{tx:064x}"),
             transaction_index: hex_u64(0),
             block_hash: "0xdeadbeef".into(),
-            log_index: hex_u64(log_index),
+            log_index: U256::from(log_index),
             removed: false,
         }
     }
@@ -402,10 +402,10 @@ mod tests {
         use rain_orderbook_bindings::IOrderBookV5::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
-            block_number: hex_u64(block),
-            block_timestamp: hex_u64(block + 100),
+            block_number: U256::from(block),
+            block_timestamp: U256::from(block + 100),
             transaction_hash: tx_bytes(tx),
-            log_index: hex_u64(log_index),
+            log_index: U256::from(log_index),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: addr(0x33),
                 token,
@@ -426,10 +426,10 @@ mod tests {
         use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
         DecodedEventData {
             event_type: EventType::AddOrderV3,
-            block_number: hex_u64(block),
-            block_timestamp: hex_u64(block + 200),
+            block_number: U256::from(block),
+            block_timestamp: U256::from(block + 200),
             transaction_hash: tx_bytes(tx),
-            log_index: hex_u64(log_index),
+            log_index: U256::from(log_index),
             decoded_data: DecodedEvent::AddOrderV3(Box::new(AddOrderV3 {
                 sender: addr(0x44),
                 orderHash: FixedBytes::from([0u8; 32]),
@@ -462,10 +462,10 @@ mod tests {
     ) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: EventType::InterpreterStoreSet,
-            block_number: hex_u64(block),
-            block_timestamp: hex_u64(block + 300),
+            block_number: U256::from(block),
+            block_timestamp: U256::from(block + 300),
             transaction_hash: tx_bytes(tx),
-            log_index: hex_u64(log_index),
+            log_index: U256::from(log_index),
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
                 store_address: store,
                 payload: Set {
@@ -900,8 +900,8 @@ mod tests {
 
     #[derive(Debug, Clone)]
     struct BuildCall {
-        raw_order: Vec<(String, String)>,
-        decoded_order: Vec<(String, String)>,
+        raw_order: Vec<(U256, U256)>,
+        decoded_order: Vec<(U256, U256)>,
         existing_tokens: Vec<Address>,
         upsert_tokens: Vec<Address>,
     }
@@ -960,11 +960,11 @@ mod tests {
         ) -> Result<SqlStatementBatch, LocalDbError> {
             let raw_order = raw_logs
                 .iter()
-                .map(|log| (log.block_number.clone(), log.log_index.clone()))
+                .map(|log| (log.block_number, log.log_index))
                 .collect();
             let decoded_order = decoded_events
                 .iter()
-                .map(|evt| (evt.block_number.clone(), evt.log_index.clone()))
+                .map(|evt| (evt.block_number, evt.log_index))
                 .collect();
             let existing_tokens = existing_tokens
                 .iter()
@@ -1206,9 +1206,9 @@ mod tests {
         assert_eq!(
             build.decoded_order,
             vec![
-                ("0xa".into(), "0x1".into()),
-                ("0xb".into(), "0x0".into()),
-                ("0xc".into(), "0x0".into())
+                (U256::from(10), U256::from(1)),
+                (U256::from(11), U256::from(0)),
+                (U256::from(12), U256::from(0))
             ]
         );
         assert_eq!(build.existing_tokens, vec![token_a]);
