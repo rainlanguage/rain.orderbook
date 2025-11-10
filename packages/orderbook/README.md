@@ -239,6 +239,43 @@ Additional helpers worth wiring up:
 - `client.getAddOrdersForTransaction(...)` / `client.getRemoveOrdersForTransaction(...)` – diff deployments and removals by transaction hash.
 - `client.getTransaction(orderbookAddress, txHash)` – inspect who sent a transaction, the block number, and timestamp.
 
+#### Poll for newly deployed orders
+
+After you submit an `execute`/`addOrders` transaction you immediately have the transaction hash, but the subgraph still needs a few blocks to index the resulting order. Rather than re-querying every order and diffing manually, poll `client.getAddOrdersForTransaction` with that hash until it returns at least one `RaindexOrder`.
+
+```ts
+const POLL_INTERVAL_MS = 5_000;
+const MAX_ATTEMPTS = 12;
+
+async function waitForOrderFromTx({
+  chainId,
+  orderbookAddress,
+  txHash
+}: {
+  chainId: number;
+  orderbookAddress: string;
+  txHash: string;
+}) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const result = await client.getAddOrdersForTransaction(chainId, orderbookAddress, txHash);
+    if (result.error) throw new Error(result.error.readableMsg);
+
+    if (result.value.length) {
+      return result.value[0]; // RaindexOrder; multiple orders are possible for batched deployments
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+  throw new Error('Order not indexed yet; increase MAX_ATTEMPTS or interval if needed');
+}
+
+const txReceipt = await executeOrder(...);
+const raindexOrder = await waitForOrderFromTx({
+  chainId: 8453,
+  orderbookAddress: '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
+  txHash: txReceipt.transactionHash
+});
+```
+
 #### Fetch a single order by hash
 
 ```ts
