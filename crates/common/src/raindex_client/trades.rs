@@ -1,7 +1,7 @@
 use super::local_db::executor::JsCallbackExecutor;
 use super::*;
-use crate::local_db::is_chain_supported_local_db;
 use crate::local_db::query::fetch_order_trades::LocalDbOrderTrade;
+use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::raindex_client::local_db::query::fetch_order_trades::fetch_order_trades;
 use crate::raindex_client::local_db::query::fetch_order_trades_count::fetch_order_trades_count;
 use crate::raindex_client::{
@@ -132,6 +132,11 @@ impl RaindexOrder {
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let chain_id = self.chain_id();
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&self.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = self.orderbook();
+
         if is_chain_supported_local_db(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
@@ -139,7 +144,7 @@ impl RaindexOrder {
                 let order_hash = self.order_hash().to_string();
                 let local_trades = fetch_order_trades(
                     &exec,
-                    chain_id,
+                    &OrderbookIdentifier::new(chain_id, orderbook),
                     &order_hash,
                     start_timestamp,
                     end_timestamp,
@@ -244,14 +249,24 @@ impl RaindexOrder {
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
         let chain_id = self.chain_id();
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&self.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = self.orderbook();
+
         if is_chain_supported_local_db(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
                 let exec = JsCallbackExecutor::new(&db_cb);
                 let order_hash = self.order_hash().to_string();
-                let count =
-                    fetch_order_trades_count(&exec, &order_hash, start_timestamp, end_timestamp)
-                        .await?;
+                let count = fetch_order_trades_count(
+                    &exec,
+                    &OrderbookIdentifier::new(chain_id, orderbook),
+                    &order_hash,
+                    start_timestamp,
+                    end_timestamp,
+                )
+                .await?;
                 return Ok(count);
             }
         }
@@ -576,19 +591,22 @@ mod test_helpers {
             }
 
             let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
-                if sql.contains("GROUP_CONCAT(CASE WHEN ios.io_type = 'input'") {
+                if sql.contains("FROM order_events")
+                    && sql.contains("GROUP_CONCAT(")
+                    && sql.contains("ios.io_type = 'input'")
+                {
                     return js_sys::JSON::parse(&orders_payload).unwrap();
                 }
 
-                if sql.contains("COUNT(*) AS trade_count") {
+                if sql.contains("SELECT COUNT(*) AS trade_count") {
                     return js_sys::JSON::parse(&trade_count_payload).unwrap();
                 }
 
-                if sql.contains("FROM take_orders") || sql.contains("FROM clear_v3_events") {
+                if sql.contains("AS trade_kind") {
                     return js_sys::JSON::parse(&trades_payload).unwrap();
                 }
 
-                if sql.contains("FLOAT_SUM(vd.delta)") {
+                if sql.contains("FLOAT_SUM(vd") {
                     for (needle, payload) in &vault_payloads {
                         if sql.contains(needle) {
                             return js_sys::JSON::parse(payload).unwrap();
@@ -619,8 +637,10 @@ mod test_helpers {
 
             let order = client
                 .get_order_by_hash(
-                    42161,
-                    Address::from_str(&fixture.orderbook_address).unwrap(),
+                    &OrderbookIdentifier::new(
+                        42161,
+                        Address::from_str(&fixture.orderbook_address).unwrap(),
+                    ),
                     Bytes::from_str(&fixture.order_hash).unwrap(),
                 )
                 .await
@@ -715,8 +735,10 @@ mod test_helpers {
 
             let order = client
                 .get_order_by_hash(
-                    42161,
-                    Address::from_str(&fixture.orderbook_address).unwrap(),
+                    &OrderbookIdentifier::new(
+                        42161,
+                        Address::from_str(&fixture.orderbook_address).unwrap(),
+                    ),
                     Bytes::from_str(&fixture.order_hash).unwrap(),
                 )
                 .await
@@ -734,7 +756,10 @@ mod test_helpers {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::{
+            local_db::OrderbookIdentifier,
+            raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS},
+        };
         use alloy::primitives::Bytes;
         use httpmock::MockServer;
         use rain_math_float::Float;
@@ -1060,8 +1085,10 @@ mod test_helpers {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -1245,8 +1272,10 @@ mod test_helpers {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -1424,8 +1453,10 @@ mod test_helpers {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await

@@ -26,31 +26,8 @@ keep=(
   -k PUBLIC_WALLETCONNECT_PROJECT_ID
 )
 
-echo "Installing Forge dependencies..."
-nix develop -c forge install
-
-echo "Setting up rain.math.float..."
-nix develop -i ${keep[@]} -c bash \
-  -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-sol-prelude)'
-nix develop -i ${keep[@]} -c bash \
-  -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-rs-prelude)'
-
-echo "Setting up rain.tofu.erc20-decimals..."
-(cd lib/rain.tofu.erc20-decimals && nix develop -c forge build)
-
-echo "Setting up rain.interpreter..."
-nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-sol-prelude)'
-nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-rs-prelude)'
-(cd lib/rain.interpreter && nix develop -i ${keep[@]} -c bash -c i9r-prelude)
-
-echo "Setting up rain.metadata..."
-nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata && rainix-sol-prelude)'
-nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata && rainix-rs-prelude)'
-
-echo "Setting up main project dependencies..."
-nix develop -i ${keep[@]} -c rainix-sol-prelude
-nix develop -i ${keep[@]} -c rainix-rs-prelude
-nix develop -i ${keep[@]} -c raindex-prelude
+echo "Preparing base setup..."
+./prep-base.sh
 
 echo "Setting up UI components..."
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude

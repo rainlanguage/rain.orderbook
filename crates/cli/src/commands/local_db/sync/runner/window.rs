@@ -1,4 +1,8 @@
+use std::str::FromStr;
+
+use alloy::primitives::Address;
 use anyhow::{anyhow, Result};
+use rain_orderbook_common::local_db::OrderbookIdentifier;
 
 use super::super::data_source::SyncDataSource;
 use super::super::storage::fetch_last_synced;
@@ -38,7 +42,14 @@ pub(super) async fn compute_sync_window<D>(
 where
     D: SyncDataSource + Send + Sync,
 {
-    let last_synced_block = fetch_last_synced(db_path).await?;
+    let last_synced_block = fetch_last_synced(
+        db_path,
+        &OrderbookIdentifier::new(
+            params.chain_id,
+            Address::from_str(params.orderbook_address)?,
+        ),
+    )
+    .await?;
 
     let mut start_block = params
         .start_block
@@ -141,7 +152,8 @@ mod tests {
     use crate::commands::local_db::executor::RusqliteExecutor;
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
     use rain_orderbook_common::local_db::query::{
-        LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+        update_last_synced_block::build_update_last_synced_block_stmt, LocalDbQueryExecutor,
+        SqlStatement, SqlStatementBatch,
     };
 
     struct MockDataSource {
@@ -182,13 +194,18 @@ mod tests {
 
         fn events_to_sql(
             &self,
+            _ob_id: &OrderbookIdentifier,
             _decoded_events: &[DecodedEventData<DecodedEvent>],
             _decimals_by_token: &HashMap<Address, u8>,
         ) -> Result<SqlStatementBatch> {
             Ok(SqlStatementBatch::new())
         }
 
-        fn raw_events_to_statements(&self, _: &[LogEntryResponse]) -> Result<SqlStatementBatch> {
+        fn raw_events_to_statements(
+            &self,
+            _ob_id: &OrderbookIdentifier,
+            _: &[LogEntryResponse],
+        ) -> Result<SqlStatementBatch> {
             Ok(SqlStatementBatch::new())
         }
 
@@ -200,7 +217,7 @@ mod tests {
     fn params() -> SyncParams<'static> {
         SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: "0x1111111111111111111111111111111111111111",
             deployment_block: 50,
             start_block: None,
             end_block: None,
@@ -241,12 +258,12 @@ mod tests {
         exec.query_text(&SqlStatement::new(DEFAULT_SCHEMA_SQL))
             .await
             .unwrap();
-        exec
-            .query_text(&SqlStatement::new(
-                "UPDATE sync_status SET last_synced_block = 80, updated_at = CURRENT_TIMESTAMP WHERE id = 1;",
-            ))
-            .await
-            .unwrap();
+        exec.query_text(&build_update_last_synced_block_stmt(
+            &OrderbookIdentifier::new(1, Address::from([0x11; 20])),
+            80,
+        ))
+        .await
+        .unwrap();
 
         let data_source = MockDataSource {
             latest_block: 120,
