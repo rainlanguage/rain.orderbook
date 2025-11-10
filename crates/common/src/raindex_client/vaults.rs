@@ -586,7 +586,9 @@ impl TryFrom<String> for RaindexVaultBalanceChangeType {
         }
         match value.as_str() {
             "Deposit" | "DEPOSIT" => Ok(RaindexVaultBalanceChangeType::Deposit),
-            "Withdrawal" | "WITHDRAWAL" => Ok(RaindexVaultBalanceChangeType::Withdrawal),
+            "Withdrawal" | "WITHDRAWAL" | "WITHDRAW" => {
+                Ok(RaindexVaultBalanceChangeType::Withdrawal)
+            }
             "TradeVaultBalanceChange" | "TAKE_INPUT" | "TAKE_OUTPUT" => {
                 Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange)
             }
