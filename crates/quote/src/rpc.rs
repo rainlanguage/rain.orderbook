@@ -2,14 +2,14 @@ use crate::{
     error::{Error, FailedQuote},
     quote::{QuoteResult, QuoteTarget},
 };
-use alloy::providers::{MulticallError, Provider};
+use alloy::providers::{Failure, MulticallError, MulticallItem, Provider};
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
     primitives::Address,
 };
 use rain_error_decoding::{AbiDecodedErrorType, ErrorRegistry};
 use rain_orderbook_bindings::provider::mk_read_provider;
-use rain_orderbook_bindings::IOrderBookV5::IOrderBookV5Instance;
+use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return, IOrderBookV5Instance};
 use url::Url;
 
 /// Quotes array of given quote targets using the given rpc url
@@ -29,9 +29,9 @@ pub async fn batch_quote(
     let provider = mk_read_provider(&rpcs)?;
 
     let mut multicall = if let Some(addr) = multicall_address {
-        provider.multicall().address(addr).dynamic()
+        provider.multicall().address(addr).dynamic::<quote2Call>()
     } else {
-        provider.multicall().dynamic()
+        provider.multicall().dynamic::<quote2Call>()
     };
 
     if let Some(block_number) = block_number {
@@ -40,10 +40,13 @@ pub async fn batch_quote(
 
     for quote_target in quote_targets {
         let ob_instance = IOrderBookV5Instance::new(quote_target.orderbook, provider.clone());
-        multicall = multicall.add_dynamic(ob_instance.quote2(quote_target.quote_config.clone()));
+        let call = ob_instance
+            .quote2(quote_target.quote_config.clone())
+            .into_call(true);
+        multicall = multicall.add_call_dynamic(call);
     }
 
-    let aggregate_res = match multicall.aggregate3().await {
+    let aggregate_res: Vec<Result<quote2Return, Failure>> = match multicall.aggregate3().await {
         Ok(results) => results,
         Err(MulticallError::CallFailed(bytes)) => {
             let decoded_error =
@@ -65,7 +68,7 @@ pub async fn batch_quote(
                         "Unexpected multicall failure".to_string(),
                     )),
                 })
-                .collect());
+                .collect::<Vec<QuoteResult>>());
         }
         Err(err) => return Err(Error::MulticallError(err)),
     };
