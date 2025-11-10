@@ -185,30 +185,16 @@ where
 
 fn sort_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
     events.sort_by(|a, b| {
-        let block_a = parse_block_number(&a.block_number);
-        let block_b = parse_block_number(&b.block_number);
-        block_a
-            .cmp(&block_b)
-            .then_with(|| parse_block_number(&a.log_index).cmp(&parse_block_number(&b.log_index)))
+        a.block_number
+            .cmp(&b.block_number)
+            .then_with(|| a.log_index.cmp(&b.log_index))
     });
-}
-
-fn parse_block_number(value: &str) -> u64 {
-    let trimmed = value.trim();
-    if let Some(hex) = trimmed
-        .strip_prefix("0x")
-        .or_else(|| trimmed.strip_prefix("0X"))
-    {
-        u64::from_str_radix(hex, 16).unwrap_or(0)
-    } else {
-        trimmed.parse::<u64>().unwrap_or(0)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, FixedBytes, U256};
+    use alloy::primitives::{address, Address, FixedBytes, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
@@ -362,10 +348,10 @@ mod tests {
     fn sample_decoded_event(token: Address) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: EventType::DepositV2,
-            block_number: "0x1".into(),
-            block_timestamp: "0x0".into(),
+            block_number: U256::from(1),
+            block_timestamp: U256::ZERO,
             transaction_hash: "0xabc".into(),
-            log_index: "0x0".into(),
+            log_index: U256::ZERO,
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),
                 token,
@@ -378,10 +364,10 @@ mod tests {
     fn sample_store_decoded_event(store: Address) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: EventType::InterpreterStoreSet,
-            block_number: "0x2".into(),
-            block_timestamp: "0x0".into(),
+            block_number: U256::from(2),
+            block_timestamp: U256::ZERO,
             transaction_hash: "0xstore".into(),
-            log_index: "0x1".into(),
+            log_index: U256::from(1),
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
                 store_address: store,
                 payload: Set {
@@ -398,12 +384,12 @@ mod tests {
             address: "0xfeed".into(),
             topics: vec!["0x0".into()],
             data: "0x".into(),
-            block_number: "0x1".into(),
-            block_timestamp: Some("0x0".into()),
+            block_number: U256::from(1),
+            block_timestamp: Some(U256::ZERO),
             transaction_hash: "0xabc".into(),
             transaction_index: "0x0".into(),
             block_hash: "0x123".into(),
-            log_index: "0x0".into(),
+            log_index: U256::ZERO,
             removed: false,
         }
     }
@@ -413,12 +399,12 @@ mod tests {
             address: "0xdead".into(),
             topics: vec!["0x0".into()],
             data: "0x".into(),
-            block_number: "0x2".into(),
-            block_timestamp: Some("0x0".into()),
+            block_number: U256::from(2),
+            block_timestamp: Some(U256::ZERO),
             transaction_hash: "0xstore".into(),
             transaction_index: "0x0".into(),
             block_hash: "0x456".into(),
-            log_index: "0x1".into(),
+            log_index: U256::from(1),
             removed: false,
         }
     }
@@ -480,7 +466,7 @@ mod tests {
         assert_eq!(store_calls[0].2, 160);
         assert_eq!(
             store_calls[0].0,
-            vec![Address::from_str("0x1111111111111111111111111111111111111111").unwrap()]
+            vec![address!("0x1111111111111111111111111111111111111111")]
         );
 
         let sql_calls = data_source.sql_calls.lock().unwrap();
@@ -606,6 +592,6 @@ mod tests {
         assert_eq!(store_calls[0].2, 185);
         assert!(store_calls[0]
             .0
-            .contains(&Address::from_str("0x2222222222222222222222222222222222222222").unwrap()));
+            .contains(&address!("0x2222222222222222222222222222222222222222")));
     }
 }

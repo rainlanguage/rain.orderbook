@@ -1,3 +1,4 @@
+use alloy::primitives::U256;
 use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
 use alloy::rpc::types::Filter;
@@ -35,7 +36,7 @@ pub struct BlockResponse {
     pub sha3_uncles: String,
     pub size: String,
     pub state_root: String,
-    pub timestamp: String,
+    pub timestamp: U256,
     pub total_difficulty: String,
     pub transactions_root: String,
     #[serde(default)]
@@ -53,12 +54,12 @@ pub struct LogEntryResponse {
     pub address: String,
     pub topics: Vec<String>,
     pub data: String,
-    pub block_number: String,
-    pub block_timestamp: Option<String>,
+    pub block_number: U256,
+    pub block_timestamp: Option<U256>,
     pub transaction_hash: String,
     pub transaction_index: String,
     pub block_hash: String,
-    pub log_index: String,
+    pub log_index: U256,
     pub removed: bool,
 }
 
@@ -401,7 +402,7 @@ mod tests {
             RpcClient::new_with_urls(vec![Url::parse(&server.base_url()).unwrap()]).unwrap();
         let response = client.get_block_by_number(100).await.unwrap();
         assert!(response.is_some());
-        assert_eq!(response.unwrap().timestamp, "0x64b8c123");
+        assert_eq!(response.unwrap().timestamp, U256::from(0x64b8c123u64));
 
         mock.assert();
     }
@@ -452,7 +453,7 @@ mod tests {
         let logs = client.get_logs(&filter).await.unwrap();
 
         assert_eq!(logs.len(), 1);
-        assert_eq!(logs[0].block_number, "0x64");
+        assert_eq!(logs[0].block_number, U256::from(0x64));
 
         mock.assert();
     }
