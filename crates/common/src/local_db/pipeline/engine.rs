@@ -1,17 +1,17 @@
-use super::ApplyPipelineTargetInfo;
+use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline};
+use super::{
+    ApplyPipeline, ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, SyncOutcome,
+    TokensPipeline, WindowPipeline,
+};
 use crate::erc20::TokenInfo;
 use crate::local_db::address_collectors::{collect_store_addresses, collect_token_addresses};
 use crate::local_db::decode::{
     sort_decoded_events_by_block_and_log, DecodedEvent, DecodedEventData,
 };
-use crate::local_db::pipeline::{
-    ApplyPipeline, BootstrapConfig, BootstrapPipeline, EventsPipeline, StatusBus, SyncConfig,
-    SyncOutcome, TargetKey, TokensPipeline, WindowPipeline,
-};
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, StoreAddressRow};
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
-use crate::local_db::LocalDbError;
+use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use std::collections::{BTreeSet, HashSet};
@@ -31,10 +31,11 @@ pub struct SyncEngine<B, W, E, T, A, S> {
 /// Runner-supplied inputs that are static for the duration of a sync cycle.
 #[derive(Debug, Clone)]
 pub struct SyncInputs {
-    pub target: TargetKey,
+    pub ob_id: OrderbookIdentifier,
     pub metadata_rpcs: Vec<Url>,
     pub cfg: SyncConfig,
     pub dump_str: Option<String>,
+    pub block_number_threshold: u32,
     pub manifest_end_block: u64,
 }
 
@@ -68,7 +69,7 @@ where
         if start_block > target_block {
             self.status.send("No work for current window").await?;
             return Ok(SyncOutcome {
-                target: input.target.clone(),
+                ob_id: input.ob_id.clone(),
                 start_block,
                 target_block,
                 fetched_logs: 0,
@@ -106,7 +107,7 @@ where
             db,
             ApplyContext {
                 target_info: &ApplyPipelineTargetInfo {
-                    key: input.target.clone(),
+                    ob_id: input.ob_id.clone(),
                     block: target_block,
                     hash: self.events.block_hash(target_block).await?.clone(),
                 },
@@ -119,7 +120,7 @@ where
         .await?;
 
         Ok(SyncOutcome {
-            target: input.target.clone(),
+            ob_id: input.ob_id.clone(),
             start_block,
             target_block,
             fetched_logs: all_raw_logs.len(),
@@ -149,8 +150,9 @@ where
             .engine_run(
                 db,
                 &BootstrapConfig {
-                    target_key: input.target.clone(),
+                    ob_id: input.ob_id.clone(),
                     dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
+                    block_number_threshold: input.block_number_threshold,
                     latest_block: input.manifest_end_block,
                 },
             )
@@ -170,7 +172,7 @@ where
     {
         self.status.send("Computing sync window").await?;
         self.window
-            .compute(db, &input.target, &input.cfg, latest_block)
+            .compute(db, &input.ob_id, &input.cfg, latest_block)
             .await
     }
 
@@ -184,7 +186,7 @@ where
         let orderbook_logs = self
             .events
             .fetch_orderbook(
-                input.target.orderbook_address,
+                input.ob_id.orderbook_address,
                 start_block,
                 target_block,
                 &input.cfg.fetch,
@@ -217,7 +219,7 @@ where
         DB: LocalDbQueryExecutor + ?Sized,
     {
         let mut store_addresses = collect_store_addresses(decoded_events);
-        let existing_store_rows = load_known_store_addresses(db, &input.target).await?;
+        let existing_store_rows = load_known_store_addresses(db, &input.ob_id).await?;
         for row in existing_store_rows {
             if !row.store_address.is_zero() {
                 store_addresses.insert(row.store_address);
@@ -227,12 +229,9 @@ where
         let token_addresses: BTreeSet<Address> = collect_token_addresses(decoded_events);
         let token_addresses_vec: Vec<Address> = token_addresses.iter().copied().collect();
 
-        let tokens_fut = self.tokens.load_existing(
-            db,
-            input.target.chain_id,
-            input.target.orderbook_address,
-            &token_addresses_vec,
-        );
+        let tokens_fut = self
+            .tokens
+            .load_existing(db, &input.ob_id, &token_addresses_vec);
 
         let store_addresses_vec: Vec<Address> = store_addresses.into_iter().collect();
         let store_fetch_fut = async {
@@ -314,7 +313,7 @@ where
 
         self.status.send("Running post-sync export").await?;
         self.apply
-            .export_dump(db, &ctx.target_info.key, ctx.target_info.block)
+            .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.block)
             .await
     }
 }
@@ -329,17 +328,14 @@ struct ApplyContext<'a> {
 
 async fn load_known_store_addresses<DB>(
     db: &DB,
-    target: &TargetKey,
+    ob_id: &OrderbookIdentifier,
 ) -> Result<Vec<StoreAddressRow>, LocalDbError>
 where
     DB: LocalDbQueryExecutor + ?Sized,
 {
-    db.query_json(&fetch_store_addresses_stmt(
-        target.chain_id,
-        target.orderbook_address,
-    ))
-    .await
-    .map_err(Into::into)
+    db.query_json(&fetch_store_addresses_stmt(ob_id))
+        .await
+        .map_err(Into::into)
 }
 
 #[cfg(test)]
@@ -349,9 +345,8 @@ mod tests {
     use crate::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
-    use crate::local_db::pipeline::{
-        ApplyPipelineTargetInfo, BootstrapState, FinalityConfig, TargetKey, WindowOverrides,
-    };
+    use crate::local_db::pipeline::adapters::bootstrap::BootstrapState;
+    use crate::local_db::pipeline::{ApplyPipelineTargetInfo, FinalityConfig, WindowOverrides};
     use crate::local_db::query::{
         fetch_erc20_tokens_by_addresses::Erc20TokenRow, fetch_store_addresses::StoreAddressRow,
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
@@ -479,8 +474,8 @@ mod tests {
         }
     }
 
-    fn base_target() -> TargetKey {
-        TargetKey {
+    fn base_target() -> OrderbookIdentifier {
+        OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: addr(0xAB),
         }
@@ -488,7 +483,7 @@ mod tests {
 
     fn base_inputs() -> SyncInputs {
         SyncInputs {
-            target: base_target(),
+            ob_id: base_target(),
             metadata_rpcs: vec![Url::parse("https://rpc.example.com").unwrap()],
             cfg: SyncConfig {
                 deployment_block: 1,
@@ -497,6 +492,7 @@ mod tests {
                 window_overrides: WindowOverrides::default(),
             },
             dump_str: None,
+            block_number_threshold: 10_000,
             manifest_end_block: 1,
         }
     }
@@ -567,7 +563,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _target_key: &TargetKey,
+            _ob_id: &OrderbookIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -592,7 +588,7 @@ mod tests {
         async fn clear_orderbook_data<DB>(
             &self,
             _db: &DB,
-            _target: &TargetKey,
+            _target: &OrderbookIdentifier,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -636,7 +632,7 @@ mod tests {
 
     #[derive(Default)]
     struct MockWindowInner {
-        calls: Mutex<Vec<(TargetKey, u64, u64, u64)>>,
+        calls: Mutex<Vec<(OrderbookIdentifier, u64, u64, u64)>>,
         results: Mutex<VecDeque<Result<(u64, u64), LocalDbError>>>,
     }
 
@@ -645,7 +641,7 @@ mod tests {
             *self.inner.results.lock().unwrap() = VecDeque::from(results);
         }
 
-        fn calls(&self) -> Vec<(TargetKey, u64, u64, u64)> {
+        fn calls(&self) -> Vec<(OrderbookIdentifier, u64, u64, u64)> {
             self.inner.calls.lock().unwrap().clone()
         }
     }
@@ -655,7 +651,7 @@ mod tests {
         async fn compute<DB>(
             &self,
             _db: &DB,
-            target: &TargetKey,
+            ob_id: &OrderbookIdentifier,
             cfg: &SyncConfig,
             latest_block: u64,
         ) -> Result<(u64, u64), LocalDbError>
@@ -663,7 +659,7 @@ mod tests {
             DB: LocalDbQueryExecutor + ?Sized,
         {
             self.inner.calls.lock().unwrap().push((
-                target.clone(),
+                ob_id.clone(),
                 cfg.deployment_block,
                 latest_block,
                 cfg.finality.depth as u64,
@@ -872,8 +868,7 @@ mod tests {
         async fn load_existing<DB>(
             &self,
             _db: &DB,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             token_addrs_lower: &[Address],
         ) -> Result<Vec<Erc20TokenRow>, LocalDbError>
         where
@@ -936,7 +931,7 @@ mod tests {
         export_results: Mutex<VecDeque<Result<(), LocalDbError>>>,
         build_calls: Mutex<Vec<BuildCall>>,
         persist_calls: Mutex<Vec<SqlStatementBatch>>,
-        export_calls: Mutex<Vec<(TargetKey, u64)>>,
+        export_calls: Mutex<Vec<(OrderbookIdentifier, u64)>>,
     }
 
     impl MockApply {
@@ -960,7 +955,7 @@ mod tests {
             self.inner.persist_calls.lock().unwrap().clone()
         }
 
-        fn export_calls(&self) -> Vec<(TargetKey, u64)> {
+        fn export_calls(&self) -> Vec<(OrderbookIdentifier, u64)> {
             self.inner.export_calls.lock().unwrap().clone()
         }
     }
@@ -1021,7 +1016,7 @@ mod tests {
         async fn export_dump<DB>(
             &self,
             _db: &DB,
-            target: &TargetKey,
+            target: &OrderbookIdentifier,
             end_block: u64,
         ) -> Result<(), LocalDbError>
         where
@@ -1191,10 +1186,10 @@ mod tests {
 
         let outcome = harness.run(&inputs).await.expect("run succeeds");
 
-        assert_eq!(outcome.target.chain_id, inputs.target.chain_id);
+        assert_eq!(outcome.ob_id.chain_id, inputs.ob_id.chain_id);
         assert_eq!(
-            outcome.target.orderbook_address,
-            inputs.target.orderbook_address
+            outcome.ob_id.orderbook_address,
+            inputs.ob_id.orderbook_address
         );
         assert_eq!(outcome.start_block, 10);
         assert_eq!(outcome.target_block, 12);
@@ -1578,9 +1573,9 @@ mod tests {
 
         let calls = harness.apply.export_calls();
         assert_eq!(calls.len(), 1);
-        let (target, end_block) = &calls[0];
-        assert_eq!(target.chain_id, inputs.target.chain_id);
-        assert_eq!(target.orderbook_address, inputs.target.orderbook_address);
+        let (ob_id, end_block) = &calls[0];
+        assert_eq!(ob_id.chain_id, ob_id.chain_id);
+        assert_eq!(ob_id.orderbook_address, ob_id.orderbook_address);
         assert_eq!(*end_block, 105);
     }
 
@@ -2034,12 +2029,12 @@ mod tests {
             },
         ];
         let executor = MockExecutor::success(rows.clone());
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: Address::repeat_byte(0xAA),
         };
 
-        let actual = load_known_store_addresses(&executor, &target)
+        let actual = load_known_store_addresses(&executor, &ob_id)
             .await
             .expect("fetch rows");
 
@@ -2048,22 +2043,22 @@ mod tests {
         assert_eq!(calls.len(), 1);
         let stmt = &calls[0];
         assert_eq!(stmt.params().len(), 2);
-        assert_eq!(stmt.params()[0], SqlValue::U64(target.chain_id as u64));
+        assert_eq!(stmt.params()[0], SqlValue::U64(ob_id.chain_id as u64));
         assert_eq!(
             stmt.params()[1],
-            SqlValue::Text(target.orderbook_address.to_string())
+            SqlValue::Text(ob_id.orderbook_address.to_string())
         );
     }
 
     #[tokio::test]
     async fn load_known_store_addresses_returns_empty_vec() {
         let executor = MockExecutor::success(Vec::new());
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 10,
             orderbook_address: Address::repeat_byte(0xBB),
         };
 
-        let actual = load_known_store_addresses(&executor, &target)
+        let actual = load_known_store_addresses(&executor, &ob_id)
             .await
             .expect("fetch rows");
         assert!(actual.is_empty());
@@ -2072,12 +2067,12 @@ mod tests {
     #[tokio::test]
     async fn load_known_store_addresses_propagates_query_error() {
         let executor = MockExecutor::failure(LocalDbQueryError::database("boom"));
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::repeat_byte(0xCC),
         };
 
-        let err = load_known_store_addresses(&executor, &target)
+        let err = load_known_store_addresses(&executor, &ob_id)
             .await
             .expect_err("should propagate error");
         match err {

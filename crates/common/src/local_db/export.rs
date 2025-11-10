@@ -1,4 +1,3 @@
-use crate::local_db::pipeline::TargetKey;
 use crate::local_db::query::{
     create_tables::REQUIRED_TABLES, LocalDbQueryExecutor, SqlStatement, SqlValue,
 };
@@ -8,6 +7,8 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde_json::Value;
 use thiserror::Error;
+
+use super::OrderbookIdentifier;
 
 const SKIPPED_TABLES: &[&str] = &["db_metadata", "sync_status"];
 
@@ -40,7 +41,7 @@ pub enum ExportError {
 /// or that are explicitly skipped via [`SKIPPED_TABLES`], are ignored.
 pub async fn export_data_only<E>(
     executor: &E,
-    target: &TargetKey,
+    ob_id: &OrderbookIdentifier,
 ) -> Result<Option<String>, LocalDbError>
 where
     E: LocalDbQueryExecutor + ?Sized,
@@ -59,7 +60,7 @@ where
             continue;
         }
 
-        let select_stmt = build_select_statement(table, &columns, target);
+        let select_stmt = build_select_statement(table, &columns, ob_id);
         let rows: Vec<Value> = executor
             .query_json(&select_stmt)
             .await
@@ -112,7 +113,7 @@ fn has_target_filters(columns: &[TableInfoRow]) -> bool {
 fn build_select_statement(
     table: &str,
     columns: &[TableInfoRow],
-    target: &TargetKey,
+    ob_id: &OrderbookIdentifier,
 ) -> SqlStatement {
     let columns_sql = columns.iter().map(|c| format!("\"{}\"", c.name)).join(", ");
 
@@ -141,8 +142,8 @@ fn build_select_statement(
     let mut stmt = SqlStatement::new(format!(
         "SELECT {columns_sql} FROM \"{table}\" WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2) ORDER BY {order_clause};"
     ));
-    stmt.push(SqlValue::from(target.chain_id as u64));
-    stmt.push(SqlValue::from(target.orderbook_address.to_string()));
+    stmt.push(SqlValue::from(ob_id.chain_id as u64));
+    stmt.push(SqlValue::from(ob_id.orderbook_address.to_string()));
     stmt
 }
 
@@ -630,17 +631,17 @@ mod tests {
     #[tokio::test]
     async fn export_includes_only_targeted_rows() {
         let executor = TestExecutor::new();
-        let main_target = TargetKey {
+        let main_target = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: Address::from_str("0x0000000000000000000000000000000000000aaa")
                 .unwrap(),
         };
-        let alt_target = TargetKey {
+        let alt_target = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: Address::from_str("0x0000000000000000000000000000000000000bbb")
                 .unwrap(),
         };
-        let other_target = TargetKey {
+        let other_target = OrderbookIdentifier {
             chain_id: 10,
             orderbook_address: Address::from_str("0x0000000000000000000000000000000000000ccc")
                 .unwrap(),
@@ -671,13 +672,13 @@ mod tests {
     #[tokio::test]
     async fn export_returns_none_when_no_rows() {
         let executor = TestExecutor::new();
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::from_str("0x0000000000000000000000000000000000000ddd")
                 .unwrap(),
         };
 
-        let export = export_data_only(&executor, &target).await.unwrap();
+        let export = export_data_only(&executor, &ob_id).await.unwrap();
         assert!(
             export.is_none(),
             "expected None when there are no rows for the target"
@@ -687,12 +688,12 @@ mod tests {
     #[test]
     fn export_omits_skipped_tables() {
         let executor = TestExecutor::new();
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: Address::from_str("0x0000000000000000000000000000000000000aaa")
                 .unwrap(),
         };
-        let orderbook = target.orderbook_address.to_string();
+        let orderbook = ob_id.orderbook_address.to_string();
 
         {
             let conn = executor.conn.borrow();
@@ -703,15 +704,15 @@ mod tests {
             .expect("insert db_metadata row");
             conn.execute(
                 "INSERT INTO sync_status (chain_id, orderbook_address, last_synced_block) VALUES (?1, ?2, ?3);",
-                params![target.chain_id as i64, orderbook.as_str(), 456_i64],
+                params![ob_id.chain_id as i64, orderbook.as_str(), 456_i64],
             )
             .expect("insert sync_status row");
         }
 
-        let sql = executor::block_on(export_data_only(&executor, &target))
+        let sql = executor::block_on(export_data_only(&executor, &ob_id))
             .unwrap()
             .expect("target should have rows");
-        let expected = expected_dump(42161, target.orderbook_address, "main", 10);
+        let expected = expected_dump(42161, ob_id.orderbook_address, "main", 10);
 
         assert_eq!(
             sql, expected,
@@ -753,23 +754,23 @@ mod tests {
             column("alpha"),
             column("beta"),
         ];
-        let target = TargetKey {
+        let ob_id = OrderbookIdentifier {
             chain_id: 42161,
             orderbook_address: Address::from_str("0x00112233445566778899aabbccddeeff00112233")
                 .unwrap(),
         };
 
-        let stmt = build_select_statement("deposits", &columns, &target);
+        let stmt = build_select_statement("deposits", &columns, &ob_id);
         assert_eq!(
             stmt.sql(),
             "SELECT \"orderbook_address\", \"chain_id\", \"alpha\", \"beta\" FROM \"deposits\" WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2) ORDER BY \"chain_id\", \"orderbook_address\", \"alpha\", \"beta\";"
         );
         let params = stmt.params();
         assert_eq!(params.len(), 2);
-        assert_eq!(params[0], SqlValue::from(target.chain_id as u64));
+        assert_eq!(params[0], SqlValue::from(ob_id.chain_id as u64));
         assert_eq!(
             params[1],
-            SqlValue::from(target.orderbook_address.to_string())
+            SqlValue::from(ob_id.orderbook_address.to_string())
         );
     }
 

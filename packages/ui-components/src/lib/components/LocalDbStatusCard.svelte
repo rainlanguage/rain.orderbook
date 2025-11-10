@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import type { LocalDbStatus } from '@rainlanguage/orderbook';
 	import LocalDbStatusBadge from './LocalDbStatusBadge.svelte';
 
@@ -7,13 +8,37 @@
 	export let label = 'LocalDB';
 
 	let copied = false;
+	let copyErrorFailed = false;
+	let copyResetTimeout: ReturnType<typeof setTimeout> | undefined;
+
+	onDestroy(() => {
+		if (copyResetTimeout) {
+			clearTimeout(copyResetTimeout);
+		}
+	});
 
 	const copyError = async () => {
 		if (!error || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
 			return;
 		}
-		await navigator.clipboard.writeText(error);
-		copied = true;
+		if (copyResetTimeout) {
+			clearTimeout(copyResetTimeout);
+			copyResetTimeout = undefined;
+		}
+
+		copyErrorFailed = false;
+
+		try {
+			await navigator.clipboard.writeText(error);
+			copied = true;
+			copyResetTimeout = setTimeout(() => {
+				copied = false;
+				copyResetTimeout = undefined;
+			}, 2500);
+		} catch {
+			copied = false;
+			copyErrorFailed = true;
+		}
 	};
 </script>
 
@@ -35,7 +60,7 @@
 			disabled={!error}
 			data-testid="local-db-error-copy"
 		>
-			{copied ? 'Copied!' : 'Copy error details'}
+			{copied ? 'Copied!' : copyErrorFailed ? 'Unable to copy' : 'Copy error details'}
 		</button>
 	{/if}
 </div>

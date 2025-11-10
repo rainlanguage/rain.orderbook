@@ -19,14 +19,13 @@ use rain_orderbook_common::local_db::pipeline::runner::utils::{
 };
 use rain_orderbook_common::local_db::pipeline::{
     adapters::{
-        apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
-        window::DefaultWindowPipeline,
+        apply::DefaultApplyPipeline, bootstrap::BootstrapPipeline, events::DefaultEventsPipeline,
+        tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
     },
     engine::SyncInputs,
-    ApplyPipeline, BootstrapPipeline, EventsPipeline, StatusBus, SyncOutcome, TargetKey,
-    TokensPipeline, WindowPipeline,
+    ApplyPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
 };
-use rain_orderbook_common::local_db::LocalDbError;
+use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -37,7 +36,7 @@ use url::Url;
 pub struct ProducerRunner<B, W, E, T, A, S> {
     settings: ParsedRunnerSettings,
     targets: Vec<RunnerTarget>,
-    target_lookup: HashMap<TargetKey, RunnerTarget>,
+    target_lookup: HashMap<OrderbookIdentifier, RunnerTarget>,
     out_root: PathBuf,
     release_base_url: Url,
     manifest_output_path: PathBuf,
@@ -64,7 +63,7 @@ where
 
         let mut target_lookup = HashMap::with_capacity(targets.len());
         for target in &targets {
-            target_lookup.insert(target.inputs.target.clone(), target.clone());
+            target_lookup.insert(target.inputs.ob_id.clone(), target.clone());
         }
 
         let manifest_output_path = out_root.join("manifest.yaml");
@@ -100,8 +99,8 @@ where
                     let environment = environment.clone();
                     tasks.spawn_local(async move {
                         let manifest_entry = lookup_manifest_entry(manifest_map.as_ref(), &target);
-                        let chain_id = target.inputs.target.chain_id;
-                        let orderbook_address = target.inputs.target.orderbook_address;
+                        let chain_id = target.inputs.ob_id.chain_id;
+                        let orderbook_address = target.inputs.ob_id.orderbook_address;
                         match run_orderbook_job::<B, W, E, T, A, S>(
                             target,
                             manifest_entry,
@@ -273,9 +272,9 @@ where
 }
 
 fn db_path_for_target(out_root: &Path, target: &RunnerTarget) -> Result<PathBuf, LocalDbError> {
-    let chain_folder = out_root.join(target.inputs.target.chain_id.to_string());
+    let chain_folder = out_root.join(target.inputs.ob_id.chain_id.to_string());
     std::fs::create_dir_all(&chain_folder)?;
-    let filename = format!("{}.db", target.inputs.target.orderbook_address);
+    let filename = format!("{}.db", target.inputs.ob_id.orderbook_address);
     Ok(chain_folder.join(filename))
 }
 
@@ -297,12 +296,14 @@ mod tests {
     };
     use rain_orderbook_app_settings::orderbook::OrderbookCfg;
     use rain_orderbook_app_settings::remote::manifest::ManifestMap;
+    use rain_orderbook_common::local_db::pipeline::adapters::bootstrap::{
+        BootstrapConfig, BootstrapPipeline, BootstrapState,
+    };
     use rain_orderbook_common::local_db::pipeline::runner::environment::{
         DumpFuture, EnginePipelines, ManifestFuture,
     };
     use rain_orderbook_common::local_db::pipeline::{
-        ApplyPipelineTargetInfo, BootstrapConfig, BootstrapPipeline, BootstrapState,
-        EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
+        ApplyPipelineTargetInfo, EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
     };
     use rain_orderbook_common::local_db::query::{
         LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
@@ -432,7 +433,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _target_key: &rain_orderbook_common::local_db::pipeline::TargetKey,
+            _ob_id: &OrderbookIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -457,7 +458,7 @@ mod tests {
         async fn clear_orderbook_data<DB>(
             &self,
             _db: &DB,
-            _target: &rain_orderbook_common::local_db::pipeline::TargetKey,
+            _target: &OrderbookIdentifier,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -482,15 +483,15 @@ mod tests {
             self.ensure_tables(db).await?;
 
             if self.seed_export {
-                let target = &config.target_key;
-                let orderbook_address = target.orderbook_address.to_string();
+                let ob_id = &config.ob_id;
+                let orderbook_address = ob_id.orderbook_address.to_string();
 
                 let mut batch = SqlStatementBatch::new();
                 batch.add(SqlStatement::new(format!(
                     "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
                      VALUES ({}, '{}', '0xseedtx', 0, {}, 1_700_000_000, '{}', '[]', '0x00', '{{}}') \
                      ON CONFLICT(chain_id, orderbook_address, transaction_hash, log_index) DO NOTHING;",
-                    target.chain_id, orderbook_address, config.latest_block, orderbook_address
+                    ob_id.chain_id, orderbook_address, config.latest_block, orderbook_address
                 )));
                 batch.add(SqlStatement::new(format!(
                     "INSERT INTO target_watermarks (chain_id, orderbook_address, last_block, last_hash, updated_at) \
@@ -499,7 +500,7 @@ mod tests {
                      SET last_block = excluded.last_block, \
                          last_hash = excluded.last_hash, \
                          updated_at = excluded.updated_at;",
-                    target.chain_id, orderbook_address, config.latest_block
+                    ob_id.chain_id, orderbook_address, config.latest_block
                 )));
 
                 db.execute_batch(&batch.ensure_transaction()).await?;
@@ -512,18 +513,6 @@ mod tests {
             &self,
             _db: &DB,
             _db_schema_version: Option<u32>,
-        ) -> Result<(), LocalDbError>
-        where
-            DB: LocalDbQueryExecutor + ?Sized,
-        {
-            Ok(())
-        }
-
-        async fn run<DB>(
-            &self,
-            _db: &DB,
-            _db_schema_version: Option<u32>,
-            _config: &BootstrapConfig,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -552,7 +541,7 @@ mod tests {
         async fn compute<DB>(
             &self,
             _db: &DB,
-            _target: &rain_orderbook_common::local_db::pipeline::TargetKey,
+            _target: &OrderbookIdentifier,
             _cfg: &rain_orderbook_common::local_db::pipeline::SyncConfig,
             _latest_block: u64,
         ) -> Result<(u64, u64), LocalDbError>
@@ -623,8 +612,7 @@ mod tests {
         async fn load_existing<DB>(
             &self,
             _db: &DB,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             _token_addrs_lower: &[Address],
         ) -> Result<
             Vec<rain_orderbook_common::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow>,
@@ -693,7 +681,7 @@ mod tests {
         async fn export_dump<DB>(
             &self,
             _db: &DB,
-            _target: &rain_orderbook_common::local_db::pipeline::TargetKey,
+            _target: &OrderbookIdentifier,
             _end_block: u64,
         ) -> Result<(), LocalDbError>
         where
@@ -743,6 +731,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 1
     finality-depth: 12
+    bootstrap-block-threshold: 10000
 orderbooks:
   ok:
     address: 0x00000000000000000000000000000000000000a1
@@ -786,6 +775,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 1
     finality-depth: 12
+    bootstrap-block-threshold: 10000
 orderbooks:
   ok:
     address: 0x00000000000000000000000000000000000000a1
@@ -822,6 +812,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 1
     finality-depth: 12
+    bootstrap-block-threshold: 10000
 orderbooks:
   panic:
     address: 0x00000000000000000000000000000000000000c3
@@ -852,6 +843,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 1
     finality-depth: 12
+    bootstrap-block-threshold: 10000
 orderbooks:
   ok:
     address: 0x00000000000000000000000000000000000000a1
@@ -883,6 +875,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 1
     finality-depth: 12
+    bootstrap-block-threshold: 10000
 orderbooks:
   ok:
     address: 0x00000000000000000000000000000000000000a1
@@ -1111,7 +1104,7 @@ orderbooks:
         let success = &report.successes[0];
         assert_eq!(success.outcome.start_block, 0);
         assert_eq!(
-            success.outcome.target.orderbook_address,
+            success.outcome.ob_id.orderbook_address,
             address!("00000000000000000000000000000000000000a1")
         );
 
@@ -1187,7 +1180,7 @@ orderbooks:
         let success_addresses: Vec<Address> = report
             .successes
             .iter()
-            .map(|outcome| outcome.outcome.target.orderbook_address)
+            .map(|outcome| outcome.outcome.ob_id.orderbook_address)
             .collect();
         assert_eq!(
             success_addresses,
@@ -1408,7 +1401,7 @@ orderbooks:
             panic!("expected success, got failures: {:?}", report.failures);
         }
         let outcome = &report.successes[0];
-        assert_eq!(outcome.outcome.target.chain_id, 42161);
+        assert_eq!(outcome.outcome.ob_id.chain_id, 42161);
         assert_eq!(outcome.outcome.start_block, 0);
 
         assert!(
@@ -1454,7 +1447,7 @@ orderbooks:
             .expect("dump file name");
         let expected_file = format!(
             "{}-{}.sql.gz",
-            outcome.outcome.target.chain_id, outcome.outcome.target.orderbook_address
+            outcome.outcome.ob_id.chain_id, outcome.outcome.ob_id.orderbook_address
         );
         assert_eq!(file_name, expected_file);
         assert_eq!(metadata.end_block, outcome.outcome.target_block);
@@ -1627,7 +1620,7 @@ orderbooks:
             "{}.db",
             targets[0]
                 .inputs
-                .target
+                .ob_id
                 .orderbook_address
                 .to_string()
                 .to_lowercase()

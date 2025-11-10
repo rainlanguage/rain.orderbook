@@ -1,8 +1,8 @@
 use super::local_db::executor::JsCallbackExecutor;
 use super::*;
-use crate::local_db::is_chain_supported_local_db;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vault::LocalDbVault;
+use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -700,32 +700,34 @@ impl RaindexClient {
     ) -> Result<RaindexOrder, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let order_hash = Bytes::from_str(&order_hash)?;
-        self.get_order_by_hash(chain_id, orderbook_address, order_hash)
-            .await
+        self.get_order_by_hash(
+            &OrderbookIdentifier::new(chain_id, orderbook_address),
+            order_hash,
+        )
+        .await
     }
 }
 impl RaindexClient {
     pub async fn get_order_by_hash(
         &self,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         order_hash: Bytes,
     ) -> Result<RaindexOrder, RaindexError> {
-        let orderbook_cfg = self.get_orderbook_by_address(orderbook_address)?;
-        if orderbook_cfg.network.chain_id != chain_id {
+        let orderbook_cfg = self.get_orderbook_by_address(ob_id.orderbook_address)?;
+        if orderbook_cfg.network.chain_id != ob_id.chain_id {
             return Err(RaindexError::OrderbookNotFound(
-                orderbook_address.to_string(),
-                chain_id,
+                ob_id.orderbook_address.to_string(),
+                ob_id.chain_id,
             ));
         }
 
         let order_hash_hex = order_hash.to_string();
 
-        if is_chain_supported_local_db(chain_id) {
+        if is_chain_supported_local_db(ob_id.chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
                 let exec = JsCallbackExecutor::from_ref(&db_cb);
                 if let Some(order) = self
-                    .get_order_by_hash_local_db(&exec, chain_id, orderbook_address, &order_hash_hex)
+                    .get_order_by_hash_local_db(&exec, ob_id, &order_hash_hex)
                     .await?
                 {
                     return Ok(order);
@@ -736,7 +738,8 @@ impl RaindexClient {
         let raindex_client = Rc::new(self.clone());
         let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
         let order = client.order_detail_by_hash(SgBytes(order_hash_hex)).await?;
-        let order = RaindexOrder::try_from_sg_order(raindex_client.clone(), chain_id, order, None)?;
+        let order =
+            RaindexOrder::try_from_sg_order(raindex_client.clone(), ob_id.chain_id, order, None)?;
         Ok(order)
     }
 }
@@ -1439,8 +1442,10 @@ mod tests {
             .unwrap();
             let res = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -1523,8 +1528,10 @@ mod tests {
             .unwrap();
             let res = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await;
@@ -1556,8 +1563,10 @@ mod tests {
             .unwrap();
             let res = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await

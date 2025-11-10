@@ -11,13 +11,13 @@ use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
 use crate::raindex_client::local_db::LocalDbStatusSnapshot;
 use futures::channel::oneshot;
 use gloo_timers::future::TimeoutFuture;
+use js_sys::Function;
 use std::cell::Cell;
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::spawn_local;
 use wasm_bindgen_utils::prelude::*;
-use web_sys::js_sys::Function;
 
 const DEFAULT_INTERVAL_MS: u32 = 10_000;
 
