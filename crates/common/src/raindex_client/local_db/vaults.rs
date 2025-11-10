@@ -1,7 +1,7 @@
 use super::query::fetch_vaults::fetch_vaults;
 use crate::{
     local_db::{
-        query::{fetch_vaults::FetchVaultsArgs, LocalDbQueryExecutor},
+        query::{fetch_vaults::FetchVaultsArgs, fetch_vaults::LocalDbVault, LocalDbQueryExecutor},
         OrderbookIdentifier,
     },
     raindex_client::{
@@ -16,39 +16,35 @@ impl RaindexClient {
     pub async fn get_vaults_local_db<E: LocalDbQueryExecutor>(
         &self,
         executor: E,
-        chain_id: u32,
+        chain_ids: Vec<u32>,
         filters: Option<GetVaultsFilters>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let fetch_args_template = filters
+        if chain_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let orderbook_addresses = chain_ids
+            .iter()
+            .map(|&chain_id| self.get_orderbooks_by_chain_id(chain_id))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .map(|cfg| cfg.address)
+            .collect::<Vec<_>>();
+
+        if orderbook_addresses.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut fetch_args = filters
             .clone()
             .map(FetchVaultsArgs::from_filters)
             .unwrap_or_default();
+        fetch_args.chain_ids = chain_ids;
+        fetch_args.orderbook_addresses = orderbook_addresses;
 
-        let mut vaults = Vec::new();
-        let orderbooks = self.get_orderbooks_by_chain_id(chain_id)?;
-        let raindex_client = Rc::new(self.clone());
-
-        for orderbook_cfg in orderbooks {
-            let local_vaults = fetch_vaults(
-                &executor,
-                &OrderbookIdentifier::new(chain_id, orderbook_cfg.address),
-                fetch_args_template.clone(),
-            )
-            .await?;
-
-            for local_vault in local_vaults {
-                let vault = RaindexVault::try_from_local_db(
-                    Rc::clone(&raindex_client),
-                    chain_id,
-                    local_vault,
-                    None,
-                )?;
-
-                vaults.push(vault);
-            }
-        }
-
-        Ok(vaults)
+        let local_vaults = fetch_vaults(&executor, fetch_args).await?;
+        self.convert_local_db_vaults(local_vaults)
     }
 
     pub async fn get_vault_local_db<E: LocalDbQueryExecutor + ?Sized>(
@@ -58,30 +54,34 @@ impl RaindexClient {
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError> {
         let fetch_args = FetchVaultsArgs {
+            chain_ids: vec![ob_id.chain_id],
+            orderbook_addresses: vec![ob_id.orderbook_address],
             hide_zero_balance: false,
             ..FetchVaultsArgs::default()
         };
 
-        let local_vaults = fetch_vaults(executor, ob_id, fetch_args).await?;
-        let raindex_client = Rc::new(self.clone());
-
+        let local_vaults = fetch_vaults(executor, fetch_args).await?;
         let requested_id = vault_id.to_string().to_lowercase();
 
-        for local_vault in local_vaults {
-            let vault = RaindexVault::try_from_local_db(
-                Rc::clone(&raindex_client),
-                ob_id.chain_id,
-                local_vault,
-                None,
-            )?;
+        let vault = self
+            .convert_local_db_vaults(local_vaults)?
+            .into_iter()
+            .find(|vault| vault.id().to_string().to_lowercase() == requested_id);
 
-            let candidate_id = vault.id().to_string().to_lowercase();
-            if candidate_id == requested_id {
-                return Ok(Some(vault));
-            }
-        }
+        Ok(vault)
+    }
 
-        Ok(None)
+    fn convert_local_db_vaults(
+        &self,
+        local_vaults: Vec<LocalDbVault>,
+    ) -> Result<Vec<RaindexVault>, RaindexError> {
+        let raindex_client = Rc::new(self.clone());
+        local_vaults
+            .into_iter()
+            .map(|local_vault| {
+                RaindexVault::try_from_local_db(Rc::clone(&raindex_client), local_vault, None)
+            })
+            .collect()
     }
 }
 
@@ -93,7 +93,7 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::local_db::query::fetch_vault::LocalDbVault;
+        use crate::local_db::query::fetch_vaults::LocalDbVault;
         use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
         use crate::raindex_client::local_db::executor::JsCallbackExecutor;
         use crate::raindex_client::tests::get_local_db_test_yaml;
@@ -131,6 +131,7 @@ mod tests {
             balance: Float,
         ) -> LocalDbVault {
             LocalDbVault {
+                chain_id: 42161,
                 vault_id: vault_id.to_string(),
                 token: token.to_string(),
                 owner: owner.to_string(),
@@ -156,7 +157,7 @@ mod tests {
 
             let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             let vaults = client
-                .get_vaults_local_db(executor, 42161, None)
+                .get_vaults_local_db(executor, vec![42161], None)
                 .await
                 .expect("local db vaults should load");
 
@@ -187,7 +188,7 @@ mod tests {
 
             let rc_client = Rc::new(client.clone());
             let derived_vault =
-                RaindexVault::try_from_local_db(Rc::clone(&rc_client), 42161, local_vault, None)
+                RaindexVault::try_from_local_db(Rc::clone(&rc_client), local_vault, None)
                     .expect("local vault should convert");
 
             let vault_id_hex = derived_vault.id();
@@ -242,7 +243,7 @@ mod tests {
             };
 
             let vaults = client
-                .get_vaults_local_db(executor, 42161, Some(filters))
+                .get_vaults_local_db(executor, vec![42161], Some(filters))
                 .await
                 .expect("filtered vaults should load");
 

@@ -42,7 +42,7 @@ SELECT
         AND lower(io.token)    = lower(o.token)
         AND lower(io.vault_id) = lower(o.vault_id)
         AND UPPER(io.io_type) = 'INPUT'
-      ORDER BY oe.order_hash
+      ORDER BY oe.block_number DESC, oe.log_index DESC, oe.order_hash
     ) AS q_in
   ) AS input_orders,
   (
@@ -80,7 +80,7 @@ SELECT
         AND lower(io.token)    = lower(o.token)
         AND lower(io.vault_id) = lower(o.vault_id)
         AND UPPER(io.io_type) = 'OUTPUT'
-      ORDER BY oe.order_hash
+      ORDER BY oe.block_number DESC, oe.log_index DESC, oe.order_hash
     ) AS q_out
   ) AS output_orders,
   COALESCE((
@@ -88,7 +88,7 @@ SELECT
     FROM vault_deltas vd
     WHERE vd.chain_id = o.chain_id
       AND lower(vd.orderbook_address) = lower(o.orderbook_address)
-      AND vd.owner    = o.owner
+      AND lower(vd.owner)    = lower(o.owner)
       AND lower(vd.token)    = lower(o.token)
       AND lower(vd.vault_id) = lower(o.vault_id)
       /*CHAIN_IDS_CLAUSE*/

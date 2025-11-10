@@ -1,4 +1,5 @@
 use super::{local_db::executor::JsCallbackExecutor, *};
+use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{
     is_chain_supported_local_db, query::fetch_vault_balance_changes::LocalDbVaultBalanceChange,
     OrderbookIdentifier,
@@ -1113,14 +1114,11 @@ impl RaindexClient {
         }
 
         if !local_ids.is_empty() {
-            let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-                self.get_vaults_local_db(exec, id, filters.clone())
-            }))
-            .await?;
-            for mut chunk in locals {
-                vaults.append(&mut chunk);
-            }
+            let exec = JsCallbackExecutor::from_ref(&db_cb);
+            let mut local_vaults = self
+                .get_vaults_local_db(exec, local_ids, filters.clone())
+                .await?;
+            vaults.append(&mut local_vaults);
         }
 
         if !sg_ids.is_empty() {
@@ -1441,10 +1439,10 @@ impl RaindexVault {
 
     pub fn try_from_local_db(
         raindex_client: Rc<RaindexClient>,
-        chain_id: u32,
-        vault: crate::local_db::query::fetch_vault::LocalDbVault,
+        vault: LocalDbVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
+        let chain_id = vault.chain_id;
         let balance = Float::from_hex(&vault.balance)?;
         let formatted_balance = balance.format()?;
 
@@ -1527,8 +1525,8 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::local_db::query::fetch_vault::LocalDbVault;
         use crate::local_db::query::fetch_vault_balance_changes::LocalDbVaultBalanceChange;
+        use crate::local_db::query::fetch_vaults::LocalDbVault;
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
@@ -1585,6 +1583,7 @@ mod tests {
             balance: Float,
         ) -> LocalDbVault {
             LocalDbVault {
+                chain_id: 42161,
                 vault_id: vault_id.to_string(),
                 token: token.to_string(),
                 owner: owner.to_string(),
@@ -1630,7 +1629,7 @@ mod tests {
 
             let rc_client = Rc::new(client.clone());
             let derived_vault =
-                RaindexVault::try_from_local_db(Rc::clone(&rc_client), 42161, local_vault, None)
+                RaindexVault::try_from_local_db(Rc::clone(&rc_client), local_vault, None)
                     .expect("local vault should convert");
 
             let vault_id_bytes = Bytes::from_str(&derived_vault.id()).expect("valid vault id");
@@ -1660,7 +1659,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::local_db::query::fetch_vault::LocalDbVault;
+        use crate::local_db::query::fetch_vaults::LocalDbVault;
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
         use alloy::hex::encode_prefixed;
@@ -1819,6 +1818,7 @@ mod tests {
             .unwrap();
 
             let local_vault = LocalDbVault {
+                chain_id: 42161,
                 vault_id: "0x01".to_string(),
                 token: "0x0000000000000000000000000000000000000000".to_string(),
                 owner: "0x0000000000000000000000000000000000000000".to_string(),
@@ -1833,7 +1833,6 @@ mod tests {
 
             let rv = RaindexVault::try_from_local_db(
                 Rc::new(raindex_client),
-                1,
                 local_vault,
                 Some(RaindexVaultType::Input),
             )
