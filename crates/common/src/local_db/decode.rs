@@ -1,4 +1,3 @@
-use crate::local_db::LocalDbError;
 use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
@@ -205,26 +204,12 @@ fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError>
     E::decode_raw_log(topics, &data).map_err(|err| DecodeError::AbiDecode(err.to_string()))
 }
 
-pub fn sort_decoded_events_by_block_and_log(
-    events: &mut [DecodedEventData<DecodedEvent>],
-) -> Result<(), LocalDbError> {
-    let mut keyed = Vec::with_capacity(events.len());
-    for (idx, event) in events.iter().enumerate() {
-        keyed.push((idx, event.block_number, event.log_index));
-    }
-
-    keyed.sort_by(|a, b| {
-        a.1.cmp(&b.1)
-            .then_with(|| a.2.cmp(&b.2))
-            .then_with(|| a.0.cmp(&b.0))
+pub fn sort_decoded_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
+    events.sort_by(|a, b| {
+        a.block_number
+            .cmp(&b.block_number)
+            .then_with(|| a.log_index.cmp(&b.log_index))
     });
-
-    let original = events.to_vec();
-    for (position, (idx, _, _)) in keyed.into_iter().enumerate() {
-        events[position] = original[idx].clone();
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -1070,7 +1055,7 @@ mod test_helpers {
             mk_event(1, 2, "0x20"),
             mk_event(1, 1, "0x30"),
         ];
-        sort_decoded_events_by_block_and_log(&mut events).unwrap();
+        sort_decoded_events_by_block_and_log(&mut events);
         assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
         assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
         assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
@@ -1087,7 +1072,7 @@ mod test_helpers {
             .iter()
             .map(|event| event.transaction_hash.clone())
             .collect();
-        sort_decoded_events_by_block_and_log(&mut events).unwrap();
+        sort_decoded_events_by_block_and_log(&mut events);
         let actual_order: Vec<_> = events
             .iter()
             .map(|event| event.transaction_hash.clone())
@@ -1101,7 +1086,7 @@ mod test_helpers {
             mk_event(u64::MAX, 0, "0x01"),
             mk_event(u64::MAX - 1, 1, "0x02"),
         ];
-        sort_decoded_events_by_block_and_log(&mut events).unwrap();
+        sort_decoded_events_by_block_and_log(&mut events);
         assert_eq!(events[0].transaction_hash, Bytes::from_str("0x02").unwrap());
         assert_eq!(events[1].transaction_hash, Bytes::from_str("0x01").unwrap());
     }

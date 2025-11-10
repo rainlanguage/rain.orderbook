@@ -194,7 +194,7 @@ fn sort_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, FixedBytes, U256};
+    use alloy::primitives::{address, Address, FixedBytes, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use rain_orderbook_bindings::IOrderBookV5::DepositV2;
@@ -466,7 +466,7 @@ mod tests {
         assert_eq!(store_calls[0].2, 160);
         assert_eq!(
             store_calls[0].0,
-            vec![Address::from_str("0x1111111111111111111111111111111111111111").unwrap()]
+            vec![address!("0x1111111111111111111111111111111111111111")]
         );
 
         let sql_calls = data_source.sql_calls.lock().unwrap();
@@ -592,6 +592,6 @@ mod tests {
         assert_eq!(store_calls[0].2, 185);
         assert!(store_calls[0]
             .0
-            .contains(&Address::from_str("0x2222222222222222222222222222222222222222").unwrap()));
+            .contains(&address!("0x2222222222222222222222222222222222222222")));
     }
 }

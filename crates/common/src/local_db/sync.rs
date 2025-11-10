@@ -106,7 +106,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
 
     let mut decoded_store_events = decode_events(&store_logs)?;
 
-    merge_store_events(&mut decoded_events, &mut decoded_store_events)?;
+    merge_store_events(&mut decoded_events, &mut decoded_store_events);
 
     status.send("Populating token information...".to_string())?;
     let prep = prepare_erc20_tokens_prefix(
@@ -200,14 +200,13 @@ fn collect_all_store_addresses(
 fn merge_store_events(
     decoded_events: &mut Vec<DecodedEventData<DecodedEvent>>,
     store_events: &mut Vec<DecodedEventData<DecodedEvent>>,
-) -> Result<(), LocalDbError> {
+) {
     if store_events.is_empty() {
-        return Ok(());
+        return;
     }
 
     decoded_events.append(store_events);
-    sort_decoded_events_by_block_and_log(decoded_events)?;
-    Ok(())
+    sort_decoded_events_by_block_and_log(decoded_events);
 }
 
 struct TokenPrepResult {
@@ -501,7 +500,7 @@ mod tests {
                 }),
             },
         ];
-        sort_decoded_events_by_block_and_log(&mut events).unwrap();
+        sort_decoded_events_by_block_and_log(&mut events);
         assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
         assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
         assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
@@ -545,7 +544,7 @@ mod tests {
             }),
         }];
 
-        merge_store_events(&mut decoded, &mut store).unwrap();
+        merge_store_events(&mut decoded, &mut store);
         assert_eq!(decoded.len(), 3);
         assert_eq!(
             decoded[0].transaction_hash,
