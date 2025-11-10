@@ -17,6 +17,7 @@ pub use fetch::{FetchConfig, FetchConfigError};
 use insert::InsertError;
 use query::{LocalDbQueryError, SqlBuildError};
 
+pub const DATABASE_SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
 
 #[derive(Debug, thiserror::Error)]
@@ -95,6 +96,21 @@ pub enum LocalDbError {
 
     #[error("Overflow when incrementing last_synced_block: {last_synced_block}")]
     LastSyncedBlockOverflow { last_synced_block: u64 },
+    #[error("There are no rows in the db_metadata table")]
+    MissingDbMetadataRow,
+
+    #[error("Database schema version mismatch: expected {expected}, found {found}")]
+    SchemaVersionMismatch { expected: u32, found: u32 },
+
+    #[error("Missing bootstrap implementation")]
+    MissingBootstrapImplementation,
+
+    #[error("Block sync threshold exceeded: latest block {latest_block}, last indexed block {last_indexed_block}, threshold {threshold}")]
+    BlockSyncThresholdExceeded {
+        latest_block: u64,
+        last_indexed_block: u64,
+        threshold: u64,
+    },
     #[error("Missing topics filter")]
     MissingTopicsFilter,
 
@@ -174,6 +190,24 @@ impl LocalDbError {
             LocalDbError::LastSyncedBlockOverflow { last_synced_block } => format!(
                 "Overflow when incrementing last_synced_block {}",
                 last_synced_block
+            ),
+            LocalDbError::MissingDbMetadataRow => {
+                "There are no rows in the db_metadata table".to_string()
+            }
+            LocalDbError::SchemaVersionMismatch { expected, found } => format!(
+                "Database schema version mismatch: expected {}, found {}",
+                expected, found
+            ),
+            LocalDbError::MissingBootstrapImplementation => {
+                "Bootstrap pipeline must be implemented".to_string()
+            }
+            LocalDbError::BlockSyncThresholdExceeded {
+                latest_block,
+                last_indexed_block,
+                threshold,
+            } => format!(
+                "Block sync threshold exceeded: latest block {}, last indexed block {}, threshold {}",
+                latest_block, last_indexed_block, threshold
             ),
             LocalDbError::MissingTopicsFilter => "Topics are missing from the filter".to_string(),
             LocalDbError::MissingBlockFilter(value) => {
