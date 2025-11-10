@@ -1,4 +1,7 @@
-use crate::local_db::query::{SqlStatement, SqlValue};
+use crate::local_db::{
+    query::{SqlStatement, SqlValue},
+    OrderbookIdentifier,
+};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -24,13 +27,20 @@ pub struct LocalDbVault {
     pub output_orders: Option<String>,
 }
 
-pub fn build_fetch_vault_stmt(chain_id: u32, vault_id: &str, token: &str) -> SqlStatement {
-    let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
-    // Parameter order: ?1 chain_id, ?2 vault_id, ?3 token
-    stmt.push(SqlValue::I64(chain_id as i64));
-    stmt.push(SqlValue::Text(vault_id.to_string()));
-    stmt.push(SqlValue::Text(token.to_string()));
-    stmt
+pub fn build_fetch_vault_stmt(
+    ob_id: &OrderbookIdentifier,
+    vault_id: &str,
+    token: &str,
+) -> SqlStatement {
+    SqlStatement::new_with_params(
+        QUERY_TEMPLATE,
+        [
+            SqlValue::from(ob_id.chain_id as u64),
+            SqlValue::from(ob_id.orderbook_address.to_string()),
+            SqlValue::from(vault_id.trim().to_string()),
+            SqlValue::from(token.trim().to_string()),
+        ],
+    )
 }
 
 /// Parses the IO annotation string emitted by the database into a sorted list of
@@ -56,15 +66,21 @@ pub fn parse_io_indexed_pairs(io: &Option<String>) -> Vec<(usize, String, String
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
 
     #[test]
     fn builds_query_with_params() {
-        let stmt = build_fetch_vault_stmt(10, "0x01", "0xabc");
+        let stmt = build_fetch_vault_stmt(
+            &OrderbookIdentifier::new(10, Address::ZERO),
+            "0x01",
+            "0xabc",
+        );
         assert!(stmt.sql.contains("et.chain_id = ?1"));
-        assert!(stmt.sql.contains("?2 AS vault_id"));
-        assert!(stmt.sql.contains("?3    AS token"));
-        assert_eq!(stmt.params.len(), 3);
+        assert!(stmt.sql.contains("?3 AS vault_id"));
+        assert!(stmt.sql.contains("?4 AS token"));
+        assert_eq!(stmt.params.len(), 4);
     }
 
     #[test]

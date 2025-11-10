@@ -1,6 +1,6 @@
 use crate::utils::{parse_positive_u32, parse_positive_u64};
 use crate::yaml::{
-    context::Context, default_document, require_hash, require_string, FieldErrorKind, YamlError,
+    context::Context, default_document, optional_hash, require_string, FieldErrorKind, YamlError,
     YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
@@ -23,6 +23,7 @@ pub struct LocalDbSyncCfg {
     pub retry_delay_ms: u64,
     pub rate_limit_delay_ms: u64,
     pub finality_depth: u32,
+    pub bootstrap_block_threshold: u32,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(LocalDbSyncCfg);
@@ -61,6 +62,15 @@ impl LocalDbSyncCfg {
         let finality_depth = parse_positive_u32(
             &require_string(yaml, Some("finality-depth"), Some(location.clone()))?,
             "finality-depth",
+            location.clone(),
+        )?;
+        let bootstrap_block_threshold = parse_positive_u32(
+            &require_string(
+                yaml,
+                Some("bootstrap-block-threshold"),
+                Some(location.clone()),
+            )?,
+            "bootstrap-block-threshold",
             location,
         )?;
 
@@ -73,6 +83,7 @@ impl LocalDbSyncCfg {
             retry_delay_ms,
             rate_limit_delay_ms,
             finality_depth,
+            bootstrap_block_threshold,
         })
     }
 }
@@ -87,11 +98,7 @@ impl YamlParsableHash for LocalDbSyncCfg {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(sync_hash) = require_hash(
-                &document_read,
-                Some("local-db-sync"),
-                Some("root".to_string()),
-            ) {
+            if let Some(sync_hash) = optional_hash(&document_read, "local-db-sync") {
                 for (key_yaml, settings_yaml) in sync_hash {
                     let key = match key_yaml.as_str() {
                         Some(s) if !s.is_empty() => s.to_string(),
@@ -126,13 +133,6 @@ impl YamlParsableHash for LocalDbSyncCfg {
             }
         }
 
-        if syncs.is_empty() {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
-                location: "root".to_string(),
-            });
-        }
-
         Ok(syncs)
     }
 }
@@ -148,6 +148,7 @@ impl Default for LocalDbSyncCfg {
             retry_delay_ms: 1,
             rate_limit_delay_ms: 1,
             finality_depth: 1,
+            bootstrap_block_threshold: 1,
         }
     }
 }
@@ -161,6 +162,7 @@ impl PartialEq for LocalDbSyncCfg {
             && self.retry_delay_ms == other.retry_delay_ms
             && self.rate_limit_delay_ms == other.rate_limit_delay_ms
             && self.finality_depth == other.finality_depth
+            && self.bootstrap_block_threshold == other.bootstrap_block_threshold
     }
 }
 
@@ -169,15 +171,18 @@ mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
 
-    fn full_sync_yaml(
-        network: &str,
+    struct FullSyncArgs<'a> {
+        network: &'a str,
         batch_size: u32,
         max_concurrent_batches: u32,
         retry_attempts: u32,
         retry_delay_ms: u64,
         rate_limit_delay_ms: u64,
         finality_depth: u32,
-    ) -> String {
+        bootstrap_block_threshold: u32,
+    }
+
+    fn full_sync_yaml(args: FullSyncArgs<'_>) -> String {
         format!(
             r#"
 local-db-sync:
@@ -188,31 +193,51 @@ local-db-sync:
     retry-delay-ms: {retry_delay_ms}
     rate-limit-delay-ms: {rate_limit_delay_ms}
     finality-depth: {finality_depth}
-"#
+    bootstrap-block-threshold: {bootstrap_block_threshold}
+"#,
+            network = args.network,
+            batch_size = args.batch_size,
+            max_concurrent_batches = args.max_concurrent_batches,
+            retry_attempts = args.retry_attempts,
+            retry_delay_ms = args.retry_delay_ms,
+            rate_limit_delay_ms = args.rate_limit_delay_ms,
+            finality_depth = args.finality_depth,
+            bootstrap_block_threshold = args.bootstrap_block_threshold,
         )
     }
 
     #[test]
-    fn test_parse_sync_missing_section_is_error() {
+    fn test_parse_sync_missing_section_is_ok() {
         let yaml = r#"
 not-sync:
   some: value
 "#;
-        let error =
-            LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::Field {
-                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
-                location: "root".to_string(),
-            }
-        );
+        let syncs = LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        assert!(syncs.is_empty());
     }
 
     #[test]
     fn test_parse_sync_from_yaml_multiple_files() {
-        let yaml_one = full_sync_yaml("arbitrum", 100, 5, 3, 50, 10, 100);
-        let yaml_two = full_sync_yaml("mainnet", 200, 10, 5, 100, 20, 64);
+        let yaml_one = full_sync_yaml(FullSyncArgs {
+            network: "arbitrum",
+            batch_size: 100,
+            max_concurrent_batches: 5,
+            retry_attempts: 3,
+            retry_delay_ms: 50,
+            rate_limit_delay_ms: 10,
+            finality_depth: 100,
+            bootstrap_block_threshold: 25,
+        });
+        let yaml_two = full_sync_yaml(FullSyncArgs {
+            network: "mainnet",
+            batch_size: 200,
+            max_concurrent_batches: 10,
+            retry_attempts: 5,
+            retry_delay_ms: 100,
+            rate_limit_delay_ms: 20,
+            finality_depth: 64,
+            bootstrap_block_threshold: 30,
+        });
 
         let documents = vec![get_document(&yaml_one), get_document(&yaml_two)];
         let syncs = LocalDbSyncCfg::parse_all_from_yaml(documents, None).unwrap();
@@ -230,6 +255,7 @@ not-sync:
             retry_delay_ms: 50,
             rate_limit_delay_ms: 10,
             finality_depth: 100,
+            bootstrap_block_threshold: 25,
         };
         let expected_eth = LocalDbSyncCfg {
             document: default_document(),
@@ -240,6 +266,7 @@ not-sync:
             retry_delay_ms: 100,
             rate_limit_delay_ms: 20,
             finality_depth: 64,
+            bootstrap_block_threshold: 30,
         };
 
         assert_eq!(syncs.get("arbitrum").unwrap(), &expected_arb);
@@ -248,8 +275,26 @@ not-sync:
 
     #[test]
     fn test_parse_sync_from_yaml_duplicate_key() {
-        let yaml_one = full_sync_yaml("mainnet", 100, 2, 2, 10, 5, 32);
-        let yaml_two = full_sync_yaml("mainnet", 101, 3, 3, 11, 6, 33);
+        let yaml_one = full_sync_yaml(FullSyncArgs {
+            network: "mainnet",
+            batch_size: 100,
+            max_concurrent_batches: 2,
+            retry_attempts: 2,
+            retry_delay_ms: 10,
+            rate_limit_delay_ms: 5,
+            finality_depth: 32,
+            bootstrap_block_threshold: 40,
+        });
+        let yaml_two = full_sync_yaml(FullSyncArgs {
+            network: "mainnet",
+            batch_size: 101,
+            max_concurrent_batches: 3,
+            retry_attempts: 3,
+            retry_delay_ms: 11,
+            rate_limit_delay_ms: 6,
+            finality_depth: 33,
+            bootstrap_block_threshold: 41,
+        });
 
         let documents = vec![get_document(&yaml_one), get_document(&yaml_two)];
         let error = LocalDbSyncCfg::parse_all_from_yaml(documents, None).unwrap_err();
@@ -271,6 +316,7 @@ local-db-sync:
     # retry-delay-ms missing
     rate-limit-delay-ms: 1
     finality-depth: 1
+    bootstrap-block-threshold: 2
 "#;
         let error =
             LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -278,6 +324,30 @@ local-db-sync:
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("retry-delay-ms".to_string()),
+                location: "local-db-sync.devnet".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_sync_missing_bootstrap_block_threshold() {
+        let yaml = r#"
+local-db-sync:
+  devnet:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
+    # bootstrap-block-threshold missing
+"#;
+        let error =
+            LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("bootstrap-block-threshold".to_string()),
                 location: "local-db-sync.devnet".to_string(),
             }
         );
@@ -295,6 +365,7 @@ local-db-sync:
     retry-delay-ms: 1
     rate-limit-delay-ms: 1
     finality-depth: 1
+    bootstrap-block-threshold: 2
 "#;
         let error =
             LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -304,6 +375,33 @@ local-db-sync:
                 kind: FieldErrorKind::InvalidValue {
                     field: "retry-attempts".to_string(),
                     reason: "invalid digit found in string".to_string()
+                },
+                location: "local-db-sync.devnet".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_sync_invalid_bootstrap_block_threshold_zero_rejected() {
+        let yaml = r#"
+local-db-sync:
+  devnet:
+    batch-size: 1
+    max-concurrent-batches: 1
+    retry-attempts: 1
+    retry-delay-ms: 1
+    rate-limit-delay-ms: 1
+    finality-depth: 1
+    bootstrap-block-threshold: 0
+"#;
+        let error =
+            LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "bootstrap-block-threshold".to_string(),
+                    reason: "must be a positive integer".to_string()
                 },
                 location: "local-db-sync.devnet".to_string(),
             }
@@ -322,6 +420,7 @@ local-db-sync:
     retry-delay-ms: 1
     rate-limit-delay-ms: 0
     finality-depth: 1
+    bootstrap-block-threshold: 2
 "#;
         let error =
             LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -349,6 +448,7 @@ local-db-sync:
     retry-delay-ms: 1
     rate-limit-delay-ms: 1
     finality-depth: 1
+    bootstrap-block-threshold: 2
 "#;
         let error =
             LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();

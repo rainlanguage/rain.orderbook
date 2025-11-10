@@ -1,5 +1,9 @@
+use alloy::primitives::Address;
 use anyhow::Result;
-use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
+use rain_orderbook_common::local_db::{
+    decode::{DecodedEvent, DecodedEventData},
+    OrderbookIdentifier,
+};
 use url::Url;
 
 use super::{
@@ -17,7 +21,7 @@ use self::{
 };
 
 use rain_orderbook_common::local_db::address_collectors::collect_store_addresses;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, str::FromStr};
 
 mod apply;
 mod window;
@@ -103,7 +107,14 @@ where
 
         println!("Collecting interpreter store addresses");
         let mut store_addresses: BTreeSet<String> = collect_store_addresses(&decoded_events);
-        let existing_stores = fetch_existing_store_addresses(self.db_path).await?;
+        let existing_stores = fetch_existing_store_addresses(
+            self.db_path,
+            &OrderbookIdentifier::new(
+                params.chain_id,
+                Address::from_str(params.orderbook_address)?,
+            ),
+        )
+        .await?;
         store_addresses.extend(existing_stores);
 
         if !store_addresses.is_empty() {
@@ -138,7 +149,10 @@ where
             PrepareSqlParams {
                 db_path: self.db_path.to_string(),
                 metadata_rpc_urls: self.metadata_rpcs().to_vec(),
-                chain_id: params.chain_id,
+                ob_id: OrderbookIdentifier::new(
+                    params.chain_id,
+                    Address::from_str(params.orderbook_address)?,
+                ),
                 decoded_events,
                 raw_events,
                 target_block: window.target_block,
@@ -211,6 +225,8 @@ mod tests {
     use crate::commands::local_db::sync::storage::DEFAULT_SCHEMA_SQL;
 
     const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
+        chain_id,
+        orderbook_address,
         block_number,
         block_timestamp,
         transaction_hash,
@@ -220,6 +236,8 @@ mod tests {
         data,
         raw_json
     ) VALUES (
+        0,
+        '0x0',
         0,
         NULL,
         '0x0',
@@ -310,6 +328,7 @@ mod tests {
 
         fn events_to_sql(
             &self,
+            _ob_id: &OrderbookIdentifier,
             decoded_events: &[DecodedEventData<DecodedEvent>],
             decimals_by_token: &HashMap<Address, u8>,
         ) -> Result<SqlStatementBatch> {
@@ -328,6 +347,7 @@ mod tests {
 
         fn raw_events_to_statements(
             &self,
+            _ob_id: &OrderbookIdentifier,
             raw_events: &[LogEntryResponse],
         ) -> Result<SqlStatementBatch> {
             self.raw_calls.lock().unwrap().push(raw_events.to_vec());
@@ -446,7 +466,7 @@ mod tests {
 
         let params = SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: "0x1111111111111111111111111111111111111111",
             deployment_block: 150,
             start_block: None,
             end_block: Some(160),
@@ -521,6 +541,8 @@ mod tests {
             .unwrap();
         exec.query_text(&SqlStatement::new(
             r#"INSERT INTO interpreter_store_sets (
+                chain_id,
+                orderbook_address,
                 store_address,
                 transaction_hash,
                 log_index,
@@ -530,6 +552,8 @@ mod tests {
                 key,
                 value
             ) VALUES (
+                1,
+                '0x1111111111111111111111111111111111111111',
                 '0x2222222222222222222222222222222222222222',
                 '0x1',
                 0,
@@ -568,7 +592,7 @@ mod tests {
 
         let params = SyncParams {
             chain_id: 1,
-            orderbook_address: "0xorder",
+            orderbook_address: "0x1111111111111111111111111111111111111111",
             deployment_block: 180,
             start_block: None,
             end_block: Some(185),

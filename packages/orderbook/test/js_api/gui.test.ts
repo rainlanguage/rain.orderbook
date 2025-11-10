@@ -16,8 +16,7 @@ import {
 	TokenInfo,
 	AllGuiConfig,
 	WasmEncodedResult,
-	FieldValue,
-	Float
+	FieldValue
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
@@ -156,9 +155,6 @@ deployers:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-local-db-remotes:
-  some-orderbook: http://example.com
-
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
@@ -238,9 +234,6 @@ deployers:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-local-db-remotes:
-  some-orderbook: http://example.com
-
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
@@ -312,9 +305,6 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-
-local-db-remotes:
-  some-orderbook: http://example.com
 
 orderbooks:
     some-orderbook:
@@ -401,8 +391,6 @@ deployers:
     other-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-local-db-remotes:
-  remote: http://example.com
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
@@ -981,7 +969,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QwUrEMBBtqiiIBxGvguDV2jSQpS7rQaWLohaVIrq3tZu1pWlS21lX8SM8evUHFr_Aqze_R7xJceJadA55k3lvkjdDrO9YRARRgXOVqkGqrgnWqLXwm73ty5GwsTJnGJ0J5VkmZhE53Ww1JOxHMoPoUUr-e4w1b8ZgpXPhKAFjXWambxUxASjarit13JeJrqDtU5-7ZRE7o1I-1ApSn8R8HUT7K5g-dj4m6--dyesTf_m8sNnW23NMlsk80lHtYY0RM3bEbGsazSUQY8sjf2aachuYCBkG3Nv1D4JepfYuD1vD87zgp3fDIxGejU96OzfQDZNuCtnx9hL2aEhE6QxEIfV9LhR8AbKibF_FAQAA';
+			'H4sIAAAAAAAA_21Qy0rEMBTtraIgLkTcCoJba9MwteMwrnxQRHBTZXQjM53YlKZJaZMO4ke4dOsPDH6BW3d-j7iTYuJMmbmLnOSec5NzAtZfbWqUpJLOKOXjlCege8jamGfrIVPE1p01w4iMcM8ytarRR4dHLQn-l6xo9BCCZZfh9skYrEROHE7kRJSZmdvVSKUseq7LRDxkVFSy10Vd3y2L2FEle24U0Kxgnj6Pwh29fel_T_e_-tOPV__9Z2Dj48-3GLZhXdNR42EPg4kdYduaVfsTwNjyYCHTjDsweVKlqLx3itMsGdCL64R3gqBWQZJ3rkY30e2kvgv9h_Dx8kycbOkZISkpnTEpmHjKCZe_KJd7OsUBAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {

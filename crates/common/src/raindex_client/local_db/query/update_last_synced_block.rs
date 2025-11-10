@@ -1,11 +1,13 @@
 use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_stmt;
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use crate::local_db::OrderbookIdentifier;
 
 pub async fn update_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
+    ob_id: &OrderbookIdentifier,
     block_number: u64,
 ) -> Result<(), LocalDbQueryError> {
-    let stmt = build_update_last_synced_block_stmt(block_number);
+    let stmt = build_update_last_synced_block_stmt(ob_id, block_number);
     exec.query_text(&stmt).await.map(|_| ())
 }
 
@@ -14,6 +16,7 @@ mod wasm_tests {
     use super::*;
     use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
+    use alloy::primitives::Address;
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen::prelude::Closure;
@@ -23,7 +26,9 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
-        let expected_stmt = build_update_last_synced_block_stmt(999);
+        let addr = Address::from([0x11u8; 20]);
+        let expected_stmt =
+            build_update_last_synced_block_stmt(&OrderbookIdentifier::new(1, addr), 999);
         let store = Rc::new(RefCell::new((
             String::new(),
             wasm_bindgen::JsValue::UNDEFINED,
@@ -31,7 +36,8 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("OK", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = super::update_last_synced_block(&exec, 999).await;
+        let res =
+            super::update_last_synced_block(&exec, &OrderbookIdentifier::new(1, addr), 999).await;
         assert!(res.is_ok());
         let captured = store.borrow().clone();
         assert_eq!(captured.0, expected_stmt.sql);
@@ -56,7 +62,12 @@ mod wasm_tests {
         closure.forget();
 
         let exec = JsCallbackExecutor::new(&callback);
-        let res = super::update_last_synced_block(&exec, 999).await;
+        let res = super::update_last_synced_block(
+            &exec,
+            &OrderbookIdentifier::new(1, Address::from([0x22u8; 20])),
+            999,
+        )
+        .await;
         assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
     }
 }
