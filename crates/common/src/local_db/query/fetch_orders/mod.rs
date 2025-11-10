@@ -1,6 +1,6 @@
 use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
+use crate::local_db::OrderbookIdentifier;
 use crate::utils::serde::bool_from_int_or_bool;
-use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -60,16 +60,15 @@ const TOKENS_CLAUSE_BODY: &str =
     "AND EXISTS ( \n      SELECT 1 FROM order_ios io2 \n      WHERE io2.chain_id = ?1 \n        AND lower(io2.orderbook_address) = lower(?2) \n        AND io2.transaction_hash = la.transaction_hash \n        AND io2.log_index = la.log_index \n        AND lower(io2.token) IN ({list}) )";
 
 pub fn build_fetch_orders_stmt(
-    chain_id: u32,
-    orderbook_address: Address,
+    ob_id: &OrderbookIdentifier,
     args: &FetchOrdersArgs,
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
 
     // ?1 chain id
-    stmt.push(SqlValue::I64(chain_id as i64));
+    stmt.push(SqlValue::I64(ob_id.chain_id as i64));
     // ?2 orderbook address
-    stmt.push(SqlValue::Text(orderbook_address.to_string()));
+    stmt.push(SqlValue::Text(ob_id.orderbook_address.to_string()));
 
     // ?3 active filter
     let active_str = match args.filter {
@@ -137,6 +136,8 @@ pub fn build_fetch_orders_stmt(
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
 
     fn mk_args() -> FetchOrdersArgs {
@@ -147,7 +148,8 @@ mod tests {
     fn filter_active_all_and_no_extras() {
         let mut args = mk_args();
         args.filter = FetchOrdersActiveFilter::All;
-        let stmt = build_fetch_orders_stmt(1, Address::ZERO, &args).unwrap();
+        let stmt =
+            build_fetch_orders_stmt(&OrderbookIdentifier::new(1, Address::ZERO), &args).unwrap();
         assert!(stmt.sql.contains("?3 = 'all'"));
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
@@ -162,7 +164,8 @@ mod tests {
         args.tokens = vec!["TOKA".into(), "   ".into()];
         args.order_hash = Some(" 0xHash ".into());
 
-        let stmt = build_fetch_orders_stmt(137, Address::ZERO, &args).unwrap();
+        let stmt =
+            build_fetch_orders_stmt(&OrderbookIdentifier::new(137, Address::ZERO), &args).unwrap();
 
         // Active filter parameterized
         assert!(stmt.sql.contains("?3 = 'active'"));
@@ -182,7 +185,8 @@ mod tests {
     fn filter_inactive_string() {
         let mut args = mk_args();
         args.filter = FetchOrdersActiveFilter::Inactive;
-        let stmt = build_fetch_orders_stmt(1, Address::ZERO, &args).unwrap();
+        let stmt =
+            build_fetch_orders_stmt(&OrderbookIdentifier::new(1, Address::ZERO), &args).unwrap();
         assert!(stmt.sql.contains("?3 = 'inactive'"));
     }
 

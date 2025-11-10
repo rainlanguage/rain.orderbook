@@ -5,6 +5,7 @@ use crate::local_db::{
         fetch_vault_balance_changes::LocalDbVaultBalanceChange, fetch_vaults::FetchVaultsArgs,
         LocalDbQueryExecutor,
     },
+    OrderbookIdentifier,
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
 use crate::raindex_client::local_db::query::fetch_vaults::fetch_vaults;
@@ -314,8 +315,7 @@ impl RaindexVault {
                 let token_address = self.token.address.to_string();
                 let local_changes = fetch_vault_balance_changes(
                     &exec,
-                    self.chain_id,
-                    self.orderbook,
+                    &OrderbookIdentifier::new(self.chain_id, self.orderbook),
                     &vault_id_hex,
                     &token_address,
                 )
@@ -1208,8 +1208,7 @@ impl RaindexClient {
         for orderbook_cfg in orderbooks {
             let local_vaults = fetch_vaults(
                 &executor,
-                chain_id,
-                orderbook_cfg.address,
+                &OrderbookIdentifier::new(chain_id, orderbook_cfg.address),
                 fetch_args_template.clone(),
             )
             .await?;
@@ -1275,7 +1274,11 @@ impl RaindexClient {
     ) -> Result<RaindexVault, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let vault_id = Bytes::from_str(&vault_id)?;
-        self.get_vault(chain_id, orderbook_address, vault_id).await
+        self.get_vault(
+            &OrderbookIdentifier::new(chain_id, orderbook_address),
+            vault_id,
+        )
+        .await
     }
 
     /// Fetches all unique tokens that exist in vaults.
@@ -1337,25 +1340,21 @@ impl RaindexClient {
 impl RaindexClient {
     pub async fn get_vault(
         &self,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         vault_id: Bytes,
     ) -> Result<RaindexVault, RaindexError> {
-        let orderbook_cfg = self.get_orderbook_by_address(orderbook_address)?;
-        if orderbook_cfg.network.chain_id != chain_id {
+        let orderbook_cfg = self.get_orderbook_by_address(ob_id.orderbook_address)?;
+        if orderbook_cfg.network.chain_id != ob_id.chain_id {
             return Err(RaindexError::OrderbookNotFound(
-                orderbook_address.to_string(),
-                chain_id,
+                ob_id.orderbook_address.to_string(),
+                ob_id.chain_id,
             ));
         }
 
-        if is_chain_supported_local_db(chain_id) {
+        if is_chain_supported_local_db(ob_id.chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
                 let exec = JsCallbackExecutor::from_ref(&db_cb);
-                if let Some(vault) = self
-                    .get_vault_local_db(&exec, chain_id, orderbook_address, &vault_id)
-                    .await?
-                {
+                if let Some(vault) = self.get_vault_local_db(&exec, ob_id, &vault_id).await? {
                     return Ok(vault);
                 }
             }
@@ -1364,7 +1363,7 @@ impl RaindexClient {
         let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
         let vault = RaindexVault::try_from_sg_vault(
             Rc::new(self.clone()),
-            chain_id,
+            ob_id.chain_id,
             client.vault_detail(Id::new(vault_id.to_string())).await?,
             None,
         )?;
@@ -1376,8 +1375,7 @@ impl RaindexClient {
     async fn get_vault_local_db<E: LocalDbQueryExecutor + ?Sized>(
         &self,
         executor: &E,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError> {
         let fetch_args = FetchVaultsArgs {
@@ -1385,7 +1383,7 @@ impl RaindexClient {
             ..FetchVaultsArgs::default()
         };
 
-        let local_vaults = fetch_vaults(executor, chain_id, orderbook_address, fetch_args).await?;
+        let local_vaults = fetch_vaults(executor, ob_id, fetch_args).await?;
         let raindex_client = Rc::new(self.clone());
 
         let requested_id = vault_id.to_string().to_lowercase();
@@ -1393,7 +1391,7 @@ impl RaindexClient {
         for local_vault in local_vaults {
             let vault = RaindexVault::try_from_local_db(
                 Rc::clone(&raindex_client),
-                chain_id,
+                ob_id.chain_id,
                 local_vault,
                 None,
             )?;
@@ -1753,7 +1751,7 @@ mod tests {
             let orderbook =
                 Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
             let retrieved = client
-                .get_vault(42161, orderbook, vault_id_bytes)
+                .get_vault(&OrderbookIdentifier::new(42161, orderbook), vault_id_bytes)
                 .await
                 .expect("local vault retrieval should succeed");
 
@@ -1807,7 +1805,7 @@ mod tests {
             let orderbook =
                 Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
             let vault = client
-                .get_vault(42161, orderbook, vault_id_bytes)
+                .get_vault(&OrderbookIdentifier::new(42161, orderbook), vault_id_bytes)
                 .await
                 .expect("local vault retrieval should succeed");
 
@@ -2239,8 +2237,10 @@ mod tests {
 
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x10").unwrap(),
                 )
                 .await
@@ -2325,8 +2325,10 @@ mod tests {
             .unwrap();
             let err = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -2409,8 +2411,10 @@ mod tests {
             .unwrap();
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -2501,8 +2505,10 @@ mod tests {
 
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0456").unwrap(),
                 )
                 .await
@@ -2582,8 +2588,10 @@ mod tests {
             .unwrap();
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -2687,8 +2695,10 @@ mod tests {
             .unwrap();
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -2735,8 +2745,10 @@ mod tests {
             .unwrap();
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -2800,8 +2812,10 @@ mod tests {
             .unwrap();
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -2863,8 +2877,10 @@ mod tests {
             .unwrap();
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -2937,8 +2953,10 @@ mod tests {
             .unwrap();
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -3186,8 +3204,10 @@ mod tests {
             .unwrap();
             let vault = raindex_client
                 .get_vault(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await

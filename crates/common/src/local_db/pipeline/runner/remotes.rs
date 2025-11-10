@@ -59,8 +59,8 @@ pub fn lookup_manifest_entry(
         .get(&target.manifest_url)
         .and_then(|manifest| {
             manifest.find(
-                target.inputs.target.chain_id,
-                target.inputs.target.orderbook_address,
+                target.inputs.ob_id.chain_id,
+                target.inputs.ob_id.orderbook_address,
             )
         })
         .cloned()
@@ -115,6 +115,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 50
     finality-depth: 12
+    bootstrap-block-threshold: 10000
   network-b:
     batch-size: 20
     max-concurrent-batches: 2
@@ -122,6 +123,7 @@ local-db-sync:
     retry-delay-ms: 200
     rate-limit-delay-ms: 100
     finality-depth: 24
+    bootstrap-block-threshold: 5000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
@@ -177,7 +179,7 @@ orderbooks:
             .expect("target ob-a");
 
         let manifest_entry = ManifestOrderbook {
-            address: target.inputs.target.orderbook_address,
+            address: target.inputs.ob_id.orderbook_address,
             dump_url: Url::parse("https://example.com/dump.sql.gz").unwrap(),
             end_block: 123,
             end_block_hash: Bytes::from_static(&[0x01, 0x02, 0x03]),
@@ -190,7 +192,7 @@ orderbooks:
             networks: HashMap::from([(
                 "network-a".to_string(),
                 ManifestNetwork {
-                    chain_id: target.inputs.target.chain_id,
+                    chain_id: target.inputs.ob_id.chain_id,
                     orderbooks: vec![manifest_entry.clone()],
                 },
             )]),
@@ -431,13 +433,13 @@ networks: {}
     fn lookup_manifest_entry_found() {
         let (target, manifest_map) = sample_runner_target();
         let entry = lookup_manifest_entry(&manifest_map, &target).expect("entry found");
-        assert_eq!(entry.address, target.inputs.target.orderbook_address);
+        assert_eq!(entry.address, target.inputs.ob_id.orderbook_address);
     }
 
     #[test]
     fn lookup_manifest_entry_missing_address() {
         let (mut target, mut manifest_map) = sample_runner_target();
-        target.inputs.target.orderbook_address =
+        target.inputs.ob_id.orderbook_address =
             address!("000000000000000000000000000000000000dead");
         assert!(lookup_manifest_entry(&manifest_map, &target).is_none());
 
@@ -450,7 +452,7 @@ networks: {}
         let (target, mut manifest_map) = sample_runner_target();
         if let Some(manifest) = manifest_map.get_mut(&target.manifest_url) {
             if let Some(network) = manifest.networks.get_mut("network-a") {
-                network.chain_id = target.inputs.target.chain_id + 1;
+                network.chain_id = target.inputs.ob_id.chain_id + 1;
             }
         }
 

@@ -5,8 +5,9 @@ pub mod scheduler;
 use crate::local_db::{
     pipeline::{
         adapters::{
-            apply::DefaultApplyPipeline, events::DefaultEventsPipeline,
-            tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
+            apply::DefaultApplyPipeline, bootstrap::BootstrapPipeline,
+            events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
+            window::DefaultWindowPipeline,
         },
         runner::{
             environment::RunnerEnvironment,
@@ -15,8 +16,7 @@ use crate::local_db::{
                 build_runner_targets, parse_runner_settings, ParsedRunnerSettings, RunnerTarget,
             },
         },
-        ApplyPipeline, BootstrapPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline,
-        WindowPipeline,
+        ApplyPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
     },
     query::LocalDbQueryExecutor,
     LocalDbError,
@@ -173,12 +173,13 @@ mod tests {
     use super::*;
     use crate::local_db::decode::{DecodedEvent, DecodedEventData};
     use crate::local_db::fetch::FetchConfig;
+    use crate::local_db::pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapState};
     use crate::local_db::pipeline::runner::environment::{
         DumpFuture, EnginePipelines, ManifestFuture,
     };
     use crate::local_db::pipeline::{
-        ApplyPipelineTargetInfo, BootstrapConfig, BootstrapPipeline, BootstrapState,
-        EventsPipeline, StatusBus, SyncConfig, TargetKey, TokensPipeline, WindowPipeline,
+        ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, TokensPipeline,
+        WindowPipeline,
     };
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
@@ -186,7 +187,7 @@ mod tests {
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
-    use crate::local_db::LocalDbError;
+    use crate::local_db::{LocalDbError, OrderbookIdentifier};
     use crate::rpc_client::LogEntryResponse;
     use alloy::primitives::{address, Address, Bytes};
     use async_trait::async_trait;
@@ -501,7 +502,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _target_key: &TargetKey,
+            _ob_id: &OrderbookIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -526,7 +527,7 @@ mod tests {
         async fn clear_orderbook_data<DB>(
             &self,
             _db: &DB,
-            _target: &TargetKey,
+            _target: &OrderbookIdentifier,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -583,7 +584,7 @@ mod tests {
         async fn compute<DB>(
             &self,
             _db: &DB,
-            _target: &TargetKey,
+            _ob_id: &OrderbookIdentifier,
             _cfg: &SyncConfig,
             _latest_block: u64,
         ) -> Result<(u64, u64), LocalDbError>
@@ -651,8 +652,7 @@ mod tests {
         async fn load_existing<DB>(
             &self,
             _db: &DB,
-            _chain_id: u32,
-            _orderbook_address: Address,
+            _ob_id: &OrderbookIdentifier,
             _token_addrs_lower: &[Address],
         ) -> Result<
             Vec<crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow>,
@@ -853,6 +853,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 1
     finality-depth: 12
+    bootstrap-block-threshold: 10000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
@@ -889,6 +890,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 1
     finality-depth: 12
+    bootstrap-block-threshold: 10000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
@@ -916,26 +918,20 @@ orderbooks:
             updated_at: None,
         };
         db.set_json_value(&fetch_db_metadata_stmt(), &[metadata_row]);
-        db.set_json_raw(&fetch_target_watermark_stmt(0, Address::ZERO), json!([]));
+        db.set_json_raw(
+            &fetch_target_watermark_stmt(&OrderbookIdentifier::new(0, Address::ZERO)),
+            json!([]),
+        );
     }
 
     fn prepare_db_for_targets(db: &RecordingDb, targets: &[RunnerTarget]) {
         prepare_db_baseline(db);
         for target in targets {
             db.set_json_raw(
-                &fetch_target_watermark_stmt(
-                    target.inputs.target.chain_id,
-                    target.inputs.target.orderbook_address,
-                ),
+                &fetch_target_watermark_stmt(&target.inputs.ob_id),
                 json!([]),
             );
-            db.set_json_raw(
-                &fetch_store_addresses_stmt(
-                    target.inputs.target.chain_id,
-                    target.inputs.target.orderbook_address,
-                ),
-                json!([]),
-            );
+            db.set_json_raw(&fetch_store_addresses_stmt(&target.inputs.ob_id), json!([]));
         }
     }
 
@@ -1012,10 +1008,7 @@ orderbooks:
     }
 
     fn expect_orderbooks(outcomes: &[SyncOutcome], expected: &[Address]) {
-        let mut addrs: Vec<Address> = outcomes
-            .iter()
-            .map(|o| o.target.orderbook_address)
-            .collect();
+        let mut addrs: Vec<Address> = outcomes.iter().map(|o| o.ob_id.orderbook_address).collect();
         addrs.sort();
         let mut expected_sorted = expected.to_vec();
         expected_sorted.sort();
