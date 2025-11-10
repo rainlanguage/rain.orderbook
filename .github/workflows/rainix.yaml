@@ -64,7 +64,6 @@ jobs:
       - run: |
           sudo rm -rf \
             "$AGENT_TOOLSDIRECTORY" \
-            /opt/google/chrome \
             /opt/microsoft/msedge \
             /opt/microsoft/powershell \
             /opt/pipx \
@@ -72,11 +71,15 @@ jobs:
             /usr/local/julia* \
             /usr/local/lib/android \
             /usr/local/lib/node_modules \
-            /usr/local/share/chromium \
             /usr/local/share/powershell \
             /usr/share/dotnet \
             /usr/share/swift
           df -h
+      - if: matrix.task != 'rainix-wasm-browser-test'
+        run: |
+          sudo rm -rf \
+            /opt/google/chrome \
+            /usr/local/share/chromium
 
       - uses: nixbuild/nix-quick-install-action@v30
         with:
